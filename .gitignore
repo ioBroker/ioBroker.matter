@@ -1,0 +1,13 @@
+node_modules
+.idea
+tmp
+.DS_store
+iob_npm.done
+admin/i18n/flat.txt
+admin/i18n/*/flat.txt
+nbproject
+/src/package-lock.json
+package-lock.json
+
+.dev-server
+.vscode

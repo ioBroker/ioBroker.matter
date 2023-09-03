@@ -5,15 +5,15 @@ import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 import AppBar from '@mui/material/AppBar';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
-import Dialog from '@mui/material/Dialog';
-import DialogActions from '@mui/material/DialogActions';
-import DialogContent from '@mui/material/DialogContent';
-import DialogContentText from '@mui/material/DialogContentText';
-import DialogTitle from '@mui/material/DialogTitle';
-import Button from '@mui/material/Button';
 
 import GenericApp from '@iobroker/adapter-react-v5/GenericApp';
 import { I18n, Loader, AdminConnection } from '@iobroker/adapter-react-v5';
+import {
+    Accordion, AccordionDetails, AccordionSummary, IconButton, Switch,
+} from '@mui/material';
+import { Add, Delete, Edit } from '@mui/icons-material';
+import { detectDevices } from './Utils';
+import DeviceDialog from './DeviceDialog';
 
 const styles = theme => ({
     root: {},
@@ -63,17 +63,184 @@ class App extends GenericApp {
 
         super(props, extendedProps);
 
-        this.state.selectedTab = window.localStorage.getItem(`${this.adapterName}.${this.instance}.selectedTab`) || 'options';
+        this.state.selectedTab = window.localStorage.getItem(`${this.adapterName}.${this.instance}.selectedTab`) || 'controller';
+
+        this.state.matter = {
+            controller: {
+                enabled: true,
+            },
+            bridges: {
+                settings: {
+                },
+                list: [
+                    {
+                        name: 'Blabla1',
+                        enabled: true,
+                        list: [
+                            {
+                                oid: 'hmip.1.lightABC',
+                                type: 'from Typedetector',
+                                name: 'Blabla',
+                                enabled: true,
+                            },
+                            {
+                                oid: 'hmip.1.lightABC',
+                                type: 'from Typedetector',
+                                name: 'Blabla',
+                                enabled: true,
+                            },
+                        ],
+                    },
+                    {
+                        name: 'Blabla2',
+                        enabled: true,
+                        list: [
+                            {
+                                oid: 'hmip.1.lightABC',
+                                type: 'from Typedetector',
+                                name: 'Blabla',
+                                enabled: true,
+                            },
+                            {
+                                oid: 'hmip.1.lightABC',
+                                type: 'from Typedetector',
+                                name: 'Blabla',
+                                enabled: true,
+                            },
+                        ],
+                    },
+
+                ],
+            },
+            devices: {
+                settings: {
+                },
+                list: [
+                    {
+                        oid: 'hmip.1.lightABC',
+                        type: 'from Typedetector',
+                        name: 'Blabla',
+                        enabled: true,
+                    },
+                ],
+            },
+        };
+
+        this.state.devices = [];
+
+        this.state.dialog = false;
     }
 
-    onConnectionReady() {
+    async onConnectionReady() {
         this.socket.getState(`${this.adapterName}.${this.instance}.info.ackTempPassword`)
             .then(state => {
                 if (!state || !state.val) {
                     this.setState({ showAckTempPasswordDialog: true });
                 }
             });
+        this.setState({ devices: await detectDevices(this.socket) });
     }
+
+    renderController() {
+        return <Switch
+            checked={this.state.matter.controller.enabled}
+            onChange={e => {
+                const matter = JSON.parse(JSON.stringify(this.state.matter));
+                matter.controller.enabled = e.target.checked;
+                this.setState({ matter });
+            }}
+        />;
+    }
+
+    renderBridges() {
+        return <div>
+            <div>
+                <IconButton onClick={() => this.setState(
+                    {
+                        dialog: {
+                            type: 'bridge',
+                        },
+                    },
+                )}
+                >
+                    <Add />
+                </IconButton>
+            </div>
+            {
+                this.state.matter.bridges.list.map((bridge, index) => <div key={index}>
+                    <Accordion>
+                        <AccordionSummary>
+                            {bridge.name}
+                            <Switch
+                                checked={bridge.enabled}
+                                onChange={e => {
+                                    const matter = JSON.parse(JSON.stringify(this.state.matter));
+                                    matter.bridges.list[index].enabled = e.target.checked;
+                                    this.setState({ matter });
+                                }}
+                            />
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <div>{I18n.t('Devices')}</div>
+                            <div>
+                                <IconButton onClick={() => this.setState(
+                                    {
+                                        dialog: {
+                                            type: 'bridge',
+                                            bridge,
+                                        },
+                                    },
+                                )}
+                                >
+                                    <Add />
+                                </IconButton>
+                            </div>
+                            {bridge.list.map((device, index2) => <div key={index2}>
+                                {device.name}
+                                <IconButton>
+                                    <Delete />
+                                </IconButton>
+                            </div>)}
+                        </AccordionDetails>
+                    </Accordion>
+                </div>)
+            }
+        </div>;
+    }
+
+    renderDevices() {
+        return <div>
+            <div>
+                <IconButton onClick={() => this.setState(
+                    {
+                        dialog: {
+                            type: 'device',
+                        },
+                    },
+                )}
+                >
+                    <Add />
+                </IconButton>
+            </div>
+            {
+                this.state.matter.devices.list.map((device, index) => <div key={index}>
+                    {device.name}
+                    <Switch
+                        checked={device.enabled}
+                        onChange={e => {
+                            const matter = JSON.parse(JSON.stringify(this.state.matter));
+                            matter.devices.list[index].enabled = e.target.checked;
+                            this.setState({ matter });
+                        }}
+                    />
+                    <IconButton>
+                        <Delete />
+                    </IconButton>
+                </div>)
+            }
+        </div>;
+    }
+
     render() {
         if (!this.state.loaded) {
             return <StyledEngineProvider injectFirst>
@@ -85,10 +252,18 @@ class App extends GenericApp {
 
         return <StyledEngineProvider injectFirst>
             <ThemeProvider theme={this.state.theme}>
+                <DeviceDialog
+                    open={!!this.state.dialog}
+                    onClose={() => this.setState({ dialog: false })}
+                    type={this.state.dialog.type}
+                    device={this.state.dialog.device}
+                    bridge={this.state.dialog.bridge}
+                    socket={this.socket}
+                />
                 <div className="App" style={{ background: this.state.theme.palette.background.default, color: this.state.theme.palette.text.primary }}>
                     <AppBar position="static">
                         <Tabs
-                            value={this.state.selectedTab || 'options'}
+                            value={this.state.selectedTab || 'controller'}
                             onChange={(e, value) => {
                                 this.setState({ selectedTab: value });
                                 window.localStorage.setItem(`${this.adapterName}.${this.instance}.selectedTab`, value);
@@ -96,12 +271,16 @@ class App extends GenericApp {
                             scrollButtons="auto"
                             classes={{ indicator: this.props.classes.indicator }}
                         >
-                            <Tab />
+                            <Tab classes={{ selected: this.props.classes.selected }} label={I18n.t('Controller')} value="controller" />
+                            <Tab classes={{ selected: this.props.classes.selected }} label={I18n.t('Bridges')} value="bridges" />
+                            <Tab classes={{ selected: this.props.classes.selected }} label={I18n.t('Devices')} value="devices" />
                         </Tabs>
                     </AppBar>
 
                     <div className={this.isIFrame ? this.props.classes.tabContentIFrame : this.props.classes.tabContent}>
-                       
+                        {this.state.selectedTab === 'controller' && this.renderController()}
+                        {this.state.selectedTab === 'bridges' && this.renderBridges()}
+                        {this.state.selectedTab === 'devices' && this.renderDevices()}
                     </div>
                     {this.renderError()}
                     {this.renderSaveCloseButtons()}

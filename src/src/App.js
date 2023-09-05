@@ -197,7 +197,12 @@ class App extends GenericApp {
                             </div>
                             {bridge.list.map((device, index2) => <div key={index2}>
                                 {device.name}
-                                <IconButton>
+                                <IconButton onClick={() => {
+                                    const matter = JSON.parse(JSON.stringify(this.state.matter));
+                                    matter.bridges.list[index].list.splice(index2, 1);
+                                    this.setState({ matter });
+                                }}
+                                >
                                     <Delete />
                                 </IconButton>
                             </div>)}
@@ -233,7 +238,12 @@ class App extends GenericApp {
                             this.setState({ matter });
                         }}
                     />
-                    <IconButton>
+                    <IconButton onClick={() => {
+                        const matter = JSON.parse(JSON.stringify(this.state.matter));
+                        matter.devices.list.splice(index, 1);
+                        this.setState({ matter });
+                    }}
+                    >
                         <Delete />
                     </IconButton>
                 </div>)

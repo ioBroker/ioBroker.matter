@@ -1,0 +1,53 @@
+{
+  "name": "iobroker.matter",
+  "version": "2.0.11",
+  "description": "Controlling and simulation of matter devices",
+  "author": {
+    "name": "Ingo Fischer",
+    "email": "ingo@fischer-ka.de"
+  },
+  "homepage": "https://github.com/ioBroker/ioBroker.matter",
+  "keywords": [
+    "ioBroker",
+    "matter"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ioBroker/ioBroker.matter"
+  },
+  "dependencies": {
+    "@iobroker/adapter-core": "^2.6.8"
+  },
+  "devDependencies": {
+    "@alcalzone/release-script": "^3.5.9",
+    "@alcalzone/release-script-plugin-iobroker": "^3.5.9",
+    "@alcalzone/release-script-plugin-license": "^3.5.9",
+    "@types/iobroker": "^4.0.5",
+    "@types/node": "^20.3.3",
+    "chai": "^4.3.7",
+    "gulp": "^4.0.2",
+    "mocha": "^10.2.0"
+  },
+  "bugs": {
+    "url": "https://github.com/ioBroker/ioBroker.matter/issues"
+  },
+  "main": "main.js",
+  "files": [
+    "admin/",
+    "io-package.json",
+    "LICENSE",
+    "main.js"
+  ],
+  "scripts": {
+    "test": "mocha --exit",
+    "prepublishOnly": "gulp",
+    "build": "gulp",
+    "release": "release-script",
+    "release-patch": "release-script patch --yes",
+    "release-minor": "release-script minor --yes",
+    "release-major": "release-script major --yes",
+    "update-packages": "ncu --upgrade && cd src && ncu --upgrade && cd .. && cd src-rules && ncu --upgrade && cd .."
+  },
+  "license": "Apache-2.0",
+  "readmeFilename": "README.md"
+}

@@ -1,19 +1,30 @@
 import React from 'react';
 import { withStyles } from '@mui/styles';
+import { v4 as uuidv4 } from 'uuid';
 import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 
-import { v4 as uuidv4 } from 'uuid';
+import {
+    AppBar,
+    Tabs,
+    Tab,
+    Accordion,
+    AccordionDetails,
+    AccordionSummary,
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    IconButton,
+    Switch,
+    Tooltip,
+} from '@mui/material';
 
-import AppBar from '@mui/material/AppBar';
-import Tabs from '@mui/material/Tabs';
-import Tab from '@mui/material/Tab';
+import { Add, Delete, Edit } from '@mui/icons-material';
 
 import GenericApp from '@iobroker/adapter-react-v5/GenericApp';
 import { I18n, Loader, AdminConnection } from '@iobroker/adapter-react-v5';
-import {
-    Accordion, AccordionDetails, AccordionSummary, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Switch, Tooltip,
-} from '@mui/material';
-import { Add, Delete, Edit } from '@mui/icons-material';
+
 import { detectDevices } from './Utils';
 import DeviceDialog from './DeviceDialog';
 
@@ -366,7 +377,6 @@ class App extends GenericApp {
                             matter.devices.list.splice(this.state.deleteDialog.device, 1);
                         }
                         this.setState({ matter, deleteDialog: false });
-                        this.setState({ deleteDialog: false });
                     }}
                     color="primary"
                 >

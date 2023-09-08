@@ -23,7 +23,8 @@
         "react-dom": "^18.2.0",
         "react-icons": "^4.9.0",
         "react-inlinesvg": "^3.0.2",
-        "react-scripts": "^5.0.1"
+        "react-scripts": "^5.0.1",
+        "uuid": "^9.0.0"
     },
     "scripts": {
         "start": "react-scripts start",

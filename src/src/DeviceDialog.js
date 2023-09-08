@@ -79,6 +79,12 @@ const DeviceDialog = props => {
     }, [props.open, props.socket]);
 
     const handleSubmit = () => {
+        const devices = [];
+        Object.keys(devicesChecked).forEach(id => {
+            const checked = devicesChecked[id];
+            checked && devices.push(id);
+        });
+        props.addDevices(devices);
         props.onClose();
     };
 
@@ -90,16 +96,16 @@ const DeviceDialog = props => {
         open={props.open}
         onClose={props.onClose}
         fullWidth
-        PaperProps={{
-            style: {
-                maxHeight: 'calc(100% - 80px)',
-                height: 'calc(100% - 80px)',
-            },
-        }}
     >
-        <DialogTitle>{I18n.t('Wizard')}</DialogTitle>
-        <DialogContent style={{ height: '100%', overflowY: 'hidden' }}>
-            {rooms ? <div style={{ height: '100%', overflowY: 'hidden' }}>
+        <DialogTitle>{I18n.t('Add devices')}</DialogTitle>
+        <DialogContent style={{
+            display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden',
+        }}
+        >
+            {rooms ? <div style={{
+                display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden',
+            }}
+            >
                 <div>
                     <FormControlLabel
                         control={<Checkbox
@@ -114,7 +120,7 @@ const DeviceDialog = props => {
                         label={allChecked ? I18n.t('Unselect all rooms') : I18n.t('Select all rooms')}
                     />
                 </div>
-                <div style={{ height: 'calc(100% - 120px)', overflowY: 'auto' }}>
+                <div style={{ flex: 1, overflowY: 'auto' }}>
                     {!rooms.length ? <div>{I18n.t('Nothing detected')}</div> : null}
                     {rooms.map((room, roomId) => <div key={room._id}>
                         <Accordion>
@@ -188,7 +194,7 @@ const DeviceDialog = props => {
                                             fullWidth
                                             label={device._id}
                                             helperText={<span style={{ fontStyle: 'italic' }}>
-                                                {`${I18n.t('Device type')}: ${I18n.t(device.deviceType).replace('vis_2_widgets_material_', '')}`}
+                                                {`${I18n.t('Device type')}: ${I18n.t(device.deviceType)}`}
                                             </span>}
                                             value={device.common.name}
                                             onChange={e => {
@@ -212,7 +218,7 @@ const DeviceDialog = props => {
                 onClick={handleSubmit}
                 startIcon={<Add />}
             >
-                {I18n.t('Add widgets')}
+                {I18n.t('Add devices')}
             </Button>
             <Button
                 variant="contained"

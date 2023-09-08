@@ -2,6 +2,8 @@ import React from 'react';
 import { withStyles } from '@mui/styles';
 import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 
+import { v4 as uuidv4 } from 'uuid';
+
 import AppBar from '@mui/material/AppBar';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
@@ -9,7 +11,7 @@ import Tab from '@mui/material/Tab';
 import GenericApp from '@iobroker/adapter-react-v5/GenericApp';
 import { I18n, Loader, AdminConnection } from '@iobroker/adapter-react-v5';
 import {
-    Accordion, AccordionDetails, AccordionSummary, IconButton, Switch,
+    Accordion, AccordionDetails, AccordionSummary, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Switch, Tooltip,
 } from '@mui/material';
 import { Add, Delete, Edit } from '@mui/icons-material';
 import { detectDevices } from './Utils';
@@ -80,13 +82,13 @@ class App extends GenericApp {
                             {
                                 oid: 'hmip.1.lightABC',
                                 type: 'from Typedetector',
-                                name: 'Blabla',
+                                name: 'Blabla1',
                                 enabled: true,
                             },
                             {
                                 oid: 'hmip.1.lightABC',
                                 type: 'from Typedetector',
-                                name: 'Blabla',
+                                name: 'Blabla2',
                                 enabled: true,
                             },
                         ],
@@ -98,13 +100,13 @@ class App extends GenericApp {
                             {
                                 oid: 'hmip.1.lightABC',
                                 type: 'from Typedetector',
-                                name: 'Blabla',
+                                name: 'Blabla1',
                                 enabled: true,
                             },
                             {
                                 oid: 'hmip.1.lightABC',
                                 type: 'from Typedetector',
-                                name: 'Blabla',
+                                name: 'Blabla2',
                                 enabled: true,
                             },
                         ],
@@ -152,63 +154,139 @@ class App extends GenericApp {
         />;
     }
 
+    addDevices = devices => {
+        const matter = JSON.parse(JSON.stringify(this.state.matter));
+        devices.forEach(device => {
+            if (!matter.devices.list.find(d => d.oid === device)) {
+                matter.devices.list.push({
+                    oid: device,
+                    type: 'from Typedetector',
+                    name: device,
+                    uuid: uuidv4(),
+                });
+            }
+        });
+        this.setState({ matter });
+    };
+
+    addDevicesToBridge = devices => {
+        const matter = JSON.parse(JSON.stringify(this.state.matter));
+        if (this.state.dialog.bridge) {
+            const bridge = matter.bridges.list[this.state.dialog.bridge];
+            devices.forEach(device => {
+                if (!bridge.list.find(d => d.oid === device)) {
+                    bridge.list.push({
+                        oid: device,
+                        type: 'from Typedetector',
+                        name: device,
+                        uuid: uuidv4(),
+                    });
+                }
+            });
+        } else {
+            const bridge = {
+                name: 'New bridge',
+                enabled: true,
+                list: devices.map(device => ({
+                    oid: device, type: 'from Typedetector', name: 'Blabla', enabled: true,
+                })),
+                uuid: uuidv4(),
+            };
+            matter.bridges.list.push(bridge);
+        }
+        this.setState({ matter });
+    };
+
     renderBridges() {
         return <div>
             <div>
-                <IconButton onClick={() => this.setState(
-                    {
-                        dialog: {
-                            type: 'bridge',
+                <Tooltip title={I18n.t('Add bridge')}>
+                    <IconButton onClick={() => this.setState(
+                        {
+                            dialog: {
+                                type: 'bridge',
+                                addDevices: this.addDevicesToBridge,
+                            },
                         },
-                    },
-                )}
-                >
-                    <Add />
-                </IconButton>
+                    )}
+                    >
+                        <Add />
+                    </IconButton>
+                </Tooltip>
             </div>
             {
-                this.state.matter.bridges.list.map((bridge, index) => <div key={index}>
-                    <Accordion>
-                        <AccordionSummary>
-                            {bridge.name}
+                this.state.matter.bridges.list.map((bridge, index) => <Accordion key={index}>
+                    <AccordionSummary>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <h4>{bridge.name}</h4>
                             <Switch
                                 checked={bridge.enabled}
+                                onClick={e => e.stopPropagation()}
                                 onChange={e => {
                                     const matter = JSON.parse(JSON.stringify(this.state.matter));
                                     matter.bridges.list[index].enabled = e.target.checked;
                                     this.setState({ matter });
                                 }}
                             />
-                        </AccordionSummary>
-                        <AccordionDetails>
-                            <div>{I18n.t('Devices')}</div>
-                            <div>
+                            <Tooltip title={I18n.t('Delete bridge')}>
+                                <IconButton onClick={e => {
+                                    e.stopPropagation();
+                                    this.setState(
+                                        {
+                                            deleteDialog: {
+                                                type: 'bridge',
+                                                name: bridge.name,
+                                                bridge: index,
+                                            },
+                                        },
+                                    );
+                                }}
+                                >
+                                    <Delete />
+                                </IconButton>
+                            </Tooltip>
+                        </div>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <div>
+                            <b>{I18n.t('Devices')}</b>
+                            <Tooltip title={I18n.t('Add device')}>
                                 <IconButton onClick={() => this.setState(
                                     {
                                         dialog: {
                                             type: 'bridge',
-                                            bridge,
+                                            bridge: index,
+                                            addDevices: this.addDevicesToBridge,
                                         },
                                     },
                                 )}
                                 >
                                     <Add />
                                 </IconButton>
-                            </div>
-                            {bridge.list.map((device, index2) => <div key={index2}>
-                                {device.name}
+                            </Tooltip>
+                        </div>
+                        {bridge.list.map((device, index2) => <div key={index2}>
+                            {device.name}
+                            <Tooltip title={I18n.t('Delete device')}>
                                 <IconButton onClick={() => {
-                                    const matter = JSON.parse(JSON.stringify(this.state.matter));
-                                    matter.bridges.list[index].list.splice(index2, 1);
-                                    this.setState({ matter });
+                                    this.setState(
+                                        {
+                                            deleteDialog: {
+                                                type: 'device',
+                                                name: device.name,
+                                                bridge: index,
+                                                device: index2,
+                                            },
+                                        },
+                                    );
                                 }}
                                 >
                                     <Delete />
                                 </IconButton>
-                            </div>)}
-                        </AccordionDetails>
-                    </Accordion>
-                </div>)
+                            </Tooltip>
+                        </div>)}
+                    </AccordionDetails>
+                </Accordion>)
             }
         </div>;
     }
@@ -216,19 +294,22 @@ class App extends GenericApp {
     renderDevices() {
         return <div>
             <div>
-                <IconButton onClick={() => this.setState(
-                    {
-                        dialog: {
-                            type: 'device',
+                <Tooltip title={I18n.t('Add device')}>
+                    <IconButton onClick={() => this.setState(
+                        {
+                            dialog: {
+                                type: 'device',
+                                addDevices: this.addDevices,
+                            },
                         },
-                    },
-                )}
-                >
-                    <Add />
-                </IconButton>
+                    )}
+                    >
+                        <Add />
+                    </IconButton>
+                </Tooltip>
             </div>
             {
-                this.state.matter.devices.list.map((device, index) => <div key={index}>
+                this.state.matter.devices.list.map((device, index) => <div key={index} style={{ display: 'flex', alignItems: 'center' }}>
                     {device.name}
                     <Switch
                         checked={device.enabled}
@@ -238,17 +319,61 @@ class App extends GenericApp {
                             this.setState({ matter });
                         }}
                     />
-                    <IconButton onClick={() => {
-                        const matter = JSON.parse(JSON.stringify(this.state.matter));
-                        matter.devices.list.splice(index, 1);
-                        this.setState({ matter });
-                    }}
-                    >
-                        <Delete />
-                    </IconButton>
+                    <Tooltip title={I18n.t('Delete device')}>
+                        <IconButton onClick={() => {
+                            this.setState(
+                                {
+                                    deleteDialog: {
+                                        type: 'device',
+                                        name: device.name,
+                                        device: index,
+                                    },
+                                },
+                            );
+                        }}
+                        >
+                            <Delete />
+                        </IconButton>
+                    </Tooltip>
                 </div>)
             }
         </div>;
+    }
+
+    renderDeleteDialog() {
+        return <Dialog onClose={() => this.setState({ deleteDialog: false })} open={!!this.state.deleteDialog}>
+            <DialogTitle>{I18n.t('Delete')}</DialogTitle>
+            {this.state.deleteDialog && <DialogContent>
+                {`${
+                    this.state.deleteDialog.type === 'bridge' ?
+                        I18n.t('Do you want to delete bridge') :
+                        I18n.t('Do you want to delete device')} ${
+                    this.state.deleteDialog.name
+                }?`}
+            </DialogContent>}
+            <DialogActions>
+                <Button onClick={() => this.setState({ deleteDialog: false })} color="primary">
+                    {I18n.t('Cancel')}
+                </Button>
+                <Button
+                    onClick={() => {
+                        const matter = JSON.parse(JSON.stringify(this.state.matter));
+                        if (this.state.deleteDialog.type === 'bridge') {
+                            matter.bridges.list.splice(this.state.deleteDialog.bridge, 1);
+                        } else if (this.state.deleteDialog.bridge !== undefined) {
+                            matter.bridges.list[this.state.deleteDialog.bridge].list.splice(this.state.deleteDialog.device, 1);
+                        } else {
+                            matter.devices.list.splice(this.state.deleteDialog.device, 1);
+                        }
+                        this.setState({ matter, deleteDialog: false });
+                        this.setState({ deleteDialog: false });
+                    }}
+                    color="primary"
+                >
+                    {I18n.t('Delete')}
+                </Button>
+            </DialogActions>
+        </Dialog>;
     }
 
     render() {
@@ -268,8 +393,10 @@ class App extends GenericApp {
                     type={this.state.dialog.type}
                     device={this.state.dialog.device}
                     bridge={this.state.dialog.bridge}
+                    addDevices={this.state.dialog.addDevices}
                     socket={this.socket}
                 />
+                {this.renderDeleteDialog()}
                 <div className="App" style={{ background: this.state.theme.palette.background.default, color: this.state.theme.palette.text.primary }}>
                     <AppBar position="static">
                         <Tabs

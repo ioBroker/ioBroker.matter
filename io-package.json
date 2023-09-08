@@ -1,0 +1,67 @@
+{
+  "common": {
+    "name": "matter",
+    "version": "2.0.11",
+    "news": {
+
+    },
+    "title": "Matter",
+    "titleLang": {
+      "en": "Matter protocol",
+      "de": "Materielles Protokoll",
+      "ru": "Мэттерный протокол",
+      "pt": "Protocolo de matéria",
+      "nl": "Matter protocol",
+      "fr": "Matter protocol",
+      "it": "Protocollo della materia",
+      "es": "Protocolo de la materia",
+      "pl": "Protokół Matter",
+      "uk": "Протокол Маттер",
+      "zh-cn": "马特议定书"
+    },
+    "desc": {
+      "en": "Controlling and simulation of matter devices",
+      "de": "Steuerung und Simulation von Matter-geräten",
+      "ru": "Контроль и моделирование Matter-устройств",
+      "pt": "Controle e simulação de Matter-dispositivos",
+      "nl": "Controleren en simulatie van Matter-apparaten",
+      "fr": "Contrôle et simulation des Matter-dispositifs",
+      "it": "Controllo e simulazione di Matter-dispositivi",
+      "es": "Control y simulación de Matter-dispositivos",
+      "pl": "Kontrola i symulacja Matter-urządzeń",
+      "uk": "Контроль та імітація Matter-пристроїв",
+      "zh-cn": "控制和模拟事故装置"
+    },
+    "authors": [
+      "Ingo Fischer <ingo@fischer-ka.de>"
+    ],
+    "license": "Apache-2.0",
+    "platform": "Javascript/Node.js",
+    "mode": "daemon",
+    "loglevel": "info",
+    "readme": "https://github.com/ioBroker/ioBroker.matter/blob/master/README.md",
+    "icon": "matter.png",
+    "connectionType": "local",
+    "dataSource": "push",
+    "tier": 3,
+    "keywords": [
+      "matter"
+    ],
+    "enabled": true,
+    "compact": true,
+    "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.matter/master/admin/matter.png",
+    "type": "iot-systems",
+    "messagebox": true,
+    "plugins": {
+      "sentry": {
+        "dsn": "https://de38f4a20c964ce395d2e236c64aa075@sentry.iobroker.net/234"
+      }
+    }
+  },
+  "native": {
+
+  },
+  "objects": [],
+  "instanceObjects": [
+  ]
+}

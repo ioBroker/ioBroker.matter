@@ -1,3 +1,4 @@
+import { I18n } from '@iobroker/adapter-react-v5';
 import { ChannelDetector } from 'iobroker.type-detector';
 
 function getObjectIcon(obj, id, imagePrefix) {
@@ -58,7 +59,7 @@ const allObjects = async socket => {
         .reduce((obj, item) => (obj[item._id] = item, obj), {});
 };
 
-const detectDevices = async socket => {
+export const detectDevices = async socket => {
     const devicesObject = await allObjects(socket);
     const keys = Object.keys(devicesObject).sort();
     const detector = new ChannelDetector();
@@ -225,6 +226,4 @@ const detectDevices = async socket => {
     return result;
 };
 
-export {
-    detectDevices,
-};
+export const getText = text => (typeof text === 'object' ? text?.[I18n.getLanguage()] : text);

@@ -6,7 +6,7 @@ import {
 import {
     Add, Blinds, Close, DirectionsRun, ExpandMore, Lightbulb, Lock, Palette, PlayArrowRounded, Power, SensorDoor, Thermostat, TipsAndUpdates, Tune, VolumeUp, Water, WaterDrop, WbSunny, Whatshot, Window,
 } from '@mui/icons-material';
-import { detectDevices } from './Utils';
+import { detectDevices, getText } from './Utils';
 
 const deviceIcons = {
     blind: <Blinds />,
@@ -30,8 +30,6 @@ const deviceIcons = {
     window: <Window />,
     windowTilt: <Window />,
 };
-
-const getText = text => (typeof text === 'object' ? text?.[I18n.getLanguage()] : text);
 
 const DeviceDialog = props => {
     const [rooms, setRooms] = useState(null);
@@ -80,10 +78,12 @@ const DeviceDialog = props => {
 
     const handleSubmit = () => {
         const devices = [];
-        Object.keys(devicesChecked).forEach(id => {
-            const checked = devicesChecked[id];
-            checked && devices.push(id);
+        rooms.forEach(room => {
+            room.devices.forEach(device => {
+                devices.push(device);
+            });
         });
+        console.log(devices);
         props.addDevices(devices);
         props.onClose();
     };

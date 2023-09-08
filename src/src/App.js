@@ -13,8 +13,8 @@ import { I18n, Loader, AdminConnection } from '@iobroker/adapter-react-v5';
 import {
     Accordion, AccordionDetails, AccordionSummary, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Switch, Tooltip,
 } from '@mui/material';
-import { Add, Delete, Edit } from '@mui/icons-material';
-import { detectDevices } from './Utils';
+import { Add, Delete } from '@mui/icons-material';
+import { detectDevices, getText } from './Utils';
 import DeviceDialog from './DeviceDialog';
 
 const styles = theme => ({
@@ -159,9 +159,9 @@ class App extends GenericApp {
         devices.forEach(device => {
             if (!matter.devices.list.find(d => d.oid === device)) {
                 matter.devices.list.push({
-                    oid: device,
+                    oid: device._id,
                     type: 'from Typedetector',
-                    name: device,
+                    name: getText(device.common.name),
                     uuid: uuidv4(),
                 });
             }
@@ -176,9 +176,9 @@ class App extends GenericApp {
             devices.forEach(device => {
                 if (!bridge.list.find(d => d.oid === device)) {
                     bridge.list.push({
-                        oid: device,
+                        oid: device._id,
                         type: 'from Typedetector',
-                        name: device,
+                        name: getText(device.common.name),
                         uuid: uuidv4(),
                     });
                 }
@@ -188,7 +188,10 @@ class App extends GenericApp {
                 name: 'New bridge',
                 enabled: true,
                 list: devices.map(device => ({
-                    oid: device, type: 'from Typedetector', name: 'Blabla', enabled: true,
+                    oid: device._id,
+                    type: 'from Typedetector',
+                    name: getText(device.common.name),
+                    enabled: true,
                 })),
                 uuid: uuidv4(),
             };

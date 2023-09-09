@@ -170,7 +170,7 @@ class App extends GenericApp {
             if (!matter.devices.list.find(d => d.oid === device)) {
                 matter.devices.list.push({
                     oid: device._id,
-                    type: 'from Typedetector',
+                    type: device.deviceType,
                     name: getText(device.common.name),
                     uuid: uuidv4(),
                 });
@@ -187,7 +187,7 @@ class App extends GenericApp {
                 if (!bridge.list.find(d => d.oid === device)) {
                     bridge.list.push({
                         oid: device._id,
-                        type: 'from Typedetector',
+                        type: device.deviceType,
                         name: getText(device.common.name),
                         uuid: uuidv4(),
                     });
@@ -199,7 +199,7 @@ class App extends GenericApp {
                 enabled: true,
                 list: devices.map(device => ({
                     oid: device._id,
-                    type: 'from Typedetector',
+                    type: device.deviceType,
                     name: getText(device.common.name),
                     enabled: true,
                 })),
@@ -280,6 +280,14 @@ class App extends GenericApp {
                         </div>
                         {bridge.list.map((device, index2) => <div key={index2}>
                             {device.name}
+                            <Switch
+                                checked={device.enabled}
+                                onChange={e => {
+                                    const matter = JSON.parse(JSON.stringify(this.state.matter));
+                                    matter.bridges.list[index].list[index2].enabled = e.target.checked;
+                                    this.setState({ matter });
+                                }}
+                            />
                             <Tooltip title={I18n.t('Delete device')}>
                                 <IconButton onClick={() => {
                                     this.setState(

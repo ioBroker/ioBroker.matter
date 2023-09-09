@@ -77,67 +77,6 @@ class App extends GenericApp {
 
         this.state.selectedTab = window.localStorage.getItem(`${this.adapterName}.${this.instance}.selectedTab`) || 'controller';
 
-        this.state.matter = {
-            controller: {
-                enabled: true,
-            },
-            bridges: {
-                settings: {
-                },
-                list: [
-                    {
-                        name: 'Blabla1',
-                        enabled: true,
-                        list: [
-                            {
-                                oid: 'hmip.1.lightABC',
-                                type: 'from Typedetector',
-                                name: 'Blabla1',
-                                enabled: true,
-                            },
-                            {
-                                oid: 'hmip.1.lightABC',
-                                type: 'from Typedetector',
-                                name: 'Blabla2',
-                                enabled: true,
-                            },
-                        ],
-                    },
-                    {
-                        name: 'Blabla2',
-                        enabled: true,
-                        list: [
-                            {
-                                oid: 'hmip.1.lightABC',
-                                type: 'from Typedetector',
-                                name: 'Blabla1',
-                                enabled: true,
-                            },
-                            {
-                                oid: 'hmip.1.lightABC',
-                                type: 'from Typedetector',
-                                name: 'Blabla2',
-                                enabled: true,
-                            },
-                        ],
-                    },
-
-                ],
-            },
-            devices: {
-                settings: {
-                },
-                list: [
-                    {
-                        oid: 'hmip.1.lightABC',
-                        type: 'from Typedetector',
-                        name: 'Blabla',
-                        enabled: true,
-                    },
-                ],
-            },
-        };
-
         this.state.devices = [];
 
         this.state.dialog = false;
@@ -151,21 +90,33 @@ class App extends GenericApp {
                 }
             });
         this.setState({ devices: await detectDevices(this.socket) });
+        const matter = JSON.parse(JSON.stringify(this.state.native));
+        if (!matter.controller) {
+            matter.controller = { enabled: true };
+        }
+        if (!matter.devices) {
+            matter.devices = { settings: {}, list: [] };
+        }
+        if (!matter.bridges) {
+            matter.bridges = { settings: {}, list: [] };
+        }
+        const changed = this.getIsChanged(matter);
+        this.setState({ native: matter, changed });
     }
 
     renderController() {
         return <Switch
-            checked={this.state.matter.controller.enabled}
+            checked={this.state.native.controller.enabled}
             onChange={e => {
-                const matter = JSON.parse(JSON.stringify(this.state.matter));
+                const matter = JSON.parse(JSON.stringify(this.state.native));
                 matter.controller.enabled = e.target.checked;
-                this.setState({ matter });
+                this.updateNativeValue('controller', matter.controller);
             }}
         />;
     }
 
     addDevices = devices => {
-        const matter = JSON.parse(JSON.stringify(this.state.matter));
+        const matter = JSON.parse(JSON.stringify(this.state.native));
         devices.forEach(device => {
             if (!matter.devices.list.find(d => d.oid === device)) {
                 matter.devices.list.push({
@@ -176,11 +127,11 @@ class App extends GenericApp {
                 });
             }
         });
-        this.setState({ matter });
+        this.updateNativeValue('devices', matter.devices);
     };
 
     addDevicesToBridge = devices => {
-        const matter = JSON.parse(JSON.stringify(this.state.matter));
+        const matter = JSON.parse(JSON.stringify(this.state.native));
         if (this.state.dialog.bridge) {
             const bridge = matter.bridges.list[this.state.dialog.bridge];
             devices.forEach(device => {
@@ -207,7 +158,7 @@ class App extends GenericApp {
             };
             matter.bridges.list.push(bridge);
         }
-        this.setState({ matter });
+        this.updateNativeValue('bridges', matter.bridges);
     };
 
     renderBridges() {
@@ -228,7 +179,7 @@ class App extends GenericApp {
                 </Tooltip>
             </div>
             {
-                this.state.matter.bridges.list.map((bridge, index) => <Accordion key={index}>
+                this.state.native.bridges.list.map((bridge, index) => <Accordion key={index}>
                     <AccordionSummary>
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                             <h4>{bridge.name}</h4>
@@ -236,9 +187,9 @@ class App extends GenericApp {
                                 checked={bridge.enabled}
                                 onClick={e => e.stopPropagation()}
                                 onChange={e => {
-                                    const matter = JSON.parse(JSON.stringify(this.state.matter));
+                                    const matter = JSON.parse(JSON.stringify(this.state.native));
                                     matter.bridges.list[index].enabled = e.target.checked;
-                                    this.setState({ matter });
+                                    this.updateNativeValue('bridges', matter.bridges);
                                 }}
                             />
                             <Tooltip title={I18n.t('Delete bridge')}>
@@ -283,9 +234,9 @@ class App extends GenericApp {
                             <Switch
                                 checked={device.enabled}
                                 onChange={e => {
-                                    const matter = JSON.parse(JSON.stringify(this.state.matter));
+                                    const matter = JSON.parse(JSON.stringify(this.state.native));
                                     matter.bridges.list[index].list[index2].enabled = e.target.checked;
-                                    this.setState({ matter });
+                                    this.updateNativeValue('bridges', matter.bridges);
                                 }}
                             />
                             <Tooltip title={I18n.t('Delete device')}>
@@ -330,14 +281,14 @@ class App extends GenericApp {
                 </Tooltip>
             </div>
             {
-                this.state.matter.devices.list.map((device, index) => <div key={index} style={{ display: 'flex', alignItems: 'center' }}>
+                this.state.native.devices.list.map((device, index) => <div key={index} style={{ display: 'flex', alignItems: 'center' }}>
                     {device.name}
                     <Switch
                         checked={device.enabled}
                         onChange={e => {
-                            const matter = JSON.parse(JSON.stringify(this.state.matter));
+                            const matter = JSON.parse(JSON.stringify(this.state.native));
                             matter.devices.list[index].enabled = e.target.checked;
-                            this.setState({ matter });
+                            this.updateNativeValue('devices', matter.devices);
                         }}
                     />
                     <Tooltip title={I18n.t('Delete device')}>
@@ -378,15 +329,18 @@ class App extends GenericApp {
                 </Button>
                 <Button
                     onClick={() => {
-                        const matter = JSON.parse(JSON.stringify(this.state.matter));
+                        const matter = JSON.parse(JSON.stringify(this.state.native));
                         if (this.state.deleteDialog.type === 'bridge') {
                             matter.bridges.list.splice(this.state.deleteDialog.bridge, 1);
+                            this.updateNativeValue('bridges', matter.bridges);
                         } else if (this.state.deleteDialog.bridge !== undefined) {
                             matter.bridges.list[this.state.deleteDialog.bridge].list.splice(this.state.deleteDialog.device, 1);
+                            this.updateNativeValue('bridges', matter.bridges);
                         } else {
                             matter.devices.list.splice(this.state.deleteDialog.device, 1);
+                            this.updateNativeValue('devices', matter.devices);
                         }
-                        this.setState({ matter, deleteDialog: false });
+                        this.setState({ deleteDialog: false });
                     }}
                     color="primary"
                 >
@@ -397,7 +351,8 @@ class App extends GenericApp {
     }
 
     render() {
-        if (!this.state.loaded) {
+        console.log(this.state);
+        if (!this.state.loaded || !this.state.native.controller || !this.state.devices || !this.state.native.bridges) {
             return <StyledEngineProvider injectFirst>
                 <ThemeProvider theme={this.state.theme}>
                     <Loader theme={this.state.themeType} />
@@ -413,6 +368,7 @@ class App extends GenericApp {
                     type={this.state.dialog.type}
                     device={this.state.dialog.device}
                     bridge={this.state.dialog.bridge}
+                    matter={this.state.native}
                     addDevices={this.state.dialog.addDevices}
                     socket={this.socket}
                 />

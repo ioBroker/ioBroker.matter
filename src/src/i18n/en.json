@@ -29,5 +29,7 @@
     "dimmer": "Dimmer",
     "weatherForecast": "Weather forecast",
     "temperature": "Temperature",
-    "image": "Image"
+    "image": "Image",
+    "All devices": "All devices",
+    "Not used devices": "Not used devices"
 }

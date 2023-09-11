@@ -67,12 +67,17 @@ const DeviceDialog = props => {
             _rooms.forEach(room => {
                 _roomsChecked[room._id] = true;
                 room.devices.forEach(device => {
-                    _devicesChecked[device._id] = true;
+                    _devicesChecked[device._id] = false;
                     device.states.forEach(state => {
                         _checked[state._id] = true;
                     });
                 });
             });
+            if (props.devices) {
+                props.devices.forEach(device => {
+                    _devicesChecked[device.oid] = true;
+                });
+            }
             setDevicesChecked(_devicesChecked);
             setRoomsChecked(_roomsChecked);
 
@@ -117,6 +122,11 @@ const DeviceDialog = props => {
                 display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden',
             }}
             >
+                <div>
+                    {I18n.t('All devices')}
+                    <Switch checked={ignoreUsedDevices} onChange={e => setIgnoreUsedDevices(e.target.checked)} />
+                    {I18n.t('Not used devices')}
+                </div>
                 <div style={{ flex: 1, overflowY: 'auto' }}>
                     {!rooms.length ? <div>{I18n.t('Nothing detected')}</div> : null}
                     {rooms.map((room, roomId) => <div key={room._id}>

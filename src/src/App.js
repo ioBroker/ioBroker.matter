@@ -18,9 +18,10 @@ import {
     IconButton,
     Switch,
     Tooltip,
+    TextField,
 } from '@mui/material';
 
-import { Add, Delete } from '@mui/icons-material';
+import { Add, Delete, Edit } from '@mui/icons-material';
 
 import GenericApp from '@iobroker/adapter-react-v5/GenericApp';
 import { I18n, Loader, AdminConnection } from '@iobroker/adapter-react-v5';
@@ -77,6 +78,13 @@ class App extends GenericApp {
 
         this.state.selectedTab = window.localStorage.getItem(`${this.adapterName}.${this.instance}.selectedTab`) || 'controller';
 
+        this.state.bridgesOpened = {};
+        try {
+            this.state.bridgesOpened = JSON.parse(window.localStorage.getItem(`${this.adapterName}.${this.instance}.bridgesOpened`)) || {};
+        } catch {
+            //
+        }
+
         this.state.devices = [];
 
         this.state.dialog = false;
@@ -105,14 +113,18 @@ class App extends GenericApp {
     }
 
     renderController() {
-        return <Switch
-            checked={this.state.native.controller.enabled}
-            onChange={e => {
-                const matter = JSON.parse(JSON.stringify(this.state.native));
-                matter.controller.enabled = e.target.checked;
-                this.updateNativeValue('controller', matter.controller);
-            }}
-        />;
+        return <div>
+            {I18n.t('Off')}
+            <Switch
+                checked={this.state.native.controller.enabled}
+                onChange={e => {
+                    const matter = JSON.parse(JSON.stringify(this.state.native));
+                    matter.controller.enabled = e.target.checked;
+                    this.updateNativeValue('controller', matter.controller);
+                }}
+            />
+            {I18n.t('On')}
+        </div>;
     }
 
     addDevices = devices => {
@@ -124,6 +136,7 @@ class App extends GenericApp {
                     type: device.deviceType,
                     name: getText(device.common.name),
                     uuid: uuidv4(),
+                    enabled: true,
                 });
             }
         });
@@ -141,6 +154,7 @@ class App extends GenericApp {
                         type: device.deviceType,
                         name: getText(device.common.name),
                         uuid: uuidv4(),
+                        enabled: true,
                     });
                 }
             });
@@ -179,7 +193,16 @@ class App extends GenericApp {
                 </Tooltip>
             </div>
             {
-                this.state.native.bridges.list.map((bridge, index) => <Accordion key={index}>
+                this.state.native.bridges.list.map((bridge, index) => <Accordion
+                    key={index}
+                    expanded={this.state.bridgesOpened[index] || false}
+                    onChange={(e, expanded) => {
+                        const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
+                        bridgesOpened[index] = expanded;
+                        window.localStorage.setItem(`${this.adapterName}.${this.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
+                        this.setState({ bridgesOpened });
+                    }}
+                >
                     <AccordionSummary>
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                             <h4>{bridge.name}</h4>
@@ -192,6 +215,23 @@ class App extends GenericApp {
                                     this.updateNativeValue('bridges', matter.bridges);
                                 }}
                             />
+                            <Tooltip title={I18n.t('Edit bridge')}>
+                                <IconButton onClick={e => {
+                                    e.stopPropagation();
+                                    this.setState(
+                                        {
+                                            editDialog: {
+                                                type: 'bridge',
+                                                name: bridge.name,
+                                                bridge: index,
+                                            },
+                                        },
+                                    );
+                                }}
+                                >
+                                    <Edit />
+                                </IconButton>
+                            </Tooltip>
                             <Tooltip title={I18n.t('Delete bridge')}>
                                 <IconButton onClick={e => {
                                     e.stopPropagation();
@@ -220,6 +260,7 @@ class App extends GenericApp {
                                         dialog: {
                                             type: 'bridge',
                                             bridge: index,
+                                            devices: bridge.list,
                                             addDevices: this.addDevicesToBridge,
                                         },
                                     },
@@ -239,6 +280,23 @@ class App extends GenericApp {
                                     this.updateNativeValue('bridges', matter.bridges);
                                 }}
                             />
+                            <Tooltip title={I18n.t('Edit device')}>
+                                <IconButton onClick={() => {
+                                    this.setState(
+                                        {
+                                            editDialog: {
+                                                type: 'device',
+                                                name: device.name,
+                                                bridge: index,
+                                                device: index2,
+                                            },
+                                        },
+                                    );
+                                }}
+                                >
+                                    <Edit />
+                                </IconButton>
+                            </Tooltip>
                             <Tooltip title={I18n.t('Delete device')}>
                                 <IconButton onClick={() => {
                                     this.setState(
@@ -271,6 +329,7 @@ class App extends GenericApp {
                         {
                             dialog: {
                                 type: 'device',
+                                devices: this.state.devices.list,
                                 addDevices: this.addDevices,
                             },
                         },
@@ -291,6 +350,22 @@ class App extends GenericApp {
                             this.updateNativeValue('devices', matter.devices);
                         }}
                     />
+                    <Tooltip title={I18n.t('Edit device')}>
+                        <IconButton onClick={() => {
+                            this.setState(
+                                {
+                                    editDialog: {
+                                        type: 'device',
+                                        name: device.name,
+                                        device: index,
+                                    },
+                                },
+                            );
+                        }}
+                        >
+                            <Edit />
+                        </IconButton>
+                    </Tooltip>
                     <Tooltip title={I18n.t('Delete device')}>
                         <IconButton onClick={() => {
                             this.setState(
@@ -310,6 +385,54 @@ class App extends GenericApp {
                 </div>)
             }
         </div>;
+    }
+
+    renderEditDialog() {
+        return <Dialog onClose={() => this.setState({ editDialog: false })} open={!!this.state.editDialog}>
+            <DialogTitle>
+                {`${
+                    this.state.editDialog?.type === 'bridge' ? I18n.t('Edit bridge') : I18n.t('Edit device')
+                } ${
+                    this.state.editDialog?.name
+                }`}
+            </DialogTitle>
+            {this.state.editDialog && <DialogContent>
+                <TextField
+                    label={I18n.t('Name')}
+                    value={this.state.editDialog.name}
+                    onChange={e => {
+                        const editDialog = JSON.parse(JSON.stringify(this.state.editDialog));
+                        editDialog.name = e.target.value;
+                        this.setState({ editDialog });
+                    }}
+                    variant="standard"
+                />
+            </DialogContent>}
+            <DialogActions>
+                <Button onClick={() => this.setState({ editDialog: false })} color="primary">
+                    {I18n.t('Cancel')}
+                </Button>
+                <Button
+                    onClick={() => {
+                        const matter = JSON.parse(JSON.stringify(this.state.native));
+                        if (this.state.editDialog.type === 'bridge') {
+                            matter.bridges.list[this.state.editDialog.bridge].name = this.state.editDialog.name;
+                            this.updateNativeValue('bridges', matter.bridges);
+                        } else if (this.state.editDialog.bridge !== undefined) {
+                            matter.bridges.list[this.state.editDialog.bridge].list[this.state.editDialog.device].name = this.state.editDialog.name;
+                            this.updateNativeValue('bridges', matter.bridges);
+                        } else {
+                            matter.devices.list[this.state.editDialog.device].name = this.state.editDialog.name;
+                            this.updateNativeValue('devices', matter.devices);
+                        }
+                        this.setState({ editDialog: false });
+                    }}
+                    color="primary"
+                >
+                    {I18n.t('Save')}
+                </Button>
+            </DialogActions>
+        </Dialog>;
     }
 
     renderDeleteDialog() {
@@ -372,6 +495,7 @@ class App extends GenericApp {
                     addDevices={this.state.dialog.addDevices}
                     socket={this.socket}
                 />
+                {this.renderEditDialog()}
                 {this.renderDeleteDialog()}
                 <div className="App" style={{ background: this.state.theme.palette.background.default, color: this.state.theme.palette.text.primary }}>
                     <AppBar position="static">

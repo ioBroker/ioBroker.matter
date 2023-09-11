@@ -31,5 +31,11 @@
     "temperature": "Temperature",
     "image": "Image",
     "All devices": "All devices",
-    "Not used devices": "Not used devices"
+    "Not used devices": "Not used devices",
+    "Edit device": "Edit device",
+    "Save": "Save",
+    "Do you want to delete device": "Do you want to delete device",
+    "Edit bridge": "Edit bridge",
+    "Off": "Off",
+    "On": "On"
 }

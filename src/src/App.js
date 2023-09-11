@@ -7,9 +7,6 @@ import {
     AppBar,
     Tabs,
     Tab,
-    Accordion,
-    AccordionDetails,
-    AccordionSummary,
     Button,
     Dialog,
     DialogActions,
@@ -19,9 +16,15 @@ import {
     Switch,
     Tooltip,
     TextField,
+    Table,
+    TableRow,
+    TableCell,
+    Collapse,
 } from '@mui/material';
 
-import { Add, Delete, Edit } from '@mui/icons-material';
+import {
+    Add, Delete, Edit, KeyboardArrowDown, KeyboardArrowUp,
+} from '@mui/icons-material';
 
 import GenericApp from '@iobroker/adapter-react-v5/GenericApp';
 import { I18n, Loader, AdminConnection } from '@iobroker/adapter-react-v5';
@@ -192,132 +195,164 @@ class App extends GenericApp {
                     </IconButton>
                 </Tooltip>
             </div>
-            {
-                this.state.native.bridges.list.map((bridge, index) => <Accordion
-                    key={index}
-                    expanded={this.state.bridgesOpened[index] || false}
-                    onChange={(e, expanded) => {
-                        const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
-                        bridgesOpened[index] = expanded;
-                        window.localStorage.setItem(`${this.adapterName}.${this.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
-                        this.setState({ bridgesOpened });
-                    }}
-                >
-                    <AccordionSummary>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <h4>{bridge.name}</h4>
-                            <Switch
-                                checked={bridge.enabled}
-                                onClick={e => e.stopPropagation()}
-                                onChange={e => {
-                                    const matter = JSON.parse(JSON.stringify(this.state.native));
-                                    matter.bridges.list[index].enabled = e.target.checked;
-                                    this.updateNativeValue('bridges', matter.bridges);
-                                }}
-                            />
-                            <Tooltip title={I18n.t('Edit bridge')}>
-                                <IconButton onClick={e => {
-                                    e.stopPropagation();
-                                    this.setState(
-                                        {
-                                            editDialog: {
-                                                type: 'bridge',
-                                                name: bridge.name,
-                                                bridge: index,
+            <Table size="small" style={{ width: 'initial' }} padding="none">
+                {
+                    this.state.native.bridges.list.map((bridge, index) => <React.Fragment key={index}>
+                        <TableRow>
+                            <TableCell>
+                                <IconButton
+                                    size="small"
+                                    onClick={() => {
+                                        const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
+                                        bridgesOpened[index] = !bridgesOpened[index];
+                                        window.localStorage.setItem(`${this.adapterName}.${this.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
+                                        this.setState({ bridgesOpened });
+                                    }}
+                                >
+                                    {this.state.bridgesOpened[index] ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
+                                </IconButton>
+                            </TableCell>
+                            <TableCell onClick={() => {
+                                const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
+                                bridgesOpened[index] = !bridgesOpened[index];
+                                window.localStorage.setItem(`${this.adapterName}.${this.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
+                                this.setState({ bridgesOpened });
+                            }}
+                            >
+                                <h4>{bridge.name}</h4>
+                            </TableCell>
+                            <TableCell>
+                                <Switch
+                                    checked={bridge.enabled}
+                                    onClick={e => e.stopPropagation()}
+                                    onChange={e => {
+                                        const matter = JSON.parse(JSON.stringify(this.state.native));
+                                        matter.bridges.list[index].enabled = e.target.checked;
+                                        this.updateNativeValue('bridges', matter.bridges);
+                                    }}
+                                />
+                            </TableCell>
+                            <TableCell>
+                                <Tooltip title={I18n.t('Edit bridge')}>
+                                    <IconButton onClick={e => {
+                                        e.stopPropagation();
+                                        this.setState(
+                                            {
+                                                editDialog: {
+                                                    type: 'bridge',
+                                                    name: bridge.name,
+                                                    bridge: index,
+                                                },
                                             },
-                                        },
-                                    );
-                                }}
-                                >
-                                    <Edit />
-                                </IconButton>
-                            </Tooltip>
-                            <Tooltip title={I18n.t('Delete bridge')}>
-                                <IconButton onClick={e => {
-                                    e.stopPropagation();
-                                    this.setState(
-                                        {
-                                            deleteDialog: {
-                                                type: 'bridge',
-                                                name: bridge.name,
-                                                bridge: index,
+                                        );
+                                    }}
+                                    >
+                                        <Edit />
+                                    </IconButton>
+                                </Tooltip>
+                            </TableCell>
+                            <TableCell>
+                                <Tooltip title={I18n.t('Delete bridge')}>
+                                    <IconButton onClick={e => {
+                                        e.stopPropagation();
+                                        this.setState(
+                                            {
+                                                deleteDialog: {
+                                                    type: 'bridge',
+                                                    name: bridge.name,
+                                                    bridge: index,
+                                                },
                                             },
-                                        },
-                                    );
-                                }}
-                                >
-                                    <Delete />
-                                </IconButton>
-                            </Tooltip>
-                        </div>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                        <div>
-                            <b>{I18n.t('Devices')}</b>
-                            <Tooltip title={I18n.t('Add device')}>
-                                <IconButton onClick={() => this.setState(
-                                    {
-                                        dialog: {
-                                            type: 'bridge',
-                                            bridge: index,
-                                            devices: bridge.list,
-                                            addDevices: this.addDevicesToBridge,
-                                        },
-                                    },
-                                )}
-                                >
-                                    <Add />
-                                </IconButton>
-                            </Tooltip>
-                        </div>
-                        {bridge.list.map((device, index2) => <div key={index2}>
-                            {device.name}
-                            <Switch
-                                checked={device.enabled}
-                                onChange={e => {
-                                    const matter = JSON.parse(JSON.stringify(this.state.native));
-                                    matter.bridges.list[index].list[index2].enabled = e.target.checked;
-                                    this.updateNativeValue('bridges', matter.bridges);
-                                }}
-                            />
-                            <Tooltip title={I18n.t('Edit device')}>
-                                <IconButton onClick={() => {
-                                    this.setState(
-                                        {
-                                            editDialog: {
-                                                type: 'device',
-                                                name: device.name,
-                                                bridge: index,
-                                                device: index2,
-                                            },
-                                        },
-                                    );
-                                }}
-                                >
-                                    <Edit />
-                                </IconButton>
-                            </Tooltip>
-                            <Tooltip title={I18n.t('Delete device')}>
-                                <IconButton onClick={() => {
-                                    this.setState(
-                                        {
-                                            deleteDialog: {
-                                                type: 'device',
-                                                name: device.name,
-                                                bridge: index,
-                                                device: index2,
-                                            },
-                                        },
-                                    );
-                                }}
-                                >
-                                    <Delete />
-                                </IconButton>
-                            </Tooltip>
-                        </div>)}
-                    </AccordionDetails>
-                </Accordion>)
-            }
+                                        );
+                                    }}
+                                    >
+                                        <Delete />
+                                    </IconButton>
+                                </Tooltip>
+                            </TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell colSpan={5} style={{ paddingLeft: 10 }}>
+                                <Collapse in={this.state.bridgesOpened[index] || false} timeout="auto" unmountOnExit>
+                                    <div>
+                                        <b>{I18n.t('Devices')}</b>
+                                        <Tooltip title={I18n.t('Add device')}>
+                                            <IconButton onClick={() => this.setState(
+                                                {
+                                                    dialog: {
+                                                        type: 'bridge',
+                                                        bridge: index,
+                                                        devices: bridge.list,
+                                                        addDevices: this.addDevicesToBridge,
+                                                    },
+                                                },
+                                            )}
+                                            >
+                                                <Add />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </div>
+                                    <Table size="small" style={{ width: 'initial' }} padding="none">
+                                        {bridge.list.map((device, index2) => <TableRow key={index2}>
+                                            <TableCell>
+                                                {device.name}
+                                            </TableCell>
+                                            <TableCell>
+                                                <Switch
+                                                    checked={device.enabled}
+                                                    onChange={e => {
+                                                        const matter = JSON.parse(JSON.stringify(this.state.native));
+                                                        matter.bridges.list[index].list[index2].enabled = e.target.checked;
+                                                        this.updateNativeValue('bridges', matter.bridges);
+                                                    }}
+                                                />
+                                            </TableCell>
+                                            <TableCell>
+                                                <Tooltip title={I18n.t('Edit device')}>
+                                                    <IconButton onClick={() => {
+                                                        this.setState(
+                                                            {
+                                                                editDialog: {
+                                                                    type: 'device',
+                                                                    name: device.name,
+                                                                    bridge: index,
+                                                                    device: index2,
+                                                                },
+                                                            },
+                                                        );
+                                                    }}
+                                                    >
+                                                        <Edit />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Tooltip title={I18n.t('Delete device')}>
+                                                    <IconButton onClick={() => {
+                                                        this.setState(
+                                                            {
+                                                                deleteDialog: {
+                                                                    type: 'device',
+                                                                    name: device.name,
+                                                                    bridge: index,
+                                                                    device: index2,
+                                                                },
+                                                            },
+                                                        );
+                                                    }}
+                                                    >
+                                                        <Delete />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </TableCell>
+                                        </TableRow>)}
+                                    </Table>
+                                </Collapse>
+                            </TableCell>
+                        </TableRow>
+                    </React.Fragment>)
+                }
+            </Table>
         </div>;
     }
 
@@ -339,51 +374,61 @@ class App extends GenericApp {
                     </IconButton>
                 </Tooltip>
             </div>
-            {
-                this.state.native.devices.list.map((device, index) => <div key={index} style={{ display: 'flex', alignItems: 'center' }}>
-                    {device.name}
-                    <Switch
-                        checked={device.enabled}
-                        onChange={e => {
-                            const matter = JSON.parse(JSON.stringify(this.state.native));
-                            matter.devices.list[index].enabled = e.target.checked;
-                            this.updateNativeValue('devices', matter.devices);
-                        }}
-                    />
-                    <Tooltip title={I18n.t('Edit device')}>
-                        <IconButton onClick={() => {
-                            this.setState(
-                                {
-                                    editDialog: {
-                                        type: 'device',
-                                        name: device.name,
-                                        device: index,
-                                    },
-                                },
-                            );
-                        }}
-                        >
-                            <Edit />
-                        </IconButton>
-                    </Tooltip>
-                    <Tooltip title={I18n.t('Delete device')}>
-                        <IconButton onClick={() => {
-                            this.setState(
-                                {
-                                    deleteDialog: {
-                                        type: 'device',
-                                        name: device.name,
-                                        device: index,
-                                    },
-                                },
-                            );
-                        }}
-                        >
-                            <Delete />
-                        </IconButton>
-                    </Tooltip>
-                </div>)
-            }
+            <Table size="small" style={{ width: 'initial' }} padding="none">
+                {
+                    this.state.native.devices.list.map((device, index) => <TableRow key={index}>
+                        <TableCell>
+                            {device.name}
+                        </TableCell>
+                        <TableCell>
+                            <Switch
+                                checked={device.enabled}
+                                onChange={e => {
+                                    const matter = JSON.parse(JSON.stringify(this.state.native));
+                                    matter.devices.list[index].enabled = e.target.checked;
+                                    this.updateNativeValue('devices', matter.devices);
+                                }}
+                            />
+                        </TableCell>
+                        <TableCell>
+                            <Tooltip title={I18n.t('Edit device')}>
+                                <IconButton onClick={() => {
+                                    this.setState(
+                                        {
+                                            editDialog: {
+                                                type: 'device',
+                                                name: device.name,
+                                                device: index,
+                                            },
+                                        },
+                                    );
+                                }}
+                                >
+                                    <Edit />
+                                </IconButton>
+                            </Tooltip>
+                        </TableCell>
+                        <TableCell>
+                            <Tooltip title={I18n.t('Delete device')}>
+                                <IconButton onClick={() => {
+                                    this.setState(
+                                        {
+                                            deleteDialog: {
+                                                type: 'device',
+                                                name: device.name,
+                                                device: index,
+                                            },
+                                        },
+                                    );
+                                }}
+                                >
+                                    <Delete />
+                                </IconButton>
+                            </Tooltip>
+                        </TableCell>
+                    </TableRow>)
+                }
+            </Table>
         </div>;
     }
 

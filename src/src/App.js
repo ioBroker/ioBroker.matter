@@ -23,7 +23,7 @@ import {
 } from '@mui/material';
 
 import {
-    Add, Delete, Edit, KeyboardArrowDown, KeyboardArrowUp,
+    Add, Close, Delete, Edit, KeyboardArrowDown, KeyboardArrowUp, Save,
 } from '@mui/icons-material';
 
 import GenericApp from '@iobroker/adapter-react-v5/GenericApp';
@@ -148,10 +148,10 @@ class App extends GenericApp {
 
     addDevicesToBridge = devices => {
         const matter = JSON.parse(JSON.stringify(this.state.native));
-        if (this.state.dialog.bridge) {
+        if (this.state.dialog.bridge !== undefined) {
             const bridge = matter.bridges.list[this.state.dialog.bridge];
             devices.forEach(device => {
-                if (!bridge.list.find(d => d.oid === device)) {
+                if (!bridge.list.find(d => d.oid === device._id)) {
                     bridge.list.push({
                         oid: device._id,
                         type: device.deviceType,
@@ -184,9 +184,9 @@ class App extends GenericApp {
                 <Tooltip title={I18n.t('Add bridge')}>
                     <IconButton onClick={() => this.setState(
                         {
-                            dialog: {
+                            editDialog: {
                                 type: 'bridge',
-                                addDevices: this.addDevicesToBridge,
+                                add: true,
                             },
                         },
                     )}
@@ -212,12 +212,14 @@ class App extends GenericApp {
                                     {this.state.bridgesOpened[index] ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
                                 </IconButton>
                             </TableCell>
-                            <TableCell onClick={() => {
-                                const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
-                                bridgesOpened[index] = !bridgesOpened[index];
-                                window.localStorage.setItem(`${this.adapterName}.${this.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
-                                this.setState({ bridgesOpened });
-                            }}
+                            <TableCell
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => {
+                                    const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
+                                    bridgesOpened[index] = !bridgesOpened[index];
+                                    window.localStorage.setItem(`${this.adapterName}.${this.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
+                                    this.setState({ bridgesOpened });
+                                }}
                             >
                                 <h4>{bridge.name}</h4>
                             </TableCell>
@@ -241,6 +243,7 @@ class App extends GenericApp {
                                                 editDialog: {
                                                     type: 'bridge',
                                                     name: bridge.name,
+                                                    originalName: bridge.name,
                                                     bridge: index,
                                                 },
                                             },
@@ -281,6 +284,7 @@ class App extends GenericApp {
                                                 {
                                                     dialog: {
                                                         type: 'bridge',
+                                                        name: bridge.name,
                                                         bridge: index,
                                                         devices: bridge.list,
                                                         addDevices: this.addDevicesToBridge,
@@ -315,6 +319,7 @@ class App extends GenericApp {
                                                                 editDialog: {
                                                                     type: 'device',
                                                                     name: device.name,
+                                                                    originalName: device.name,
                                                                     bridge: index,
                                                                     device: index2,
                                                                 },
@@ -398,6 +403,7 @@ class App extends GenericApp {
                                             editDialog: {
                                                 type: 'device',
                                                 name: device.name,
+                                                originalName: device.name,
                                                 device: index,
                                             },
                                         },
@@ -435,11 +441,13 @@ class App extends GenericApp {
     renderEditDialog() {
         return <Dialog onClose={() => this.setState({ editDialog: false })} open={!!this.state.editDialog}>
             <DialogTitle>
-                {`${
-                    this.state.editDialog?.type === 'bridge' ? I18n.t('Edit bridge') : I18n.t('Edit device')
-                } ${
-                    this.state.editDialog?.name
-                }`}
+                {this.state.editDialog?.add ?
+                    I18n.t('Add bridge') :
+                    `${
+                        this.state.editDialog?.type === 'bridge' ? I18n.t('Edit bridge') : I18n.t('Edit device')
+                    } ${
+                        this.state.editDialog?.originalName
+                    }`}
             </DialogTitle>
             {this.state.editDialog && <DialogContent>
                 <TextField
@@ -454,13 +462,26 @@ class App extends GenericApp {
                 />
             </DialogContent>}
             <DialogActions>
-                <Button onClick={() => this.setState({ editDialog: false })} color="primary">
+                <Button
+                    onClick={() => this.setState({ editDialog: false })}
+                    startIcon={<Close />}
+                    color="grey"
+                    variant="contained"
+                >
                     {I18n.t('Cancel')}
                 </Button>
                 <Button
                     onClick={() => {
                         const matter = JSON.parse(JSON.stringify(this.state.native));
-                        if (this.state.editDialog.type === 'bridge') {
+                        if (this.state.editDialog.add) {
+                            matter.bridges.list.push({
+                                name: this.state.editDialog.name,
+                                enabled: true,
+                                list: [],
+                                uuid: uuidv4(),
+                            });
+                            this.updateNativeValue('bridges', matter.bridges);
+                        } else if (this.state.editDialog.type === 'bridge') {
                             matter.bridges.list[this.state.editDialog.bridge].name = this.state.editDialog.name;
                             this.updateNativeValue('bridges', matter.bridges);
                         } else if (this.state.editDialog.bridge !== undefined) {
@@ -472,9 +493,11 @@ class App extends GenericApp {
                         }
                         this.setState({ editDialog: false });
                     }}
+                    startIcon={this.state.editDialog?.add ? <Add /> : <Save />}
                     color="primary"
+                    variant="contained"
                 >
-                    {I18n.t('Save')}
+                    {this.state.editDialog?.add ? I18n.t('Add') : I18n.t('Save')}
                 </Button>
             </DialogActions>
         </Dialog>;
@@ -492,7 +515,12 @@ class App extends GenericApp {
                 }?`}
             </DialogContent>}
             <DialogActions>
-                <Button onClick={() => this.setState({ deleteDialog: false })} color="primary">
+                <Button
+                    onClick={() => this.setState({ deleteDialog: false })}
+                    startIcon={<Close />}
+                    color="grey"
+                    variant="contained"
+                >
                     {I18n.t('Cancel')}
                 </Button>
                 <Button
@@ -510,7 +538,9 @@ class App extends GenericApp {
                         }
                         this.setState({ deleteDialog: false });
                     }}
+                    startIcon={<Delete />}
                     color="primary"
+                    variant="contained"
                 >
                     {I18n.t('Delete')}
                 </Button>
@@ -519,7 +549,6 @@ class App extends GenericApp {
     }
 
     render() {
-        console.log(this.state);
         if (!this.state.loaded || !this.state.native.controller || !this.state.devices || !this.state.native.bridges) {
             return <StyledEngineProvider injectFirst>
                 <ThemeProvider theme={this.state.theme}>
@@ -533,11 +562,8 @@ class App extends GenericApp {
                 <DeviceDialog
                     open={!!this.state.dialog}
                     onClose={() => this.setState({ dialog: false })}
-                    type={this.state.dialog.type}
-                    device={this.state.dialog.device}
-                    bridge={this.state.dialog.bridge}
+                    {...(this.state.dialog || {})}
                     matter={this.state.native}
-                    addDevices={this.state.dialog.addDevices}
                     socket={this.socket}
                 />
                 {this.renderEditDialog()}

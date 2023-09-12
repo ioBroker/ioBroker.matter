@@ -37,5 +37,7 @@
     "Do you want to delete device": "Do you want to delete device",
     "Edit bridge": "Edit bridge",
     "Off": "Off",
-    "On": "On"
+    "On": "On",
+    "to bridge": "to bridge",
+    "Add": "Add"
 }

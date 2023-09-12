@@ -40,6 +40,9 @@ const DeviceDialog = props => {
 
     useEffect(() => {
         (async () => {
+            if (!props.open) {
+                return;
+            }
             let _rooms = (await detectDevices(props.socket)) || [];
             // ignore buttons
             _rooms.forEach(room => {
@@ -72,12 +75,10 @@ const DeviceDialog = props => {
                         _checked[state._id] = true;
                     });
                 });
+                if (props.devices) {
+                    room.devices = room.devices.filter(device => !props.devices.find(_device => _device.oid === device._id));
+                }
             });
-            if (props.devices) {
-                props.devices.forEach(device => {
-                    _devicesChecked[device.oid] = true;
-                });
-            }
             setDevicesChecked(_devicesChecked);
             setRoomsChecked(_roomsChecked);
 
@@ -98,22 +99,29 @@ const DeviceDialog = props => {
         const devices = [];
         rooms.forEach(room => {
             room.devices.forEach(device => {
-                devices.push(device);
+                if (devicesChecked[device._id]) {
+                    devices.push(device);
+                }
             });
         });
-        console.log(devices);
         props.addDevices(devices);
         props.onClose();
     };
 
     const counters = rooms?.map(room => room.devices.reduce((a, b) => a + (devicesChecked[b._id] ? 1 : 0), 0));
+    const lengths = rooms?.map(room => {
+        if (ignoreUsedDevices) {
+            return room.devices.filter(device => !usedDevices[device._id]).length;
+        }
+        return room.devices.length;
+    });
 
     return <Dialog
         open={props.open}
         onClose={props.onClose}
         fullWidth
     >
-        <DialogTitle>{I18n.t('Add devices')}</DialogTitle>
+        <DialogTitle>{I18n.t('Add devices') + (props.type === 'bridge' ? ` ${I18n.t('to bridge')} ${props.name}` : '')}</DialogTitle>
         <DialogContent style={{
             display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden',
         }}
@@ -124,7 +132,19 @@ const DeviceDialog = props => {
             >
                 <div>
                     {I18n.t('All devices')}
-                    <Switch checked={ignoreUsedDevices} onChange={e => setIgnoreUsedDevices(e.target.checked)} />
+                    <Switch
+                        checked={ignoreUsedDevices || false}
+                        onChange={e => {
+                            setIgnoreUsedDevices(e.target.checked);
+                            const _devicesChecked = JSON.parse(JSON.stringify(devicesChecked));
+                            Object.keys(_devicesChecked).forEach(deviceId => {
+                                if (e.target.checked && usedDevices[deviceId]) {
+                                    _devicesChecked[deviceId] = false;
+                                }
+                            });
+                            setDevicesChecked(_devicesChecked);
+                        }}
+                    />
                     {I18n.t('Not used devices')}
                 </div>
                 <div style={{ flex: 1, overflowY: 'auto' }}>
@@ -157,7 +177,7 @@ const DeviceDialog = props => {
                                             setDevicesChecked(_devicesChecked);
                                         }}
                                     />
-                                    <div style={{ fontSize: 12, opacity: 0.7, marginLeft: 20 }}>{I18n.t('%s of %s devices selected', counters[roomId], room.devices.length)}</div>
+                                    <div style={{ fontSize: 12, opacity: 0.7, marginLeft: 20 }}>{I18n.t('%s of %s devices selected', counters[roomId], lengths[roomId])}</div>
                                 </div>
                             </AccordionSummary>
                             <AccordionDetails sx={{ backgroundColor: props.themeType === 'dark' ? '#111' : '#eee' }}>
@@ -200,7 +220,7 @@ const DeviceDialog = props => {
                                                 value={device.common.name}
                                                 onChange={e => {
                                                     const _rooms = JSON.parse(JSON.stringify(rooms));
-                                                    room.devices[deviceId].common.name = e.target.value;
+                                                    _rooms[roomId].devices[deviceId].common.name = e.target.value;
                                                     setRooms(_rooms);
                                                 }}
                                             />
@@ -216,7 +236,7 @@ const DeviceDialog = props => {
         <DialogActions>
             <Button
                 variant="contained"
-                disabled={!rooms?.length || !Object.values(roomsChecked).find(val => val)}
+                disabled={counters?.reduce((a, b) => a + b, 0) === 0}
                 onClick={handleSubmit}
                 startIcon={<Add />}
             >

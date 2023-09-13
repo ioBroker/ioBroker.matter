@@ -43,6 +43,9 @@
     "icon": "matter.png",
     "connectionType": "local",
     "dataSource": "push",
+    "adminUI": {
+      "config": "materialize"
+    },
     "tier": 3,
     "keywords": [
       "matter"

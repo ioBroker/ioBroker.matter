@@ -102,15 +102,9 @@ class App extends GenericApp {
             });
         this.setState({ devices: await detectDevices(this.socket) });
         const matter = JSON.parse(JSON.stringify(this.state.native));
-        if (!matter.controller) {
-            matter.controller = { enabled: true };
-        }
-        if (!matter.devices) {
-            matter.devices = { settings: {}, list: [] };
-        }
-        if (!matter.bridges) {
-            matter.bridges = { settings: {}, list: [] };
-        }
+        matter.controller = matter.controller || { enabled: true };
+        matter.devices = matter.devices || { settings: {}, list: [] };
+        matter.bridges = matter.bridges || { settings: {}, list: [] };
         const changed = this.getIsChanged(matter);
         this.setState({ native: matter, changed });
     }

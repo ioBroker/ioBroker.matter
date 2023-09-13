@@ -186,6 +186,8 @@ class App extends GenericApp {
                         {
                             editDialog: {
                                 type: 'bridge',
+                                name: '',
+                                originalName: '',
                                 add: true,
                             },
                         },
@@ -369,7 +371,7 @@ class App extends GenericApp {
                         {
                             dialog: {
                                 type: 'device',
-                                devices: this.state.devices.list,
+                                devices: this.state.native.devices.list,
                                 addDevices: this.addDevices,
                             },
                         },
@@ -439,6 +441,31 @@ class App extends GenericApp {
     }
 
     renderEditDialog() {
+        const save = () => {
+            const matter = JSON.parse(JSON.stringify(this.state.native));
+            if (this.state.editDialog.add) {
+                matter.bridges.list.push({
+                    name: this.state.editDialog.name,
+                    enabled: true,
+                    list: [],
+                    uuid: uuidv4(),
+                });
+                this.updateNativeValue('bridges', matter.bridges);
+            } else if (this.state.editDialog.type === 'bridge') {
+                matter.bridges.list[this.state.editDialog.bridge].name = this.state.editDialog.name;
+                this.updateNativeValue('bridges', matter.bridges);
+            } else if (this.state.editDialog.bridge !== undefined) {
+                matter.bridges.list[this.state.editDialog.bridge].list[this.state.editDialog.device].name = this.state.editDialog.name;
+                this.updateNativeValue('bridges', matter.bridges);
+            } else {
+                matter.devices.list[this.state.editDialog.device].name = this.state.editDialog.name;
+                this.updateNativeValue('devices', matter.devices);
+            }
+            this.setState({ editDialog: false });
+        };
+
+        const isDisabled = this.state.editDialog?.name === this.state.editDialog?.originalName;
+
         return <Dialog onClose={() => this.setState({ editDialog: false })} open={!!this.state.editDialog}>
             <DialogTitle>
                 {this.state.editDialog?.add ?
@@ -458,10 +485,21 @@ class App extends GenericApp {
                         editDialog.name = e.target.value;
                         this.setState({ editDialog });
                     }}
+                    onKeyUp={e => e.key === 'Enter' && !isDisabled && save()}
                     variant="standard"
+                    fullWidth
                 />
             </DialogContent>}
             <DialogActions>
+                <Button
+                    onClick={save}
+                    startIcon={this.state.editDialog?.add ? <Add /> : <Save />}
+                    disabled={isDisabled}
+                    color="primary"
+                    variant="contained"
+                >
+                    {this.state.editDialog?.add ? I18n.t('Add') : I18n.t('Save')}
+                </Button>
                 <Button
                     onClick={() => this.setState({ editDialog: false })}
                     startIcon={<Close />}
@@ -469,35 +507,6 @@ class App extends GenericApp {
                     variant="contained"
                 >
                     {I18n.t('Cancel')}
-                </Button>
-                <Button
-                    onClick={() => {
-                        const matter = JSON.parse(JSON.stringify(this.state.native));
-                        if (this.state.editDialog.add) {
-                            matter.bridges.list.push({
-                                name: this.state.editDialog.name,
-                                enabled: true,
-                                list: [],
-                                uuid: uuidv4(),
-                            });
-                            this.updateNativeValue('bridges', matter.bridges);
-                        } else if (this.state.editDialog.type === 'bridge') {
-                            matter.bridges.list[this.state.editDialog.bridge].name = this.state.editDialog.name;
-                            this.updateNativeValue('bridges', matter.bridges);
-                        } else if (this.state.editDialog.bridge !== undefined) {
-                            matter.bridges.list[this.state.editDialog.bridge].list[this.state.editDialog.device].name = this.state.editDialog.name;
-                            this.updateNativeValue('bridges', matter.bridges);
-                        } else {
-                            matter.devices.list[this.state.editDialog.device].name = this.state.editDialog.name;
-                            this.updateNativeValue('devices', matter.devices);
-                        }
-                        this.setState({ editDialog: false });
-                    }}
-                    startIcon={this.state.editDialog?.add ? <Add /> : <Save />}
-                    color="primary"
-                    variant="contained"
-                >
-                    {this.state.editDialog?.add ? I18n.t('Add') : I18n.t('Save')}
                 </Button>
             </DialogActions>
         </Dialog>;
@@ -515,14 +524,6 @@ class App extends GenericApp {
                 }?`}
             </DialogContent>}
             <DialogActions>
-                <Button
-                    onClick={() => this.setState({ deleteDialog: false })}
-                    startIcon={<Close />}
-                    color="grey"
-                    variant="contained"
-                >
-                    {I18n.t('Cancel')}
-                </Button>
                 <Button
                     onClick={() => {
                         const matter = JSON.parse(JSON.stringify(this.state.native));
@@ -543,6 +544,14 @@ class App extends GenericApp {
                     variant="contained"
                 >
                     {I18n.t('Delete')}
+                </Button>
+                <Button
+                    onClick={() => this.setState({ deleteDialog: false })}
+                    startIcon={<Close />}
+                    color="grey"
+                    variant="contained"
+                >
+                    {I18n.t('Cancel')}
                 </Button>
             </DialogActions>
         </Dialog>;
@@ -565,6 +574,7 @@ class App extends GenericApp {
                     {...(this.state.dialog || {})}
                     matter={this.state.native}
                     socket={this.socket}
+                    themeType={this.state.themeType}
                 />
                 {this.renderEditDialog()}
                 {this.renderDeleteDialog()}

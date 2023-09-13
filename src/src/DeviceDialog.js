@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
 import { I18n } from '@iobroker/adapter-react-v5';
 import {
-    Accordion, AccordionDetails, AccordionSummary, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Icon, LinearProgress, Switch, TextField,
+    Accordion,
+    AccordionDetails,
+    AccordionSummary, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, Icon, LinearProgress, Switch, TextField,
 } from '@mui/material';
 import {
-    Add, Blinds, Close, DirectionsRun, ExpandMore, Lightbulb, Lock, Palette, PlayArrowRounded, Power, SensorDoor, Thermostat, TipsAndUpdates, Tune, VolumeUp, Water, WaterDrop, WbSunny, Whatshot, Window,
+    Add,
+    Blinds,
+    Close, DirectionsRun, ExpandMore, Lightbulb, Lock, Palette, PlayArrowRounded, Power, SensorDoor, Thermostat, TipsAndUpdates, Tune, VolumeUp, Water, WaterDrop, WbSunny, Whatshot, Window,
 } from '@mui/icons-material';
 import { detectDevices, getText } from './Utils';
 
@@ -149,87 +153,92 @@ const DeviceDialog = props => {
                 </div>
                 <div style={{ flex: 1, overflowY: 'auto' }}>
                     {!rooms.length ? <div>{I18n.t('Nothing detected')}</div> : null}
-                    {rooms.map((room, roomId) => <div key={room._id}>
-                        <Accordion>
-                            <AccordionSummary expandIcon={<ExpandMore />}>
-                                <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                                    {room.common.icon ? <Icon src={room.common.icon} style={{ width: 24, height: 24, marginRight: 8 }} alt="" /> : null}
+                    {rooms.map((room, roomId) => {
+                        if (!lengths[roomId]) {
+                            return null;
+                        }
+                        return <div key={room._id}>
+                            <Accordion>
+                                <AccordionSummary expandIcon={<ExpandMore />}>
+                                    <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                                        {room.common.icon ? <Icon src={room.common.icon} style={{ width: 24, height: 24, marginRight: 8 }} alt="" /> : null}
 
-                                    <div style={{ flexGrow: 1 }}>{getText(room.common.name)}</div>
+                                        <div style={{ flexGrow: 1 }}>{getText(room.common.name)}</div>
 
-                                    <Checkbox
-                                        title={I18n.t('Select/Unselect all devices in room')}
-                                        indeterminate={counters[roomId] !== room.devices.length && counters[roomId]}
-                                        checked={counters[roomId] === room.devices.length}
-                                        onClick={e => {
-                                            e.stopPropagation();
-                                            e.preventDefault();
-                                            const _devicesChecked = JSON.parse(JSON.stringify(devicesChecked));
-                                            if (counters[roomId] === room.devices.length) {
-                                                room.devices.forEach(device => {
-                                                    _devicesChecked[device._id] = false;
-                                                });
-                                            } else {
-                                                room.devices.forEach(device => {
-                                                    _devicesChecked[device._id] = true;
-                                                });
-                                            }
-                                            setDevicesChecked(_devicesChecked);
-                                        }}
-                                    />
-                                    <div style={{ fontSize: 12, opacity: 0.7, marginLeft: 20 }}>{I18n.t('%s of %s devices selected', counters[roomId], lengths[roomId])}</div>
-                                </div>
-                            </AccordionSummary>
-                            <AccordionDetails sx={{ backgroundColor: props.themeType === 'dark' ? '#111' : '#eee' }}>
-                                {room.devices.map((device, deviceId) => {
-                                    if (ignoreUsedDevices && usedDevices[device._id]) {
-                                        return null;
-                                    }
-                                    return <div key={device._id} style={{ backgroundColor: 'transparent' }}>
-                                        <div
-                                            style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                marginLeft: 20,
-                                                marginBottom: 20,
-                                                opacity: roomsChecked[room._id] ? 1 : 0.5,
+                                        <Checkbox
+                                            title={I18n.t('Select/Unselect all devices in room')}
+                                            indeterminate={counters[roomId] !== room.devices.length && counters[roomId]}
+                                            checked={counters[roomId] === room.devices.length}
+                                            onClick={e => {
+                                                e.stopPropagation();
+                                                e.preventDefault();
+                                                const _devicesChecked = JSON.parse(JSON.stringify(devicesChecked));
+                                                if (counters[roomId] === room.devices.length) {
+                                                    room.devices.forEach(device => {
+                                                        _devicesChecked[device._id] = false;
+                                                    });
+                                                } else {
+                                                    room.devices.forEach(device => {
+                                                        _devicesChecked[device._id] = true;
+                                                    });
+                                                }
+                                                setDevicesChecked(_devicesChecked);
                                             }}
-                                        >
-                                            <Checkbox
-                                                checked={devicesChecked[device._id]}
-                                                onChange={e => {
-                                                    const _devicesChecked = JSON.parse(JSON.stringify(devicesChecked));
-                                                    _devicesChecked[device._id] = e.target.checked;
-                                                    setDevicesChecked(_devicesChecked);
+                                        />
+                                        <div style={{ fontSize: 12, opacity: 0.7, marginLeft: 20 }}>{I18n.t('%s of %s devices selected', counters[roomId], lengths[roomId])}</div>
+                                    </div>
+                                </AccordionSummary>
+                                <AccordionDetails sx={{ backgroundColor: props.themeType === 'dark' ? '#111' : '#eee' }}>
+                                    {room.devices.map((device, deviceId) => {
+                                        if (ignoreUsedDevices && usedDevices[device._id]) {
+                                            return null;
+                                        }
+                                        return <div key={device._id} style={{ backgroundColor: 'transparent' }}>
+                                            <div
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    marginLeft: 20,
+                                                    marginBottom: 20,
+                                                    opacity: roomsChecked[room._id] ? 1 : 0.5,
                                                 }}
-                                                onClick={e => e.stopPropagation()}
-                                            />
-                                            <span style={{ marginRight: 8 }}>
-                                                {device.common.icon ?
-                                                    <Icon src={device.common.icon} style={{ width: 24, height: 24 }} alt="" />
-                                                    :
-                                                    (deviceIcons[device.deviceType] || <Lightbulb />)}
-                                            </span>
-                                            <TextField
-                                                variant="standard"
-                                                fullWidth
-                                                label={device._id}
-                                                helperText={<span style={{ fontStyle: 'italic' }}>
-                                                    {`${I18n.t('Device type')}: ${I18n.t(device.deviceType)}`}
-                                                </span>}
-                                                value={device.common.name}
-                                                onChange={e => {
-                                                    const _rooms = JSON.parse(JSON.stringify(rooms));
-                                                    _rooms[roomId].devices[deviceId].common.name = e.target.value;
-                                                    setRooms(_rooms);
-                                                }}
-                                            />
-                                        </div>
-                                    </div>;
-                                })}
-                            </AccordionDetails>
-                        </Accordion>
-                    </div>)}
+                                            >
+                                                <Checkbox
+                                                    checked={devicesChecked[device._id]}
+                                                    onChange={e => {
+                                                        const _devicesChecked = JSON.parse(JSON.stringify(devicesChecked));
+                                                        _devicesChecked[device._id] = e.target.checked;
+                                                        setDevicesChecked(_devicesChecked);
+                                                    }}
+                                                    onClick={e => e.stopPropagation()}
+                                                />
+                                                <span style={{ marginRight: 8 }}>
+                                                    {device.common.icon ?
+                                                        <Icon src={device.common.icon} style={{ width: 24, height: 24 }} alt="" />
+                                                        :
+                                                        (deviceIcons[device.deviceType] || <Lightbulb />)}
+                                                </span>
+                                                <TextField
+                                                    variant="standard"
+                                                    fullWidth
+                                                    label={device._id}
+                                                    helperText={<span style={{ fontStyle: 'italic' }}>
+                                                        {`${I18n.t('Device type')}: ${I18n.t(device.deviceType)}`}
+                                                    </span>}
+                                                    value={device.common.name}
+                                                    onChange={e => {
+                                                        const _rooms = JSON.parse(JSON.stringify(rooms));
+                                                        _rooms[roomId].devices[deviceId].common.name = e.target.value;
+                                                        setRooms(_rooms);
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>;
+                                    })}
+                                </AccordionDetails>
+                            </Accordion>
+                        </div>;
+                    })}
                 </div>
             </div> : <LinearProgress />}
         </DialogContent>

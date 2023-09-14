@@ -19,7 +19,6 @@ class ConfigHandler {
     }
 
     onObjectChange = (id, obj) => {
-        console.log('Object changed: ' + id);
         if (id.startsWith(`matter.${this.instance}.devices.`)) {
             if (id.split('.').length === 4) {
                 let changed = false;

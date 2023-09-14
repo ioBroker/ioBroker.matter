@@ -239,35 +239,35 @@ class App extends GenericApp {
     renderBridges() {
         return <div>
             <Tooltip title={I18n.t('Add bridge')}>
-                    <Fab
-                        onClick={() => {
-                            let i = 1;
-                            let name = `${I18n.t('New bridge')} `;
-                            while (this.state.matter.bridges.find(b => b.name === name + i)) {
-                                i++;
-                            }
-                            this.setState({
-                                editDialog: {
-                                    type: 'bridge',
-                                    name: name + i,
-                                    originalName: '',
-                                    add: true,
-                                    vendorID: '0xFFF1',
-                                    originalVendorID: '0xFFF1',
-                                    productID: '0x8000',
-                                    originalProductID: '0x8000',
-                                },
-                            });
-                        }}
-                        style={{
-                            position: 'absolute',
-                            right: 20,
-                            bottom: 84,
-                        }}
-                    >
-                        <Add />
-                    </Fab>
-                </Tooltip>
+                <Fab
+                    onClick={() => {
+                        let i = 1;
+                        const name = `${I18n.t('New bridge')} `;
+                        while (this.state.matter.bridges.find(b => b.name === name + i)) {
+                            i++;
+                        }
+                        this.setState({
+                            editDialog: {
+                                type: 'bridge',
+                                name: name + i,
+                                originalName: '',
+                                add: true,
+                                vendorID: '0xFFF1',
+                                originalVendorID: '0xFFF1',
+                                productID: '0x8000',
+                                originalProductID: '0x8000',
+                            },
+                        });
+                    }}
+                    style={{
+                        position: 'absolute',
+                        right: 20,
+                        bottom: 84,
+                    }}
+                >
+                    <Add />
+                </Fab>
+            </Tooltip>
             {this.state.matter.bridges.length ? <div>
                 <Tooltip title={I18n.t('Expand all')}>
                     <span>
@@ -447,7 +447,11 @@ class App extends GenericApp {
                                                 {DEVICE_ICONS[device.type] || <QuestionMark />}
                                             </span>
                                             {getText(device.name)}
-                                            <span className={this.props.classes.deviceOid}>({device.oid})</span>
+                                            <span className={this.props.classes.deviceOid}>
+                                                (
+                                                {device.oid}
+                                                )
+                                            </span>
                                         </div>
                                     </TableCell>
                                     <TableCell style={{ width: 0 }}>
@@ -551,7 +555,11 @@ class App extends GenericApp {
                                         <div className={this.props.classes.bridgeDiv}>
                                             <div className={this.props.classes.bridgeName}>
                                                 {getText(device.name)}
-                                                <span className={this.props.classes.deviceOid}>({device.oid})</span>
+                                                <span className={this.props.classes.deviceOid}>
+                                                    (
+                                                    {device.oid}
+                                                    )
+                                                </span>
                                             </div>
                                             <div>
                                                 <span className={this.props.classes.bridgeTitle}>

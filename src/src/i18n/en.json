@@ -39,5 +39,10 @@
     "Off": "Off",
     "On": "On",
     "to bridge": "to bridge",
-    "Add": "Add"
+    "Add": "Add",
+    "Name": "Name",
+    "Expand all": "Expand all",
+    "Collapse all": "Collapse all",
+    "Vendor ID": "Vendor ID",
+    "Product ID": "Product ID"
 }

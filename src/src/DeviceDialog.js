@@ -10,9 +10,9 @@ import {
     Blinds,
     Close, DirectionsRun, ExpandMore, Lightbulb, Lock, Palette, PlayArrowRounded, Power, SensorDoor, Thermostat, TipsAndUpdates, Tune, VolumeUp, Water, WaterDrop, WbSunny, Whatshot, Window,
 } from '@mui/icons-material';
-import { detectDevices, getText } from './Utils';
+import { getText } from './Utils';
 
-const deviceIcons = {
+export const deviceIcons = {
     blind: <Blinds />,
     dimmer: <TipsAndUpdates />,
     door: <SensorDoor />,
@@ -52,7 +52,7 @@ const DeviceDialog = props => {
             if (!props.open) {
                 return;
             }
-            let _rooms = (await detectDevices(props.socket)) || [];
+            let _rooms = props.detectedDevices || [];
             // ignore buttons
             _rooms.forEach(room => {
                 room.devices = room.devices.filter(device => device.common.role !== 'button');
@@ -104,7 +104,7 @@ const DeviceDialog = props => {
             });
             setUsedDevices(_usedDevices);
         })();
-    }, [props.open, props.socket]);
+    }, [props.open, props.detectedDevices]);
 
     const handleSubmit = () => {
         const devices = [];
@@ -174,7 +174,7 @@ const DeviceDialog = props => {
 
                                         <Checkbox
                                             title={I18n.t('Select/Unselect all devices in room')}
-                                            indeterminate={counters[roomId] !== room.devices.length && counters[roomId]}
+                                            indeterminate={counters[roomId] !== room.devices.length && !!counters[roomId]}
                                             checked={counters[roomId] === room.devices.length}
                                             onClick={e => {
                                                 e.stopPropagation();
@@ -207,11 +207,12 @@ const DeviceDialog = props => {
                                                     alignItems: 'center',
                                                     marginLeft: 20,
                                                     marginBottom: 20,
+                                                    gap: 4,
                                                     opacity: roomsChecked[room._id] ? 1 : 0.5,
                                                 }}
                                             >
                                                 <Checkbox
-                                                    checked={devicesChecked[device._id]}
+                                                    checked={!!devicesChecked[device._id]}
                                                     onChange={e => {
                                                         const _devicesChecked = JSON.parse(JSON.stringify(devicesChecked));
                                                         _devicesChecked[device._id] = e.target.checked;
@@ -249,6 +250,7 @@ const DeviceDialog = props => {
                                                         setRooms(_rooms);
                                                     }}
                                                     label={I18n.t('Vendor ID')}
+                                                    helperText={<span style={{ display: 'block', height: 20 }} />}
                                                     variant="standard"
                                                 >
                                                     {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorId =>
@@ -269,6 +271,7 @@ const DeviceDialog = props => {
                                                         setRooms(_rooms);
                                                     }}
                                                     label={I18n.t('Product ID')}
+                                                    helperText={<span style={{ display: 'block', height: 20 }} />}
                                                     variant="standard"
                                                 >
                                                     {productIds.map(productId =>

@@ -138,7 +138,8 @@ class App extends GenericApp {
     }
 
     async onConnectionReady() {
-        this.configHandler = new ConfigHandler(this.instance, this.socket);
+        this.configHandler && this.configHandler.destroy();
+        this.configHandler = new ConfigHandler(this.instance, this.socket, this.onChanged);
         const matter = await this.configHandler.loadConfig();
         matter.controller = matter.controller || { enabled: false };
         matter.devices = matter.devices || [];
@@ -151,6 +152,17 @@ class App extends GenericApp {
         }
 
         this.setState({ matter, changed: this.configHandler.isChanged(matter), ready: true });
+    }
+
+    onChanged = newConfig => {
+        if (this.state.ready) {
+            this.setState({ matter: newConfig, changed: this.configHandler.isChanged(newConfig) });
+        }
+    };
+
+    componentWillUnmount() {
+        super.componentWillUnmount();
+        this.configHandler && this.configHandler.destroy();
     }
 
     renderController() {
@@ -173,10 +185,10 @@ class App extends GenericApp {
         devices.forEach(device => {
             if (!matter.devices.find(d => d.oid === device)) {
                 matter.devices.push({
+                    uuid: uuidv4(),
+                    name: getText(device.common.name),
                     oid: device._id,
                     type: device.deviceType,
-                    name: getText(device.common.name),
-                    uuid: uuidv4(),
                     productID: device.productID,
                     vendorID: device.vendorID,
                     enabled: true,
@@ -194,25 +206,29 @@ class App extends GenericApp {
             devices.forEach(device => {
                 if (!bridge.list.find(d => d.oid === device._id)) {
                     bridge.list.push({
+                        uuid: uuidv4(),
+                        name: getText(device.common.name),
                         oid: device._id,
                         type: device.deviceType,
-                        name: getText(device.common.name),
-                        uuid: uuidv4(),
                         enabled: true,
                     });
                 }
             });
         } else {
+            // should be never called
             const bridge = {
+                uuid: uuidv4(),
                 name: 'New bridge',
-                enabled: true,
                 list: devices.map(device => ({
+                    uuid: uuidv4(),
+                    name: getText(device.common.name),
                     oid: device._id,
                     type: device.deviceType,
-                    name: getText(device.common.name),
+                    productID: '0x8000',
+                    vendorID: '0xFFF1',
                     enabled: true,
                 })),
-                uuid: uuidv4(),
+                enabled: true,
             };
             matter.bridges.push(bridge);
         }
@@ -222,8 +238,7 @@ class App extends GenericApp {
 
     renderBridges() {
         return <div>
-            <div>
-                <Tooltip title={I18n.t('Add bridge')}>
+            <Tooltip title={I18n.t('Add bridge')}>
                     <Fab
                         onClick={() => {
                             let i = 1;
@@ -253,7 +268,6 @@ class App extends GenericApp {
                         <Add />
                     </Fab>
                 </Tooltip>
-            </div>
             {this.state.matter.bridges.length ? <div>
                 <Tooltip title={I18n.t('Expand all')}>
                     <span>

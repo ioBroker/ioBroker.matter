@@ -3,6 +3,7 @@
     "version": "0.0.1",
     "private": true,
     "dependencies": {
+        "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
         "@iobroker/adapter-react-v5": "^4.5.3",
         "@mui/icons-material": "^5.14.8",
         "@mui/material": "^5.14.8",

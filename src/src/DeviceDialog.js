@@ -1,18 +1,48 @@
 import { useEffect, useState } from 'react';
-import { I18n } from '@iobroker/adapter-react-v5';
+import PropTypes from 'prop-types';
 import {
     Accordion,
     AccordionDetails,
-    AccordionSummary, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, Icon, LinearProgress, MenuItem, Switch, TextField,
+    AccordionSummary,
+    Button,
+    Checkbox,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    Icon,
+    LinearProgress, MenuItem,
+    Switch,
+    TextField,
 } from '@mui/material';
 import {
     Add,
     Blinds,
-    Close, DirectionsRun, ExpandMore, Lightbulb, Lock, Palette, PlayArrowRounded, Power, SensorDoor, Thermostat, TipsAndUpdates, Tune, VolumeUp, Water, WaterDrop, WbSunny, Whatshot, Window,
+    Close,
+    DirectionsRun,
+    ExpandMore,
+    Lightbulb,
+    Lock,
+    Palette,
+    PlayArrowRounded,
+    Power, QuestionMark,
+    SensorDoor,
+    Thermostat,
+    TipsAndUpdates,
+    Tune,
+    VolumeUp,
+    Water,
+    WaterDrop,
+    WbSunny,
+    Whatshot,
+    Window,
 } from '@mui/icons-material';
-import { getText } from './Utils';
 
-export const deviceIcons = {
+import { I18n } from '@iobroker/adapter-react-v5';
+
+import { detectDevices, getText } from './Utils';
+
+export const DEVICE_ICONS = {
     blind: <Blinds />,
     dimmer: <TipsAndUpdates />,
     door: <SensorDoor />,
@@ -41,6 +71,7 @@ for (let i = 0x8000; i <= 0x801F; i++) {
 }
 
 const DeviceDialog = props => {
+    const [loading, setLoading] = useState(false);
     const [rooms, setRooms] = useState(null);
     const [devicesChecked, setDevicesChecked] = useState({});
     const [roomsChecked, setRoomsChecked] = useState({});
@@ -48,62 +79,70 @@ const DeviceDialog = props => {
     const [ignoreUsedDevices, setIgnoreUsedDevices] = useState(false);
 
     useEffect(() => {
-        (async () => {
-            if (!props.open) {
-                return;
-            }
-            let _rooms = props.detectedDevices || [];
-            // ignore buttons
-            _rooms.forEach(room => {
-                room.devices = room.devices.filter(device => device.common.role !== 'button');
-            });
-            // ignore empty rooms
-            _rooms = _rooms.filter(room => room.devices.length);
+        if (!props.open) {
+            return;
+        }
+        if (!props.detectedDevices) {
+            setTimeout(async () => {
+                setLoading(true);
+                props.setDetectedDevices(await detectDevices(props.socket));
+                setLoading(false);
+            })
+            return;
+        }
 
-            // Fix names
-            _rooms.forEach(room => {
-                room.devices.forEach(device => {
-                    // Device.Name.Room => Device Name Room
-                    device.common.name = (getText(device.common.name) || '').replace(/\./g, ' ').trim();
-                    // delete room name from device name
-                    if (device.roomName) {
-                        device.common.name = device.common.name.replace(getText(device.roomName), '').trim();
-                    }
-                });
-            });
+        let _rooms = props.detectedDevices || [];
 
-            setRooms(_rooms);
-            const _checked = {};
-            const _devicesChecked = {};
-            const _roomsChecked = {};
-            _rooms.forEach(room => {
-                _roomsChecked[room._id] = true;
-                room.devices.forEach(device => {
-                    _devicesChecked[device._id] = false;
-                    device.VendorID = '0xFFF1';
-                    device.ProductID = '0x8000';
-                    device.states.forEach(state => {
-                        _checked[state._id] = true;
-                    });
-                });
-                if (props.devices) {
-                    room.devices = room.devices.filter(device => !props.devices.find(_device => _device.oid === device._id));
+        // ignore buttons
+        _rooms.forEach(room => {
+            room.devices = room.devices.filter(device => device.common.role !== 'button');
+        });
+        // ignore empty rooms
+        _rooms = _rooms.filter(room => room.devices.length);
+
+        // Fix names
+        _rooms.forEach(room => {
+            room.devices.forEach(device => {
+                // Device.Name.Room => Device Name Room
+                device.common.name = (getText(device.common.name) || '').replace(/\./g, ' ').trim();
+                // delete room name from device name
+                if (device.roomName) {
+                    device.common.name = device.common.name.replace(getText(device.roomName), '').trim();
                 }
             });
-            setDevicesChecked(_devicesChecked);
-            setRoomsChecked(_roomsChecked);
+        });
 
-            const _usedDevices = {};
-            props.matter.devices.list.forEach(device => {
-                _usedDevices[device.oid] = true;
-            });
-            props.matter.bridges.list.forEach(bridge => {
-                bridge.list.forEach(device => {
-                    _usedDevices[device.oid] = true;
+        setRooms(_rooms);
+        const _checked = {};
+        const _devicesChecked = {};
+        const _roomsChecked = {};
+        _rooms.forEach(room => {
+            _roomsChecked[room._id] = true;
+            room.devices.forEach(device => {
+                _devicesChecked[device._id] = false;
+                device.vendorID = '0xFFF1';
+                device.productID = '0x8000';
+                device.states.forEach(state => {
+                    _checked[state._id] = true;
                 });
             });
-            setUsedDevices(_usedDevices);
-        })();
+            if (props.devices) {
+                room.devices = room.devices.filter(device => !props.devices.find(_device => _device.oid === device._id));
+            }
+        });
+        setDevicesChecked(_devicesChecked);
+        setRoomsChecked(_roomsChecked);
+
+        const _usedDevices = {};
+        props.matter.devices.forEach(device => {
+            _usedDevices[device.oid] = true;
+        });
+        props.matter.bridges.forEach(bridge => {
+            bridge.list.forEach(device => {
+                _usedDevices[device.oid] = true;
+            });
+        });
+        setUsedDevices(_usedDevices);
     }, [props.open, props.detectedDevices]);
 
     const handleSubmit = () => {
@@ -137,9 +176,10 @@ const DeviceDialog = props => {
             display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden',
         }}
         >
-            {rooms ? <div style={{
-                display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden',
-            }}
+            {rooms ? <div
+                style={{
+                    display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden',
+                }}
             >
                 <div>
                     {I18n.t('All devices')}
@@ -221,10 +261,7 @@ const DeviceDialog = props => {
                                                     onClick={e => e.stopPropagation()}
                                                 />
                                                 <span style={{ marginRight: 8 }}>
-                                                    {device.common.icon ?
-                                                        <Icon src={device.common.icon} style={{ width: 24, height: 24 }} alt="" />
-                                                        :
-                                                        (deviceIcons[device.deviceType] || <Lightbulb />)}
+                                                    {DEVICE_ICONS[device.deviceType] || <QuestionMark />}
                                                 </span>
                                                 <TextField
                                                     variant="standard"
@@ -243,10 +280,10 @@ const DeviceDialog = props => {
                                                 <TextField
                                                     select
                                                     style={{ minWidth: 'initial' }}
-                                                    value={device.VendorID}
+                                                    value={device.vendorID}
                                                     onChange={e => {
                                                         const _rooms = JSON.parse(JSON.stringify(rooms));
-                                                        _rooms[roomId].devices[deviceId].VendorID = e.target.value;
+                                                        _rooms[roomId].devices[deviceId].vendorID = e.target.value;
                                                         setRooms(_rooms);
                                                     }}
                                                     label={I18n.t('Vendor ID')}
@@ -264,10 +301,10 @@ const DeviceDialog = props => {
                                                 <TextField
                                                     select
                                                     style={{ minWidth: 'initial' }}
-                                                    value={device.ProductID}
+                                                    value={device.productID}
                                                     onChange={e => {
                                                         const _rooms = JSON.parse(JSON.stringify(rooms));
-                                                        _rooms[roomId].devices[deviceId].ProductID = e.target.value;
+                                                        _rooms[roomId].devices[deviceId].productID = e.target.value;
                                                         setRooms(_rooms);
                                                     }}
                                                     label={I18n.t('Product ID')}
@@ -311,6 +348,18 @@ const DeviceDialog = props => {
             </Button>
         </DialogActions>
     </Dialog>;
+};
+
+DeviceDialog.propTypes = {
+    open: PropTypes.bool.isRequired,
+    devices: PropTypes.array,
+    matter: PropTypes.object,
+    socket: PropTypes.object,
+    setDetectedDevices: PropTypes.func,
+    addDevices: PropTypes.func,
+    onClose: PropTypes.func,
+    type: PropTypes.string,
+    themeType: PropTypes.string,
 };
 
 export default DeviceDialog;

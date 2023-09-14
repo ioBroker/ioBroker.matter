@@ -28,6 +28,18 @@ class ConfigHandler {
         } catch (e) {
             // ignore
         }
+        if (!controllerObj) {
+            await this.socket.setObject(`matter.${this.instance}.controller`, {
+                type: 'folder',
+                common: {
+                    name: 'Matter controller',
+                },
+                native: {
+                    enabled: false,
+                },
+            });
+        }
+
         controllerObj = controllerObj || {};
         controllerObj.native = controllerObj.native || {};
 
@@ -38,17 +50,27 @@ class ConfigHandler {
         // List devices
         Object.keys(devicesAndBridges).forEach(id => {
             if (id.substring(len).startsWith('devices.')) {
-                devices.push({
+                const obj = {
                     uuid: id.substring(len + 8),
                     name: devicesAndBridges[id].common.name,
-                    ...devicesAndBridges[id].native,
-                });
+                    oid: devicesAndBridges[id].native.oid,
+                    type: devicesAndBridges[id].native.type,
+                    productID: devicesAndBridges[id].native.productID,
+                    vendorID: devicesAndBridges[id].native.vendorID,
+                    enabled: devicesAndBridges[id].native.enabled,
+                };
+
+                devices.push(obj);
             } else if (id.substring(len).startsWith('bridges.')) {
-                bridges.push({
+                const obj = {
                     uuid: id.substring(len + 8),
                     name: devicesAndBridges[id].common.name,
-                    ...devicesAndBridges[id].native,
-                });
+                    list: devicesAndBridges[id].native.list,
+                    productID: devicesAndBridges[id].native.productID,
+                    vendorID: devicesAndBridges[id].native.vendorID,
+                    enabled: devicesAndBridges[id].native.enabled,
+                };
+                bridges.push(obj);
             }
         });
 
@@ -139,8 +161,10 @@ class ConfigHandler {
             } else if (JSON.stringify(newDev) !== JSON.stringify(oldDev)) {
                 const obj = await this.socket.getObject(`matter.${this.instance}.devices.${newDev.uuid}`);
                 obj.common.name = newDev.name;
-                obj.native = JSON.parse(JSON.stringify(newDev));
+                obj.native = obj.native || {};
+                Object.assign(obj.native, newDev);
                 delete obj.native.name;
+                await this.socket.setObject(obj._id, obj);
             }
         }
         for (let d = 0; d < this.config.devices.length; d++) {
@@ -169,8 +193,10 @@ class ConfigHandler {
             } else if (JSON.stringify(newBridge) !== JSON.stringify(oldBridge)) {
                 const obj = await this.socket.getObject(`matter.${this.instance}.devices.${newBridge.uuid}`);
                 obj.common.name = newBridge.name;
-                obj.native = JSON.parse(JSON.stringify(newBridge));
+                obj.native = obj.native || {};
+                Object.assign(obj.native, newBridge);
                 delete obj.native.name;
+                await this.socket.setObject(obj._id, obj);
             }
         }
 

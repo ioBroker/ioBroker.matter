@@ -3,7 +3,7 @@ import { I18n } from '@iobroker/adapter-react-v5';
 import {
     Accordion,
     AccordionDetails,
-    AccordionSummary, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, Icon, LinearProgress, Switch, TextField,
+    AccordionSummary, Button, Checkbox, Dialog, DialogActions, DialogContent, DialogTitle, Icon, LinearProgress, MenuItem, Switch, TextField,
 } from '@mui/material';
 import {
     Add,
@@ -34,6 +34,11 @@ const deviceIcons = {
     window: <Window />,
     windowTilt: <Window />,
 };
+
+const productIds = [];
+for (let i = 0x8000; i <= 0x801F; i++) {
+    productIds.push(`0x${i.toString(16)}`);
+}
 
 const DeviceDialog = props => {
     const [rooms, setRooms] = useState(null);
@@ -75,6 +80,8 @@ const DeviceDialog = props => {
                 _roomsChecked[room._id] = true;
                 room.devices.forEach(device => {
                     _devicesChecked[device._id] = false;
+                    device.VendorID = '0xFFF1';
+                    device.ProductID = '0x8000';
                     device.states.forEach(state => {
                         _checked[state._id] = true;
                     });
@@ -232,6 +239,46 @@ const DeviceDialog = props => {
                                                         setRooms(_rooms);
                                                     }}
                                                 />
+                                                <TextField
+                                                    select
+                                                    style={{ minWidth: 'initial' }}
+                                                    value={device.VendorID}
+                                                    onChange={e => {
+                                                        const _rooms = JSON.parse(JSON.stringify(rooms));
+                                                        _rooms[roomId].devices[deviceId].VendorID = e.target.value;
+                                                        setRooms(_rooms);
+                                                    }}
+                                                    label={I18n.t('Vendor ID')}
+                                                    variant="standard"
+                                                >
+                                                    {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorId =>
+                                                        <MenuItem
+                                                            key={vendorId}
+                                                            value={vendorId}
+                                                        >
+                                                            {vendorId}
+                                                        </MenuItem>)}
+                                                </TextField>
+                                                <TextField
+                                                    select
+                                                    style={{ minWidth: 'initial' }}
+                                                    value={device.ProductID}
+                                                    onChange={e => {
+                                                        const _rooms = JSON.parse(JSON.stringify(rooms));
+                                                        _rooms[roomId].devices[deviceId].ProductID = e.target.value;
+                                                        setRooms(_rooms);
+                                                    }}
+                                                    label={I18n.t('Product ID')}
+                                                    variant="standard"
+                                                >
+                                                    {productIds.map(productId =>
+                                                        <MenuItem
+                                                            key={productId}
+                                                            value={productId}
+                                                        >
+                                                            {productId}
+                                                        </MenuItem>)}
+                                                </TextField>
                                             </div>
                                         </div>;
                                     })}

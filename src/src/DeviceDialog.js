@@ -66,7 +66,7 @@ export const DEVICE_ICONS = {
 };
 
 const SUPPORTED_DEVICES = [
-    'switch', 'light', 'dimmer'
+    'switch', 'light', 'dimmer',
 ];
 
 const productIds = [];
@@ -75,7 +75,6 @@ for (let i = 0x8000; i <= 0x801F; i++) {
 }
 
 const DeviceDialog = props => {
-    const [loading, setLoading] = useState(false);
     const [rooms, setRooms] = useState(null);
     const [devicesChecked, setDevicesChecked] = useState({});
     const [roomsChecked, setRoomsChecked] = useState({});
@@ -87,20 +86,17 @@ const DeviceDialog = props => {
             return;
         }
         if (!props.detectedDevices) {
-            setTimeout(async () => {
-                setLoading(true);
-                props.setDetectedDevices(await detectDevices(props.socket));
-                setLoading(false);
-            })
+            setTimeout(async () =>
+                props.setDetectedDevices(await detectDevices(props.socket)), 100);
             return;
         }
 
-        let _rooms = props.detectedDevices || [];
+        let _rooms = JSON.parse(JSON.stringify(props.detectedDevices));
 
         // ignore buttons
-        _rooms.forEach(room => {
-            room.devices = room.devices.filter(device => device.common.role !== 'button');
-        });
+        _rooms.forEach(room =>
+            room.devices = room.devices.filter(device => device.common.role !== 'button'));
+
         // ignore empty rooms
         _rooms = _rooms.filter(room => room.devices.length);
 
@@ -116,7 +112,6 @@ const DeviceDialog = props => {
             });
         });
 
-        setRooms(_rooms);
         const _checked = {};
         const _devicesChecked = {};
         const _roomsChecked = {};
@@ -126,26 +121,25 @@ const DeviceDialog = props => {
                 _devicesChecked[device._id] = false;
                 device.vendorID = '0xFFF1';
                 device.productID = '0x8000';
-                device.states.forEach(state => {
-                    _checked[state._id] = true;
-                });
+                device.states.forEach(state => _checked[state._id] = true);
             });
-            if (props.devices) {
-                room.devices = room.devices.filter(device => !props.devices.find(_device => _device.oid === device._id));
-            }
+            // if (props.devices) {
+            //     room.devices = room.devices.filter(device => !props.devices.find(_device => _device.oid === device._id));
+            // }
         });
+
+        setRooms(_rooms);
         setDevicesChecked(_devicesChecked);
         setRoomsChecked(_roomsChecked);
 
         const _usedDevices = {};
-        props.matter.devices.forEach(device => {
-            _usedDevices[device.oid] = true;
-        });
-        props.matter.bridges.forEach(bridge => {
-            bridge.list.forEach(device => {
-                _usedDevices[device.oid] = true;
-            });
-        });
+        props.matter.devices.forEach(device =>
+            _usedDevices[device.oid] = true);
+
+        props.matter.bridges.forEach(bridge =>
+            bridge.list.forEach(device =>
+                _usedDevices[device.oid] = true));
+
         setUsedDevices(_usedDevices);
     }, [props.open, props.detectedDevices]);
 
@@ -172,7 +166,7 @@ const DeviceDialog = props => {
     });
     const lengths = rooms?.map(room => {
         if (ignoreUsedDevices) {
-            return room.devices.filter(device => !usedDevices[device._id]).length;
+            return room.devices.filter(device => !usedDevices[device._id] && SUPPORTED_DEVICES.includes(device.deviceType)).length;
         }
 
         return room.devices.filter(device => SUPPORTED_DEVICES.includes(device.deviceType)).length;

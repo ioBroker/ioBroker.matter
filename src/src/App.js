@@ -40,6 +40,7 @@ import GenericApp from '@iobroker/adapter-react-v5/GenericApp';
 import { I18n, Loader, AdminConnection } from '@iobroker/adapter-react-v5';
 
 import { getText } from './Utils';
+import ConfigHandler from './components/configHandler';
 import DeviceDialog, { DEVICE_ICONS } from './DeviceDialog';
 
 const productIDs = [];
@@ -69,7 +70,7 @@ const styles = theme => ({
         marginTop: 4,
         fontSize: 16,
         fontWeight: 'bold',
-},
+    },
     bridgeTitle: {
         fontStyle: 'italic',
         fontSize: 12,
@@ -83,7 +84,14 @@ const styles = theme => ({
         fontWeight: 'normal',
         marginRight: 8,
         opacity: 0.6,
-    }
+    },
+    deviceOid: {
+        fontStyle: 'italic',
+        fontSize: 10,
+        fontWeight: 'normal',
+        marginLeft: 8,
+        opacity: 0.6,
+    },
 });
 
 class App extends GenericApp {
@@ -124,19 +132,15 @@ class App extends GenericApp {
         }
 
         this.state.detectedDevices = null;
+        this.configHandler = null;
 
         this.state.dialog = false;
     }
 
     async onConnectionReady() {
-        this.socket.getState(`${this.adapterName}.${this.instance}.info.ackTempPassword`)
-            .then(state => {
-                if (!state || !state.val) {
-                    this.setState({ showAckTempPasswordDialog: true });
-                }
-            });
-        const matter = JSON.parse(JSON.stringify(this.state.native));
-        matter.controller = matter.controller || { enabled: true };
+        this.configHandler = new ConfigHandler(this.instance, this.socket);
+        const matter = await this.configHandler.loadConfig();
+        matter.controller = matter.controller || { enabled: false };
         matter.devices = matter.devices || [];
         if (matter.devices.list) {
             matter.devices = matter.devices.list;
@@ -145,19 +149,19 @@ class App extends GenericApp {
         if (matter.bridges.list) {
             matter.bridges = matter.bridges.list;
         }
-        const changed = this.getIsChanged(matter);
-        this.setState({ native: matter, changed, ready: true });
+
+        this.setState({ matter, changed: this.configHandler.isChanged(matter), ready: true });
     }
 
     renderController() {
         return <div>
             {I18n.t('Off')}
             <Switch
-                checked={this.state.native.controller.enabled}
+                checked={this.state.matter.controller.enabled}
                 onChange={e => {
-                    const matter = JSON.parse(JSON.stringify(this.state.native));
+                    const matter = JSON.parse(JSON.stringify(this.state.matter));
                     matter.controller.enabled = e.target.checked;
-                    this.updateNativeValue('controller', matter.controller);
+                    this.setState({ matter, changed: this.configHandler.isChanged(matter) });
                 }}
             />
             {I18n.t('On')}
@@ -165,7 +169,7 @@ class App extends GenericApp {
     }
 
     addDevices = devices => {
-        const matter = JSON.parse(JSON.stringify(this.state.native));
+        const matter = JSON.parse(JSON.stringify(this.state.matter));
         devices.forEach(device => {
             if (!matter.devices.find(d => d.oid === device)) {
                 matter.devices.push({
@@ -179,16 +183,17 @@ class App extends GenericApp {
                 });
             }
         });
-        this.updateNativeValue('devices', matter.devices);
+
+        this.setState({ matter, changed: this.configHandler.isChanged(matter) });
     };
 
     addDevicesToBridge = devices => {
-        const matter = JSON.parse(JSON.stringify(this.state.native));
+        const matter = JSON.parse(JSON.stringify(this.state.matter));
         if (this.state.dialog.bridge !== undefined) {
             const bridge = matter.bridges[this.state.dialog.bridge];
             devices.forEach(device => {
-                if (!bridge.find(d => d.oid === device._id)) {
-                    bridge.push({
+                if (!bridge.list.find(d => d.oid === device._id)) {
+                    bridge.list.push({
                         oid: device._id,
                         type: device.deviceType,
                         name: getText(device.common.name),
@@ -211,7 +216,8 @@ class App extends GenericApp {
             };
             matter.bridges.push(bridge);
         }
-        this.updateNativeValue('bridges', matter.bridges);
+
+        this.setState({ matter, changed: this.configHandler.isChanged(matter) });
     };
 
     renderBridges() {
@@ -219,11 +225,16 @@ class App extends GenericApp {
             <div>
                 <Tooltip title={I18n.t('Add bridge')}>
                     <Fab
-                        onClick={() => this.setState(
-                            {
+                        onClick={() => {
+                            let i = 1;
+                            let name = `${I18n.t('New bridge')} `;
+                            while (this.state.matter.bridges.find(b => b.name === name + i)) {
+                                i++;
+                            }
+                            this.setState({
                                 editDialog: {
                                     type: 'bridge',
-                                    name: '',
+                                    name: name + i,
                                     originalName: '',
                                     add: true,
                                     vendorID: '0xFFF1',
@@ -231,8 +242,8 @@ class App extends GenericApp {
                                     productID: '0x8000',
                                     originalProductID: '0x8000',
                                 },
-                            },
-                        )}
+                            });
+                        }}
                         style={{
                             position: 'absolute',
                             right: 20,
@@ -243,7 +254,7 @@ class App extends GenericApp {
                     </Fab>
                 </Tooltip>
             </div>
-            {this.state.native.bridges.length ? <div>
+            {this.state.matter.bridges.length ? <div>
                 <Tooltip title={I18n.t('Expand all')}>
                     <span>
                         <IconButton
@@ -277,26 +288,38 @@ class App extends GenericApp {
             </div> : I18n.t('No bridges created. Create one, by clicking on the "+" button in the bottom right corner.')}
             <Table size="small" style={{ width: '100%', maxWidth: 600 }} padding="none">
                 <TableBody>
-                {
-                    this.state.native.bridges.map((bridge, index) => <React.Fragment key={index}>
-                        <TableRow sx={theme => (
-                            {
-                                backgroundColor: theme.palette.secondary.main,
-                                '&>td:first-child': {
-                                    borderTopLeftRadius: 4,
-                                    borderBottomLeftRadius: 4,
-                                },
-                                '&>td:last-child': {
-                                    borderTopRightRadius: 4,
-                                    borderBottomRightRadius: 4,
-                                },
-                                opacity: bridge.enabled ? 1 : 0.4,
-                            }
-                        )}
-                        >
-                            <TableCell style={{ width: 0 }}>
-                                <IconButton
-                                    size="small"
+                    {
+                        this.state.matter.bridges.map((bridge, index) => <React.Fragment key={index}>
+                            <TableRow sx={theme => (
+                                {
+                                    backgroundColor: theme.palette.secondary.main,
+                                    '&>td:first-child': {
+                                        borderTopLeftRadius: 4,
+                                        borderBottomLeftRadius: 4,
+                                    },
+                                    '&>td:last-child': {
+                                        borderTopRightRadius: 4,
+                                        borderBottomRightRadius: 4,
+                                    },
+                                    opacity: bridge.enabled ? 1 : 0.4,
+                                }
+                            )}
+                            >
+                                <TableCell style={{ width: 0 }}>
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => {
+                                            const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
+                                            bridgesOpened[index] = !bridgesOpened[index];
+                                            window.localStorage.setItem(`${this.adapterName}.${this.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
+                                            this.setState({ bridgesOpened });
+                                        }}
+                                    >
+                                        {this.state.bridgesOpened[index] ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
+                                    </IconButton>
+                                </TableCell>
+                                <TableCell
+                                    style={{ cursor: 'pointer' }}
                                     onClick={() => {
                                         const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
                                         bridgesOpened[index] = !bridgesOpened[index];
@@ -304,144 +327,49 @@ class App extends GenericApp {
                                         this.setState({ bridgesOpened });
                                     }}
                                 >
-                                    {this.state.bridgesOpened[index] ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-                                </IconButton>
-                            </TableCell>
-                            <TableCell
-                                style={{ cursor: 'pointer' }}
-                                onClick={() => {
-                                    const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
-                                    bridgesOpened[index] = !bridgesOpened[index];
-                                    window.localStorage.setItem(`${this.adapterName}.${this.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
-                                    this.setState({ bridgesOpened });
-                                }}
-                            >
-                                <div className={this.props.classes.bridgeDiv}>
-                                    <div className={this.props.classes.bridgeName}>{bridge.name}</div>
-                                    <div>
-                                        <span className={this.props.classes.bridgeTitle}>{I18n.t('Vendor ID')}:</span>
-                                        <span className={this.props.classes.bridgeValue}>{bridge.vendorID || ''}</span>
-                                        <span className={this.props.classes.bridgeTitle}>, {I18n.t('Product ID')}:</span>
-                                        <span className={this.props.classes.bridgeValue}>{bridge.productID || ''}</span>
-                                    </div>
-                                </div>
-                            </TableCell>
-                            <TableCell style={{ width: 0 }}>
-                                <Switch
-                                    checked={bridge.enabled}
-                                    onClick={e => e.stopPropagation()}
-                                    onChange={e => {
-                                        const matter = JSON.parse(JSON.stringify(this.state.native));
-                                        matter.bridges[index].enabled = e.target.checked;
-                                        this.updateNativeValue('bridges', matter.bridges);
-                                    }}
-                                />
-                            </TableCell>
-                            <TableCell style={{ width: 0 }}>
-                                <Tooltip title={I18n.t('Edit bridge')}>
-                                    <IconButton onClick={e => {
-                                        e.stopPropagation();
-                                        this.setState(
-                                            {
-                                                editDialog: {
-                                                    type: 'bridge',
-                                                    name: bridge.name,
-                                                    originalName: bridge.name,
-                                                    bridge: index,
-                                                    vendorID: bridge.vendorID,
-                                                    originalVendorID: bridge.vendorID,
-                                                    productID: bridge.productID,
-                                                    originalProductID: bridge.productID,
-                                                },
-                                            },
-                                        );
-                                    }}
-                                    >
-                                        <Edit />
-                                    </IconButton>
-                                </Tooltip>
-                            </TableCell>
-                            <TableCell style={{ width: 0 }}>
-                                <Tooltip title={I18n.t('Delete bridge')}>
-                                    <IconButton onClick={e => {
-                                        e.stopPropagation();
-                                        this.setState(
-                                            {
-                                                deleteDialog: {
-                                                    type: 'bridge',
-                                                    name: bridge.name,
-                                                    bridge: index,
-                                                },
-                                            },
-                                        );
-                                    }}
-                                    >
-                                        <Delete />
-                                    </IconButton>
-                                </Tooltip>
-                            </TableCell>
-                        </TableRow>
-                        {(this.state.bridgesOpened[index] || false) && <>
-                            <TableRow>
-                                <TableCell style={{ border: 0 }} />
-                                <TableCell style={{ border: 0, opacity: bridge.enabled ? 1 : 0.5 }}>
-                                    <b>{I18n.t('Devices')}</b>
-                                    <Tooltip title={I18n.t('Add device')}>
-                                        <IconButton onClick={() => this.setState(
-                                            {
-                                                dialog: {
-                                                    type: 'bridge',
-                                                    name: bridge.name,
-                                                    bridge: index,
-                                                    devices: bridge.list,
-                                                    addDevices: this.addDevicesToBridge,
-                                                },
-                                            },
-                                        )}
-                                        >
-                                            <Add />
-                                        </IconButton>
-                                    </Tooltip>
-                                </TableCell>
-                            </TableRow>
-                            {bridge.list.map((device, index2) => <TableRow
-                                key={index2}
-                                style={{ opacity: device.enabled && bridge.enabled ? 1 : 0.4 }}
-                            >
-                                <TableCell style={{ border: 0 }} />
-                                <TableCell>
-                                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                                        <span style={{ marginRight: 8 }} title={device.type}>
-                                            {DEVICE_ICONS[device.type] || <QuestionMark />}
-                                        </span>
-                                        {device.name}
+                                    <div className={this.props.classes.bridgeDiv}>
+                                        <div className={this.props.classes.bridgeName}>{getText(bridge.name)}</div>
+                                        <div>
+                                            <span className={this.props.classes.bridgeTitle}>
+                                                {I18n.t('Vendor ID')}
+:
+                                            </span>
+                                            <span className={this.props.classes.bridgeValue}>{bridge.vendorID || ''}</span>
+                                            <span className={this.props.classes.bridgeTitle}>
+,
+                                                {I18n.t('Product ID')}
+:
+                                            </span>
+                                            <span className={this.props.classes.bridgeValue}>{bridge.productID || ''}</span>
+                                        </div>
                                     </div>
                                 </TableCell>
                                 <TableCell style={{ width: 0 }}>
                                     <Switch
-                                        checked={device.enabled}
+                                        checked={bridge.enabled}
+                                        onClick={e => e.stopPropagation()}
                                         onChange={e => {
-                                            const matter = JSON.parse(JSON.stringify(this.state.native));
-                                            matter.bridges[index].list[index2].enabled = e.target.checked;
-                                            this.updateNativeValue('bridges', matter.bridges);
+                                            const matter = JSON.parse(JSON.stringify(this.state.matter));
+                                            matter.bridges[index].enabled = e.target.checked;
+                                            this.setState({ matter, changed: this.configHandler.isChanged(matter) });
                                         }}
                                     />
                                 </TableCell>
                                 <TableCell style={{ width: 0 }}>
-                                    <Tooltip title={I18n.t('Edit device')}>
-                                        <IconButton onClick={() => {
+                                    <Tooltip title={I18n.t('Edit bridge')}>
+                                        <IconButton onClick={e => {
+                                            e.stopPropagation();
                                             this.setState(
                                                 {
                                                     editDialog: {
-                                                        type: 'device',
-                                                        name: device.name,
-                                                        originalName: device.name,
+                                                        type: 'bridge',
+                                                        name: getText(bridge.name),
+                                                        originalName: getText(bridge.name),
                                                         bridge: index,
-                                                        device: index2,
-                                                        vendorID: false,
-                                                        productID: false,
-                                                        originalVendorID: false,
-                                                        originalProductID: false,
+                                                        vendorID: bridge.vendorID,
+                                                        originalVendorID: bridge.vendorID,
+                                                        productID: bridge.productID,
+                                                        originalProductID: bridge.productID,
                                                     },
                                                 },
                                             );
@@ -452,15 +380,15 @@ class App extends GenericApp {
                                     </Tooltip>
                                 </TableCell>
                                 <TableCell style={{ width: 0 }}>
-                                    <Tooltip title={I18n.t('Delete device')}>
-                                        <IconButton onClick={() => {
+                                    <Tooltip title={I18n.t('Delete bridge')}>
+                                        <IconButton onClick={e => {
+                                            e.stopPropagation();
                                             this.setState(
                                                 {
                                                     deleteDialog: {
-                                                        type: 'device',
-                                                        name: device.name,
+                                                        type: 'bridge',
+                                                        name: getText(bridge.name),
                                                         bridge: index,
-                                                        device: index2,
                                                     },
                                                 },
                                             );
@@ -470,10 +398,101 @@ class App extends GenericApp {
                                         </IconButton>
                                     </Tooltip>
                                 </TableCell>
-                            </TableRow>)}
-                        </>}
-                    </React.Fragment>)
-                }
+                            </TableRow>
+                            {(this.state.bridgesOpened[index] || false) && <>
+                                <TableRow>
+                                    <TableCell style={{ border: 0 }} />
+                                    <TableCell style={{ border: 0, opacity: bridge.enabled ? 1 : 0.5 }}>
+                                        <b>{I18n.t('Devices')}</b>
+                                        <Tooltip title={I18n.t('Add device')}>
+                                            <IconButton onClick={() => this.setState(
+                                                {
+                                                    dialog: {
+                                                        type: 'bridge',
+                                                        name: getText(bridge.name),
+                                                        bridge: index,
+                                                        devices: bridge.list,
+                                                        addDevices: this.addDevicesToBridge,
+                                                    },
+                                                },
+                                            )}
+                                            >
+                                                <Add />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </TableCell>
+                                </TableRow>
+                                {bridge.list.map((device, index2) => <TableRow
+                                    key={index2}
+                                    style={{ opacity: device.enabled && bridge.enabled ? 1 : 0.4 }}
+                                >
+                                    <TableCell style={{ border: 0 }} />
+                                    <TableCell>
+                                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                                            <span style={{ marginRight: 8 }} title={device.type}>
+                                                {DEVICE_ICONS[device.type] || <QuestionMark />}
+                                            </span>
+                                            {getText(device.name)}
+                                            <span className={this.props.classes.deviceOid}>({device.oid})</span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell style={{ width: 0 }}>
+                                        <Switch
+                                            checked={device.enabled}
+                                            onChange={e => {
+                                                const matter = JSON.parse(JSON.stringify(this.state.matter));
+                                                matter.bridges[index].list[index2].enabled = e.target.checked;
+                                                this.setState({ matter, changed: this.configHandler.isChanged(matter) });
+                                            }}
+                                        />
+                                    </TableCell>
+                                    <TableCell style={{ width: 0 }}>
+                                        <Tooltip title={I18n.t('Edit device')}>
+                                            <IconButton onClick={() => {
+                                                this.setState(
+                                                    {
+                                                        editDialog: {
+                                                            type: 'device',
+                                                            name: getText(device.name),
+                                                            originalName: getText(device.name),
+                                                            bridge: index,
+                                                            device: index2,
+                                                            vendorID: false,
+                                                            productID: false,
+                                                            originalVendorID: false,
+                                                            originalProductID: false,
+                                                        },
+                                                    },
+                                                );
+                                            }}
+                                            >
+                                                <Edit />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </TableCell>
+                                    <TableCell style={{ width: 0 }}>
+                                        <Tooltip title={I18n.t('Delete device')}>
+                                            <IconButton onClick={() => {
+                                                this.setState(
+                                                    {
+                                                        deleteDialog: {
+                                                            type: 'device',
+                                                            name: getText(device.name),
+                                                            bridge: index,
+                                                            device: index2,
+                                                        },
+                                                    },
+                                                );
+                                            }}
+                                            >
+                                                <Delete />
+                                            </IconButton>
+                                        </Tooltip>
+                                    </TableCell>
+                                </TableRow>)}
+                            </>}
+                        </React.Fragment>)
+                    }
                 </TableBody>
             </Table>
         </div>;
@@ -484,15 +503,13 @@ class App extends GenericApp {
             <div>
                 <Tooltip title={I18n.t('Add device')}>
                     <Fab
-                        onClick={() => this.setState(
-                            {
-                                dialog: {
-                                    type: 'device',
-                                    devices: this.state.native.devices,
-                                    addDevices: this.addDevices,
-                                },
+                        onClick={() => this.setState({
+                            dialog: {
+                                type: 'device',
+                                devices: this.state.matter.devices,
+                                addDevices: this.addDevices,
                             },
-                        )}
+                        })}
                         style={{
                             position: 'absolute',
                             right: 20,
@@ -503,12 +520,12 @@ class App extends GenericApp {
                     </Fab>
                 </Tooltip>
             </div>
-            {!this.state.native.devices.length ?
+            {!this.state.matter.devices.length ?
                 I18n.t('No one device created. Create one, by clicking on the "+" button in the bottom right corner.') :
                 <Table size="small" style={{ width: '100%', maxWidth: 600 }} padding="none">
                     <TableBody>
                         {
-                            this.state.native.devices.map((device, index) => <TableRow
+                            this.state.matter.devices.map((device, index) => <TableRow
                                 key={index}
                                 style={{ opacity: device.enabled ? 1 : 0.4 }}
                             >
@@ -518,11 +535,21 @@ class App extends GenericApp {
                                             {DEVICE_ICONS[device.type] || <QuestionMark />}
                                         </span>
                                         <div className={this.props.classes.bridgeDiv}>
-                                            <div className={this.props.classes.bridgeName}>{device.name}</div>
+                                            <div className={this.props.classes.bridgeName}>
+                                                {getText(device.name)}
+                                                <span className={this.props.classes.deviceOid}>({device.oid})</span>
+                                            </div>
                                             <div>
-                                                <span className={this.props.classes.bridgeTitle}>{I18n.t('Vendor ID')}:</span>
+                                                <span className={this.props.classes.bridgeTitle}>
+                                                    {I18n.t('Vendor ID')}
+:
+                                                </span>
                                                 <span className={this.props.classes.bridgeValue}>{device.vendorID || ''}</span>
-                                                <span className={this.props.classes.bridgeTitle}>, {I18n.t('Product ID')}:</span>
+                                                <span className={this.props.classes.bridgeTitle}>
+,
+                                                    {I18n.t('Product ID')}
+:
+                                                </span>
                                                 <span className={this.props.classes.bridgeValue}>{device.productID || ''}</span>
                                             </div>
                                         </div>
@@ -532,9 +559,9 @@ class App extends GenericApp {
                                     <Switch
                                         checked={device.enabled}
                                         onChange={e => {
-                                            const matter = JSON.parse(JSON.stringify(this.state.native));
+                                            const matter = JSON.parse(JSON.stringify(this.state.matter));
                                             matter.devices[index].enabled = e.target.checked;
-                                            this.updateNativeValue('devices', matter.devices);
+                                            this.setState({ matter, changed: this.configHandler.isChanged(matter) });
                                         }}
                                     />
                                 </TableCell>
@@ -545,8 +572,8 @@ class App extends GenericApp {
                                                 {
                                                     editDialog: {
                                                         type: 'device',
-                                                        name: device.name,
-                                                        originalName: device.name,
+                                                        name: getText(device.name),
+                                                        originalName: getText(device.name),
                                                         device: index,
                                                         vendorID: device.vendorID,
                                                         productID: device.productID,
@@ -568,7 +595,7 @@ class App extends GenericApp {
                                                 {
                                                     deleteDialog: {
                                                         type: 'device',
-                                                        name: device.name,
+                                                        name: getText(device.name),
                                                         device: index,
                                                     },
                                                 },
@@ -588,7 +615,7 @@ class App extends GenericApp {
 
     renderEditDialog() {
         const save = () => {
-            const matter = JSON.parse(JSON.stringify(this.state.native));
+            const matter = JSON.parse(JSON.stringify(this.state.matter));
             if (this.state.editDialog.add) {
                 matter.bridges.push({
                     name: this.state.editDialog.name,
@@ -598,22 +625,18 @@ class App extends GenericApp {
                     list: [],
                     uuid: uuidv4(),
                 });
-                this.updateNativeValue('bridges', matter.bridges);
             } else if (this.state.editDialog.type === 'bridge') {
                 matter.bridges[this.state.editDialog.bridge].name = this.state.editDialog.name;
                 matter.bridges[this.state.editDialog.bridge].productID = this.state.editDialog.productID;
                 matter.bridges[this.state.editDialog.bridge].vendorID = this.state.editDialog.vendorID;
-                this.updateNativeValue('bridges', matter.bridges);
             } else if (this.state.editDialog.bridge !== undefined) {
                 matter.bridges[this.state.editDialog.bridge].list[this.state.editDialog.device].name = this.state.editDialog.name;
-                this.updateNativeValue('bridges', matter.bridges);
             } else {
                 matter.devices[this.state.editDialog.device].name = this.state.editDialog.name;
                 matter.devices[this.state.editDialog.device].productID = this.state.editDialog.productID;
                 matter.devices[this.state.editDialog.device].vendorID = this.state.editDialog.vendorID;
-                this.updateNativeValue('devices', matter.devices);
             }
-            this.setState({ editDialog: false });
+            this.setState({ matter, changed: this.configHandler.isChanged(matter), editDialog: false });
         };
 
         const isDisabled =
@@ -646,7 +669,7 @@ class App extends GenericApp {
                 />
                 {this.state.editDialog.vendorID !== false ? <TextField
                     select
-                    style={{ width: 'calc(50% - 8px)', marginRight: 16, marginTop: 16, }}
+                    style={{ width: 'calc(50% - 8px)', marginRight: 16, marginTop: 16 }}
                     value={this.state.editDialog.vendorID}
                     onChange={e => {
                         const editDialog = JSON.parse(JSON.stringify(this.state.editDialog));
@@ -667,7 +690,7 @@ class App extends GenericApp {
                 </TextField> : null}
                 {this.state.editDialog.productID !== false ? <TextField
                     select
-                    style={{ width: 'calc(50% - 8px)', marginTop: 16, }}
+                    style={{ width: 'calc(50% - 8px)', marginTop: 16 }}
                     value={this.state.editDialog.productID}
                     onChange={e => {
                         const editDialog = JSON.parse(JSON.stringify(this.state.editDialog));
@@ -723,18 +746,15 @@ class App extends GenericApp {
             <DialogActions>
                 <Button
                     onClick={() => {
-                        const matter = JSON.parse(JSON.stringify(this.state.native));
+                        const matter = JSON.parse(JSON.stringify(this.state.matter));
                         if (this.state.deleteDialog.type === 'bridge') {
                             matter.bridges.splice(this.state.deleteDialog.bridge, 1);
-                            this.updateNativeValue('bridges', matter.bridges);
                         } else if (this.state.deleteDialog.bridge !== undefined) {
                             matter.bridges[this.state.deleteDialog.bridge].list.splice(this.state.deleteDialog.device, 1);
-                            this.updateNativeValue('bridges', matter.bridges);
                         } else {
                             matter.devices.splice(this.state.deleteDialog.device, 1);
-                            this.updateNativeValue('devices', matter.devices);
                         }
-                        this.setState({ deleteDialog: false });
+                        this.setState({ matter, changed: this.configHandler.isChanged(matter), deleteDialog: false });
                     }}
                     startIcon={<Delete />}
                     color="primary"
@@ -754,6 +774,15 @@ class App extends GenericApp {
         </Dialog>;
     }
 
+    onSave(isClose) {
+        this.configHandler.saveConfig(this.state.matter)
+            .then(() => {
+                this.setState({ changed: false });
+                isClose && GenericApp.onClose();
+            })
+            .catch(e => window.alert(`Cannot save configuration: ${e}`));
+    }
+
     render() {
         if (!this.state.ready) {
             return <StyledEngineProvider injectFirst>
@@ -769,7 +798,7 @@ class App extends GenericApp {
                     open={!!this.state.dialog}
                     onClose={() => this.setState({ dialog: false })}
                     {...(this.state.dialog || {})}
-                    matter={this.state.native}
+                    matter={this.state.matter}
                     socket={this.socket}
                     themeType={this.state.themeType}
                     detectedDevices={this.state.detectedDevices}

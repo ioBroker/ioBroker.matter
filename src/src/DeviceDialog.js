@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
+
 import {
     Accordion,
     AccordionDetails,
@@ -10,7 +11,6 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
-    Icon,
     LinearProgress, MenuItem,
     Switch,
     TextField,
@@ -38,7 +38,7 @@ import {
     Window,
 } from '@mui/icons-material';
 
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n, Icon } from '@iobroker/adapter-react-v5';
 
 import { detectDevices, getText } from './Utils';
 
@@ -64,6 +64,10 @@ export const DEVICE_ICONS = {
     window: <Window />,
     windowTilt: <Window />,
 };
+
+const SUPPORTED_DEVICES = [
+    'switch', 'light', 'dimmer'
+];
 
 const productIds = [];
 for (let i = 0x8000; i <= 0x801F; i++) {
@@ -159,11 +163,19 @@ const DeviceDialog = props => {
     };
 
     const counters = rooms?.map(room => room.devices.reduce((a, b) => a + (devicesChecked[b._id] ? 1 : 0), 0));
+    const absoluteLengths = rooms?.map(room => {
+        if (ignoreUsedDevices) {
+            return room.devices.filter(device => !usedDevices[device._id]).length;
+        }
+
+        return room.devices.length;
+    });
     const lengths = rooms?.map(room => {
         if (ignoreUsedDevices) {
             return room.devices.filter(device => !usedDevices[device._id]).length;
         }
-        return room.devices.length;
+
+        return room.devices.filter(device => SUPPORTED_DEVICES.includes(device.deviceType)).length;
     });
 
     return <Dialog
@@ -173,12 +185,18 @@ const DeviceDialog = props => {
     >
         <DialogTitle>{I18n.t('Add devices') + (props.type === 'bridge' ? ` ${I18n.t('to bridge')} ${props.name}` : '')}</DialogTitle>
         <DialogContent style={{
-            display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            flex: 1,
+            overflow: 'hidden',
         }}
         >
             {rooms ? <div
                 style={{
-                    display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    flex: 1,
+                    overflow: 'hidden',
                 }}
             >
                 <div>
@@ -201,7 +219,7 @@ const DeviceDialog = props => {
                 <div style={{ flex: 1, overflowY: 'auto' }}>
                     {!rooms.length ? <div>{I18n.t('Nothing detected')}</div> : null}
                     {rooms.map((room, roomId) => {
-                        if (!lengths[roomId]) {
+                        if (!absoluteLengths[roomId]) {
                             return null;
                         }
                         return <div key={room._id}>
@@ -226,7 +244,9 @@ const DeviceDialog = props => {
                                                     });
                                                 } else {
                                                     room.devices.forEach(device => {
-                                                        _devicesChecked[device._id] = true;
+                                                        if (SUPPORTED_DEVICES.includes(device.deviceType)) {
+                                                            _devicesChecked[device._id] = true;
+                                                        }
                                                     });
                                                 }
                                                 setDevicesChecked(_devicesChecked);
@@ -240,7 +260,15 @@ const DeviceDialog = props => {
                                         if (ignoreUsedDevices && usedDevices[device._id]) {
                                             return null;
                                         }
-                                        return <div key={device._id} style={{ backgroundColor: 'transparent' }}>
+                                        const supported = SUPPORTED_DEVICES.includes(device.deviceType);
+                                        return <div
+                                            key={device._id}
+                                            style={{
+                                                backgroundColor: 'transparent',
+                                                opacity: supported ? 1 : 0.3,
+                                            }}
+                                        >
+                                            {supported ? null : <div style={{ marginLeft: 20 }}>{I18n.t('Not supported yet')}</div>}
                                             <div
                                                 style={{
                                                     display: 'flex',
@@ -253,6 +281,7 @@ const DeviceDialog = props => {
                                             >
                                                 <Checkbox
                                                     checked={!!devicesChecked[device._id]}
+                                                    disabled={!supported}
                                                     onChange={e => {
                                                         const _devicesChecked = JSON.parse(JSON.stringify(devicesChecked));
                                                         _devicesChecked[device._id] = e.target.checked;
@@ -265,6 +294,7 @@ const DeviceDialog = props => {
                                                 </span>
                                                 <TextField
                                                     variant="standard"
+                                                    disabled={!supported}
                                                     fullWidth
                                                     label={device._id}
                                                     helperText={<span style={{ fontStyle: 'italic' }}>
@@ -279,6 +309,7 @@ const DeviceDialog = props => {
                                                 />
                                                 <TextField
                                                     select
+                                                    disabled={!supported}
                                                     style={{ minWidth: 'initial' }}
                                                     value={device.vendorID}
                                                     onChange={e => {
@@ -300,6 +331,7 @@ const DeviceDialog = props => {
                                                 </TextField>
                                                 <TextField
                                                     select
+                                                    disabled={!supported}
                                                     style={{ minWidth: 'initial' }}
                                                     value={device.productID}
                                                     onChange={e => {
@@ -336,7 +368,7 @@ const DeviceDialog = props => {
                 onClick={handleSubmit}
                 startIcon={<Add />}
             >
-                {I18n.t('Add devices')}
+                {I18n.t('Add %s device(s)', counters?.reduce((a, b) => a + b, 0))}
             </Button>
             <Button
                 variant="contained"

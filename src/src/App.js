@@ -245,30 +245,34 @@ class App extends GenericApp {
             </div>
             {this.state.native.bridges.length ? <div>
                 <Tooltip title={I18n.t('Expand all')}>
-                    <IconButton
-                        onClick={() => {
-                            const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
-                            Object.keys(bridgesOpened).forEach(key => bridgesOpened[key] = true);
-                            window.localStorage.setItem(`${this.adapterName}.${this.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
-                            this.setState({ bridgesOpened });
-                        }}
-                        disabled={Object.values(this.state.bridgesOpened).every(v => v === true)}
-                    >
-                        <UnfoldMore />
-                    </IconButton>
+                    <span>
+                        <IconButton
+                            onClick={() => {
+                                const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
+                                Object.keys(bridgesOpened).forEach(key => bridgesOpened[key] = true);
+                                window.localStorage.setItem(`${this.adapterName}.${this.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
+                                this.setState({ bridgesOpened });
+                            }}
+                            disabled={Object.values(this.state.bridgesOpened).every(v => v === true)}
+                        >
+                            <UnfoldMore />
+                        </IconButton>
+                    </span>
                 </Tooltip>
                 <Tooltip title={I18n.t('Collapse all')}>
-                    <IconButton
-                        onClick={() => {
-                            const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
-                            Object.keys(bridgesOpened).forEach(key => bridgesOpened[key] = false);
-                            window.localStorage.setItem(`${this.adapterName}.${this.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
-                            this.setState({ bridgesOpened });
-                        }}
-                        disabled={Object.values(this.state.bridgesOpened).every(v => v === false)}
-                    >
-                        <UnfoldLess />
-                    </IconButton>
+                    <span>
+                        <IconButton
+                            onClick={() => {
+                                const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
+                                Object.keys(bridgesOpened).forEach(key => bridgesOpened[key] = false);
+                                window.localStorage.setItem(`${this.adapterName}.${this.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
+                                this.setState({ bridgesOpened });
+                            }}
+                            disabled={Object.values(this.state.bridgesOpened).every(v => v === false)}
+                        >
+                            <UnfoldLess />
+                        </IconButton>
+                    </span>
                 </Tooltip>
             </div> : I18n.t('No bridges created. Create one, by clicking on the "+" button in the bottom right corner.')}
             <Table size="small" style={{ width: '100%', maxWidth: 600 }} padding="none">
@@ -380,7 +384,7 @@ class App extends GenericApp {
                         {(this.state.bridgesOpened[index] || false) && <>
                             <TableRow>
                                 <TableCell style={{ border: 0 }} />
-                                <TableCell style={{ border: 0 }}>
+                                <TableCell style={{ border: 0, opacity: bridge.enabled ? 1 : 0.5 }}>
                                     <b>{I18n.t('Devices')}</b>
                                     <Tooltip title={I18n.t('Add device')}>
                                         <IconButton onClick={() => this.setState(

@@ -82,9 +82,6 @@ const DeviceDialog = props => {
     const [ignoreUsedDevices, setIgnoreUsedDevices] = useState(false);
 
     useEffect(() => {
-        if (!props.open) {
-            return;
-        }
         if (!props.detectedDevices) {
             setTimeout(async () =>
                 props.setDetectedDevices(await detectDevices(props.socket)), 100);
@@ -123,9 +120,6 @@ const DeviceDialog = props => {
                 device.productID = '0x8000';
                 device.states.forEach(state => _checked[state._id] = true);
             });
-            // if (props.devices) {
-            //     room.devices = room.devices.filter(device => !props.devices.find(_device => _device.oid === device._id));
-            // }
         });
 
         setRooms(_rooms);
@@ -141,7 +135,7 @@ const DeviceDialog = props => {
                 _usedDevices[device.oid] = true));
 
         setUsedDevices(_usedDevices);
-    }, [props.open, props.detectedDevices]);
+    }, [props.detectedDevices]);
 
     const handleSubmit = () => {
         const devices = [];
@@ -173,7 +167,7 @@ const DeviceDialog = props => {
     });
 
     return <Dialog
-        open={props.open}
+        open={!0}
         onClose={props.onClose}
         fullWidth
     >
@@ -377,8 +371,7 @@ const DeviceDialog = props => {
 };
 
 DeviceDialog.propTypes = {
-    open: PropTypes.bool.isRequired,
-    devices: PropTypes.array,
+    detectedDevices: PropTypes.array,
     matter: PropTypes.object,
     socket: PropTypes.object,
     setDetectedDevices: PropTypes.func,

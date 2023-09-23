@@ -1,8 +1,8 @@
 import GenericDevice, { PropertyType, DetectedDevice } from './GenericDevice';
 
 class Light extends GenericDevice {
-    constructor(detectedDevice: DetectedDevice) {
-        super(detectedDevice);
+    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
+        super(detectedDevice, adapter);
 
         const setState = detectedDevice.states.find(state => state.name === 'SET');
         this._getState = detectedDevice.states.find(state => state.name === 'ACTUAL') || setState;

@@ -1,11 +1,11 @@
 import GenericDevice, {PropertyType, DetectedDevice, DeviceState} from './GenericDevice';
 
 class Dimmer extends GenericDevice {
-    private _setLevelState: DeviceState;
-    private _getLevelState: DeviceState;
+    private _setLevelState: DeviceState | undefined;
+    private _getLevelState: DeviceState | undefined;
 
-    private _setPowerState: DeviceState;
-    private _getPowerState: DeviceState;
+    private _setPowerState: DeviceState | undefined;
+    private _getPowerState: DeviceState | undefined;
 
     private _value: number;
     private _power: boolean;

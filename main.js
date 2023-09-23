@@ -1,5 +1,6 @@
 const utils        = require('@iobroker/adapter-core'); // Get common adapter utils
-const adapterName  = require('./package.json').name.split('.').pop();
+//@ts-ignore
+const adapterName  = require('./package.json').name.split('.').pop(); 
 let adapter;
 
 function startAdapter(options) {

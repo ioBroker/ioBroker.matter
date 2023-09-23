@@ -14,11 +14,11 @@ enum ThermostatMode {
 }
 
 class Thermostat extends GenericDevice {
-    private readonly _setLevelState: DeviceState;
-    private _getLevelState: DeviceState;
+    private readonly _setLevelState: DeviceState | undefined;
+    private _getLevelState: DeviceState | undefined;
 
-    private readonly _setPowerState: DeviceState;
-    private readonly _modeState: DeviceState;
+    private _setPowerState: DeviceState | undefined;
+    private readonly _modeState: DeviceState | undefined;
 
     private _modes: Promise<{[key: string]: ThermostatMode}>;
 
@@ -29,11 +29,11 @@ class Thermostat extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
         super(detectedDevice, adapter);
 
-        this._setLevelState = detectedDevice.states.find(state => state.name === 'SET' && state.id);
-        this._getLevelState = detectedDevice.states.find(state => state.name === 'ACTUAL' && state.id) || this._setLevelState;
+        this._setLevelState = this.getDeviceState('SET');
+        this._getLevelState = this.getDeviceState('ACTUAL') || this._setLevelState;
 
-        this._setPowerState = detectedDevice.states.find(state => state.name === 'POWER' && state.id);
-        this._modeState = detectedDevice.states.find(state => state.name === 'MODE' && state.id);
+        this._setPowerState = this.getDeviceState('POWER');
+        this._modeState = this.getDeviceState('MODE');
 
         this._properties.push(PropertyType.Level);
         if (this._modeState) {
@@ -41,7 +41,7 @@ class Thermostat extends GenericDevice {
             this._modes = this._adapter.getObjectAsync(this._modeState.id)
                 .then(obj => {
                     // {'MODE_VALUE': 'MODE_TEXT'}
-                    let modes: {[key: string]: ThermostatMode} = obj.common?.states;
+                    let modes: {[key: string]: ThermostatMode} = obj?.common?.states;
                     if (modes) {
                         // convert ['Auto'] => {'Auto': 'AUTO'}
                         if (Array.isArray(modes)) {
@@ -58,9 +58,15 @@ class Thermostat extends GenericDevice {
         if (this._setPowerState) {
             this._properties.push(PropertyType.Power);
         }
-        this._subsribeIDs.push(this._getLevelState.id);
-        this._subsribeIDs.push(this._setPowerState.id);
-        this._subsribeIDs.push(this._modeState.id);
+        if (this._getLevelState) {
+            this._subsribeIDs.push(this._getLevelState.id);
+        }
+        if (this._setPowerState) {
+            this._subsribeIDs.push(this._setPowerState.id);
+        }
+        if (this._modeState) {
+            this._subsribeIDs.push(this._modeState.id);
+        }
 
         this._subsribeIDs = this._subsribeIDs.filter(w => w);
 
@@ -88,6 +94,9 @@ class Thermostat extends GenericDevice {
     }
 
     async setLevel(value: number) {
+        if (!this._setLevelState) {
+            throw new Error('Level state not found');
+        }
         return this._adapter.setStateAsync(this._setLevelState.id, value);
     }
 

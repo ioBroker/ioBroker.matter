@@ -53,27 +53,39 @@ abstract class GenericDevice {
     protected _adapter: ioBroker.Adapter;
     protected _subscribeIDs: string[] = [];
     protected _deviceType: DeviceType;
+    protected _detectedDevice: DetectedDevice;
+    protected _subsribeIDs: string[] = [];
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
         console.log('Generic Device');
         this._adapter = adapter;
         this._deviceType = detectedDevice.type;
+        this._detectedDevice = detectedDevice;
 
-        const error = detectedDevice.states.find(state => state.name === 'ERROR' && state.id);
-        const maintenance = detectedDevice.states.find(state => state.name === 'MAINTAIN' && state.id);
-        const unreach = detectedDevice.states.find(state => state.name === 'UNREACH' && state.id);
-        const lowbat = detectedDevice.states.find(state => state.name === 'LOWBAT' && state.id);
-        const working = detectedDevice.states.find(state => state.name === 'WORKING' && state.id);
-        const direction = detectedDevice.states.find(state => state.name === 'DIRECTION' && state.id);
+        const error = this.getDeviceState('ERROR');
+        const maintenance = this.getDeviceState('MAINTAIN');
+        const unreach = this.getDeviceState('UNREACH');
+        const lowbat = this.getDeviceState('LOWBAT');
+        const working = this.getDeviceState('WORKING');
+        const direction = this.getDeviceState('DIRECTION');
+        [error, maintenance, unreach, lowbat, working, direction].forEach(state => {
+            if (state) {
+                this._subsribeIDs.push(state.id);
+            }
+        });
 
-        this._properties = [
+        this._properties = ([
             error ? PropertyType.Error : null,
             maintenance ? PropertyType.Maintenance : null,
             unreach ? PropertyType.Unreach : null,
             lowbat ? PropertyType.Lowbat : null,
             working ? PropertyType.Working : null,
             direction ? PropertyType.Direction : null,
-        ].filter(w => w);
+        ].filter(w => w)) as PropertyType[];
+    }
+
+    getDeviceState(name: string) {
+        return this._detectedDevice.states.find(state => state.name === name && state.id);
     }
 
     getDeviceType(): DeviceType {

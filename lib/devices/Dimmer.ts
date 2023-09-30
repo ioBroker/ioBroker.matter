@@ -13,17 +13,17 @@ class Dimmer extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
         super(detectedDevice, adapter);
 
-        this._setLevelState = detectedDevice.states.find(state => state.name === 'SET' && state.id);
-        this._getLevelState = detectedDevice.states.find(state => state.name === 'ACTUAL' && state.id) || this._setLevelState;
+        this._setLevelState = this.getDeviceState('SET');
+        this._getLevelState = this.getDeviceState('ACTUAL') || this._setLevelState;
 
-        this._setPowerState = detectedDevice.states.find(state => state.name === 'ON_SET' && state.id);
-        this._getPowerState = detectedDevice.states.find(state => state.name === 'ON_ACTUAL' && state.id) || this._setPowerState;
+        this._setPowerState = this.getDeviceState('ON_SET');
+        this._getPowerState = this.getDeviceState('ON_ACTUAL') || this._setPowerState;
 
         this._properties.push(PropertyType.Level);
-        this._subsribeIDs.push(this._getLevelState.id);
-        this._subsribeIDs.push(this._getPowerState.id);
+        this._subscribeIDs.push(this._getLevelState.id);
+        this._subscribeIDs.push(this._getPowerState.id);
 
-        this._subsribeIDs = this._subsribeIDs.filter(w => w);
+        this._subscribeIDs = this._subscribeIDs.filter(w => w);
 
         this._doSubsribe();
     }

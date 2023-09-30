@@ -53,6 +53,8 @@
   },
   "include": [
     "main.js",
-    "lib/**/*.js"
+    "*.ts",
+    ".eslintrc.js",
+    "lib/**/*.ts"
   ]
 }

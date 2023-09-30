@@ -1,11 +1,14 @@
-import GenericDevice, { PropertyType, DetectedDevice } from './GenericDevice';
+import GenericDevice, { PropertyType, DetectedDevice, DeviceState } from './GenericDevice';
 
 class Light extends GenericDevice {
+    private readonly _getState: DeviceState | undefined;
+    private _setState: DeviceState | undefined;
+    
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
         super(detectedDevice, adapter);
 
-        const setState = detectedDevice.states.find(state => state.name === 'SET');
-        this._getState = detectedDevice.states.find(state => state.name === 'ACTUAL') || setState;
+        const setState = this.getDeviceState('SET');
+        this._getState = this.getDeviceState('ACTUAL') || setState;
 
         this._properties.push(PropertyType.Level);
     }

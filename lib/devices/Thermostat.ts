@@ -59,16 +59,16 @@ class Thermostat extends GenericDevice {
             this._properties.push(PropertyType.Power);
         }
         if (this._getLevelState) {
-            this._subsribeIDs.push(this._getLevelState.id);
+            this._subscribeIDs.push(this._getLevelState.id);
         }
         if (this._setPowerState) {
-            this._subsribeIDs.push(this._setPowerState.id);
+            this._subscribeIDs.push(this._setPowerState.id);
         }
         if (this._modeState) {
-            this._subsribeIDs.push(this._modeState.id);
+            this._subscribeIDs.push(this._modeState.id);
         }
 
-        this._subsribeIDs = this._subsribeIDs.filter(w => w);
+        this._subscribeIDs = this._subscribeIDs.filter(w => w);
 
         this._doSubsribe();
     }

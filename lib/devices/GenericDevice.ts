@@ -98,6 +98,18 @@ abstract class GenericDevice {
         return this._deviceType
     }
 
+    updateState = (id: string, state: ioBroker.State) => {
+        let property: PropertyType | undefined
+        property = this._properties.find(_property => _property === id);
+
+        this.handlers.forEach(handler => {
+            handler({
+                property: PropertyType.Level,
+                value: state.val
+            })
+        });
+    }
+
     _doSubsribe () {
         this._subscribeIDs.forEach(id => {
             SubscribeManager.subscribe(id, (id, state) => {
@@ -125,7 +137,7 @@ abstract class GenericDevice {
         property: PropertyType
         value: any
     }) => void) {
-        // ...
+        this.handlers.push(handler)
     }
 }
 

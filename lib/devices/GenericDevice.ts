@@ -46,12 +46,19 @@ export interface DeviceState {
 
 export class DeviceStateObject<T> {
 
+    protected _adapter: ioBroker.Adapter
+
     state: DeviceState
 
     value: T
 
-    constructor (state: DeviceState) {
+    constructor (adapter: ioBroker.Adapter, state: DeviceState) {
+        this._adapter = adapter
         this.state = state
+    }
+
+    setValue (value: T) {
+        return this._adapter.setStateAsync(this.state.id, value as any);
     }
 
     protected updateState = (id: string, state: ioBroker.State) => {
@@ -78,7 +85,7 @@ export interface DetectedDevice {
 abstract class GenericDevice {
     protected _properties: PropertyType[] = []
     protected _adapter: ioBroker.Adapter
-    protected _subscribeIDs: string[] = []
+    protected _subscribeObjects: DeviceStateObject<any>[] = []
     protected _deviceType: DeviceType
     protected _detectedDevice: DetectedDevice
     protected handlers: ((event: {
@@ -86,12 +93,12 @@ abstract class GenericDevice {
         value: any
     }) => void)[] = []
 
-    protected _errorState: DeviceState | undefined;
-    protected _maintenanceState: DeviceState | undefined;
-    protected _unreachState: DeviceState | undefined;
-    protected _lowbatState: DeviceState | undefined;
-    protected _workingState: DeviceState | undefined;
-    protected _directionState: DeviceState | undefined;
+    protected _errorState: DeviceStateObject<string> | undefined;
+    protected _maintenanceState: DeviceStateObject<boolean> | undefined;
+    protected _unreachState: DeviceStateObject<boolean> | undefined;
+    protected _lowbatState: DeviceStateObject<boolean> | undefined;
+    protected _workingState: DeviceStateObject<string> | undefined;
+    protected _directionState: DeviceStateObject<string> | undefined;
 
     constructor (detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
         console.log('Generic Device')
@@ -107,24 +114,24 @@ abstract class GenericDevice {
             { name: 'WORKING', type: PropertyType.Working, callback: state => this._workingState = state },
             { name: 'DIRECTION', type: PropertyType.Direction, callback: state => this._directionState = state },
         ]);
-
-        this._doSubsribe();
     }
 
     getDeviceState (name: string) {
         return this._detectedDevice.states.find(state => state.name === name && state.id)
     }
 
-    addDeviceState (name: string, type: PropertyType, callback: (state: DeviceState) => void) {
+    addDeviceState (name: string, type: PropertyType, callback: (state: DeviceStateObject<any>) => void) {
+        const object = new DeviceStateObject(this._adapter, this.getDeviceState(name))
         const state = this.getDeviceState(name)
         if (state) {
             this._properties.push(type)
-            this._subscribeIDs.push(state.id)
-            callback(state)
+            object.subsribe();
+            this._subscribeObjects.push(object)
         }
+        callback(object)
     }
 
-    addDeviceStates (states: { name: string, type: PropertyType, callback: (state: DeviceState) => void }[]) {
+    addDeviceStates (states: { name: string, type: PropertyType, callback: (state: DeviceStateObject<any>) => void }[]) {
         states.forEach(state => {
             this.addDeviceState(state.name, state.type, state.callback)
         })
@@ -145,17 +152,10 @@ abstract class GenericDevice {
             })
         });
     }
-
-    protected _doSubsribe () {
-        this._subscribeIDs.forEach(id => {
-            SubscribeManager.subscribe(id, this.updateState);
-        });
-    }
-
+    
     protected _doUnsubsribe () {
-        this._subscribeIDs.forEach(id => {
-            SubscribeManager.unsubscribe(id, (id, state) => {
-            });
+        this._subscribeObjects.forEach(object => {
+            object.unsubsribe();
         });
     }
 

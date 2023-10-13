@@ -39,6 +39,16 @@ export enum PropertyType {
     Party = 'party',
     Swing = 'swing',
     Speed = 'speed',
+    Stop = 'stop',
+    Open = 'open',
+    Close = 'close',
+    TiltValue = 'tiltValue',
+    TiltLevel = 'tiltLevel',
+    TiltStop = 'tiltStop',
+    TiltOpen = 'tiltOpen',
+    TiltClose = 'tiltClose',
+    Press = 'press',
+    PressLong = 'pressLong',
 }
 
 export interface DeviceState {
@@ -60,13 +70,18 @@ export class DeviceStateObject<T> {
 
     value: T
 
+    updateHandler: (id: string, object: DeviceStateObject<any>)=>void | undefined
+
     isEnum: boolean = false
 
     modes: Promise<{[key: string]: T}> | undefined;
 
-    constructor (adapter: ioBroker.Adapter, state: DeviceState, _isEnum?: boolean) {
+    propertyType: PropertyType
+
+    constructor (adapter: ioBroker.Adapter, state: DeviceState, _propertyType: PropertyType, _isEnum?: boolean) {
         this._adapter = adapter
         this.state = state
+        this.propertyType = _propertyType
         this.isEnum = _isEnum || false
         if (this.isEnum) {
             this.parseMode();
@@ -103,9 +118,13 @@ export class DeviceStateObject<T> {
     protected updateState = (id: string, state: ioBroker.State) => {
         let property: PropertyType | undefined
         this.value = state.val as T
+        if (this.updateHandler) {
+            this.updateHandler(id, this);
+        }
     }
 
-    public subscribe () {
+    public subscribe (handler: (id: string, object: DeviceStateObject<any>)=>void) {
+        this.updateHandler = handler
         SubscribeManager.subscribe(this.state.id, this.updateState);
     }
 
@@ -162,9 +181,9 @@ abstract class GenericDevice {
         const state = this.getDeviceState(name)
         let object: DeviceStateObject<any> | undefined;
         if (state) {
-            object = new DeviceStateObject(this._adapter, state, isEnum);
+            object = new DeviceStateObject(this._adapter, state, type, isEnum);
             this._properties.push(type)
-            object.subscribe();
+            object.subscribe(this.updateState);
             this._subscribeObjects.push(object)
         }
         callback(object)
@@ -180,14 +199,11 @@ abstract class GenericDevice {
         return this._deviceType
     }
 
-    protected updateState = (id: string, state: ioBroker.State) => {
-        let property: PropertyType | undefined
-        property = this._properties.find(_property => _property === id);
-
+    protected updateState = (id: string, object: DeviceStateObject<any>):void => {
         this.handlers.forEach(handler => {
             handler({
-                property: PropertyType.Level,
-                value: state.val
+                property: object.propertyType,
+                value: object.value,
             })
         });
     }

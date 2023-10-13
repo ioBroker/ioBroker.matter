@@ -44,6 +44,32 @@ export interface DeviceState {
     required: boolean
 }
 
+export class DeviceStateObject<T> {
+
+    state: DeviceState
+
+    value: T
+
+    constructor (state: DeviceState) {
+        this.state = state
+    }
+
+    protected updateState = (id: string, state: ioBroker.State) => {
+        let property: PropertyType | undefined
+        this.value = state.val as T
+    }
+
+    public subsribe () {
+        SubscribeManager.subscribe(this.state.id, this.updateState);
+    }
+
+    public unsubsribe () {
+        SubscribeManager.unsubscribe(this.state.id, (id, state) => {
+        });
+    }
+
+}
+
 export interface DetectedDevice {
     type: DeviceType
     states: DeviceState[]
@@ -60,32 +86,27 @@ abstract class GenericDevice {
         value: any
     }) => void)[] = []
 
+    protected _errorState: DeviceState | undefined;
+    protected _maintenanceState: DeviceState | undefined;
+    protected _unreachState: DeviceState | undefined;
+    protected _lowbatState: DeviceState | undefined;
+    protected _workingState: DeviceState | undefined;
+    protected _directionState: DeviceState | undefined;
+
     constructor (detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
         console.log('Generic Device')
         this._adapter = adapter
         this._deviceType = detectedDevice.type
         this._detectedDevice = detectedDevice
 
-        const error = this.getDeviceState('ERROR')
-        const maintenance = this.getDeviceState('MAINTAIN')
-        const unreach = this.getDeviceState('UNREACH')
-        const lowbat = this.getDeviceState('LOWBAT')
-        const working = this.getDeviceState('WORKING')
-        const direction = this.getDeviceState('DIRECTION');
-        [error, maintenance, unreach, lowbat, working, direction].forEach(state => {
-            if (state) {
-                this._subscribeIDs.push(state.id)
-            }
-        })
-
-        this._properties = ([
-            error ? PropertyType.Error : null,
-            maintenance ? PropertyType.Maintenance : null,
-            unreach ? PropertyType.Unreach : null,
-            lowbat ? PropertyType.Lowbat : null,
-            working ? PropertyType.Working : null,
-            direction ? PropertyType.Direction : null
-        ].filter(w => w))
+        this.addDeviceStates([
+            { name: 'ERROR', type: PropertyType.Error, callback: state => this._errorState = state },
+            { name: 'MAINTAIN', type: PropertyType.Maintenance, callback: state => this._maintenanceState = state },
+            { name: 'UNREACH', type: PropertyType.Unreach, callback: state => this._unreachState = state },
+            { name: 'LOWBAT', type: PropertyType.Lowbat, callback: state => this._lowbatState = state },
+            { name: 'WORKING', type: PropertyType.Working, callback: state => this._workingState = state },
+            { name: 'DIRECTION', type: PropertyType.Direction, callback: state => this._directionState = state },
+        ]);
 
         this._doSubsribe();
     }
@@ -94,11 +115,26 @@ abstract class GenericDevice {
         return this._detectedDevice.states.find(state => state.name === name && state.id)
     }
 
+    addDeviceState (name: string, type: PropertyType, callback: (state: DeviceState) => void) {
+        const state = this.getDeviceState(name)
+        if (state) {
+            this._properties.push(type)
+            this._subscribeIDs.push(state.id)
+            callback(state)
+        }
+    }
+
+    addDeviceStates (states: { name: string, type: PropertyType, callback: (state: DeviceState) => void }[]) {
+        states.forEach(state => {
+            this.addDeviceState(state.name, state.type, state.callback)
+        })
+    }
+
     getDeviceType (): DeviceType {
         return this._deviceType
     }
 
-    updateState = (id: string, state: ioBroker.State) => {
+    protected updateState = (id: string, state: ioBroker.State) => {
         let property: PropertyType | undefined
         property = this._properties.find(_property => _property === id);
 
@@ -110,14 +146,13 @@ abstract class GenericDevice {
         });
     }
 
-    _doSubsribe () {
+    protected _doSubsribe () {
         this._subscribeIDs.forEach(id => {
-            SubscribeManager.subscribe(id, (id, state) => {
-            });
+            SubscribeManager.subscribe(id, this.updateState);
         });
     }
 
-    _doUnsubsribe () {
+    protected _doUnsubsribe () {
         this._subscribeIDs.forEach(id => {
             SubscribeManager.unsubscribe(id, (id, state) => {
             });

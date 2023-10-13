@@ -1,7 +1,7 @@
 import GenericDevice from "./GenericDevice";
 
-class AirConditioner extends GenericDevice {
+class Window extends GenericDevice {
 
 }
 
-export default AirConditioner;
+export default Window;

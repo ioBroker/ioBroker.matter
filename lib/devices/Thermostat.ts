@@ -17,7 +17,10 @@ class Thermostat extends GenericDevice {
     private _setLevelState: DeviceStateObject<number> | undefined;
     private _getLevelState: DeviceStateObject<number> | undefined;
 
-    private _setPowerState: DeviceStateObject<boolean|number> | undefined;
+    private _getPowerState: DeviceStateObject<boolean|number> | undefined;
+    private _getHumidityState: DeviceStateObject<number> | undefined;
+    private _BoostState: DeviceStateObject<number> | undefined;
+    private _PartyState: DeviceStateObject<boolean|number> | undefined;
     private _modeState: DeviceStateObject<ThermostatMode> | undefined;
 
     private _modes: Promise<{[key: string]: ThermostatMode}>;
@@ -28,7 +31,10 @@ class Thermostat extends GenericDevice {
         this.addDeviceStates([
             {name: 'SET', type: PropertyType.Level, callback: state => this._setLevelState = state},
             {name: 'ACTUAL', type: PropertyType.Level, callback: state => this._getLevelState = state || this._setLevelState},
-            {name: 'POWER', type: PropertyType.Power, callback: state => this._setPowerState = state},
+            {name: 'POWER', type: PropertyType.Power, callback: state => this._getPowerState = state},
+            {name: 'HUMIDITY', type: PropertyType.Humidity, callback: state => this._getHumidityState = state},
+            {name: 'BOOST', type: PropertyType.Boost, callback: state => this._BoostState = state},
+            {name: 'PARTY', type: PropertyType.Party, callback: state => this._PartyState = state},
             {name: 'MODE', type: PropertyType.Mode, callback: state => this._modeState = state},
         ]);
 
@@ -86,17 +92,45 @@ class Thermostat extends GenericDevice {
     }
 
     getPower(): boolean|number {
-        if (!this._setPowerState) {
+        if (!this._getPowerState) {
             throw new Error('Power state not found');
         }
-        return this._setPowerState.value;
+        return this._getPowerState.value;
     }
 
-    async setPower(value: boolean) {
-        if (!this._setPowerState) {
-            throw new Error('Power state not found');
+    getHumidity(): number {
+        if (!this._getHumidityState) {
+            throw new Error('Humidity state not found');
         }
-        return this._adapter.setStateAsync(this._setPowerState.state.id, value);
+        return this._getHumidityState.value;
+    }
+
+    getBoost(): number {
+        if (!this._BoostState) {
+            throw new Error('Boost state not found');
+        }
+        return this._BoostState.value;
+    }
+
+    setBoost(value: number) {
+        if (!this._BoostState) {
+            throw new Error('Boost state not found');
+        }
+        return this._BoostState.setValue(value);
+    }
+
+    getParty(): boolean|number {
+        if (!this._PartyState) {
+            throw new Error('Party state not found');
+        }
+        return this._PartyState.value;
+    }
+
+    setParty(value: boolean|number) {
+        if (!this._PartyState) {
+            throw new Error('Party state not found');
+        }
+        return this._PartyState.setValue(value);
     }
 }
 

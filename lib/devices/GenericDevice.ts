@@ -35,6 +35,8 @@ export enum PropertyType {
     Voltage = 'voltage',
     Consumption = 'consumption',
     Frequency = 'frequency',
+    Boost = 'boost',
+    Party = 'party',
 }
 
 export interface DeviceState {

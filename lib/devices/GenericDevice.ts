@@ -37,6 +37,8 @@ export enum PropertyType {
     Frequency = 'frequency',
     Boost = 'boost',
     Party = 'party',
+    Swing = 'swing',
+    Speed = 'speed',
 }
 
 export interface DeviceState {
@@ -58,9 +60,40 @@ export class DeviceStateObject<T> {
 
     value: T
 
-    constructor (adapter: ioBroker.Adapter, state: DeviceState) {
+    isEnum: boolean = false
+
+    modes: Promise<{[key: string]: T}> | undefined;
+
+    constructor (adapter: ioBroker.Adapter, state: DeviceState, _isEnum?: boolean) {
         this._adapter = adapter
         this.state = state
+        this.isEnum = _isEnum || false
+        if (this.isEnum) {
+            this.parseMode();
+        }
+    }
+
+    protected parseMode():void {
+        this.modes = this._adapter.getObjectAsync(this.state.id)
+            .then(obj => {
+                // {'MODE_VALUE': 'MODE_TEXT'}
+                let modes: {[key: string]: T} = obj?.common?.states;
+                if (modes) {
+                    // convert ['Auto'] => {'Auto': 'AUTO'}
+                    if (Array.isArray(modes)) {
+                        const _m: {[key: string]: T} = {};
+                        modes.forEach((mode: T) => _m[mode as string] = ((mode as string).toUpperCase()) as T);
+                        modes = _m;
+                    }
+                    return modes;
+                } else {
+                    return {};
+                }
+            });
+    }
+
+    getModes(): Promise<T[]> {
+        return this.modes.then(modes => Object.keys(modes).map(key => modes[key]));
     }
 
     setValue (value: T) {
@@ -72,7 +105,7 @@ export class DeviceStateObject<T> {
         this.value = state.val as T
     }
 
-    public subsribe () {
+    public subscribe () {
         SubscribeManager.subscribe(this.state.id, this.updateState);
     }
 
@@ -125,20 +158,21 @@ abstract class GenericDevice {
         return this._detectedDevice.states.find(state => state.name === name && state.id)
     }
 
-    addDeviceState (name: string, type: PropertyType, callback: (state: DeviceStateObject<any>) => void) {
-        const object = new DeviceStateObject(this._adapter, this.getDeviceState(name))
+    addDeviceState (name: string, type: PropertyType, callback: (state: DeviceStateObject<any>) => void, isEnum?: boolean) {
         const state = this.getDeviceState(name)
+        let object: DeviceStateObject<any> | undefined;
         if (state) {
+            object = new DeviceStateObject(this._adapter, state, isEnum);
             this._properties.push(type)
-            object.subsribe();
+            object.subscribe();
             this._subscribeObjects.push(object)
         }
         callback(object)
     }
 
-    addDeviceStates (states: { name: string, type: PropertyType, callback: (state: DeviceStateObject<any>) => void }[]) {
+    addDeviceStates (states: { name: string, type: PropertyType, isEnum?: boolean, callback: (state: DeviceStateObject<any>) => void }[]) {
         states.forEach(state => {
-            this.addDeviceState(state.name, state.type, state.callback)
+            this.addDeviceState(state.name, state.type, state.callback, state.isEnum);
         })
     }
 

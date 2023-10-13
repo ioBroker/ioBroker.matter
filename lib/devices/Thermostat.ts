@@ -23,8 +23,6 @@ class Thermostat extends GenericDevice {
     private _PartyState: DeviceStateObject<boolean|number> | undefined;
     private _modeState: DeviceStateObject<ThermostatMode> | undefined;
 
-    private _modes: Promise<{[key: string]: ThermostatMode}>;
-
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
         super(detectedDevice, adapter);
 
@@ -35,32 +33,15 @@ class Thermostat extends GenericDevice {
             {name: 'HUMIDITY', type: PropertyType.Humidity, callback: state => this._getHumidityState = state},
             {name: 'BOOST', type: PropertyType.Boost, callback: state => this._BoostState = state},
             {name: 'PARTY', type: PropertyType.Party, callback: state => this._PartyState = state},
-            {name: 'MODE', type: PropertyType.Mode, callback: state => this._modeState = state},
+            {name: 'MODE', type: PropertyType.Mode, callback: state => this._modeState = state, isEnum: true},
         ]);
-
-        if (this._modeState) {
-            this._modes = this._adapter.getObjectAsync(this._modeState.state.id)
-                .then(obj => {
-                    // {'MODE_VALUE': 'MODE_TEXT'}
-                    let modes: {[key: string]: ThermostatMode} = obj?.common?.states;
-                    if (modes) {
-                        // convert ['Auto'] => {'Auto': 'AUTO'}
-                        if (Array.isArray(modes)) {
-                            const _m: {[key: string]: ThermostatMode} = {};
-                            modes.forEach((mode: ThermostatMode) => _m[mode] = mode.toUpperCase() as ThermostatMode);
-                            modes = _m;
-                        }
-                        return modes;
-                    } else {
-                        return {};
-                    }
-                });
-        }
     }
 
     getModes(): Promise<ThermostatMode[]> {
-        return this._modes
-            .then(modes => Object.keys(modes).map(key => modes[key]));
+        if (!this._modeState) {
+            throw new Error('Mode state not found');
+        }
+        return this._modeState.getModes();
     }
 
     async setMode(mode: ThermostatMode) {

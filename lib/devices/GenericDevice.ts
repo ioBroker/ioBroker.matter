@@ -17,8 +17,8 @@ export enum StateType {
 }
 
 export enum PropertyType {
-    Level = 'level',
-    Value = 'value',
+    Level = 'level', // read/write
+    Value = 'value', // read only
     Error = 'error',
     Maintenance = 'maintenance',
     Unreach = 'unreach',
@@ -31,6 +31,10 @@ export enum PropertyType {
     Battery = 'battery',
     Direction = 'direction',
     Humidity = 'humidity',
+    Current = 'current',
+    Voltage = 'voltage',
+    Consumption = 'consumption',
+    Frequency = 'frequency',
 }
 
 export interface DeviceState {
@@ -71,8 +75,7 @@ export class DeviceStateObject<T> {
     }
 
     public unsubsribe () {
-        SubscribeManager.unsubscribe(this.state.id, (id, state) => {
-        });
+        SubscribeManager.unsubscribe(this.state.id, this.updateState);
     }
 
 }
@@ -93,7 +96,7 @@ abstract class GenericDevice {
         value: any
     }) => void)[] = []
 
-    protected _errorState: DeviceStateObject<string> | undefined;
+    protected _errorState: DeviceStateObject<boolean> | undefined;
     protected _maintenanceState: DeviceStateObject<boolean> | undefined;
     protected _unreachState: DeviceStateObject<boolean> | undefined;
     protected _lowbatState: DeviceStateObject<boolean> | undefined;
@@ -163,9 +166,50 @@ abstract class GenericDevice {
         this._doUnsubsribe()
     }
 
-    // example:
     getProperties () {
         return this._properties
+    }
+
+    getError(): boolean|number {
+        if (!this._errorState) {
+            throw new Error('Error state not found');
+        }
+        return this._errorState.value;
+    }
+
+    getMaintenance(): boolean|number {
+        if (!this._maintenanceState) {
+            throw new Error('Maintenance state not found');
+        }
+        return this._maintenanceState.value;
+    }
+
+    getUnreach(): boolean|number {
+        if (!this._unreachState) {
+            throw new Error('Unreach state not found');
+        }
+        return this._unreachState.value;
+    }
+
+    getLowbat(): boolean|number {
+        if (!this._lowbatState) {
+            throw new Error('Lowbat state not found');
+        }
+        return this._lowbatState.value;
+    }
+
+    getWorking(): string {
+        if (!this._workingState) {
+            throw new Error('Working state not found');
+        }
+        return this._workingState.value;
+    }
+
+    getDirection(): string {
+        if (!this._directionState) {
+            throw new Error('Direction state not found');
+        }
+        return this._directionState.value;
     }
 
     onChange (handler: (event: {

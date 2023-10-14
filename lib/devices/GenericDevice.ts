@@ -49,6 +49,19 @@ export enum PropertyType {
     TiltClose = 'tiltClose',
     Press = 'press',
     PressLong = 'pressLong',
+    File = 'file',
+    AutoFocus = 'autoFocus',
+    AutoWhiteBalance = 'autoWhiteBalance',
+    Brightness = 'brightness',
+    NightMode = 'nightMode',
+    Position = 'position',
+    PTZ = 'ptz',
+    Cie = 'cie',
+    Dimmer = 'dimmer',
+    Saturation = 'saturation',
+    Temperature = 'temperature',
+    Hue = 'hue',
+    Url = 'url',
 }
 
 export interface DeviceState {

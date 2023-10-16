@@ -159,7 +159,9 @@ export class DeviceStateObject<T> {
 
     isEnum: boolean = false
 
-    modes: Promise<{[key: string]: T}> | undefined;
+    object: Promise<ioBroker.Object>;
+
+    modes: Promise<{[key: string]: T}>;
 
     propertyType: PropertyType
 
@@ -168,14 +170,17 @@ export class DeviceStateObject<T> {
         this.state = state
         this.propertyType = _propertyType
         this.isEnum = _isEnum || false
+        this.object = this._adapter.getObjectAsync(this.state.id) as any;
         if (this.isEnum) {
             this.parseMode();
         }
     }
 
     protected parseMode():void {
-        this.modes = this._adapter.getObjectAsync(this.state.id)
-            .then(obj => {
+        if (!this.object) {
+            return;
+        }
+        this.modes = this.object.then(obj => {
                 // {'MODE_VALUE': 'MODE_TEXT'}
                 let modes: {[key: string]: T} = obj?.common?.states;
                 if (modes) {
@@ -196,7 +201,15 @@ export class DeviceStateObject<T> {
         return this.modes.then(modes => Object.keys(modes).map(key => modes[key]));
     }
 
-    setValue (value: T) {
+    async setValue (value: T) {
+        const object = await this.object;
+        if (object.common.min !== undefined && value < object.common.min) {
+            throw new Error(`Value ${value} is less than min ${object.common.min}`);
+        }
+        if (object.common.max !== undefined && value > object.common.max) {
+            throw new Error(`Value ${value} is greater than max ${object.common.max}`);
+        }
+            
         return this._adapter.setStateAsync(this.state.id, value as any);
     }
 
@@ -262,7 +275,7 @@ abstract class GenericDevice {
         return this._detectedDevice.states.find(state => state.name === name && state.id)
     }
 
-    addDeviceState (name: string, type: PropertyType, callback: (state: DeviceStateObject<any>) => void, isEnum?: boolean) {
+    addDeviceState (name: string, type: PropertyType, callback: (state: DeviceStateObject<any> | undefined) => void, isEnum?: boolean) {
         const state = this.getDeviceState(name)
         let object: DeviceStateObject<any> | undefined;
         if (state) {
@@ -274,7 +287,7 @@ abstract class GenericDevice {
         callback(object)
     }
 
-    addDeviceStates (states: { name: string, type: PropertyType, isEnum?: boolean, callback: (state: DeviceStateObject<any>) => void }[]) {
+    addDeviceStates (states: { name: string, type: PropertyType, isEnum?: boolean, callback: (state: DeviceStateObject<any> | undefined) => void }[]) {
         states.forEach(state => {
             this.addDeviceState(state.name, state.type, state.callback, state.isEnum);
         })

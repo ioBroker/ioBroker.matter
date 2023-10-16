@@ -10,8 +10,8 @@ const types = {
     [DeviceType.Dimmer]: Dimmer,
 }
 
-function DeviceFabric(device: DetectedDevice): GenericDevice | undefined {
-  return types[device.type] ? new types[device.type](device) : undefined
+function DeviceFabric(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter): GenericDevice | undefined {
+  return types[detectedDevice.type] ? new types[detectedDevice.type](detectedDevice, adapter) : undefined
 }
 
 export default DeviceFabric;

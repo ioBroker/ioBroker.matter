@@ -20,7 +20,8 @@
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.0.3",
-    "@project-chip/matter.js": "^0.5.0"
+    "@project-chip/matter.js": "^0.5.0",
+    "iobroker.type-detector": "^2.0.4"
   },
   "devDependencies": {
     "@alcalzone/release-script": "^3.6.0",

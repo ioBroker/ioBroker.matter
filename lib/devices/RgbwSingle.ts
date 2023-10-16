@@ -1,6 +1,30 @@
-import GenericDevice from "./GenericDevice";
+import Ct from "./Ct";
+import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from "./GenericDevice";
 
-class RgbwSingle extends GenericDevice {
+class RgbwSingle extends Ct {
+    protected _rgbw: DeviceStateObject<string> | undefined;
+
+    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
+        super(detectedDevice, adapter);
+
+        this.addDeviceStates([
+            {name: 'RGBW', type: PropertyType.Rgbw, callback: state => this._rgbw = state},
+        ]);
+    }
+
+    getRgbs(): string {
+        if (!this._rgbw) {
+            throw new Error('RGBW state not found');
+        }
+        return this._rgbw.value;
+    }
+
+    async setRgbw(value: string) {
+        if (!this._rgbw) {
+            throw new Error('RGBW state not found');
+        }
+        return this._rgbw.setValue(value);
+    }
 
 }
 

@@ -12,14 +12,14 @@ class RgbSingle extends Ct {
         ]);
     }
 
-    getCie(): string {
+    getRgb(): string {
         if (!this._rgb) {
             throw new Error('RGB state not found');
         }
         return this._rgb.value;
     }
 
-    async setCie(value: string) {
+    async setRgb(value: string) {
         if (!this._rgb) {
             throw new Error('RGB state not found');
         }

@@ -147,14 +147,6 @@ export interface DeviceState {
     required: boolean
 }
 
-interface StateFunctions {
-    converter?: {
-        read: (value: ioBroker.StateValue) => ioBroker.StateValue,
-        write?: (value: ioBroker.StateValue) => ioBroker.StateValue,
-    },
-    stateChangeFunction?: (value: ioBroker.StateValue) => Promise<void>
-}
-
 export class DeviceStateObject<T> {
     protected _adapter: ioBroker.Adapter;
 
@@ -204,7 +196,7 @@ export class DeviceStateObject<T> {
             });
     }
 
-    async getModes(): Promise<T[]> { 
+    async getModes(): Promise<T[]> {
         const modes = await this.modes;
         if (!modes) {
             return [];
@@ -243,8 +235,8 @@ export class DeviceStateObject<T> {
 }
 
 export interface DetectedDevice {
-    type: DeviceType
-    states: DeviceState[],
+    type: DeviceType;
+    states: DeviceState[];
 }
 
 abstract class GenericDevice {
@@ -303,7 +295,7 @@ abstract class GenericDevice {
         })
     }
 
-    getDeviceType (): DeviceType | undefined { 
+    getDeviceType (): DeviceType | undefined {
         return this._deviceType;
     }
 

@@ -25,7 +25,6 @@ class Cie extends Ct {
         }
         return this._hue.setValue(value);
     }
-
 }
 
 export default Cie;

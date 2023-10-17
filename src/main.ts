@@ -170,13 +170,13 @@ export class MatterAdapter extends utils.Adapter {
             }
         });
 
-        // Create new non-existing devices
+        // Create new devices
         for (const d in _devices) {
             const device = _devices[d];
             if (!Object.keys(this.deviceObjects).includes(device)) {
                 const detectedDevice = await this.getDeviceStates(device) as DetectedDevice;
                 if (detectedDevice) {
-                    const deviceObject = DeviceFabric(detectedDevice, this);
+                    const deviceObject = await DeviceFabric(detectedDevice, this);
                     if (deviceObject) {
                         this.deviceObjects[device] = deviceObject;
                     }
@@ -185,12 +185,12 @@ export class MatterAdapter extends utils.Adapter {
         }
 
         // Delete old non-existing devices
-        Object.keys(this.deviceObjects).forEach(device => {
+        for (const device in this.deviceObjects) {
             if (!_devices.includes(device)) {
-                this.deviceObjects[device].destroy();
+                await this.deviceObjects[device].destroy();
                 delete this.deviceObjects[device];
             }
-        });
+        }
     }
 }
 

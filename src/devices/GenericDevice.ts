@@ -12,123 +12,124 @@ export enum DeviceType {
 }
 
 export enum PropertyType {
-    Level = 'level', // read/write
-    Value = 'value', // read only
-    Error = 'error',
-    Maintenance = 'maintenance',
-    Unreach = 'unreach',
-    Lowbat = 'lowbat',
-    Working = 'working',
-    Power = 'power',
-    Mode = 'mode',
-    Secondary = 'secondary',
-    WaterAlarm = 'waterAlarm',
-    Battery = 'battery',
-    Direction = 'direction',
-    Humidity = 'humidity',
-    Current = 'current',
-    Voltage = 'voltage',
-    Consumption = 'consumption',
-    Frequency = 'frequency',
-    Boost = 'boost',
-    Party = 'party',
-    Swing = 'swing',
-    Speed = 'speed',
-    Stop = 'stop',
-    Open = 'open',
-    Close = 'close',
-    TiltValue = 'tiltValue',
-    TiltLevel = 'tiltLevel',
-    TiltStop = 'tiltStop',
-    TiltOpen = 'tiltOpen',
-    TiltClose = 'tiltClose',
-    Press = 'press',
-    PressLong = 'pressLong',
-    File = 'file',
+    Accuracy = 'accuracy',
+    Album = 'album',
+    Artist = 'artist',
     AutoFocus = 'autoFocus',
     AutoWhiteBalance = 'autoWhiteBalance',
-    Brightness = 'brightness',
-    NightMode = 'nightMode',
-    Position = 'position',
-    PTZ = 'ptz',
-    Cie = 'cie',
-    Dimmer = 'dimmer',
-    Saturation = 'saturation',
-    Temperature = 'temperature',
-    Hue = 'hue',
-    Url = 'url',
-    Longitude = 'longitude',
-    Latitude = 'latitude',
-    Elevation = 'elevation',
-    Radius = 'radius',
-    Accuracy = 'accuracy',
-    GPS = 'gps',
-    State = 'state',
-    Play = 'play',
-    Pause = 'pause',
-    Next = 'next',
-    Prev = 'prev',
-    Shuffle = 'shuffle',
-    Repeat = 'repeat',
-    Artist = 'artist',
-    Album = 'album',
-    Title = 'title',
-    Cover = 'cover',
-    Duration = 'duration',
-    Elapsed = 'elapsed',
-    Seek = 'seek',
-    Track = 'track',
-    Episode = 'episode',
-    Season = 'season',
-    Volume = 'volume',
-    VolumeActual = 'volumeActual',
-    Mute = 'mute',
-    Connected = 'connected',
-    Red = 'red',
-    Green = 'green',
+    Battery = 'battery',
     Blue = 'blue',
-    Rgb = 'rgb',
-    Rgbw = 'rgbw',
-    MapBase64 = 'mapBase64',
-    MapUrl = 'mapUrl',
-    WorkMode = 'workMode',
-    Water = 'water',
-    Waste = 'waste',
-    WasteAlarm = 'wasteAlarm',
-    Filter = 'filter',
+    Boost = 'boost',
+    Brightness = 'brightness',
     Brush = 'brush',
-    Sensors = 'sensors',
-    SideBrush = 'sideBrush',
-    Warning = 'warning',
-    Info = 'info',
-    End = 'end',
-    Start = 'start',
-    Icon = 'icon',
-    Desc = 'desc',
-    PrecipitationChance = 'precipitationChance',
-    PrecipitationType = 'precipitationType',
-    Pressure = 'pressure',
-    PressureTendency = 'pressureTendency',
-    RealFeelTemperature = 'realFeelTemperature',
-    UV = 'uv',
-    Weather = 'weather',
-    WindDirection = 'windDirection',
-    WindGust = 'windGust',
-    WindSpeed = 'windSpeed',
-    TempMin = 'tempMin',
-    TempMax = 'tempMax',
-    Precipitation = 'precipitation',
+    Cie = 'cie',
+    Close = 'close',
+    Connected = 'connected',
+    Consumption = 'consumption',
+    Cover = 'cover',
+    Current = 'current',
     Date = 'date',
     DayOfWeek = 'dayOfWeek',
+    Desc = 'desc',
+    Dimmer = 'dimmer',
+    Direction = 'direction',
+    Duration = 'duration',
+    Elapsed = 'elapsed',
+    ElectricPower = 'electricPower',
+    Elevation = 'elevation',
+    End = 'end',
+    Episode = 'episode',
+    Error = 'error',
+    FeelsLike = 'feelsLike',
+    File = 'file',
+    Filter = 'filter',
+    ForecastChart = 'forecastChart',
+    Frequency = 'frequency',
+    GPS = 'gps',
+    Green = 'green',
+    HistoryChart = 'historyChart',
+    Hue = 'hue',
+    Humidity = 'humidity',
+    Icon = 'icon',
+    Info = 'info',
+    Latitude = 'latitude',
+    Level = 'level', // read/write
+    Longitude = 'longitude',
+    Lowbat = 'lowbat',
+    Maintenance = 'maintenance',
+    MapBase64 = 'mapBase64',
+    MapUrl = 'mapUrl',
+    Mode = 'mode',
+    Mute = 'mute',
+    Next = 'next',
+    NightMode = 'nightMode',
+    Open = 'open',
+    PTZ = 'ptz',
+    Party = 'party',
+    Pause = 'pause',
+    Play = 'play',
+    Position = 'position',
+    Power = 'power',
+    Precipitation = 'precipitation',
+    PrecipitationChance = 'precipitationChance',
+    PrecipitationType = 'precipitationType',
+    Press = 'press',
+    PressLong = 'pressLong',
+    Pressure = 'pressure',
+    PressureTendency = 'pressureTendency',
+    Prev = 'prev',
+    Radius = 'radius',
+    RealFeelTemperature = 'realFeelTemperature',
+    Red = 'red',
+    Repeat = 'repeat',
+    Rgb = 'rgb',
+    Rgbw = 'rgbw',
+    Saturation = 'saturation',
+    Season = 'season',
+    Secondary = 'secondary',
+    Seek = 'seek',
+    Sensors = 'sensors',
+    Shuffle = 'shuffle',
+    SideBrush = 'sideBrush',
+    Speed = 'speed',
+    Start = 'start',
+    State = 'state',
+    Stop = 'stop',
+    Swing = 'swing',
     Temp = 'temp',
+    TempMax = 'tempMax',
+    TempMin = 'tempMin',
+    Temperature = 'temperature',
+    TiltClose = 'tiltClose',
+    TiltLevel = 'tiltLevel',
+    TiltOpen = 'tiltOpen',
+    TiltStop = 'tiltStop',
+    TiltValue = 'tiltValue',
     TimeSunrise = 'timeSunrise',
     TimeSunset = 'timeSunset',
+    Title = 'title',
+    Track = 'track',
+    UV = 'uv',
+    Unreach = 'unreach',
+    Url = 'url',
+    Value = 'value', // read only
+    Voltage = 'voltage',
+    Volume = 'volume',
+    VolumeActual = 'volumeActual',
+    Warning = 'warning',
+    Waste = 'waste',
+    WasteAlarm = 'wasteAlarm',
+    Water = 'water',
+    WaterAlarm = 'waterAlarm',
+    Weather = 'weather',
     WindChill = 'windChill',
-    FeelsLike = 'feelsLike',
+    WindDirection = 'windDirection',
     WindDirectionStr = 'windDirectionStr',
+    WindGust = 'windGust',
     WindIcon = 'windIcon',
-    HistoryChart = 'historyChart',
-    ForecastChart = 'forecastChart',
+    WindSpeed = 'windSpeed',
+    WorkMode = 'workMode',
+    Working = 'working',
 }
 
 export class DeviceStateObject<T> {
@@ -159,7 +160,7 @@ export class DeviceStateObject<T> {
         }
     }
 
-    protected parseMode():void {
+    protected parseMode(): void {
         if (!this.object) {
             return;
         }
@@ -200,7 +201,7 @@ export class DeviceStateObject<T> {
         await this._adapter.setStateAsync(this.state.id, value as ioBroker.StateValue);
     }
 
-    protected updateState = (id: string, state: ioBroker.State):void => {
+    protected updateState = (id: string, state: ioBroker.State): void => {
         // let property: PropertyType | undefined
         this.value = state.val as T;
         if (this.updateHandler) {
@@ -208,13 +209,13 @@ export class DeviceStateObject<T> {
         }
     };
 
-    public subscribe(handler: (id: string, object: DeviceStateObject<T>)=>void):void {
+    public async subscribe(handler: (id: string, object: DeviceStateObject<T>) => void): Promise<void> {
         this.updateHandler = handler;
-        SubscribeManager.subscribe(this.state.id, this.updateState);
+        await SubscribeManager.subscribe(this.state.id, this.updateState);
     }
 
-    public unsubscribe():void {
-        SubscribeManager.unsubscribe(this.state.id, this.updateState);
+    public async unsubscribe(): Promise<void> {
+        await SubscribeManager.unsubscribe(this.state.id, this.updateState);
     }
 }
 
@@ -240,6 +241,7 @@ abstract class GenericDevice {
     protected _lowbatState: DeviceStateObject<boolean> | undefined;
     protected _workingState: DeviceStateObject<string> | undefined;
     protected _directionState: DeviceStateObject<string> | undefined;
+    protected _ready: Promise<void>[] = [];
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
         console.log('Generic Device');
@@ -247,59 +249,61 @@ abstract class GenericDevice {
         this._deviceType = detectedDevice.type;
         this._detectedDevice = detectedDevice;
 
-        this.addDeviceStates([
+        this._ready.push(this.addDeviceStates([
             { name: 'ERROR', type: PropertyType.Error, callback: state => this._errorState = state },
             { name: 'MAINTAIN', type: PropertyType.Maintenance, callback: state => this._maintenanceState = state },
             { name: 'UNREACH', type: PropertyType.Unreach, callback: state => this._unreachState = state },
             { name: 'LOWBAT', type: PropertyType.Lowbat, callback: state => this._lowbatState = state },
             { name: 'WORKING', type: PropertyType.Working, callback: state => this._workingState = state },
             { name: 'DIRECTION', type: PropertyType.Direction, callback: state => this._directionState = state },
-        ]);
+        ]));
+    }
+
+    async init(): Promise<void> {
+        await Promise.all(this._ready);
     }
 
     getDeviceState(name: string): DeviceState | undefined {
         return this._detectedDevice.states.find(state => state.name === name && state.id);
     }
 
-    addDeviceState<T>(name: string, type: PropertyType, callback: (state: DeviceStateObject<T> | undefined) => void, isEnum?: boolean):void {
+    async addDeviceState<T>(name: string, type: PropertyType, callback: (state: DeviceStateObject<T> | undefined) => void, isEnum?: boolean): Promise<void> {
         const state = this.getDeviceState(name);
         let object: DeviceStateObject<T> | undefined;
         if (state) {
             object = new DeviceStateObject(this._adapter, state, type, isEnum);
             this._properties.push(type);
-            object.subscribe(this.updateState);
+            await object.subscribe(this.updateState);
             this._subscribeObjects.push(object);
         }
         callback(object);
     }
 
-    addDeviceStates(states: { name: string, type: PropertyType, isEnum?: boolean, callback: (state: DeviceStateObject<any> | undefined) => void }[]):void {
-        states.forEach(state => {
-            this.addDeviceState(state.name, state.type, state.callback, state.isEnum);
-        });
+    async addDeviceStates(states: { name: string, type: PropertyType, isEnum?: boolean, callback: (state: DeviceStateObject<any> | undefined) => void }[]): Promise<void> {
+        for (let i = 0; i < states.length; i++) {
+            await this.addDeviceState(states[i].name, states[i].type, states[i].callback, states[i].isEnum);
+        }
     }
 
     getDeviceType(): DeviceType | undefined {
         return this._deviceType;
     }
 
-    protected updateState = <T>(id: string, object: DeviceStateObject<T>):void => {
-        this.handlers.forEach(handler => {
-            handler({
-                property: object.propertyType,
-                value: object.value,
-            });
-        });
-    };
-
-    protected _doUnsubscribe():void {
-        this._subscribeObjects.forEach(object => {
-            object.unsubscribe();
-        });
+    protected updateState = <T>(id: string, object: DeviceStateObject<T>): void => {
+        this.handlers.forEach(handler => handler({
+            property: object.propertyType,
+            value: object.value,
+        }));
     }
 
-    destroy():void {
-        this._doUnsubscribe();
+    protected async _doUnsubscribe(): Promise<void> {
+        for (let i = 0; i < this._subscribeObjects.length; i++) {
+            await this._subscribeObjects[i].unsubscribe();
+        }
+    }
+
+    async destroy(): Promise<void> {
+        await this._doUnsubscribe();
     }
 
     getProperties(): PropertyType[] {
@@ -351,7 +355,7 @@ abstract class GenericDevice {
     onChange<T>(handler: (event: {
         property: PropertyType
         value: T
-    }) => void):void {
+    }) => void): void {
         this.handlers.push(handler);
     }
 }

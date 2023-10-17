@@ -2,18 +2,21 @@ import GenericDevice, { DetectedDevice, DeviceType } from './GenericDevice';
 import Dimmer from './Dimmer';
 import Light from './Light';
 import Temperature from './Temperature';
+import Socket from './Socket';
 
 const types = {
     [DeviceType.Light]: Light,
-    [DeviceType.Switch]: undefined,
+    [DeviceType.Switch]: Socket,
     [DeviceType.Temperature]: Temperature,
     [DeviceType.Dimmer]: Dimmer,
 };
 
-function DeviceFabric(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter): GenericDevice | undefined {
+async function DeviceFabric(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter): Promise<GenericDevice | undefined> {
     const type = types[detectedDevice.type];
     if (type) {
-        return new type(detectedDevice, adapter);
+        const deviceObject = new type(detectedDevice, adapter);
+        await deviceObject.init();
+        return deviceObject;
     }
 }
 

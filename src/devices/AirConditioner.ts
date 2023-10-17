@@ -29,17 +29,17 @@ enum AirConditionerSwing {
 class AirConditioner extends GenericDevice {
     private _setLevelState: DeviceStateObject<number> | undefined;
     private _getLevelState: DeviceStateObject<number> | undefined;
-    private _powerState: DeviceStateObject<boolean|number> | undefined;
+    private _powerState: DeviceStateObject<boolean> | undefined;
     private _getHumidityState: DeviceStateObject<number> | undefined;
     private _SpeedState: DeviceStateObject<AirConditionerSpeed> | undefined;
-    private _BoostState: DeviceStateObject<boolean|number> | undefined;
+    private _BoostState: DeviceStateObject<boolean | number> | undefined;
     private _SwingState: DeviceStateObject<AirConditionerSwing> | undefined;
     private _modeState: DeviceStateObject<AirConditionerMode> | undefined;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
         super(detectedDevice, adapter);
 
-        this.addDeviceStates([
+        this._ready.push(this.addDeviceStates([
             { name: 'SET', type: PropertyType.Level, callback: state => this._setLevelState = state },
             { name: 'ACTUAL', type: PropertyType.Level, callback: state => this._getLevelState = state || this._setLevelState },
             { name: 'POWER', type: PropertyType.Power, callback: state => this._powerState = state },
@@ -48,7 +48,7 @@ class AirConditioner extends GenericDevice {
             { name: 'BOOST', type: PropertyType.Boost, callback: state => this._BoostState = state, isEnum: true },
             { name: 'SWING', type: PropertyType.Swing, callback: state => this._SwingState = state },
             { name: 'MODE', type: PropertyType.Mode, callback: state => this._modeState = state, isEnum: true },
-        ]);
+        ]));
     }
 
     getLevel(): number | undefined {
@@ -65,14 +65,14 @@ class AirConditioner extends GenericDevice {
         return this._setLevelState.setValue(value);
     }
 
-    getPower(): boolean|number | undefined {
+    getPower(): boolean | undefined {
         if (!this._powerState) {
             throw new Error('Power state not found');
         }
         return this._powerState.value;
     }
 
-    async setPower(value: boolean|number): Promise<void> {
+    async setPower(value: boolean): Promise<void> {
         if (!this._powerState) {
             throw new Error('Power state not found');
         }

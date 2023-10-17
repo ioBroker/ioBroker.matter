@@ -1,10 +1,10 @@
 import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from './GenericDevice';
 
 class Socket extends GenericDevice {
-    private _setLevelState: DeviceStateObject<number> | undefined;
-    private _getLevelState: DeviceStateObject<number> | undefined;
+    private _setPowerState: DeviceStateObject<boolean> | undefined;
+    private _getPowerState: DeviceStateObject<boolean> | undefined;
 
-    private _getPowerState: DeviceStateObject<number> | undefined;
+    private _getElectricPowerState: DeviceStateObject<number> | undefined;
     private _getCurrentState: DeviceStateObject<number> | undefined;
     private _getVoltageState: DeviceStateObject<number> | undefined;
     private _getConsumptionState: DeviceStateObject<number> | undefined;
@@ -13,36 +13,37 @@ class Socket extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
         super(detectedDevice, adapter);
 
-        this.addDeviceStates([
-            { name: 'SET', type: PropertyType.Level, callback: state => this._setLevelState = state },
-            { name: 'ACTUAL', type: PropertyType.Level, callback: state => this._getLevelState = state || this._setLevelState },
-            { name: 'ELECTRIC_POWER', type: PropertyType.Power, callback: state => this._getPowerState = state },
+        this._ready.push(this.addDeviceStates([
+            { name: 'SET', type: PropertyType.Power, callback: state => this._setPowerState = state },
+            { name: 'ACTUAL', type: PropertyType.Power, callback: state => this._getPowerState = state || this._setPowerState },
+
+            { name: 'ELECTRIC_POWER', type: PropertyType.ElectricPower, callback: state => this._getElectricPowerState = state },
             { name: 'CURRENT', type: PropertyType.Current, callback: state => this._getCurrentState = state },
             { name: 'VOLTAGE', type: PropertyType.Voltage, callback: state => this._getVoltageState = state },
             { name: 'CONSUMPTION', type: PropertyType.Consumption, callback: state => this._getConsumptionState = state },
             { name: 'FREQUENCY', type: PropertyType.Frequency, callback: state => this._getFrequencyState = state },
-        ]);
+        ]));
     }
 
-    getLevel(): number | undefined {
-        if (!this._getLevelState) {
-            throw new Error('Level state not found');
-        }
-        return this._getLevelState.value;
-    }
-
-    async setLevel(value: number): Promise<void> {
-        if (!this._setLevelState) {
-            throw new Error('Level state not found');
-        }
-        return this._adapter.setStateAsync(this._setLevelState.state.id, value);
-    }
-
-    getPower(): number | undefined {
+    getPower(): boolean | undefined {
         if (!this._getPowerState) {
-            throw new Error('Power state not found');
+            throw new Error('Level state not found');
         }
         return this._getPowerState.value;
+    }
+
+    async setPower(value: number): Promise<void> {
+        if (!this._setPowerState) {
+            throw new Error('Level state not found');
+        }
+        await this._adapter.setStateAsync(this._setPowerState.state.id, value);
+    }
+
+    getElectricPower(): number | undefined {
+        if (!this._getElectricPowerState) {
+            throw new Error('Power state not found');
+        }
+        return this._getElectricPowerState.value;
     }
 
     getCurrent(): number | undefined {

@@ -1,4 +1,4 @@
-import GenericDevice, { DeviceStateObject, PropertyType } from "./GenericDevice";
+import GenericDevice, {DetectedDevice, DeviceStateObject, PropertyType} from "./GenericDevice";
 
 class LocationOne extends GenericDevice {
     _getGPSState: DeviceStateObject<string> | undefined;
@@ -6,7 +6,7 @@ class LocationOne extends GenericDevice {
     _getRadiusState: DeviceStateObject<number> | undefined;
     _getAccuracyState: DeviceStateObject<number> | undefined;
 
-    constructor(detectedDevice: any, adapter: ioBroker.Adapter) {
+    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([

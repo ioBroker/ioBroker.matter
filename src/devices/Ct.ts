@@ -21,7 +21,7 @@ class Ct extends GenericDevice {
         ]);
     }
 
-    getDimmer(): number {
+    getDimmer(): number | undefined {
         if (!this._dimmer) {
             throw new Error('Dimmer state not found');
         }
@@ -35,7 +35,7 @@ class Ct extends GenericDevice {
         return this._dimmer.setValue(value);
     }
 
-    getBrightness(): number {
+    getBrightness(): number | undefined {
         if (!this._brightness) {
             throw new Error('Brightness state not found');
         }
@@ -49,7 +49,7 @@ class Ct extends GenericDevice {
         return this._brightness.setValue(value);
     }
 
-    getSaturation(): number {
+    getSaturation(): number | undefined {
         if (!this._saturation) {
             throw new Error('Saturation state not found');
         }
@@ -63,7 +63,7 @@ class Ct extends GenericDevice {
         return this._saturation.setValue(value);
     }
 
-    getTemperature(): number {
+    getTemperature(): number | undefined {
         if (!this._temperature) {
             throw new Error('Temperature state not found');
         }
@@ -77,7 +77,7 @@ class Ct extends GenericDevice {
         return this._temperature.setValue(value);
     }
 
-    getPower(): boolean {
+    getPower(): boolean | undefined {
         if (!this._getPower) {
             throw new Error('On state not found');
         }

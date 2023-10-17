@@ -11,7 +11,7 @@ class WindowTilt extends GenericDevice {
         ]);
     }
 
-    getValue(): number {
+    getValue(): number | undefined { 
         if (!this._getValueState) {
             throw new Error('Value state not found');
         }

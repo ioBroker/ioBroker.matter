@@ -35,91 +35,91 @@ class WeatherCurrent extends GenericDevice {
         ]);
     }
 
-    getValue(): number {
+    getValue(): number | undefined { 
         if (!this._getValueState) {
             throw new Error('Value state not found');
         }
         return this._getValueState.value;
     }
 
-    getIcon(): string {
+    getIcon(): string | undefined { 
         if (!this._getIconState) {
             throw new Error('Icon state not found');
         }
         return this._getIconState.value;
     }
 
-    getPrecipitationChance(): number {
+    getPrecipitationChance(): number | undefined { 
         if (!this._getPrecipitationChanceState) {
             throw new Error('PrecipitationChance state not found');
         }
         return this._getPrecipitationChanceState.value;
     }
 
-    getPrecipitationType(): number {
+    getPrecipitationType(): number | undefined { 
         if (!this._getPrecipitationTypeState) {
             throw new Error('PrecipitationType state not found');
         }
         return this._getPrecipitationTypeState.value;
     }
 
-    getPressure(): number {
+    getPressure(): number | undefined { 
         if (!this._getPressureState) {
             throw new Error('Pressure state not found');
         }
         return this._getPressureState.value;
     }
 
-    getPressureTendency(): string {
+    getPressureTendency(): string | undefined { 
         if (!this._getPressureTendencyState) {
             throw new Error('PressureTendency state not found');
         }
         return this._getPressureTendencyState.value;
     }
 
-    getRealFeelTemperature(): number {
+    getRealFeelTemperature(): number | undefined { 
         if (!this._getRealFeelTemperatureState) {
             throw new Error('RealFeelTemperature state not found');
         }
         return this._getRealFeelTemperatureState.value;
     }
 
-    getHumidity(): number {
+    getHumidity(): number | undefined { 
         if (!this._getHumidityState) {
             throw new Error('Humidity state not found');
         }
         return this._getHumidityState.value;
     }
 
-    getUV(): number {
+    getUV(): number | undefined { 
         if (!this._getUVState) {
             throw new Error('UV state not found');
         }
         return this._getUVState.value;
     }
 
-    getWeather(): string {
+    getWeather(): string | undefined { 
         if (!this._getWeatherState) {
             throw new Error('Weather state not found');
         }
         return this._getWeatherState.value;
     }
 
-    getWindDirection(): string {
+    getWindDirection(): string | undefined { 
         if (!this._getWindDirectionState) {
             throw new Error('WindDirection state not found');
         }
         return this._getWindDirectionState.value;
     }
 
-    getWindGust(): number {
+    getWindGust(): number | undefined { 
         if (!this._getWindGustState) {
             throw new Error('WindGust state not found');
         }
         return this._getWindGustState.value;
     }
 
-    getWindSpeed(): number {
+    getWindSpeed(): number | undefined { 
         if (!this._getWindSpeedState) {
             throw new Error('WindSpeed state not found');
         }

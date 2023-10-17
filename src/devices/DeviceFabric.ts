@@ -5,13 +5,16 @@ import Temperature from "./Temperature";
 
 const types = {
     [DeviceType.Light]: Light,
-    // [DeviceType.Switch]: Switch,
+    [DeviceType.Switch]: undefined,
     [DeviceType.Temperature]: Temperature,
     [DeviceType.Dimmer]: Dimmer,
 }
 
 function DeviceFabric(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter): GenericDevice | undefined {
-    return types[detectedDevice.type] ? new types[detectedDevice.type](detectedDevice, adapter) : undefined;
+    const type = types[detectedDevice.type];
+    if (type) {
+        return new type(detectedDevice, adapter);
+    }
 }
 
 export default DeviceFabric;

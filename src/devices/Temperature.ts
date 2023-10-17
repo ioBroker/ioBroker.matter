@@ -13,14 +13,14 @@ class Temperature extends GenericDevice {
         ]);
     }
 
-    getValue(): boolean {
+    getValue(): boolean | undefined { 
         if (!this._getValueState) {
             throw new Error('Value state not found');
         }
         return this._getValueState.value;
     }
 
-    getHumidity(): number {
+    getHumidity(): number | undefined { 
         if (!this._getHumidityState) {
             throw new Error('Humidity state not found');
         }

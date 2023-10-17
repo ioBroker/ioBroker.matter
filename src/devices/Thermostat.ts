@@ -37,7 +37,7 @@ class Thermostat extends GenericDevice {
         ]);
     }
 
-    getModes(): Promise<ThermostatMode[]> {
+    getModes(): Promise<ThermostatMode[]> { 
         if (!this._modeState) {
             throw new Error('Mode state not found');
         }
@@ -51,14 +51,14 @@ class Thermostat extends GenericDevice {
         return this._modeState.setValue(mode);
     }
 
-    getMode(): ThermostatMode {
+    getMode(): ThermostatMode | undefined { 
         if (!this._modeState) {
             throw new Error('Mode state not found');
         }
         return this._modeState.value
     }
 
-    getLevel(): number {
+    getLevel(): number | undefined { 
         if (!this._getLevelState) {
             throw new Error('Level state not found');
         }
@@ -72,21 +72,21 @@ class Thermostat extends GenericDevice {
         return this._adapter.setStateAsync(this._setLevelState.state.id, value);
     }
 
-    getPower(): boolean|number {
+    getPower(): boolean|number | undefined { 
         if (!this._getPowerState) {
             throw new Error('Power state not found');
         }
         return this._getPowerState.value;
     }
 
-    getHumidity(): number {
+    getHumidity(): number | undefined { 
         if (!this._getHumidityState) {
             throw new Error('Humidity state not found');
         }
         return this._getHumidityState.value;
     }
 
-    getBoost(): number {
+    getBoost(): number | undefined { 
         if (!this._BoostState) {
             throw new Error('Boost state not found');
         }
@@ -100,7 +100,7 @@ class Thermostat extends GenericDevice {
         return this._BoostState.setValue(value);
     }
 
-    getParty(): boolean|number {
+    getParty(): boolean|number | undefined { 
         if (!this._PartyState) {
             throw new Error('Party state not found');
         }

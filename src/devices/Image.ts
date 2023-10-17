@@ -11,7 +11,7 @@ class Image extends GenericDevice {
         ]);
     }
 
-    getUrl(): string {
+    getUrl(): string | undefined {
         if (!this._getUrlState) {
             throw new Error('Url state not found');
         }

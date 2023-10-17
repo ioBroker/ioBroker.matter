@@ -16,21 +16,21 @@ class Rgb extends Ct {
         ]);
     }
 
-    getRed(): number {
+    getRed(): number | undefined { 
         if (!this._red) {
             throw new Error('Red state not found');
         }
         return this._red.value;
     }
 
-    getGreen(): number {
+    getGreen(): number | undefined { 
         if (!this._green) {
             throw new Error('Green state not found');
         }
         return this._green.value;
     }
 
-    getBlue(): number {
+    getBlue(): number | undefined { 
         if (!this._blue) {
             throw new Error('Blue state not found');
         }

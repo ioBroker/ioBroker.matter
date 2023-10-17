@@ -64,7 +64,7 @@ class VacuumCleaner extends GenericDevice {
 
     }
 
-    getPower(): boolean {
+    getPower(): boolean | undefined { 
         if (!this._powerState) {
             throw new Error('Power state not found');
         }
@@ -78,7 +78,7 @@ class VacuumCleaner extends GenericDevice {
         return this._powerState.setValue(value);
     }
 
-    getMode(): VacuumCleanerMode {
+    getMode(): VacuumCleanerMode | undefined { 
         if (!this._modeState) {
             throw new Error('Mode state not found');
         }
@@ -92,28 +92,28 @@ class VacuumCleaner extends GenericDevice {
         return this._modeState.setValue(mode);
     }
 
-    getModes(): Promise<VacuumCleanerMode[]> {
+    getModes(): Promise<VacuumCleanerMode[]> { 
         if (!this._modeState) {
             throw new Error('Mode state not found');
         }
         return this._modeState.getModes();
     }
 
-    getMapBase64(): string {
+    getMapBase64(): string | undefined { 
         if (!this._getMapBase64State) {
             throw new Error('MapBase64 state not found');
         }
         return this._getMapBase64State.value;
     }
 
-    getMapUrl(): string {
+    getMapUrl(): string | undefined { 
         if (!this._getMapUrlState) {
             throw new Error('MapUrl state not found');
         }
         return this._getMapUrlState.value;
     }
 
-    getWorkMode(): VacuumCleanerWorkMode {
+    getWorkMode(): VacuumCleanerWorkMode | undefined { 
         if (!this._workModeState) {
             throw new Error('WorkMode state not found');
         }
@@ -127,49 +127,49 @@ class VacuumCleaner extends GenericDevice {
         return this._workModeState.setValue(mode);
     }
 
-    getWorkModes(): Promise<VacuumCleanerWorkMode[]> {
+    getWorkModes(): Promise<VacuumCleanerWorkMode[]> { 
         if (!this._workModeState) {
             throw new Error('WorkMode state not found');
         }
         return this._workModeState.getModes();
     }
 
-    getWater(): number {
+    getWater(): number | undefined { 
         if (!this._getWaterState) {
             throw new Error('Water state not found');
         }
         return this._getWaterState.value;
     }
 
-    getWaste(): number {
+    getWaste(): number | undefined { 
         if (!this._getWasteState) {
             throw new Error('Waste state not found');
         }
         return this._getWasteState.value;
     }
 
-    getBattery(): number {
+    getBattery(): number | undefined { 
         if (!this._getBatteryState) {
             throw new Error('Battery state not found');
         }
         return this._getBatteryState.value;
     }
 
-    getState(): VacuumCleanerState {
+    getState(): VacuumCleanerState | undefined { 
         if (!this._getStateState) {
             throw new Error('State state not found');
         }
         return this._getStateState.value;
     }
 
-    getStateModes(): Promise<VacuumCleanerState[]> {
+    getStateModes(): Promise<VacuumCleanerState[]> { 
         if (!this._getStateState) {
             throw new Error('State state not found');
         }
         return this._getStateState.getModes();
     }
 
-    getPause(): boolean {
+    getPause(): boolean | undefined { 
         if (!this._pauseState) {
             throw new Error('Pause state not found');
         }
@@ -183,42 +183,42 @@ class VacuumCleaner extends GenericDevice {
         return this._pauseState.setValue(value);
     }
 
-    getWasteAlarm(): boolean {
+    getWasteAlarm(): boolean | undefined { 
         if (!this._getWasteAlarmState) {
             throw new Error('WasteAlarm state not found');
         }
         return this._getWasteAlarmState.value;
     }
 
-    getWaterAlarm(): boolean {
+    getWaterAlarm(): boolean | undefined { 
         if (!this._getWaterAlarmState) {
             throw new Error('WaterAlarm state not found');
         }
         return this._getWaterAlarmState.value;
     }
 
-    getFilter(): number {
+    getFilter(): number | undefined { 
         if (!this._getFilterState) {
             throw new Error('Filter state not found');
         }
         return this._getFilterState.value;
     }
 
-    getBrush(): number {
+    getBrush(): number | undefined { 
         if (!this._getBrushState) {
             throw new Error('Brush state not found');
         }
         return this._getBrushState.value;
     }
 
-    getSensors(): number {
+    getSensors(): number | undefined { 
         if (!this._getSensorsState) {
             throw new Error('Sensors state not found');
         }
         return this._getSensorsState.value;
     }
 
-    getSideBrush(): number {
+    getSideBrush(): number | undefined { 
         if (!this._getSideBrushState) {
             throw new Error('SideBrush state not found');
         }

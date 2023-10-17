@@ -65,7 +65,7 @@ class BlindsButtons extends GenericDevice {
         return this._setCloseState.setValue(true);
     }
 
-    async getTilt(): Promise<number> {
+    getTilt(): number | undefined {
         if (!this._getTiltState) {
             throw new Error('Tilt state not found');
         }

@@ -160,15 +160,15 @@ export class DeviceStateObject<T> {
 
     state: DeviceState;
 
-    value: T
+    value: T | undefined
 
-    updateHandler: (id: string, object: DeviceStateObject<any>) => void | null = null;
+    updateHandler: ((id: string, object: DeviceStateObject<any>) => void) | undefined;
 
     isEnum: boolean = false;
 
     object: Promise<ioBroker.Object>;
 
-    modes: Promise<{[key: string]: T}>;
+    modes: Promise<{[key: string]: T}> | undefined;
 
     propertyType: PropertyType
 
@@ -204,8 +204,11 @@ export class DeviceStateObject<T> {
             });
     }
 
-    async getModes(): Promise<T[]> {
+    async getModes(): Promise<T[]> { 
         const modes = await this.modes;
+        if (!modes) {
+            return [];
+        }
         return Object.keys(modes).map(key => modes[key]);
     }
 
@@ -300,7 +303,7 @@ abstract class GenericDevice {
         })
     }
 
-    getDeviceType (): DeviceType {
+    getDeviceType (): DeviceType | undefined { 
         return this._deviceType;
     }
 
@@ -327,42 +330,42 @@ abstract class GenericDevice {
         return this._properties;
     }
 
-    getError(): boolean|number {
+    getError(): boolean|number | undefined {
         if (!this._errorState) {
             throw new Error('Error state not found');
         }
         return this._errorState.value;
     }
 
-    getMaintenance(): boolean|number {
+    getMaintenance(): boolean|number | undefined {
         if (!this._maintenanceState) {
             throw new Error('Maintenance state not found');
         }
         return this._maintenanceState.value;
     }
 
-    getUnreach(): boolean|number {
+    getUnreach(): boolean|number | undefined {
         if (!this._unreachState) {
             throw new Error('Unreach state not found');
         }
         return this._unreachState.value;
     }
 
-    getLowbat(): boolean|number {
+    getLowbat(): boolean|number | undefined {
         if (!this._lowbatState) {
             throw new Error('Lowbat state not found');
         }
         return this._lowbatState.value;
     }
 
-    getWorking(): string {
+    getWorking(): string | undefined {
         if (!this._workingState) {
             throw new Error('Working state not found');
         }
         return this._workingState.value;
     }
 
-    getDirection(): string {
+    getDirection(): string | undefined {
         if (!this._directionState) {
             throw new Error('Direction state not found');
         }

@@ -1,5 +1,5 @@
 import * as utils from '@iobroker/adapter-core';
-import { ChannelDetector } from 'iobroker.type-detector';
+const { ChannelDetector } = require('iobroker.type-detector');
 
 import { SubscribeManager, DeviceFabric }  from './devices';
 
@@ -22,7 +22,7 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async onReady() {
-        SubscribeManager.setAdapter(this);
+        SubscribeManager.setAdapter(this as any);
         await this.loadDevices();
         await this.subscribeForeignObjectsAsync(`${this.namespace}.0.*`);
         // await this.subscribeForeignStatesAsync(`${this.namespace}.*`); // not required, as every device subscribes on own states
@@ -146,7 +146,7 @@ export class MatterAdapter extends utils.Adapter {
         for (let d = 0; d < _devices.length; d++) {
             const device = _devices[d];
             if (!Object.keys(this.deviceObjects).includes(device)) {
-                console.log (DeviceFabric(await this.getDeviceStates(device), this));
+                console.log (DeviceFabric(await this.getDeviceStates(device), this as any));
                 this.deviceObjects[device] = device;
             }
         }

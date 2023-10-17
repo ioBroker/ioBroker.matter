@@ -11,7 +11,7 @@ class Info extends GenericDevice {
         ]);
     }
 
-    getValue(): boolean {
+    getValue(): boolean | undefined {
         if (!this._getValueState) {
             throw new Error('Level state not found');
         }

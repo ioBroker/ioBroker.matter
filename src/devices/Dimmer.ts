@@ -17,7 +17,7 @@ class Dimmer extends GenericDevice {
         ]);
     }
 
-    getLevel(): number {
+    getLevel(): number | undefined {
         if (!this._getLevelState) {
             throw new Error('Level state not found');
         }
@@ -31,7 +31,7 @@ class Dimmer extends GenericDevice {
         return this._setLevelState.setValue(value);
     }
 
-    getPower(): boolean {
+    getPower(): boolean | undefined {
         if (!this._getPowerState) {
             throw new Error('Power state not found');
         }

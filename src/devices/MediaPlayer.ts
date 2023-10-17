@@ -1,32 +1,5 @@
 import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from "./GenericDevice";
 
-/*
-*	STATE	media.state		boolean/number						/^media.state(\..*)?$/
-PLAY	button.play		boolean	W					/^button.play(\..*)?$｜^action.play(\..*)?$/
-PAUSE	button.pause		boolean	W					/^button.pause(\..*)?$｜^action.pause(\..*)?$/
-STOP	button.stop		boolean	W					/^button.stop(\..*)?$｜^action.stop(\..*)?$/
-NEXT	button.next		boolean	W					/^button.next(\..*)?$｜^action.next(\..*)?$/
-PREV	button.prev		boolean	W					/^button.prev(\..*)?$｜^action.prev(\..*)?$/
-SHUFFLE	media.mode.shuffle		boolean	W					/^media.mode.shuffle(\..*)?$/
-REPEAT	media.mode.repeat		number	W					/^media.mode.repeat(\..*)?$/
-ARTIST	media.artist		string	-					/^media.artist(\..*)?$/
-ALBUM	media.album		string	-					/^media.album(\..*)?$/
-TITLE	media.title		string	-					/^media.title(\..*)?$/
-COVER	media.cover		string	-					[object Object]
-COVER			string	-					[object Object]
-DURATION	media.duration	sec	number	-					/^media.duration(\..*)?$/
-ELAPSED	media.elapsed	sec	number						/^media.elapsed(\..*)?$/
-SEEK	media.seek		number	W					/^media.seek(\..*)?$/
-TRACK	media.track		string						/^media.track(\..*)?$/
-EPISODE	media.episode		string						/^media.episode(\..*)?$/
-SEASON	media.season		string						/^media.season(\..*)?$/
-VOLUME	level.volume		number	W	m	M			/^level.volume?$/
-VOLUME_ACTUAL	value.volume		number	-	m	M			/^value.volume?$/
-MUTE	media.mute		boolean	W					/^media.mute?$/
-IGNORE								x	
-CONNECTED	indicator.reachable		boolean				X		/^indicator\.reachable$/
-*/
-
 class MediaPlayer extends GenericDevice {
     protected _getStateState: DeviceStateObject<boolean|number> | undefined;
     protected _setPlayState: DeviceStateObject<boolean> | undefined;
@@ -80,7 +53,7 @@ class MediaPlayer extends GenericDevice {
         ]);
     }
 
-    getState(): boolean|number {
+    getState(): boolean|number | undefined{ 
         if (!this._getStateState) {
             throw new Error('State state not found');
         }
@@ -122,7 +95,7 @@ class MediaPlayer extends GenericDevice {
         return this._setPrevState.setValue(true);
     }
 
-    getShuffle(): boolean {
+    getShuffle(): boolean | undefined{ 
         if (!this._shuffleState) {
             throw new Error('Shuffle state not found');
         }
@@ -136,7 +109,7 @@ class MediaPlayer extends GenericDevice {
         return this._shuffleState.setValue(value);
     }
 
-    getRepeat(): number {
+    getRepeat(): number | undefined{ 
         if (!this._repeatState) {
             throw new Error('Repeat state not found');
         }
@@ -150,42 +123,42 @@ class MediaPlayer extends GenericDevice {
         return this._repeatState.setValue(value);
     }
 
-    getArtist(): string {
+    getArtist(): string | undefined{ 
         if (!this._getArtistState) {
             throw new Error('Artist state not found');
         }
         return this._getArtistState.value;
     }
 
-    getAlbum(): string {
+    getAlbum(): string | undefined{ 
         if (!this._getAlbumState) {
             throw new Error('Album state not found');
         }
         return this._getAlbumState.value;
     }
 
-    getTitle(): string {
+    getTitle(): string | undefined{ 
         if (!this._getTitleState) {
             throw new Error('Title state not found');
         }
         return this._getTitleState.value;
     }
 
-    getCover(): string {
+    getCover(): string | undefined{ 
         if (!this._getCoverState) {
             throw new Error('Cover state not found');
         }
         return this._getCoverState.value;
     }
 
-    getDuration(): number {
+    getDuration(): number | undefined{ 
         if (!this._getDurationState) {
             throw new Error('Duration state not found');
         }
         return this._getDurationState.value;
     }
 
-    getElapsed(): number {
+    getElapsed(): number | undefined{ 
         if (!this._getElapsedState) {
             throw new Error('Elapsed state not found');
         }
@@ -199,28 +172,28 @@ class MediaPlayer extends GenericDevice {
         return this._setSeekState.setValue(value);
     }
 
-    getTrack(): string {
+    getTrack(): string | undefined{ 
         if (!this._getTrackState) {
             throw new Error('Track state not found');
         }
         return this._getTrackState.value;
     }
 
-    getEpisode(): string {
+    getEpisode(): string | undefined{ 
         if (!this._getEpisodeState) {
             throw new Error('Episode state not found');
         }
         return this._getEpisodeState.value;
     }
 
-    getSeason(): string {
+    getSeason(): string | undefined{ 
         if (!this._getSeasonState) {
             throw new Error('Season state not found');
         }
         return this._getSeasonState.value;
     }
 
-    getVolume(): number {
+    getVolume(): number | undefined{ 
         if (!this._getVolumeState) {
             throw new Error('Volume state not found');
         }
@@ -234,7 +207,7 @@ class MediaPlayer extends GenericDevice {
         return this._setVolumeState.setValue(value);
     }
 
-    getMute(): boolean {
+    getMute(): boolean | undefined{ 
         if (!this._muteState) {
             throw new Error('Mute state not found');
         }
@@ -248,7 +221,7 @@ class MediaPlayer extends GenericDevice {
         return this._muteState.setValue(value);
     }
 
-    getConnected(): boolean {
+    getConnected(): boolean | undefined{ 
         if (!this._getConnectedState) {
             throw new Error('Connected state not found');
         }

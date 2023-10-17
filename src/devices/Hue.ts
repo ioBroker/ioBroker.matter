@@ -12,7 +12,7 @@ class Cie extends Ct {
         ]);
     }
 
-    getHue(): number {
+    getHue(): number | undefined {
         if (!this._hue) {
             throw new Error('HUE state not found');
         }

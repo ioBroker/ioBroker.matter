@@ -12,7 +12,7 @@ class RgbwSingle extends Ct {
         ]);
     }
 
-    getRgbs(): string {
+    getRgbs(): string | undefined { 
         if (!this._rgbw) {
             throw new Error('RGBW state not found');
         }

@@ -17,28 +17,28 @@ class LocationOne extends GenericDevice {
         ]);
     }
 
-    getGPS(): string {
+    getGPS(): string | undefined {
         if (!this._getGPSState) {
             throw new Error('GPS state not found');
         }
         return this._getGPSState.value;
     }
 
-    getElevation(): number {
+    getElevation(): number | undefined {
         if (!this._getElevationState) {
             throw new Error('Elevation state not found');
         }
         return this._getElevationState.value;
     }
 
-    getRadius(): number {
+    getRadius(): number | undefined {
         if (!this._getRadiusState) {
             throw new Error('Radius state not found');
         }
         return this._getRadiusState.value;
     }
 
-    getAccuracy(): number {
+    getAccuracy(): number | undefined {
         if (!this._getAccuracyState) {
             throw new Error('Accuracy state not found');
         }

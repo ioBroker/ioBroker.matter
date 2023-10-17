@@ -15,7 +15,7 @@ class Lock extends GenericDevice {
         ]);
     }
 
-    getLevel(): number {
+    getLevel(): number | undefined {
         if (!this._getLevelState) {
             throw new Error('Level state not found');
         }

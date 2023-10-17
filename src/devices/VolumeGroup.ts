@@ -15,7 +15,7 @@ class VolumeGroup extends GenericDevice {
         ]);
     }
 
-    getLevel(): number {
+    getLevel(): number | undefined { 
         if (!this._getLevelState) {
             throw new Error('Level state not found');
         }
@@ -29,7 +29,7 @@ class VolumeGroup extends GenericDevice {
         return this._setLevelState.setValue(value);
     }
 
-    getMute(): boolean {
+    getMute(): boolean | undefined { 
         if (!this._MuteState) {
             throw new Error('Mute state not found');
         }

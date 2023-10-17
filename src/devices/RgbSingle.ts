@@ -12,7 +12,7 @@ class RgbSingle extends Ct {
         ]);
     }
 
-    getRgb(): string {
+    getRgb(): string | undefined { 
         if (!this._rgb) {
             throw new Error('RGB state not found');
         }

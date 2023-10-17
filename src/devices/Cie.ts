@@ -12,7 +12,7 @@ class Cie extends Ct {
         ]);
     }
 
-    getCie(): string {
+    getCie(): string | undefined {
         if (!this._cie) {
             throw new Error('CIE state not found');
         }

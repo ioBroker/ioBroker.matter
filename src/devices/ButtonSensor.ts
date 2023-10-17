@@ -14,14 +14,14 @@ class ButtonSensor extends GenericDevice {
         ]);
     }
 
-    getPress(): boolean {
+    getPress(): boolean | undefined {
         if (!this._getPressState) {
             throw new Error('Press state not found');
         }
         return this._getPressState.value;
     }
 
-    getPressLong(): boolean {
+    getPressLong(): boolean | undefined {
         if (!this._getPressLongState) {
             throw new Error('PressLong state not found');
         }

@@ -19,35 +19,35 @@ class Location extends GenericDevice {
         ]);
     }
 
-    getLongitude(): number {
+    getLongitude(): number | undefined {
         if (!this._getLongitudeState) {
             throw new Error('Longitude state not found');
         }
         return this._getLongitudeState.value;
     }
 
-    getLatitude(): number {
+    getLatitude(): number | undefined {
         if (!this._getLatitudeState) {
             throw new Error('Latitude state not found');
         }
         return this._getLatitudeState.value;
     }
 
-    getElevation(): number {
+    getElevation(): number | undefined {
         if (!this._getElevationState) {
             throw new Error('Elevation state not found');
         }
         return this._getElevationState.value;
     }
 
-    getRadius(): number {
+    getRadius(): number | undefined {
         if (!this._getRadiusState) {
             throw new Error('Radius state not found');
         }
         return this._getRadiusState.value;
     }
 
-    getAccuracy(): number {
+    getAccuracy(): number | undefined {
         if (!this._getAccuracyState) {
             throw new Error('Accuracy state not found');
         }

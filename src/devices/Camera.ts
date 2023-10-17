@@ -30,7 +30,7 @@ class Camera extends GenericDevice {
         ]);
     }
 
-    getFile(): string {
+    getFile(): string | undefined {
         if (!this._getFileState) {
             throw new Error('File state not found');
         }
@@ -44,7 +44,7 @@ class Camera extends GenericDevice {
         return this._getFileState.setValue(value);
     }
 
-    getAutoFocus(): boolean {
+    getAutoFocus(): boolean | undefined {
         if (!this._autoFocusState) {
             throw new Error('AutoFocus state not found');
         }
@@ -58,7 +58,7 @@ class Camera extends GenericDevice {
         return this._autoFocusState.setValue(value);
     }
 
-    getAutoWhiteBalance(): boolean {
+    getAutoWhiteBalance(): boolean | undefined {
         if (!this._autoWhiteBalanceState) {
             throw new Error('AutoWhiteBalance state not found');
         }
@@ -72,7 +72,7 @@ class Camera extends GenericDevice {
         return this._autoWhiteBalanceState.setValue(value);
     }
 
-    getBrightness(): boolean {
+    getBrightness(): boolean | undefined {
         if (!this._brightnessState) {
             throw new Error('Brightness state not found');
         }
@@ -86,7 +86,7 @@ class Camera extends GenericDevice {
         return this._brightnessState.setValue(value);
     }
 
-    getNightMode(): boolean {
+    getNightMode(): boolean | undefined {
         if (!this._nightModeState) {
             throw new Error('NightMode state not found');
         }
@@ -100,7 +100,7 @@ class Camera extends GenericDevice {
         return this._nightModeState.setValue(value);
     }
 
-    getPTZ(): number {
+    getPTZ(): number | undefined {
         if (!this._ptzState) {
             throw new Error('PTZ state not found');
         }

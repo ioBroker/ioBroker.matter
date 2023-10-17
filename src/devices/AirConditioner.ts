@@ -59,7 +59,7 @@ class AirConditioner extends GenericDevice {
     }
 
     async setLevel(value: number) {
-        if (!this._setLevelState?.state?.id) {
+        if (!this._setLevelState) {
             throw new Error('Level state not found');
         }
         return this._adapter.setStateAsync(this._setLevelState.state.id, value);

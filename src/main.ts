@@ -40,7 +40,7 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async onReady() {
-        SubscribeManager.setAdapter(this as any);
+        SubscribeManager.setAdapter(this);
         await this.loadDevices();
         await this.subscribeForeignObjectsAsync(`${this.namespace}.0.*`);
         // await this.subscribeForeignStatesAsync(`${this.namespace}.*`); // not required, as every device subscribes on own states
@@ -172,7 +172,7 @@ export class MatterAdapter extends utils.Adapter {
             if (!Object.keys(this.deviceObjects).includes(device)) {
                 const detectedDevice = await this.getDeviceStates(device) as DetectedDevice;
                 if (detectedDevice) {
-                    const deviceObject = DeviceFabric(detectedDevice, this as any);
+                    const deviceObject = DeviceFabric(detectedDevice, this);
                     if (deviceObject) {
                         this.deviceObjects[device];
                     }

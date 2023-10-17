@@ -138,7 +138,7 @@ export class DeviceStateObject<T> {
 
     value: T | undefined
 
-    updateHandler: ((id: string, object: DeviceStateObject<any>) => void) | undefined;
+    updateHandler: ((id: string, object: DeviceStateObject<T>) => void) | undefined;
 
     isEnum: boolean = false;
 
@@ -153,7 +153,7 @@ export class DeviceStateObject<T> {
         this.state = state;
         this.propertyType = _propertyType;
         this.isEnum = _isEnum || false;
-        this.object = this._adapter.getObjectAsync(this.state.id) as any;
+        this.object = this._adapter.getObjectAsync(this.state.id) as Promise<ioBroker.Object>;
         if (this.isEnum) {
             this.parseMode();
         }
@@ -197,7 +197,7 @@ export class DeviceStateObject<T> {
             throw new Error(`Value ${value} is greater than max ${object.common.max}`);
         }
 
-        return this._adapter.setStateAsync(this.state.id, value as any);
+        return this._adapter.setStateAsync(this.state.id, value as ioBroker.StateValue);
     }
 
     protected updateState = (id: string, state: ioBroker.State) => {
@@ -208,7 +208,7 @@ export class DeviceStateObject<T> {
         }
     }
 
-    public subscribe (handler: (id: string, object: DeviceStateObject<any>)=>void) {
+    public subscribe (handler: (id: string, object: DeviceStateObject<T>)=>void) {
         this.updateHandler = handler
         SubscribeManager.subscribe(this.state.id, this.updateState);
     }
@@ -261,9 +261,9 @@ abstract class GenericDevice {
         return this._detectedDevice.states.find(state => state.name === name && state.id)
     }
 
-    addDeviceState (name: string, type: PropertyType, callback: (state: DeviceStateObject<any> | undefined) => void, isEnum?: boolean) {
+    addDeviceState<T> (name: string, type: PropertyType, callback: (state: DeviceStateObject<T> | undefined) => void, isEnum?: boolean) {
         const state = this.getDeviceState(name)
-        let object: DeviceStateObject<any> | undefined;
+        let object: DeviceStateObject<T> | undefined;
         if (state) {
             object = new DeviceStateObject(this._adapter, state, type, isEnum);
             this._properties.push(type)
@@ -283,7 +283,7 @@ abstract class GenericDevice {
         return this._deviceType;
     }
 
-    protected updateState = (id: string, object: DeviceStateObject<any>):void => {
+    protected updateState = <T>(id: string, object: DeviceStateObject<T>):void => {
         this.handlers.forEach(handler => {
             handler({
                 property: object.propertyType,
@@ -348,9 +348,9 @@ abstract class GenericDevice {
         return this._directionState.value;
     }
 
-    onChange(handler: (event: {
+    onChange<T>(handler: (event: {
         property: PropertyType
-        value: any
+        value: T
     }) => void) {
         this.handlers.push(handler);
     }

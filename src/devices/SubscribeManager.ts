@@ -1,17 +1,17 @@
-type SubscibeCallback = (id: string, state: ioBroker.State) => void;
+type SubscribeCallback = (id: string, state: ioBroker.State) => void;
 
-interface Subscibe {
+interface Subscribe {
     id: string;
-    callback: SubscibeCallback;
+    callback: SubscribeCallback;
 }
 
 class SubscribeManager {
-    static subscribes: Subscibe[] = [];
+    static subscribes: Subscribe[] = [];
     static adapter: ioBroker.Adapter;
     static setAdapter(adapter: ioBroker.Adapter): void {
         SubscribeManager.adapter = adapter;
     }
-    static observer (id: string, state: ioBroker.State | null | undefined): void {
+    static observer(id: string, state: ioBroker.State | null | undefined): void {
         if (state) {
             SubscribeManager.subscribes.forEach(subscribe => {
                 if (subscribe.id === id) {
@@ -21,21 +21,19 @@ class SubscribeManager {
         }
     }
 
-    static subscribe(id: string, callback: SubscibeCallback): void {
-        SubscribeManager.adapter.subscribeStates(id);
+    static async subscribe(id: string, callback: SubscribeCallback): Promise<void> {
+        await SubscribeManager.adapter.subscribeForeignStatesAsync(id);
         SubscribeManager.subscribes.push({id, callback});
     }
 
-    static unsubscribe(id: string, callback: SubscibeCallback): void {
+    static async unsubscribe(id: string, callback: SubscribeCallback): Promise<void> {
         SubscribeManager.subscribes = SubscribeManager.subscribes.filter(subscribe => {
             return subscribe.id !== id || subscribe.callback !== callback;
         });
         if (SubscribeManager.subscribes.filter(subscribe => subscribe.id === id).length === 0) {
-            SubscribeManager.adapter.unsubscribeStates(id);
+            await SubscribeManager.adapter.unsubscribeForeignStatesAsync(id);
         }
     }
-
-
 }
 
 export default SubscribeManager;

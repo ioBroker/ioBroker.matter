@@ -8,6 +8,7 @@ admin/i18n/*/flat.txt
 nbproject
 /src-admin/package-lock.json
 package-lock.json
+build
 
 .dev-server
 .vscode

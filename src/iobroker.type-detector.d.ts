@@ -15,7 +15,7 @@ export enum StateType {
 }
 
 export interface DeviceState {
-    id?: string;
+    id: string;
     name: string;
     write?: boolean;
     noSubscribe?: boolean;

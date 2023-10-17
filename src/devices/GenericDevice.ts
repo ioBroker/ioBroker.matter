@@ -1,5 +1,6 @@
 // @iobroker/device-types
 
+import { DeviceState } from "../iobroker.type-detector";
 import SubscribeManager from "./SubscribeManager";
 
 // take here https://github.com/ioBroker/ioBroker.type-detector/blob/master/DEVICES.md#temperature-temperature
@@ -8,12 +9,6 @@ export enum DeviceType {
     Switch = 'switch',
     Temperature = 'temperature',
     Dimmer = 'dimmer',
-}
-
-export enum StateType {
-    Number = 'number',
-    String = 'string',
-    Boolean = 'boolean',
 }
 
 export enum PropertyType {
@@ -136,17 +131,6 @@ export enum PropertyType {
     ForecastChart = 'forecastChart',
 }
 
-export interface DeviceState {
-    id: string
-    name: string
-    write?: boolean
-    noSubscribe?: boolean
-    type: StateType
-    indicator?: boolean
-    defaultRole: string
-    required: boolean
-}
-
 export class DeviceStateObject<T> {
     protected _adapter: ioBroker.Adapter;
 
@@ -165,10 +149,10 @@ export class DeviceStateObject<T> {
     propertyType: PropertyType
 
     constructor (adapter: ioBroker.Adapter, state: DeviceState, _propertyType: PropertyType, _isEnum?: boolean) {
-        this._adapter = adapter
-        this.state = state
-        this.propertyType = _propertyType
-        this.isEnum = _isEnum || false
+        this._adapter = adapter;
+        this.state = state;
+        this.propertyType = _propertyType;
+        this.isEnum = _isEnum || false;
         this.object = this._adapter.getObjectAsync(this.state.id) as any;
         if (this.isEnum) {
             this.parseMode();

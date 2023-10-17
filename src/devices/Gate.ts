@@ -1,4 +1,4 @@
-import GenericDevice, {PropertyType, DetectedDevice, DeviceState, DeviceStateObject} from './GenericDevice';
+import GenericDevice, {PropertyType, DetectedDevice, DeviceStateObject} from './GenericDevice';
 
 class Gate extends GenericDevice {
     private _setLevelState: DeviceStateObject<number> | undefined;

@@ -59,7 +59,7 @@ class AirConditioner extends GenericDevice {
     }
 
     async setLevel(value: number) {
-        if (!this._setLevelState) {
+        if (!this._setLevelState?.state?.id) {
             throw new Error('Level state not found');
         }
         return this._adapter.setStateAsync(this._setLevelState.state.id, value);
@@ -114,7 +114,7 @@ class AirConditioner extends GenericDevice {
         return this._SpeedState.setValue(value);
     }
 
-    getSpeedModes(): Promise<AirConditionerSpeed[]> { 
+    getSpeedModes(): Promise<AirConditionerSpeed[]> {
         if (!this._SpeedState) {
             throw new Error('Speed state not found');
         }
@@ -135,7 +135,7 @@ class AirConditioner extends GenericDevice {
         return this._SwingState.setValue(value);
     }
 
-    getSwingModes(): Promise<AirConditionerSwing[]> { 
+    getSwingModes(): Promise<AirConditionerSwing[]> {
         if (!this._SwingState) {
             throw new Error('Swing state not found');
         }
@@ -156,7 +156,7 @@ class AirConditioner extends GenericDevice {
         return this._modeState.setValue(mode);
     }
 
-    getModes(): Promise<AirConditionerMode[]> { 
+    getModes(): Promise<AirConditionerMode[]> {
         if (!this._modeState) {
             throw new Error('Mode state not found');
         }

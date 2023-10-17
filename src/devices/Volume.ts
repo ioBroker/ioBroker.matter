@@ -1,4 +1,4 @@
-import GenericDevice, {PropertyType, DetectedDevice, DeviceState, DeviceStateObject} from './GenericDevice';
+import GenericDevice, {PropertyType, DetectedDevice, DeviceStateObject} from './GenericDevice';
 
 class Volume extends GenericDevice {
     private _setLevelState: DeviceStateObject<number> | undefined;
@@ -15,7 +15,7 @@ class Volume extends GenericDevice {
         ]);
     }
 
-    getLevel(): number | undefined { 
+    getLevel(): number | undefined {
         if (!this._getLevelState) {
             throw new Error('Level state not found');
         }
@@ -29,7 +29,7 @@ class Volume extends GenericDevice {
         return this._setLevelState.setValue(value);
     }
 
-    getMute(): boolean | undefined { 
+    getMute(): boolean | undefined {
         if (!this._MuteState) {
             throw new Error('Mute state not found');
         }

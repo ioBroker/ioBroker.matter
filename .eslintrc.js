@@ -21,6 +21,12 @@ module.exports = {
                 'SwitchCase': 1
             }
         ],
+        'semi': 'off',
+        '@typescript-eslint/semi': 'error',
+        'object-curly-spacing': 'off',
+        '@typescript-eslint/object-curly-spacing': ['error', 'always'],
+        'space-before-function-paren': 'off',
+        '@typescript-eslint/space-before-function-paren': ['error', 'never'],
         'quotes': [
             'error',
             'single',

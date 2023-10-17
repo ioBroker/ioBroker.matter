@@ -12,12 +12,12 @@ class Ct extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'DIMMER', type: PropertyType.Dimmer, callback: state => this._dimmer = state},
-            {name: 'BRIGHTNESS', type: PropertyType.Brightness, callback: state => this._brightness = state},
-            {name: 'SATURATION', type: PropertyType.Saturation, callback: state => this._saturation = state},
-            {name: 'TEMPERATURE', type: PropertyType.Temperature, callback: state => this._temperature = state},
-            {name: 'ON', type: PropertyType.Power, callback: state => this._setPower = state},
-            {name: 'ON_ACTUAL', type: PropertyType.Power, callback: state => this._getPower = state || this._setPower},
+            { name: 'DIMMER', type: PropertyType.Dimmer, callback: state => this._dimmer = state },
+            { name: 'BRIGHTNESS', type: PropertyType.Brightness, callback: state => this._brightness = state },
+            { name: 'SATURATION', type: PropertyType.Saturation, callback: state => this._saturation = state },
+            { name: 'TEMPERATURE', type: PropertyType.Temperature, callback: state => this._temperature = state },
+            { name: 'ON', type: PropertyType.Power, callback: state => this._setPower = state },
+            { name: 'ON_ACTUAL', type: PropertyType.Power, callback: state => this._getPower = state || this._setPower },
         ]);
     }
 

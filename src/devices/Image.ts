@@ -7,7 +7,7 @@ class Image extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'URL', type: PropertyType.Url, callback: state => this._getUrlState = state},
+            { name: 'URL', type: PropertyType.Url, callback: state => this._getUrlState = state },
         ]);
     }
 

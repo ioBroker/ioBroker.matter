@@ -10,9 +10,9 @@ class Rgb extends Ct {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'RED', type: PropertyType.Red, callback: state => this._red = state},
-            {name: 'GREEN', type: PropertyType.Green, callback: state => this._green = state},
-            {name: 'BLUE', type: PropertyType.Blue, callback: state => this._blue = state},
+            { name: 'RED', type: PropertyType.Red, callback: state => this._red = state },
+            { name: 'GREEN', type: PropertyType.Green, callback: state => this._green = state },
+            { name: 'BLUE', type: PropertyType.Blue, callback: state => this._blue = state },
         ]);
     }
 

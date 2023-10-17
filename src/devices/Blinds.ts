@@ -10,8 +10,8 @@ class Blinds extends BlindsButtons {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'SET', type: PropertyType.Level, callback: state => this._setLevelState = state},
-            {name: 'ACTUAL', type: PropertyType.Level, callback: state => this._getLevelState = state || this._setLevelState},
+            { name: 'SET', type: PropertyType.Level, callback: state => this._setLevelState = state },
+            { name: 'ACTUAL', type: PropertyType.Level, callback: state => this._getLevelState = state || this._setLevelState },
         ]);
     }
 

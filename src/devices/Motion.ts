@@ -8,8 +8,8 @@ class Motion extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'ACTUAL', type: PropertyType.Value, callback: state => this._getValueState = state},
-            {name: 'SECOND', type: PropertyType.Brightness, callback: state => this._getBrightnessState = state},
+            { name: 'ACTUAL', type: PropertyType.Value, callback: state => this._getValueState = state },
+            { name: 'SECOND', type: PropertyType.Brightness, callback: state => this._getBrightnessState = state },
         ]);
     }
 

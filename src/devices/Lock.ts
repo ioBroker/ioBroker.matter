@@ -1,4 +1,4 @@
-import GenericDevice, {PropertyType, DetectedDevice, DeviceStateObject} from './GenericDevice';
+import GenericDevice, { PropertyType, DetectedDevice, DeviceStateObject } from './GenericDevice';
 
 class Lock extends GenericDevice {
     private _setLevelState: DeviceStateObject<number> | undefined;
@@ -9,9 +9,9 @@ class Lock extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'SET', type: PropertyType.Level, callback: state => this._setLevelState = state},
-            {name: 'ACTUAL', type: PropertyType.Level, callback: state => this._getLevelState = state || this._setLevelState},
-            {name: 'OPEN', type: PropertyType.Open, callback: state => this._setOpenState = state},
+            { name: 'SET', type: PropertyType.Level, callback: state => this._setLevelState = state },
+            { name: 'ACTUAL', type: PropertyType.Level, callback: state => this._getLevelState = state || this._setLevelState },
+            { name: 'OPEN', type: PropertyType.Open, callback: state => this._setOpenState = state },
         ]);
     }
 

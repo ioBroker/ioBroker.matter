@@ -8,7 +8,7 @@ class Cie extends Ct {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'CIE', type: PropertyType.Cie, callback: state => this._cie = state},
+            { name: 'CIE', type: PropertyType.Cie, callback: state => this._cie = state },
         ]);
     }
 

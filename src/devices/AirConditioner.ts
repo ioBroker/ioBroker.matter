@@ -40,14 +40,14 @@ class AirConditioner extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'SET', type: PropertyType.Level, callback: state => this._setLevelState = state},
-            {name: 'ACTUAL', type: PropertyType.Level, callback: state => this._getLevelState = state || this._setLevelState},
-            {name: 'POWER', type: PropertyType.Power, callback: state => this._powerState = state},
-            {name: 'HUMIDITY', type: PropertyType.Humidity, callback: state => this._getHumidityState = state},
-            {name: 'SPEED', type: PropertyType.Speed, callback: state => this._SpeedState = state, isEnum: true},
-            {name: 'BOOST', type: PropertyType.Boost, callback: state => this._BoostState = state, isEnum: true},
-            {name: 'SWING', type: PropertyType.Swing, callback: state => this._SwingState = state},
-            {name: 'MODE', type: PropertyType.Mode, callback: state => this._modeState = state, isEnum: true},
+            { name: 'SET', type: PropertyType.Level, callback: state => this._setLevelState = state },
+            { name: 'ACTUAL', type: PropertyType.Level, callback: state => this._getLevelState = state || this._setLevelState },
+            { name: 'POWER', type: PropertyType.Power, callback: state => this._powerState = state },
+            { name: 'HUMIDITY', type: PropertyType.Humidity, callback: state => this._getHumidityState = state },
+            { name: 'SPEED', type: PropertyType.Speed, callback: state => this._SpeedState = state, isEnum: true },
+            { name: 'BOOST', type: PropertyType.Boost, callback: state => this._BoostState = state, isEnum: true },
+            { name: 'SWING', type: PropertyType.Swing, callback: state => this._SwingState = state },
+            { name: 'MODE', type: PropertyType.Mode, callback: state => this._modeState = state, isEnum: true },
         ]);
     }
 
@@ -62,7 +62,7 @@ class AirConditioner extends GenericDevice {
         if (!this._setLevelState) {
             throw new Error('Level state not found');
         }
-        return this._adapter.setStateAsync(this._setLevelState.state.id, value);
+        return this._setLevelState.setValue(value);
     }
 
     getPower(): boolean|number | undefined {

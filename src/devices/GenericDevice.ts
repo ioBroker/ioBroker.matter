@@ -144,11 +144,11 @@ export class DeviceStateObject<T> {
 
     object: Promise<ioBroker.Object>;
 
-    modes: Promise<{[key: string]: T}> | undefined;
+    modes: Promise<{ [key: string]: T }> | undefined;
 
-    propertyType: PropertyType
+    propertyType: PropertyType;
 
-    constructor (adapter: ioBroker.Adapter, state: DeviceState, _propertyType: PropertyType, _isEnum?: boolean) {
+    constructor(adapter: ioBroker.Adapter, state: DeviceState, _propertyType: PropertyType, _isEnum?: boolean) {
         this._adapter = adapter;
         this.state = state;
         this.propertyType = _propertyType;
@@ -165,11 +165,11 @@ export class DeviceStateObject<T> {
         }
         this.modes = this.object.then(obj => {
             // {'MODE_VALUE': 'MODE_TEXT'}
-            let modes: {[key: string]: T} = obj?.common?.states;
+            let modes: { [key: string]: T } = obj?.common?.states;
             if (modes) {
                 // convert ['Auto'] => {'Auto': 'AUTO'}
                 if (Array.isArray(modes)) {
-                    const _m: {[key: string]: T} = {};
+                    const _m: { [key: string]: T } = {};
                     modes.forEach((mode: T) => _m[mode as string] = ((mode as string).toUpperCase()) as T);
                     modes = _m;
                 }
@@ -206,14 +206,14 @@ export class DeviceStateObject<T> {
         if (this.updateHandler) {
             this.updateHandler(id, this);
         }
-    }
+    };
 
-    public subscribe (handler: (id: string, object: DeviceStateObject<T>)=>void):void {
-        this.updateHandler = handler
+    public subscribe(handler: (id: string, object: DeviceStateObject<T>)=>void):void {
+        this.updateHandler = handler;
         SubscribeManager.subscribe(this.state.id, this.updateState);
     }
 
-    public unsubscribe ():void {
+    public unsubscribe():void {
         SubscribeManager.unsubscribe(this.state.id, this.updateState);
     }
 }
@@ -224,15 +224,15 @@ export interface DetectedDevice {
 }
 
 abstract class GenericDevice {
-    protected _properties: PropertyType[] = []
-    protected _adapter: ioBroker.Adapter
-    protected _subscribeObjects: DeviceStateObject<any>[] = []
-    protected _deviceType: DeviceType
-    protected _detectedDevice: DetectedDevice
+    protected _properties: PropertyType[] = [];
+    protected _adapter: ioBroker.Adapter;
+    protected _subscribeObjects: DeviceStateObject<any>[] = [];
+    protected _deviceType: DeviceType;
+    protected _detectedDevice: DetectedDevice;
     protected handlers: ((event: {
         property: PropertyType
         value: any
-    }) => void)[] = []
+    }) => void)[] = [];
 
     protected _errorState: DeviceStateObject<boolean> | undefined;
     protected _maintenanceState: DeviceStateObject<boolean> | undefined;
@@ -241,11 +241,11 @@ abstract class GenericDevice {
     protected _workingState: DeviceStateObject<string> | undefined;
     protected _directionState: DeviceStateObject<string> | undefined;
 
-    constructor (detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
-        console.log('Generic Device')
-        this._adapter = adapter
-        this._deviceType = detectedDevice.type
-        this._detectedDevice = detectedDevice
+    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
+        console.log('Generic Device');
+        this._adapter = adapter;
+        this._deviceType = detectedDevice.type;
+        this._detectedDevice = detectedDevice;
 
         this.addDeviceStates([
             { name: 'ERROR', type: PropertyType.Error, callback: state => this._errorState = state },
@@ -257,29 +257,29 @@ abstract class GenericDevice {
         ]);
     }
 
-    getDeviceState (name: string): DeviceState | undefined {
-        return this._detectedDevice.states.find(state => state.name === name && state.id)
+    getDeviceState(name: string): DeviceState | undefined {
+        return this._detectedDevice.states.find(state => state.name === name && state.id);
     }
 
-    addDeviceState<T> (name: string, type: PropertyType, callback: (state: DeviceStateObject<T> | undefined) => void, isEnum?: boolean):void {
-        const state = this.getDeviceState(name)
+    addDeviceState<T>(name: string, type: PropertyType, callback: (state: DeviceStateObject<T> | undefined) => void, isEnum?: boolean):void {
+        const state = this.getDeviceState(name);
         let object: DeviceStateObject<T> | undefined;
         if (state) {
             object = new DeviceStateObject(this._adapter, state, type, isEnum);
-            this._properties.push(type)
+            this._properties.push(type);
             object.subscribe(this.updateState);
-            this._subscribeObjects.push(object)
+            this._subscribeObjects.push(object);
         }
-        callback(object)
+        callback(object);
     }
 
-    addDeviceStates (states: { name: string, type: PropertyType, isEnum?: boolean, callback: (state: DeviceStateObject<any> | undefined) => void }[]):void {
+    addDeviceStates(states: { name: string, type: PropertyType, isEnum?: boolean, callback: (state: DeviceStateObject<any> | undefined) => void }[]):void {
         states.forEach(state => {
             this.addDeviceState(state.name, state.type, state.callback, state.isEnum);
-        })
+        });
     }
 
-    getDeviceType (): DeviceType | undefined {
+    getDeviceType(): DeviceType | undefined {
         return this._deviceType;
     }
 
@@ -288,21 +288,21 @@ abstract class GenericDevice {
             handler({
                 property: object.propertyType,
                 value: object.value,
-            })
+            });
         });
-    }
+    };
 
-    protected _doUnsubscribe ():void {
+    protected _doUnsubscribe():void {
         this._subscribeObjects.forEach(object => {
             object.unsubscribe();
         });
     }
 
-    destroy ():void {
-        this._doUnsubscribe()
+    destroy():void {
+        this._doUnsubscribe();
     }
 
-    getProperties (): PropertyType[] {
+    getProperties(): PropertyType[] {
         return this._properties;
     }
 
@@ -356,4 +356,4 @@ abstract class GenericDevice {
     }
 }
 
-export default GenericDevice
+export default GenericDevice;

@@ -8,7 +8,7 @@ class Cie extends Ct {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'HUE', type: PropertyType.Hue, callback: state => this._hue = state},
+            { name: 'HUE', type: PropertyType.Hue, callback: state => this._hue = state },
         ]);
     }
 

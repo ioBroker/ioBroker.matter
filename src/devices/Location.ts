@@ -1,4 +1,4 @@
-import GenericDevice, {DetectedDevice, DeviceStateObject, PropertyType} from './GenericDevice';
+import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from './GenericDevice';
 
 class Location extends GenericDevice {
     _getLongitudeState: DeviceStateObject<number> | undefined;
@@ -11,11 +11,11 @@ class Location extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'LONGITUDE', type: PropertyType.Longitude, callback: state => this._getLongitudeState = state},
-            {name: 'LATITUDE', type: PropertyType.Latitude, callback: state => this._getLatitudeState = state},
-            {name: 'ELEVATION', type: PropertyType.Elevation, callback: state => this._getElevationState = state},
-            {name: 'RADIUS', type: PropertyType.Radius, callback: state => this._getRadiusState = state},
-            {name: 'ACCURACY', type: PropertyType.Accuracy, callback: state => this._getAccuracyState = state},
+            { name: 'LONGITUDE', type: PropertyType.Longitude, callback: state => this._getLongitudeState = state },
+            { name: 'LATITUDE', type: PropertyType.Latitude, callback: state => this._getLatitudeState = state },
+            { name: 'ELEVATION', type: PropertyType.Elevation, callback: state => this._getElevationState = state },
+            { name: 'RADIUS', type: PropertyType.Radius, callback: state => this._getRadiusState = state },
+            { name: 'ACCURACY', type: PropertyType.Accuracy, callback: state => this._getAccuracyState = state },
         ]);
     }
 

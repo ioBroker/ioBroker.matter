@@ -8,8 +8,8 @@ class Temperature extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'ACTUAL', type: PropertyType.Value, callback: state => this._getValueState = state},
-            {name: 'SECOND', type: PropertyType.Humidity, callback: state => this._getHumidityState = state},
+            { name: 'ACTUAL', type: PropertyType.Value, callback: state => this._getValueState = state },
+            { name: 'SECOND', type: PropertyType.Humidity, callback: state => this._getHumidityState = state },
         ]);
     }
 

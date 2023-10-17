@@ -8,7 +8,7 @@ class RgbwSingle extends Ct {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'RGBW', type: PropertyType.Rgbw, callback: state => this._rgbw = state},
+            { name: 'RGBW', type: PropertyType.Rgbw, callback: state => this._rgbw = state },
         ]);
     }
 

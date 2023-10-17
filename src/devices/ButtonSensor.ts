@@ -9,8 +9,8 @@ class ButtonSensor extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'PRESS', type: PropertyType.Press, callback: state => this._getPressState = state},
-            {name: 'PRESS_LONG', type: PropertyType.PressLong, callback: state => this._getPressLongState = state},
+            { name: 'PRESS', type: PropertyType.Press, callback: state => this._getPressState = state },
+            { name: 'PRESS_LONG', type: PropertyType.PressLong, callback: state => this._getPressLongState = state },
         ]);
     }
 
@@ -30,4 +30,4 @@ class ButtonSensor extends GenericDevice {
 
 }
 
-export default ButtonSensor
+export default ButtonSensor;

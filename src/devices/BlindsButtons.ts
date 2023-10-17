@@ -33,14 +33,14 @@ class BlindsButtons extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'STOP', type: PropertyType.Stop, callback: state => this._setStopState = state},
-            {name: 'OPEN', type: PropertyType.Open, callback: state => this._setOpenState = state},
-            {name: 'CLOSE', type: PropertyType.Close, callback: state => this._setCloseState = state},
-            {name: 'TILT_SET', type: PropertyType.TiltLevel, callback: state => this._setTiltState = state},
-            {name: 'TILT_ACTUAL', type: PropertyType.TiltLevel, callback: state => this._getTiltState = state || this._setTiltState},
-            {name: 'TILT_STOP', type: PropertyType.TiltStop, callback: state => this._setTiltStopState = state},
-            {name: 'TILT_OPEN', type: PropertyType.TiltOpen, callback: state => this._setTiltOpenState = state},
-            {name: 'TILT_CLOSE', type: PropertyType.TiltClose, callback: state => this._setTiltCloseState = state},
+            { name: 'STOP', type: PropertyType.Stop, callback: state => this._setStopState = state },
+            { name: 'OPEN', type: PropertyType.Open, callback: state => this._setOpenState = state },
+            { name: 'CLOSE', type: PropertyType.Close, callback: state => this._setCloseState = state },
+            { name: 'TILT_SET', type: PropertyType.TiltLevel, callback: state => this._setTiltState = state },
+            { name: 'TILT_ACTUAL', type: PropertyType.TiltLevel, callback: state => this._getTiltState = state || this._setTiltState },
+            { name: 'TILT_STOP', type: PropertyType.TiltStop, callback: state => this._setTiltStopState = state },
+            { name: 'TILT_OPEN', type: PropertyType.TiltOpen, callback: state => this._setTiltOpenState = state },
+            { name: 'TILT_CLOSE', type: PropertyType.TiltClose, callback: state => this._setTiltCloseState = state },
         ]);
     }
 

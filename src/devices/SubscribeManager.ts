@@ -22,8 +22,11 @@ class SubscribeManager {
     }
 
     static async subscribe(id: string, callback: SubscribeCallback): Promise<void> {
-        await SubscribeManager.adapter.subscribeForeignStatesAsync(id);
-        SubscribeManager.subscribes.push({id, callback});
+        const foundId = SubscribeManager.subscribes.find(subscribe => subscribe.id === id);
+        if (!foundId) {
+            await SubscribeManager.adapter.subscribeForeignStatesAsync(id);
+        }
+        SubscribeManager.subscribes.push({ id, callback });
     }
 
     static async unsubscribe(id: string, callback: SubscribeCallback): Promise<void> {

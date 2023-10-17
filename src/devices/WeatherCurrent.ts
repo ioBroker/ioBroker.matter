@@ -19,19 +19,19 @@ class WeatherCurrent extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'ACTUAL', type: PropertyType.Value, callback: state => this._getValueState = state},
-            {name: 'ICON', type: PropertyType.Icon, callback: state => this._getIconState = state},
-            {name: 'PRECIPITATION_CHANCE', type: PropertyType.PrecipitationChance, callback: state => this._getPrecipitationChanceState = state},
-            {name: 'PRECIPITATION_TYPE', type: PropertyType.PrecipitationType, callback: state => this._getPrecipitationTypeState = state},
-            {name: 'PRESSURE', type: PropertyType.Pressure, callback: state => this._getPressureState = state},
-            {name: 'PRESSURE_TENDENCY', type: PropertyType.PressureTendency, callback: state => this._getPressureTendencyState = state},
-            {name: 'REAL_FEEL_TEMPERATURE', type: PropertyType.RealFeelTemperature, callback: state => this._getRealFeelTemperatureState = state},
-            {name: 'HUMIDITY', type: PropertyType.Humidity, callback: state => this._getHumidityState = state},
-            {name: 'UV', type: PropertyType.UV, callback: state => this._getUVState = state},
-            {name: 'WEATHER', type: PropertyType.Weather, callback: state => this._getWeatherState = state},
-            {name: 'WIND_DIRECTION', type: PropertyType.WindDirection, callback: state => this._getWindDirectionState = state},
-            {name: 'WIND_GUST', type: PropertyType.WindGust, callback: state => this._getWindGustState = state},
-            {name: 'WIND_SPEED', type: PropertyType.WindSpeed, callback: state => this._getWindSpeedState = state},
+            { name: 'ACTUAL', type: PropertyType.Value, callback: state => this._getValueState = state },
+            { name: 'ICON', type: PropertyType.Icon, callback: state => this._getIconState = state },
+            { name: 'PRECIPITATION_CHANCE', type: PropertyType.PrecipitationChance, callback: state => this._getPrecipitationChanceState = state },
+            { name: 'PRECIPITATION_TYPE', type: PropertyType.PrecipitationType, callback: state => this._getPrecipitationTypeState = state },
+            { name: 'PRESSURE', type: PropertyType.Pressure, callback: state => this._getPressureState = state },
+            { name: 'PRESSURE_TENDENCY', type: PropertyType.PressureTendency, callback: state => this._getPressureTendencyState = state },
+            { name: 'REAL_FEEL_TEMPERATURE', type: PropertyType.RealFeelTemperature, callback: state => this._getRealFeelTemperatureState = state },
+            { name: 'HUMIDITY', type: PropertyType.Humidity, callback: state => this._getHumidityState = state },
+            { name: 'UV', type: PropertyType.UV, callback: state => this._getUVState = state },
+            { name: 'WEATHER', type: PropertyType.Weather, callback: state => this._getWeatherState = state },
+            { name: 'WIND_DIRECTION', type: PropertyType.WindDirection, callback: state => this._getWindDirectionState = state },
+            { name: 'WIND_GUST', type: PropertyType.WindGust, callback: state => this._getWindGustState = state },
+            { name: 'WIND_SPEED', type: PropertyType.WindSpeed, callback: state => this._getWindSpeedState = state },
         ]);
     }
 

@@ -21,12 +21,12 @@ class Camera extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'FILE', type: PropertyType.File, callback: state => this._getFileState = state},
-            {name: 'AUTOFOCUS', type: PropertyType.AutoFocus, callback: state => this._autoFocusState = state},
-            {name: 'AUTOWHITEBALANCE', type: PropertyType.AutoWhiteBalance, callback: state => this._autoWhiteBalanceState = state},
-            {name: 'BRIGHTNESS', type: PropertyType.Brightness, callback: state => this._brightnessState = state},
-            {name: 'NIGHTMODE', type: PropertyType.NightMode, callback: state => this._nightModeState = state},
-            {name: 'PTZ', type: PropertyType.PTZ, callback: state => this._ptzState = state},
+            { name: 'FILE', type: PropertyType.File, callback: state => this._getFileState = state },
+            { name: 'AUTOFOCUS', type: PropertyType.AutoFocus, callback: state => this._autoFocusState = state },
+            { name: 'AUTOWHITEBALANCE', type: PropertyType.AutoWhiteBalance, callback: state => this._autoWhiteBalanceState = state },
+            { name: 'BRIGHTNESS', type: PropertyType.Brightness, callback: state => this._brightnessState = state },
+            { name: 'NIGHTMODE', type: PropertyType.NightMode, callback: state => this._nightModeState = state },
+            { name: 'PTZ', type: PropertyType.PTZ, callback: state => this._ptzState = state },
         ]);
     }
 

@@ -1,4 +1,4 @@
-import GenericDevice, {DetectedDevice, DeviceStateObject, PropertyType} from './GenericDevice';
+import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from './GenericDevice';
 
 class LocationOne extends GenericDevice {
     _getGPSState: DeviceStateObject<string> | undefined;
@@ -10,10 +10,10 @@ class LocationOne extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'GPS', type: PropertyType.GPS, callback: state => this._getGPSState = state},
-            {name: 'ELEVATION', type: PropertyType.Elevation, callback: state => this._getElevationState = state},
-            {name: 'RADIUS', type: PropertyType.Radius, callback: state => this._getRadiusState = state},
-            {name: 'ACCURACY', type: PropertyType.Accuracy, callback: state => this._getAccuracyState = state},
+            { name: 'GPS', type: PropertyType.GPS, callback: state => this._getGPSState = state },
+            { name: 'ELEVATION', type: PropertyType.Elevation, callback: state => this._getElevationState = state },
+            { name: 'RADIUS', type: PropertyType.Radius, callback: state => this._getRadiusState = state },
+            { name: 'ACCURACY', type: PropertyType.Accuracy, callback: state => this._getAccuracyState = state },
         ]);
     }
 

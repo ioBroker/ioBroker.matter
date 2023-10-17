@@ -1,4 +1,4 @@
-import GenericDevice, {PropertyType, DetectedDevice, DeviceStateObject} from './GenericDevice';
+import GenericDevice, { PropertyType, DetectedDevice, DeviceStateObject } from './GenericDevice';
 
 enum ThermostatMode {
     // MANUAL, VACATION, COOL, DRY, ECO, FAN_ONLY, HEAT, OFF
@@ -27,13 +27,13 @@ class Thermostat extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'SET', type: PropertyType.Level, callback: state => this._setLevelState = state},
-            {name: 'ACTUAL', type: PropertyType.Level, callback: state => this._getLevelState = state || this._setLevelState},
-            {name: 'POWER', type: PropertyType.Power, callback: state => this._getPowerState = state},
-            {name: 'HUMIDITY', type: PropertyType.Humidity, callback: state => this._getHumidityState = state},
-            {name: 'BOOST', type: PropertyType.Boost, callback: state => this._BoostState = state},
-            {name: 'PARTY', type: PropertyType.Party, callback: state => this._PartyState = state},
-            {name: 'MODE', type: PropertyType.Mode, callback: state => this._modeState = state, isEnum: true},
+            { name: 'SET', type: PropertyType.Level, callback: state => this._setLevelState = state },
+            { name: 'ACTUAL', type: PropertyType.Level, callback: state => this._getLevelState = state || this._setLevelState },
+            { name: 'POWER', type: PropertyType.Power, callback: state => this._getPowerState = state },
+            { name: 'HUMIDITY', type: PropertyType.Humidity, callback: state => this._getHumidityState = state },
+            { name: 'BOOST', type: PropertyType.Boost, callback: state => this._BoostState = state },
+            { name: 'PARTY', type: PropertyType.Party, callback: state => this._PartyState = state },
+            { name: 'MODE', type: PropertyType.Mode, callback: state => this._modeState = state, isEnum: true },
         ]);
     }
 
@@ -55,7 +55,7 @@ class Thermostat extends GenericDevice {
         if (!this._modeState) {
             throw new Error('Mode state not found');
         }
-        return this._modeState.value
+        return this._modeState.value;
     }
 
     getLevel(): number | undefined {

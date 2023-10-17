@@ -8,7 +8,7 @@ class Button extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'SET', type: PropertyType.Level, callback: state => this._setLevelState = state},
+            { name: 'SET', type: PropertyType.Level, callback: state => this._setLevelState = state },
         ]);
     }
 

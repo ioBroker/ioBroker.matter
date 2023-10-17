@@ -1,4 +1,4 @@
-import GenericDevice, {PropertyType, DetectedDevice, DeviceStateObject} from './GenericDevice';
+import GenericDevice, { PropertyType, DetectedDevice, DeviceStateObject } from './GenericDevice';
 
 class Dimmer extends GenericDevice {
     private _setLevelState: DeviceStateObject<number> | undefined;
@@ -10,10 +10,10 @@ class Dimmer extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'SET', type: PropertyType.Level, callback: state => this._setLevelState = state},
-            {name: 'ACTUAL', type: PropertyType.Level, callback: state => this._getLevelState = state || this._setLevelState},
-            {name: 'ON_SET', type: PropertyType.Power, callback: state => this._setPowerState = state},
-            {name: 'ON_ACTUAL', type: PropertyType.Power, callback: state => this._getPowerState = state || this._setPowerState},
+            { name: 'SET', type: PropertyType.Level, callback: state => this._setLevelState = state },
+            { name: 'ACTUAL', type: PropertyType.Level, callback: state => this._getLevelState = state || this._setLevelState },
+            { name: 'ON_SET', type: PropertyType.Power, callback: state => this._setPowerState = state },
+            { name: 'ON_ACTUAL', type: PropertyType.Power, callback: state => this._getPowerState = state || this._setPowerState },
         ]);
     }
 

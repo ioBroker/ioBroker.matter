@@ -24,7 +24,7 @@ interface BridgeDescription {
 
 export class MatterAdapter extends utils.Adapter {
     private detector: ChannelDetectorType;
-    private deviceObjects: {[key: string]: GenericDevice} = {};
+    private deviceObjects: { [key: string]: GenericDevice } = {};
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -110,8 +110,8 @@ export class MatterAdapter extends utils.Adapter {
         if (!obj) {
             return null;
         }
-        const states = await this.getObjectViewAsync('system', 'state', {startkey: `${deviceId}.`, endkey: `${deviceId}.\u9999`});
-        const objects = {[obj._id]: obj};
+        const states = await this.getObjectViewAsync('system', 'state', { startkey: `${deviceId}.`, endkey: `${deviceId}.\u9999` });
+        const objects = { [obj._id]: obj };
         for (const state of states.rows) {
             if (state.value) {
                 objects[state.id] = state.value;
@@ -168,7 +168,7 @@ export class MatterAdapter extends utils.Adapter {
                 const bridge: BridgeDescription = object.value.native as BridgeDescription;
                 bridge.list.forEach((device: DeviceDescription) => _devices.push(device.oid));
             }
-        })
+        });
 
         // Create new non-existing devices
         for (const d in _devices) {

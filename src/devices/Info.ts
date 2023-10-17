@@ -7,7 +7,7 @@ class Info extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'ACTUAL', type: PropertyType.Value, callback: state => this._getValueState = state},
+            { name: 'ACTUAL', type: PropertyType.Value, callback: state => this._getValueState = state },
         ]);
     }
 

@@ -44,22 +44,22 @@ class VacuumCleaner extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'POWER', type: PropertyType.Power, callback: state => this._powerState = state},
-            {name: 'MODE', type: PropertyType.Mode, callback: state => this._modeState = state, isEnum: true},
-            {name: 'MAP_BASE64', type: PropertyType.MapBase64, callback: state => this._getMapBase64State = state},
-            {name: 'MAP_URL', type: PropertyType.MapUrl, callback: state => this._getMapUrlState = state},
-            {name: 'WORK_MODE', type: PropertyType.WorkMode, callback: state => this._workModeState = state, isEnum: true},
-            {name: 'WATER', type: PropertyType.Water, callback: state => this._getWaterState = state},
-            {name: 'WASTE', type: PropertyType.Waste, callback: state => this._getWasteState = state},
-            {name: 'BATTERY', type: PropertyType.Battery, callback: state => this._getBatteryState = state},
-            {name: 'STATE', type: PropertyType.State, callback: state => this._getStateState = state, isEnum: true},
-            {name: 'PAUSE', type: PropertyType.Pause, callback: state => this._pauseState = state},
-            {name: 'WASTE_ALARM', type: PropertyType.WasteAlarm, callback: state => this._getWasteAlarmState = state},
-            {name: 'WATER_ALARM', type: PropertyType.WaterAlarm, callback: state => this._getWaterAlarmState = state},
-            {name: 'FILTER', type: PropertyType.Filter, callback: state => this._getFilterState = state},
-            {name: 'BRUSH', type: PropertyType.Brush, callback: state => this._getBrushState = state},
-            {name: 'SENSORS', type: PropertyType.Sensors, callback: state => this._getSensorsState = state},
-            {name: 'SIDE_BRUSH', type: PropertyType.SideBrush, callback: state => this._getSideBrushState = state},
+            { name: 'POWER', type: PropertyType.Power, callback: state => this._powerState = state },
+            { name: 'MODE', type: PropertyType.Mode, callback: state => this._modeState = state, isEnum: true },
+            { name: 'MAP_BASE64', type: PropertyType.MapBase64, callback: state => this._getMapBase64State = state },
+            { name: 'MAP_URL', type: PropertyType.MapUrl, callback: state => this._getMapUrlState = state },
+            { name: 'WORK_MODE', type: PropertyType.WorkMode, callback: state => this._workModeState = state, isEnum: true },
+            { name: 'WATER', type: PropertyType.Water, callback: state => this._getWaterState = state },
+            { name: 'WASTE', type: PropertyType.Waste, callback: state => this._getWasteState = state },
+            { name: 'BATTERY', type: PropertyType.Battery, callback: state => this._getBatteryState = state },
+            { name: 'STATE', type: PropertyType.State, callback: state => this._getStateState = state, isEnum: true },
+            { name: 'PAUSE', type: PropertyType.Pause, callback: state => this._pauseState = state },
+            { name: 'WASTE_ALARM', type: PropertyType.WasteAlarm, callback: state => this._getWasteAlarmState = state },
+            { name: 'WATER_ALARM', type: PropertyType.WaterAlarm, callback: state => this._getWaterAlarmState = state },
+            { name: 'FILTER', type: PropertyType.Filter, callback: state => this._getFilterState = state },
+            { name: 'BRUSH', type: PropertyType.Brush, callback: state => this._getBrushState = state },
+            { name: 'SENSORS', type: PropertyType.Sensors, callback: state => this._getSensorsState = state },
+            { name: 'SIDE_BRUSH', type: PropertyType.SideBrush, callback: state => this._getSideBrushState = state },
         ]);
 
     }

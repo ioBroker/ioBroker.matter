@@ -1,4 +1,4 @@
-import GenericDevice, {PropertyType, DetectedDevice, DeviceStateObject} from './GenericDevice';
+import GenericDevice, { PropertyType, DetectedDevice, DeviceStateObject } from './GenericDevice';
 
 class VolumeGroup extends GenericDevice {
     private _setLevelState: DeviceStateObject<number> | undefined;
@@ -9,9 +9,9 @@ class VolumeGroup extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'SET', type: PropertyType.Level, callback: state => this._setLevelState = state},
-            {name: 'ACTUAL', type: PropertyType.Level, callback: state => this._getLevelState = state || this._setLevelState},
-            {name: 'MUTE', type: PropertyType.Mute, callback: state => this._MuteState = state},
+            { name: 'SET', type: PropertyType.Level, callback: state => this._setLevelState = state },
+            { name: 'ACTUAL', type: PropertyType.Level, callback: state => this._getLevelState = state || this._setLevelState },
+            { name: 'MUTE', type: PropertyType.Mute, callback: state => this._MuteState = state },
         ]);
     }
 

@@ -8,7 +8,7 @@ const types = {
     [DeviceType.Switch]: undefined,
     [DeviceType.Temperature]: Temperature,
     [DeviceType.Dimmer]: Dimmer,
-}
+};
 
 function DeviceFabric(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter): GenericDevice | undefined {
     const type = types[detectedDevice.type];

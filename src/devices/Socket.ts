@@ -14,13 +14,13 @@ class Socket extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'SET', type: PropertyType.Level, callback: state => this._setLevelState = state},
-            {name: 'ACTUAL', type: PropertyType.Level, callback: state => this._getLevelState = state || this._setLevelState},
-            {name: 'ELECTRIC_POWER', type: PropertyType.Power, callback: state => this._getPowerState = state},
-            {name: 'CURRENT', type: PropertyType.Current, callback: state => this._getCurrentState = state},
-            {name: 'VOLTAGE', type: PropertyType.Voltage, callback: state => this._getVoltageState = state},
-            {name: 'CONSUMPTION', type: PropertyType.Consumption, callback: state => this._getConsumptionState = state},
-            {name: 'FREQUENCY', type: PropertyType.Frequency, callback: state => this._getFrequencyState = state},
+            { name: 'SET', type: PropertyType.Level, callback: state => this._setLevelState = state },
+            { name: 'ACTUAL', type: PropertyType.Level, callback: state => this._getLevelState = state || this._setLevelState },
+            { name: 'ELECTRIC_POWER', type: PropertyType.Power, callback: state => this._getPowerState = state },
+            { name: 'CURRENT', type: PropertyType.Current, callback: state => this._getCurrentState = state },
+            { name: 'VOLTAGE', type: PropertyType.Voltage, callback: state => this._getVoltageState = state },
+            { name: 'CONSUMPTION', type: PropertyType.Consumption, callback: state => this._getConsumptionState = state },
+            { name: 'FREQUENCY', type: PropertyType.Frequency, callback: state => this._getFrequencyState = state },
         ]);
     }
 

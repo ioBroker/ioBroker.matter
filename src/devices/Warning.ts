@@ -13,13 +13,13 @@ class Warning extends GenericDevice {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([
-            {name: 'LEVEL', type: PropertyType.Warning, callback: state => this._getWarningState = state},
-            {name: 'TITLE', type: PropertyType.Warning, callback: state => this._getTitleState = state},
-            {name: 'INFO', type: PropertyType.Warning, callback: state => this._getInfoState = state},
-            {name: 'START', type: PropertyType.Warning, callback: state => this._getStartState = state},
-            {name: 'END', type: PropertyType.Warning, callback: state => this._getEndState = state},
-            {name: 'ICON', type: PropertyType.Warning, callback: state => this._getIconState = state},
-            {name: 'DESC', type: PropertyType.Warning, callback: state => this._getDescState = state},
+            { name: 'LEVEL', type: PropertyType.Warning, callback: state => this._getWarningState = state },
+            { name: 'TITLE', type: PropertyType.Warning, callback: state => this._getTitleState = state },
+            { name: 'INFO', type: PropertyType.Warning, callback: state => this._getInfoState = state },
+            { name: 'START', type: PropertyType.Warning, callback: state => this._getStartState = state },
+            { name: 'END', type: PropertyType.Warning, callback: state => this._getEndState = state },
+            { name: 'ICON', type: PropertyType.Warning, callback: state => this._getIconState = state },
+            { name: 'DESC', type: PropertyType.Warning, callback: state => this._getDescState = state },
         ]);
     }
 

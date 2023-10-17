@@ -53,6 +53,7 @@
   "scripts": {
     "test": "mocha --exit",
     "prepublishOnly": "gulp",
+    "lint": "eslint --ext .ts src/",
     "build": "npm run build:ts && npm run build:gui",
     "build:gui": "gulp",
     "build:ts": "tsc -p tsconfig.build.json",

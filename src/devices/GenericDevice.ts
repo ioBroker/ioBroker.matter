@@ -136,7 +136,7 @@ export class DeviceStateObject<T> {
 
     state: DeviceState;
 
-    value: T | undefined
+    value: T | undefined;
 
     updateHandler: ((id: string, object: DeviceStateObject<T>) => void) | undefined;
 

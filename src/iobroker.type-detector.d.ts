@@ -30,7 +30,7 @@ export interface Control {
     states: ControlState[];
 }
 
-export interface ChannelDetectorType {
+export class ChannelDetectorType {
     constructor();
 
     detect(options: DetectorOptions): Control[] | null;

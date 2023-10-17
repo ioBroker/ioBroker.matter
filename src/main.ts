@@ -1,24 +1,24 @@
 import * as utils from '@iobroker/adapter-core';
 const { ChannelDetector } = require('iobroker.type-detector');
-import { Control, DeviceState, ChannelDetectorType } from './iobroker.type-detector';
+import { DeviceState, ChannelDetectorType } from './iobroker.type-detector';
 
 import { SubscribeManager, DeviceFabric, GenericDevice }  from './devices';
 import { DetectedDevice } from './devices/GenericDevice';
 
 interface DeviceDescription {
-    uuid: string,
-    name: string,
-    oid: string,
-    type: string,
-    enabled: boolean,
+    uuid: string;
+    name: string;
+    oid: string;
+    type: string;
+    enabled: boolean;
 }
 
 interface BridgeDescription {
-    uuid: string,
-    enabled: boolean,
-    productID: string,
-    vendorID: string,
-    list: DeviceDescription[],
+    uuid: string;
+    enabled: boolean;
+    productID: string;
+    vendorID: string;
+    list: DeviceDescription[];
 }
 
 export class MatterAdapter extends utils.Adapter {

@@ -1,11 +1,11 @@
 import * as utils from '@iobroker/adapter-core';
 const { ChannelDetector } = require('iobroker.type-detector');
 
-import { SubscribeManager, DeviceFabric }  from './devices';
+import { SubscribeManager, DeviceFabric, GenericDevice }  from './devices';
 
 export class MatterAdapter extends utils.Adapter {
     private detector: any;
-    private deviceObjects: {[key: string]: any} = {};
+    private deviceObjects: {[key: string]: GenericDevice} = {};
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -143,16 +143,19 @@ export class MatterAdapter extends utils.Adapter {
             }
         })
 
-        for (let d = 0; d < _devices.length; d++) {
+        for (let d in _devices) {
             const device = _devices[d];
             if (!Object.keys(this.deviceObjects).includes(device)) {
-                console.log (DeviceFabric(await this.getDeviceStates(device), this as any));
-                this.deviceObjects[device] = device;
+                const deviceObject = DeviceFabric(await this.getDeviceStates(device), this as any);
+                if (deviceObject) {
+                    this.deviceObjects[device];
+                }
             }
         }
 
         Object.keys(this.deviceObjects).forEach(device => {
             if (!_devices.includes(device)) {
+                this.deviceObjects[device].destroy();
                 delete this.deviceObjects[device];
             }
         });

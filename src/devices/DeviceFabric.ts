@@ -1,5 +1,5 @@
-import Dimmer from "./Dimmer";
 import GenericDevice, { DetectedDevice, DeviceType } from "./GenericDevice";
+import Dimmer from "./Dimmer";
 import Light from "./Light";
 import Temperature from "./Temperature";
 
@@ -11,7 +11,7 @@ const types = {
 }
 
 function DeviceFabric(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter): GenericDevice | undefined {
-  return types[detectedDevice.type] ? new types[detectedDevice.type](detectedDevice, adapter) : undefined
+    return types[detectedDevice.type] ? new types[detectedDevice.type](detectedDevice, adapter) : undefined;
 }
 
 export default DeviceFabric;

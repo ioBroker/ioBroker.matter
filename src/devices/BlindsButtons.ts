@@ -1,4 +1,4 @@
-import GenericDevice, { DeviceStateObject, PropertyType } from "./GenericDevice";
+import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from "./GenericDevice";
 
 /*
 Blinds controlled only by buttons [blindButtons]
@@ -29,7 +29,7 @@ class BlindsButtons extends GenericDevice {
     protected _setTiltOpenState: DeviceStateObject<boolean> | undefined;
     protected _setTiltCloseState: DeviceStateObject<boolean> | undefined;
 
-    constructor(detectedDevice, adapter) {
+    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
         super(detectedDevice, adapter);
 
         this.addDeviceStates([

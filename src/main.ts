@@ -4,7 +4,7 @@ import { ChannelDetector } from 'iobroker.type-detector';
 import { SubscribeManager, DeviceFabric }  from './devices';
 
 export class MatterAdapter extends utils.Adapter {
-    private detector: ChannelDetector;
+    private detector: any;
     private deviceObjects: {[key: string]: any} = {};
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {

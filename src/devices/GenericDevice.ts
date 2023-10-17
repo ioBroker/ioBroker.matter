@@ -1,6 +1,6 @@
 // @iobroker/device-types
 
-import SubscribeManager from "./SubscribeManager"
+import SubscribeManager from "./SubscribeManager";
 
 // take here https://github.com/ioBroker/ioBroker.type-detector/blob/master/DEVICES.md#temperature-temperature
 export enum DeviceType {
@@ -147,17 +147,24 @@ export interface DeviceState {
     required: boolean
 }
 
+interface StateFunctions {
+    converter?: {
+        read: (value: ioBroker.StateValue) => ioBroker.StateValue,
+        write?: (value: ioBroker.StateValue) => ioBroker.StateValue,
+    },
+    stateChangeFunction?: (value: ioBroker.StateValue) => Promise<void>
+}
+
 export class DeviceStateObject<T> {
+    protected _adapter: ioBroker.Adapter;
 
-    protected _adapter: ioBroker.Adapter
-
-    state: DeviceState
+    state: DeviceState;
 
     value: T
 
-    updateHandler: (id: string, object: DeviceStateObject<any>)=>void | undefined
+    updateHandler: (id: string, object: DeviceStateObject<any>) => void | null = null;
 
-    isEnum: boolean = false
+    isEnum: boolean = false;
 
     object: Promise<ioBroker.Object>;
 
@@ -197,11 +204,12 @@ export class DeviceStateObject<T> {
             });
     }
 
-    getModes(): Promise<T[]> {
-        return this.modes.then(modes => Object.keys(modes).map(key => modes[key]));
+    async getModes(): Promise<T[]> {
+        const modes = await this.modes;
+        return Object.keys(modes).map(key => modes[key]);
     }
 
-    async setValue (value: T) {
+    async setValue(value: T) {
         const object = await this.object;
         if (object.common.min !== undefined && value < object.common.min) {
             throw new Error(`Value ${value} is less than min ${object.common.min}`);
@@ -209,13 +217,13 @@ export class DeviceStateObject<T> {
         if (object.common.max !== undefined && value > object.common.max) {
             throw new Error(`Value ${value} is greater than max ${object.common.max}`);
         }
-            
+
         return this._adapter.setStateAsync(this.state.id, value as any);
     }
 
     protected updateState = (id: string, state: ioBroker.State) => {
-        let property: PropertyType | undefined
-        this.value = state.val as T
+        // let property: PropertyType | undefined
+        this.value = state.val as T;
         if (this.updateHandler) {
             this.updateHandler(id, this);
         }
@@ -226,15 +234,14 @@ export class DeviceStateObject<T> {
         SubscribeManager.subscribe(this.state.id, this.updateState);
     }
 
-    public unsubsribe () {
+    public unsubscribe () {
         SubscribeManager.unsubscribe(this.state.id, this.updateState);
     }
-
 }
 
 export interface DetectedDevice {
     type: DeviceType
-    states: DeviceState[]
+    states: DeviceState[],
 }
 
 abstract class GenericDevice {
@@ -294,7 +301,7 @@ abstract class GenericDevice {
     }
 
     getDeviceType (): DeviceType {
-        return this._deviceType
+        return this._deviceType;
     }
 
     protected updateState = (id: string, object: DeviceStateObject<any>):void => {
@@ -305,19 +312,19 @@ abstract class GenericDevice {
             })
         });
     }
-    
-    protected _doUnsubsribe () {
+
+    protected _doUnsubscribe () {
         this._subscribeObjects.forEach(object => {
-            object.unsubsribe();
+            object.unsubscribe();
         });
     }
 
     destroy () {
-        this._doUnsubsribe()
+        this._doUnsubscribe()
     }
 
     getProperties () {
-        return this._properties
+        return this._properties;
     }
 
     getError(): boolean|number {
@@ -362,11 +369,11 @@ abstract class GenericDevice {
         return this._directionState.value;
     }
 
-    onChange (handler: (event: {
+    onChange(handler: (event: {
         property: PropertyType
         value: any
     }) => void) {
-        this.handlers.push(handler)
+        this.handlers.push(handler);
     }
 }
 

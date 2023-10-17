@@ -1,10 +1,28 @@
 import * as utils from '@iobroker/adapter-core';
 const { ChannelDetector } = require('iobroker.type-detector');
+import { Control, DeviceState, ChannelDetectorType } from './iobroker.type-detector';
 
 import { SubscribeManager, DeviceFabric, GenericDevice }  from './devices';
+import { DetectedDevice } from './devices/GenericDevice';
+
+interface DeviceDescription {
+    uuid: string,
+    name: string,
+    oid: string,
+    type: string,
+    enabled: boolean,
+}
+
+interface BridgeDescription {
+    uuid: string,
+    enabled: boolean,
+    productID: string,
+    vendorID: string,
+    list: DeviceDescription[],
+}
 
 export class MatterAdapter extends utils.Adapter {
-    private detector: any;
+    private detector: ChannelDetectorType;
     private deviceObjects: {[key: string]: GenericDevice} = {};
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
@@ -109,12 +127,15 @@ export class MatterAdapter extends utils.Adapter {
         };
         const controls = this.detector.detect(options);
         if (controls) {
-            const id = controls[0].states.find((state: any) => state.id).id;
-            if (id) {
-                // console.log(`In ${options.id} was detected "${controls[0].type}" with following states:`);
-                controls[0].states = controls[0].states.filter((state: any) => state.id);
+            const mainState = controls[0].states.find((state: DeviceState) => state.id);
+            if (mainState) {
+                const id = mainState.id;
+                if (id) {
+                    // console.log(`In ${options.id} was detected "${controls[0].type}" with following states:`);
+                    controls[0].states = controls[0].states.filter((state: DeviceState) => state.id);
 
-                return controls[0];
+                    return controls[0];
+                }
             }
         } else {
             console.log(`Nothing found for ${options.id}`);
@@ -134,21 +155,27 @@ export class MatterAdapter extends utils.Adapter {
         );
 
         objects.rows.forEach(object => {
+            if (!object.value) {
+                return;
+            }
             if (object.id.startsWith(`${this.namespace}.devices.`)) {
-                object.value && _devices.push(object.value.native.oid);
-            } else if (object.id.startsWith(`${this.namespace}.bridges.`) && object.value) {
-                object.value.native.list.forEach((device: any) => {
-                    _devices.push(device.oid);
-                });
+                const device: DeviceDescription = object.value.native as DeviceDescription;
+                _devices.push(device.oid);
+            } else if (object.id.startsWith(`${this.namespace}.bridges.`)) {
+                const bridge: BridgeDescription = object.value.native as BridgeDescription;
+                bridge.list.forEach((device: DeviceDescription) => _devices.push(device.oid));
             }
         })
 
         for (let d in _devices) {
             const device = _devices[d];
             if (!Object.keys(this.deviceObjects).includes(device)) {
-                const deviceObject = DeviceFabric(await this.getDeviceStates(device), this as any);
-                if (deviceObject) {
-                    this.deviceObjects[device];
+                const detectedDevice = await this.getDeviceStates(device) as DetectedDevice;
+                if (detectedDevice) {
+                    const deviceObject = DeviceFabric(detectedDevice, this as any);
+                    if (deviceObject) {
+                        this.deviceObjects[device];
+                    }
                 }
             }
         }

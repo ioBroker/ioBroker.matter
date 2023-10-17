@@ -1,4 +1,4 @@
-import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from "./GenericDevice";
+import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from './GenericDevice';
 
 class Button extends GenericDevice {
 

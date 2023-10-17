@@ -1,4 +1,4 @@
-import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from "./GenericDevice";
+import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from './GenericDevice';
 
 class Light extends GenericDevice {
     private _setLevelState: DeviceStateObject<number> | undefined;

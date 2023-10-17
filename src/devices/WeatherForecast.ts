@@ -1,4 +1,4 @@
-import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from "./GenericDevice";
+import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from './GenericDevice';
 
 class WeatherForecast extends GenericDevice {
     protected _getIconState: DeviceStateObject<string> | undefined;
@@ -51,152 +51,152 @@ class WeatherForecast extends GenericDevice {
         ]);
     }
 
-    getIcon(): string | undefined { 
+    getIcon(): string | undefined {
         if (!this._getIconState) {
             throw new Error('Icon state not found');
         }
         return this._getIconState.value;
     }
 
-    getTempMin(): number | undefined { 
+    getTempMin(): number | undefined {
         if (!this._getTempMinState) {
             throw new Error('TempMin state not found');
         }
         return this._getTempMinState.value;
     }
 
-    getTempMax(): number | undefined { 
+    getTempMax(): number | undefined {
         if (!this._getTempMaxState) {
             throw new Error('TempMax state not found');
         }
         return this._getTempMaxState.value;
     }
 
-    getPrecipitationChance(): number | undefined { 
+    getPrecipitationChance(): number | undefined {
         if (!this._getPrecipitationChanceState) {
             throw new Error('PrecipitationChance state not found');
         }
         return this._getPrecipitationChanceState.value;
     }
 
-    getPrecipitation(): number | undefined { 
+    getPrecipitation(): number | undefined {
         if (!this._getPrecipitationState) {
             throw new Error('Precipitation state not found');
         }
         return this._getPrecipitationState.value;
     }
 
-    getDate(): string | undefined { 
+    getDate(): string | undefined {
         if (!this._getDateState) {
             throw new Error('Date state not found');
         }
         return this._getDateState.value;
     }
 
-    getDow(): string | undefined { 
+    getDow(): string | undefined {
         if (!this._getDowState) {
             throw new Error('Dow state not found');
         }
         return this._getDowState.value;
     }
-    
-    getState(): string | undefined { 
+
+    getState(): string | undefined {
         if (!this._getStateState) {
             throw new Error('State state not found');
         }
         return this._getStateState.value;
     }
 
-    getTemp(): number | undefined { 
+    getTemp(): number | undefined {
         if (!this._getTempState) {
             throw new Error('Temp state not found');
         }
         return this._getTempState.value;
     }
 
-    getPressure(): number | undefined { 
+    getPressure(): number | undefined {
         if (!this._getPressureState) {
             throw new Error('Pressure state not found');
         }
         return this._getPressureState.value;
     }
 
-    getHumidity(): number | undefined { 
+    getHumidity(): number | undefined {
         if (!this._getHumidityState) {
             throw new Error('Humidity state not found');
         }
         return this._getHumidityState.value;
     }
 
-    getTimeSunrise(): string | undefined { 
+    getTimeSunrise(): string | undefined {
         if (!this._getTimeSunriseState) {
             throw new Error('TimeSunrise state not found');
         }
         return this._getTimeSunriseState.value;
     }
 
-    getTimeSunset(): string | undefined { 
+    getTimeSunset(): string | undefined {
         if (!this._getTimeSunsetState) {
             throw new Error('TimeSunset state not found');
         }
         return this._getTimeSunsetState.value;
     }
 
-    getWindChill(): number | undefined { 
+    getWindChill(): number | undefined {
         if (!this._getWindChillState) {
             throw new Error('WindChill state not found');
         }
         return this._getWindChillState.value;
     }
 
-    getFeelsLike(): number | undefined { 
+    getFeelsLike(): number | undefined {
         if (!this._getFeelsLikeState) {
             throw new Error('FeelsLike state not found');
         }
         return this._getFeelsLikeState.value;
     }
 
-    getWindSpeed(): number | undefined { 
+    getWindSpeed(): number | undefined {
         if (!this._getWindSpeedState) {
             throw new Error('WindSpeed state not found');
         }
         return this._getWindSpeedState.value;
     }
 
-    getWindDirection(): number | undefined { 
+    getWindDirection(): number | undefined {
         if (!this._getWindDirectionState) {
             throw new Error('WindDirection state not found');
         }
         return this._getWindDirectionState.value;
     }
 
-    getWindDirectionStr(): string | undefined { 
+    getWindDirectionStr(): string | undefined {
         if (!this._getWindDirectionStrState) {
             throw new Error('WindDirectionStr state not found');
         }
         return this._getWindDirectionStrState.value;
     }
 
-    getWindIcon(): string | undefined { 
+    getWindIcon(): string | undefined {
         if (!this._getWindIconState) {
             throw new Error('WindIcon state not found');
         }
         return this._getWindIconState.value;
     }
 
-    getHistoryChart(): string | undefined { 
+    getHistoryChart(): string | undefined {
         if (!this._getHistoryChartState) {
             throw new Error('HistoryChart state not found');
         }
         return this._getHistoryChartState.value;
     }
 
-    getForecastChart(): string | undefined { 
+    getForecastChart(): string | undefined {
         if (!this._getForecastChartState) {
             throw new Error('ForecastChart state not found');
         }
         return this._getForecastChartState.value;
-    }            
+    }
 }
 
 export default WeatherForecast;

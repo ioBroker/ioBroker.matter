@@ -1,4 +1,4 @@
-import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from "./GenericDevice";
+import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from './GenericDevice';
 
 class Humidity extends GenericDevice {
     _getValueState: DeviceStateObject<boolean> | undefined;

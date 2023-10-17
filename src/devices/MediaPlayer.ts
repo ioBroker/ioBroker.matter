@@ -1,4 +1,4 @@
-import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from "./GenericDevice";
+import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from './GenericDevice';
 
 class MediaPlayer extends GenericDevice {
     protected _getStateState: DeviceStateObject<boolean|number> | undefined;
@@ -53,7 +53,7 @@ class MediaPlayer extends GenericDevice {
         ]);
     }
 
-    getState(): boolean|number | undefined{ 
+    getState(): boolean|number | undefined{
         if (!this._getStateState) {
             throw new Error('State state not found');
         }
@@ -95,7 +95,7 @@ class MediaPlayer extends GenericDevice {
         return this._setPrevState.setValue(true);
     }
 
-    getShuffle(): boolean | undefined{ 
+    getShuffle(): boolean | undefined{
         if (!this._shuffleState) {
             throw new Error('Shuffle state not found');
         }
@@ -109,7 +109,7 @@ class MediaPlayer extends GenericDevice {
         return this._shuffleState.setValue(value);
     }
 
-    getRepeat(): number | undefined{ 
+    getRepeat(): number | undefined{
         if (!this._repeatState) {
             throw new Error('Repeat state not found');
         }
@@ -123,42 +123,42 @@ class MediaPlayer extends GenericDevice {
         return this._repeatState.setValue(value);
     }
 
-    getArtist(): string | undefined{ 
+    getArtist(): string | undefined{
         if (!this._getArtistState) {
             throw new Error('Artist state not found');
         }
         return this._getArtistState.value;
     }
 
-    getAlbum(): string | undefined{ 
+    getAlbum(): string | undefined{
         if (!this._getAlbumState) {
             throw new Error('Album state not found');
         }
         return this._getAlbumState.value;
     }
 
-    getTitle(): string | undefined{ 
+    getTitle(): string | undefined{
         if (!this._getTitleState) {
             throw new Error('Title state not found');
         }
         return this._getTitleState.value;
     }
 
-    getCover(): string | undefined{ 
+    getCover(): string | undefined{
         if (!this._getCoverState) {
             throw new Error('Cover state not found');
         }
         return this._getCoverState.value;
     }
 
-    getDuration(): number | undefined{ 
+    getDuration(): number | undefined{
         if (!this._getDurationState) {
             throw new Error('Duration state not found');
         }
         return this._getDurationState.value;
     }
 
-    getElapsed(): number | undefined{ 
+    getElapsed(): number | undefined{
         if (!this._getElapsedState) {
             throw new Error('Elapsed state not found');
         }
@@ -172,28 +172,28 @@ class MediaPlayer extends GenericDevice {
         return this._setSeekState.setValue(value);
     }
 
-    getTrack(): string | undefined{ 
+    getTrack(): string | undefined{
         if (!this._getTrackState) {
             throw new Error('Track state not found');
         }
         return this._getTrackState.value;
     }
 
-    getEpisode(): string | undefined{ 
+    getEpisode(): string | undefined{
         if (!this._getEpisodeState) {
             throw new Error('Episode state not found');
         }
         return this._getEpisodeState.value;
     }
 
-    getSeason(): string | undefined{ 
+    getSeason(): string | undefined{
         if (!this._getSeasonState) {
             throw new Error('Season state not found');
         }
         return this._getSeasonState.value;
     }
 
-    getVolume(): number | undefined{ 
+    getVolume(): number | undefined{
         if (!this._getVolumeState) {
             throw new Error('Volume state not found');
         }
@@ -207,7 +207,7 @@ class MediaPlayer extends GenericDevice {
         return this._setVolumeState.setValue(value);
     }
 
-    getMute(): boolean | undefined{ 
+    getMute(): boolean | undefined{
         if (!this._muteState) {
             throw new Error('Mute state not found');
         }
@@ -221,7 +221,7 @@ class MediaPlayer extends GenericDevice {
         return this._muteState.setValue(value);
     }
 
-    getConnected(): boolean | undefined{ 
+    getConnected(): boolean | undefined{
         if (!this._getConnectedState) {
             throw new Error('Connected state not found');
         }

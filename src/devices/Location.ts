@@ -1,4 +1,4 @@
-import GenericDevice, {DetectedDevice, DeviceStateObject, PropertyType} from "./GenericDevice";
+import GenericDevice, {DetectedDevice, DeviceStateObject, PropertyType} from './GenericDevice';
 
 class Location extends GenericDevice {
     _getLongitudeState: DeviceStateObject<number> | undefined;

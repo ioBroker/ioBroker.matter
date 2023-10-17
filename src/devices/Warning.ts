@@ -1,4 +1,4 @@
-import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from "./GenericDevice";
+import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from './GenericDevice';
 
 class Warning extends GenericDevice {
     protected _getWarningState: DeviceStateObject<number> | undefined;
@@ -23,49 +23,49 @@ class Warning extends GenericDevice {
         ]);
     }
 
-    getWarning(): number | undefined { 
+    getWarning(): number | undefined {
         if (!this._getWarningState) {
             throw new Error('Warning state not found');
         }
         return this._getWarningState.value;
     }
 
-    getTitle(): string | undefined { 
+    getTitle(): string | undefined {
         if (!this._getTitleState) {
             throw new Error('Title state not found');
         }
         return this._getTitleState.value;
     }
 
-    getInfo(): string | undefined { 
+    getInfo(): string | undefined {
         if (!this._getInfoState) {
             throw new Error('Info state not found');
         }
         return this._getInfoState.value;
     }
 
-    getStart(): string | undefined { 
+    getStart(): string | undefined {
         if (!this._getStartState) {
             throw new Error('Start state not found');
         }
         return this._getStartState.value;
     }
 
-    getEnd(): string | undefined { 
+    getEnd(): string | undefined {
         if (!this._getEndState) {
             throw new Error('End state not found');
         }
         return this._getEndState.value;
     }
 
-    getIcon(): string | undefined { 
+    getIcon(): string | undefined {
         if (!this._getIconState) {
             throw new Error('Icon state not found');
         }
         return this._getIconState.value;
     }
 
-    getDesc(): string | undefined { 
+    getDesc(): string | undefined {
         if (!this._getDescState) {
             throw new Error('Desc state not found');
         }

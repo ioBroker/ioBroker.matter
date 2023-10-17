@@ -1,4 +1,4 @@
-import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from "./GenericDevice";
+import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from './GenericDevice';
 
 class Socket extends GenericDevice {
     private _setLevelState: DeviceStateObject<number> | undefined;
@@ -24,7 +24,7 @@ class Socket extends GenericDevice {
         ]);
     }
 
-    getLevel(): number | undefined { 
+    getLevel(): number | undefined {
         if (!this._getLevelState) {
             throw new Error('Level state not found');
         }
@@ -38,35 +38,35 @@ class Socket extends GenericDevice {
         return this._adapter.setStateAsync(this._setLevelState.state.id, value);
     }
 
-    getPower(): number | undefined { 
+    getPower(): number | undefined {
         if (!this._getPowerState) {
             throw new Error('Power state not found');
         }
         return this._getPowerState.value;
     }
 
-    getCurrent(): number | undefined { 
+    getCurrent(): number | undefined {
         if (!this._getCurrentState) {
             throw new Error('Current state not found');
         }
         return this._getCurrentState.value;
     }
 
-    getVoltage(): number | undefined { 
+    getVoltage(): number | undefined {
         if (!this._getVoltageState) {
             throw new Error('Voltage state not found');
         }
         return this._getVoltageState.value;
     }
 
-    getConsumption(): number | undefined { 
+    getConsumption(): number | undefined {
         if (!this._getConsumptionState) {
             throw new Error('Consumption state not found');
         }
         return this._getConsumptionState.value;
     }
 
-    getFrequency(): number | undefined { 
+    getFrequency(): number | undefined {
         if (!this._getFrequencyState) {
             throw new Error('Frequency state not found');
         }

@@ -1,5 +1,5 @@
-import Ct from "./Ct";
-import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from "./GenericDevice";
+import Ct from './Ct';
+import { DetectedDevice, DeviceStateObject, PropertyType } from './GenericDevice';
 
 class RgbSingle extends Ct {
     protected _rgb: DeviceStateObject<string> | undefined;
@@ -12,7 +12,7 @@ class RgbSingle extends Ct {
         ]);
     }
 
-    getRgb(): string | undefined { 
+    getRgb(): string | undefined {
         if (!this._rgb) {
             throw new Error('RGB state not found');
         }

@@ -1,4 +1,4 @@
-import GenericDevice from "./GenericDevice";
+import GenericDevice from './GenericDevice';
 
 class Chart extends GenericDevice {
 

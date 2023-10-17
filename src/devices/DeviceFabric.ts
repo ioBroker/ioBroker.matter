@@ -1,7 +1,7 @@
-import GenericDevice, { DetectedDevice, DeviceType } from "./GenericDevice";
-import Dimmer from "./Dimmer";
-import Light from "./Light";
-import Temperature from "./Temperature";
+import GenericDevice, { DetectedDevice, DeviceType } from './GenericDevice';
+import Dimmer from './Dimmer';
+import Light from './Light';
+import Temperature from './Temperature';
 
 const types = {
     [DeviceType.Light]: Light,

@@ -1,5 +1,5 @@
-import Ct from "./Ct";
-import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from "./GenericDevice";
+import Ct from './Ct';
+import { DetectedDevice, DeviceStateObject, PropertyType } from './GenericDevice';
 
 class Cie extends Ct {
     protected _cie: DeviceStateObject<string> | undefined;

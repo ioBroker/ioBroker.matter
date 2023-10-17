@@ -1,4 +1,4 @@
-import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from "./GenericDevice";
+import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from './GenericDevice';
 
 class Motion extends GenericDevice {
     _getValueState: DeviceStateObject<boolean> | undefined;
@@ -13,14 +13,14 @@ class Motion extends GenericDevice {
         ]);
     }
 
-    getValue(): boolean | undefined { 
+    getValue(): boolean | undefined {
         if (!this._getValueState) {
             throw new Error('Value state not found');
         }
         return this._getValueState.value;
     }
 
-    getBrightness(): number | undefined { 
+    getBrightness(): number | undefined {
         if (!this._getBrightnessState) {
             throw new Error('Brightness state not found');
         }

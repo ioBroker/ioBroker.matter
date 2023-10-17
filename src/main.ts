@@ -1,4 +1,5 @@
 import * as utils from '@iobroker/adapter-core';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { ChannelDetector } = require('iobroker.type-detector');
 import { DeviceState, ChannelDetectorType } from './iobroker.type-detector';
 
@@ -54,7 +55,7 @@ export class MatterAdapter extends utils.Adapter {
         }
     }
 
-    onObjectChange(id: string, obj: ioBroker.Object | null | undefined) {
+    onObjectChange(id: string/*, obj: ioBroker.Object | null | undefined*/) {
         if (id.startsWith(`${this.namespace}.`)) {
             this.loadDevices();
         }
@@ -170,7 +171,7 @@ export class MatterAdapter extends utils.Adapter {
         })
 
         // Create new non-existing devices
-        for (let d in _devices) {
+        for (const d in _devices) {
             const device = _devices[d];
             if (!Object.keys(this.deviceObjects).includes(device)) {
                 const detectedDevice = await this.getDeviceStates(device) as DetectedDevice;

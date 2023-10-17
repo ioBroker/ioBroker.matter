@@ -1,5 +1,5 @@
-import Ct from "./Ct";
-import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from "./GenericDevice";
+import Ct from './Ct';
+import { DetectedDevice, DeviceStateObject, PropertyType } from './GenericDevice';
 
 class Rgb extends Ct {
     protected _red: DeviceStateObject<number> | undefined;
@@ -16,21 +16,21 @@ class Rgb extends Ct {
         ]);
     }
 
-    getRed(): number | undefined { 
+    getRed(): number | undefined {
         if (!this._red) {
             throw new Error('Red state not found');
         }
         return this._red.value;
     }
 
-    getGreen(): number | undefined { 
+    getGreen(): number | undefined {
         if (!this._green) {
             throw new Error('Green state not found');
         }
         return this._green.value;
     }
 
-    getBlue(): number | undefined { 
+    getBlue(): number | undefined {
         if (!this._blue) {
             throw new Error('Blue state not found');
         }

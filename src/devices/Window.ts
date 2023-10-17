@@ -1,4 +1,4 @@
-import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from "./GenericDevice";
+import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from './GenericDevice';
 
 class Window extends GenericDevice {
     _getValueState: DeviceStateObject<boolean> | undefined;
@@ -11,7 +11,7 @@ class Window extends GenericDevice {
         ]);
     }
 
-    getValue(): boolean | undefined { 
+    getValue(): boolean | undefined {
         if (!this._getValueState) {
             throw new Error('Value state not found');
         }

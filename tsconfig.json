@@ -38,7 +38,8 @@
     "useUnknownInCatchVariables": false,
   },
   "include": [
-    "src/**/*.ts"
+    "src/**/*.ts",
+    "./.eslintrc.js"
   ],
   "exclude": [
     "build/**",

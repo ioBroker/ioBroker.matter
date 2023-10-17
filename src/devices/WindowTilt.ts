@@ -1,4 +1,4 @@
-import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from "./GenericDevice";
+import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from './GenericDevice';
 
 class WindowTilt extends GenericDevice {
     _getValueState: DeviceStateObject<number> | undefined;
@@ -11,7 +11,7 @@ class WindowTilt extends GenericDevice {
         ]);
     }
 
-    getValue(): number | undefined { 
+    getValue(): number | undefined {
         if (!this._getValueState) {
             throw new Error('Value state not found');
         }

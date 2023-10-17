@@ -1,7 +1,7 @@
 // @iobroker/device-types
 
-import { DeviceState } from "../iobroker.type-detector";
-import SubscribeManager from "./SubscribeManager";
+import { DeviceState } from '../iobroker.type-detector';
+import SubscribeManager from './SubscribeManager';
 
 // take here https://github.com/ioBroker/ioBroker.type-detector/blob/master/DEVICES.md#temperature-temperature
 export enum DeviceType {
@@ -164,20 +164,20 @@ export class DeviceStateObject<T> {
             return;
         }
         this.modes = this.object.then(obj => {
-                // {'MODE_VALUE': 'MODE_TEXT'}
-                let modes: {[key: string]: T} = obj?.common?.states;
-                if (modes) {
-                    // convert ['Auto'] => {'Auto': 'AUTO'}
-                    if (Array.isArray(modes)) {
-                        const _m: {[key: string]: T} = {};
-                        modes.forEach((mode: T) => _m[mode as string] = ((mode as string).toUpperCase()) as T);
-                        modes = _m;
-                    }
-                    return modes;
-                } else {
-                    return {};
+            // {'MODE_VALUE': 'MODE_TEXT'}
+            let modes: {[key: string]: T} = obj?.common?.states;
+            if (modes) {
+                // convert ['Auto'] => {'Auto': 'AUTO'}
+                if (Array.isArray(modes)) {
+                    const _m: {[key: string]: T} = {};
+                    modes.forEach((mode: T) => _m[mode as string] = ((mode as string).toUpperCase()) as T);
+                    modes = _m;
                 }
-            });
+                return modes;
+            } else {
+                return {};
+            }
+        });
     }
 
     async getModes(): Promise<T[]> {

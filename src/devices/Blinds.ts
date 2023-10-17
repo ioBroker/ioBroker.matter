@@ -1,5 +1,5 @@
-import BlindsButtons from "./BlindsButtons";
-import GenericDevice, { DetectedDevice, DeviceStateObject, PropertyType } from "./GenericDevice";
+import BlindsButtons from './BlindsButtons';
+import { DetectedDevice, DeviceStateObject, PropertyType } from './GenericDevice';
 
 class Blinds extends BlindsButtons {
 

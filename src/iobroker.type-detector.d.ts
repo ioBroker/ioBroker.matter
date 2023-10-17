@@ -1,5 +1,3 @@
-import {StateType} from "./devices/GenericDevice";
-
 declare module 'iobroker.type-detector';
 
 export interface DetectorOptions {
@@ -8,6 +6,12 @@ export interface DetectorOptions {
     _keysOptional?: string[];      // For optimization, it is Object.keys(objects)
     _usedIdsOptional?: string[];   // For optimization, initially it is empty array
     ignoreIndicators?: string[];   // List of state names, that will be ignored. E.g., ['UNREACH_STICKY']
+}
+
+export enum StateType {
+    Number = 'number',
+    String = 'string',
+    Boolean = 'boolean',
 }
 
 export interface DeviceState {

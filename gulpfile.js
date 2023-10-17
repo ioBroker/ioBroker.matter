@@ -38,7 +38,7 @@ gulp.task('clean', done => {
 function npmInstall() {
     return new Promise((resolve, reject) => {
         // Install node modules
-        const cwd = `${__dirname.replace(/\\/g, '/')}/src/`;
+        const cwd = `${__dirname.replace(/\\/g, '/')}/src-admin/`;
 
         const cmd = `npm install -f`;
         console.log(`"${cmd} in ${cwd}`);
@@ -64,7 +64,7 @@ function npmInstall() {
 }
 
 gulp.task('2-npm', () => {
-    if (fs.existsSync(`${__dirname}/src/node_modules`)) {
+    if (fs.existsSync(`${__dirname}/src-admin/node_modules`)) {
         return Promise.resolve();
     } else {
         return npmInstall();
@@ -77,17 +77,17 @@ function build() {
     return new Promise((resolve, reject) => {
         const options = {
             stdio: 'pipe',
-            cwd:   `${__dirname}/src/`
+            cwd:   `${__dirname}/src-admin/`
         };
 
         const version = JSON.parse(fs.readFileSync(`${__dirname}/package.json`).toString('utf8')).version;
-        const data = JSON.parse(fs.readFileSync(`${__dirname}/src/package.json`).toString('utf8'));
+        const data = JSON.parse(fs.readFileSync(`${__dirname}/src-admin/package.json`).toString('utf8'));
         data.version = version;
-        fs.writeFileSync(`${__dirname}/src/package.json`, JSON.stringify(data, null, 4));
+        fs.writeFileSync(`${__dirname}/src-admin/package.json`, JSON.stringify(data, null, 4));
 
         console.log(options.cwd);
 
-        let script = `${__dirname}/src/node_modules/react-scripts/scripts/build.js`;
+        let script = `${__dirname}/src-admin/node_modules/react-scripts/scripts/build.js`;
         if (!fs.existsSync(script)) {
             script = `${__dirname}/node_modules/react-scripts/scripts/build.js`;
         }
@@ -111,7 +111,7 @@ gulp.task('3-build', () => build());
 gulp.task('3-build-dep', gulp.series('2-npm-dep', '3-build'));
 
 gulp.task('5-copy', () =>
-    gulp.src(['src/build/*/**', 'src/build/*'])
+    gulp.src(['src-admin/build/*/**', 'src-admin/build/*'])
         .pipe(gulp.dest('admin/')));
 
 gulp.task('5-copy-dep', gulp.series('3-build-dep', '5-copy'));
@@ -125,12 +125,12 @@ gulp.task('6-patch', () => new Promise(resolve => {
         fs.unlinkSync(`${__dirname}/admin/index.html`);
         fs.writeFileSync(`${__dirname}/admin/index_m.html`, code);
     }
-    if (fs.existsSync(`${__dirname}/src/build/index.html`)) {
-        let code = fs.readFileSync(`${__dirname}/src/build/index.html`).toString('utf8');
+    if (fs.existsSync(`${__dirname}/src-admin/build/index.html`)) {
+        let code = fs.readFileSync(`${__dirname}/src-admin/build/index.html`).toString('utf8');
         code = code.replace(/<script>var script=document\.createElement\("script"\)[^<]+<\/script>/,
             `<script type="text/javascript" src="./../../lib/js/socket.io.js"></script>`);
 
-        fs.writeFileSync(`${__dirname}/src/build/index.html`, code);
+        fs.writeFileSync(`${__dirname}/src-admin/build/index.html`, code);
     }
     resolve();
 }));

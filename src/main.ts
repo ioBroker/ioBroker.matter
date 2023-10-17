@@ -14,8 +14,8 @@ export class MatterAdapter extends utils.Adapter {
         });
         this.on('ready', this.onReady.bind(this));
         this.on('stateChange', this.onStateChange.bind(this));
-        this.on('objectChange', this.onUnload.bind(this));
-        this.on('unload', this.onObjectChange.bind(this));
+        this.on('objectChange', this.onObjectChange.bind(this));
+        this.on('unload', this.onUnload.bind(this));
         // this.on('message', this.onMessage.bind(this));
 
         this.detector = new ChannelDetector();
@@ -40,7 +40,7 @@ export class MatterAdapter extends utils.Adapter {
         console.log(id, obj);
     }
 
-    onStateChange(id: string, state: ioBroker.State) {
+    onStateChange(id: string, state: ioBroker.State | null | undefined) {
         SubscribeManager.observer(id, state);
     }
 
@@ -69,7 +69,7 @@ export class MatterAdapter extends utils.Adapter {
                 return channelId;
             }
             return id;
-        } else if (obj.type === 'channel') {
+        } else if (obj && obj.type === 'channel') {
             // we can go maximal two levels up: channel => device
             parts.pop();
             obj = await this.getForeignObjectAsync(parts.join('.'));
@@ -86,14 +86,19 @@ export class MatterAdapter extends utils.Adapter {
     async getDeviceStates(id: string) {
         const deviceId = await this.findDeviceFromId(id);
         const obj = await this.getForeignObjectAsync(deviceId);
+        if (!obj) {
+            return null;
+        }
         const states = await this.getObjectViewAsync('system', 'state', {startkey: `${deviceId}.`, endkey: `${deviceId}.\u9999`});
         const objects = {[obj._id]: obj};
         for (const state of states.rows) {
-            objects[state.id] = state.value;
+            if (state.value) {
+                objects[state.id] = state.value;
+            }
         }
 
         const keys = Object.keys(objects);        // For optimization
-        const usedIds = [];                       // To not allow using of same ID in more than one device
+        const usedIds: string[] = [];                       // To not allow using of same ID in more than one device
         const ignoreIndicators = ['UNREACH_STICKY'];    // Ignore indicators by name
         const options = {
             objects,
@@ -104,10 +109,10 @@ export class MatterAdapter extends utils.Adapter {
         };
         const controls = this.detector.detect(options);
         if (controls) {
-            const id = controls[0].states.find(state => state.id).id;
+            const id = controls[0].states.find((state: any) => state.id).id;
             if (id) {
                 // console.log(`In ${options.id} was detected "${controls[0].type}" with following states:`);
-                controls[0].states = controls[0].states.filter(state => state.id);
+                controls[0].states = controls[0].states.filter((state: any) => state.id);
 
                 return controls[0];
             }
@@ -119,7 +124,7 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async loadDevices() {
-        const _devices = [];
+        const _devices: string[] = [];
         const objects = await this.getObjectViewAsync(
             'system', 'channel',
             {
@@ -130,9 +135,9 @@ export class MatterAdapter extends utils.Adapter {
 
         objects.rows.forEach(object => {
             if (object.id.startsWith(`${this.namespace}.devices.`)) {
-                _devices.push(object.value.native.oid);
-            } else if (object.id.startsWith(`${this.namespace}.bridges.`)) {
-                object.value.native.list.forEach(device => {
+                object.value && _devices.push(object.value.native.oid);
+            } else if (object.id.startsWith(`${this.namespace}.bridges.`) && object.value) {
+                object.value.native.list.forEach((device: any) => {
                     _devices.push(device.oid);
                 });
             }

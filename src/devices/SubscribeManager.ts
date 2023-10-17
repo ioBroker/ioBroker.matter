@@ -11,7 +11,7 @@ class SubscribeManager {
     static setAdapter(adapter: ioBroker.Adapter) {
         SubscribeManager.adapter = adapter;
     }
-    static observer (id: string, state: ioBroker.State) {
+    static observer (id: string, state: ioBroker.State | null | undefined) {
         if (state) {
             SubscribeManager.subscribes.forEach(subscribe => {
                 if (subscribe.id === id) {

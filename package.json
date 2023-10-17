@@ -27,7 +27,7 @@
     "@alcalzone/release-script": "^3.6.0",
     "@alcalzone/release-script-plugin-iobroker": "^3.6.0",
     "@alcalzone/release-script-plugin-license": "^3.5.9",
-    "@types/iobroker": "^4.0.5",
+    "@types/iobroker": "^5.0.6",
     "@types/node": "^20.8.6",
     "@typescript-eslint/eslint-plugin": "^6.8.0",
     "chai": "^4.3.10",

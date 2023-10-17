@@ -55,7 +55,9 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     onObjectChange(id: string, obj: ioBroker.Object | null | undefined) {
-        console.log(id, obj);
+        if (id.startsWith(`${this.namespace}.`)) {
+            this.loadDevices();
+        }
     }
 
     onStateChange(id: string, state: ioBroker.State | null | undefined) {
@@ -167,6 +169,7 @@ export class MatterAdapter extends utils.Adapter {
             }
         })
 
+        // Create new non-existing devices
         for (let d in _devices) {
             const device = _devices[d];
             if (!Object.keys(this.deviceObjects).includes(device)) {
@@ -180,6 +183,7 @@ export class MatterAdapter extends utils.Adapter {
             }
         }
 
+        // Delete old non-existing devices
         Object.keys(this.deviceObjects).forEach(device => {
             if (!_devices.includes(device)) {
                 this.deviceObjects[device].destroy();

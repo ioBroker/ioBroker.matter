@@ -44,21 +44,21 @@ class BlindsButtons extends GenericDevice {
         ]);
     }
 
-    async stop() {
+    async stop(): Promise<void> {
         if (!this._setStopState) {
             throw new Error('Stop state not found');
         }
         return this._setStopState.setValue(true);
     }
 
-    async open() {
+    async open(): Promise<void> {
         if (!this._setOpenState) {
             throw new Error('Open state not found');
         }
         return this._setOpenState.setValue(true);
     }
 
-    async close() {
+    async close(): Promise<void> {
         if (!this._setCloseState) {
             throw new Error('Close state not found');
         }
@@ -72,28 +72,28 @@ class BlindsButtons extends GenericDevice {
         return this._getTiltState.value;
     }
 
-    async setTilt(value: number) {
+    async setTilt(value: number): Promise<void> {
         if (!this._setTiltState) {
             throw new Error('Tilt state not found');
         }
         return this._setTiltState.setValue(value);
     }
 
-    async stopTilt() {
+    async stopTilt(): Promise<void> {
         if (!this._setTiltStopState) {
             throw new Error('Tilt stop state not found');
         }
         return this._setTiltStopState.setValue(true);
     }
 
-    async openTilt() {
+    async openTilt(): Promise<void> {
         if (!this._setTiltOpenState) {
             throw new Error('Tilt open state not found');
         }
         return this._setTiltOpenState.setValue(true);
     }
 
-    async closeTilt() {
+    async closeTilt(): Promise<void> {
         if (!this._setTiltCloseState) {
             throw new Error('Tilt close state not found');
         }

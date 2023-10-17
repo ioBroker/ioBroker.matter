@@ -28,7 +28,7 @@ class Ct extends GenericDevice {
         return this._dimmer.value;
     }
 
-    async setDimmer(value: number) {
+    async setDimmer(value: number): Promise<void> {
         if (!this._dimmer) {
             throw new Error('Dimmer state not found');
         }
@@ -42,7 +42,7 @@ class Ct extends GenericDevice {
         return this._brightness.value;
     }
 
-    async setBrightness(value: number) {
+    async setBrightness(value: number): Promise<void> {
         if (!this._brightness) {
             throw new Error('Brightness state not found');
         }
@@ -56,7 +56,7 @@ class Ct extends GenericDevice {
         return this._saturation.value;
     }
 
-    async setSaturation(value: number) {
+    async setSaturation(value: number): Promise<void> {
         if (!this._saturation) {
             throw new Error('Saturation state not found');
         }
@@ -70,7 +70,7 @@ class Ct extends GenericDevice {
         return this._temperature.value;
     }
 
-    async setTemperature(value: number) {
+    async setTemperature(value: number): Promise<void> {
         if (!this._temperature) {
             throw new Error('Temperature state not found');
         }
@@ -84,7 +84,7 @@ class Ct extends GenericDevice {
         return this._getPower.value;
     }
 
-    async setPower(value: boolean) {
+    async setPower(value: boolean): Promise<void> {
         if (!this._setPower) {
             throw new Error('On state not found');
         }

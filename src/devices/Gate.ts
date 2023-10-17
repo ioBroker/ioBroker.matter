@@ -22,14 +22,14 @@ class Gate extends GenericDevice {
         return this._getLevelState.value;
     }
 
-    async setLevel(value: number) {
+    async setLevel(value: number): Promise<void> {
         if (!this._setLevelState) {
             throw new Error('Level state not found');
         }
         return this._setLevelState.setValue(value);
     }
 
-    async stop() {
+    async stop(): Promise<void> {
         if (!this._setStopState) {
             throw new Error('Stop state not found');
         }

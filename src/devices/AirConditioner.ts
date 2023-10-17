@@ -58,7 +58,7 @@ class AirConditioner extends GenericDevice {
         return this._getLevelState.value;
     }
 
-    async setLevel(value: number) {
+    async setLevel(value: number): Promise<void> {
         if (!this._setLevelState) {
             throw new Error('Level state not found');
         }
@@ -72,7 +72,7 @@ class AirConditioner extends GenericDevice {
         return this._powerState.value;
     }
 
-    async setPower(value: boolean|number) {
+    async setPower(value: boolean|number): Promise<void> {
         if (!this._powerState) {
             throw new Error('Power state not found');
         }
@@ -93,7 +93,7 @@ class AirConditioner extends GenericDevice {
         return this._BoostState.value;
     }
 
-    async setBoost(value: boolean|number) {
+    async setBoost(value: boolean|number): Promise<void> {
         if (!this._BoostState) {
             throw new Error('Boost state not found');
         }
@@ -107,7 +107,7 @@ class AirConditioner extends GenericDevice {
         return this._SpeedState.value;
     }
 
-    setSpeed(value: AirConditionerSpeed) {
+    async setSpeed(value: AirConditionerSpeed):Promise<void> {
         if (!this._SpeedState) {
             throw new Error('Speed state not found');
         }
@@ -128,7 +128,7 @@ class AirConditioner extends GenericDevice {
         return this._SwingState.value;
     }
 
-    async setSwing(value: AirConditionerSwing) {
+    async setSwing(value: AirConditionerSwing): Promise<void> {
         if (!this._SwingState) {
             throw new Error('Swing state not found');
         }
@@ -149,11 +149,11 @@ class AirConditioner extends GenericDevice {
         return this._modeState.value;
     }
 
-    async setMode(mode: AirConditionerMode) {
+    async setMode(mode: AirConditionerMode): Promise<void> {
         if (!this._modeState) {
             throw new Error('Mode state not found');
         }
-        return this._modeState.setValue(mode);
+        await this._modeState.setValue(mode);
     }
 
     getModes(): Promise<AirConditionerMode[]> {

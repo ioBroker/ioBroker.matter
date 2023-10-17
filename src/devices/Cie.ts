@@ -19,7 +19,7 @@ class Cie extends Ct {
         return this._cie.value;
     }
 
-    async setCie(value: string) {
+    async setCie(value: string): Promise<void> {
         if (!this._cie) {
             throw new Error('CIE state not found');
         }

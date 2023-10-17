@@ -24,7 +24,7 @@ class Dimmer extends GenericDevice {
         return this._getLevelState.value;
     }
 
-    async setLevel(value: number) {
+    async setLevel(value: number): Promise<void> {
         if (!this._setLevelState) {
             throw new Error('Level state not found');
         }
@@ -38,7 +38,7 @@ class Dimmer extends GenericDevice {
         return this._getPowerState.value;
     }
 
-    async setPower(value: boolean) {
+    async setPower(value: boolean): Promise<void> {
         if (!this._setPowerState) {
             throw new Error('Power state not found');
         }

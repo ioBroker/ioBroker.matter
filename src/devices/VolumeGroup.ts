@@ -22,7 +22,7 @@ class VolumeGroup extends GenericDevice {
         return this._getLevelState.value;
     }
 
-    async setLevel(value: number) {
+    async setLevel(value: number): Promise<void> {
         if (!this._setLevelState) {
             throw new Error('Level state not found');
         }
@@ -36,7 +36,7 @@ class VolumeGroup extends GenericDevice {
         return this._MuteState.value;
     }
 
-    async setMute(value: boolean) {
+    async setMute(value: boolean): Promise<void> {
         if (!this._MuteState) {
             throw new Error('Mute state not found');
         }

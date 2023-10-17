@@ -19,7 +19,7 @@ class Cie extends Ct {
         return this._hue.value;
     }
 
-    async setHue(value: number) {
+    async setHue(value: number): Promise<void> {
         if (!this._hue) {
             throw new Error('HUE state not found');
         }

@@ -47,7 +47,7 @@ module.exports = {
             },
         ],
         '@typescript-eslint/explicit-function-return-type': [
-            'off',
+            'warn',
             {
                 allowExpressions: true,
                 allowTypedFunctionExpressions: true,

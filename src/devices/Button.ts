@@ -12,7 +12,7 @@ class Button extends GenericDevice {
         ]);
     }
 
-    async setLevel(value: boolean) {
+    async setLevel(value: boolean): Promise<void> {
         if (!this._setLevelState) {
             throw new Error('Level state not found');
         }

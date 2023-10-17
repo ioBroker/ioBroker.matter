@@ -71,7 +71,7 @@ class VacuumCleaner extends GenericDevice {
         return this._powerState.value;
     }
 
-    async setPower(value: boolean) {
+    async setPower(value: boolean): Promise<void> {
         if (!this._powerState) {
             throw new Error('Power state not found');
         }
@@ -85,7 +85,7 @@ class VacuumCleaner extends GenericDevice {
         return this._modeState.value;
     }
 
-    async setMode(mode: VacuumCleanerMode) {
+    async setMode(mode: VacuumCleanerMode): Promise<void> {
         if (!this._modeState) {
             throw new Error('Mode state not found');
         }
@@ -120,7 +120,7 @@ class VacuumCleaner extends GenericDevice {
         return this._workModeState.value;
     }
 
-    async setWorkMode(mode: VacuumCleanerWorkMode) {
+    async setWorkMode(mode: VacuumCleanerWorkMode): Promise<void> {
         if (!this._workModeState) {
             throw new Error('WorkMode state not found');
         }
@@ -176,7 +176,7 @@ class VacuumCleaner extends GenericDevice {
         return this._pauseState.value;
     }
 
-    async setPause(value: boolean) {
+    async setPause(value: boolean): Promise<void> {
         if (!this._pauseState) {
             throw new Error('Pause state not found');
         }

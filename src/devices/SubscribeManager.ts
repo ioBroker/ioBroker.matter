@@ -8,10 +8,10 @@ interface Subscibe {
 class SubscribeManager {
     static subscribes: Subscibe[] = [];
     static adapter: ioBroker.Adapter;
-    static setAdapter(adapter: ioBroker.Adapter) {
+    static setAdapter(adapter: ioBroker.Adapter): void {
         SubscribeManager.adapter = adapter;
     }
-    static observer (id: string, state: ioBroker.State | null | undefined) {
+    static observer (id: string, state: ioBroker.State | null | undefined): void {
         if (state) {
             SubscribeManager.subscribes.forEach(subscribe => {
                 if (subscribe.id === id) {
@@ -21,12 +21,12 @@ class SubscribeManager {
         }
     }
 
-    static subscribe(id: string, callback: SubscibeCallback) {
+    static subscribe(id: string, callback: SubscibeCallback): void {
         SubscribeManager.adapter.subscribeStates(id);
         SubscribeManager.subscribes.push({id, callback});
     }
 
-    static unsubscribe(id: string, callback: SubscibeCallback) {
+    static unsubscribe(id: string, callback: SubscibeCallback): void {
         SubscribeManager.subscribes = SubscribeManager.subscribes.filter(subscribe => {
             return subscribe.id !== id || subscribe.callback !== callback;
         });

@@ -1,7 +1,7 @@
 import * as utils from '@iobroker/adapter-core';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { ChannelDetector } = require('iobroker.type-detector');
-import { DeviceState, ChannelDetectorType } from './iobroker.type-detector';
+import { DeviceState, ChannelDetectorType, Control } from './iobroker.type-detector';
 
 import { SubscribeManager, DeviceFabric, GenericDevice }  from './devices';
 import { DetectedDevice } from './devices/GenericDevice';
@@ -40,14 +40,14 @@ export class MatterAdapter extends utils.Adapter {
         this.detector = new ChannelDetector();
     }
 
-    async onReady() {
+    async onReady(): Promise<void> {
         SubscribeManager.setAdapter(this);
         await this.loadDevices();
         await this.subscribeForeignObjectsAsync(`${this.namespace}.0.*`);
         // await this.subscribeForeignStatesAsync(`${this.namespace}.*`); // not required, as every device subscribes on own states
     }
 
-    onUnload(callback: () => void) {
+    onUnload(callback: () => void): void {
         try {
             callback();
         } catch (e) {
@@ -55,17 +55,17 @@ export class MatterAdapter extends utils.Adapter {
         }
     }
 
-    onObjectChange(id: string/*, obj: ioBroker.Object | null | undefined*/) {
+    onObjectChange(id: string/*, obj: ioBroker.Object | null | undefined*/): void {
         if (id.startsWith(`${this.namespace}.`)) {
             this.loadDevices();
         }
     }
 
-    onStateChange(id: string, state: ioBroker.State | null | undefined) {
+    onStateChange(id: string, state: ioBroker.State | null | undefined): void {
         SubscribeManager.observer(id, state);
     }
 
-    async findDeviceFromId(id: string) {
+    async findDeviceFromId(id: string): Promise<string> {
         let obj = await this.getForeignObjectAsync(id);
         if (obj && obj.type === 'device') {
             return id;
@@ -104,7 +104,7 @@ export class MatterAdapter extends utils.Adapter {
         return id;
     }
 
-    async getDeviceStates(id: string) {
+    async getDeviceStates(id: string): Promise<Control | null> {
         const deviceId = await this.findDeviceFromId(id);
         const obj = await this.getForeignObjectAsync(deviceId);
         if (!obj) {
@@ -147,7 +147,7 @@ export class MatterAdapter extends utils.Adapter {
         return null;
     }
 
-    async loadDevices() {
+    async loadDevices(): Promise<void> {
         const _devices: string[] = [];
         const objects = await this.getObjectViewAsync(
             'system', 'channel',

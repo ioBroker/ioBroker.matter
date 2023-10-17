@@ -174,7 +174,7 @@ export class MatterAdapter extends utils.Adapter {
                 if (detectedDevice) {
                     const deviceObject = DeviceFabric(detectedDevice, this);
                     if (deviceObject) {
-                        this.deviceObjects[device];
+                        this.deviceObjects[device] = deviceObject;
                     }
                 }
             }

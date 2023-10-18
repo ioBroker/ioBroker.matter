@@ -17,6 +17,10 @@ export interface BridgeOptions {
     productname: string;
 }
 
+interface MatterAdapterConfig extends ioBroker.AdapterConfig {
+    interface: string;
+}
+
 class BridgedDevice {
     private matterServer: MatterServer | undefined;
     private adapter: ioBroker.Adapter;
@@ -68,7 +72,7 @@ class BridgedDevice {
 
         const port = 5540;
 
-        const uniqueId = this.uuid;
+        const uniqueId = this.uuid.replace(/-/g, '').split('.').pop() || '0000000000000000';
 
         /**
          * Create Matter Server and CommissioningServer Node
@@ -82,8 +86,13 @@ class BridgedDevice {
          * like testEventTrigger (General Diagnostic Cluster) that can be implemented with the logic when these commands
          * are called.
          */
+        const config: MatterAdapterConfig = this.adapter.config as MatterAdapterConfig;
 
-        this.matterServer = new MatterServer(storageManager);
+        if (!config.interface) {
+            this.matterServer = new MatterServer(storageManager);
+        } else {
+            this.matterServer = new MatterServer(storageManager, { mdnsAnnounceInterface: config.interface });
+        }
 
         const commissioningServer = new CommissioningServer({
             port,
@@ -98,7 +107,7 @@ class BridgedDevice {
                 productName,
                 productLabel: productName,
                 productId,
-                serialNumber: `io-broker-${uniqueId}`,
+                serialNumber: uniqueId,
             },
         });
 
@@ -132,7 +141,7 @@ class BridgedDevice {
                 nodeLabel: name,
                 productName: name,
                 productLabel: name,
-                serialNumber: `io-broker-${uniqueId}-${i}`,
+                serialNumber: i.toString().padStart(4, '0') + uniqueId.substring(4),
                 reachable: true,
             });
         }

@@ -60,7 +60,8 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async onObjectChange(id: string/*, obj: ioBroker.Object | null | undefined*/): Promise<void> {
-        if (id.startsWith(`${this.namespace}.`)) {
+        // matter.0.bridges.a6e61de9-e450-47bb-8f27-ee360350bdd8
+        if (id.startsWith(`${this.namespace}.`) && id.split('.').length === 4) {
             await this.loadDevices();
         }
     }
@@ -199,7 +200,7 @@ export class MatterAdapter extends utils.Adapter {
                 return;
             }
             if (object._id.startsWith(`${this.namespace}.devices.`) && object.native.enabled !== false) {
-                _bridges.push(object);
+                _devices.push(object);
             } else if (object._id.startsWith(`${this.namespace}.bridges.`) &&
                 object.native.enabled !== false &&
                 object.native.list?.length &&

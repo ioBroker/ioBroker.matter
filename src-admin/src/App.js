@@ -103,7 +103,14 @@ class App extends GenericApp {
 
     renderController() {
         return <Controller
+            onChange={(id, value) => {
+                this.updateNativeValue(id, value);
+            }}
+            common={this.state.common}
+            socket={this.socket}
+            native={this.state.native}
             themeType={this.state.themeType}
+            instance={this.instance}
             matter={this.state.matter}
             updateConfig={this.onChanged}
         />;
@@ -134,6 +141,8 @@ class App extends GenericApp {
     }
 
     onSave(isClose) {
+        super.onSave && super.onSave(isClose);
+
         this.configHandler.saveConfig(this.state.matter)
             .then(() => {
                 this.setState({ changed: false });

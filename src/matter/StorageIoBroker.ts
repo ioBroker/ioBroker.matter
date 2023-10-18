@@ -123,7 +123,7 @@ export class StorageIoBroker implements Storage {
     }
 
     get<T extends SupportedStorageTypes>(contexts: string[], key: string): T | undefined {
-        if (!contexts.length || !key.length) {
+        if (!key.length) {
             throw new StorageError("Context and key must not be empty strings!");
         }
         const value = StorageIoBroker.getValue(this.data, contexts, key);
@@ -134,7 +134,7 @@ export class StorageIoBroker implements Storage {
     }
 
     set<T extends SupportedStorageTypes>(contexts: string[], key: string, value: T): void {
-        if (!contexts.length || !key.length) {
+        if (!key.length) {
             throw new StorageError("Context and key must not be empty strings!");
         }
         StorageIoBroker.setValue(this.data, contexts, key, toJson(value));
@@ -142,7 +142,7 @@ export class StorageIoBroker implements Storage {
     }
 
     delete(contexts: string[], key: string): void {
-        if (!contexts.length || !key.length) {
+        if (!key.length) {
             throw new StorageError('Context and key must not be empty strings!');
         }
         StorageIoBroker.clearValue(this.data, contexts, key);

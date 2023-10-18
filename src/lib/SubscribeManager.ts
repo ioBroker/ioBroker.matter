@@ -1,4 +1,4 @@
-type SubscribeCallback = (id: string, state: ioBroker.State) => void;
+type SubscribeCallback = (state: ioBroker.State) => void;
 
 class SubscribeManager {
     static subscribes: { [id: string]: SubscribeCallback[] } = {};
@@ -8,7 +8,7 @@ class SubscribeManager {
     }
     static observer(id: string, state: ioBroker.State | null | undefined): void {
         if (state) {
-            SubscribeManager.subscribes[id].forEach(callback => callback(id, state));
+            SubscribeManager.subscribes[id].forEach(callback => callback(state));
         }
     }
 

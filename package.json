@@ -48,7 +48,8 @@
     "admin/",
     "io-package.json",
     "LICENSE",
-    "main.js"
+    "main.js",
+    "devices/"
   ],
   "scripts": {
     "test": "mocha --exit",

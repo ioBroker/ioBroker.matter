@@ -3,8 +3,8 @@ import * as utils from '@iobroker/adapter-core';
 const { ChannelDetector } = require('iobroker.type-detector');
 import { DeviceState, ChannelDetectorType, Control } from './iobroker.type-detector';
 
-import { SubscribeManager, DeviceFabric, GenericDevice }  from './devices';
-import { DetectedDevice } from './devices/GenericDevice';
+import { SubscribeManager, DeviceFabric, GenericDevice }  from './lib';
+import { DetectedDevice } from './lib/devices/GenericDevice';
 
 interface DeviceDescription {
     uuid: string;
@@ -31,10 +31,10 @@ export class MatterAdapter extends utils.Adapter {
             ...options,
             name: 'matter',
         });
-        this.on('ready', this.onReady.bind(this));
-        this.on('stateChange', this.onStateChange.bind(this));
-        this.on('objectChange', this.onObjectChange.bind(this));
-        this.on('unload', this.onUnload.bind(this));
+        this.on('ready', () => this.onReady());
+        this.on('stateChange', (id, state) => this.onStateChange(id, state));
+        this.on('objectChange', (id, object) => this.onObjectChange(id));
+        this.on('unload', callback => this.onUnload(callback));
         // this.on('message', this.onMessage.bind(this));
 
         this.detector = new ChannelDetector();
@@ -55,9 +55,9 @@ export class MatterAdapter extends utils.Adapter {
         }
     }
 
-    onObjectChange(id: string/*, obj: ioBroker.Object | null | undefined*/): void {
+    async onObjectChange(id: string/*, obj: ioBroker.Object | null | undefined*/): Promise<void> {
         if (id.startsWith(`${this.namespace}.`)) {
-            this.loadDevices();
+            await this.loadDevices();
         }
     }
 

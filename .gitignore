@@ -9,6 +9,9 @@ nbproject
 /src-admin/package-lock.json
 package-lock.json
 build
+*.map
+devices
+main.js
 
 .dev-server
 .vscode

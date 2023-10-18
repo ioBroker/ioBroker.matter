@@ -1,42 +1,43 @@
 const { Types } = require('iobroker.type-detector');
 const SubscribeManager = require('../build/lib/SubscribeManager');
-const { StateAccessType } = require('../build/lib/devices/GenericDevice');
+const { StateAccessType, ValueType} = require('../build/lib/devices/GenericDevice');
 
 // create a maximal set of states
 const detectedDevices = {
     states: [
         { name: 'SET', id: '0_userdata.0.set' },
         { name: 'ACTUAL', id: '0_userdata.0.actual' },
-        { name: 'POWER', id: '0_userdata.0.power' },
+        { name: 'POWER', id: '0_userdata.0.power', type: 'boolean' },
         { name: 'HUMIDITY', id: '0_userdata.0.humidity' },
         { name: 'SPEED', id: '0_userdata.0.speed' },
-        { name: 'BOOST', id: '0_userdata.0.boost' },
+        { name: 'BOOST', id: '0_userdata.0.boost', type: 'boolean' },
         { name: 'MODE', id: '0_userdata.0.mode' },
 
-        { name: 'SWING', id: '0_userdata.0.swing' },
-        { name: 'STOP', id: '0_userdata.0.stop' },
-        { name: 'OPEN', id: '0_userdata.0.open' },
-        { name: 'CLOSE', id: '0_userdata.0.close' },
+        { name: 'SWING', id: '0_userdata.0.swing', type: 'boolean' },
+        { name: 'STOP', id: '0_userdata.0.stop', type: 'boolean' },
+        { name: 'OPEN', id: '0_userdata.0.open', type: 'boolean' },
+        { name: 'CLOSE', id: '0_userdata.0.close', type: 'boolean' },
         { name: 'TILT_SET', id: '0_userdata.0.tilt_set' },
         { name: 'TILT_ACTUAL', id: '0_userdata.0.tilt_actual' },
-        { name: 'TILT_STOP', id: '0_userdata.0.tilt_stop' },
-        { name: 'TILT_OPEN', id: '0_userdata.0.tilt_open' },
-        { name: 'TILT_CLOSE', id: '0_userdata.0.tilt_close' },
+        { name: 'TILT_STOP', id: '0_userdata.0.tilt_stop', type: 'boolean' },
+        { name: 'TILT_OPEN', id: '0_userdata.0.tilt_open', type: 'boolean' },
+        { name: 'TILT_CLOSE', id: '0_userdata.0.tilt_close', type: 'boolean' },
 
-        { name: 'PRESS', id: '0_userdata.0.press' },
-        { name: 'PRESS_LONG', id: '0_userdata.0.press_long' },
+        { name: 'PRESS', id: '0_userdata.0.press', type: 'boolean' },
+        { name: 'PRESS_LONG', id: '0_userdata.0.press_long', type: 'boolean' },
 
         { name: 'FILE', id: '0_userdata.0.file' },
-        { name: 'AUTOFOCUS', id: '0_userdata.0.autofocus' },
-        { name: 'AUTOWHITEBALANCE', id: '0_userdata.0.autowhiteballance' },
+        { name: 'AUTOFOCUS', id: '0_userdata.0.autofocus', type: 'boolean' },
+        { name: 'AUTOWHITEBALANCE', id: '0_userdata.0.autowhiteballance', type: 'boolean' },
         { name: 'BRIGHTNESS', id: '0_userdata.0.brightness' },
-        { name: 'NIGHTMODE', id: '0_userdata.0.nightmode' },
-        { name: 'PTZ', id: '0_userdata.0.ptz' },
+        { name: 'NIGHTMODE', id: '0_userdata.0.nightmode', type: 'boolean' },
+        { name: 'PTZ', id: '0_userdata.0.ptz', type: 'boolean' },
 
-        { name: 'URL', id: '0_userdata.0.url' },
+        { name: 'URL', id: '0_userdata.0.url', type: 'string' },
 
-        { name: 'ON_SET', id: '0_userdata.0.on_set' },
-        { name: 'ON_ACTUAL', id: '0_userdata.0.on_actual' },
+        { name: 'ON_SET', id: '0_userdata.0.on_set', type: 'boolean' },
+        { name: 'ON', id: '0_userdata.0.on', type: 'boolean' },
+        { name: 'ON_ACTUAL', id: '0_userdata.0.on_actual', type: 'boolean' },
 
         { name: 'ELECTRIC_POWER', id: '0_userdata.0.electric_power' },
         { name: 'CURRENT', id: '0_userdata.0.current' },
@@ -51,14 +52,14 @@ const detectedDevices = {
         { name: 'ACCURACY', id: '0_userdata.0.ACCURACY' },
 
         { name: 'STATE', id: '0_userdata.0.STATE.state' },
-        { name: 'PLAY', id: '0_userdata.0.PLAY.play' },
-        { name: 'PAUSE', id: '0_userdata.0.PAUSE' },
-        { name: 'STOP', id: '0_userdata.0.STOP' },
-        { name: 'NEXT', id: '0_userdata.0.NEXT' },
-        { name: 'PREV', id: '0_userdata.0.PREV' },
-        { name: 'SHUFFLE', id: '0_userdata.0.SHUFFLE' },
-        { name: 'REPEAT', id: '0_userdata.0.REPEAT' },
-        { name: 'ARTIST', id: '0_userdata.0.ARTIST' },
+        { name: 'PLAY', id: '0_userdata.0.PLAY.play', type: 'boolean' },
+        { name: 'PAUSE', id: '0_userdata.0.PAUSE', type: 'boolean' },
+        { name: 'STOP', id: '0_userdata.0.STOP', type: 'boolean' },
+        { name: 'NEXT', id: '0_userdata.0.NEXT', type: 'boolean' },
+        { name: 'PREV', id: '0_userdata.0.PREV', type: 'boolean' },
+        { name: 'SHUFFLE', id: '0_userdata.0.SHUFFLE', type: 'boolean' },
+        { name: 'REPEAT', id: '0_userdata.0.REPEAT', type: 'boolean' },
+        { name: 'ARTIST', id: '0_userdata.0.ARTIST', type: 'string' },
         { name: 'ALBUM', id: '0_userdata.0.ALBUM' },
         { name: 'TITLE', id: '0_userdata.0.TITLE' },
         { name: 'COVER', id: '0_userdata.0.COVER' },
@@ -174,11 +175,23 @@ class Adapter {
         this.subscribeManager = subscribeManager;
     }
 
-    async getObjectAsync(id) {
+    async getForeignObjectAsync(id) {
+        const entry = detectedDevices.states.find(state => state.id === id);
+        if (entry && (entry.type === 'boolean' || entry.type === 'string')) {
+            return {
+                _id: id,
+                common: {
+                    type: entry.type,
+                },
+            };
+        }
         return {
             _id: id,
             common: {
-
+                min: -100,
+                max: 200,
+                unit: '°C',
+                type: 'number',
             },
         };
     }
@@ -208,7 +221,7 @@ class Adapter {
     }
 
     async unsubscribeForeignStatesAsync(id) {
-        console.log('Unsubscribe', id);
+        // console.log('Unsubscribe', id);
         const pos = this.subscribed.indexOf(id);
         if (pos !== -1) {
             this.subscribed.splice(pos, 1);
@@ -238,6 +251,8 @@ describe('Test Devices', function () {
     it('Test that all devices are existing', async function () {
         const types = Object.keys(Types).filter(type => type !== 'unknown' && type !== 'instance' && type !== 'valve');
         for (const type of types) {
+            // detect that only read values are subscribed
+            console.log(`------------------------\nCreated device for ${type}`);
             const Device = require(`../build/lib/devices/${type[0].toUpperCase() + type.substring(1)}`);
             const adapter = new Adapter();
             SubscribeManager.default.setAdapter(adapter);
@@ -245,11 +260,7 @@ describe('Test Devices', function () {
             detectedDevices.type = type;
 
             const deviceObj = new Device.default(detectedDevices, adapter);
-            try {
-                await deviceObj.init();
-            } catch (e) {
-                throw new Error(`Device "${type}" has no init function`);
-            }
+            await deviceObj.init();
 
             const properties = deviceObj.getProperties();
             const possibleProperties = deviceObj.getPossibleProperties();
@@ -294,12 +305,48 @@ describe('Test Devices', function () {
                     }
                 }
                 if (properties[prop].accessType === StateAccessType.Write) {
+                    let value
+                    if (properties[prop].valueType === ValueType.Boolean || properties[prop].valueType === ValueType.Button) {
+                        value = true;
+                    } else if (properties[prop].valueType === ValueType.Enum) {
+                        value = 1;
+                    } else if (properties[prop].valueType === ValueType.String) {
+                        value = prop;
+                    } else {
+                        value = 50;
+                    }
                     // Try to write value
-                    await deviceObj.setPropertyValue(prop);
+                    console.log(`WWrite ${prop} with ${value}`);
+                    await deviceObj.setPropertyValue(prop, value);
                 } else if (properties[prop].accessType === StateAccessType.ReadWrite) {
                     // subscribe on changes and try to read value
-                    setTimeout(() => deviceObj.setPropertyValue(prop), 0);
-                    await new Promise(resolve => deviceObj.onChange((property, value) => resolve()));
+                    setTimeout(async () => {
+                        let value
+                        if (properties[prop].valueType === ValueType.Boolean || properties[prop].valueType === ValueType.Button) {
+                            value = true;
+                        } else if (properties[prop].valueType === ValueType.Enum) {
+                            value = 1;
+                        } else if (properties[prop].valueType === ValueType.String) {
+                            value = prop;
+                        } else {
+                            value = 50;
+                        }
+                        console.log(`Write ${prop} with ${value}`);
+                        await deviceObj.setPropertyValue(prop, value);
+                        if (properties[prop].read !== properties[prop].write) {
+                            console.log(`Write read value of ${prop} with ${value}`);
+                            await adapter.setForeignStateAsync(properties[prop].read, value, true)
+                        }
+                    }, 0);
+
+                    await new Promise(resolve => {
+                        const handler = event => {
+                            console.log(`Detected change of ${event.property} to ${event.value}`);
+                            deviceObj.offChange(handler);
+                            resolve();
+                        };
+                        deviceObj.onChange(handler);
+                    });
                 }
             }
             if (Object.keys(possibleProperties).length) {
@@ -310,9 +357,104 @@ describe('Test Devices', function () {
             if (adapter.getSubscribed().length) {
                 throw new Error(`Device "${type}" was not unsubscribed`);
             }
-
-            // detect that only read values are subscribed
-            console.log(`Created device for ${type}`);
         }
-    }).timeout(10000);
+    }).timeout(50000);
+
+    it('Test min/max - negative', async function () {
+        const Device = require(`../build/lib/devices/Thermostat`);
+        const adapter = new Adapter();
+        SubscribeManager.default.setAdapter(adapter);
+        adapter.setSubscribeManager(SubscribeManager.default);
+        detectedDevices.type = 'thermostat';
+
+        const deviceObj = new Device.default(detectedDevices, adapter);
+        await deviceObj.init();
+
+        const properties = deviceObj.getProperties();
+
+        // subscribe on changes and try to read value
+        await deviceObj.setPropertyValue('level', 30);
+        const ioBrokerValue = await adapter.getForeignStateAsync(properties.level.read);
+        await new Promise(resolve => setTimeout(() => {
+            const deviceValue = deviceObj.getPropertyValue('level');
+            if (ioBrokerValue.val !== deviceValue) {
+                throw new Error(`Value of ${properties.level.read} is ${ioBrokerValue.val}, but should be ${deviceValue}`);
+            }
+            resolve();
+        }, 100));
+        await deviceObj.destroy();
+    }).timeout(2000);
+
+    it('Test min/max - positive, readId=writeId', async function () {
+        const Device = require(`../build/lib/devices/Slider`);
+        const adapter = new Adapter();
+        SubscribeManager.default.setAdapter(adapter);
+        adapter.setSubscribeManager(SubscribeManager.default);
+        const _detectedDevices = {
+            states: [
+                {name: 'SET', id: '0_userdata.0.set'},
+            ],
+            type: 'slider',
+        }
+
+        const deviceObj = new Device.default(_detectedDevices, adapter);
+        await deviceObj.init();
+
+        const properties = deviceObj.getProperties();
+
+        // subscribe on changes and try to read value
+        await deviceObj.setPropertyValue('level', 30);
+        const ioBrokerValue = await adapter.getForeignStateAsync(properties.level.read);
+        await new Promise(resolve => setTimeout(() => {
+            const deviceValue = deviceObj.getPropertyValue('level');
+            if (deviceValue !== 30) {
+                throw new Error(`Value of ${properties.level.read} is ${ioBrokerValue.val}, but should be 30`);
+            }
+            if (ioBrokerValue.val !== -10) {
+                throw new Error(`Value of ${properties.level.read} is ${ioBrokerValue.val}, but should be -10`);
+            }
+            resolve();
+        }, 100));
+
+        await deviceObj.destroy();
+    }).timeout(2000);
+
+    it('Test min/max - positive, readId!=writeId', async function () {
+        const Device = require(`../build/lib/devices/Slider`);
+        const adapter = new Adapter();
+        SubscribeManager.default.setAdapter(adapter);
+        adapter.setSubscribeManager(SubscribeManager.default);
+        const _detectedDevices = {
+            states: [
+                {name: 'SET', id: '0_userdata.0.set'},
+                {name: 'ACTUAL', id: '0_userdata.0.actual'},
+            ],
+            type: 'slider',
+        }
+
+        const deviceObj = new Device.default(_detectedDevices, adapter);
+        await deviceObj.init();
+
+        const properties = deviceObj.getProperties();
+
+        // subscribe on changes and try to read value
+        await deviceObj.setPropertyValue('level', 75);
+
+        // write value to ACTUAL
+        const ioBrokerValue = await adapter.getForeignStateAsync(properties.level.write);
+        await adapter.setForeignStateAsync(properties.level.read, ioBrokerValue.val, true);
+
+        await new Promise(resolve => setTimeout(() => {
+            const deviceValue = deviceObj.getPropertyValue('level');
+            if (deviceValue !== 75) {
+                throw new Error(`Value of ${properties.level.read} is ${ioBrokerValue.val}, but should be 75`);
+            }
+            if (ioBrokerValue.val !== 125) {
+                throw new Error(`Value of ${properties.level.read} is ${ioBrokerValue.val}, but should be 125`);
+            }
+            resolve();
+        }, 100));
+
+        await deviceObj.destroy();
+    }).timeout(20000);
 });

@@ -16,7 +16,7 @@ import Gate from './devices/Gate';
 import GenericDevice from './devices/GenericDevice';
 import Hue from './devices/Hue';
 import Humidity from './devices/Humidity';
-import Url from './devices/Url';
+import Image from './devices/Image';
 import Info from './devices/Info';
 import Slider from './devices/Slider';
 import Light from './devices/Light';
@@ -60,7 +60,7 @@ export {
     GenericDevice,
     Hue,
     Humidity,
-    Url,
+    Image,
     Info,
     Slider,
     Light,

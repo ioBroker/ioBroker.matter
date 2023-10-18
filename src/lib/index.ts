@@ -1,6 +1,6 @@
-import AirConditioner from './devices/AirConditioner';
-import Blinds from './devices/Blinds';
-import BlindsButtons from './devices/BlindsButtons';
+import AirCondition from './devices/AirCondition';
+import Blind from './devices/Blind';
+import BlindButtons from './devices/BlindButtons';
 import Button from './devices/Button';
 import ButtonSensor from './devices/ButtonSensor';
 import Camera from './devices/Camera';
@@ -16,14 +16,14 @@ import Gate from './devices/Gate';
 import GenericDevice from './devices/GenericDevice';
 import Hue from './devices/Hue';
 import Humidity from './devices/Humidity';
-import Image from './devices/Image';
+import Url from './devices/Url';
 import Info from './devices/Info';
-import LevelSlider from './devices/LevelSlider';
+import Slider from './devices/Slider';
 import Light from './devices/Light';
 import Location from './devices/Location';
 import LocationOne from './devices/LocationOne';
 import Lock from './devices/Lock';
-import MediaPlayer from './devices/MediaPlayer';
+import Media from './devices/Media';
 import Motion from './devices/Motion';
 import Rgb from './devices/Rgb';
 import RgbSingle from './devices/RgbSingle';
@@ -42,9 +42,9 @@ import Window from './devices/Window';
 import WindowTilt from './devices/WindowTilt';
 
 export {
-    AirConditioner,
-    Blinds,
-    BlindsButtons,
+    AirCondition,
+    Blind,
+    BlindButtons,
     Button,
     ButtonSensor,
     Camera,
@@ -60,14 +60,14 @@ export {
     GenericDevice,
     Hue,
     Humidity,
-    Image,
+    Url,
     Info,
-    LevelSlider,
+    Slider,
     Light,
     Location,
     LocationOne,
     Lock,
-    MediaPlayer,
+    Media,
     Motion,
     Rgb,
     RgbSingle,

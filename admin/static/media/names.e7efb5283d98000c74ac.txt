@@ -34,7 +34,7 @@ Music	Музыка	Musik	Musique	Musica	Muziek	Muzyka	Música	Música	音乐
 People	Люди	Personen	Gens	Persone	Mensen	Ludzie	Pessoas	Personas	人们
 Pool	Бассейн	Pool	Piscine	Piscina	Zwembad	Basen	Piscina	Piscina	水池
 Pump	Насос	Pumpen	Pompe	Pompa	Pomp	Pompa	Bombear	Bomba	泵
-Outdoor Blinds	Открытый Жалюзи	Raffstoren	Volets	Tende Da Esterni	Outdoor Blinds	Rolety Zewnętrzne	Estores Exteriores	Persianas Exteriores	室外百叶窗
+Outdoor Blind	Открытый Жалюзи	Raffstoren	Volets	Tende Da Esterni	Outdoor Blind	Rolety Zewnętrzne	Estores Exteriores	Persianas Exteriores	室外百叶窗
 Mowing Machine	Стрижка Машина	Rasenmäher	Machine De Fauchage	Macchina Di Falciatura	Maaimachine	Kosiarka	Roçada Máquina	Segadora	割草机
 Receiver	Приемник	Receiver	Destinataire	Ricevitore	Ontvanger	Odbiorca	Recebedor	Receptor	接收者
 Computer	Компьютер	Rechner	L'Ordinateur	Computer	Computer	Komputer	Computador	Ordenador	电脑

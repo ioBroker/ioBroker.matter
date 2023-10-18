@@ -14,6 +14,7 @@ class SubscribeManager {
 
     static async subscribe(id: string, callback: SubscribeCallback): Promise<void> {
         if (!SubscribeManager.subscribes[id]) {
+            SubscribeManager.subscribes[id] = [];
             SubscribeManager.adapter.log.debug(`Subscribe to "${id}"`);
             await SubscribeManager.adapter.subscribeForeignStatesAsync(id);
         }
@@ -28,6 +29,7 @@ class SubscribeManager {
         }
         if (!SubscribeManager.subscribes[id].length) {
             SubscribeManager.adapter.log.debug(`Unsubscribe from "${id}"`);
+            delete SubscribeManager.subscribes[id];
             await SubscribeManager.adapter.unsubscribeForeignStatesAsync(id);
         }
     }

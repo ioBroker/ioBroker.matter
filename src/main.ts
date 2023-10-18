@@ -191,6 +191,15 @@ export class MatterAdapter extends utils.Adapter {
                 delete this.deviceObjects[device];
             }
         }
+
+        // for tests purposes, add the handlers
+        Object.keys(this.deviceObjects).forEach(device => {
+            this.deviceObjects[device].clearChangeHandlers();
+            this.deviceObjects[device].onChange((event) => {
+                // @ts-ignore
+                this.log.info(`Detected changes in "${event.property}" with value "${event.value}" in "${event.device.getDeviceType()}"`);
+            });
+        });
     }
 }
 

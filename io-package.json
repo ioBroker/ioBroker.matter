@@ -38,6 +38,7 @@
     "license": "Apache-2.0",
     "platform": "Javascript/Node.js",
     "mode": "daemon",
+    "nogit": true,
     "loglevel": "info",
     "readme": "https://github.com/ioBroker/ioBroker.matter/blob/master/README.md",
     "icon": "matter.png",

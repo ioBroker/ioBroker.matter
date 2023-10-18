@@ -135,6 +135,7 @@ const detectedDevices = {
         { name: 'RED', id: '0_userdata.0.RED' },
         { name: 'GREEN', id: '0_userdata.0.GREEN' },
         { name: 'BLUE', id: '0_userdata.0.BLUE' },
+        { name: 'WHITE', id: '0_userdata.0.WHITE' },
         { name: 'RGB', id: '0_userdata.0.RGB' },
         { name: 'RGBW', id: '0_userdata.0.RGBW' },
         { name: 'HUE', id: '0_userdata.0.HUE' },
@@ -244,7 +245,12 @@ describe('Test Devices', function () {
             detectedDevices.type = type;
 
             const deviceObj = new Device.default(detectedDevices, adapter);
-            await deviceObj.init();
+            try {
+                await deviceObj.init();
+            } catch (e) {
+                throw new Error(`Device "${type}" has no init function`);
+            }
+
             const properties = deviceObj.getProperties();
             const possibleProperties = deviceObj.getPossibleProperties();
             const subscribed = adapter.getSubscribed();

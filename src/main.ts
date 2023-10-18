@@ -33,7 +33,7 @@ export class MatterAdapter extends utils.Adapter {
         });
         this.on('ready', () => this.onReady());
         this.on('stateChange', (id, state) => this.onStateChange(id, state));
-        this.on('objectChange', (id, object) => this.onObjectChange(id));
+        this.on('objectChange', (id /* , object */) => this.onObjectChange(id));
         this.on('unload', callback => this.onUnload(callback));
         // this.on('message', this.onMessage.bind(this));
 

@@ -1,7 +1,7 @@
 declare module 'iobroker.type-detector';
 
 export interface DetectorOptions {
-    objects:  Record<{[id: string]: ioBroker.Object}>; // all objects
+    objects:  Record<{ [id: string]: ioBroker.Object }>; // all objects
     id: string;                    // Channel, device or state, that must be detected
     _keysOptional?: string[];      // For optimization, it is Object.keys(objects)
     _usedIdsOptional?: string[];   // For optimization, initially it is empty array

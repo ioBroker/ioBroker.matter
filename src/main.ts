@@ -5,6 +5,7 @@ import { DeviceState, ChannelDetectorType, Control } from './iobroker.type-detec
 
 import { SubscribeManager, DeviceFabric, GenericDevice }  from './lib';
 import { DetectedDevice } from './lib/devices/GenericDevice';
+import BridgedDevice, { BridgeOptions } from "./matter/BridgedDevicesNode";
 
 interface DeviceDescription {
     uuid: string;
@@ -19,12 +20,15 @@ interface BridgeDescription {
     enabled: boolean;
     productID: string;
     vendorID: string;
+    passcode: string;
+    name: string;
     list: DeviceDescription[];
 }
 
 export class MatterAdapter extends utils.Adapter {
     private detector: ChannelDetectorType;
-    private deviceObjects: { [key: string]: GenericDevice } = {};
+    private devices: { [key: string]: GenericDevice } = {};
+    private bridges: { [key: string]: BridgedDevice } = {};
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -147,8 +151,40 @@ export class MatterAdapter extends utils.Adapter {
         return null;
     }
 
+    async createBridge(uuid: string, options: BridgeDescription): Promise<BridgedDevice> {
+        const devices = [];
+        for (let l = 0; l < options.list.length; l++) {
+            const device = options.list[l];
+            if (device.enabled === false) {
+                continue;
+            }
+            const detectedDevice = await this.getDeviceStates(device.oid) as DetectedDevice;
+            if (detectedDevice) {
+                const deviceObject = await DeviceFabric(detectedDevice, this);
+                if (deviceObject) {
+                    devices.push(deviceObject);
+                }
+            }
+        }
+
+        const bridge = new BridgedDevice(this, uuid, {
+            passcode: parseInt(options.passcode as string, 10) || 20202021,
+            discriminator: 3840,
+            vendorid: parseInt(options.vendorID) || 0xfff1,
+            productid: parseInt(options.productID) || 0x8000,
+            devicename: options.name,
+            productname: `Product ${options.name}`,
+        }, devices);
+
+        await bridge.start();
+
+        return bridge;
+    }
+
     async loadDevices(): Promise<void> {
-        const _devices: string[] = [];
+        const _devices: ioBroker.Object[] = [];
+        const _bridges: ioBroker.Object[] = [];
+
         const objects = await this.getObjectViewAsync(
             'system', 'channel',
             {
@@ -157,45 +193,67 @@ export class MatterAdapter extends utils.Adapter {
             },
         );
 
-        objects.rows.forEach(object => {
-            if (!object.value) {
+        for (let r = 0; r < objects.rows.length; r++) {
+            const object = objects.rows[r]?.value;
+            if (!object) {
                 return;
             }
-            if (object.id.startsWith(`${this.namespace}.devices.`)) {
-                const device: DeviceDescription = object.value.native as DeviceDescription;
-                _devices.push(device.oid);
-            } else if (object.id.startsWith(`${this.namespace}.bridges.`)) {
-                const bridge: BridgeDescription = object.value.native as BridgeDescription;
-                bridge.list.forEach((device: DeviceDescription) => _devices.push(device.oid));
+            if (object._id.startsWith(`${this.namespace}.devices.`) && object.native.enabled !== false) {
+                _bridges.push(object);
+            } else if (object._id.startsWith(`${this.namespace}.bridges.`) &&
+                object.native.enabled !== false &&
+                object.native.list?.length &&
+                object.native.list.find((item: DeviceDescription) => item.enabled !== false)
+            ) {
+                _bridges.push(object);
             }
-        });
+        }
+
+        // Create new bridges
+        for (const b in _bridges) {
+            const bridge = _bridges[b];
+            if (!this.bridges[bridge._id]) {
+                this.bridges[bridge._id] = await this.createBridge(
+                    bridge._id,
+                    bridge.native as BridgeDescription,
+                );
+            }
+        }
+
+        // Delete old non-existing bridges
+        for (const bridgeId in this.bridges) {
+            if (!_bridges.find(obj => obj._id === bridgeId)) {
+                await this.bridges[bridgeId].stop();
+                delete this.bridges[bridgeId];
+            }
+        }
 
         // Create new devices
         for (const d in _devices) {
             const device = _devices[d];
-            if (!Object.keys(this.deviceObjects).includes(device)) {
-                const detectedDevice = await this.getDeviceStates(device) as DetectedDevice;
+            if (!this.devices[device._id]) {
+                const detectedDevice = await this.getDeviceStates(device.native.oid) as DetectedDevice;
                 if (detectedDevice) {
                     const deviceObject = await DeviceFabric(detectedDevice, this);
                     if (deviceObject) {
-                        this.deviceObjects[device] = deviceObject;
+                        this.devices[device._id] = deviceObject;
                     }
                 }
             }
         }
 
         // Delete old non-existing devices
-        for (const device in this.deviceObjects) {
-            if (!_devices.includes(device)) {
-                await this.deviceObjects[device].destroy();
-                delete this.deviceObjects[device];
+        for (const device in this.devices) {
+            if (!_devices.find(obj => obj._id === device)) {
+                await this.devices[device].destroy();
+                delete this.devices[device];
             }
         }
 
         // for tests purposes, add the handlers
-        Object.keys(this.deviceObjects).forEach(device => {
-            this.deviceObjects[device].clearChangeHandlers();
-            this.deviceObjects[device].onChange((event) => {
+        Object.keys(this.devices).forEach(device => {
+            this.devices[device].clearChangeHandlers();
+            this.devices[device].onChange((event) => {
                 // @ts-ignore
                 this.log.info(`Detected changes in "${event.property}" with value "${event.value}" in "${event.device.getDeviceType()}"`);
             });
@@ -204,7 +262,7 @@ export class MatterAdapter extends utils.Adapter {
 }
 
 if (require.main !== module) {
-    // Export the constructor in compact mode
+    // Export the7 constructor in compact mode
     module.exports = (options: Partial<utils.AdapterOptions> | undefined) => new MatterAdapter(options);
 } else {
     // otherwise start the instance directly

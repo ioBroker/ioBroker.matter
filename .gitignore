@@ -4,6 +4,8 @@ tmp
 .DS_store
 iob_npm.done
 admin/i18n/flat.txt
+admin/static/media/*
+admin/static/js/*
 admin/i18n/*/flat.txt
 nbproject
 /src-admin/package-lock.json

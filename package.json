@@ -21,6 +21,7 @@
   "dependencies": {
     "@iobroker/adapter-core": "^3.0.4",
     "@project-chip/matter.js": "^0.6.0",
+    "@project-chip/matter-node.js": "^0.6.0",
     "iobroker.type-detector": "^2.0.6"
   },
   "devDependencies": {

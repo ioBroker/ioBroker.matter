@@ -3,12 +3,19 @@ import { CommissioningServer, MatterServer } from '@project-chip/matter-node.js'
 import { VendorId } from '@project-chip/matter-node.js/datatype';
 import { Aggregator, DeviceTypes, OnOffPluginUnitDevice } from '@project-chip/matter-node.js/device';
 import { QrCode } from '@project-chip/matter-node.js/schema';
-import { StorageManager } from '@project-chip/matter-node.js/storage';
 
-import { StorageIoBroker } from './StorageIoBroker';
 import { GenericDevice, Socket } from '../lib';
 
+export interface BridgeCreateOptions {
+    adapter: ioBroker.Adapter;
+    parameters: BridgeOptions,
+    devices: GenericDevice[];
+    sendToGui: (data: any) => Promise<void>;
+    matterServer: MatterServer;
+}
+
 export interface BridgeOptions {
+    uuid: string;
     passcode: number;
     discriminator: number;
     vendorid: number;
@@ -17,37 +24,29 @@ export interface BridgeOptions {
     productname: string;
 }
 
-interface MatterAdapterConfig extends ioBroker.AdapterConfig {
-    interface: string;
+export enum BridgeStates {
+    Creating = 'creating',
+    Listening = 'listening',
+    Commissioned = 'commissioned',
 }
 
 class BridgedDevice {
     private matterServer: MatterServer | undefined;
     private adapter: ioBroker.Adapter;
-    private options: BridgeOptions;
-    private uuid: string;
+    private parameters: BridgeOptions;
     private devices: GenericDevice[];
+    private sendToGui: (data: any) => Promise<void> | undefined;
+    private commissioningServer: CommissioningServer | undefined;
 
-    constructor(adapter: ioBroker.Adapter, uuid: string, options: BridgeOptions, devices: GenericDevice[]) {
-        this.adapter = adapter;
-        this.options = options;
-        this.uuid = uuid;
-        this.devices = devices;
+    constructor(options: BridgeCreateOptions) {
+        this.adapter = options.adapter;
+        this.parameters = options.parameters;
+        this.devices = options.devices;
+        this.sendToGui = options.sendToGui;
+        this.matterServer = options.matterServer;
     }
 
-    async start() {
-        const storage = new StorageIoBroker(this.adapter, this.uuid);
-
-        /**
-         * Initialize the storage system.
-         *
-         * The storage manager is then also used by the Matter server, so this code block in general is required,
-         * but you can choose a different storage backend as long as it implements the required API.
-         */
-
-        const storageManager = new StorageManager(storage);
-        await storageManager.initialize();
-
+    async init() {
         /**
          * Collect all needed data
          *
@@ -58,21 +57,20 @@ class BridgedDevice {
          * and easy reuse. When you also do that be careful to not overlap with Matter-Server own contexts
          * (so maybe better not ;-)).
          */
-
-        const deviceName = this.options.devicename || "Matter Bridge device";
+        const deviceName = this.parameters.devicename || "Matter Bridge device";
         const deviceType = DeviceTypes.AGGREGATOR.code;
         const vendorName = "ioBroker";
-        const passcode = this.options.passcode; // 20202021;
-        const discriminator = this.options.discriminator; // 3840);
+        const passcode = this.parameters.passcode; // 20202021;
+        const discriminator = this.parameters.discriminator; // 3840);
 
         // product name / id and vendor id should match what is in the device certificate
-        const vendorId = this.options.vendorid;// 0xfff1;
+        const vendorId = this.parameters.vendorid;// 0xfff1;
         const productName = `ioBroker OnOff-Bridge`;
-        const productId = this.options.productid; // 0x8000;
+        const productId = this.parameters.productid; // 0x8000;
 
         const port = 5540;
 
-        const uniqueId = this.uuid.replace(/-/g, '').split('.').pop() || '0000000000000000';
+        const uniqueId = this.parameters.uuid.replace(/-/g, '').split('.').pop() || '0000000000000000';
 
         /**
          * Create Matter Server and CommissioningServer Node
@@ -86,15 +84,7 @@ class BridgedDevice {
          * like testEventTrigger (General Diagnostic Cluster) that can be implemented with the logic when these commands
          * are called.
          */
-        const config: MatterAdapterConfig = this.adapter.config as MatterAdapterConfig;
-
-        if (!config.interface) {
-            this.matterServer = new MatterServer(storageManager);
-        } else {
-            this.matterServer = new MatterServer(storageManager, { mdnsAnnounceInterface: config.interface });
-        }
-
-        const commissioningServer = new CommissioningServer({
+        this.commissioningServer = new CommissioningServer({
             port,
             deviceName,
             deviceType,
@@ -130,7 +120,7 @@ class BridgedDevice {
             const onOffDevice = new OnOffPluginUnitDevice();
 
             onOffDevice.addOnOffListener(on => device.setPower(on));
-            onOffDevice.addCommandHandler('identify', async ({ request: { identifyTime } }) => {
+            onOffDevice.addCommandHandler('identify', async ({request: {identifyTime}}) => {
                 console.log(
                     `Identify called for OnOffDevice ${onOffDevice.name} with id: ${i} and identifyTime: ${identifyTime}`,
                 );
@@ -141,24 +131,25 @@ class BridgedDevice {
                 nodeLabel: name,
                 productName: name,
                 productLabel: name,
-                serialNumber: i.toString().padStart(4, '0') + uniqueId.substring(4),
+                uniqueId: i.toString().padStart(4, '0') + uniqueId.substring(4),
                 reachable: true,
             });
         }
 
-        commissioningServer.addDevice(aggregator);
+        this.commissioningServer.addDevice(aggregator);
 
-        this.matterServer.addCommissioningServer(commissioningServer);
+        this.matterServer?.addCommissioningServer(this.commissioningServer, { uniqueNodeId: this.parameters.uuid });
+    }
 
-        /**
-         * Start the Matter Server
-         *
-         * After everything was plugged together we can start the server. When not delayed announcement is set for the
-         * CommissioningServer node then this command also starts the announcement of the device into the network.
-         */
-
-        await this.matterServer.start();
-
+    async getState(): Promise<BridgeStates> {
+        if (!this.commissioningServer) {
+            this.sendToGui({
+                uuid: this.parameters.uuid,
+                command: 'status',
+                data: 'creating',
+            });
+            return BridgeStates.Creating;
+        }
         /**
          * Print Pairing Information
          *
@@ -166,19 +157,31 @@ class BridgedDevice {
          * pairing details. This includes the QR code that can be scanned by the Matter app to pair the device.
          */
 
-        this.adapter.log.info('Listening');
+        // this.adapter.log.info('Listening');
 
-        if (!commissioningServer.isCommissioned()) {
-            const pairingData = commissioningServer.getPairingCode();
-            const { qrPairingCode, manualPairingCode } = pairingData;
-
-            console.log(QrCode.encode(qrPairingCode));
-            console.log(
-                `QR Code URL: https://project-chip.github.io/connectedhomeip/qrcode.html?data=${qrPairingCode}`,
-            );
-            console.log(`Manual pairing code: ${manualPairingCode}`);
+        if (!this.commissioningServer.isCommissioned()) {
+            const pairingData = this.commissioningServer.getPairingCode();
+            this.sendToGui({
+                uuid: this.parameters.uuid,
+                command: 'showQRCode',
+                qrPairingCode: pairingData.qrPairingCode,
+                manualPairingCode: pairingData.manualPairingCode,
+            });
+            // const { qrPairingCode, manualPairingCode } = pairingData;
+            // console.log(QrCode.encode(qrPairingCode));
+            // console.log(
+            //     `QR Code URL: https://project-chip.github.io/connectedhomeip/qrcode.html?data=${qrPairingCode}`,
+            // );
+            // console.log(`Manual pairing code: ${manualPairingCode}`);
+            return BridgeStates.Listening;
         } else {
+            this.sendToGui({
+                uuid: this.parameters.uuid,
+                command: 'status',
+                data: 'connecting',
+            });
             console.log("Device is already commissioned. Waiting for controllers to connect ...");
+            return BridgeStates.Commissioned;
         }
     }
 
@@ -186,8 +189,6 @@ class BridgedDevice {
         for (let d = 0; d < this.devices.length; d++) {
             await this.devices[d].destroy();
         }
-
-        await this.matterServer?.close();
     }
 }
 

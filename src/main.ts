@@ -2,10 +2,17 @@ import * as utils from '@iobroker/adapter-core';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { ChannelDetector } = require('iobroker.type-detector');
 import { DeviceState, ChannelDetectorType, Control } from './iobroker.type-detector';
+import { MatterServer } from '@project-chip/matter-node.js';
+import { StorageManager } from '@project-chip/matter-node.js/storage';
 
+import { StorageIoBroker } from './matter/StorageIoBroker';
 import { SubscribeManager, DeviceFabric, GenericDevice }  from './lib';
 import { DetectedDevice } from './lib/devices/GenericDevice';
-import BridgedDevice, { BridgeOptions } from "./matter/BridgedDevicesNode";
+import BridgedDevice from './matter/BridgedDevicesNode';
+
+interface MatterAdapterConfig extends ioBroker.AdapterConfig {
+    interface: string;
+}
 
 interface DeviceDescription {
     uuid: string;
@@ -29,11 +36,26 @@ export class MatterAdapter extends utils.Adapter {
     private detector: ChannelDetectorType;
     private devices: { [key: string]: GenericDevice } = {};
     private bridges: { [key: string]: BridgedDevice } = {};
+    private _guiSubscribes: { clientId: string; ts: number }[] | null= null;
+    private matterServer: MatterServer | undefined;
+    private storage: StorageIoBroker | undefined;
+    private storageManager: StorageManager | null = null;
+    private stateTimeout: NodeJS.Timeout | null = null;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
             ...options,
             name: 'matter',
+            uiClientSubscribe: data => this.onClientSubscribe(data.clientId),
+            uiClientUnsubscribe: data => {
+                const { clientId, message, reason } = data;
+                if (reason === 'client') {
+                    this.log.debug(`GUI Client "${clientId} disconnected`);
+                } else {
+                    this.log.debug(`Client "${clientId}: ${reason}`);
+                }
+                this.onClientUnsubscribe(clientId);
+            }
         });
         this.on('ready', () => this.onReady());
         this.on('stateChange', (id, state) => this.onStateChange(id, state));
@@ -44,15 +66,117 @@ export class MatterAdapter extends utils.Adapter {
         this.detector = new ChannelDetector();
     }
 
-    async onReady(): Promise<void> {
-        SubscribeManager.setAdapter(this);
-        await this.loadDevices();
-        await this.subscribeForeignObjectsAsync(`${this.namespace}.0.*`);
-        // await this.subscribeForeignStatesAsync(`${this.namespace}.*`); // not required, as every device subscribes on own states
+    async onClientSubscribe(clientId: string): Promise<{error?: string, accepted: boolean, heartbeat?: number}> {
+        this.log.debug(`Subscribe from ${clientId}`);
+        if (!this._guiSubscribes) {
+            return { error: `Adapter is still initializing`,accepted: false };
+        }
+        // start camera with obj.message.data
+        if (!this._guiSubscribes.find(s => s.clientId === clientId)) {
+            this.log.debug(`Start GUI`);
+            // send state of devices
+        }
+
+        // inform GUI that camera is started
+        const sub = this._guiSubscribes.find(s => s.clientId === clientId);
+        if (!sub) {
+            this._guiSubscribes.push({ clientId, ts: Date.now() });
+            this.stateTimeout && clearTimeout(this.stateTimeout);
+            this.stateTimeout = setTimeout(() => {
+                this.stateTimeout = null;
+                this.requestNodeStates();
+            }, 100);
+        } else {
+            sub.ts = Date.now();
+        }
+
+        return { accepted: true, heartbeat: 120000 };
     }
 
-    onUnload(callback: () => void): void {
+    onClientUnsubscribe(clientId: string) {
+        this.log.debug(`Unsubscribe from ${clientId}`);
+        if (!this._guiSubscribes) {
+            return;
+        }
+        let deleted;
+        do {
+            deleted = false;
+            const pos = this._guiSubscribes.findIndex(s => s.clientId === clientId);
+            if (pos !== -1) {
+                deleted = true;
+                this._guiSubscribes.splice(pos, 1);
+            }
+        } while(deleted);
+    }
+
+    sendToGui = async (data: any): Promise<void> => {
+        if (!this._guiSubscribes) {
+            return;
+        }
+        if (this.sendToUI) {
+            for (let i = 0; i < this._guiSubscribes.length; i++) {
+                await this.sendToUI({ clientId: this._guiSubscribes[i].clientId, data });
+            }
+        }
+    }
+
+    async createMatterServer() {
+        const config: MatterAdapterConfig = this.config as MatterAdapterConfig;
+
+        /**
+         * Initialize the storage system.
+         *
+         * The storage manager is then also used by the Matter server, so this code block in general is required,
+         * but you can choose a different storage backend as long as it implements the required API.
+         */
+        this.storage = new StorageIoBroker(this, 'matter.0');
+        this.storageManager = new StorageManager(this.storage);
+        await this.storageManager.initialize();
+
+        if (!config.interface) {
+            this.matterServer = new MatterServer(this.storageManager);
+        } else {
+            this.matterServer = new MatterServer(this.storageManager, { mdnsAnnounceInterface: config.interface });
+        }
+    }
+
+    async onReady(): Promise<void> {
+        this._guiSubscribes = [];
+        SubscribeManager.setAdapter(this);
+        await this.createMatterServer();
+
+        await this.loadDevices();
+        await this.subscribeForeignObjectsAsync(`${this.namespace}.0.bridges.*`);
+        await this.subscribeForeignObjectsAsync(`${this.namespace}.0.devices.*`);
+        await this.subscribeForeignObjectsAsync(`${this.namespace}.0.controller`);
+
+        /**
+         * Start the Matter Server
+         *
+         * After everything was plugged together we can start the server.
+         * When a not delayed announcement is set for the CommissioningServer node,
+         * then this command also starts the announcement of the device into the network.
+         */
+        await this.matterServer?.start();
+    }
+
+    async requestNodeStates(): Promise<void> {
+        for (let uuid in this.bridges) {
+            const state = await this.bridges[uuid].getState();
+            this.log.debug(`State of ${uuid} is ${state}`);
+        }
+    }
+
+    async onUnload(callback: () => void): Promise<void> {
+        this.stateTimeout && clearTimeout(this.stateTimeout);
+        this.stateTimeout = null;
+
+        // inform GUI about stop
+        await this.sendToGui({ command: 'stopped' });
+
         try {
+            await this.matterServer?.close();
+            // close storage ??
             callback();
         } catch (e) {
             callback();
@@ -153,33 +277,43 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async createBridge(uuid: string, options: BridgeDescription): Promise<BridgedDevice> {
-        const devices = [];
-        for (let l = 0; l < options.list.length; l++) {
-            const device = options.list[l];
-            if (device.enabled === false) {
-                continue;
-            }
-            const detectedDevice = await this.getDeviceStates(device.oid) as DetectedDevice;
-            if (detectedDevice) {
-                const deviceObject = await DeviceFabric(detectedDevice, this);
-                if (deviceObject) {
-                    devices.push(deviceObject);
+        if (this.matterServer) {
+            const devices = [];
+            for (let l = 0; l < options.list.length; l++) {
+                const device = options.list[l];
+                if (device.enabled === false) {
+                    continue;
+                }
+                const detectedDevice = await this.getDeviceStates(device.oid) as DetectedDevice;
+                if (detectedDevice) {
+                    const deviceObject = await DeviceFabric(detectedDevice, this);
+                    if (deviceObject) {
+                        devices.push(deviceObject);
+                    }
                 }
             }
+
+            const bridge = new BridgedDevice({
+                parameters: {
+                    uuid: options.uuid,
+                    passcode: parseInt(options.passcode as string, 10) || 20202021,
+                    discriminator: 3840,
+                    vendorid: parseInt(options.vendorID) || 0xfff1,
+                    productid: parseInt(options.productID) || 0x8000,
+                    devicename: options.name,
+                    productname: `Product ${options.name}`,
+                },
+                adapter: this,
+                devices,
+                matterServer: this.matterServer,
+                sendToGui: this.sendToGui,
+            });
+
+            await bridge.init(); // add bridge to server
+
+            return bridge;
         }
-
-        const bridge = new BridgedDevice(this, uuid, {
-            passcode: parseInt(options.passcode as string, 10) || 20202021,
-            discriminator: 3840,
-            vendorid: parseInt(options.vendorID) || 0xfff1,
-            productid: parseInt(options.productID) || 0x8000,
-            devicename: options.name,
-            productname: `Product ${options.name}`,
-        }, devices);
-
-        await bridge.start();
-
-        return bridge;
+        throw new Error('Matter server not initialized');
     }
 
     async loadDevices(): Promise<void> {

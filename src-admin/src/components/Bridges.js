@@ -2,21 +2,33 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { withStyles } from '@mui/styles';
 import { v4 as uuidv4 } from 'uuid';
+import QRCode from 'react-qr-code';
 
 import {
     Button, Checkbox,
     Dialog, DialogActions, DialogContent, DialogTitle,
-    Fab, FormControlLabel, IconButton, MenuItem, Switch, Table,
+    Fab, FormControlLabel, IconButton, InputAdornment, MenuItem, Switch, Table,
     TableBody,
     TableCell,
     TableRow, TextField,
     Tooltip,
 } from '@mui/material';
 import {
-    Add, Close, Delete, Edit, KeyboardArrowDown, KeyboardArrowUp, QuestionMark, Save, UnfoldLess, UnfoldMore,
+    Add,
+    Close,
+    ContentCopy,
+    Delete,
+    Edit,
+    KeyboardArrowDown,
+    KeyboardArrowUp,
+    QrCode,
+    QuestionMark,
+    Save,
+    UnfoldLess,
+    UnfoldMore,
 } from '@mui/icons-material';
 
-import { I18n } from '@iobroker/adapter-react-v5';
+import {I18n, Utils} from '@iobroker/adapter-react-v5';
 
 import DeviceDialog, { DEVICE_ICONS } from '../DeviceDialog';
 import { getText } from '../Utils';
@@ -55,6 +67,14 @@ const styles = () => ({
         marginLeft: 8,
         opacity: 0.6,
     },
+    flexGrow: {
+        flexGrow: 1,
+    },
+    bridgeHeader: {
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+    }
 });
 
 class Bridges extends React.Component {
@@ -72,6 +92,7 @@ class Bridges extends React.Component {
             editDialog: null,
             deleteDialog: false,
             bridgesOpened,
+            showQrCode: null,
         };
     }
 
@@ -371,6 +392,70 @@ class Bridges extends React.Component {
         </TableRow>;
     }
 
+    renderQrCodeDialog() {
+        if (!this.state.showQrCode) {
+            return null;
+        }
+        return <Dialog
+            onClose={() => this.setState({ showQrCode: null })}
+            open={!0}
+            maxWidth="md"
+        >
+            <DialogTitle>{I18n.t('QR Code to connect ')}</DialogTitle>
+            <DialogContent>
+                <div style={{ background: 'white', padding: 16 }}>
+                    <QRCode value={this.props.nodeStates[this.state.showQrCode.uuid].qrPairingCode} />
+                </div>
+                <TextField
+                    value={this.props.nodeStates[this.state.showQrCode.uuid].manualPairingCode}
+                    InputProps={{
+                        readOnly: true,
+                        endAdornment: <InputAdornment position="end">
+                            <IconButton
+                                onClick={() => {
+                                    Utils.copyToClipboard(this.props.nodeStates[this.state.showQrCode.uuid].manualPairingCode);
+                                    this.props.showToast(I18n.t('Copied to clipboard'));
+                                }}
+                                edge="end"
+                            >
+                                <ContentCopy />
+                            </IconButton>
+                        </InputAdornment>,
+                    }}
+                    fullWidth
+                    label={I18n.t('Manual pairing code')}
+                    variant="standard"
+                />
+            </DialogContent>
+            <DialogActions>
+                <Button
+                    onClick={() => this.setState({ showQrCode: null })}
+                    startIcon={<Close />}
+                    color="grey"
+                    variant="contained"
+                >
+                    {I18n.t('Close')}
+                </Button>
+            </DialogActions>
+        </Dialog>;
+    }
+
+    renderStatus(bridge) {
+        if (!this.props.nodeStates[bridge.uuid]) {
+            return null;
+        }
+        if (this.props.nodeStates[bridge.uuid].command === 'showQRCode') {
+            return <Tooltip title={I18n.t('Show QR Code')}>
+                <IconButton
+                    style={{ height: 40 }}
+                    onClick={() => this.setState({ showQrCode: bridge })}
+                >
+                    <QrCode />
+                </IconButton>
+            </Tooltip>;
+        }
+    }
+
     renderBridge(bridge, bridgeIndex) {
         const enabledDevices = bridge.list.filter(d => d.enabled).length;
         let countText;
@@ -413,7 +498,7 @@ class Bridges extends React.Component {
                     </IconButton>
                 </TableCell>
                 <TableCell
-                    style={{ cursor: 'pointer' }}
+                    className={this.props.classes.bridgeHeader}
                     onClick={() => {
                         const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
                         bridgesOpened[bridgeIndex] = !bridgesOpened[bridgeIndex];
@@ -440,6 +525,8 @@ class Bridges extends React.Component {
                             <span className={this.props.classes.bridgeValue}>{bridge.productID || ''}</span>
                         </div>
                     </div>
+                    <div className={this.props.classes.flexGrow} />
+                    {this.renderStatus(bridge)}
                 </TableCell>
                 <TableCell style={{ width: 0 }}>
                     <Switch
@@ -529,6 +616,7 @@ class Bridges extends React.Component {
             {this.renderDevicesDialog()}
             {this.renderDeleteDialog()}
             {this.renderEditDialog()}
+            {this.renderQrCodeDialog()}
             <Tooltip title={I18n.t('Add bridge')}>
                 <Fab
                     onClick={() => {
@@ -608,6 +696,8 @@ Bridges.propTypes = {
     themeType: PropTypes.string,
     detectedDevices: PropTypes.array,
     setDetectedDevices: PropTypes.func,
+    nodeStates: PropTypes.object,
+    showToast: PropTypes.func,
 };
 
 export default withStyles(styles)(Bridges);

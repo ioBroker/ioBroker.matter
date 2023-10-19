@@ -6,7 +6,13 @@ import {
     AppBar,
     Tabs,
     Tab,
+    IconButton,
 } from '@mui/material';
+
+import {
+    SignalWifiConnectedNoInternet4 as IconNoConnection,
+    SignalCellularOff as IconNotAlive,
+} from '@mui/icons-material';
 
 import GenericApp from '@iobroker/adapter-react-v5/GenericApp';
 import { I18n, Loader, AdminConnection } from '@iobroker/adapter-react-v5';
@@ -68,9 +74,31 @@ class App extends GenericApp {
         super(props, extendedProps);
 
         this.state.selectedTab = window.localStorage.getItem(`${this.adapterName}.${this.instance}.selectedTab`) || 'controller';
+        this.state.alive = false;
+        this.state.backendRunning = false;
+        this.state.nodeStates = {};
 
         this.state.detectedDevices = null;
         this.configHandler = null;
+        this.intervalSubscribe = null;
+    }
+
+    refreshBackendSubscription() {
+        this.refreshTimer && clearTimeout(this.refreshTimer);
+        this.refreshTimer = setTimeout(() => {
+            this.refreshTimer = null;
+            this.refreshBackendSubscription();
+        }, 60000);
+
+        this.socket.subscribeOnInstance(`matter.${this.instance}`, 'gui', null, this.onBackendUpdates)
+            .then(result => {
+                if (typeof result === 'object' && result.accepted === false) {
+                    console.error('Subscribe is not accepted');
+                    this.setState({ backendRunning: !!result.accepted });
+                } else if (!this.state.backendRunning) {
+                    this.setState({ backendRunning: true });
+                }
+            });
     }
 
     async onConnectionReady() {
@@ -87,8 +115,41 @@ class App extends GenericApp {
             matter.bridges = matter.bridges.list;
         }
 
-        this.setState({ matter, changed: this.configHandler.isChanged(matter), ready: true });
+        this.socket.subscribeState(`system.adapter.matter.${this.instance}.alive`, this.onAlive);
+        const alive = await this.socket.getState(`system.adapter.matter.${this.instance}.alive`);
+
+        if (alive?.val) {
+            this.refreshBackendSubscription();
+        }
+
+        this.setState({
+            matter,
+            changed: this.configHandler.isChanged(matter),
+            ready: true,
+            alive: !!(alive?.val),
+        });
     }
+
+    onAlive = (id, state) => {
+        if (state?.val && !this.state.alive) {
+            this.setState({ alive: true });
+            this.refreshBackendSubscription();
+        } else if (!state?.val && this.state.alive) {
+            this.refreshTimer && clearTimeout(this.refreshTimer);
+            this.refreshTimer = null;
+            this.setState({ alive: false });
+        }
+    };
+
+    onBackendUpdates = update => {
+        if (update.uuid) {
+            const nodeStates = JSON.parse(JSON.stringify(this.state.nodeStates));
+            nodeStates[update.uuid] = update;
+            this.setState({ nodeStates });
+        } else {
+            console.log(`Unknown update: ${JSON.stringify(update)}`);
+        }
+    };
 
     onChanged = newConfig => {
         if (this.state.ready) {
@@ -96,7 +157,17 @@ class App extends GenericApp {
         }
     };
 
-    componentWillUnmount() {
+    async componentWillUnmount() {
+        this.intervalSubscribe && clearInterval(this.intervalSubscribe);
+        this.intervalSubscribe = null;
+
+        try {
+            await this.socket.unsubscribeState(`system.adapter.matter.${this.instance}.alive`, this.onAlive);
+            await this.socket.unsubscribeFromInstance(`matter.${this.instance}`, 'gui', this.onBackendUpdates);
+        } catch (e) {
+            // ignore
+        }
+
         super.componentWillUnmount();
         this.configHandler && this.configHandler.destroy();
     }
@@ -119,17 +190,20 @@ class App extends GenericApp {
     renderBridges() {
         return <Bridges
             socket={this.socket}
+            nodeStates={this.state.nodeStates}
             themeType={this.state.themeType}
             detectedDevices={this.state.detectedDevices}
             setDetectedDevices={detectedDevices => this.setState({ detectedDevices })}
             productIDs={productIDs}
             matter={this.state.matter}
             updateConfig={this.onChanged}
+            showToast={text => this.showToast(text)}
         />;
     }
 
     renderDevices() {
         return <Devices
+            nodeStates={this.state.nodeStates}
             socket={this.socket}
             themeType={this.state.themeType}
             detectedDevices={this.state.detectedDevices}
@@ -137,6 +211,7 @@ class App extends GenericApp {
             productIDs={productIDs}
             matter={this.state.matter}
             updateConfig={this.onChanged}
+            showToast={text => this.showToast(text)}
         />;
     }
 
@@ -162,6 +237,7 @@ class App extends GenericApp {
 
         return <StyledEngineProvider injectFirst>
             <ThemeProvider theme={this.state.theme}>
+                {this.renderToast()}
                 <div className="App" style={{ background: this.state.theme.palette.background.default, color: this.state.theme.palette.text.primary }}>
                     <AppBar position="static">
                         <Tabs
@@ -176,7 +252,21 @@ class App extends GenericApp {
                             <Tab classes={{ selected: this.props.classes.selected }} label={I18n.t('Controller')} value="controller" />
                             <Tab classes={{ selected: this.props.classes.selected }} label={I18n.t('Bridges')} value="bridges" />
                             <Tab classes={{ selected: this.props.classes.selected }} label={I18n.t('Devices')} value="devices" />
+                            <div style={{ flexGrow: 1 }} />
+                            {this.state.alive ? null : <IconNotAlive
+                                style={{ color: 'orange', padding: 12 }}
+                            />}
+                            {this.state.backendRunning ? null : <IconButton
+                                onClick={() => {
+                                    this.refreshBackendSubscription();
+                                }}
+                            >
+                                <IconNoConnection
+                                    style={{ color: 'orange' }}
+                                />
+                            </IconButton>}
                         </Tabs>
+
                     </AppBar>
 
                     <div className={this.isIFrame ? this.props.classes.tabContentIFrame : this.props.classes.tabContent}>

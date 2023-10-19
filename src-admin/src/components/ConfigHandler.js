@@ -13,7 +13,9 @@ class ConfigHandler {
     destroy() {
         this.onChanged = null;
         if (this.socket.isConnected()) {
-            this.socket.unsubscribeObject(`matter.${this.instance}.*`, this.onObjectChange);
+            this.socket.unsubscribeObject(`matter.${this.instance}.bridges.`, this.onObjectChange);
+            this.socket.unsubscribeObject(`matter.${this.instance}.devices.`, this.onObjectChange);
+            this.socket.unsubscribeObject(`matter.${this.instance}.controller`, this.onObjectChange);
         }
         this.socket = null;
     }
@@ -195,7 +197,9 @@ class ConfigHandler {
         globalThis.changed = false;
         window.parent.postMessage('nochange', '*');
 
-        this.socket.subscribeObject(`matter.${this.instance}.*`, this.onObjectChange);
+        this.socket.subscribeObject(`matter.${this.instance}.bridges.*`, this.onObjectChange);
+        this.socket.subscribeObject(`matter.${this.instance}.devices.*`, this.onObjectChange);
+        this.socket.subscribeObject(`matter.${this.instance}.controller`, this.onObjectChange);
 
         return JSON.parse(JSON.stringify(this.config));
     }

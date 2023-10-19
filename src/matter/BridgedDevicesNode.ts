@@ -2,7 +2,7 @@ import { CommissioningServer, MatterServer } from '@project-chip/matter-node.js'
 
 import { VendorId } from '@project-chip/matter-node.js/datatype';
 import { Aggregator, DeviceTypes, OnOffPluginUnitDevice } from '@project-chip/matter-node.js/device';
-import { QrCode } from '@project-chip/matter-node.js/schema';
+import { toJson } from '@project-chip/matter.js/storage';
 
 import { GenericDevice, Socket } from '../lib';
 
@@ -175,12 +175,17 @@ class BridgedDevice {
             // console.log(`Manual pairing code: ${manualPairingCode}`);
             return BridgeStates.Listening;
         } else {
+            const activeSession = this.commissioningServer.getActiveSessionInformation();
+            const fabric = this.commissioningServer.getCommissionedFabricInformation();
+
             this.sendToGui({
                 uuid: this.parameters.uuid,
                 command: 'status',
                 data: 'connecting',
+                activeSession: toJson(activeSession),
+                fabric: toJson(fabric),
             });
-            console.log("Device is already commissioned. Waiting for controllers to connect ...");
+            console.log('Device is already commissioned. Waiting for controllers to connect ...');
             return BridgeStates.Commissioned;
         }
     }

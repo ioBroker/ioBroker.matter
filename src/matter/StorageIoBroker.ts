@@ -1,4 +1,4 @@
-import { fromJson, Storage, StorageError, SupportedStorageTypes, toJson } from "@project-chip/matter.js/storage";
+import { fromJson, Storage, StorageError, SupportedStorageTypes, toJson } from '@project-chip/matter.js/storage';
 
 export class StorageIoBroker implements Storage {
     private readonly adapter: ioBroker.Adapter;

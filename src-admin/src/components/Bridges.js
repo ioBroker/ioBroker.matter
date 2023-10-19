@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import {
     Add,
-    Close,
+    Close, ConnectWithoutContact,
     ContentCopy,
     Delete,
     Edit,
@@ -28,7 +28,7 @@ import {
     UnfoldMore,
 } from '@mui/icons-material';
 
-import {I18n, Utils} from '@iobroker/adapter-react-v5';
+import { I18n, Utils } from '@iobroker/adapter-react-v5';
 
 import DeviceDialog, { DEVICE_ICONS } from '../DeviceDialog';
 import { getText } from '../Utils';
@@ -74,7 +74,7 @@ const styles = () => ({
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
-    }
+    },
 });
 
 class Bridges extends React.Component {
@@ -440,12 +440,40 @@ class Bridges extends React.Component {
         </Dialog>;
     }
 
+    renderDebugDialog() {
+        if (!this.state.showDebugData) {
+            return null;
+        }
+        return <Dialog
+            onClose={() => this.setState({ showDebugData: null })}
+            open={!0}
+            maxWidth="md"
+        >
+            <DialogTitle>{I18n.t('QR Code to connect ')}</DialogTitle>
+            <DialogContent>
+                <pre style={{ width: '100%' }}>
+                    {JSON.stringify(this.props.nodeStates[this.state.showDebugData.uuid], null, 2)}
+                </pre>
+            </DialogContent>
+            <DialogActions>
+                <Button
+                    onClick={() => this.setState({ showDebugData: null })}
+                    startIcon={<Close />}
+                    color="grey"
+                    variant="contained"
+                >
+                    {I18n.t('Close')}
+                </Button>
+            </DialogActions>
+        </Dialog>;
+    }
+
     renderStatus(bridge) {
         if (!this.props.nodeStates[bridge.uuid]) {
             return null;
         }
         if (this.props.nodeStates[bridge.uuid].command === 'showQRCode') {
-            return <Tooltip title={I18n.t('Show QR Code')}>
+            return <Tooltip title={I18n.t('Bridge is not commissioned. Show QR Code got commissioning')}>
                 <IconButton
                     style={{ height: 40 }}
                     onClick={() => this.setState({ showQrCode: bridge })}
@@ -454,6 +482,17 @@ class Bridges extends React.Component {
                 </IconButton>
             </Tooltip>;
         }
+        if (this.props.nodeStates[bridge.uuid].command === 'status' && this.props.nodeStates[bridge.uuid].data === 'connecting') {
+            return <Tooltip title={I18n.t('Device is already commissioning. Show status information')}>
+                <IconButton
+                    style={{ height: 40 }}
+                    onClick={() => this.setState({ showDebugData: bridge })}
+                >
+                    <ConnectWithoutContact />
+                </IconButton>
+            </Tooltip>;
+        }
+        return null;
     }
 
     renderBridge(bridge, bridgeIndex) {
@@ -617,6 +656,7 @@ class Bridges extends React.Component {
             {this.renderDeleteDialog()}
             {this.renderEditDialog()}
             {this.renderQrCodeDialog()}
+            {this.renderDebugDialog()}
             <Tooltip title={I18n.t('Add bridge')}>
                 <Fab
                     onClick={() => {

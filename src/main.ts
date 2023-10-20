@@ -9,28 +9,8 @@ import { StorageIoBroker } from './matter/StorageIoBroker';
 import { SubscribeManager, DeviceFabric, GenericDevice }  from './lib';
 import { DetectedDevice } from './lib/devices/GenericDevice';
 import BridgedDevice from './matter/BridgedDevicesNode';
-
-interface MatterAdapterConfig extends ioBroker.AdapterConfig {
-    interface: string;
-}
-
-interface DeviceDescription {
-    uuid: string;
-    name: string;
-    oid: string;
-    type: string;
-    enabled: boolean;
-}
-
-interface BridgeDescription {
-    uuid: string;
-    enabled: boolean;
-    productID: string;
-    vendorID: string;
-    passcode: string;
-    name: string;
-    list: DeviceDescription[];
-}
+import { MatterAdapterConfig, DeviceDescription, BridgeDescription } from './ioBrokerStorageTypes';
+import { Level, Logger } from '@project-chip/matter-node.js/log';
 
 export class MatterAdapter extends utils.Adapter {
     private detector: ChannelDetectorType;
@@ -48,7 +28,7 @@ export class MatterAdapter extends utils.Adapter {
             name: 'matter',
             uiClientSubscribe: data => this.onClientSubscribe(data.clientId),
             uiClientUnsubscribe: data => {
-                const { clientId, message, reason } = data;
+                const { clientId, reason } = data;
                 if (reason === 'client') {
                     this.log.debug(`GUI Client "${clientId} disconnected`);
                 } else {
@@ -66,7 +46,7 @@ export class MatterAdapter extends utils.Adapter {
         this.detector = new ChannelDetector();
     }
 
-    async onClientSubscribe(clientId: string): Promise<{error?: string, accepted: boolean, heartbeat?: number}> {
+    async onClientSubscribe(clientId: string): Promise<{ error?: string, accepted: boolean, heartbeat?: number }> {
         this.log.debug(`Subscribe from ${clientId}`);
         if (!this._guiSubscribes) {
             return { error: `Adapter is still initializing`,accepted: false };
@@ -93,7 +73,7 @@ export class MatterAdapter extends utils.Adapter {
         return { accepted: true, heartbeat: 120000 };
     }
 
-    onClientUnsubscribe(clientId: string) {
+    onClientUnsubscribe(clientId: string): void {
         this.log.debug(`Unsubscribe from ${clientId}`);
         if (!this._guiSubscribes) {
             return;
@@ -109,7 +89,7 @@ export class MatterAdapter extends utils.Adapter {
         } while(deleted);
     }
 
-    sendToGui = async (data: any): Promise<void> => {
+    sendToGui = async(data: any): Promise<void> => {
         if (!this._guiSubscribes) {
             return;
         }
@@ -118,10 +98,30 @@ export class MatterAdapter extends utils.Adapter {
                 await this.sendToUI({ clientId: this._guiSubscribes[i].clientId, data });
             }
         }
-    }
+    };
 
-    async createMatterServer() {
+    async createMatterServer(): Promise<void> {
         const config: MatterAdapterConfig = this.config as MatterAdapterConfig;
+        Logger.defaultLogLevel = Level.DEBUG;
+        Logger.log = (level: Level, formattedLog: string) => {
+            switch (level) {
+                case Level.DEBUG:
+                    this.log.silly(formattedLog);
+                    break;
+                case Level.INFO:
+                    this.log.debug(formattedLog);
+                    break;
+                case Level.WARN:
+                    this.log.info(formattedLog);
+                    break;
+                case Level.ERROR:
+                    this.log.warn(formattedLog);
+                    break;
+                case Level.FATAL:
+                    this.log.error(formattedLog);
+                    break;
+            }
+        };
 
         /**
          * Initialize the storage system.
@@ -161,7 +161,7 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async requestNodeStates(): Promise<void> {
-        for (let uuid in this.bridges) {
+        for (const uuid in this.bridges) {
             const state = await this.bridges[uuid].getState();
             this.log.debug(`State of ${uuid} is ${state}`);
         }
@@ -279,11 +279,9 @@ export class MatterAdapter extends utils.Adapter {
     async createBridge(uuid: string, options: BridgeDescription): Promise<BridgedDevice> {
         if (this.matterServer) {
             const devices = [];
-            for (let l = 0; l < options.list.length; l++) {
-                const device = options.list[l];
-                if (device.enabled === false) {
-                    continue;
-                }
+            const optionsList = (options.list || []).filter(item => item.enabled !== false);
+            for (let l = 0; l < optionsList.length; l++) {
+                const device = optionsList[l];
                 const detectedDevice = await this.getDeviceStates(device.oid) as DetectedDevice;
                 if (detectedDevice) {
                     const deviceObject = await DeviceFabric(detectedDevice, this);
@@ -303,8 +301,8 @@ export class MatterAdapter extends utils.Adapter {
                     devicename: options.name,
                     productname: `Product ${options.name}`,
                 },
-                adapter: this,
                 devices,
+                devicesOptions: optionsList,
                 matterServer: this.matterServer,
                 sendToGui: this.sendToGui,
             });

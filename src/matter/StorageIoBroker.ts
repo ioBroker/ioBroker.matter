@@ -16,10 +16,10 @@ export class StorageIoBroker implements Storage {
         this.createdKeys = {};
     }
 
-    async initialize() {
+    async initialize(): Promise<void> {
         let object;
         try {
-             object = await this.adapter.getForeignObjectAsync(this.oid);
+            object = await this.adapter.getForeignObjectAsync(this.oid);
         } catch (error) {
             // create object
             object = {
@@ -46,14 +46,14 @@ export class StorageIoBroker implements Storage {
 
         // read all keys
         const states = await this.adapter.getForeignStatesAsync(`${this.oid}.*`);
-        const len = this.oid.length + 1
+        const len = this.oid.length + 1;
         for (const key in states) {
             this.createdKeys[key] = true;
             this.data[key.substring(len)] = fromJson(states[key].val as string);
         }
     }
 
-    async close() {
+    async close(): Promise<void> {
         const keys = Object.keys(this.savingPromises);
         if (keys.length) {
             await Promise.all(keys.map(key => this.savingPromises[key]));
@@ -75,7 +75,7 @@ export class StorageIoBroker implements Storage {
         return value as T;
     }
 
-    saveKey(oid: string, value: string) {
+    saveKey(oid: string, value: string): void {
         const index = this.savingNumber++;
         if (this.savingNumber >= 0xFFFFFFFF) {
             this.savingNumber = 1;
@@ -110,7 +110,7 @@ export class StorageIoBroker implements Storage {
         }
     }
 
-    deleteKey(oid: string) {
+    deleteKey(oid: string): void {
         const index = this.savingNumber++;
         if (this.createdKeys[oid]) {
             if (this.savingNumber >= 0xFFFFFFFF) {

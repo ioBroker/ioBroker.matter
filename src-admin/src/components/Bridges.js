@@ -126,6 +126,7 @@ class Bridges extends React.Component {
                     enabled: true,
                     productID: this.state.editDialog.productID,
                     vendorID: this.state.editDialog.vendorID,
+                    noComposed: this.state.editDialog.noComposed,
                     list: [],
                     uuid: uuidv4(),
                 });
@@ -133,6 +134,7 @@ class Bridges extends React.Component {
                 matter.bridges[this.state.editDialog.bridge].name = this.state.editDialog.name;
                 matter.bridges[this.state.editDialog.bridge].productID = this.state.editDialog.productID;
                 matter.bridges[this.state.editDialog.bridge].vendorID = this.state.editDialog.vendorID;
+                matter.bridges[this.state.editDialog.bridge].noComposed = this.state.editDialog.noComposed;
             } else if (this.state.editDialog.bridge !== undefined) {
                 matter.bridges[this.state.editDialog.bridge].list[this.state.editDialog.device].name = this.state.editDialog.name;
             }

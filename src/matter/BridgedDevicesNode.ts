@@ -1,17 +1,19 @@
 import { CommissioningServer, MatterServer } from '@project-chip/matter-node.js';
 
 import { VendorId } from '@project-chip/matter-node.js/datatype';
-import { Aggregator, DeviceTypes, OnOffPluginUnitDevice } from '@project-chip/matter-node.js/device';
-import { toJson } from '@project-chip/matter.js/storage';
+import { Aggregator, DeviceTypes } from '@project-chip/matter-node.js/device';
 
-import { GenericDevice, Socket } from '../lib';
+import { GenericDevice } from '../lib';
+import { DeviceDescription } from '../ioBrokerStorageTypes';
+
+import matterDeviceFabric from './matterFabric';
 
 export interface BridgeCreateOptions {
-    adapter: ioBroker.Adapter;
     parameters: BridgeOptions,
     devices: GenericDevice[];
     sendToGui: (data: any) => Promise<void>;
     matterServer: MatterServer;
+    devicesOptions: DeviceDescription[];
 }
 
 export interface BridgeOptions {
@@ -30,23 +32,24 @@ export enum BridgeStates {
     Commissioned = 'commissioned',
 }
 
+
 class BridgedDevice {
     private matterServer: MatterServer | undefined;
-    private adapter: ioBroker.Adapter;
     private parameters: BridgeOptions;
     private devices: GenericDevice[];
     private sendToGui: (data: any) => Promise<void> | undefined;
     private commissioningServer: CommissioningServer | undefined;
+    private devicesOptions: DeviceDescription[];
 
     constructor(options: BridgeCreateOptions) {
-        this.adapter = options.adapter;
         this.parameters = options.parameters;
         this.devices = options.devices;
         this.sendToGui = options.sendToGui;
         this.matterServer = options.matterServer;
+        this.devicesOptions = options.devicesOptions;
     }
 
-    async init() {
+    async init(): Promise<void> {
         /**
          * Collect all needed data
          *
@@ -57,9 +60,9 @@ class BridgedDevice {
          * and easy reuse. When you also do that be careful to not overlap with Matter-Server own contexts
          * (so maybe better not ;-)).
          */
-        const deviceName = this.parameters.devicename || "Matter Bridge device";
+        const deviceName = this.parameters.devicename || 'Matter Bridge device';
         const deviceType = DeviceTypes.AGGREGATOR.code;
-        const vendorName = "ioBroker";
+        const vendorName = 'ioBroker';
         const passcode = this.parameters.passcode; // 20202021;
         const discriminator = this.parameters.discriminator; // 3840);
 
@@ -116,24 +119,30 @@ class BridgedDevice {
         const aggregator = new Aggregator();
 
         for (let i = 1; i <= this.devices.length; i++) {
-            const device = this.devices[i - 1] as Socket;
-            const onOffDevice = new OnOffPluginUnitDevice();
+            const ioBrokerDevice = this.devices[i - 1] as GenericDevice;
+            const mappingDevice = await matterDeviceFabric(ioBrokerDevice, this.devicesOptions[i - 1].name, this.devicesOptions[i - 1].uuid);
+            if (mappingDevice) {
+                const name = mappingDevice.getName();// `OnOff Socket ${i}`;
+                aggregator.addBridgedDevice(mappingDevice.getMatterDevice(), {
+                    nodeLabel: name,
+                    productName: name,
+                    productLabel: name,
+                    uniqueId: this.devicesOptions[i - 1].uuid[i - 1].replace(/-/g, ''),
+                    reachable: true,
+                });
+            } else {
+                console.error(`ioBroker Device "${this.devices[i - 1].getDeviceType()}" is not supported`);
+            }
 
-            onOffDevice.addOnOffListener(on => device.setPower(on));
-            onOffDevice.addCommandHandler('identify', async ({request: {identifyTime}}) => {
-                console.log(
-                    `Identify called for OnOffDevice ${onOffDevice.name} with id: ${i} and identifyTime: ${identifyTime}`,
-                );
-            });
-
-            const name = `OnOff Socket ${i}`;
-            aggregator.addBridgedDevice(onOffDevice, {
-                nodeLabel: name,
-                productName: name,
-                productLabel: name,
-                uniqueId: i.toString().padStart(4, '0') + uniqueId.substring(4),
-                reachable: true,
-            });
+            // const onOffDevice = new OnOffPluginUnitDevice();
+            //
+            // onOffDevice.setOnOff(true);
+            // onOffDevice.addOnOffListener(on => device.setPower(on));
+            // onOffDevice.addCommandHandler('identify', async ({request: {identifyTime}}) => {
+            //     console.log(
+            //         `Identify called for OnOffDevice ${onOffDevice.name} with id: ${i} and identifyTime: ${identifyTime}`,
+            //     );
+            // });
         }
 
         this.commissioningServer.addDevice(aggregator);
@@ -178,19 +187,34 @@ class BridgedDevice {
             const activeSession = this.commissioningServer.getActiveSessionInformation();
             const fabric = this.commissioningServer.getCommissionedFabricInformation();
 
+            const connectionInfo: any = activeSession.map(session => ({
+                vendor: session?.fabric?.rootVendorId,
+                connected: !!session.numberOfActiveSubscriptions,
+                label: session?.fabric?.label,
+            }));
+
+            fabric.forEach(fabric => {
+                if (!activeSession.find(session => session.fabric?.fabricId === fabric.fabricId)) {
+                    connectionInfo.push({
+                        vendor: fabric?.rootVendorId,
+                        connected: false,
+                        label: fabric?.label,
+                    });
+                }
+            });
+
             this.sendToGui({
                 uuid: this.parameters.uuid,
                 command: 'status',
                 data: 'connecting',
-                activeSession: toJson(activeSession),
-                fabric: toJson(fabric),
+                connectionInfo,
             });
             console.log('Device is already commissioned. Waiting for controllers to connect ...');
             return BridgeStates.Commissioned;
         }
     }
 
-    async stop() {
+    async stop(): Promise<void> {
         for (let d = 0; d < this.devices.length; d++) {
             await this.devices[d].destroy();
         }

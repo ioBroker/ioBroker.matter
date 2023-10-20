@@ -30,6 +30,7 @@ export enum BridgeStates {
     Creating = 'creating',
     Listening = 'listening',
     Commissioned = 'commissioned',
+    ConnectedWithController = 'connected',
 }
 
 
@@ -155,7 +156,7 @@ class BridgedDevice {
             this.sendToGui({
                 uuid: this.parameters.uuid,
                 command: 'status',
-                data: 'creating',
+                status: 'creating',
             });
             return BridgeStates.Creating;
         }
@@ -203,14 +204,25 @@ class BridgedDevice {
                 }
             });
 
-            this.sendToGui({
-                uuid: this.parameters.uuid,
-                command: 'status',
-                data: 'connecting',
-                connectionInfo,
-            });
-            console.log('Device is already commissioned. Waiting for controllers to connect ...');
-            return BridgeStates.Commissioned;
+            if (connectionInfo.find((info: any) => info.connected)) {
+                this.sendToGui({
+                    uuid: this.parameters.uuid,
+                    command: 'status',
+                    status: 'connected',
+                    connectionInfo,
+                });
+                console.log('Device is already commissioned and connected with controller');
+                return BridgeStates.ConnectedWithController;
+            } else {
+                this.sendToGui({
+                    uuid: this.parameters.uuid,
+                    command: 'status',
+                    status: 'connecting',
+                    connectionInfo,
+                });
+                console.log('Device is already commissioned. Waiting for controllers to connect ...');
+                return BridgeStates.Commissioned;
+            }
         }
     }
 

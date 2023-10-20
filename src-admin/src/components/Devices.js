@@ -128,13 +128,15 @@ class Devices extends React.Component {
             matter.devices[this.state.editDialog.device].name = this.state.editDialog.name;
             matter.devices[this.state.editDialog.device].productID = this.state.editDialog.productID;
             matter.devices[this.state.editDialog.device].vendorID = this.state.editDialog.vendorID;
+            matter.devices[this.state.editDialog.device].noComposed = this.state.editDialog.noComposed;
             this.setState({ editDialog: false }, () => this.props.updateConfig(matter));
         };
 
         const isDisabled =
             this.state.editDialog?.name === this.state.editDialog?.originalName &&
             this.state.editDialog?.vendorID === this.state.editDialog?.originalVendorID &&
-            this.state.editDialog?.productID === this.state.editDialog?.originalProductID;
+            this.state.editDialog?.productID === this.state.editDialog?.originalProductID &&
+            this.state.editDialog?.noComposed === this.state.editDialog?.originalNoComposed;
 
         return <Dialog onClose={() => this.setState({ editDialog: false })} open={!0}>
             <DialogTitle>
@@ -163,7 +165,6 @@ class Devices extends React.Component {
                         this.setState({ editDialog });
                     }}
                     label={I18n.t('Vendor ID')}
-                    helperText={<span style={{ display: 'block', height: 20 }} />}
                     variant="standard"
                 >
                     {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorID =>
@@ -184,7 +185,6 @@ class Devices extends React.Component {
                         this.setState({ editDialog });
                     }}
                     label={I18n.t('Product ID')}
-                    helperText={<span style={{ display: 'block', height: 20 }} />}
                     variant="standard"
                 >
                     {this.props.productIDs.map(productID =>
@@ -195,6 +195,18 @@ class Devices extends React.Component {
                             {productID}
                         </MenuItem>)}
                 </TextField>
+                <FormControlLabel
+                    variant="standard"
+                    control={<Checkbox
+                        checked={this.state.editDialog.noComposed}
+                        onChange={e => {
+                            const editDialog = JSON.parse(JSON.stringify(this.state.editDialog));
+                            editDialog.noComposed = e.target.checked;
+                            this.setState({ editDialog });
+                        }}
+                    />}
+                    label={<span style={{ fontSize: 'smaller' }}>{I18n.t('Do not compose devices (Alexa does not support composed devices yet)')}</span>}
+                />
             </DialogContent>
             <DialogActions>
                 <Button
@@ -229,6 +241,7 @@ class Devices extends React.Component {
                     type: device.deviceType,
                     productID: device.productID,
                     vendorID: device.vendorID,
+                    noComposed: true,
                     enabled: true,
                 });
             }
@@ -339,6 +352,8 @@ class Devices extends React.Component {
                                                         productID: device.productID,
                                                         originalVendorID: device.vendorID,
                                                         originalProductID: device.productID,
+                                                        originalNoComposed: !!device.noComposed,
+                                                        noComposed: !!device.noComposed,
                                                     },
                                                 },
                                             );

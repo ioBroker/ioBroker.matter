@@ -342,6 +342,11 @@ export class MatterAdapter extends utils.Adapter {
             }
         }
 
+        if (!_bridges.length) {
+            // create one bridge, that is enabled
+        }
+
+
         // Create new bridges
         for (const b in _bridges) {
             const bridge = _bridges[b];

@@ -31,6 +31,10 @@ class ConfigHandler {
                         changed = true;
                         device.enabled = obj.native.enabled;
                     }
+                    if (device.noComposed !== obj.native.noComposed) {
+                        changed = true;
+                        device.noComposed = obj.native.noComposed;
+                    }
                     if (device.name !== obj.common.name) {
                         changed = true;
                         device.name = obj.common.name;

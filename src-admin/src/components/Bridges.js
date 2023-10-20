@@ -107,6 +107,7 @@ class Bridges extends React.Component {
                     oid: device._id,
                     type: device.deviceType,
                     enabled: true,
+                    noComposed: true,
                 });
             }
         });
@@ -126,7 +127,6 @@ class Bridges extends React.Component {
                     enabled: true,
                     productID: this.state.editDialog.productID,
                     vendorID: this.state.editDialog.vendorID,
-                    noComposed: this.state.editDialog.noComposed,
                     list: [],
                     uuid: uuidv4(),
                 });
@@ -134,7 +134,6 @@ class Bridges extends React.Component {
                 matter.bridges[this.state.editDialog.bridge].name = this.state.editDialog.name;
                 matter.bridges[this.state.editDialog.bridge].productID = this.state.editDialog.productID;
                 matter.bridges[this.state.editDialog.bridge].vendorID = this.state.editDialog.vendorID;
-                matter.bridges[this.state.editDialog.bridge].noComposed = this.state.editDialog.noComposed;
             } else if (this.state.editDialog.bridge !== undefined) {
                 matter.bridges[this.state.editDialog.bridge].list[this.state.editDialog.device].name = this.state.editDialog.name;
             }
@@ -145,13 +144,15 @@ class Bridges extends React.Component {
         const isDisabled =
             this.state.editDialog.name === this.state.editDialog.originalName &&
             this.state.editDialog.vendorID === this.state.editDialog.originalVendorID &&
-            this.state.editDialog.productID === this.state.editDialog.originalProductID;
+            this.state.editDialog.productID === this.state.editDialog.originalProductID &&
+            this.state.editDialog.noComposed === this.state.editDialog.originalNoComposed;
 
         return <Dialog onClose={() => this.setState({ editDialog: false })} open={!0}>
             <DialogTitle>
-                {this.state.editDialog?.add ?
-                    I18n.t('Add bridge') :
-                    `${I18n.t('Edit bridge')} ${this.state.editDialog?.originalName}`}
+                {this.state.editDialog.type === 'device' ? `${I18n.t('Edit bridge')} "${this.state.editDialog?.originalName}"` :
+                    (this.state.editDialog.add ?
+                        I18n.t('Add bridge') :
+                        `${I18n.t('Edit bridge')} "${this.state.editDialog?.originalName}"`)}
             </DialogTitle>
             <DialogContent>
                 <TextField
@@ -208,6 +209,18 @@ class Bridges extends React.Component {
                             {productID}
                         </MenuItem>)}
                 </TextField> : null}
+                {this.state.editDialog.type === 'device' ? <FormControlLabel
+                    variant="standard"
+                    control={<Checkbox
+                        checked={this.state.editDialog.noComposed}
+                        onChange={e => {
+                            const editDialog = JSON.parse(JSON.stringify(this.state.editDialog));
+                            editDialog.noComposed = e.target.checked;
+                            this.setState({ editDialog });
+                        }}
+                    />}
+                    label={<span style={{ fontSize: 'smaller' }}>{I18n.t('Do not compose devices (Alexa does not support composed devices yet)')}</span>}
+                /> : null}
             </DialogContent>
             <DialogActions>
                 <Button
@@ -303,14 +316,14 @@ class Bridges extends React.Component {
         </Dialog>;
     }
 
-    renderDevicesDialog() {
+    renderDeviceDialog() {
         if (!this.state.dialog) {
             return null;
         }
 
         return <DeviceDialog
             onClose={() => this.setState({ dialog: false })}
-            {...(this.state.dialog || {})}
+            {...this.state.dialog}
             matter={this.props.matter}
             socket={this.props.socket}
             themeType={this.props.themeType}
@@ -361,6 +374,8 @@ class Bridges extends React.Component {
                                     device: devIndex,
                                     vendorID: false,
                                     productID: false,
+                                    noComposed: !!device.noComposed,
+                                    originalNoComposed: !!device.noComposed,
                                     originalVendorID: false,
                                     originalProductID: false,
                                 },
@@ -508,6 +523,8 @@ class Bridges extends React.Component {
             countText = `(${bridge.list.length})`;
         }
 
+        const allowDisable = this.props.bri;
+
         return <React.Fragment key={bridgeIndex}>
             <TableRow
                 sx={theme => (
@@ -595,6 +612,8 @@ class Bridges extends React.Component {
                                         originalVendorID: bridge.vendorID,
                                         productID: bridge.productID,
                                         originalProductID: bridge.productID,
+                                        noComposed: false,
+                                        originalNoComposed: false,
                                     },
                                 },
                             );
@@ -654,7 +673,7 @@ class Bridges extends React.Component {
 
     render() {
         return <div>
-            {this.renderDevicesDialog()}
+            {this.renderDeviceDialog()}
             {this.renderDeleteDialog()}
             {this.renderEditDialog()}
             {this.renderQrCodeDialog()}

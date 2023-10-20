@@ -15,6 +15,14 @@
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
+## ToDo
+- License
+- Dimmer
+- Disallow composed
+- Button to TOTAL reset
+- Controller
+- Devices
+- Encode vendor IDs
 
 ## Changelog
 ### **WORK IN PROGRESS**

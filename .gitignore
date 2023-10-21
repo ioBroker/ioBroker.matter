@@ -17,7 +17,6 @@ nbproject
 package-lock.json
 build
 *.map
-devices
 main.js
 
 .dev-server

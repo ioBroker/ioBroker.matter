@@ -16,13 +16,10 @@
 	### **WORK IN PROGRESS**
 -->
 ## ToDo
-- License
 - Dimmer
-- Disallow composed
-- Button to TOTAL reset
 - Controller
 - Devices
-- Encode vendor IDs
+- Add device without room or function (by ID)
 
 ## Changelog
 ### **WORK IN PROGRESS**

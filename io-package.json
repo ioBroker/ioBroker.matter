@@ -62,8 +62,12 @@
       }
     }
   },
+  "protectedNative": ["password", "login"],
+  "encryptedNative": ["password"],
   "native": {
-    "interface": ""
+    "interface": "",
+    "login": "",
+    "password": ""
   },
   "objects": [],
   "instanceObjects": [

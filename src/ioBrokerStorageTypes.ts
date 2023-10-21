@@ -1,5 +1,7 @@
 export interface MatterAdapterConfig extends ioBroker.AdapterConfig {
     interface: string;
+    login: string;
+    password: string;
 }
 
 export interface DeviceDescription {

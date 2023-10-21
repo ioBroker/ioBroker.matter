@@ -8,9 +8,14 @@ import { StorageManager } from '@project-chip/matter-node.js/storage';
 import { StorageIoBroker } from './matter/StorageIoBroker';
 import { SubscribeManager, DeviceFabric, GenericDevice }  from './lib';
 import { DetectedDevice } from './lib/devices/GenericDevice';
-import BridgedDevice from './matter/BridgedDevicesNode';
+import BridgedDevice, { BridgeStatesResponse } from './matter/BridgedDevicesNode';
 import { MatterAdapterConfig, DeviceDescription, BridgeDescription } from './ioBrokerStorageTypes';
 import { Level, Logger } from '@project-chip/matter-node.js/log';
+import axios from 'axios';
+import jwt from 'jsonwebtoken';
+import fs from 'fs';
+
+const IOBROKER_USER_API = 'https://iobroker.pro:3001';
 
 export class MatterAdapter extends utils.Adapter {
     private detector: ChannelDetectorType;
@@ -21,6 +26,7 @@ export class MatterAdapter extends utils.Adapter {
     private storage: StorageIoBroker | undefined;
     private storageManager: StorageManager | null = null;
     private stateTimeout: NodeJS.Timeout | null = null;
+    private subscribed: boolean = false;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -41,9 +47,25 @@ export class MatterAdapter extends utils.Adapter {
         this.on('stateChange', (id, state) => this.onStateChange(id, state));
         this.on('objectChange', (id /* , object */) => this.onObjectChange(id));
         this.on('unload', callback => this.onUnload(callback));
-        // this.on('message', this.onMessage.bind(this));
+        this.on('message', this.onMessage.bind(this));
 
         this.detector = new ChannelDetector();
+    }
+
+    async onTotalReset() {
+        this.log.debug('Resetting');
+        await this.matterServer?.close();
+        await this.storage?.clearAll();
+        await this.onReady();
+    }
+
+    async onMessage(obj: ioBroker.Message): Promise<void> {
+        if (obj?.command === 'reset') {
+            await this.onTotalReset();
+        } else if (obj?.command === 'bridgeInfo') {
+            const states = await this.requestNodeStates();
+            obj.callback && this.sendTo(obj.from, obj.command, { command: 'bridgeStates', states }, obj.callback);
+        }
     }
 
     async onClientSubscribe(clientId: string): Promise<{ error?: string, accepted: boolean, heartbeat?: number }> {
@@ -57,14 +79,15 @@ export class MatterAdapter extends utils.Adapter {
             // send state of devices
         }
 
-        // inform GUI that camera is started
+        // inform GUI that subscription is started
         const sub = this._guiSubscribes.find(s => s.clientId === clientId);
         if (!sub) {
             this._guiSubscribes.push({ clientId, ts: Date.now() });
             this.stateTimeout && clearTimeout(this.stateTimeout);
-            this.stateTimeout = setTimeout(() => {
+            this.stateTimeout = setTimeout(async () => {
                 this.stateTimeout = null;
-                this.requestNodeStates();
+                const states = await this.requestNodeStates();
+                await this.sendToGui({ command: 'bridgeStates', states });
             }, 100);
         } else {
             sub.ts = Date.now();
@@ -141,14 +164,17 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async onReady(): Promise<void> {
-        this._guiSubscribes = [];
+        this._guiSubscribes = this._guiSubscribes || [];
         SubscribeManager.setAdapter(this);
         await this.createMatterServer();
 
         await this.loadDevices();
-        await this.subscribeForeignObjectsAsync(`${this.namespace}.0.bridges.*`);
-        await this.subscribeForeignObjectsAsync(`${this.namespace}.0.devices.*`);
-        await this.subscribeForeignObjectsAsync(`${this.namespace}.0.controller`);
+        if (!this.subscribed) {
+            this.subscribed = true;
+            await this.subscribeForeignObjectsAsync(`${this.namespace}.0.bridges.*`);
+            await this.subscribeForeignObjectsAsync(`${this.namespace}.0.devices.*`);
+            await this.subscribeForeignObjectsAsync(`${this.namespace}.0.controller`);
+        }
 
         /**
          * Start the Matter Server
@@ -160,11 +186,14 @@ export class MatterAdapter extends utils.Adapter {
         await this.matterServer?.start();
     }
 
-    async requestNodeStates(): Promise<void> {
+    async requestNodeStates(): Promise<{ [uuid: string]: BridgeStatesResponse }> {
+        const states: { [uuid: string]: BridgeStatesResponse } = {};
         for (const uuid in this.bridges) {
             const state = await this.bridges[uuid].getState();
-            this.log.debug(`State of ${uuid} is ${state}`);
+            this.log.debug(`State of ${uuid} is ${JSON.stringify(state)}`);
+            states[uuid] = state;
         }
+        return states;
     }
 
     async onUnload(callback: () => void): Promise<void> {
@@ -276,7 +305,50 @@ export class MatterAdapter extends utils.Adapter {
         return null;
     }
 
-    async createBridge(uuid: string, options: BridgeDescription): Promise<BridgedDevice> {
+    async checkLicense(): Promise<boolean> {
+        const config = this.config as MatterAdapterConfig;
+        if (!config.login || !config.password) {
+            this.log.error('You need to specify login and password for ioBroker.pro subscription');
+            return false;
+        }
+        // check the license
+        const response = await axios(`${IOBROKER_USER_API}/api/v1/subscriptions`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Basic ${Buffer.from(`${config.login}:${config.password}`).toString('base64')}`
+            }
+        });
+        const subscriptions = response.data;
+        const cert = fs.readFileSync(`${__dirname}/../data/cloudCert.crt`)
+        if (subscriptions.find((it: any) => {
+            try {
+                const decoded: any = jwt.verify(it.json, cert);
+                if (decoded.name?.startsWith('remote.') || decoded.name?.startsWith('assistant.')) {
+                    return new Date(decoded.expires * 1000) > new Date();
+                }
+            } catch (e) {
+                this.log.warn(`Cannot verify license: ${e}`);
+                return false;
+            }
+        })) {
+            return true;
+        }
+
+        const userResponse = await axios(`${IOBROKER_USER_API}/api/v1/user`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Basic ${Buffer.from(`${config.login}:${config.password}`).toString('base64')}`
+            }
+        });
+        if (userResponse.data?.tester) {
+            return true;
+        }
+
+        this.log.warn('No valid ioBroker.pro subscription found. Only one bridge and 5 devices are allowed.');
+        return false;
+    }
+
+    async createBridge(uuid: string, options: BridgeDescription, license: boolean | null): Promise<BridgedDevice> {
         if (this.matterServer) {
             const devices = [];
             const optionsList = (options.list || []).filter(item => item.enabled !== false);
@@ -291,7 +363,18 @@ export class MatterAdapter extends utils.Adapter {
                 }
             }
 
+            if (devices.length > 5) {
+                if (license === null) {
+                    license = await this.checkLicense();
+                }
+                if (!license) {
+                    this.log.error('You cannot use more than 5 devices without ioBroker.pro subscription. Only first 5 devices will be created.}');
+                    devices.splice(5);
+                }
+            }
+
             const bridge = new BridgedDevice({
+                adapter: this,
                 parameters: {
                     uuid: options.uuid,
                     passcode: parseInt(options.passcode as string, 10) || 20202021,
@@ -304,7 +387,6 @@ export class MatterAdapter extends utils.Adapter {
                 devices,
                 devicesOptions: optionsList,
                 matterServer: this.matterServer,
-                sendToGui: this.sendToGui,
             });
 
             await bridge.init(); // add bridge to server
@@ -342,18 +424,28 @@ export class MatterAdapter extends utils.Adapter {
             }
         }
 
-        if (!_bridges.length) {
-            // create one bridge, that is enabled
-        }
-
+        let license = null;
 
         // Create new bridges
         for (const b in _bridges) {
             const bridge = _bridges[b];
             if (!this.bridges[bridge._id]) {
+                if (Object.keys(this.bridges).length) {
+                    // check license
+                    if (license === null) {
+                        license = await this.checkLicense();
+                    }
+                    if (!license) {
+                        this.log.error(`You cannot use more than one bridge without ioBroker.pro subscription. Bridge ${bridge._id} will be ignored.}`);
+                        return;
+                    }
+                }
+
+
                 this.bridges[bridge._id] = await this.createBridge(
                     bridge._id,
                     bridge.native as BridgeDescription,
+                    license
                 );
             }
         }

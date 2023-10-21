@@ -397,6 +397,7 @@ Devices.propTypes = {
     themeType: PropTypes.string,
     detectedDevices: PropTypes.array,
     setDetectedDevices: PropTypes.func,
+    commissioning: PropTypes.object,
 };
 
 export default withStyles(styles)(Devices);

@@ -34,13 +34,8 @@ export class StorageIoBroker implements Storage {
             await this.adapter.setForeignObjectAsync(this.oid, object as ioBroker.Object);
         }
 
-        this.data = {};
         if (this.clear) {
-            const rows = await this.adapter.getObjectViewAsync('system', 'state', { startkey: `${this.oid}.`, endkey: `${this.oid}.\u9999` });
-            for (const row of rows.rows) {
-                await this.adapter.delForeignObjectAsync(row.id);
-            }
-            this.clear = false;
+            await this.clearAll();
             return;
         }
 
@@ -51,6 +46,15 @@ export class StorageIoBroker implements Storage {
             this.createdKeys[key] = true;
             this.data[key.substring(len)] = fromJson(states[key].val as string);
         }
+    }
+
+    async clearAll(): Promise<void> {
+        const rows = await this.adapter.getObjectViewAsync('system', 'state', { startkey: `${this.oid}.`, endkey: `${this.oid}.\u9999` });
+        for (const row of rows.rows) {
+            await this.adapter.delForeignObjectAsync(row.id);
+        }
+        this.clear = false;
+        this.data = {};
     }
 
     async close(): Promise<void> {

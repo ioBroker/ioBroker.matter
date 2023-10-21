@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import {
     Add,
-    Close, ConnectWithoutContact,
+    Close,
     ContentCopy,
     Delete,
     Edit,
@@ -23,9 +23,9 @@ import {
     KeyboardArrowUp,
     QrCode,
     QuestionMark,
-    Save,
+    Save, SignalWifiStatusbarNull,
     UnfoldLess,
-    UnfoldMore,
+    UnfoldMore, Wifi, WifiOff,
 } from '@mui/icons-material';
 
 import { I18n, Utils } from '@iobroker/adapter-react-v5';
@@ -96,6 +96,23 @@ class Bridges extends React.Component {
         };
     }
 
+    componentDidMount() {
+        if (!this.props.matter.bridges.length) {
+            setTimeout(() => {
+                const matter = JSON.parse(JSON.stringify(this.props.matter));
+                matter.bridges.push({
+                    name: I18n.t('Default bridge'),
+                    enabled: true,
+                    productID: '0xFFF1',
+                    vendorID: '0x8000',
+                    list: [],
+                    uuid: uuidv4(),
+                });
+                this.props.updateConfig(matter)
+            }, 100);
+        }
+    }
+
     addDevicesToBridge = devices => {
         const matter = JSON.parse(JSON.stringify(this.props.matter));
         const bridge = matter.bridges[this.state.dialog.bridge];
@@ -119,6 +136,8 @@ class Bridges extends React.Component {
         if (!this.state.editDialog) {
             return null;
         }
+        const isCommissioned = !!this.props.commissioning[this.props.matter[this.state.editDialog.bridgeIndex]];
+
         const save = () => {
             const matter = JSON.parse(JSON.stringify(this.props.matter));
             if (this.state.editDialog.add) {
@@ -131,11 +150,11 @@ class Bridges extends React.Component {
                     uuid: uuidv4(),
                 });
             } else if (this.state.editDialog.type === 'bridge') {
-                matter.bridges[this.state.editDialog.bridge].name = this.state.editDialog.name;
-                matter.bridges[this.state.editDialog.bridge].productID = this.state.editDialog.productID;
-                matter.bridges[this.state.editDialog.bridge].vendorID = this.state.editDialog.vendorID;
-            } else if (this.state.editDialog.bridge !== undefined) {
-                matter.bridges[this.state.editDialog.bridge].list[this.state.editDialog.device].name = this.state.editDialog.name;
+                matter.bridges[this.state.editDialog.bridgeIndex].name = this.state.editDialog.name;
+                matter.bridges[this.state.editDialog.bridgeIndex].productID = this.state.editDialog.productID;
+                matter.bridges[this.state.editDialog.bridgeIndex].vendorID = this.state.editDialog.vendorID;
+            } else if (this.state.editDialog.bridgeIndex !== undefined) {
+                matter.bridges[this.state.editDialog.bridgeIndex].list[this.state.editDialog.device].name = this.state.editDialog.name;
             }
 
             this.setState({ editDialog: false }, () => this.props.updateConfig(matter));
@@ -157,6 +176,7 @@ class Bridges extends React.Component {
             <DialogContent>
                 <TextField
                     label={I18n.t('Name')}
+                    disabled={isCommissioned}
                     value={this.state.editDialog.name}
                     onChange={e => {
                         const editDialog = JSON.parse(JSON.stringify(this.state.editDialog));
@@ -169,6 +189,7 @@ class Bridges extends React.Component {
                 />
                 {this.state.editDialog.vendorID !== false ? <TextField
                     select
+                    disabled={isCommissioned}
                     style={{ width: 'calc(50% - 8px)', marginRight: 16, marginTop: 16 }}
                     value={this.state.editDialog.vendorID}
                     onChange={e => {
@@ -190,6 +211,7 @@ class Bridges extends React.Component {
                 </TextField> : null}
                 {this.state.editDialog.productID !== false ? <TextField
                     select
+                    disabled={isCommissioned}
                     style={{ width: 'calc(50% - 8px)', marginTop: 16 }}
                     value={this.state.editDialog.productID}
                     onChange={e => {
@@ -211,6 +233,7 @@ class Bridges extends React.Component {
                 </TextField> : null}
                 {this.state.editDialog.type === 'device' ? <FormControlLabel
                     variant="standard"
+                    disabled={isCommissioned}
                     control={<Checkbox
                         checked={this.state.editDialog.noComposed}
                         onChange={e => {
@@ -221,9 +244,10 @@ class Bridges extends React.Component {
                     />}
                     label={<span style={{ fontSize: 'smaller' }}>{I18n.t('Do not compose devices (Alexa does not support composed devices yet)')}</span>}
                 /> : null}
+                {isCommissioned ? I18n.t('Bridge is already commissioned. You cannot change the name or the vendor/product ID.') : null}
             </DialogContent>
             <DialogActions>
-                <Button
+                {!isCommissioned ? <Button
                     onClick={() => save()}
                     startIcon={this.state.editDialog.add ? <Add /> : <Save />}
                     disabled={isDisabled}
@@ -231,7 +255,7 @@ class Bridges extends React.Component {
                     variant="contained"
                 >
                     {this.state.editDialog.add ? I18n.t('Add') : I18n.t('Apply')}
-                </Button>
+                </Button> : null}
                 <Button
                     onClick={() => this.setState({ editDialog: false })}
                     startIcon={<Close />}
@@ -316,6 +340,66 @@ class Bridges extends React.Component {
         </Dialog>;
     }
 
+    renderDebugDialog() {
+        if (!this.state.showDebugData) {
+            return null;
+        }
+
+        // Information about the commissioning process
+        // {
+        //     uuid: 'UUID',
+        //     command: 'status',
+        //     status: 'connecting', // creating, waitingForCommissioning, connecting, connected,
+        //     connectionInfo: [
+        //         {
+        //             vendor: 'NAME' or '0x1123',
+        //             connected: false/true,
+        //             label: 'User controller name',
+        //         }
+        //     ],
+        // }
+        const data = this.props.bridgeStates[this.state.showDebugData.uuid];
+
+        return <Dialog
+            onClose={() => this.setState({ showDebugData: null })}
+            open={!0}
+            maxWidth="md"
+        >
+            <DialogTitle>{I18n.t('Commissioning information')}</DialogTitle>
+            <DialogContent>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <Table>
+                        <TableBody>
+                            <TableRow>
+                                <TableCell>{I18n.t('Status')}</TableCell>
+                                <TableCell>
+                                    {Bridges.getStatusIcon(data.status)}
+                                    <span style={{ marginLeft: 10 }}>{I18n.t(`status_${data.status}`)}</span>
+                                </TableCell>
+                            </TableRow>
+                            {data.connectionInfo.map((info, i) => <TableRow key={i}>
+                                <TableCell>{info.vendor}{info.label ? <span style={{ opacity: 0.7, marginLeft: 8, fontStyle: 'italic' }}>({info.label})</span> : null}</TableCell>
+                                <TableCell>
+                                    {info.connected ? <span style={{ color: 'green' }}>{I18n.t('Connected')}</span> : I18n.t('Not connected')}
+                                </TableCell>
+                            </TableRow>)}
+                        </TableBody>
+                    </Table>
+                </div>
+            </DialogContent>
+            <DialogActions>
+                <Button
+                    onClick={() => this.setState({ showDebugData: null })}
+                    startIcon={<Close />}
+                    color="grey"
+                    variant="contained"
+                >
+                    {I18n.t('Close')}
+                </Button>
+            </DialogActions>
+        </Dialog>;
+    }
+
     renderDeviceDialog() {
         if (!this.state.dialog) {
             return null;
@@ -370,7 +454,7 @@ class Bridges extends React.Component {
                                     type: 'device',
                                     name: getText(device.name),
                                     originalName: getText(device.name),
-                                    bridge: bridgeIndex,
+                                    bridgeIndex: bridgeIndex,
                                     device: devIndex,
                                     vendorID: false,
                                     productID: false,
@@ -421,16 +505,16 @@ class Bridges extends React.Component {
             <DialogTitle>{I18n.t('QR Code to connect ')}</DialogTitle>
             <DialogContent>
                 <div style={{ background: 'white', padding: 16 }}>
-                    <QRCode value={this.props.nodeStates[this.state.showQrCode.uuid].qrPairingCode} />
+                    <QRCode value={this.props.bridgeStates[this.state.showQrCode.uuid].qrPairingCode} />
                 </div>
                 <TextField
-                    value={this.props.nodeStates[this.state.showQrCode.uuid].manualPairingCode}
+                    value={this.props.bridgeStates[this.state.showQrCode.uuid].manualPairingCode}
                     InputProps={{
                         readOnly: true,
                         endAdornment: <InputAdornment position="end">
                             <IconButton
                                 onClick={() => {
-                                    Utils.copyToClipboard(this.props.nodeStates[this.state.showQrCode.uuid].manualPairingCode);
+                                    Utils.copyToClipboard(this.props.bridgeStates[this.state.showQrCode.uuid].manualPairingCode);
                                     this.props.showToast(I18n.t('Copied to clipboard'));
                                 }}
                                 edge="end"
@@ -457,39 +541,44 @@ class Bridges extends React.Component {
         </Dialog>;
     }
 
-    renderDebugDialog() {
-        if (!this.state.showDebugData) {
-            return null;
+    static getStatusColor(status) {
+        if (status === 'creating') {
+            return '#000';
         }
-        return <Dialog
-            onClose={() => this.setState({ showDebugData: null })}
-            open={!0}
-            maxWidth="md"
-        >
-            <DialogTitle>{I18n.t('QR Code to connect ')}</DialogTitle>
-            <DialogContent>
-                <pre style={{ width: '100%' }}>
-                    {JSON.stringify(this.props.nodeStates[this.state.showDebugData.uuid], null, 2)}
-                </pre>
-            </DialogContent>
-            <DialogActions>
-                <Button
-                    onClick={() => this.setState({ showDebugData: null })}
-                    startIcon={<Close />}
-                    color="grey"
-                    variant="contained"
-                >
-                    {I18n.t('Close')}
-                </Button>
-            </DialogActions>
-        </Dialog>;
+        if (status === 'waitingForCommissioning') {
+            return 'blue';
+        }
+        if (status === 'commissioned') {
+            return 'orange';
+        }
+        if (status === 'connected') {
+            return 'green';
+        }
+        return 'grey';
+    }
+
+    static getStatusIcon(status) {
+        const color = Bridges.getStatusColor(status);
+        if (status === 'creating') {
+            return <SignalWifiStatusbarNull style={{ color }} />;
+        }
+        if (status === 'waitingForCommissioning') {
+            return <QrCode style={{ color }} />;
+        }
+        if (status === 'commissioned') {
+            return <WifiOff style={{ color }} />;
+        }
+        if (status === 'connected') {
+            return <Wifi style={{ color }} />;
+        }
+        return <QuestionMark style={{ color }} />;
     }
 
     renderStatus(bridge) {
-        if (!this.props.nodeStates[bridge.uuid]) {
+        if (!this.props.bridgeStates[bridge.uuid]) {
             return null;
         }
-        if (this.props.nodeStates[bridge.uuid].command === 'showQRCode') {
+        if (this.props.bridgeStates[bridge.uuid].status === 'waitingForCommissioning') {
             return <Tooltip title={I18n.t('Bridge is not commissioned. Show QR Code got commissioning')}>
                 <IconButton
                     style={{ height: 40 }}
@@ -499,13 +588,16 @@ class Bridges extends React.Component {
                 </IconButton>
             </Tooltip>;
         }
-        if (this.props.nodeStates[bridge.uuid].command === 'status' && this.props.nodeStates[bridge.uuid].data === 'connecting') {
+        if (this.props.bridgeStates[bridge.uuid].status) {
             return <Tooltip title={I18n.t('Device is already commissioning. Show status information')}>
                 <IconButton
                     style={{ height: 40 }}
-                    onClick={() => this.setState({ showDebugData: bridge })}
+                    onClick={e => {
+                        e.stopPropagation();
+                        this.setState({ showDebugData: bridge });
+                    }}
                 >
-                    <ConnectWithoutContact />
+                    {Bridges.getStatusIcon(this.props.bridgeStates[bridge.uuid].status)}
                 </IconButton>
             </Tooltip>;
         }
@@ -523,7 +615,7 @@ class Bridges extends React.Component {
             countText = `(${bridge.list.length})`;
         }
 
-        const allowDisable = this.props.bri;
+        const allowDisable = this.props.matter.bridges.filter(b => b.enabled).length > 1;
 
         return <React.Fragment key={bridgeIndex}>
             <TableRow
@@ -587,15 +679,20 @@ class Bridges extends React.Component {
                     {this.renderStatus(bridge)}
                 </TableCell>
                 <TableCell style={{ width: 0 }}>
-                    <Switch
-                        checked={bridge.enabled}
-                        onClick={e => e.stopPropagation()}
-                        onChange={e => {
-                            const matter = JSON.parse(JSON.stringify(this.props.matter));
-                            matter.bridges[bridgeIndex].enabled = e.target.checked;
-                            this.props.updateConfig(matter);
-                        }}
-                    />
+                    <Tooltip title={bridge.enabled && !allowDisable ? I18n.t('At least one bridge must be enabled') : I18n.t('Enable/disable bridge')}>
+                        <span>
+                            <Switch
+                                disabled={bridge.enabled && !allowDisable}
+                                checked={bridge.enabled}
+                                onClick={e => e.stopPropagation()}
+                                onChange={e => {
+                                    const matter = JSON.parse(JSON.stringify(this.props.matter));
+                                    matter.bridges[bridgeIndex].enabled = e.target.checked;
+                                    this.props.updateConfig(matter);
+                                }}
+                            />
+                        </span>
+                    </Tooltip>
                 </TableCell>
                 <TableCell style={{ width: 0 }}>
                     <Tooltip title={I18n.t('Edit bridge')}>
@@ -607,7 +704,7 @@ class Bridges extends React.Component {
                                         type: 'bridge',
                                         name: getText(bridge.name),
                                         originalName: getText(bridge.name),
-                                        bridge: bridgeIndex,
+                                        bridgeIndex: bridgeIndex,
                                         vendorID: bridge.vendorID,
                                         originalVendorID: bridge.vendorID,
                                         productID: bridge.productID,
@@ -624,22 +721,26 @@ class Bridges extends React.Component {
                     </Tooltip>
                 </TableCell>
                 <TableCell style={{ width: 0 }}>
-                    <Tooltip title={I18n.t('Delete bridge')}>
-                        <IconButton onClick={e => {
-                            e.stopPropagation();
-                            this.setState(
-                                {
-                                    deleteDialog: {
-                                        type: 'bridge',
-                                        name: getText(bridge.name),
-                                        bridge: bridgeIndex,
-                                    },
-                                },
-                            );
-                        }}
-                        >
-                            <Delete />
-                        </IconButton>
+                    <Tooltip title={bridge.enabled && !allowDisable ? I18n.t('At least one enabled bridge must exist') : I18n.t('Delete bridge')}>
+                        <span>
+                                <IconButton
+                                disabled={bridge.enabled && !allowDisable}
+                                onClick={e => {
+                                    e.stopPropagation();
+                                    this.setState(
+                                        {
+                                            deleteDialog: {
+                                                type: 'bridge',
+                                                name: getText(bridge.name),
+                                                bridge: bridgeIndex,
+                                            },
+                                        },
+                                    );
+                                }}
+                            >
+                                <Delete />
+                            </IconButton>
+                        </span>
                     </Tooltip>
                 </TableCell>
             </TableRow>
@@ -757,8 +858,9 @@ Bridges.propTypes = {
     themeType: PropTypes.string,
     detectedDevices: PropTypes.array,
     setDetectedDevices: PropTypes.func,
-    nodeStates: PropTypes.object,
+    bridgeStates: PropTypes.object,
     showToast: PropTypes.func,
+    commissioning: PropTypes.object,
 };
 
 export default withStyles(styles)(Bridges);

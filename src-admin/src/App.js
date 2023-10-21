@@ -21,6 +21,7 @@ import ConfigHandler from './components/ConfigHandler';
 import Devices from './components/Devices';
 import Controller from './components/Controller';
 import Bridges from './components/Bridges';
+import Options from './components/Options';
 
 const productIDs = [];
 for (let i = 0x8000; i <= 0x801F; i++) {
@@ -76,7 +77,12 @@ class App extends GenericApp {
         this.state.selectedTab = window.localStorage.getItem(`${this.adapterName}.${this.instance}.selectedTab`) || 'controller';
         this.state.alive = false;
         this.state.backendRunning = false;
-        this.state.nodeStates = {};
+        this.state.deviceStates = {};
+        this.state.bridgeStates = {};
+        this.state.commissioning = {
+            bridges: {},
+            devices: {},
+        };
 
         this.state.detectedDevices = null;
         this.configHandler = null;
@@ -103,8 +109,9 @@ class App extends GenericApp {
 
     async onConnectionReady() {
         this.configHandler && this.configHandler.destroy();
-        this.configHandler = new ConfigHandler(this.instance, this.socket, this.onChanged);
+        this.configHandler = new ConfigHandler(this.instance, this.socket, this.onChanged, this.onCommissioningChanged);
         const matter = await this.configHandler.loadConfig();
+        const commissioning = this.configHandler.getCommissioning();
         matter.controller = matter.controller || { enabled: false };
         matter.devices = matter.devices || [];
         if (matter.devices.list) {
@@ -124,6 +131,7 @@ class App extends GenericApp {
 
         this.setState({
             matter,
+            commissioning,
             changed: this.configHandler.isChanged(matter),
             ready: true,
             alive: !!(alive?.val),
@@ -142,10 +150,17 @@ class App extends GenericApp {
     };
 
     onBackendUpdates = update => {
-        if (update.uuid) {
-            const nodeStates = JSON.parse(JSON.stringify(this.state.nodeStates));
-            nodeStates[update.uuid] = update;
-            this.setState({ nodeStates });
+        if (update?.command === 'bridgeStates') {
+            const bridgeStates = {};
+            Object.keys(update.states).forEach(uuid =>
+                bridgeStates[uuid.split('.').pop()] = update.states[uuid]);
+            this.setState({ bridgeStates });
+        } else if (update.uuid) {
+            const bridgeStates = JSON.parse(JSON.stringify(this.state.bridgeStates));
+            bridgeStates[update.uuid] = update;
+            this.setState({ bridgeStates });
+        } else if (update?.command === 'stopped') {
+            setTimeout(() => this.refreshBackendSubscription(), 5000);
         } else {
             console.log(`Unknown update: ${JSON.stringify(update)}`);
         }
@@ -154,6 +169,12 @@ class App extends GenericApp {
     onChanged = newConfig => {
         if (this.state.ready) {
             this.setState({ matter: newConfig, changed: this.configHandler.isChanged(newConfig) });
+        }
+    };
+
+    onCommissioningChanged = newCommissioning => {
+        if (this.state.ready) {
+            this.setState({ commissioning: newCommissioning });
         }
     };
 
@@ -177,7 +198,6 @@ class App extends GenericApp {
             onChange={(id, value) => {
                 this.updateNativeValue(id, value);
             }}
-            common={this.state.common}
             socket={this.socket}
             native={this.state.native}
             themeType={this.state.themeType}
@@ -187,10 +207,27 @@ class App extends GenericApp {
         />;
     }
 
+    renderOptions() {
+        return <Options
+            alive={this.state.alive}
+            onChange={(id, value) => {
+                this.updateNativeValue(id, value);
+            }}
+            onLoad={native => this.onLoadConfig(native)}
+            socket={this.socket}
+            common={this.common}
+            native={this.state.native}
+            themeType={this.state.themeType}
+            instance={this.instance}
+            showToast={text => this.showToast(text)}
+        />;
+    }
+
     renderBridges() {
         return <Bridges
             socket={this.socket}
-            nodeStates={this.state.nodeStates}
+            commissioning={this.state.commissioning.bridges}
+            bridgeStates={this.state.bridgeStates}
             themeType={this.state.themeType}
             detectedDevices={this.state.detectedDevices}
             setDetectedDevices={detectedDevices => this.setState({ detectedDevices })}
@@ -203,7 +240,8 @@ class App extends GenericApp {
 
     renderDevices() {
         return <Devices
-            nodeStates={this.state.nodeStates}
+            deviceStates={this.state.deviceStates}
+            commissioning={this.state.commissioning.devices}
             socket={this.socket}
             themeType={this.state.themeType}
             detectedDevices={this.state.detectedDevices}
@@ -241,7 +279,7 @@ class App extends GenericApp {
                 <div className="App" style={{ background: this.state.theme.palette.background.default, color: this.state.theme.palette.text.primary }}>
                     <AppBar position="static">
                         <Tabs
-                            value={this.state.selectedTab || 'controller'}
+                            value={this.state.selectedTab || 'options'}
                             onChange={(e, value) => {
                                 this.setState({ selectedTab: value });
                                 window.localStorage.setItem(`${this.adapterName}.${this.instance}.selectedTab`, value);
@@ -249,6 +287,7 @@ class App extends GenericApp {
                             scrollButtons="auto"
                             classes={{ indicator: this.props.classes.indicator }}
                         >
+                            <Tab classes={{ selected: this.props.classes.selected }} label={I18n.t('Options')} value="options" />
                             <Tab classes={{ selected: this.props.classes.selected }} label={I18n.t('Controller')} value="controller" />
                             <Tab classes={{ selected: this.props.classes.selected }} label={I18n.t('Bridges')} value="bridges" />
                             <Tab classes={{ selected: this.props.classes.selected }} label={I18n.t('Devices')} value="devices" />
@@ -270,6 +309,7 @@ class App extends GenericApp {
                     </AppBar>
 
                     <div className={this.isIFrame ? this.props.classes.tabContentIFrame : this.props.classes.tabContent}>
+                        {this.state.selectedTab === 'options' && this.renderOptions()}
                         {this.state.selectedTab === 'controller' && this.renderController()}
                         {this.state.selectedTab === 'bridges' && this.renderBridges()}
                         {this.state.selectedTab === 'devices' && this.renderDevices()}

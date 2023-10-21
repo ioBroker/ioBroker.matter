@@ -7,11 +7,12 @@ import { GenericDevice } from '../lib';
 import { DeviceDescription } from '../ioBrokerStorageTypes';
 
 import matterDeviceFabric from './matterFabric';
+import VENDOR_IDS from './vendorIds';
 
 export interface BridgeCreateOptions {
+    adapter: ioBroker.Adapter;
     parameters: BridgeOptions,
     devices: GenericDevice[];
-    sendToGui: (data: any) => Promise<void>;
     matterServer: MatterServer;
     devicesOptions: DeviceDescription[];
 }
@@ -28,29 +29,51 @@ export interface BridgeOptions {
 
 export enum BridgeStates {
     Creating = 'creating',
-    Listening = 'listening',
+    WaitingForCommissioning = 'waitingForCommissioning',
     Commissioned = 'commissioned',
     ConnectedWithController = 'connected',
 }
 
+export interface BridgeStatesResponse {
+    status: BridgeStates;
+    qrPairingCode?: string;
+    manualPairingCode?: string;
+    connectionInfo?: any;
+}
 
 class BridgedDevice {
     private matterServer: MatterServer | undefined;
     private parameters: BridgeOptions;
     private devices: GenericDevice[];
-    private sendToGui: (data: any) => Promise<void> | undefined;
     private commissioningServer: CommissioningServer | undefined;
     private devicesOptions: DeviceDescription[];
+    private adapter: ioBroker.Adapter;
+    private commissioned: boolean | null = null
 
     constructor(options: BridgeCreateOptions) {
+        this.adapter = options.adapter;
         this.parameters = options.parameters;
         this.devices = options.devices;
-        this.sendToGui = options.sendToGui;
         this.matterServer = options.matterServer;
         this.devicesOptions = options.devicesOptions;
     }
 
     async init(): Promise<void> {
+        const commissioned = await this.adapter.getForeignObjectAsync(`matter.0.bridges.${this.parameters.uuid}.commissioned`);
+        if (!commissioned) {
+            await this.adapter.setForeignObjectAsync(`matter.0.bridges.${this.parameters.uuid}.commissioned`, {
+                type: 'state',
+                common: {
+                    name: 'commissioned',
+                    type: 'boolean',
+                    role: 'indicator',
+                    read: true,
+                    write: false,
+                },
+                native: {},
+            });
+        }
+
         /**
          * Collect all needed data
          *
@@ -151,14 +174,11 @@ class BridgedDevice {
         this.matterServer?.addCommissioningServer(this.commissioningServer, { uniqueNodeId: this.parameters.uuid });
     }
 
-    async getState(): Promise<BridgeStates> {
+    async getState(): Promise<BridgeStatesResponse> {
         if (!this.commissioningServer) {
-            this.sendToGui({
-                uuid: this.parameters.uuid,
-                command: 'status',
-                status: 'creating',
-            });
-            return BridgeStates.Creating;
+            return {
+                status: BridgeStates.Creating,
+            };
         }
         /**
          * Print Pairing Information
@@ -170,34 +190,42 @@ class BridgedDevice {
         // this.adapter.log.info('Listening');
 
         if (!this.commissioningServer.isCommissioned()) {
+            if (this.commissioned !== false) {
+                await this.adapter.setForeignStateAsync(`matter.0.bridges.${this.parameters.uuid}.commissioned`, false, true);
+            }
             const pairingData = this.commissioningServer.getPairingCode();
-            this.sendToGui({
-                uuid: this.parameters.uuid,
-                command: 'showQRCode',
-                qrPairingCode: pairingData.qrPairingCode,
-                manualPairingCode: pairingData.manualPairingCode,
-            });
             // const { qrPairingCode, manualPairingCode } = pairingData;
             // console.log(QrCode.encode(qrPairingCode));
             // console.log(
             //     `QR Code URL: https://project-chip.github.io/connectedhomeip/qrcode.html?data=${qrPairingCode}`,
             // );
             // console.log(`Manual pairing code: ${manualPairingCode}`);
-            return BridgeStates.Listening;
+            return {
+                status: BridgeStates.WaitingForCommissioning,
+                qrPairingCode: pairingData.qrPairingCode,
+                manualPairingCode: pairingData.manualPairingCode,
+            };
         } else {
+            if (this.commissioned !== true) {
+                await this.adapter.setForeignStateAsync(`matter.0.bridges.${this.parameters.uuid}.commissioned`, true, true);
+            }
+
             const activeSession = this.commissioningServer.getActiveSessionInformation();
             const fabric = this.commissioningServer.getCommissionedFabricInformation();
 
-            const connectionInfo: any = activeSession.map(session => ({
-                vendor: session?.fabric?.rootVendorId,
-                connected: !!session.numberOfActiveSubscriptions,
-                label: session?.fabric?.label,
-            }));
+            const connectionInfo: any = activeSession.map(session => {
+                const vendorId = session?.fabric?.rootVendorId;
+                return {
+                    vendor: (vendorId && VENDOR_IDS[vendorId]) || `0x${(vendorId || 0).toString(16)}`,
+                    connected: !!session.numberOfActiveSubscriptions,
+                    label: session?.fabric?.label,
+                };
+            });
 
             fabric.forEach(fabric => {
                 if (!activeSession.find(session => session.fabric?.fabricId === fabric.fabricId)) {
                     connectionInfo.push({
-                        vendor: fabric?.rootVendorId,
+                        vendor: VENDOR_IDS[fabric?.rootVendorId] || `0x${(fabric?.rootVendorId || 0).toString(16)}`,
                         connected: false,
                         label: fabric?.label,
                     });
@@ -205,23 +233,17 @@ class BridgedDevice {
             });
 
             if (connectionInfo.find((info: any) => info.connected)) {
-                this.sendToGui({
-                    uuid: this.parameters.uuid,
-                    command: 'status',
-                    status: 'connected',
-                    connectionInfo,
-                });
                 console.log('Device is already commissioned and connected with controller');
-                return BridgeStates.ConnectedWithController;
-            } else {
-                this.sendToGui({
-                    uuid: this.parameters.uuid,
-                    command: 'status',
-                    status: 'connecting',
+                return {
+                    status: BridgeStates.ConnectedWithController,
                     connectionInfo,
-                });
+                };
+            } else {
                 console.log('Device is already commissioned. Waiting for controllers to connect ...');
-                return BridgeStates.Commissioned;
+                return {
+                    status: BridgeStates.Commissioned,
+                    connectionInfo,
+                };
             }
         }
     }

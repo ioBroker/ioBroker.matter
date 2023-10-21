@@ -1,11 +1,24 @@
 import PropTypes from 'prop-types';
 
 class ConfigHandler {
-    constructor(instance, socket, onChanged) {
+    constructor(instance, socket, onChanged, onCommissioningChanged) {
         this.instance = instance;
         this.config = null;
         this.socket = socket;
         this.onChanged = onChanged;
+        this.onCommissioningChanged = onCommissioningChanged;
+
+        this.commissioning = {
+            bridges: {},
+            devices: {},
+        };
+
+        this.config = {
+            controller: {},
+            devices: [],
+            bridges: [],
+        };
+
         this.loadConfig()
             .catch(e => console.error(e));
     }
@@ -13,11 +26,32 @@ class ConfigHandler {
     destroy() {
         this.onChanged = null;
         if (this.socket.isConnected()) {
-            this.socket.unsubscribeObject(`matter.${this.instance}.bridges.`, this.onObjectChange);
-            this.socket.unsubscribeObject(`matter.${this.instance}.devices.`, this.onObjectChange);
+            this.socket.unsubscribeObject(`matter.${this.instance}.bridges.*`, this.onObjectChange);
+            this.socket.unsubscribeObject(`matter.${this.instance}.devices.*`, this.onObjectChange);
             this.socket.unsubscribeObject(`matter.${this.instance}.controller`, this.onObjectChange);
+            this.socket.unsubscribeState(`matter.${this.instance}.bridges.*`, this.onStateChange);
+            this.socket.unsubscribeState(`matter.${this.instance}.devices.*`, this.onStateChange);
         }
         this.socket = null;
+    }
+
+    onStateChange = (id, state) => {
+        if (id.endsWith('.commissioning')) {
+            const parts = id.split('.');
+            let changed = false;
+            if (parts[2] === 'bridges') {
+                if (this.commissioning.bridges[parts[3]] !== !!state?.val) {
+                    this.commissioning.bridges[parts[3]] = !!state?.val;
+                    changed = true;
+                }
+            } else if (parts[2] === 'devices') {
+                if (this.commissioning.devices[parts[3]] !== !!state?.val) {
+                    this.commissioning.devices[parts[3]] = !!state?.val;
+                    changed = true;
+                }
+            }
+            changed && this.onCommissioningChanged(this.commissioning);
+        }
     }
 
     onObjectChange = (id, obj) => {
@@ -124,6 +158,10 @@ class ConfigHandler {
         }
     };
 
+    getCommissioning() {
+        return this.commissioning;
+    }
+
     async loadConfig() {
         let devicesAndBridges;
         let controllerObj;
@@ -189,6 +227,25 @@ class ConfigHandler {
             }
         });
 
+        try {
+            const commissioning = await this.socket.getStates(`matter.${this.instance}.*`);
+            this.commissioning = {
+                bridges: {},
+                devices: {},
+            };
+            Object.keys(commissioning).forEach(id => {
+                const parts = id.split('.');
+                if (parts[2] === 'bridges') {
+                    this.commissioning.bridges[parts[3]] = commissioning[id].val;
+                } else if (parts[2] === 'devices') {
+                    this.commissioning.devices[parts[3]] = commissioning[id].val;
+                }
+            });
+
+        } catch (e) {
+            // ignore
+        }
+
         this.config = {
             controller: {
                 enabled: !!controllerObj.native.enabled,
@@ -204,7 +261,8 @@ class ConfigHandler {
         this.socket.subscribeObject(`matter.${this.instance}.bridges.*`, this.onObjectChange);
         this.socket.subscribeObject(`matter.${this.instance}.devices.*`, this.onObjectChange);
         this.socket.subscribeObject(`matter.${this.instance}.controller`, this.onObjectChange);
-
+        this.socket.subscribeState(`matter.${this.instance}.bridges.*`, this.onStateChange);
+        this.socket.subscribeState(`matter.${this.instance}.devices.*`, this.onStateChange);
         return JSON.parse(JSON.stringify(this.config));
     }
 

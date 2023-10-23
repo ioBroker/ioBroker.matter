@@ -15,6 +15,7 @@ import {
     Switch,
     TextField,
 } from '@mui/material';
+
 import {
     Add,
     Blinds,
@@ -65,8 +66,8 @@ export const DEVICE_ICONS = {
     windowTilt: <Window />,
 };
 
-const SUPPORTED_DEVICES = [
-    'switch', 'light', 'dimmer',
+export const SUPPORTED_DEVICES = [
+    'socket', 'light', 'dimmer',
 ];
 
 const productIds = [];

@@ -4,6 +4,7 @@ import { DeviceType } from '../lib/devices/GenericDevice';
 
 import { MappingLight } from './devices/MappingLight';
 import { MappingSocket } from './devices/MappingSocket';
+import { MappingDimmer } from './devices/MappingDimmer';
 
 async function matterDeviceFabric(ioBrokerDevice: GenericDevice, name: string, uuid?: string): Promise<MappingGenericDevice | null> {
     const ioBrokerDeviceType = ioBrokerDevice.getDeviceType();
@@ -15,6 +16,10 @@ async function matterDeviceFabric(ioBrokerDevice: GenericDevice, name: string, u
 
     if (ioBrokerDeviceType === DeviceType.Socket) {
         matterDevice = new MappingSocket(ioBrokerDevice, name, uuid);
+    }
+
+    if (ioBrokerDeviceType === DeviceType.Dimmer) {
+        matterDevice = new MappingDimmer(ioBrokerDevice, name, uuid);
     }
 
     if (matterDevice) {

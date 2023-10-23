@@ -43,23 +43,30 @@ function getObjectIcon(obj, id, imagePrefix) {
     return src || null;
 }
 
+let cachedObjects;
+
 const allObjects = async socket => {
+    if (cachedObjects) {
+        return cachedObjects;
+    }
     const states = await socket.getObjectView('', '\u9999', 'state');
     const channels = await socket.getObjectView('', '\u9999', 'channel');
     const devices = await socket.getObjectView('', '\u9999', 'device');
     const folders = await socket.getObjectView('', '\u9999', 'folder');
     const enums = await socket.getObjectView('', '\u9999', 'enum');
 
-    return Object.values(states)
+    cachedObjects = Object.values(states)
         .concat(Object.values(channels))
         .concat(Object.values(devices))
         .concat(Object.values(folders))
         .concat(Object.values(enums))
         // eslint-disable-next-line
         .reduce((obj, item) => (obj[item._id] = item, obj), {});
+
+    return cachedObjects;
 };
 
-export const detectDevices = async socket => {
+export const detectDevices = async (socket, list) => {
     const devicesObject = await allObjects(socket);
     const keys = Object.keys(devicesObject).sort();
     const detector = new ChannelDetector();
@@ -69,33 +76,37 @@ export const detectDevices = async socket => {
     const excludedTypes = ['info'];
     const enums = [];
     const rooms = [];
-    const list = [];
+    let _list = [];
 
-    keys.forEach(id => {
-        if (devicesObject[id]?.type === 'enum') {
-            enums.push(id);
-        } else if (devicesObject[id]?.common?.smartName) {
-            list.push(id);
-        }
-    });
+    if (!list) {
+        keys.forEach(id => {
+            if (devicesObject[id]?.type === 'enum') {
+                enums.push(id);
+            } else if (devicesObject[id]?.common?.smartName) {
+                _list.push(id);
+            }
+        });
 
-    enums.forEach(id => {
-        if (id.startsWith('enum.rooms.')) {
-            rooms.push(id);
-        }
-        const members = devicesObject[id].common.members;
+        enums.forEach(id => {
+            if (id.startsWith('enum.rooms.')) {
+                rooms.push(id);
+            }
+            const members = devicesObject[id].common.members;
 
-        if (members && members.length) {
-            members.forEach(member => {
-                // if an object really exists
-                if (devicesObject[member]) {
-                    if (!list.includes(member)) {
-                        list.push(member);
+            if (members && members.length) {
+                members.forEach(member => {
+                    // if an object really exists
+                    if (devicesObject[member]) {
+                        if (!_list.includes(member)) {
+                            _list.push(member);
+                        }
                     }
-                }
-            });
-        }
-    });
+                });
+            }
+        });
+    } else {
+        _list = list;
+    }
 
     const options = {
         objects: devicesObject,
@@ -107,7 +118,7 @@ export const detectDevices = async socket => {
 
     const result = [];
 
-    list.forEach(id => {
+    _list.forEach(id => {
         options.id = id;
 
         const controls = detector.detect(options);
@@ -131,6 +142,7 @@ export const detectDevices = async socket => {
                             return devicesObject[state.id];
                         }),
                 };
+                deviceObject.hasOnState = deviceObject.states.find(it => it.name === 'ON');
 
                 const parts = stateId.split('.');
                 let channelId;

@@ -59,8 +59,8 @@ class BridgedDevice {
     }
 
     async init(): Promise<void> {
-        const commissioned = await this.adapter.getForeignObjectAsync(`matter.0.bridges.${this.parameters.uuid}.commissioned`);
-        if (!commissioned) {
+        const commissionedObj = await this.adapter.getForeignObjectAsync(`matter.0.bridges.${this.parameters.uuid}.commissioned`);
+        if (!commissionedObj) {
             await this.adapter.setForeignObjectAsync(`matter.0.bridges.${this.parameters.uuid}.commissioned`, {
                 type: 'state',
                 common: {
@@ -191,7 +191,8 @@ class BridgedDevice {
 
         if (!this.commissioningServer.isCommissioned()) {
             if (this.commissioned !== false) {
-                await this.adapter.setForeignStateAsync(`matter.0.bridges.${this.parameters.uuid}.commissioned`, false, true);
+                this.commissioned = false;
+                await this.adapter.setForeignStateAsync(`matter.0.bridges.${this.parameters.uuid}.commissioned`, this.commissioned, true);
             }
             const pairingData = this.commissioningServer.getPairingCode();
             // const { qrPairingCode, manualPairingCode } = pairingData;
@@ -207,7 +208,8 @@ class BridgedDevice {
             };
         } else {
             if (this.commissioned !== true) {
-                await this.adapter.setForeignStateAsync(`matter.0.bridges.${this.parameters.uuid}.commissioned`, true, true);
+                this.commissioned = true;
+                await this.adapter.setForeignStateAsync(`matter.0.bridges.${this.parameters.uuid}.commissioned`, this.commissioned, true);
             }
 
             const activeSession = this.commissioningServer.getActiveSessionInformation();

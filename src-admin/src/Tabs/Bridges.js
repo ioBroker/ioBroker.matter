@@ -137,7 +137,7 @@ class Bridges extends React.Component {
         }
     }
 
-    addDevicesToBridge = (devices, bridgeIndex) => {
+    addDevicesToBridge = (devices, bridgeIndex, isAutoDetected) => {
         const matter = JSON.parse(JSON.stringify(this.props.matter));
         const bridge = matter.bridges[bridgeIndex];
         devices.forEach(device => {
@@ -149,7 +149,7 @@ class Bridges extends React.Component {
                     type: device.deviceType,
                     enabled: true,
                     noComposed: true,
-                    auto: bridgeIndex === undefined,
+                    auto: isAutoDetected,
                 };
                 if (device.type === 'dimmer') {
                     obj.hasOnState = device.hasOnState;
@@ -354,8 +354,10 @@ class Bridges extends React.Component {
                             editDeviceDialog.deviceType = e.target.value;
                             this.setState({ editDeviceDialog });
                         }}
+                        renderValue={value => <span><span>{DEVICE_ICONS[value] || <QuestionMark />}</span>{I18n.t(value)}</span>}
                     >
                         {Object.keys(Types).filter(key => SUPPORTED_DEVICES.includes(key)).map(type => <MenuItem key={type} value={type}>
+                            <span>{DEVICE_ICONS[type] || <QuestionMark />}</span>
                             {I18n.t(type)}
                         </MenuItem>)}
                     </Select>
@@ -602,7 +604,7 @@ class Bridges extends React.Component {
         return <DeviceDialog
             onClose={() => this.setState({ addDeviceDialog: false })}
             {...this.state.addDeviceDialog}
-            addDevices={devices => this.addDevicesToBridge(devices, this.state.addDeviceDialog.bridgeIndex)}
+            addDevices={devices => this.addDevicesToBridge(devices, this.state.addDeviceDialog.bridgeIndex, true)}
             matter={this.props.matter}
             socket={this.props.socket}
             themeType={this.props.themeType}
@@ -642,8 +644,10 @@ class Bridges extends React.Component {
                             addCustomDeviceDialog.deviceType = e.target.value;
                             this.setState({ addCustomDeviceDialog });
                         }}
+                        renderValue={value => <span><span>{DEVICE_ICONS[value] || <QuestionMark />}</span>{I18n.t(value)}</span>}
                     >
                         {Object.keys(Types).filter(key => SUPPORTED_DEVICES.includes(key)).map(type => <MenuItem key={type} value={type}>
+                            <span>{DEVICE_ICONS[type] || <QuestionMark />}</span>
                             {I18n.t(type)}
                         </MenuItem>)}
                     </Select>
@@ -659,7 +663,7 @@ class Bridges extends React.Component {
                             },
                             deviceType: this.state.addCustomDeviceDialog.deviceType,
                             hasOnState: this.state.addCustomDeviceDialog.hasOnState,
-                        }], this.state.addCustomDeviceDialog.bridgeIndex);
+                        }], this.state.addCustomDeviceDialog.bridgeIndex, false);
 
                         this.setState({ addCustomDeviceDialog: false });
                     }}

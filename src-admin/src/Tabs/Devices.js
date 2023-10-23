@@ -252,8 +252,10 @@ class Devices extends React.Component {
                             editDeviceDialog.deviceType = e.target.value;
                             this.setState({ editDeviceDialog });
                         }}
+                        renderValue={value => <span><span>{DEVICE_ICONS[value] || <QuestionMark />}</span>{I18n.t(value)}</span>}
                     >
                         {Object.keys(Types).filter(key => SUPPORTED_DEVICES.includes(key)).map(type => <MenuItem key={type} value={type}>
+                            <span>{DEVICE_ICONS[type] || <QuestionMark />}</span>
                             {I18n.t(type)}
                         </MenuItem>)}
                     </Select>
@@ -308,7 +310,7 @@ class Devices extends React.Component {
         </Dialog>;
     }
 
-    addDevices = devices => {
+    addDevices = (devices, isAutoDetected) => {
         const matter = JSON.parse(JSON.stringify(this.props.matter));
         devices.forEach(device => {
             if (!matter.devices.find(d => d.oid === device)) {
@@ -318,6 +320,7 @@ class Devices extends React.Component {
                     oid: device._id,
                     type: device.deviceType,
                     hasOnState: device.hasOnState,
+                    auto: isAutoDetected,
                     productID: device.productID,
                     vendorID: device.vendorID,
                     noComposed: true,
@@ -422,14 +425,14 @@ class Devices extends React.Component {
             <DialogActions>
                 <Button
                     onClick={() => {
-                        this.addDevicesToBridge([{
+                        this.addDevices([{
                             _id: this.state.addCustomDeviceDialog.oid,
                             common: {
                                 name: this.state.addCustomDeviceDialog.name,
                             },
                             deviceType: this.state.addCustomDeviceDialog.deviceType,
                             hasOnState: this.state.addCustomDeviceDialog.hasOnState,
-                        }], this.state.addCustomDeviceDialog.bridgeIndex);
+                        }], this.state.addCustomDeviceDialog.bridgeIndex, false);
 
                         this.setState({ addCustomDeviceDialog: false });
                     }}
@@ -505,7 +508,7 @@ class Devices extends React.Component {
         return <DeviceDialog
             onClose={() => this.setState({ addDeviceDialog: false })}
             {...(this.state.addDeviceDialog || {})}
-            addDevices={this.addDevices}
+            addDevices={devices => this.addDevices(devices, true)}
             matter={this.props.matter}
             socket={this.props.socket}
             themeType={this.props.themeType}

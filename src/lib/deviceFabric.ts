@@ -1,4 +1,4 @@
-import GenericDevice, {DetectedDevice, DeviceOptions, DeviceType} from './devices/GenericDevice';
+import GenericDevice, { DetectedDevice, DeviceOptions, DeviceType } from './devices/GenericDevice';
 
 import AirCondition from './devices/AirCondition';
 import Blind from './devices/Blind';

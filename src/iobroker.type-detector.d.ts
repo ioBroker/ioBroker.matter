@@ -19,7 +19,7 @@ export interface DeviceState {
     name: string;
     write?: boolean;
     noSubscribe?: boolean;
-    type: StateType;
+    type?: StateType;
     indicator?: boolean;
     defaultRole: string;
     required: boolean;

@@ -1,12 +1,19 @@
 import BlindButtons from './BlindButtons';
-import { DetectedDevice, DeviceStateObject, PropertyType, StateAccessType, ValueType } from './GenericDevice';
+import {
+    DetectedDevice,
+    DeviceStateObject,
+    PropertyType,
+    StateAccessType,
+    ValueType,
+    DeviceOptions,
+} from './GenericDevice';
 
 class Blind extends BlindButtons {
     private _setLevelState: DeviceStateObject<number> | undefined;
     private _getLevelState: DeviceStateObject<number> | undefined;
 
-    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
-        super(detectedDevice, adapter);
+    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
+        super(detectedDevice, adapter, options);
 
         this._ready.push(this.addDeviceStates([
             // actual value first, as it will be read first

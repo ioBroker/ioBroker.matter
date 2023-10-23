@@ -1,25 +1,71 @@
 import * as utils from '@iobroker/adapter-core';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { ChannelDetector } = require('iobroker.type-detector');
 import { DeviceState, ChannelDetectorType, Control } from './iobroker.type-detector';
 import { MatterServer } from '@project-chip/matter-node.js';
 import { StorageManager } from '@project-chip/matter-node.js/storage';
 
 import { StorageIoBroker } from './matter/StorageIoBroker';
-import { SubscribeManager, deviceFabric, GenericDevice }  from './lib';
-import {DetectedDevice, DeviceOptions} from './lib/devices/GenericDevice';
-import BridgedDevice, { BridgeStatesResponse } from './matter/BridgedDevicesNode';
-import { MatterAdapterConfig, DeviceDescription, BridgeDescription } from './ioBrokerStorageTypes';
+import { deviceFabric, SubscribeManager } from './lib';
+import { DetectedDevice, DeviceOptions, DeviceType } from './lib/devices/GenericDevice';
+import BridgedDevice, { NodeStateResponse } from './matter/BridgedDevicesNode';
+import MatterDevice from './matter/DeviceNode';
+import {
+    BridgeDescription,
+    BridgeDeviceDescription,
+    DeviceDescription,
+    MatterAdapterConfig
+} from './ioBrokerStorageTypes';
 import { Level, Logger } from '@project-chip/matter-node.js/log';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import fs from 'fs';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { ChannelDetector } = require('iobroker.type-detector');
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
 
+// If the device was created by user and user defined the type of device => use this OID as given name
+const DEVICE_DEFAULT_NAME: { [key: string]: string } = {
+    [DeviceType.AirCondition]: 'SET',
+    [DeviceType.BlindButtons]: 'STOP',
+    [DeviceType.Blind]: 'SET',
+    [DeviceType.ButtonSensor]: 'PRESS',
+    [DeviceType.Button]: 'SET',
+    [DeviceType.Camera]: 'FILE',
+    [DeviceType.Cie]: 'CIE',
+    [DeviceType.Ct]: 'TEMPERATURE',
+    [DeviceType.Dimmer]: 'SET',
+    [DeviceType.Door]: 'ACTUAL',
+    [DeviceType.FireAlarm]: 'ACTUAL',
+    [DeviceType.FloodAlarm]: 'ACTUAL',
+    [DeviceType.Gate]: 'SET',
+    [DeviceType.Hue]: 'HUE',
+    [DeviceType.Humidity]: 'ACTUAL',
+    [DeviceType.Image]: 'URL',
+    [DeviceType.Info]: 'ACTUAL',
+    [DeviceType.Light]: 'SET',
+    [DeviceType.Lock]: 'SET',
+    [DeviceType.Media]: 'PLAY',
+    [DeviceType.Motion]: 'ACTUAL',
+    [DeviceType.RgbSingle]: 'CIE',
+    [DeviceType.RgbwSingle]: 'RGB',
+    [DeviceType.Slider]: 'SET',
+    [DeviceType.Socket]: 'SET',
+    [DeviceType.Temperature]: 'ACTUAL',
+    [DeviceType.Thermostat]: 'SET',
+    [DeviceType.VacuumCleaner]: 'POWER',
+    [DeviceType.Volume]: 'SET',
+    [DeviceType.VolumeGroup]: 'SET',
+    [DeviceType.Warning]: 'INFO',
+    [DeviceType.WeatherCurrent]: 'ACTUAL',
+    [DeviceType.WeatherForecast]: 'STATE',
+    [DeviceType.Window]: 'ACTUAL',
+    [DeviceType.WindowTilt]: 'ACTUAL',
+};
+
+
 export class MatterAdapter extends utils.Adapter {
     private detector: ChannelDetectorType;
-    private devices: { [key: string]: GenericDevice } = {};
+    private devices: { [key: string]: MatterDevice } = {};
     private bridges: { [key: string]: BridgedDevice } = {};
     private _guiSubscribes: { clientId: string; ts: number }[] | null= null;
     private matterServer: MatterServer | undefined;
@@ -27,7 +73,7 @@ export class MatterAdapter extends utils.Adapter {
     private storageManager: StorageManager | null = null;
     private stateTimeout: NodeJS.Timeout | null = null;
     private subscribed: boolean = false;
-    private license: { [key: string]: boolean | undefined} = {};
+    private license: { [key: string]: boolean | undefined } = {};
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -53,7 +99,7 @@ export class MatterAdapter extends utils.Adapter {
         this.detector = new ChannelDetector();
     }
 
-    async onTotalReset() {
+    async onTotalReset(): Promise<void> {
         this.log.debug('Resetting');
         await this.matterServer?.close();
         await this.storage?.clearAll();
@@ -88,7 +134,7 @@ export class MatterAdapter extends utils.Adapter {
         if (!sub) {
             this._guiSubscribes.push({ clientId, ts: Date.now() });
             this.stateTimeout && clearTimeout(this.stateTimeout);
-            this.stateTimeout = setTimeout(async () => {
+            this.stateTimeout = setTimeout(async() => {
                 this.stateTimeout = null;
                 const states = await this.requestNodeStates();
                 await this.sendToGui({ command: 'bridgeStates', states });
@@ -190,11 +236,16 @@ export class MatterAdapter extends utils.Adapter {
         await this.matterServer?.start();
     }
 
-    async requestNodeStates(): Promise<{ [uuid: string]: BridgeStatesResponse }> {
-        const states: { [uuid: string]: BridgeStatesResponse } = {};
+    async requestNodeStates(): Promise<{ [uuid: string]: NodeStateResponse }> {
+        const states: { [uuid: string]: NodeStateResponse } = {};
         for (const uuid in this.bridges) {
             const state = await this.bridges[uuid].getState();
-            this.log.debug(`State of ${uuid} is ${JSON.stringify(state)}`);
+            this.log.debug(`State of bridge ${uuid} is ${JSON.stringify(state)}`);
+            states[uuid] = state;
+        }
+        for (const uuid in this.devices) {
+            const state = await this.devices[uuid].getState();
+            this.log.debug(`State of device ${uuid} is ${JSON.stringify(state)}`);
             states[uuid] = state;
         }
         return states;
@@ -340,7 +391,7 @@ export class MatterAdapter extends utils.Adapter {
             return !!this.license[key];
         }
         const subscriptions = response.data;
-        const cert = fs.readFileSync(`${__dirname}/../data/cloudCert.crt`)
+        const cert = fs.readFileSync(`${__dirname}/../data/cloudCert.crt`);
         if (subscriptions.find((it: any) => {
             try {
                 const decoded: any = jwt.verify(it.json, cert);
@@ -380,13 +431,29 @@ export class MatterAdapter extends utils.Adapter {
         return !!this.license[key];
     }
 
-    async createBridge(uuid: string, options: BridgeDescription): Promise<BridgedDevice> {
+    async createMatterBridge(options: BridgeDescription): Promise<BridgedDevice | null> {
         if (this.matterServer) {
             const devices = [];
             const optionsList = (options.list || []).filter(item => item.enabled !== false);
             for (let l = 0; l < optionsList.length; l++) {
                 const device = optionsList[l];
-                const detectedDevice = await this.getDeviceStates(device.oid) as DetectedDevice;
+                let detectedDevice = await this.getDeviceStates(device.oid) as DetectedDevice;
+                if (!device.auto && (!detectedDevice || detectedDevice.type !== device.type)) {
+                    // ignore all detected states and let only one
+                    detectedDevice = {
+                        type: device.type as DeviceType,
+                        states: [
+                            {
+                                name: DEVICE_DEFAULT_NAME[device.type] || 'SET',
+                                id: device.oid,
+                                // type: StateType.Number, // ignored
+                                write: true, // ignored
+                                defaultRole: 'button', // ignored
+                                required: true, // ignored
+                            },
+                        ],
+                    };
+                }
                 if (detectedDevice) {
                     const deviceObject = await deviceFabric(detectedDevice, this, device as DeviceOptions);
                     if (deviceObject) {
@@ -402,25 +469,81 @@ export class MatterAdapter extends utils.Adapter {
                 }
             }
 
-            const bridge = new BridgedDevice({
-                adapter: this,
-                parameters: {
-                    uuid: options.uuid,
-                    passcode: parseInt(options.passcode as string, 10) || 20202021,
-                    discriminator: 3840,
-                    vendorid: parseInt(options.vendorID) || 0xfff1,
-                    productid: parseInt(options.productID) || 0x8000,
-                    devicename: options.name,
-                    productname: `Product ${options.name}`,
-                },
-                devices,
-                devicesOptions: optionsList,
-                matterServer: this.matterServer,
-            });
+            if (devices.length) {
+                const bridge = new BridgedDevice({
+                    adapter: this,
+                    parameters: {
+                        uuid: options.uuid,
+                        passcode: parseInt(options.passcode as string, 10) || 20202021,
+                        discriminator: 3840,
+                        vendorid: parseInt(options.vendorID) || 0xfff1,
+                        productid: parseInt(options.productID) || 0x8000,
+                        devicename: options.name,
+                        productname: `Product ${options.name}`,
+                    },
+                    devices,
+                    devicesOptions: optionsList,
+                    matterServer: this.matterServer,
+                });
 
-            await bridge.init(); // add bridge to server
+                await bridge.init(); // add bridge to server
 
-            return bridge;
+                return bridge;
+            }
+
+            return null;
+        }
+        throw new Error('Matter server not initialized');
+    }
+
+    async createMatterDevice(options: DeviceDescription): Promise<MatterDevice | null> {
+        if (this.matterServer) {
+            let device;
+            let detectedDevice = await this.getDeviceStates(options.oid) as DetectedDevice;
+            if (!options.auto && (!detectedDevice || detectedDevice.type !== options.type)) {
+                // ignore all detected states and let only one
+                detectedDevice = {
+                    type: options.type as DeviceType,
+                    states: [
+                        {
+                            name: DEVICE_DEFAULT_NAME[options.type] || 'SET',
+                            id: options.oid,
+                            // type: StateType.Number, // ignored
+                            write: true, // ignored
+                            defaultRole: 'button', // ignored
+                            required: true, // ignored
+                        },
+                    ],
+                };
+            }
+            if (detectedDevice) {
+                const deviceObject = await deviceFabric(detectedDevice, this, options as DeviceOptions);
+                if (deviceObject) {
+                    device = deviceObject;
+                }
+            }
+            if (device) {
+                const matterDevice = new MatterDevice({
+                    adapter: this,
+                    parameters: {
+                        uuid: options.uuid,
+                        passcode: parseInt(options.passcode as string, 10) || 20202021,
+                        discriminator: 3840,
+                        vendorid: parseInt(options.vendorID) || 0xfff1,
+                        productid: parseInt(options.productID) || 0x8000,
+                        devicename: options.name,
+                        productname: `Product ${options.name}`,
+                    },
+                    device,
+                    deviceOptions: options,
+                    matterServer: this.matterServer,
+                });
+                await matterDevice.init(); // add bridge to server
+
+                return matterDevice;
+            }
+
+            return null;
         }
         throw new Error('Matter server not initialized');
     }
@@ -447,29 +570,9 @@ export class MatterAdapter extends utils.Adapter {
             } else if (object._id.startsWith(`${this.namespace}.bridges.`) &&
                 object.native.enabled !== false &&
                 object.native.list?.length &&
-                object.native.list.find((item: DeviceDescription) => item.enabled !== false)
+                object.native.list.find((item: BridgeDeviceDescription) => item.enabled !== false)
             ) {
                 _bridges.push(object);
-            }
-        }
-
-        // Create new bridges
-        for (const b in _bridges) {
-            const bridge = _bridges[b];
-            if (!this.bridges[bridge._id]) {
-                // if one bridge already exists, check the license
-                if (Object.keys(this.bridges).length) {
-                    // check license
-                    if (!(await this.checkLicense())) {
-                        this.log.error(`You cannot use more than one bridge without ioBroker.pro subscription. Bridge ${bridge._id} will be ignored.}`);
-                        break;
-                    }
-                }
-
-                this.bridges[bridge._id] = await this.createBridge(
-                    bridge._id,
-                    bridge.native as BridgeDescription,
-                );
             }
         }
 
@@ -481,23 +584,23 @@ export class MatterAdapter extends utils.Adapter {
             }
         }
 
-        // Create new devices
-        for (const d in _devices) {
-            const device = _devices[d];
-            if (!this.devices[device._id]) {
-                const detectedDevice = await this.getDeviceStates(device.native.oid) as DetectedDevice;
-                if (detectedDevice) {
-                    const deviceObject = await deviceFabric(detectedDevice, this, device.native as DeviceOptions);
-                    if (deviceObject) {
-                        if (Object.keys(this.devices).length >= 2) {
-                            if (!(await this.checkLicense())) {
-                                this.log.error('You cannot use more than 2 devices without ioBroker.pro subscription. Only first 2 devices will be created.}');
-                                await deviceObject.destroy();
-                                break;
-                            }
+        // Create new bridges
+        for (const b in _bridges) {
+            const bridge = _bridges[b];
+            if (!this.bridges[bridge._id]) {
+                // if one bridge already exists, check the license
+                const matterBridge = await this.createMatterBridge(bridge.native as BridgeDescription);
+                if (matterBridge) {
+                    if (Object.keys(this.bridges).length) {
+                        // check license
+                        if (!(await this.checkLicense())) {
+                            this.log.error(`You cannot use more than one bridge without ioBroker.pro subscription. Bridge ${bridge._id} will be ignored.}`);
+                            await matterBridge.stop();
+                            break;
                         }
-                        this.devices[device._id] = deviceObject;
                     }
+
+                    this.bridges[bridge._id] = matterBridge;
                 }
             }
         }
@@ -505,8 +608,26 @@ export class MatterAdapter extends utils.Adapter {
         // Delete old non-existing devices
         for (const device in this.devices) {
             if (!_devices.find(obj => obj._id === device)) {
-                await this.devices[device].destroy();
+                await this.devices[device].stop();
                 delete this.devices[device];
+            }
+        }
+
+        // Create new devices
+        for (const d in _devices) {
+            const device = _devices[d];
+            if (!this.devices[device._id]) {
+                const matterDevice = await this.createMatterDevice(device.native as DeviceDescription);
+                if (matterDevice) {
+                    if (Object.keys(this.devices).length >= 2) {
+                        if (!(await this.checkLicense())) {
+                            this.log.error('You cannot use more than 2 devices without ioBroker.pro subscription. Only first 2 devices will be created.}');
+                            await matterDevice.stop();
+                            break;
+                        }
+                    }
+                    this.devices[device._id] = matterDevice;
+                }
             }
         }
     }

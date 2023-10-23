@@ -1,9 +1,10 @@
 import GenericDevice, {
+    PropertyType,
     DetectedDevice,
     DeviceStateObject,
-    PropertyType,
     StateAccessType,
-    ValueType
+    ValueType,
+    DeviceOptions,
 } from './GenericDevice';
 
 class Warning extends GenericDevice {
@@ -15,8 +16,8 @@ class Warning extends GenericDevice {
     protected _getIconState: DeviceStateObject<string> | undefined;
     protected _getDescState: DeviceStateObject<string> | undefined;
 
-    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
-        super(detectedDevice, adapter);
+    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
+        super(detectedDevice, adapter, options);
 
         this._ready.push(this.addDeviceStates([
             { name: 'LEVEL', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.Warning, callback: state => this._getWarningState = state },

@@ -175,7 +175,7 @@ export enum PropertyType {
 
 export interface DeviceOptions {
     dimmerOnLevel?: number;
-    dimmerUseLastLevelForOn?: boolean
+    dimmerUseLastLevelForOn?: boolean;
 }
 
 export class DeviceStateObject<T> {

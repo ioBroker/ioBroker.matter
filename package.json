@@ -3,8 +3,8 @@
   "version": "0.0.1",
   "description": "Controlling and simulation of matter devices",
   "author": {
-    "name": "Ingo Fischer",
-    "email": "ingo@fischer-ka.de"
+    "name": "Denis Haev",
+    "email": "dogafox@gmail.com"
   },
   "homepage": "https://github.com/ioBroker/ioBroker.matter",
   "keywords": [

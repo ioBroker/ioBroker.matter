@@ -4,12 +4,13 @@ export interface MatterAdapterConfig extends ioBroker.AdapterConfig {
     pass: string;
 }
 
-export interface DeviceDescription {
+export interface BridgeDeviceDescription {
     uuid: string;
+    enabled: boolean;
     name: string;
     oid: string;
     type: string;
-    enabled: boolean;
+    auto: string;
 }
 
 export interface BridgeDescription {
@@ -19,5 +20,17 @@ export interface BridgeDescription {
     vendorID: string;
     passcode: string;
     name: string;
-    list: DeviceDescription[];
+    list: BridgeDeviceDescription[];
+}
+
+export interface DeviceDescription {
+    uuid: string;
+    enabled: boolean;
+    productID: string;
+    vendorID: string;
+    passcode: string;
+    name: string;
+    oid: string;
+    type: string;
+    auto: string;
 }

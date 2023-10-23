@@ -3,7 +3,8 @@ import GenericDevice, {
     DeviceStateObject,
     PropertyType,
     StateAccessType,
-    ValueType
+    ValueType,
+    DeviceOptions,
 } from './GenericDevice';
 
 /*
@@ -35,8 +36,8 @@ class BlindButtons extends GenericDevice {
     protected _setTiltOpenState: DeviceStateObject<boolean> | undefined;
     protected _setTiltCloseState: DeviceStateObject<boolean> | undefined;
 
-    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
-        super(detectedDevice, adapter);
+    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
+        super(detectedDevice, adapter, options);
 
         this._ready.push(this.addDeviceStates([
             { name: 'STOP', valueType: ValueType.Button, accessType: StateAccessType.Write, type: PropertyType.Stop, callback: state => this._setStopState = state },

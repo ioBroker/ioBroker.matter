@@ -17,8 +17,6 @@
 -->
 ## ToDo
 - Controller
-- Devices
-- Add device without room or function (by ID)
 - Get login & pass from iot (new js-controller version) may be
 
 ## Changelog
@@ -28,4 +26,4 @@
 ## License
 Apache-2.0
 
-Copyright (c) 2023 Ingo Fischer <ingo@fischer-ka.de>
+Copyright (c) 2023 Denis Haev <dogafox@gmail.com>

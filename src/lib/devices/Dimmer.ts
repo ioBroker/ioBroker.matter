@@ -3,7 +3,8 @@ import GenericDevice, {
     DetectedDevice,
     DeviceStateObject,
     StateAccessType,
-    ValueType, DeviceOptions
+    ValueType,
+    DeviceOptions,
 } from './GenericDevice';
 
 class Dimmer extends GenericDevice {
@@ -30,10 +31,9 @@ class Dimmer extends GenericDevice {
         if (!this._setLevelState && !this._getLevelState) {
             throw new Error('Level state not found');
         }
-        if (this._lastNotZeroLevel === null) {
-            if ((this._getLevelState?.value || 0) > 10) {
-                this._lastNotZeroLevel = this._getLevelState?.value;
-            }
+
+        if (this.options?.dimmerUseLastLevelForOn && (this._getLevelState?.value || 0) > 10) {
+            this._lastNotZeroLevel = this._getLevelState?.value || 100;
         }
 
         return (this._getLevelState || this._setLevelState)?.value;
@@ -69,9 +69,15 @@ class Dimmer extends GenericDevice {
         }
         if (this._setLevelState) {
             if (value) {
-                return this._setLevelState.setValue(this._lastNotZeroLevel || 100);
+                if (this.options?.dimmerUseLastLevelForOn) {
+                    return this._setLevelState.setValue(this._lastNotZeroLevel || 100);
+                } else {
+                    return this._setLevelState.setValue(this.options?.dimmerOnLevel || 100);
+                }
             }
-            this._lastNotZeroLevel = this._getLevelState?.value || this._lastNotZeroLevel || 100;
+            if (this.options?.dimmerUseLastLevelForOn) {
+                this._lastNotZeroLevel = this._getLevelState?.value || this._lastNotZeroLevel || 100;
+            }
             return this._setLevelState.setValue(0);
         }
     }

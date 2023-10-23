@@ -33,7 +33,7 @@
       "zh-cn": "控制和模拟事故装置"
     },
     "authors": [
-      "Ingo Fischer <ingo@fischer-ka.de>"
+      "Denis Haev <dogafox@gmail.com>"
     ],
     "license": "Apache-2.0",
     "platform": "Javascript/Node.js",

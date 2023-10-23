@@ -1,9 +1,10 @@
 import GenericDevice, {
+    PropertyType,
     DetectedDevice,
     DeviceStateObject,
-    PropertyType,
     StateAccessType,
-    ValueType
+    ValueType,
+    DeviceOptions,
 } from './GenericDevice';
 
 class Media extends GenericDevice {
@@ -30,8 +31,8 @@ class Media extends GenericDevice {
     protected _muteState: DeviceStateObject<boolean> | undefined;
     protected _getConnectedState: DeviceStateObject<boolean> | undefined;
 
-    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
-        super(detectedDevice, adapter);
+    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
+        super(detectedDevice, adapter, options);
 
         this._ready.push(this.addDeviceStates([
             { name: 'STATE', valueType: ValueType.Boolean, accessType: StateAccessType.Read, type: PropertyType.State, callback: state => this._getStateState = state },

@@ -3,7 +3,8 @@ import GenericDevice, {
     DetectedDevice,
     DeviceStateObject,
     StateAccessType,
-    ValueType
+    ValueType,
+    DeviceOptions,
 } from './GenericDevice';
 
 class Lock extends GenericDevice {
@@ -11,8 +12,8 @@ class Lock extends GenericDevice {
     private _getPowerState: DeviceStateObject<boolean> | undefined;
     private _setOpenState: DeviceStateObject<boolean> | undefined;
 
-    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
-        super(detectedDevice, adapter);
+    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
+        super(detectedDevice, adapter, options);
 
         this._ready.push(this.addDeviceStates([
             // actual value first, as it will be read first

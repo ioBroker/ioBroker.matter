@@ -164,13 +164,15 @@ class Devices extends React.Component {
         };
 
         const isDisabled =
-            this.state.editDeviceDialog.name === this.state.editDeviceDialog.originalName &&
+            (this.state.editDeviceDialog.name === this.state.editDeviceDialog.originalName &&
             this.state.editDeviceDialog?.vendorID === this.state.editDeviceDialog?.originalVendorID &&
             this.state.editDeviceDialog?.productID === this.state.editDeviceDialog?.originalProductID &&
             this.state.editDeviceDialog.deviceType === this.state.editDeviceDialog.originalDeviceType &&
             this.state.editDeviceDialog.dimmerOnLevel === this.state.editDeviceDialog.originalDimmerOnLevel &&
             this.state.editDeviceDialog.dimmerUseLastLevelForOn === this.state.editDeviceDialog.originalDimmerUseLastLevelForOn &&
-            this.state.editDeviceDialog.noComposed === this.state.editDeviceDialog.originalNoComposed;
+            this.state.editDeviceDialog.noComposed === this.state.editDeviceDialog.originalNoComposed) ||
+            (!this.state.editDeviceDialog.dimmerUseLastLevelForOn && !this.state.editDeviceDialog.dimmerOnLevel) ||
+            !this.state.editDeviceDialog.deviceType;
 
         return <Dialog onClose={() => this.setState({ editDeviceDialog: false })} open={!0}>
             <DialogTitle>
@@ -252,7 +254,10 @@ class Devices extends React.Component {
                             editDeviceDialog.deviceType = e.target.value;
                             this.setState({ editDeviceDialog });
                         }}
-                        renderValue={value => <span><span>{DEVICE_ICONS[value] || <QuestionMark />}</span>{I18n.t(value)}</span>}
+                        renderValue={value => <span>
+                            <span>{DEVICE_ICONS[value] || <QuestionMark />}</span>
+                            {I18n.t(value)}
+                        </span>}
                     >
                         {Object.keys(Types).filter(key => SUPPORTED_DEVICES.includes(key)).map(type => <MenuItem key={type} value={type}>
                             <span>{DEVICE_ICONS[type] || <QuestionMark />}</span>
@@ -274,18 +279,26 @@ class Devices extends React.Component {
                     />}
                     variant="standard"
                 /> : null}
-                {this.state.editDeviceDialog.deviceType === 'dimmer' && !this.state.editDeviceDialog.hasOnState && !this.state.editDeviceDialog.dimmerUseLastLevelForOn ? <TextField
-                    label={I18n.t('Brightness by ON')}
-                    value={this.state.editDeviceDialog.dimmerOnLevel}
-                    onChange={e => {
-                        const editDeviceDialog = JSON.parse(JSON.stringify(this.state.editDeviceDialog));
-                        editDeviceDialog.dimmerOnLevel = e.target.value;
-                        this.setState({ editDeviceDialog });
-                    }}
-                    variant="standard"
-                    fullWidth
-                    helperText={I18n.t('This value will be used, when dimmer is switched ON')}
-                /> : null}
+                {this.state.editDeviceDialog.deviceType === 'dimmer' && !this.state.editDeviceDialog.hasOnState && !this.state.editDeviceDialog.dimmerUseLastLevelForOn ? <FormControl
+                    style={{ width: '100%', marginTop: 30 }}
+                >
+                    <InputLabel>{I18n.t('Brightness by ON')}</InputLabel>
+                    <Select
+                        variant="standard"
+                        error={!this.state.editDeviceDialog.dimmerOnLevel}
+                        value={this.state.editDeviceDialog.dimmerOnLevel}
+                        onChange={e => {
+                            const editDeviceDialog = JSON.parse(JSON.stringify(this.state.editDeviceDialog));
+                            editDeviceDialog.dimmerOnLevel = e.target.value;
+                            this.setState({ editDeviceDialog });
+                        }}
+                        renderValue={value => `${value}%`}
+                    >
+                        {[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(type => <MenuItem key={type} value={type}>
+                            {`${type}%`}
+                        </MenuItem>)}
+                    </Select>
+                </FormControl> : null}
                 {isCommissioned ? I18n.t('Bridge is already commissioned. You cannot change the name or the vendor/product ID.') : null}
             </DialogContent>
             <DialogActions>

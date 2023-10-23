@@ -1,11 +1,18 @@
 import Ct from './Ct';
-import { DetectedDevice, DeviceStateObject, PropertyType, StateAccessType, ValueType } from './GenericDevice';
+import {
+    PropertyType,
+    DetectedDevice,
+    DeviceStateObject,
+    StateAccessType,
+    ValueType,
+    DeviceOptions,
+} from './GenericDevice';
 
 class RgbwSingle extends Ct {
     protected _rgbw: DeviceStateObject<string> | undefined;
 
-    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
-        super(detectedDevice, adapter);
+    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
+        super(detectedDevice, adapter, options);
 
         this._ready.push(this.addDeviceStates([
             { name: 'RGBW', valueType: ValueType.String, accessType: StateAccessType.ReadWrite, type: PropertyType.Rgbw, callback: state => this._rgbw = state },

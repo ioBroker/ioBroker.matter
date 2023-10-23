@@ -3,7 +3,8 @@ import GenericDevice, {
     DetectedDevice,
     DeviceStateObject,
     StateAccessType,
-    ValueType
+    ValueType,
+    DeviceOptions,
 } from './GenericDevice';
 
 enum ThermostatMode {
@@ -29,8 +30,8 @@ class Thermostat extends GenericDevice {
     private _partyState: DeviceStateObject<boolean | number> | undefined;
     private _modeState: DeviceStateObject<ThermostatMode> | undefined;
 
-    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
-        super(detectedDevice, adapter);
+    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
+        super(detectedDevice, adapter, options);
 
         this._ready.push(this.addDeviceStates([
             { name: 'SET', valueType: ValueType.NumberMinMax, accessType: StateAccessType.ReadWrite, type: PropertyType.Level, callback: state => this._levelState = state },

@@ -21,7 +21,7 @@ export class MappingDimmer extends MappingGenericDevice {
                 await this.ioBrokerDevice.setPower(on);
             }
         });
-        this.matterDevice.addCurrentLevelListener(async (level: number | null) => {
+        this.matterDevice.addCurrentLevelListener(async(level: number | null) => {
             const currentValue = this.ioBrokerDevice.getLevel();
             if (level !== currentValue && level !== null) {
                 await this.ioBrokerDevice.setLevel(level);

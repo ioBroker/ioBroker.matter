@@ -1,9 +1,10 @@
 import GenericDevice, {
+    PropertyType,
     DetectedDevice,
     DeviceStateObject,
-    PropertyType,
     StateAccessType,
-    ValueType
+    ValueType,
+    DeviceOptions,
 } from './GenericDevice';
 
 class WeatherForecast extends GenericDevice {
@@ -29,8 +30,8 @@ class WeatherForecast extends GenericDevice {
     protected _getHistoryChartState: DeviceStateObject<string> | undefined;
     protected _getForecastChartState: DeviceStateObject<string> | undefined;
 
-    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
-        super(detectedDevice, adapter);
+    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
+        super(detectedDevice, adapter, options);
 
         this._ready.push(this.addDeviceStates([
             { name: 'ICON', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.Icon, callback: state => this._getIconState = state },

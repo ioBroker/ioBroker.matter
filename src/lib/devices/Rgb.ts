@@ -1,5 +1,12 @@
 import Ct from './Ct';
-import { DetectedDevice, DeviceStateObject, PropertyType, StateAccessType, ValueType } from './GenericDevice';
+import {
+    PropertyType,
+    DetectedDevice,
+    DeviceStateObject,
+    StateAccessType,
+    ValueType,
+    DeviceOptions,
+} from './GenericDevice';
 
 class Rgb extends Ct {
     protected _red: DeviceStateObject<number> | undefined;
@@ -7,8 +14,8 @@ class Rgb extends Ct {
     protected _blue: DeviceStateObject<number> | undefined;
     protected _white: DeviceStateObject<number> | undefined;
 
-    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
-        super(detectedDevice, adapter);
+    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
+        super(detectedDevice, adapter, options);
 
         this._ready.push(this.addDeviceStates([
             { name: 'RED', valueType: ValueType.NumberPercent, accessType: StateAccessType.ReadWrite, type: PropertyType.Red, callback: state => this._red = state },

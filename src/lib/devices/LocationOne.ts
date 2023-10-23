@@ -1,9 +1,10 @@
 import GenericDevice, {
+    PropertyType,
     DetectedDevice,
     DeviceStateObject,
-    PropertyType,
     StateAccessType,
-    ValueType
+    ValueType,
+    DeviceOptions,
 } from './GenericDevice';
 
 class LocationOne extends GenericDevice {
@@ -12,8 +13,8 @@ class LocationOne extends GenericDevice {
     _getRadiusState: DeviceStateObject<number> | undefined;
     _getAccuracyState: DeviceStateObject<number> | undefined;
 
-    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
-        super(detectedDevice, adapter);
+    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
+        super(detectedDevice, adapter, options);
 
         this._ready.push(this.addDeviceStates([
             { name: 'GPS', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.GPS, callback: state => this._getGPSState = state },

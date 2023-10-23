@@ -3,7 +3,8 @@ import GenericDevice, {
     DeviceStateObject,
     PropertyType,
     StateAccessType,
-    ValueType
+    ValueType,
+    DeviceOptions,
 } from './GenericDevice';
 
 class Ct extends GenericDevice {
@@ -14,8 +15,8 @@ class Ct extends GenericDevice {
     protected _setPower: DeviceStateObject<boolean> | undefined;
     protected _getPower: DeviceStateObject<boolean> | undefined;
 
-    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
-        super(detectedDevice, adapter);
+    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
+        super(detectedDevice, adapter, options);
 
         this._ready.push(this.addDeviceStates([
             { name: 'DIMMER', valueType: ValueType.NumberPercent, accessType: StateAccessType.ReadWrite, type: PropertyType.Dimmer, callback: state => this._dimmer = state },

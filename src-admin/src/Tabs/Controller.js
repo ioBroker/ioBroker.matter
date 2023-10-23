@@ -3,11 +3,7 @@ import PropTypes from 'prop-types';
 import { withStyles } from '@mui/styles';
 
 import {
-    FormControl,
-    InputLabel,
-    MenuItem,
-    Select,
-    Switch, TextField,
+    Switch,
 } from '@mui/material';
 
 import { I18n } from '@iobroker/adapter-react-v5';
@@ -31,10 +27,6 @@ const styles = () => ({
 });
 
 class Controller extends React.Component {
-    constructor(props) {
-        super(props);
-    }
-
     render() {
         return <div className={this.props.classes.panel}>
             <div>

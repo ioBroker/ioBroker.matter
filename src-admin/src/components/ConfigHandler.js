@@ -52,7 +52,7 @@ class ConfigHandler {
             }
             changed && this.onCommissioningChanged(this.commissioning);
         }
-    }
+    };
 
     onObjectChange = (id, obj) => {
         if (id.startsWith(`matter.${this.instance}.devices.`)) {
@@ -241,7 +241,6 @@ class ConfigHandler {
                     this.commissioning.devices[parts[3]] = commissioning[id].val;
                 }
             });
-
         } catch (e) {
             // ignore
         }

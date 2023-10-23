@@ -14,7 +14,7 @@ import {
     TextField,
 } from '@mui/material';
 
-import {I18n, Logo} from '@iobroker/adapter-react-v5';
+import { I18n, Logo } from '@iobroker/adapter-react-v5';
 import { Check, Close, LayersClear } from '@mui/icons-material';
 
 const styles = () => ({
@@ -39,7 +39,10 @@ class Options extends React.Component {
         super(props);
         this.state = {
             showDialog: false,
-            dialogLevel: 0
+            dialogLevel: 0,
+            iotLogin: '',
+            iotPassword: '',
+            iotInstance: '',
         };
     }
 
@@ -59,27 +62,27 @@ class Options extends React.Component {
                 <br />
                 {I18n.t('The configuration of controller, bridges and devices will stay unchanged.')}
                 <br />
-                {this.state.level ? I18n.t('Are you really sure?') :I18n.t('Are you sure?')}
+                {this.state.dialogLevel ? I18n.t('Are you really sure?') : I18n.t('Are you sure?')}
             </DialogContent>
             <DialogActions>
                 <Button
                     variant="contained"
-                    style={{ backgroundColor: this.state.level === 1 ? 'red' : undefined, color: this.state.level === 1 ? 'white' : undefined }}
+                    style={{ backgroundColor: this.state.dialogLevel === 1 ? 'red' : undefined, color: this.state.dialogLevel === 1 ? 'white' : undefined }}
                     color="grey"
                     onClick={() => {
-                        if (this.state.level === 1) {
+                        if (this.state.dialogLevel === 1) {
                             this.setState({ showDialog: false });
                             // send command to reset all states
                             this.props.socket.sendTo(`matter.${this.props.instance}`, 'reset', { })
                                 .then(() => this.props.showToast(I18n.t('Done')))
                                 .catch(e => this.props.showToast(`Cannot reset: ${e}`));
                         } else {
-                            this.setState({ level: 1 });
+                            this.setState({ dialogLevel: 1 });
                         }
                     }}
                     startIcon={<Check />}
                 >
-                    {this.state.level === 1 ? I18n.t('Reset it at least to defaults') : I18n.t('Reset to defaults')}
+                    {this.state.dialogLevel === 1 ? I18n.t('Reset it at least to defaults') : I18n.t('Reset to defaults')}
                 </Button>
                 <Button
                     variant="contained"
@@ -91,10 +94,33 @@ class Options extends React.Component {
                     {I18n.t('Cancel')}
                 </Button>
             </DialogActions>
-        </Dialog>
+        </Dialog>;
     }
 
     async componentDidMount() {
+        // detect if any iot or cloud with pro-account are available
+        const instancesIot = await this.props.socket.getAdapterInstances('iot');
+        let instance;
+        if (instancesIot) {
+            instance = instancesIot.find(it => it?.native?.login && it?.native?.pass);
+            if (instance) {
+                // encode
+                const pass = await this.props.socket.decrypt(instance.native.pass);
+
+                this.setState({ iotInstance: instance._id, iotPassword: pass, iotLogin: instance.native.login });
+            }
+        }
+        if (!instance) {
+            const instancesCloud = await this.props.socket.getAdapterInstances('cloud');
+            instance = instancesCloud.find(it => it?.native?.login && it?.native?.pass);
+            if (instance) {
+                // encode
+                const pass = await this.props.socket.decrypt(instance.native.pass);
+
+                this.setState({ iotInstance: instance._id, iotPassword: pass, iotLogin: instance.native.login });
+            }
+        }
+
         try {
             const host = await this.props.socket.getObject(`system.host.${this.props.common.host}`);
             const interfaces = [
@@ -177,7 +203,7 @@ class Options extends React.Component {
                 </FormControl>}
 
             <div style={{ marginTop: 50 }}>{I18n.t('Only required if you want to use bridge or device options with more than 5 devices')}</div>
-            <div style={{ display: 'flex' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline' }}>
                 <TextField
                     variant="standard"
                     label={I18n.t('ioBroker.pro Login')}
@@ -194,17 +220,29 @@ class Options extends React.Component {
                     error={!!passwordError}
                     autoComplete="current-password"
                     className={this.props.classes.input}
-                    value={this.props.native.password}
+                    value={this.props.native.pass}
                     type="password"
                     helperText={passwordError || ''}
-                    onChange={e => this.props.onChange('password', e.target.value)}
+                    onChange={e => this.props.onChange('pass', e.target.value)}
                     margin="normal"
                 />
+                {this.state.iotInstance && this.state.iotPassword !== this.props.native.pass && this.state.iotLogin !== this.props.native.login ?
+                    <Button
+                        style={{ marginLeft: 16 }}
+                        variant="contained"
+                        color="primary"
+                        onClick={() => {
+                            this.props.onChange('login', this.state.iotLogin);
+                            this.props.onChange('pass', this.state.iotPassword);
+                        }}
+                    >
+                        {I18n.t('Sync credentials with %s', this.state.iotInstance)}
+                    </Button> : null}
             </div>
             <div style={{ marginTop: 50 }}>
                 <Button
                     disabled={!this.props.alive}
-                    onClick={() => this.setState({ showDialog: true, level: 0 })}
+                    onClick={() => this.setState({ showDialog: true, dialogLevel: 0 })}
                     variant="contained"
                     color="grey"
                     startIcon={<LayersClear />}

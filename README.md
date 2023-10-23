@@ -16,10 +16,10 @@
 	### **WORK IN PROGRESS**
 -->
 ## ToDo
-- Dimmer
 - Controller
 - Devices
 - Add device without room or function (by ID)
+- Get login & pass from iot (new js-controller version) may be
 
 ## Changelog
 ### **WORK IN PROGRESS**

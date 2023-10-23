@@ -6,8 +6,8 @@ import { MatterServer } from '@project-chip/matter-node.js';
 import { StorageManager } from '@project-chip/matter-node.js/storage';
 
 import { StorageIoBroker } from './matter/StorageIoBroker';
-import { SubscribeManager, DeviceFabric, GenericDevice }  from './lib';
-import { DetectedDevice } from './lib/devices/GenericDevice';
+import { SubscribeManager, deviceFabric, GenericDevice }  from './lib';
+import {DetectedDevice, DeviceOptions} from './lib/devices/GenericDevice';
 import BridgedDevice, { BridgeStatesResponse } from './matter/BridgedDevicesNode';
 import { MatterAdapterConfig, DeviceDescription, BridgeDescription } from './ioBrokerStorageTypes';
 import { Level, Logger } from '@project-chip/matter-node.js/log';
@@ -27,6 +27,7 @@ export class MatterAdapter extends utils.Adapter {
     private storageManager: StorageManager | null = null;
     private stateTimeout: NodeJS.Timeout | null = null;
     private subscribed: boolean = false;
+    private license: { [key: string]: boolean | undefined} = {};
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -65,6 +66,9 @@ export class MatterAdapter extends utils.Adapter {
         } else if (obj?.command === 'bridgeInfo') {
             const states = await this.requestNodeStates();
             obj.callback && this.sendTo(obj.from, obj.command, { command: 'bridgeStates', states }, obj.callback);
+        } else if (obj.command === 'getLicense') {
+            const license = await this.checkLicense(obj.message.login, obj.message.pass);
+            obj.callback && this.sendTo(obj.from, obj.command, { result: license }, obj.callback);
         }
     }
 
@@ -305,19 +309,36 @@ export class MatterAdapter extends utils.Adapter {
         return null;
     }
 
-    async checkLicense(): Promise<boolean> {
+    async checkLicense(login?: string, pass?: string): Promise<boolean> {
         const config = this.config as MatterAdapterConfig;
-        if (!config.login || !config.password) {
+        login = login || config.login;
+        pass = pass || config.pass;
+        const key = `${login}/////${pass}`;
+        if (this.license[key] !== undefined) {
+            return !!this.license[key];
+        }
+        if (!login || !pass) {
             this.log.error('You need to specify login and password for ioBroker.pro subscription');
             return false;
         }
-        // check the license
-        const response = await axios(`${IOBROKER_USER_API}/api/v1/subscriptions`, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Basic ${Buffer.from(`${config.login}:${config.password}`).toString('base64')}`
+        let response;
+        try {
+            // check the license
+            response = await axios(`${IOBROKER_USER_API}/api/v1/subscriptions`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Basic ${Buffer.from(`${login}:${pass}`).toString('base64')}`
+                }
+            });
+        } catch (e) {
+            if (e.response.status === 401) {
+                this.license[key] = false;
+                this.log.error(`User login or password is wrong`);
+            } else {
+                this.log.error(`Cannot verify license: ${e}`);
             }
-        });
+            return !!this.license[key];
+        }
         const subscriptions = response.data;
         const cert = fs.readFileSync(`${__dirname}/../data/cloudCert.crt`)
         if (subscriptions.find((it: any) => {
@@ -328,27 +349,38 @@ export class MatterAdapter extends utils.Adapter {
                 }
             } catch (e) {
                 this.log.warn(`Cannot verify license: ${e}`);
-                return false;
+                this.license[key] = false;
+                return !!this.license[key];
             }
         })) {
-            return true;
+            this.license[key] = true;
+            return !!this.license[key];
         }
 
-        const userResponse = await axios(`${IOBROKER_USER_API}/api/v1/user`, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Basic ${Buffer.from(`${config.login}:${config.password}`).toString('base64')}`
-            }
-        });
+        let userResponse;
+        try {
+            userResponse = await axios(`${IOBROKER_USER_API}/api/v1/user`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Basic ${Buffer.from(`${login}:${pass}`).toString('base64')}`
+                }
+            });
+        } catch (e) {
+            this.license[key] = false;
+            this.log.error(`Cannot verify license: ${e}`);
+            return !!this.license[key];
+        }
         if (userResponse.data?.tester) {
-            return true;
+            this.license[key] = true;
+            return !!this.license[key];
         }
 
         this.log.warn('No valid ioBroker.pro subscription found. Only one bridge and 5 devices are allowed.');
-        return false;
+        this.license[key] = false;
+        return !!this.license[key];
     }
 
-    async createBridge(uuid: string, options: BridgeDescription, license: boolean | null): Promise<BridgedDevice> {
+    async createBridge(uuid: string, options: BridgeDescription): Promise<BridgedDevice> {
         if (this.matterServer) {
             const devices = [];
             const optionsList = (options.list || []).filter(item => item.enabled !== false);
@@ -356,20 +388,17 @@ export class MatterAdapter extends utils.Adapter {
                 const device = optionsList[l];
                 const detectedDevice = await this.getDeviceStates(device.oid) as DetectedDevice;
                 if (detectedDevice) {
-                    const deviceObject = await DeviceFabric(detectedDevice, this);
+                    const deviceObject = await deviceFabric(detectedDevice, this, device as DeviceOptions);
                     if (deviceObject) {
+                        if (devices.length >= 5) {
+                            if (!(await this.checkLicense())) {
+                                this.log.error('You cannot use more than 5 devices without ioBroker.pro subscription. Only first 5 devices will be created.}');
+                                await deviceObject.destroy();
+                                break;
+                            }
+                        }
                         devices.push(deviceObject);
                     }
-                }
-            }
-
-            if (devices.length > 5) {
-                if (license === null) {
-                    license = await this.checkLicense();
-                }
-                if (!license) {
-                    this.log.error('You cannot use more than 5 devices without ioBroker.pro subscription. Only first 5 devices will be created.}');
-                    devices.splice(5);
                 }
             }
 
@@ -424,28 +453,22 @@ export class MatterAdapter extends utils.Adapter {
             }
         }
 
-        let license = null;
-
         // Create new bridges
         for (const b in _bridges) {
             const bridge = _bridges[b];
             if (!this.bridges[bridge._id]) {
+                // if one bridge already exists, check the license
                 if (Object.keys(this.bridges).length) {
                     // check license
-                    if (license === null) {
-                        license = await this.checkLicense();
-                    }
-                    if (!license) {
+                    if (!(await this.checkLicense())) {
                         this.log.error(`You cannot use more than one bridge without ioBroker.pro subscription. Bridge ${bridge._id} will be ignored.}`);
-                        return;
+                        break;
                     }
                 }
-
 
                 this.bridges[bridge._id] = await this.createBridge(
                     bridge._id,
                     bridge.native as BridgeDescription,
-                    license
                 );
             }
         }
@@ -464,8 +487,15 @@ export class MatterAdapter extends utils.Adapter {
             if (!this.devices[device._id]) {
                 const detectedDevice = await this.getDeviceStates(device.native.oid) as DetectedDevice;
                 if (detectedDevice) {
-                    const deviceObject = await DeviceFabric(detectedDevice, this);
+                    const deviceObject = await deviceFabric(detectedDevice, this, device.native as DeviceOptions);
                     if (deviceObject) {
+                        if (Object.keys(this.devices).length >= 2) {
+                            if (!(await this.checkLicense())) {
+                                this.log.error('You cannot use more than 2 devices without ioBroker.pro subscription. Only first 2 devices will be created.}');
+                                await deviceObject.destroy();
+                                break;
+                            }
+                        }
                         this.devices[device._id] = deviceObject;
                     }
                 }
@@ -479,15 +509,6 @@ export class MatterAdapter extends utils.Adapter {
                 delete this.devices[device];
             }
         }
-
-        // for tests purposes, add the handlers
-        Object.keys(this.devices).forEach(device => {
-            this.devices[device].clearChangeHandlers();
-            this.devices[device].onChange((event) => {
-                // @ts-ignore
-                this.log.info(`Detected changes in "${event.property}" with value "${event.value}" in "${event.device.getDeviceType()}"`);
-            });
-        });
     }
 }
 

@@ -108,7 +108,7 @@ class Bridges extends React.Component {
                     list: [],
                     uuid: uuidv4(),
                 });
-                this.props.updateConfig(matter)
+                this.props.updateConfig(matter);
             }, 100);
         }
     }
@@ -378,7 +378,14 @@ class Bridges extends React.Component {
                                 </TableCell>
                             </TableRow>
                             {data.connectionInfo.map((info, i) => <TableRow key={i}>
-                                <TableCell>{info.vendor}{info.label ? <span style={{ opacity: 0.7, marginLeft: 8, fontStyle: 'italic' }}>({info.label})</span> : null}</TableCell>
+                                <TableCell>
+                                    {info.vendor}
+                                    {info.label ? <span style={{ opacity: 0.7, marginLeft: 8, fontStyle: 'italic' }}>
+                                        (
+                                        {info.label}
+                                        )
+                                    </span> : null}
+                                </TableCell>
                                 <TableCell>
                                     {info.connected ? <span style={{ color: 'green' }}>{I18n.t('Connected')}</span> : I18n.t('Not connected')}
                                 </TableCell>
@@ -454,7 +461,7 @@ class Bridges extends React.Component {
                                     type: 'device',
                                     name: getText(device.name),
                                     originalName: getText(device.name),
-                                    bridgeIndex: bridgeIndex,
+                                    bridgeIndex,
                                     device: devIndex,
                                     vendorID: false,
                                     productID: false,
@@ -704,7 +711,7 @@ class Bridges extends React.Component {
                                         type: 'bridge',
                                         name: getText(bridge.name),
                                         originalName: getText(bridge.name),
-                                        bridgeIndex: bridgeIndex,
+                                        bridgeIndex,
                                         vendorID: bridge.vendorID,
                                         originalVendorID: bridge.vendorID,
                                         productID: bridge.productID,
@@ -721,9 +728,11 @@ class Bridges extends React.Component {
                     </Tooltip>
                 </TableCell>
                 <TableCell style={{ width: 0 }}>
-                    <Tooltip title={bridge.enabled && !allowDisable ? I18n.t('At least one enabled bridge must exist') : I18n.t('Delete bridge')}>
+                    <Tooltip
+                        title={bridge.enabled && !allowDisable ? I18n.t('At least one enabled bridge must exist') : I18n.t('Delete bridge')}
+                    >
                         <span>
-                                <IconButton
+                            <IconButton
                                 disabled={bridge.enabled && !allowDisable}
                                 onClick={e => {
                                     e.stopPropagation();
@@ -750,8 +759,13 @@ class Bridges extends React.Component {
                     <TableCell style={{ border: 0, opacity: bridge.enabled ? 1 : 0.5 }}>
                         <b>{I18n.t('Devices')}</b>
                         <Tooltip title={I18n.t('Add device')}>
-                            <IconButton onClick={() => this.setState(
-                                {
+                            <IconButton onClick={async () => {
+                                const isLicenseOk = await this.props.checkLicenseOnAdd('addDeviceToBridge');
+                                if (!isLicenseOk) {
+                                    this.props.alive && this.props.showToast('You need ioBroker.pro assistant or remote subscription to have more than 5 devices in bridge');
+                                    return;
+                                }
+                                this.setState({
                                     dialog: {
                                         type: 'bridge',
                                         name: getText(bridge.name),
@@ -759,8 +773,8 @@ class Bridges extends React.Component {
                                         devices: bridge.list,
                                         addDevices: this.addDevicesToBridge,
                                     },
-                                },
-                            )}
+                                });
+                            }}
                             >
                                 <Add />
                             </IconButton>
@@ -781,7 +795,12 @@ class Bridges extends React.Component {
             {this.renderDebugDialog()}
             <Tooltip title={I18n.t('Add bridge')}>
                 <Fab
-                    onClick={() => {
+                    onClick={async () => {
+                        const isLicenseOk = await this.props.checkLicenseOnAdd('addBridge');
+                        if (!isLicenseOk) {
+                            this.props.alive && this.props.showToast('You need ioBroker.pro assistant or remote subscription to have more than one bridge');
+                            return;
+                        }
                         let i = 1;
                         const name = `${I18n.t('New bridge')} `;
                         while (this.props.matter.bridges.find(b => b.name === name + i)) {
@@ -851,6 +870,7 @@ class Bridges extends React.Component {
 }
 
 Bridges.propTypes = {
+    alive: PropTypes.bool,
     matter: PropTypes.object,
     socket: PropTypes.object,
     productIDs: PropTypes.array,
@@ -861,6 +881,7 @@ Bridges.propTypes = {
     bridgeStates: PropTypes.object,
     showToast: PropTypes.func,
     commissioning: PropTypes.object,
+    checkLicenseOnAdd: PropTypes.func,
 };
 
 export default withStyles(styles)(Bridges);

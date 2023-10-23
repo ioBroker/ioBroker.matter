@@ -18,10 +18,10 @@ import GenericApp from '@iobroker/adapter-react-v5/GenericApp';
 import { I18n, Loader, AdminConnection } from '@iobroker/adapter-react-v5';
 
 import ConfigHandler from './components/ConfigHandler';
-import Devices from './components/Devices';
-import Controller from './components/Controller';
-import Bridges from './components/Bridges';
-import Options from './components/Options';
+import Options from './Tabs/Options';
+import Controller from './Tabs/Controller';
+import Bridges from './Tabs/Bridges';
+import Devices from './Tabs/Devices';
 
 const productIDs = [];
 for (let i = 0x8000; i <= 0x801F; i++) {
@@ -235,6 +235,7 @@ class App extends GenericApp {
             matter={this.state.matter}
             updateConfig={this.onChanged}
             showToast={text => this.showToast(text)}
+            checkLicenseOnAdd={type => this.checkLicenseOnAdd(type)}
         />;
     }
 
@@ -250,7 +251,45 @@ class App extends GenericApp {
             matter={this.state.matter}
             updateConfig={this.onChanged}
             showToast={text => this.showToast(text)}
+            checkLicenseOnAdd={() => this.checkLicenseOnAdd('addDevice')}
         />;
+    }
+
+    async getLicense() {
+        if (this.state.native.login && this.state.native.pass) {
+            if (this.state.alive) {
+                // ask the instance
+                const result = await this.socket.sendTo(`matter.${this.instance}`, 'getLicense', { login: this.state.native.login, pass: this.state.native.pass });
+                if (result.error) {
+                    this.showToast(result.error);
+                    return false;
+                }
+                return result.result;
+            }
+            this.showToast('You need a running matter instance to add more than one bridge or more than 2 devices');
+            return false;
+        }
+        return false;
+    }
+
+    async checkLicenseOnAdd(type) {
+        if (type === 'addBridge') {
+            if (this.state.matter.bridges.filter(bridge => bridge.enabled).length >= 1) {
+                return this.getLicense();
+            }
+        } else if (type === 'addDevice') {
+            if (this.state.matter.devices.filter(device => device.enabled).length >= 2) {
+                return this.getLicense();
+            }
+        } else if (type === 'addDeviceToBridge') {
+            if (this.state.matter.bridges.filter(bridge => bridge.enabled && bridge.list.filter(dev => dev.enabled).length >= 5)) {
+                return this.getLicense();
+            }
+        } else {
+            return false;
+        }
+
+        return true; // User may add one bridge or one device
     }
 
     onSave(isClose) {

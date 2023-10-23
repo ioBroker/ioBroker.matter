@@ -390,6 +390,7 @@ class Devices extends React.Component {
 }
 
 Devices.propTypes = {
+    alive: PropTypes.bool,
     matter: PropTypes.object,
     socket: PropTypes.object,
     productIDs: PropTypes.array,
@@ -398,6 +399,7 @@ Devices.propTypes = {
     detectedDevices: PropTypes.array,
     setDetectedDevices: PropTypes.func,
     commissioning: PropTypes.object,
+    checkLicenseOnAdd: PropTypes.func,
 };
 
 export default withStyles(styles)(Devices);

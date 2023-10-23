@@ -67,7 +67,7 @@
   "native": {
     "interface": "",
     "login": "",
-    "password": ""
+    "pass": ""
   },
   "objects": [],
   "instanceObjects": [

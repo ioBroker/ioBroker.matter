@@ -173,11 +173,12 @@ export enum PropertyType {
     Working = 'working',
 }
 
+export interface DeviceOptions {
+    dimmerOnLevel?: number;
+    dimmerUseLastLevelForOn?: boolean
+}
+
 export class DeviceStateObject<T> {
-    protected _adapter: ioBroker.Adapter;
-
-    state: DeviceState;
-
     value: T | undefined;
 
     updateHandler: ((object: DeviceStateObject<T>) => void) | undefined;
@@ -188,20 +189,20 @@ export class DeviceStateObject<T> {
 
     modes: Promise<{ [key: string]: T }> | undefined;
 
-    propertyType: PropertyType;
-
     protected min: number | undefined;
     protected max: number | undefined;
     protected realMin: number | undefined;
     protected realMax: number | undefined;
     protected unit: string | undefined;
 
-    constructor(adapter: ioBroker.Adapter, state: DeviceState, _propertyType: PropertyType, valueType: ValueType) {
-        this._adapter = adapter;
-        this.state = state;
-        this.propertyType = _propertyType;
+    constructor(
+        protected adapter: ioBroker.Adapter,
+        public state: DeviceState,
+        public propertyType: PropertyType,
+        valueType: ValueType,
+    ) {
         this.isEnum = valueType === ValueType.Enum;
-        this.object = this._adapter.getForeignObjectAsync(this.state.id) as Promise<ioBroker.Object>;
+        this.object = this.adapter.getForeignObjectAsync(this.state.id) as Promise<ioBroker.Object>;
 
         if (this.isEnum) {
             this.parseMode();
@@ -302,13 +303,13 @@ export class DeviceStateObject<T> {
                 throw new Error(`Value ${realValue} is greater than max ${object.common.max}`);
             }
 
-            await this._adapter.setForeignStateAsync(this.state.id, realValue as ioBroker.StateValue);
+            await this.adapter.setForeignStateAsync(this.state.id, realValue as ioBroker.StateValue);
         } else {
             // convert value
             if (typeof value !== valueType) {
                 if (valueType === 'boolean') {
                     const realValue: boolean = value === 'true' || value === '1' || value === 1 || value === true || value === 'on' || value === 'ON';
-                    await this._adapter.setForeignStateAsync(this.state.id, realValue as ioBroker.StateValue);
+                    await this.adapter.setForeignStateAsync(this.state.id, realValue as ioBroker.StateValue);
                 } else if (valueType === 'number') {
                     const realValue: number = parseFloat(value as string);
 
@@ -319,15 +320,15 @@ export class DeviceStateObject<T> {
                         throw new Error(`Value ${value} is greater than max ${object.common.max}`);
                     }
 
-                    await this._adapter.setForeignStateAsync(this.state.id, realValue as ioBroker.StateValue);
+                    await this.adapter.setForeignStateAsync(this.state.id, realValue as ioBroker.StateValue);
                 } else if (valueType === 'string') {
                     const realValue: string = value.toString();
-                    await this._adapter.setForeignStateAsync(this.state.id, realValue as ioBroker.StateValue);
+                    await this.adapter.setForeignStateAsync(this.state.id, realValue as ioBroker.StateValue);
                 } else if (valueType === 'json') {
                     const realValue: string = JSON.stringify(value);
-                    await this._adapter.setForeignStateAsync(this.state.id, realValue as ioBroker.StateValue);
+                    await this.adapter.setForeignStateAsync(this.state.id, realValue as ioBroker.StateValue);
                 } else if (valueType === 'mixed') {
-                    await this._adapter.setForeignStateAsync(this.state.id, value as ioBroker.StateValue);
+                    await this.adapter.setForeignStateAsync(this.state.id, value as ioBroker.StateValue);
                 }
                 return;
             }
@@ -341,7 +342,7 @@ export class DeviceStateObject<T> {
                 }
             }
 
-            await this._adapter.setForeignStateAsync(this.state.id, value as ioBroker.StateValue);
+            await this.adapter.setForeignStateAsync(this.state.id, value as ioBroker.StateValue);
         }
     }
 
@@ -364,12 +365,12 @@ export class DeviceStateObject<T> {
         await SubscribeManager.subscribe(this.state.id, this.updateState);
         // read first time the state
         try {
-            const value = await this._adapter.getForeignStateAsync(this.state.id);
+            const value = await this.adapter.getForeignStateAsync(this.state.id);
             if (value) {
                 this.updateState(value);
             }
         } catch (e) {
-            this._adapter.log.warn(`Cannot get state ${this.state.id}: ${e}`);
+            this.adapter.log.warn(`Cannot get state ${this.state.id}: ${e}`);
         }
     }
 
@@ -416,7 +417,7 @@ interface StateDescription {
 abstract class GenericDevice {
     protected _properties: { [id: string]: StateDescription } = {};
     protected _possibleProperties: { [id: string]: StateDescription } = {};
-    protected _adapter: ioBroker.Adapter;
+    protected adapter: ioBroker.Adapter;
     protected _subscribeObjects: DeviceStateObject<any>[] = [];
     protected _deviceType: DeviceType;
     protected _detectedDevice: DetectedDevice;
@@ -434,8 +435,12 @@ abstract class GenericDevice {
     protected _directionState: DeviceStateObject<string> | undefined;
     protected _ready: Promise<void>[] = [];
 
-    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
-        this._adapter = adapter;
+    constructor(
+        detectedDevice: DetectedDevice,
+        adapter: ioBroker.Adapter,
+        protected options?: DeviceOptions | undefined,
+    ) {
+        this.adapter = adapter;
         this._deviceType = detectedDevice.type;
         this._detectedDevice = detectedDevice;
 
@@ -462,7 +467,7 @@ abstract class GenericDevice {
         const state = this.getDeviceState(name);
         let object: DeviceStateObject<T> | undefined;
         if (state) {
-            object = new DeviceStateObject(this._adapter, state, type, valueType);
+            object = new DeviceStateObject(this.adapter, state, type, valueType);
             await object.init();
             const data = object.getIoBrokerState();
             if (!this._properties[type]) {

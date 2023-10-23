@@ -3,7 +3,7 @@ import GenericDevice, {
     DetectedDevice,
     DeviceStateObject,
     StateAccessType,
-    ValueType
+    ValueType, DeviceOptions
 } from './GenericDevice';
 
 class Dimmer extends GenericDevice {
@@ -11,9 +11,10 @@ class Dimmer extends GenericDevice {
     private _getLevelState: DeviceStateObject<number> | undefined;
     private _setPowerState: DeviceStateObject<boolean> | undefined;
     private _getPowerState: DeviceStateObject<boolean> | undefined;
+    private _lastNotZeroLevel: number | undefined;
 
-    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter) {
-        super(detectedDevice, adapter);
+    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
+        super(detectedDevice, adapter, options);
 
         this._ready.push(this.addDeviceStates([
             // actual value first, as it will be read first
@@ -29,6 +30,12 @@ class Dimmer extends GenericDevice {
         if (!this._setLevelState && !this._getLevelState) {
             throw new Error('Level state not found');
         }
+        if (this._lastNotZeroLevel === null) {
+            if ((this._getLevelState?.value || 0) > 10) {
+                this._lastNotZeroLevel = this._getLevelState?.value;
+            }
+        }
+
         return (this._getLevelState || this._setLevelState)?.value;
     }
 
@@ -40,17 +47,33 @@ class Dimmer extends GenericDevice {
     }
 
     getPower(): boolean | undefined {
-        if (!this._getPowerState && !this._setPowerState) {
+        if (!this._getPowerState && !this._setPowerState && !this._setLevelState && !this._getLevelState) {
             throw new Error('Power state not found');
         }
-        return (this._getPowerState || this._setPowerState)?.value;
+        if (this._getPowerState || this._setPowerState) {
+            return (this._getPowerState || this._setPowerState)?.value;
+        }
+        const state = this._getLevelState || this._setLevelState;
+        if (state) {
+            return (state.value || 0) > 0;
+        }
+        return undefined;
     }
 
     async setPower(value: boolean): Promise<void> {
-        if (!this._setPowerState) {
+        if (!this._setPowerState && !this._setLevelState) {
             throw new Error('Power state not found');
         }
-        return this._setPowerState.setValue(value);
+        if (this._setPowerState) {
+            return this._setPowerState.setValue(value);
+        }
+        if (this._setLevelState) {
+            if (value) {
+                return this._setLevelState.setValue(this._lastNotZeroLevel || 100);
+            }
+            this._lastNotZeroLevel = this._getLevelState?.value || this._lastNotZeroLevel || 100;
+            return this._setLevelState.setValue(0);
+        }
     }
 }
 

@@ -1,4 +1,4 @@
-import GenericDevice, { DetectedDevice, DeviceType } from './devices/GenericDevice';
+import GenericDevice, {DetectedDevice, DeviceOptions, DeviceType} from './devices/GenericDevice';
 
 import AirCondition from './devices/AirCondition';
 import Blind from './devices/Blind';
@@ -81,13 +81,13 @@ const types = {
     [DeviceType.Warning]: Warning,
 };
 
-async function DeviceFabric(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter): Promise<GenericDevice | undefined> {
+async function deviceFabric(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options: DeviceOptions): Promise<GenericDevice | undefined> {
     const type = types[detectedDevice.type];
     if (type) {
-        const deviceObject = new type(detectedDevice, adapter);
+        const deviceObject = new type(detectedDevice, adapter, options);
         await deviceObject.init();
         return deviceObject;
     }
 }
 
-export default DeviceFabric;
+export default deviceFabric;

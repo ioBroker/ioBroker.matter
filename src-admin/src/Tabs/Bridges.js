@@ -283,7 +283,7 @@ class Bridges extends React.Component {
         if (!this.state.editDeviceDialog) {
             return null;
         }
-        const isCommissioned = !!this.props.commissioning[this.props.matter[this.state.editDeviceDialog.bridgeIndex]];
+        const isCommissioned = !!this.props.commissioning[this.props.matter.bridges[this.state.editDeviceDialog.bridgeIndex].uuid];
 
         const save = () => {
             const matter = JSON.parse(JSON.stringify(this.props.matter));
@@ -734,8 +734,8 @@ class Bridges extends React.Component {
                                     device: devIndex,
                                     noComposed: !!device.noComposed,
                                     originalNoComposed: !!device.noComposed,
-                                    originalDimmerOnLevel: parseFloat(device.dimmerOnLevel || 0) || 0,
                                     dimmerOnLevel: parseFloat(device.dimmerOnLevel || 0) || 0,
+                                    originalDimmerOnLevel: parseFloat(device.dimmerOnLevel || 0) || 0,
                                     dimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
                                     originalDimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
                                     hasOnState: !!device.hasOnState,

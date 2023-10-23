@@ -31,7 +31,7 @@ jobs:
           node-version: 16.x
 
       - name: Install Dependencies
-        run: npm i
+        run: npm run npm
 
       - name: Build
         run: npm run build

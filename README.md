@@ -20,6 +20,9 @@
 - Get login & pass from iot (new js-controller version) may be
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (bluefox) Fixed names under linux
+
 ### 0.0.4 (2023-10-24)
 * (bluefox) used library `@iobroker/type-detector`
 

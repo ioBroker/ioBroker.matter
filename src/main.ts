@@ -4,7 +4,7 @@ import { MatterServer } from '@project-chip/matter-node.js';
 import { StorageManager } from '@project-chip/matter-node.js/storage';
 
 import { StorageIoBroker } from './matter/StorageIoBroker';
-import { deviceFabric, SubscribeManager } from './lib';
+import { DeviceFabric, SubscribeManager } from './lib';
 import { DetectedDevice, DeviceOptions } from './lib/devices/GenericDevice';
 import BridgedDevice, { NodeStateResponse } from './matter/BridgedDevicesNode';
 import MatterDevice from './matter/DeviceNode';
@@ -453,7 +453,7 @@ export class MatterAdapter extends utils.Adapter {
                     };
                 }
                 if (detectedDevice) {
-                    const deviceObject = await deviceFabric(detectedDevice, this, device as DeviceOptions);
+                    const deviceObject = await DeviceFabric(detectedDevice, this, device as DeviceOptions);
                     if (deviceObject) {
                         if (devices.length >= 5) {
                             if (!(await this.checkLicense())) {
@@ -515,7 +515,7 @@ export class MatterAdapter extends utils.Adapter {
                 };
             }
             if (detectedDevice) {
-                const deviceObject = await deviceFabric(detectedDevice, this, options as DeviceOptions);
+                const deviceObject = await DeviceFabric(detectedDevice, this, options as DeviceOptions);
                 if (deviceObject) {
                     device = deviceObject;
                 }

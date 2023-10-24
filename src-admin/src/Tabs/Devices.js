@@ -299,7 +299,7 @@ class Devices extends React.Component {
                         </MenuItem>)}
                     </Select>
                 </FormControl> : null}
-                {isCommissioned ? I18n.t('Bridge is already commissioned. You cannot change the name or the vendor/product ID.') : null}
+                {isCommissioned ? I18n.t('Device is already commissioned. You cannot change the name or the vendor/product ID.') : null}
             </DialogContent>
             <DialogActions>
                 <Button
@@ -645,7 +645,7 @@ class Devices extends React.Component {
             {this.renderEditDeviceDialog()}
             {this.renderAddDevicesDialog()}
             {this.renderAddCustomDeviceDialog()}
-            <Tooltip title={I18n.t('Add devices')} classes={{ popper: this.props.classes.tooltip }}>
+            <Tooltip title={I18n.t('Add device with auto-detection')} classes={{ popper: this.props.classes.tooltip }}>
                 <Fab
                     onClick={() => this.setState({
                         addDeviceDialog: {
@@ -662,7 +662,7 @@ class Devices extends React.Component {
                     <Add />
                 </Fab>
             </Tooltip>
-            <Tooltip title={I18n.t('Add device from state')} classes={{ popper: this.props.classes.tooltip }}>
+            <Tooltip title={I18n.t('Add device from one state')} classes={{ popper: this.props.classes.tooltip }}>
                 <Fab
                     onClick={() => this.setState({
                         addDeviceDialog: {

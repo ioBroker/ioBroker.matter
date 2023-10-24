@@ -802,7 +802,7 @@ class Bridges extends React.Component {
             open={!0}
             maxWidth="md"
         >
-            <DialogTitle>{I18n.t('QR Code to connect ')}</DialogTitle>
+            <DialogTitle>{I18n.t('QR Code to connect')}</DialogTitle>
             <DialogContent>
                 <div style={{ background: 'white', padding: 16 }}>
                     <QRCode value={this.props.bridgeStates[this.state.showQrCode.uuid].qrPairingCode} />
@@ -1071,7 +1071,7 @@ class Bridges extends React.Component {
                                 onClick={async () => {
                                     const isLicenseOk = await this.props.checkLicenseOnAdd('addDeviceToBridge');
                                     if (!isLicenseOk) {
-                                        this.props.alive && this.props.showToast('You need ioBroker.pro assistant or remote subscription to have more than 5 devices in bridge');
+                                        this.props.alive && this.props.showToast(I18n.t('You need ioBroker.pro assistant or remote subscription to have more than 5 devices in bridge'));
                                         return;
                                     }
                                     this.setState({
@@ -1089,13 +1089,13 @@ class Bridges extends React.Component {
                         </Tooltip>
                     </TableCell>
                     <TableCell style={{ width: 0 }} className={this.props.classes.devicesHeader}>
-                        <Tooltip title={I18n.t('Add device from one data point')} classes={{ popper: this.props.classes.tooltip }}>
+                        <Tooltip title={I18n.t('Add device from one state')} classes={{ popper: this.props.classes.tooltip }}>
                             <IconButton
                                 style={{ color: 'gray' }}
                                 onClick={async () => {
                                     const isLicenseOk = await this.props.checkLicenseOnAdd('addDeviceToBridge');
                                     if (!isLicenseOk) {
-                                        this.props.alive && this.props.showToast('You need ioBroker.pro assistant or remote subscription to have more than 5 devices in bridge');
+                                        this.props.alive && this.props.showToast(I18n.t('You need ioBroker.pro assistant or remote subscription to have more than 5 devices in bridge'));
                                         return;
                                     }
                                     this.setState({

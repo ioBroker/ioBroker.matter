@@ -81,7 +81,7 @@ const types = {
     [Types.warning]: Warning,
 };
 
-async function deviceFabric(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options: DeviceOptions): Promise<GenericDevice | undefined> {
+async function DeviceFabric(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options: DeviceOptions): Promise<GenericDevice | undefined> {
     // @ts-ignore
     const type = types[detectedDevice.type];
     if (type) {
@@ -91,4 +91,4 @@ async function deviceFabric(detectedDevice: DetectedDevice, adapter: ioBroker.Ad
     }
 }
 
-export default deviceFabric;
+export default DeviceFabric;

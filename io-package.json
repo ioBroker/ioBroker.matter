@@ -3,19 +3,6 @@
     "name": "matter",
     "version": "0.0.4",
     "news": {
-      "0.0.4": {
-        "en": "used the library `@iobroker/type-detector`",
-        "de": "verwendete die Bibliothek `@iobroker/type-detector`",
-        "ru": "используется библиотека `@iobroker/type-detector`",
-        "pt": "usou a biblioteca `@iobroker/type-detector`",
-        "nl": "gebruikte de bibliotheek `@iobroker/type-detector`",
-        "fr": "utilisé la bibliothèque `@iobroker/type-detector`",
-        "it": "usato la libreria `@iobroker/type-detector`",
-        "es": "usó la biblioteca `@iobroker/type-detector`",
-        "pl": "używana biblioteka `@iobroker/type-detector`",
-        "uk": "використовується бібліотека `@iobroker/type-detector`",
-        "zh-cn": "使用库`@iobroker/type-detector`"
-      },
       "0.0.2": {
         "en": "Initial commit",
         "de": "Ursprüngliche Verpflichtung",

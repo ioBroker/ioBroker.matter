@@ -80,9 +80,12 @@ export class StorageIoBroker implements Storage {
     }
 
     keys(contexts: string[]): string[] {
-        const oid = StorageIoBroker.buildKey(contexts, '');
+        const contextKeyStart = StorageIoBroker.buildKey(contexts, '');
+        const len = contextKeyStart.length;
 
-        return Object.keys(this.data).filter(key => key.startsWith(oid)).map(key => key.substring(oid.length));
+        return Object.keys(this.data)
+            .filter(key => key.startsWith(contextKeyStart) && key.indexOf('$$', len) === -1)
+            .map(key => key.substring(len));
     }
 
     saveKey(oid: string, value: string): void {

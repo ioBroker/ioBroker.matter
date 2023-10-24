@@ -1,11 +1,11 @@
 import * as utils from '@iobroker/adapter-core';
-import { DeviceState, ChannelDetectorType, Control } from './iobroker.type-detector';
+import ChannelDetector, { DetectorState, PatternControl, Types } from '@iobroker/type-detector';
 import { MatterServer } from '@project-chip/matter-node.js';
 import { StorageManager } from '@project-chip/matter-node.js/storage';
 
 import { StorageIoBroker } from './matter/StorageIoBroker';
 import { deviceFabric, SubscribeManager } from './lib';
-import { DetectedDevice, DeviceOptions, DeviceType } from './lib/devices/GenericDevice';
+import { DetectedDevice, DeviceOptions } from './lib/devices/GenericDevice';
 import BridgedDevice, { NodeStateResponse } from './matter/BridgedDevicesNode';
 import MatterDevice from './matter/DeviceNode';
 import {
@@ -18,53 +18,51 @@ import { Level, Logger } from '@project-chip/matter-node.js/log';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import fs from 'fs';
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { ChannelDetector } = require('iobroker.type-detector');
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
 
 // If the device was created by user and user defined the type of device => use this OID as given name
 const DEVICE_DEFAULT_NAME: { [key: string]: string } = {
-    [DeviceType.AirCondition]: 'SET',
-    [DeviceType.BlindButtons]: 'STOP',
-    [DeviceType.Blind]: 'SET',
-    [DeviceType.ButtonSensor]: 'PRESS',
-    [DeviceType.Button]: 'SET',
-    [DeviceType.Camera]: 'FILE',
-    [DeviceType.Cie]: 'CIE',
-    [DeviceType.Ct]: 'TEMPERATURE',
-    [DeviceType.Dimmer]: 'SET',
-    [DeviceType.Door]: 'ACTUAL',
-    [DeviceType.FireAlarm]: 'ACTUAL',
-    [DeviceType.FloodAlarm]: 'ACTUAL',
-    [DeviceType.Gate]: 'SET',
-    [DeviceType.Hue]: 'HUE',
-    [DeviceType.Humidity]: 'ACTUAL',
-    [DeviceType.Image]: 'URL',
-    [DeviceType.Info]: 'ACTUAL',
-    [DeviceType.Light]: 'SET',
-    [DeviceType.Lock]: 'SET',
-    [DeviceType.Media]: 'PLAY',
-    [DeviceType.Motion]: 'ACTUAL',
-    [DeviceType.RgbSingle]: 'CIE',
-    [DeviceType.RgbwSingle]: 'RGB',
-    [DeviceType.Slider]: 'SET',
-    [DeviceType.Socket]: 'SET',
-    [DeviceType.Temperature]: 'ACTUAL',
-    [DeviceType.Thermostat]: 'SET',
-    [DeviceType.VacuumCleaner]: 'POWER',
-    [DeviceType.Volume]: 'SET',
-    [DeviceType.VolumeGroup]: 'SET',
-    [DeviceType.Warning]: 'INFO',
-    [DeviceType.WeatherCurrent]: 'ACTUAL',
-    [DeviceType.WeatherForecast]: 'STATE',
-    [DeviceType.Window]: 'ACTUAL',
-    [DeviceType.WindowTilt]: 'ACTUAL',
+    [Types.airCondition]: 'SET',
+    [Types.blindButtons]: 'STOP',
+    [Types.blind]: 'SET',
+    [Types.buttonSensor]: 'PRESS',
+    [Types.button]: 'SET',
+    [Types.camera]: 'FILE',
+    [Types.cie]: 'CIE',
+    [Types.ct]: 'TEMPERATURE',
+    [Types.dimmer]: 'SET',
+    [Types.door]: 'ACTUAL',
+    [Types.fireAlarm]: 'ACTUAL',
+    [Types.floodAlarm]: 'ACTUAL',
+    [Types.gate]: 'SET',
+    [Types.hue]: 'HUE',
+    [Types.humidity]: 'ACTUAL',
+    [Types.image]: 'URL',
+    [Types.info]: 'ACTUAL',
+    [Types.light]: 'SET',
+    [Types.lock]: 'SET',
+    [Types.media]: 'PLAY',
+    [Types.motion]: 'ACTUAL',
+    [Types.rgbSingle]: 'CIE',
+    [Types.rgbwSingle]: 'RGB',
+    [Types.slider]: 'SET',
+    [Types.socket]: 'SET',
+    [Types.temperature]: 'ACTUAL',
+    [Types.thermostat]: 'SET',
+    [Types.vacuumCleaner]: 'POWER',
+    [Types.volume]: 'SET',
+    [Types.volumeGroup]: 'SET',
+    [Types.warning]: 'INFO',
+    [Types.weatherCurrent]: 'ACTUAL',
+    [Types.weatherForecast]: 'STATE',
+    [Types.window]: 'ACTUAL',
+    [Types.windowTilt]: 'ACTUAL',
 };
 
 
 export class MatterAdapter extends utils.Adapter {
-    private detector: ChannelDetectorType;
+    private detector: ChannelDetector;
     private devices: { [key: string]: MatterDevice } = {};
     private bridges: { [key: string]: BridgedDevice } = {};
     private _guiSubscribes: { clientId: string; ts: number }[] | null= null;
@@ -317,7 +315,7 @@ export class MatterAdapter extends utils.Adapter {
         return id;
     }
 
-    async getDeviceStates(id: string): Promise<Control | null> {
+    async getDeviceStates(id: string): Promise<PatternControl | null> {
         const deviceId = await this.findDeviceFromId(id);
         const obj = await this.getForeignObjectAsync(deviceId);
         if (!obj) {
@@ -343,12 +341,12 @@ export class MatterAdapter extends utils.Adapter {
         };
         const controls = this.detector.detect(options);
         if (controls) {
-            const mainState = controls[0].states.find((state: DeviceState) => state.id);
+            const mainState = controls[0].states.find((state: DetectorState) => state.id);
             if (mainState) {
                 const id = mainState.id;
                 if (id) {
                     // console.log(`In ${options.id} was detected "${controls[0].type}" with following states:`);
-                    controls[0].states = controls[0].states.filter((state: DeviceState) => state.id);
+                    controls[0].states = controls[0].states.filter((state: DetectorState) => state.id);
 
                     return controls[0];
                 }
@@ -441,7 +439,7 @@ export class MatterAdapter extends utils.Adapter {
                 if (!device.auto && (!detectedDevice || detectedDevice.type !== device.type)) {
                     // ignore all detected states and let only one
                     detectedDevice = {
-                        type: device.type as DeviceType,
+                        type: device.type as Types,
                         states: [
                             {
                                 name: DEVICE_DEFAULT_NAME[device.type] || 'SET',
@@ -503,7 +501,7 @@ export class MatterAdapter extends utils.Adapter {
             if (!options.auto && (!detectedDevice || detectedDevice.type !== options.type)) {
                 // ignore all detected states and let only one
                 detectedDevice = {
-                    type: options.type as DeviceType,
+                    type: options.type as Types,
                     states: [
                         {
                             name: DEVICE_DEFAULT_NAME[options.type] || 'SET',

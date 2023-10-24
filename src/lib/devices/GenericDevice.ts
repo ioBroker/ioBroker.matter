@@ -1,50 +1,50 @@
 // @iobroker/device-types
 
-import { DeviceState } from '../../iobroker.type-detector';
+import { DetectorState, Types } from '@iobroker/type-detector';
 import SubscribeManager from '../SubscribeManager';
 
 // take here https://github.com/ioBroker/ioBroker.type-detector/blob/master/DEVICES.md#temperature-temperature
-export enum DeviceType {
-    AirCondition = 'airCondition',
-    Blind = 'blind',
-    BlindButtons = 'blindButtons',
-    Button = 'button',
-    ButtonSensor = 'buttonSensor',
-    Camera = 'camera',
-    Url = 'url',
-    Chart = 'chart',
-    Image = 'image',
-    Dimmer = 'dimmer',
-    Door = 'door',
-    FireAlarm = 'fireAlarm',
-    FloodAlarm = 'floodAlarm',
-    Gate = 'gate',
-    Humidity = 'humidity',
-    Info = 'info',
-    Light = 'light',
-    Lock = 'lock',
-    Location = 'location',
-    Media = 'media',
-    Motion = 'motion',
-    Rgb = 'rgb',
-    Ct = 'ct',
-    RgbSingle = 'rgbSingle',
-    RgbwSingle = 'rgbwSingle',
-    Hue = 'hue',
-    Cie = 'cie',
-    Slider = 'slider',
-    Socket = 'socket',
-    Temperature = 'temperature',
-    Thermostat = 'thermostat',
-    Volume = 'volume',
-    VacuumCleaner = 'vacuumCleaner',
-    VolumeGroup = 'volumeGroup',
-    Window = 'window',
-    WindowTilt = 'windowTilt',
-    WeatherCurrent = 'weatherCurrent',
-    WeatherForecast = 'weatherForecast',
-    Warning = 'warning',
-}
+// export enum DeviceType {
+//     AirCondition = 'airCondition',
+//     Blind = 'blind',
+//     BlindButtons = 'blindButtons',
+//     Button = 'button',
+//     ButtonSensor = 'buttonSensor',
+//     Camera = 'camera',
+//     Url = 'url',
+//     Chart = 'chart',
+//     Image = 'image',
+//     Dimmer = 'dimmer',
+//     Door = 'door',
+//     FireAlarm = 'fireAlarm',
+//     FloodAlarm = 'floodAlarm',
+//     Gate = 'gate',
+//     Humidity = 'humidity',
+//     Info = 'info',
+//     Light = 'light',
+//     Lock = 'lock',
+//     Location = 'location',
+//     Media = 'media',
+//     Motion = 'motion',
+//     Rgb = 'rgb',
+//     Ct = 'ct',
+//     RgbSingle = 'rgbSingle',
+//     RgbwSingle = 'rgbwSingle',
+//     Hue = 'hue',
+//     Cie = 'cie',
+//     Slider = 'slider',
+//     Socket = 'socket',
+//     Temperature = 'temperature',
+//     Thermostat = 'thermostat',
+//     Volume = 'volume',
+//     VacuumCleaner = 'vacuumCleaner',
+//     VolumeGroup = 'volumeGroup',
+//     Window = 'window',
+//     WindowTilt = 'windowTilt',
+//     WeatherCurrent = 'weatherCurrent',
+//     WeatherForecast = 'weatherForecast',
+//     Warning = 'warning',
+// }
 
 export enum ValueType {
     String = 'string',
@@ -197,7 +197,7 @@ export class DeviceStateObject<T> {
 
     constructor(
         protected adapter: ioBroker.Adapter,
-        public state: DeviceState,
+        public state: DetectorState,
         public propertyType: PropertyType,
         valueType: ValueType,
     ) {
@@ -378,14 +378,14 @@ export class DeviceStateObject<T> {
         await SubscribeManager.unsubscribe(this.state.id, this.updateState);
     }
 
-    public getIoBrokerState(): DeviceState {
+    public getIoBrokerState(): DetectorState {
         return this.state;
     }
 }
 
 export interface DetectedDevice {
-    type: DeviceType;
-    states: DeviceState[];
+    type: Types;
+    states: DetectorState[];
 }
 
 export interface DeviceStateDescription {
@@ -419,7 +419,7 @@ abstract class GenericDevice {
     protected _possibleProperties: { [id: string]: StateDescription } = {};
     protected adapter: ioBroker.Adapter;
     protected _subscribeObjects: DeviceStateObject<any>[] = [];
-    protected _deviceType: DeviceType;
+    protected _deviceType: Types;
     protected _detectedDevice: DetectedDevice;
     protected handlers: ((event: {
         property: PropertyType
@@ -537,7 +537,7 @@ abstract class GenericDevice {
         callback(object);
     }
 
-    getDeviceState(name: string): DeviceState | undefined {
+    getDeviceState(name: string): DetectorState | undefined {
         return this._detectedDevice.states.find(state => state.name === name && state.id);
     }
 
@@ -577,7 +577,7 @@ abstract class GenericDevice {
         }
     }
 
-    getDeviceType(): DeviceType | undefined {
+    getDeviceType(): Types | undefined {
         return this._deviceType;
     }
 

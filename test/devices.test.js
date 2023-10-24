@@ -1,4 +1,5 @@
-const { Types } = require('iobroker.type-detector');
+const ChannelDetectorImport = require('@iobroker/type-detector');
+const Types = ChannelDetectorImport.Types;
 const SubscribeManager = require('../build/lib/SubscribeManager');
 const { StateAccessType, ValueType} = require('../build/lib/devices/GenericDevice');
 

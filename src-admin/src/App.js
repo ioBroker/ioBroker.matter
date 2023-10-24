@@ -18,10 +18,10 @@ import GenericApp from '@iobroker/adapter-react-v5/GenericApp';
 import { I18n, Loader, AdminConnection } from '@iobroker/adapter-react-v5';
 
 import ConfigHandler from './components/ConfigHandler';
-import Options from './Tabs/Options';
-import Controller from './Tabs/Controller';
-import Bridges from './Tabs/Bridges';
-import Devices from './Tabs/Devices';
+import OptionsTab from './Tabs/Options';
+import ControllerTab from './Tabs/Controller';
+import BridgesTab from './Tabs/Bridges';
+import DevicesTab from './Tabs/Devices';
 
 const productIDs = [];
 for (let i = 0x8000; i <= 0x801F; i++) {
@@ -193,7 +193,7 @@ class App extends GenericApp {
     }
 
     renderController() {
-        return <Controller
+        return <ControllerTab
             onChange={(id, value) => {
                 this.updateNativeValue(id, value);
             }}
@@ -207,7 +207,7 @@ class App extends GenericApp {
     }
 
     renderOptions() {
-        return <Options
+        return <OptionsTab
             alive={this.state.alive}
             onChange={(id, value) => {
                 this.updateNativeValue(id, value);
@@ -223,7 +223,7 @@ class App extends GenericApp {
     }
 
     renderBridges() {
-        return <Bridges
+        return <BridgesTab
             alive={this.state.alive}
             socket={this.socket}
             instance={this.instance}
@@ -246,7 +246,7 @@ class App extends GenericApp {
     }
 
     renderDevices() {
-        return <Devices
+        return <DevicesTab
             alive={this.state.alive}
             updateNodeStates={nodeStates => {
                 const _nodeStates = JSON.parse(JSON.stringify(this.state.nodeStates));

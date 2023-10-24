@@ -238,4 +238,4 @@ export const detectDevices = async (socket, list) => {
     return result;
 };
 
-export const getText = (text => typeof text === 'object' ? (text?.[I18n.getLanguage()] || '') : (text || ''));
+export const getText = text => (typeof text === 'object' ? (text?.[I18n.getLanguage()] || '') : (text || ''));

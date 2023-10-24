@@ -1,7 +1,12 @@
+import axios from 'axios';
+import jwt from 'jsonwebtoken';
+import fs from 'fs';
+
 import * as utils from '@iobroker/adapter-core';
 import ChannelDetector, { DetectorState, PatternControl, Types } from '@iobroker/type-detector';
 import { MatterServer } from '@project-chip/matter-node.js';
 import { StorageManager } from '@project-chip/matter-node.js/storage';
+import { Level, Logger } from '@project-chip/matter-node.js/log';
 
 import { StorageIoBroker } from './matter/StorageIoBroker';
 import { DeviceFabric, SubscribeManager } from './lib';
@@ -14,10 +19,7 @@ import {
     DeviceDescription,
     MatterAdapterConfig
 } from './ioBrokerStorageTypes';
-import { Level, Logger } from '@project-chip/matter-node.js/log';
-import axios from 'axios';
-import jwt from 'jsonwebtoken';
-import fs from 'fs';
+
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
 

@@ -4,7 +4,8 @@
     "allowJs": false,
     "checkJs": false,
     "noEmit": false,
-    "declaration": false
+    "declaration": false,
+    "types": ["@iobroker/types"]
   },
   "include": [
     "src/**/*.ts"

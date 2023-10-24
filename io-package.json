@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "news": {
+      "0.1.1": {
+        "en": "Devices were implemented",
+        "de": "Geräte wurden implementiert",
+        "ru": "Были реализованы устройства",
+        "pt": "Dispositivos foram implementados",
+        "nl": "De slachtoffers werden uitgevoerd",
+        "fr": "Des dispositifs ont été mis en œuvre",
+        "it": "I dispositivi sono stati implementati",
+        "es": "Se aplicaron dispositivos",
+        "pl": "Zbiór został zaimplementowany",
+        "uk": "Пристрої реалізовані",
+        "zh-cn": "被处决者"
+      },
       "0.0.5": {
         "en": "Fixed names under linux",
         "de": "Feste Namen unter Linux",

@@ -11,6 +11,7 @@
     "src/**/*.ts"
   ],
   "exclude": [
+    "src/matter/ControllerNode.ts",
     "src/**/*.test.ts"
   ]
 }

@@ -18,6 +18,9 @@
 ## ToDo
 - Controller
 - Get login & pass from iot (new js-controller version) may be
+- passcode editable
+- discriminator editable ?
+- ble
 
 ## Changelog
 ### **WORK IN PROGRESS**

@@ -79,6 +79,12 @@ export class StorageIoBroker implements Storage {
         return value as T;
     }
 
+    keys(contexts: string[]): string[] {
+        const oid = StorageIoBroker.buildKey(contexts, '');
+
+        return Object.keys(this.data).filter(key => key.startsWith(oid)).map(key => key.substring(oid.length));
+    }
+
     saveKey(oid: string, value: string): void {
         const index = this.savingNumber++;
         if (this.savingNumber >= 0xFFFFFFFF) {

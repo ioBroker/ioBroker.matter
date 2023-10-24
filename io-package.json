@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "news": {
+      "0.0.3": {
+        "en": "used library `@iobroker/type-detector`",
+        "de": "gebrauchte bibliothek @iobroker/typ-detektor",
+        "ru": "используемая библиотека @iobroker/type-detector",
+        "pt": "biblioteca usada @iobroker/detector do tipo",
+        "nl": "gebruikte bibliotheek @iobroker/type-detector",
+        "fr": "bibliothèque utilisée @iobroker/type-detector",
+        "it": "libreria usata @iobroker/direttore di tipo",
+        "es": "biblioteca usada @iobroker/tipo-detector",
+        "pl": "użytkownik biblioteki @iobroker/type-detector",
+        "uk": "русскийукраїнськабеларускаяoʻzbek tilienglish",
+        "zh-cn": "使用图书馆@iobroker/型博士"
+      },
       "0.0.2": {
         "en": "Initial commit",
         "de": "Ursprüngliche Verpflichtung",

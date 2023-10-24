@@ -226,7 +226,7 @@ class Options extends React.Component {
                     onChange={e => this.props.onChange('pass', e.target.value)}
                     margin="normal"
                 />
-                {this.state.iotInstance && this.state.iotPassword !== this.props.native.pass && this.state.iotLogin !== this.props.native.login ?
+                {this.state.iotInstance && (this.state.iotPassword !== this.props.native.pass || this.state.iotLogin !== this.props.native.login) ?
                     <Button
                         style={{ marginLeft: 16 }}
                         variant="contained"
@@ -236,7 +236,7 @@ class Options extends React.Component {
                             this.props.onChange('pass', this.state.iotPassword);
                         }}
                     >
-                        {I18n.t('Sync credentials with %s', this.state.iotInstance)}
+                        {I18n.t('Sync credentials with %s', this.state.iotInstance.replace('system.adapter.', ''))}
                     </Button> : null}
             </div>
             <div style={{ marginTop: 50 }}>

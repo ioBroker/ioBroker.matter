@@ -1,5 +1,5 @@
 import { I18n } from '@iobroker/adapter-react-v5';
-import { ChannelDetector } from 'iobroker.type-detector';
+import ChannelDetector from '@iobroker/type-detector';
 
 function getObjectIcon(obj, id, imagePrefix) {
     imagePrefix = imagePrefix || '.'; // http://localhost:8081';
@@ -238,4 +238,4 @@ export const detectDevices = async (socket, list) => {
     return result;
 };
 
-export const getText = text => (typeof text === 'object' ? text?.[I18n.getLanguage()] : text);
+export const getText = (text => typeof text === 'object' ? (text?.[I18n.getLanguage()] || '') : (text || ''));

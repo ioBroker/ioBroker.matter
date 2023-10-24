@@ -60,6 +60,11 @@ const DEVICE_DEFAULT_NAME: { [key: string]: string } = {
     [Types.windowTilt]: 'ACTUAL',
 };
 
+interface NodeStatesOptions {
+    devices?: boolean;
+    bridges?: boolean;
+    controller?: boolean;
+}
 
 export class MatterAdapter extends utils.Adapter {
     private detector: ChannelDetector;
@@ -107,9 +112,9 @@ export class MatterAdapter extends utils.Adapter {
     async onMessage(obj: ioBroker.Message): Promise<void> {
         if (obj?.command === 'reset') {
             await this.onTotalReset();
-        } else if (obj?.command === 'bridgeInfo') {
-            const states = await this.requestNodeStates();
-            obj.callback && this.sendTo(obj.from, obj.command, { command: 'bridgeStates', states }, obj.callback);
+        } else if (obj?.command === 'nodeStates') {
+            const states = await this.requestNodeStates(obj.message as NodeStatesOptions);
+            obj.callback && this.sendTo(obj.from, obj.command, { states }, obj.callback);
         } else if (obj.command === 'getLicense') {
             const license = await this.checkLicense(obj.message.login, obj.message.pass);
             obj.callback && this.sendTo(obj.from, obj.command, { result: license }, obj.callback);
@@ -234,18 +239,25 @@ export class MatterAdapter extends utils.Adapter {
         await this.matterServer?.start();
     }
 
-    async requestNodeStates(): Promise<{ [uuid: string]: NodeStateResponse }> {
+    async requestNodeStates(options?: NodeStatesOptions): Promise<{ [uuid: string]: NodeStateResponse }> {
         const states: { [uuid: string]: NodeStateResponse } = {};
-        for (const uuid in this.bridges) {
-            const state = await this.bridges[uuid].getState();
-            this.log.debug(`State of bridge ${uuid} is ${JSON.stringify(state)}`);
-            states[uuid] = state;
+        if (!options || !Object.keys(options).length || options.bridges) {
+            for (const oid in this.bridges) {
+                const state = await this.bridges[oid].getState();
+                this.log.debug(`State of bridge ${oid} is ${JSON.stringify(state)}`);
+                const uuid = oid.split('.').pop() || '';
+                states[uuid] = state;
+            }
         }
-        for (const uuid in this.devices) {
-            const state = await this.devices[uuid].getState();
-            this.log.debug(`State of device ${uuid} is ${JSON.stringify(state)}`);
-            states[uuid] = state;
+        if (!options || !Object.keys(options).length || options.devices) {
+            for (const oid in this.devices) {
+                const state = await this.devices[oid].getState();
+                this.log.debug(`State of device ${oid} is ${JSON.stringify(state)}`);
+                const uuid = oid.split('.').pop() || '';
+                states[uuid] = state;
+            }
         }
+
         return states;
     }
 

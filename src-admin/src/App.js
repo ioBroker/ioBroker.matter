@@ -77,8 +77,7 @@ class App extends GenericApp {
         this.state.selectedTab = window.localStorage.getItem(`${this.adapterName}.${this.instance}.selectedTab`) || 'controller';
         this.state.alive = false;
         this.state.backendRunning = false;
-        this.state.deviceStates = {};
-        this.state.bridgeStates = {};
+        this.state.nodeStates = {};
         this.state.commissioning = {
             bridges: {},
             devices: {},
@@ -151,14 +150,14 @@ class App extends GenericApp {
 
     onBackendUpdates = update => {
         if (update?.command === 'bridgeStates') {
-            const bridgeStates = {};
+            const nodeStates = {};
             Object.keys(update.states).forEach(uuid =>
-                bridgeStates[uuid.split('.').pop()] = update.states[uuid]);
-            this.setState({ bridgeStates });
+                nodeStates[uuid.split('.').pop()] = update.states[uuid]);
+            this.setState({ nodeStates });
         } else if (update.uuid) {
-            const bridgeStates = JSON.parse(JSON.stringify(this.state.bridgeStates));
-            bridgeStates[update.uuid] = update;
-            this.setState({ bridgeStates });
+            const nodeStates = JSON.parse(JSON.stringify(this.state.nodeStates));
+            nodeStates[update.uuid] = update;
+            this.setState({ nodeStates });
         } else if (update?.command === 'stopped') {
             setTimeout(() => this.refreshBackendSubscription(), 5000);
         } else {
@@ -225,9 +224,16 @@ class App extends GenericApp {
 
     renderBridges() {
         return <Bridges
+            alive={this.state.alive}
             socket={this.socket}
+            instance={this.instance}
             commissioning={this.state.commissioning.bridges}
-            bridgeStates={this.state.bridgeStates}
+            updateNodeStates={nodeStates => {
+                const _nodeStates = JSON.parse(JSON.stringify(this.state.nodeStates));
+                Object.assign(_nodeStates, nodeStates);
+                this.setState({ nodeStates: _nodeStates });
+            }}
+            nodeStates={this.state.nodeStates}
             themeType={this.state.themeType}
             detectedDevices={this.state.detectedDevices}
             setDetectedDevices={detectedDevices => this.setState({ detectedDevices })}
@@ -235,23 +241,30 @@ class App extends GenericApp {
             matter={this.state.matter}
             updateConfig={this.onChanged}
             showToast={text => this.showToast(text)}
-            checkLicenseOnAdd={type => this.checkLicenseOnAdd(type)}
+            checkLicenseOnAdd={(type, matter) => this.checkLicenseOnAdd(type, matter)}
         />;
     }
 
     renderDevices() {
         return <Devices
-            deviceStates={this.state.deviceStates}
+            alive={this.state.alive}
+            updateNodeStates={nodeStates => {
+                const _nodeStates = JSON.parse(JSON.stringify(this.state.nodeStates));
+                Object.assign(_nodeStates, nodeStates);
+                this.setState({ nodeStates: _nodeStates });
+            }}
+            nodeStates={this.state.nodeStates}
             commissioning={this.state.commissioning.devices}
             socket={this.socket}
             themeType={this.state.themeType}
             detectedDevices={this.state.detectedDevices}
             setDetectedDevices={detectedDevices => this.setState({ detectedDevices })}
             productIDs={productIDs}
+            instance={this.instance}
             matter={this.state.matter}
             updateConfig={this.onChanged}
             showToast={text => this.showToast(text)}
-            checkLicenseOnAdd={() => this.checkLicenseOnAdd('addDevice')}
+            checkLicenseOnAdd={(type, matter) => this.checkLicenseOnAdd('addDevice', matter)}
         />;
     }
 
@@ -272,24 +285,26 @@ class App extends GenericApp {
         return false;
     }
 
-    async checkLicenseOnAdd(type) {
+    async checkLicenseOnAdd(type, matter) {
+        let result = true;
+        matter = matter || this.state.matter;
         if (type === 'addBridge') {
-            if (this.state.matter.bridges.filter(bridge => bridge.enabled).length >= 1) {
-                return this.getLicense();
+            if (matter.bridges.filter(bridge => bridge.enabled).length >= 1) {
+                result = await this.getLicense();
             }
         } else if (type === 'addDevice') {
-            if (this.state.matter.devices.filter(device => device.enabled).length >= 2) {
-                return this.getLicense();
+            if (matter.devices.filter(device => device.enabled).length >= 2) {
+                result = await this.getLicense();
             }
         } else if (type === 'addDeviceToBridge') {
-            if (this.state.matter.bridges.filter(bridge => bridge.enabled && bridge.list.filter(dev => dev.enabled).length >= 5)) {
-                return this.getLicense();
+            if (matter.bridges.find(bridge => bridge.enabled && bridge.list.filter(dev => dev.enabled).length >= 5)) {
+                result = await this.getLicense();
             }
         } else {
             return false;
         }
 
-        return true; // User may add one bridge or one device
+        return result; // User may add one bridge or one device
     }
 
     onSave(isClose) {

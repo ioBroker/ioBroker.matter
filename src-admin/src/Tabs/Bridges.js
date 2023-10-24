@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { withStyles } from '@mui/styles';
 import { v4 as uuidv4 } from 'uuid';
 import QRCode from 'react-qr-code';
-import { Types } from 'iobroker.type-detector';
+import { Types } from '@iobroker/type-detector';
 
 import {
     Button, Checkbox,
@@ -29,9 +29,14 @@ import {
     UnfoldMore, Wifi, WifiOff,
 } from '@mui/icons-material';
 
+import {
+    SiAmazonalexa, SiApple,
+    SiGoogleassistant, SiSmartthings,
+} from 'react-icons/si';
+
 import { I18n, Utils, SelectID } from '@iobroker/adapter-react-v5';
 
-import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../DeviceDialog';
+import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import { detectDevices, getText } from '../Utils';
 
 const styles = theme => ({
@@ -98,14 +103,18 @@ const styles = theme => ({
     tooltip: {
         pointerEvents: 'none',
     },
+    vendorIcon: {
+        width: 24,
+        height: 24,
+    },
 });
 
-class Bridges extends React.Component {
+export class Bridges extends React.Component {
     constructor(props) {
         super(props);
         let bridgesOpened = {};
         try {
-            bridgesOpened = JSON.parse(window.localStorage.getItem(`${this.adapterName}.${this.instance}.bridgesOpened`)) || {};
+            bridgesOpened = JSON.parse(window.localStorage.getItem(`matter.${props.instance}.bridgesOpened`)) || {};
         } catch {
             //
         }
@@ -127,14 +136,32 @@ class Bridges extends React.Component {
                 matter.bridges.push({
                     name: I18n.t('Default bridge'),
                     enabled: true,
-                    productID: '0xFFF1',
-                    vendorID: '0x8000',
+                    vendorID: '0xFFF1',
+                    productID: '0x8000',
                     list: [],
                     uuid: uuidv4(),
                 });
                 this.props.updateConfig(matter);
             }, 100);
         }
+
+        if (this.props.alive) {
+            this.props.socket.sendTo(`matter.${this.props.instance}`, 'nodeStates', { bridges: true })
+                .then(result => result.states && this.props.updateNodeStates(result.states));
+        }
+
+        // poll status every 10 seconds
+        this.pollInterval = setInterval(() => {
+            if (this.props.alive) {
+                this.props.socket.sendTo(`matter.${this.props.instance}`, 'nodeStates', { bridges: true })
+                    .then(result => result.states && this.props.updateNodeStates(result.states));
+            }
+        }, 10000);
+    }
+
+    componentWillUnmount() {
+        this.pollInterval && clearInterval(this.pollInterval);
+        this.pollInterval = null;
     }
 
     addDevicesToBridge = (devices, bridgeIndex, isAutoDetected) => {
@@ -142,20 +169,22 @@ class Bridges extends React.Component {
         const bridge = matter.bridges[bridgeIndex];
         devices.forEach(device => {
             if (!bridge.list.find(d => d.oid === device._id)) {
-                const obj = {
-                    uuid: uuidv4(),
-                    name: getText(device.common.name),
-                    oid: device._id,
-                    type: device.deviceType,
-                    enabled: true,
-                    noComposed: true,
-                    auto: isAutoDetected,
-                };
-                if (device.type === 'dimmer') {
-                    obj.hasOnState = device.hasOnState;
-                }
+                if (this.props.checkLicenseOnAdd('addDeviceToBridge', matter)) {
+                    const obj = {
+                        uuid: uuidv4(),
+                        name: getText(device.common.name),
+                        oid: device._id,
+                        type: device.deviceType,
+                        enabled: true,
+                        noComposed: true,
+                        auto: isAutoDetected,
+                    };
+                    if (device.type === 'dimmer') {
+                        obj.hasOnState = device.hasOnState;
+                    }
 
-                bridge.list.push(obj);
+                    bridge.list.push(obj);
+                }
             }
         });
 
@@ -500,6 +529,22 @@ class Bridges extends React.Component {
         </Dialog>;
     }
 
+    static getVendorIcon(vendor, classes) {
+        if (vendor === 'Amazon Lab126') {
+            return <SiAmazonalexa className={classes?.vendorIcon} title={vendor} />;
+        }
+        if (vendor === 'Google LLC') {
+            return <SiGoogleassistant />;
+        }
+        if (vendor === 'Apple Inc.') {
+            return <SiApple />;
+        }
+        if (vendor === 'Samsung') {
+            return <SiSmartthings />;
+        }
+        return null;
+    }
+
     renderDebugDialog() {
         if (!this.state.showDebugData) {
             return null;
@@ -518,7 +563,7 @@ class Bridges extends React.Component {
         //         }
         //     ],
         // }
-        const data = this.props.bridgeStates[this.state.showDebugData.uuid];
+        const data = this.props.nodeStates[this.state.showDebugData.uuid];
 
         return <Dialog
             onClose={() => this.setState({ showDebugData: null })}
@@ -539,7 +584,7 @@ class Bridges extends React.Component {
                             </TableRow>
                             {data.connectionInfo.map((info, i) => <TableRow key={i}>
                                 <TableCell>
-                                    {info.vendor}
+                                    {Bridges.getVendorIcon(info.vendor, this.props.classes) || info.vendor}
                                     {info.label ? <span style={{ opacity: 0.7, marginLeft: 8, fontStyle: 'italic' }}>
                                         (
                                         {info.label}
@@ -805,16 +850,16 @@ class Bridges extends React.Component {
             <DialogTitle>{I18n.t('QR Code to connect')}</DialogTitle>
             <DialogContent>
                 <div style={{ background: 'white', padding: 16 }}>
-                    <QRCode value={this.props.bridgeStates[this.state.showQrCode.uuid].qrPairingCode} />
+                    <QRCode value={this.props.nodeStates[this.state.showQrCode.uuid].qrPairingCode} />
                 </div>
                 <TextField
-                    value={this.props.bridgeStates[this.state.showQrCode.uuid].manualPairingCode}
+                    value={this.props.nodeStates[this.state.showQrCode.uuid].manualPairingCode}
                     InputProps={{
                         readOnly: true,
                         endAdornment: <InputAdornment position="end">
                             <IconButton
                                 onClick={() => {
-                                    Utils.copyToClipboard(this.props.bridgeStates[this.state.showQrCode.uuid].manualPairingCode);
+                                    Utils.copyToClipboard(this.props.nodeStates[this.state.showQrCode.uuid].manualPairingCode);
                                     this.props.showToast(I18n.t('Copied to clipboard'));
                                 }}
                                 edge="end"
@@ -875,10 +920,10 @@ class Bridges extends React.Component {
     }
 
     renderStatus(bridge) {
-        if (!this.props.bridgeStates[bridge.uuid]) {
+        if (!this.props.nodeStates[bridge.uuid]) {
             return null;
         }
-        if (this.props.bridgeStates[bridge.uuid].status === 'waitingForCommissioning') {
+        if (this.props.nodeStates[bridge.uuid].status === 'waitingForCommissioning') {
             return <Tooltip title={I18n.t('Bridge is not commissioned. Show QR Code got commissioning')} classes={{ popper: this.props.classes.tooltip }}>
                 <IconButton
                     style={{ height: 40 }}
@@ -888,7 +933,7 @@ class Bridges extends React.Component {
                 </IconButton>
             </Tooltip>;
         }
-        if (this.props.bridgeStates[bridge.uuid].status) {
+        if (this.props.nodeStates[bridge.uuid].status) {
             return <Tooltip title={I18n.t('Device is already commissioning. Show status information')} classes={{ popper: this.props.classes.tooltip }}>
                 <IconButton
                     style={{ height: 40 }}
@@ -897,7 +942,7 @@ class Bridges extends React.Component {
                         this.setState({ showDebugData: bridge });
                     }}
                 >
-                    {Bridges.getStatusIcon(this.props.bridgeStates[bridge.uuid].status)}
+                    {Bridges.getStatusIcon(this.props.nodeStates[bridge.uuid].status)}
                 </IconButton>
             </Tooltip>;
         }
@@ -939,7 +984,7 @@ class Bridges extends React.Component {
                         onClick={() => {
                             const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
                             bridgesOpened[bridgeIndex] = !bridgesOpened[bridgeIndex];
-                            window.localStorage.setItem(`${this.adapterName}.${this.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
+                            window.localStorage.setItem(`matter.${this.props.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
                             this.setState({ bridgesOpened });
                         }}
                     >
@@ -951,7 +996,7 @@ class Bridges extends React.Component {
                     onClick={() => {
                         const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
                         bridgesOpened[bridgeIndex] = !bridgesOpened[bridgeIndex];
-                        window.localStorage.setItem(`${this.adapterName}.${this.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
+                        window.localStorage.setItem(`matter.${this.props.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
                         this.setState({ bridgesOpened });
                     }}
                 >
@@ -1169,7 +1214,7 @@ class Bridges extends React.Component {
                             onClick={() => {
                                 const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
                                 Object.keys(bridgesOpened).forEach(key => bridgesOpened[key] = true);
-                                window.localStorage.setItem(`${this.adapterName}.${this.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
+                                window.localStorage.setItem(`matter.${this.props.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
                                 this.setState({ bridgesOpened });
                             }}
                             disabled={Object.values(this.state.bridgesOpened).every(v => v === true)}
@@ -1184,7 +1229,7 @@ class Bridges extends React.Component {
                             onClick={() => {
                                 const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
                                 Object.keys(bridgesOpened).forEach(key => bridgesOpened[key] = false);
-                                window.localStorage.setItem(`${this.adapterName}.${this.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
+                                window.localStorage.setItem(`matter.${this.props.instance}.bridgesOpened`, JSON.stringify(bridgesOpened));
                                 this.setState({ bridgesOpened });
                             }}
                             disabled={Object.values(this.state.bridgesOpened).every(v => v === false)}
@@ -1205,6 +1250,7 @@ class Bridges extends React.Component {
 
 Bridges.propTypes = {
     alive: PropTypes.bool,
+    instance: PropTypes.number,
     matter: PropTypes.object,
     socket: PropTypes.object,
     productIDs: PropTypes.array,
@@ -1212,7 +1258,8 @@ Bridges.propTypes = {
     themeType: PropTypes.string,
     detectedDevices: PropTypes.array,
     setDetectedDevices: PropTypes.func,
-    bridgeStates: PropTypes.object,
+    nodeStates: PropTypes.object,
+    updateNodeStates: PropTypes.func,
     showToast: PropTypes.func,
     commissioning: PropTypes.object,
     checkLicenseOnAdd: PropTypes.func,

@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.0.4",
-    "@project-chip/matter.js": "^0.6.0",
+    "@project-chip/matter.js": "dev",
     "@project-chip/matter-node.js": "^0.6.0",
     "@iobroker/type-detector": "^3.0.5",
     "axios": "^1.5.1",

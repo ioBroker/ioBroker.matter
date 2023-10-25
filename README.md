@@ -23,7 +23,7 @@
 - ble
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 0.1.2 (2023-10-25)
 * (bluefox) Devices were implemented
 
 ### 0.0.5 (2023-10-24)

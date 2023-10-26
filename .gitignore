@@ -18,6 +18,7 @@ package-lock.json
 build
 *.map
 main.js
+*.tgz
 
 .dev-server
 .vscode

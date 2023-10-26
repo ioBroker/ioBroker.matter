@@ -1,7 +1,8 @@
-const engineHelper = require('./engineHelper');
-const guiHelper = require('./guiHelper');
+const engineHelper = require('@iobroker/legacy-testing/engineHelper');
+const guiHelper = require('@iobroker/legacy-testing/guiHelper');
 const adapterName = require('../package.json').name.replace('iobroker.', '');
 let gPage;
+const rootDir = `${__dirname}/../`;
 
 describe('test-admin-gui', () => {
     before(async function (){
@@ -9,7 +10,7 @@ describe('test-admin-gui', () => {
 
         // install js-controller, web and vis-2-beta
         await engineHelper.startIoBrokerAdmin();
-        const { page } = await guiHelper.startBrowser(adapterName, process.env.CI === 'true');
+        const { page } = await guiHelper.startBrowser(adapterName, rootDir, process.env.CI === 'true');
         gPage = page;
     });
 

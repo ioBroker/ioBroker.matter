@@ -16,7 +16,10 @@ describe('test-admin-gui', () => {
 
     it('Check admin server', async function (){
         this.timeout(15_000);
-        await gPage.waitForSelector('.MuiTabs-root', { timeout: 15_000 });
+        return new Promise(resolve => setTimeout(async () => {
+            await gPage.waitForSelector('.MuiTabs-root', { timeout: 15_000 });
+            resolve();
+        }, 5000));
     });
 
     after(async function () {

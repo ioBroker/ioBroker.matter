@@ -25,7 +25,7 @@ function deleteFoldersRecursive(path) {
     }
 }
 
-function startIoBroker(adapterName, options) {
+function startIoBrokerAdmin(options) {
     options = options || {};
     if (options.rootDir) {
         rootDir = options.rootDir;
@@ -35,19 +35,19 @@ function startIoBroker(adapterName, options) {
         // delete the old project
         deleteFoldersRecursive(`${rootDir}tmp/screenshots`);
 
-        await setup.setOfflineState(`system.adapter.${adapterName}.0.alive`, { val: false });
+        await setup.setOfflineState(`system.adapter.admin.0.alive`, { val: false });
 
-        setup.setupController(null, async systemConfig => {
+        setup.setupController(['admin'], async systemConfig => {
             // disable statistics and set license accepted
             systemConfig.common.licenseConfirmed = true;
             systemConfig.common.diag = 'none';
             await setup.setObject('system.config', systemConfig);
 
-            // lets the web adapter start on port 18080
-            const config = await setup.getAdapterConfig(0, adapterName);
-            if (config && config.common) {
-                config.common.enabled = true;
-                await setup.setAdapterConfig(config.common, config.native, 0, adapterName);
+            // start admin
+            const adminConfig = await setup.getAdapterConfig(0, 'admin');
+            if (adminConfig && adminConfig.common) {
+                adminConfig.common.enabled = true;
+                await setup.setAdapterConfig(adminConfig.common, adminConfig.native, 0, 'admin');
             }
 
             setup.startController(
@@ -57,16 +57,16 @@ function startIoBroker(adapterName, options) {
                 async (_objects, _states) => {
                     objects = _objects;
                     states = _states;
-                    setup.startCustomAdapter(adapterName, 0);
-                    await checkIsWelcomeStartedAsync(states);
+                    setup.startCustomAdapter('admin', 0);
+                    await checkIsWelcomeStartedAsync('admin', states);
                     resolve({ objects, states });
                 });
         });
     });
 }
 
-async function stopIoBroker(adapterName) {
-    await setup.stopCustomAdapter(adapterName, 0);
+async function stopIoBrokerAdmin() {
+    await setup.stopCustomAdapter('admin', 0);
 
     await new Promise(resolve =>
         setup.stopController(normalTerminated => {
@@ -88,7 +88,7 @@ function checkIsWelcomeStarted(adapterName, states, cb, counter) {
             cb && cb();
         } else {
             setTimeout(() =>
-                checkIsWelcomeStarted(states, cb, counter - 1), 500);
+                checkIsWelcomeStarted(adapterName, states, cb, counter - 1), 500);
         }
     });
 }
@@ -98,7 +98,7 @@ function checkIsWelcomeStartedAsync(adapterName, states, counter) {
 }
 
 module.exports = {
-    startIoBroker,
-    stopIoBroker,
+    startIoBrokerAdmin,
+    stopIoBrokerAdmin,
     setOnStateChanged: cb => onStateChanged = cb
 };

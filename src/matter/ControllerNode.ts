@@ -17,7 +17,7 @@ import { DeviceTypes } from '@project-chip/matter-node.js/device';
 import { GenericDevice } from '../lib';
 import { DeviceDescription } from '../ioBrokerStorageTypes';
 
-import matterDeviceFabric from './matterFabric';
+import matterDeviceFactory from './matterFactory';
 import VENDOR_IDS from './vendorIds';
 import { NodeStateResponse, NodeStates } from './BridgedDevicesNode';
 
@@ -57,9 +57,9 @@ class Controller {
     }
 
     async init(): Promise<void> {
-        const commissionedObj = await this.adapter.getForeignObjectAsync(`matter.0.devices.${this.parameters.uuid}.commissioned`);
+        const commissionedObj = await this.adapter.getObjectAsync(`devices.${this.parameters.uuid}.commissioned`);
         if (!commissionedObj) {
-            await this.adapter.setForeignObjectAsync(`matter.0.devices.${this.parameters.uuid}.commissioned`, {
+            await this.adapter.setObjectAsync(`devices.${this.parameters.uuid}.commissioned`, {
                 type: 'state',
                 common: {
                     name: 'commissioned',
@@ -125,7 +125,7 @@ class Controller {
         if (!this.commissioningServer.isCommissioned()) {
             if (this.commissioned !== false) {
                 this.commissioned = false;
-                await this.adapter.setForeignStateAsync(`matter.0.devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
+                await this.adapter.setStateAsync(`devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
             }
             const pairingData = this.commissioningServer.getPairingCode();
             // const { qrPairingCode, manualPairingCode } = pairingData;
@@ -142,7 +142,7 @@ class Controller {
         } else {
             if (this.commissioned !== true) {
                 this.commissioned = true;
-                await this.adapter.setForeignStateAsync(`matter.0.devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
+                await this.adapter.setStateAsync(`devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
             }
 
             const activeSession = this.commissioningServer.getActiveSessionInformation();

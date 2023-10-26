@@ -207,7 +207,7 @@ export class MatterAdapter extends utils.Adapter {
          * The storage manager is then also used by the Matter server, so this code block in general is required,
          * but you can choose a different storage backend as long as it implements the required API.
          */
-        this.storage = new StorageIoBroker(this, 'matter.0');
+        this.storage = new StorageIoBroker(this);
         this.storageManager = new StorageManager(this.storage);
         await this.storageManager.initialize();
 

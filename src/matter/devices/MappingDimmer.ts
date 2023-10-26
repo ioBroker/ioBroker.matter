@@ -1,4 +1,4 @@
-import { DimmableLightDevice, Device } from '@project-chip/matter.js/device';
+import { DimmableLightDevice, Device } from '@project-chip/matter-node.js/device';
 
 import { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/GenericDevice';

@@ -6,7 +6,7 @@ import { DeviceTypes } from '@project-chip/matter-node.js/device';
 import { GenericDevice } from '../lib';
 import { DeviceDescription } from '../ioBrokerStorageTypes';
 
-import matterDeviceFabric from './matterFabric';
+import matterDeviceFactory from './matterFactory';
 import VENDOR_IDS from './vendorIds';
 import { NodeStateResponse, NodeStates } from './BridgedDevicesNode';
 
@@ -46,9 +46,9 @@ class Device {
     }
 
     async init(): Promise<void> {
-        const commissionedObj = await this.adapter.getForeignObjectAsync(`matter.0.devices.${this.parameters.uuid}.commissioned`);
+        const commissionedObj = await this.adapter.getObjectAsync(`devices.${this.parameters.uuid}.commissioned`);
         if (!commissionedObj) {
-            await this.adapter.setForeignObjectAsync(`matter.0.devices.${this.parameters.uuid}.commissioned`, {
+            await this.adapter.setObjectAsync(`devices.${this.parameters.uuid}.commissioned`, {
                 type: 'state',
                 common: {
                     name: 'commissioned',
@@ -82,8 +82,6 @@ class Device {
         const productName = `ioBroker OnOff-Bridge`;
         const productId = this.parameters.productid; // 0x8000;
 
-        const port = 5540;
-
         const uniqueId = this.parameters.uuid.replace(/-/g, '').split('.').pop() || '0000000000000000';
 
         /**
@@ -99,7 +97,6 @@ class Device {
          * are called.
          */
         this.commissioningServer = new CommissioningServer({
-            port,
             deviceName,
             deviceType,
             passcode,
@@ -121,14 +118,14 @@ class Device {
          * Create an instance of the matter device class you want to use.
          * This example uses the OnOffLightDevice or OnOffPluginUnitDevice depending on the value of the type parameter.
          * To execute the on/off scripts defined as parameters, a listener for the onOff attribute is registered via the
-         * device specific API.
+         * device-specific API.
          *
          * The below logic also adds command handlers for commands of clusters that normally are handled device internally
          * like identify that can be implemented with the logic when these commands are called.
          */
 
         const ioBrokerDevice = this.device;
-        const mappingDevice = await matterDeviceFabric(ioBrokerDevice, this.deviceOptions.name, this.parameters.uuid);
+        const mappingDevice = await matterDeviceFactory(ioBrokerDevice, this.deviceOptions.name, this.parameters.uuid);
         if (mappingDevice) {
             this.commissioningServer.addDevice(mappingDevice.getMatterDevice());
         } else {
@@ -156,7 +153,7 @@ class Device {
         if (!this.commissioningServer.isCommissioned()) {
             if (this.commissioned !== false) {
                 this.commissioned = false;
-                await this.adapter.setForeignStateAsync(`matter.0.devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
+                await this.adapter.setStateAsync(`devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
             }
             const pairingData = this.commissioningServer.getPairingCode();
             // const { qrPairingCode, manualPairingCode } = pairingData;
@@ -173,7 +170,7 @@ class Device {
         } else {
             if (this.commissioned !== true) {
                 this.commissioned = true;
-                await this.adapter.setForeignStateAsync(`matter.0.devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
+                await this.adapter.setStateAsync(`devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
             }
 
             const activeSession = this.commissioningServer.getActiveSessionInformation();

@@ -1,17 +1,15 @@
-import { fromJson, Storage, StorageError, SupportedStorageTypes, toJson } from '@project-chip/matter.js/storage';
+import { fromJson, Storage, StorageError, SupportedStorageTypes, toJson } from '@project-chip/matter-node.js/storage';
 
 export class StorageIoBroker implements Storage {
     private readonly adapter: ioBroker.Adapter;
-    private readonly oid: string;
     private data: Record<string, any> = {};
     private clear: boolean = false;
     private savingNumber: number = 1;
     private readonly savingPromises: Record<string, Promise<void>> = {};
     private readonly createdKeys: Record<string, boolean>;
 
-    constructor(adapter: ioBroker.Adapter, uuid: string, clear = false) {
+    constructor(adapter: ioBroker.Adapter, clear = false) {
         this.adapter = adapter;
-        this.oid = `${uuid}.storage`;
         this.clear = clear;
         this.createdKeys = {};
     }
@@ -19,11 +17,11 @@ export class StorageIoBroker implements Storage {
     async initialize(): Promise<void> {
         let object;
         try {
-            object = await this.adapter.getForeignObjectAsync(this.oid);
+            object = await this.adapter.getObjectAsync('storage');
         } catch (error) {
             // create object
             object = {
-                _id: this.oid,
+                _id: 'storage',
                 type: 'folder',
                 common: {
                     expert: true,
@@ -31,7 +29,7 @@ export class StorageIoBroker implements Storage {
                 },
                 native: {}
             };
-            await this.adapter.setForeignObjectAsync(this.oid, object as ioBroker.Object);
+            await this.adapter.setObjectAsync('storage', object as ioBroker.Object);
         }
 
         if (this.clear) {
@@ -40,8 +38,8 @@ export class StorageIoBroker implements Storage {
         }
 
         // read all keys
-        const states = await this.adapter.getForeignStatesAsync(`${this.oid}.*`);
-        const len = this.oid.length + 1;
+        const states = await this.adapter.getStatesAsync('storage.*');
+        const len = 'storage'.length + 1;
         for (const key in states) {
             this.createdKeys[key] = true;
             this.data[key.substring(len)] = fromJson(states[key].val as string);
@@ -49,10 +47,7 @@ export class StorageIoBroker implements Storage {
     }
 
     async clearAll(): Promise<void> {
-        const rows = await this.adapter.getObjectViewAsync('system', 'state', { startkey: `${this.oid}.`, endkey: `${this.oid}.\u9999` });
-        for (const row of rows.rows) {
-            await this.adapter.delForeignObjectAsync(row.id);
-        }
+        await this.adapter.delObjectAsync('storage', { recursive: true });
         this.clear = false;
         this.data = {};
     }
@@ -94,7 +89,7 @@ export class StorageIoBroker implements Storage {
             this.savingNumber = 1;
         }
         if (this.createdKeys[oid]) {
-            this.savingPromises[index] = this.adapter.setForeignStateAsync(`${this.oid}.${oid}`, value, true)
+            this.savingPromises[index] = this.adapter.setStateAsync(`storage.${oid}`, value, true)
                 .catch(error => this.adapter.log.error(`[STORAGE] Cannot save state: ${error}`))
                 .then(() => {
                     delete this.savingPromises[index];
@@ -102,7 +97,7 @@ export class StorageIoBroker implements Storage {
 
         } else {
             this.savingPromises[index] =
-                this.adapter.setForeignObjectAsync(`${this.oid}.${oid}`, {
+                this.adapter.setObjectAsync(`storage.${oid}`, {
                     type: 'state',
                     common: {
                         name: 'key',
@@ -114,7 +109,7 @@ export class StorageIoBroker implements Storage {
                     },
                     native: {}
                 })
-                    .then(() => this.adapter.setForeignStateAsync(`${this.oid}.${oid}`, value, true)
+                    .then(() => this.adapter.setStateAsync(`storage.${oid}`, value, true)
                         .catch(error => this.adapter.log.error(`[STORAGE] Cannot save state: ${error}`))
                         .then(() => {
                             this.createdKeys[oid] = true;
@@ -129,7 +124,7 @@ export class StorageIoBroker implements Storage {
             if (this.savingNumber >= 0xFFFFFFFF) {
                 this.savingNumber = 1;
             }
-            this.savingPromises[index] = this.adapter.delForeignObjectAsync(`${this.oid}.${oid}`)
+            this.savingPromises[index] = this.adapter.delObjectAsync(`storage.${oid}`)
                 .catch(error => this.adapter.log.error(`[STORAGE] Cannot save state: ${error}`))
                 .then(() => {
                     delete this.createdKeys[oid];

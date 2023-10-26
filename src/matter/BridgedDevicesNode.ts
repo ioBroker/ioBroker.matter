@@ -6,7 +6,7 @@ import { Aggregator, DeviceTypes } from '@project-chip/matter-node.js/device';
 import { GenericDevice } from '../lib';
 import { BridgeDeviceDescription } from '../ioBrokerStorageTypes';
 
-import matterDeviceFabric from './matterFabric';
+import matterDeviceFactory from './matterFactory';
 import VENDOR_IDS from './vendorIds';
 
 export interface BridgeCreateOptions {
@@ -59,9 +59,9 @@ class BridgedDevices {
     }
 
     async init(): Promise<void> {
-        const commissionedObj = await this.adapter.getForeignObjectAsync(`matter.0.bridges.${this.parameters.uuid}.commissioned`);
+        const commissionedObj = await this.adapter.getObjectAsync(`bridges.${this.parameters.uuid}.commissioned`);
         if (!commissionedObj) {
-            await this.adapter.setForeignObjectAsync(`matter.0.bridges.${this.parameters.uuid}.commissioned`, {
+            await this.adapter.setObjectAsync(`bridges.${this.parameters.uuid}.commissioned`, {
                 type: 'state',
                 common: {
                     name: 'commissioned',
@@ -144,7 +144,7 @@ class BridgedDevices {
 
         for (let i = 1; i <= this.devices.length; i++) {
             const ioBrokerDevice = this.devices[i - 1] as GenericDevice;
-            const mappingDevice = await matterDeviceFabric(ioBrokerDevice, this.devicesOptions[i - 1].name, this.devicesOptions[i - 1].uuid);
+            const mappingDevice = await matterDeviceFactory(ioBrokerDevice, this.devicesOptions[i - 1].name, this.devicesOptions[i - 1].uuid);
             if (mappingDevice) {
                 const name = mappingDevice.getName();// `OnOff Socket ${i}`;
                 aggregator.addBridgedDevice(mappingDevice.getMatterDevice(), {
@@ -192,7 +192,7 @@ class BridgedDevices {
         if (!this.commissioningServer.isCommissioned()) {
             if (this.commissioned !== false) {
                 this.commissioned = false;
-                await this.adapter.setForeignStateAsync(`matter.0.bridges.${this.parameters.uuid}.commissioned`, this.commissioned, true);
+                await this.adapter.setStateAsync(`bridges.${this.parameters.uuid}.commissioned`, this.commissioned, true);
             }
             const pairingData = this.commissioningServer.getPairingCode();
             // const { qrPairingCode, manualPairingCode } = pairingData;
@@ -209,7 +209,7 @@ class BridgedDevices {
         } else {
             if (this.commissioned !== true) {
                 this.commissioned = true;
-                await this.adapter.setForeignStateAsync(`matter.0.bridges.${this.parameters.uuid}.commissioned`, this.commissioned, true);
+                await this.adapter.setStateAsync(`bridges.${this.parameters.uuid}.commissioned`, this.commissioned, true);
             }
 
             const activeSession = this.commissioningServer.getActiveSessionInformation();

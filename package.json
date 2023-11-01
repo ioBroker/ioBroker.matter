@@ -32,7 +32,7 @@
     "@iobroker/legacy-testing": "^1.0.3",
     "@types/iobroker": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.4",
-    "@types/node": "^20.8.8",
+    "@types/node": "^20.8.10",
     "colorette": "^2.0.20",
     "puppeteer": "^21.4.1",
     "@typescript-eslint/eslint-plugin": "^6.9.0",

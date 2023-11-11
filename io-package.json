@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.1.3",
+    "version": "0.1.4",
     "news": {
+      "0.1.4": {
+        "en": "Implemented the factory reset and re-announcing",
+        "de": "Ergänzt die Werksanweisung und Wiederankündigung",
+        "ru": "Реализовано переустановку завода и переосмысление",
+        "pt": "Implementado o reset de fábrica e re-anunciamento",
+        "nl": "Vertaling:",
+        "fr": "Mise en œuvre de l'usine réinitialisée et renonçant",
+        "it": "Implementato il reset della fabbrica e riannuncio",
+        "es": "Implementado el reajuste de fábrica y reanunciamiento",
+        "pl": "Zrezygnował z resetu i ponowił działalność",
+        "uk": "Реалізовано заводське скидання та переадресацію",
+        "zh-cn": "执行工厂的重新定位和重新宣布"
+      },
       "0.1.2": {
         "en": "Devices were implemented",
         "de": "Geräte wurden implementiert",

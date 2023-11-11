@@ -518,16 +518,16 @@ export class Bridges extends React.Component {
 
     static getVendorIcon(vendor, classes, themeType) {
         if (vendor === 'Amazon Lab126') {
-            return <SiAmazonalexa className={classes?.vendorIcon} title={vendor} style={{ color: themeType ? '#001ca8' : '#0000dc'}} />;
+            return <SiAmazonalexa className={classes?.vendorIcon} title={vendor} style={{ color: themeType ? '#001ca8' : '#0000dc' }} />;
         }
         if (vendor === 'Google LLC') {
-            return <SiGoogleassistant className={classes?.vendorIcon} title={vendor} style={{ color: themeType ? '#ea9b33' : '#8f6020'}} />;
+            return <SiGoogleassistant className={classes?.vendorIcon} title={vendor} style={{ color: themeType ? '#ea9b33' : '#8f6020' }} />;
         }
         if (vendor === 'Apple Inc.') {
-            return <SiApple className={classes?.vendorIcon} title={vendor} style={{ color: themeType ? '#c9c9c9' : '#4f4f4f'}} />;
+            return <SiApple className={classes?.vendorIcon} title={vendor} style={{ color: themeType ? '#c9c9c9' : '#4f4f4f' }} />;
         }
         if (vendor === 'Samsung') {
-            return <SiSmartthings className={classes?.vendorIcon} title={vendor} style={{ color: themeType ? '#33ea8f' : '#209b60'}} />;
+            return <SiSmartthings className={classes?.vendorIcon} title={vendor} style={{ color: themeType ? '#33ea8f' : '#209b60' }} />;
         }
         return null;
     }
@@ -964,7 +964,7 @@ export class Bridges extends React.Component {
                                     }
                                 });
                         } else {
-                            this.setState({ showResetDialog: { bridge, step: 1 } });
+                            this.setState({ showResetDialog: { bridge: this.state.showResetDialog.bridge, step: 1 } });
                         }
                     }}
                     disabled={!this.props.alive}
@@ -1166,7 +1166,6 @@ export class Bridges extends React.Component {
                                                 this.props.updateNodeStates({ [bridge.uuid]: result.result });
                                             }
                                         });
-
                                 }}
                             >
                                 <SettingsInputAntenna />

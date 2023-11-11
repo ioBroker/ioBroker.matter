@@ -86,6 +86,7 @@ class Devices extends React.Component {
                 .then(result => result.states && this.props.updateNodeStates(result.states));
         }
     }
+
     renderDeleteDialog() {
         if (!this.state.deleteDialog) {
             return null;
@@ -811,7 +812,6 @@ class Devices extends React.Component {
                                         this.props.updateNodeStates({ [device.uuid]: result.result });
                                     }
                                 });
-
                         }}
                     >
                         <SettingsInputAntenna />
@@ -866,7 +866,7 @@ class Devices extends React.Component {
                                     }
                                 });
                         } else {
-                            this.setState({ showResetDialog: { device, step: 1 } });
+                            this.setState({ showResetDialog: { device: this.state.showResetDialog.device, step: 1 } });
                         }
                     }}
                     disabled={!this.props.alive}

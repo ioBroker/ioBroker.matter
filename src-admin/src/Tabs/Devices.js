@@ -15,7 +15,7 @@ import {
     Tooltip,
 } from '@mui/material';
 import {
-    Add, Close, ContentCopy, Delete, Edit, QrCode, QuestionMark, Save,
+    Add, Close, ContentCopy, Delete, DomainDisabled, Edit, QrCode, QuestionMark, Save, SettingsInputAntenna,
 } from '@mui/icons-material';
 
 import { I18n, SelectID, Utils } from '@iobroker/adapter-react-v5';
@@ -85,21 +85,7 @@ class Devices extends React.Component {
             this.props.socket.sendTo(`matter.${this.props.instance}`, 'nodeStates', { devices: true })
                 .then(result => result.states && this.props.updateNodeStates(result.states));
         }
-
-        // poll status every 10 seconds
-        this.pollInterval = setInterval(() => {
-            if (this.props.alive) {
-                this.props.socket.sendTo(`matter.${this.props.instance}`, 'nodeStates', { devices: true })
-                    .then(result => result.states && this.props.updateNodeStates(result.states));
-            }
-        }, 10000);
     }
-
-    componentWillUnmount() {
-        this.pollInterval && clearInterval(this.pollInterval);
-        this.pollInterval = null;
-    }
-
     renderDeleteDialog() {
         if (!this.state.deleteDialog) {
             return null;
@@ -109,7 +95,7 @@ class Devices extends React.Component {
             setTimeout(() => {
                 if (this.state.suppressDelete > Date.now()) {
                     const matter = JSON.parse(JSON.stringify(this.props.matter));
-                    matter.devices.splice(this.state.deleteDialog.deviceIndex, 1);
+                    matter.devices[this.state.deleteDialog.deviceIndex].deleted = true;
                     this.setState({ deleteDialog: false }, () => this.props.updateConfig(matter));
                 } else {
                     this.setState({ suppressDelete: false });
@@ -648,13 +634,13 @@ class Devices extends React.Component {
                             <TableRow>
                                 <TableCell>{I18n.t('Status')}</TableCell>
                                 <TableCell>
-                                    {Bridges.getStatusIcon(data.status)}
+                                    {Bridges.getStatusIcon(data.status, this.props.themeType)}
                                     <span style={{ marginLeft: 10 }}>{I18n.t(`status_${data.status}`)}</span>
                                 </TableCell>
                             </TableRow>
                             {data.connectionInfo.map((info, i) => <TableRow key={i}>
                                 <TableCell>
-                                    {Bridges.getVendorIcon(info.vendor) || info.vendor}
+                                    {Bridges.getVendorIcon(info.vendor, this.props.themeType) || info.vendor}
                                     {info.label ? <span style={{ opacity: 0.7, marginLeft: 8, fontStyle: 'italic' }}>
                                         (
                                         {info.label}
@@ -687,7 +673,7 @@ class Devices extends React.Component {
             return null;
         }
         if (this.props.nodeStates[device.uuid].status === 'waitingForCommissioning') {
-            return <Tooltip title={I18n.t('Bridge is not commissioned. Show QR Code got commissioning')} classes={{ popper: this.props.classes.tooltip }}>
+            return <Tooltip title={I18n.t('Device is not commissioned. Show QR Code for commissioning')} classes={{ popper: this.props.classes.tooltip }}>
                 <IconButton
                     style={{ height: 40 }}
                     onClick={() => this.setState({ showQrCode: device })}
@@ -705,7 +691,7 @@ class Devices extends React.Component {
                         this.setState({ showDebugData: device });
                     }}
                 >
-                    {Bridges.getStatusIcon(this.props.nodeStates[device.uuid].status)}
+                    {Bridges.getStatusIcon(this.props.nodeStates[device.uuid].status, this.props.themeType)}
                 </IconButton>
             </Tooltip>;
         }
@@ -713,6 +699,9 @@ class Devices extends React.Component {
     }
 
     renderDevice(device, index) {
+        if (device.deleted) {
+            return null;
+        }
         return <TableRow
             key={index}
             style={{ opacity: device.enabled ? 1 : 0.4 }}
@@ -804,6 +793,32 @@ class Devices extends React.Component {
                 </Tooltip>
             </TableCell>
             <TableCell style={{ width: 0 }}>
+                {this.props.alive ? <Tooltip title={I18n.t('Reset to factory defaults')} classes={{ popper: this.props.classes.tooltip }}>
+                    <IconButton onClick={() => this.setState({ showResetDialog: { device, step: 0 } })}>
+                        <DomainDisabled />
+                    </IconButton>
+                </Tooltip> : null}
+            </TableCell>
+            <TableCell style={{ width: 0 }}>
+                {this.props.alive && this.props.nodeStates[device.uuid]?.status === 'waitingForCommissioning' ? <Tooltip title={I18n.t('Re-announce')} classes={{ popper: this.props.classes.tooltip }}>
+                    <IconButton
+                        onClick={() => {
+                            this.props.socket.sendTo(`matter.${this.props.instance}`, 're-announce', { uuid: device.uuid })
+                                .then(result => {
+                                    if (result.error) {
+                                        window.alert(`Cannot re-announce: ${result.error}`);
+                                    } else {
+                                        this.props.updateNodeStates({ [device.uuid]: result.result });
+                                    }
+                                });
+
+                        }}
+                    >
+                        <SettingsInputAntenna />
+                    </IconButton>
+                </Tooltip> : null}
+            </TableCell>
+            <TableCell style={{ width: 0 }}>
                 <Tooltip title={I18n.t('Delete device')} classes={{ popper: this.props.classes.tooltip }}>
                     <IconButton onClick={() => {
                         this.setState(
@@ -824,6 +839,59 @@ class Devices extends React.Component {
         </TableRow>;
     }
 
+    renderResetDialog() {
+        if (!this.state.showResetDialog) {
+            return null;
+        }
+        return <Dialog
+            open={!0}
+            onClose={() => this.setState({ showResetDialog: false })}
+        >
+            <DialogTitle>{I18n.t('Reset device')}</DialogTitle>
+            <DialogContent>
+                <p>{I18n.t('Bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.')}</p>
+                <p>{I18n.t('Are you sure?')}</p>
+                {this.state.showResetDialog.step === 1 ? <p>{I18n.t('This cannot be undone')}</p> : null}
+            </DialogContent>
+            <DialogActions>
+                <Button
+                    onClick={() => {
+                        if (this.state.showResetDialog.step === 1) {
+                            this.props.socket.sendTo(`matter.${this.props.instance}`, 'factoryReset', { uuid: this.state.showResetDialog.device.uuid })
+                                .then(result => {
+                                    if (result.error) {
+                                        window.alert(`Cannot reset: ${result.error}`);
+                                    } else {
+                                        this.props.updateNodeStates({ [this.state.showResetDialog.device.uuid]: result.result });
+                                    }
+                                });
+                        } else {
+                            this.setState({ showResetDialog: { device, step: 1 } });
+                        }
+                    }}
+                    disabled={!this.props.alive}
+                    startIcon={<Delete />}
+                    color="primary"
+                    style={{
+                        color: this.state.showResetDialog.step === 1 ? 'white' : undefined,
+                        backgroundColor: this.state.showResetDialog.step === 1 ? 'red' : undefined,
+                    }}
+                    variant="contained"
+                >
+                    {I18n.t('Reset')}
+                </Button>
+                <Button
+                    onClick={() => this.setState({ showResetDialog: false })}
+                    startIcon={<Close />}
+                    color="grey"
+                    variant="contained"
+                >
+                    {I18n.t('Cancel')}
+                </Button>
+            </DialogActions>
+        </Dialog>;
+    }
+
     render() {
         return <div>
             {this.renderDeleteDialog()}
@@ -832,6 +900,7 @@ class Devices extends React.Component {
             {this.renderAddCustomDeviceDialog()}
             {this.renderDebugDialog()}
             {this.renderQrCodeDialog()}
+            {this.renderResetDialog()}
             <Tooltip title={I18n.t('Add device with auto-detection')} classes={{ popper: this.props.classes.tooltip }}>
                 <Fab
                     onClick={() => this.setState({

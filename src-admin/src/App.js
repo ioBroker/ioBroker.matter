@@ -86,6 +86,8 @@ class App extends GenericApp {
         this.state.detectedDevices = null;
         this.configHandler = null;
         this.intervalSubscribe = null;
+        this.alert = window.alert;
+        window.alert = text => this.showToast(text);
     }
 
     refreshBackendSubscription() {
@@ -178,6 +180,8 @@ class App extends GenericApp {
     };
 
     async componentWillUnmount() {
+        window.alert = this.alert;
+        this.alert = null;
         this.intervalSubscribe && clearInterval(this.intervalSubscribe);
         this.intervalSubscribe = null;
 

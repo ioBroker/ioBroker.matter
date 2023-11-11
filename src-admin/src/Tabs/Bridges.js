@@ -18,13 +18,13 @@ import {
     Add,
     Close,
     ContentCopy,
-    Delete,
+    Delete, DomainDisabled,
     Edit,
     KeyboardArrowDown,
     KeyboardArrowUp,
     QrCode,
     QuestionMark,
-    Save, SignalWifiStatusbarNull,
+    Save, SettingsInputAntenna, SignalWifiStatusbarNull,
     UnfoldLess,
     UnfoldMore, Wifi, WifiOff,
 } from '@mui/icons-material';
@@ -149,19 +149,6 @@ export class Bridges extends React.Component {
             this.props.socket.sendTo(`matter.${this.props.instance}`, 'nodeStates', { bridges: true })
                 .then(result => result.states && this.props.updateNodeStates(result.states));
         }
-
-        // poll status every 10 seconds
-        this.pollInterval = setInterval(() => {
-            if (this.props.alive) {
-                this.props.socket.sendTo(`matter.${this.props.instance}`, 'nodeStates', { bridges: true })
-                    .then(result => result.states && this.props.updateNodeStates(result.states));
-            }
-        }, 10000);
-    }
-
-    componentWillUnmount() {
-        this.pollInterval && clearInterval(this.pollInterval);
-        this.pollInterval = null;
     }
 
     addDevicesToBridge = (devices, bridgeIndex, isAutoDetected) => {
@@ -467,7 +454,7 @@ export class Bridges extends React.Component {
                 if (this.state.suppressDelete > Date.now()) {
                     const matter = JSON.parse(JSON.stringify(this.props.matter));
                     if (this.state.deleteDialog.type === 'bridge') {
-                        matter.bridges.splice(this.state.deleteDialog.bridge, 1);
+                        matter.bridges[this.state.deleteDialog].deleted = true;
                     } else if (this.state.deleteDialog.bridge !== undefined) {
                         matter.bridges[this.state.deleteDialog.bridge].list.splice(this.state.deleteDialog.device, 1);
                     }
@@ -529,18 +516,18 @@ export class Bridges extends React.Component {
         </Dialog>;
     }
 
-    static getVendorIcon(vendor, classes) {
+    static getVendorIcon(vendor, classes, themeType) {
         if (vendor === 'Amazon Lab126') {
-            return <SiAmazonalexa className={classes?.vendorIcon} title={vendor} />;
+            return <SiAmazonalexa className={classes?.vendorIcon} title={vendor} style={{ color: themeType ? '#001ca8' : '#0000dc'}} />;
         }
         if (vendor === 'Google LLC') {
-            return <SiGoogleassistant />;
+            return <SiGoogleassistant className={classes?.vendorIcon} title={vendor} style={{ color: themeType ? '#ea9b33' : '#8f6020'}} />;
         }
         if (vendor === 'Apple Inc.') {
-            return <SiApple />;
+            return <SiApple className={classes?.vendorIcon} title={vendor} style={{ color: themeType ? '#c9c9c9' : '#4f4f4f'}} />;
         }
         if (vendor === 'Samsung') {
-            return <SiSmartthings />;
+            return <SiSmartthings className={classes?.vendorIcon} title={vendor} style={{ color: themeType ? '#33ea8f' : '#209b60'}} />;
         }
         return null;
     }
@@ -578,13 +565,13 @@ export class Bridges extends React.Component {
                             <TableRow>
                                 <TableCell>{I18n.t('Status')}</TableCell>
                                 <TableCell>
-                                    {Bridges.getStatusIcon(data.status)}
+                                    {Bridges.getStatusIcon(data.status, this.props.themeType)}
                                     <span style={{ marginLeft: 10 }}>{I18n.t(`status_${data.status}`)}</span>
                                 </TableCell>
                             </TableRow>
                             {data.connectionInfo.map((info, i) => <TableRow key={i}>
                                 <TableCell>
-                                    {Bridges.getVendorIcon(info.vendor, this.props.classes) || info.vendor}
+                                    {Bridges.getVendorIcon(info.vendor, this.props.classes, this.props.themeType) || info.vendor}
                                     {info.label ? <span style={{ opacity: 0.7, marginLeft: 8, fontStyle: 'italic' }}>
                                         (
                                         {info.label}
@@ -592,7 +579,7 @@ export class Bridges extends React.Component {
                                     </span> : null}
                                 </TableCell>
                                 <TableCell>
-                                    {info.connected ? <span style={{ color: 'green' }}>{I18n.t('Connected')}</span> : I18n.t('Not connected')}
+                                    {info.connected ? <span style={{ color: this.props.themeType === 'dark' ? '#5ffc5f' : '#368836' }}>{I18n.t('Connected')}</span> : I18n.t('Not connected')}
                                 </TableCell>
                             </TableRow>)}
                         </TableBody>
@@ -776,6 +763,7 @@ export class Bridges extends React.Component {
                     </div>
                 </div>
             </TableCell>
+            <TableCell />
             <TableCell style={{ width: 0 }}>
                 <Switch
                     checked={device.enabled}
@@ -886,24 +874,24 @@ export class Bridges extends React.Component {
         </Dialog>;
     }
 
-    static getStatusColor(status) {
+    static getStatusColor(status, themeType) {
         if (status === 'creating') {
-            return '#000';
+            return themeType === 'dark' ? '#a4a4a4' : '#1c1c1c';
         }
         if (status === 'waitingForCommissioning') {
-            return 'blue';
+            return themeType === 'dark' ? '#2865ea' : '#00288d';
         }
         if (status === 'commissioned') {
-            return 'orange';
+            return themeType === 'dark' ? '#fcb35f' : '#b24a00';
         }
         if (status === 'connected') {
-            return 'green';
+            return themeType === 'dark' ? '#5ffc5f' : '#368836';
         }
         return 'grey';
     }
 
-    static getStatusIcon(status) {
-        const color = Bridges.getStatusColor(status);
+    static getStatusIcon(status, themeType) {
+        const color = Bridges.getStatusColor(status, themeType);
         if (status === 'creating') {
             return <SignalWifiStatusbarNull style={{ color }} />;
         }
@@ -942,14 +930,71 @@ export class Bridges extends React.Component {
                         this.setState({ showDebugData: bridge });
                     }}
                 >
-                    {Bridges.getStatusIcon(this.props.nodeStates[bridge.uuid].status)}
+                    {Bridges.getStatusIcon(this.props.nodeStates[bridge.uuid].status, this.props.themeType)}
                 </IconButton>
             </Tooltip>;
         }
         return null;
     }
 
+    renderResetDialog() {
+        if (!this.state.showResetDialog) {
+            return null;
+        }
+        return <Dialog
+            open={!0}
+            onClose={() => this.setState({ showResetDialog: false })}
+        >
+            <DialogTitle>{I18n.t('Reset bridge')}</DialogTitle>
+            <DialogContent>
+                <p>{I18n.t('Bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.')}</p>
+                <p>{I18n.t('Are you sure?')}</p>
+                {this.state.showResetDialog.step === 1 ? <p>{I18n.t('This cannot be undone')}</p> : null}
+            </DialogContent>
+            <DialogActions>
+                <Button
+                    onClick={() => {
+                        if (this.state.showResetDialog.step === 1) {
+                            this.props.socket.sendTo(`matter.${this.props.instance}`, 'factoryReset', { uuid: this.state.showResetDialog.bridge.uuid })
+                                .then(result => {
+                                    if (result.error) {
+                                        window.alert(`Cannot reset: ${result.error}`);
+                                    } else {
+                                        this.props.updateNodeStates({ [this.state.showResetDialog.bridge.uuid]: result.result });
+                                    }
+                                });
+                        } else {
+                            this.setState({ showResetDialog: { bridge, step: 1 } });
+                        }
+                    }}
+                    disabled={!this.props.alive}
+                    startIcon={<Delete />}
+                    color="primary"
+                    style={{
+                        color: this.state.showResetDialog.step === 1 ? 'white' : undefined,
+                        backgroundColor: this.state.showResetDialog.step === 1 ? 'red' : undefined,
+                    }}
+                    variant="contained"
+                >
+                    {I18n.t('Reset')}
+                </Button>
+                <Button
+                    onClick={() => this.setState({ showResetDialog: false })}
+                    startIcon={<Close />}
+                    color="grey"
+                    variant="contained"
+                >
+                    {I18n.t('Cancel')}
+                </Button>
+            </DialogActions>
+        </Dialog>;
+    }
+
     renderBridge(bridge, bridgeIndex) {
+        if (bridge.deleted) {
+            return null;
+        }
+
         const enabledDevices = bridge.list.filter(d => d.enabled).length;
         let countText;
         if (!bridge.list.length) {
@@ -1022,6 +1067,7 @@ export class Bridges extends React.Component {
                     <div className={this.props.classes.flexGrow} />
                     {this.renderStatus(bridge)}
                 </TableCell>
+                <TableCell style={{ width: 0 }} className={this.props.classes.bridgeButtonsAndTitle} />
                 <TableCell style={{ width: 0 }} className={this.props.classes.bridgeButtonsAndTitle}>
                     <Tooltip
                         title={bridge.enabled && !allowDisable ? I18n.t('At least one bridge must be enabled') : I18n.t('Enable/disable bridge')}
@@ -1108,7 +1154,31 @@ export class Bridges extends React.Component {
                     >
                         {I18n.t('Devices')}
                     </TableCell>
-                    <TableCell style={{ width: 0 }} className={this.props.classes.devicesHeader}>
+                    <TableCell style={{ width: 0, textAlign: 'center' }} className={this.props.classes.devicesHeader}>
+                        {this.props.alive && this.props.nodeStates[bridge.uuid]?.status === 'waitingForCommissioning' ? <Tooltip title={I18n.t('Re-announce')} classes={{ popper: this.props.classes.tooltip }}>
+                            <IconButton
+                                onClick={() => {
+                                    this.props.socket.sendTo(`matter.${this.props.instance}`, 're-announce', { uuid: bridge.uuid })
+                                        .then(result => {
+                                            if (result.error) {
+                                                window.alert(`Cannot re-announce: ${result.error}`);
+                                            } else {
+                                                this.props.updateNodeStates({ [bridge.uuid]: result.result });
+                                            }
+                                        });
+
+                                }}
+                            >
+                                <SettingsInputAntenna />
+                            </IconButton>
+                        </Tooltip> : null}
+                    </TableCell>
+                    <TableCell style={{ width: 0, textAlign: 'center' }} className={this.props.classes.devicesHeader}>
+                        {this.props.alive ? <Tooltip title={I18n.t('Reset to factory defaults')} classes={{ popper: this.props.classes.tooltip }}>
+                            <IconButton onClick={() => this.setState({ showResetDialog: { bridge, step: 0 } })}>
+                                <DomainDisabled />
+                            </IconButton>
+                        </Tooltip> : null}
                     </TableCell>
                     <TableCell style={{ width: 0 }} className={this.props.classes.devicesHeader}>
                         <Tooltip title={I18n.t('Add device with auto-detection')} classes={{ popper: this.props.classes.tooltip }}>
@@ -1172,6 +1242,7 @@ export class Bridges extends React.Component {
             {this.renderDeviceEditDialog()}
             {this.renderQrCodeDialog()}
             {this.renderDebugDialog()}
+            {this.renderResetDialog()}
             <Tooltip title={I18n.t('Add bridge')} classes={{ popper: this.props.classes.tooltip }}>
                 <Fab
                     onClick={async () => {

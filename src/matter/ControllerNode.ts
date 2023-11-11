@@ -4,10 +4,15 @@ import {
     MatterServer,
     NodeCommissioningOptions,
 } from '@project-chip/matter-node.js';
-import { CommissioningOptions } from "@project-chip/matter-node.js/protocol";
+import { CommissionableDevice } from '@project-chip/matter-node.js/common';
+import { NodeId } from '@project-chip/matter-node.js/datatype';
+
+import { ManualPairingCodeCodec, QrPairingCodeCodec } from '@project-chip/matter-node.js/schema';
+import { NodeStateInformation } from '@project-chip/matter-node.js/device';
+import { Logger } from '@project-chip/matter-node.js/log';
+
+import { CommissioningOptions } from '@project-chip/matter-node.js/protocol';
 import {
-    BasicInformationCluster,
-    DescriptorCluster,
     GeneralCommissioning,
     OnOffCluster,
 } from "@project-chip/matter-node.js/cluster";
@@ -20,40 +25,32 @@ import { DeviceDescription } from '../ioBrokerStorageTypes';
 import matterDeviceFactory from './matterFactory';
 import VENDOR_IDS from './vendorIds';
 import { NodeStateResponse, NodeStates } from './BridgedDevicesNode';
+import { MatterAdapter } from '../main';
 
-export interface DeviceCreateOptions {
-    adapter: ioBroker.Adapter;
-    parameters: DeviceOptions,
-    device: GenericDevice;
+export interface ControllerCreateOptions {
+    adapter: MatterAdapter;
+    parameters: ControllerOptions,
     matterServer: MatterServer;
-    deviceOptions: DeviceDescription;
+    controllerOptions: ControllerOptions;
 }
 
-export interface DeviceOptions {
-    uuid: string;
-    passcode: number;
-    discriminator: number;
-    vendorid: number;
-    productid: number;
-    devicename: string;
-    productname: string;
+export interface ControllerOptions {
+    ble?: boolean;
 }
 
 class Controller {
     private matterServer: MatterServer | undefined;
-    private parameters: DeviceOptions;
-    private device: GenericDevice;
+    private parameters: ControllerOptions;
     private commissioningServer: CommissioningServer | undefined;
-    private deviceOptions: DeviceDescription;
-    private adapter: ioBroker.Adapter;
+    private adapter: MatterAdapter;
     private commissioned: boolean | null = null;
+    private commissioningController: CommissioningController | null = null;
+    private matterNodeIds: NodeId[] = [];
 
-    constructor(options: DeviceCreateOptions) {
+    constructor(options: ControllerCreateOptions) {
         this.adapter = options.adapter;
         this.parameters = options.parameters;
-        this.device = options.device;
         this.matterServer = options.matterServer;
-        this.deviceOptions = options.deviceOptions;
     }
 
     async init(): Promise<void> {
@@ -79,7 +76,7 @@ class Controller {
          * come from.
          *
          * Note: This example also uses the initialized storage system to store the device parameter data for convenience
-         * and easy reuse. When you also do that be careful to not overlap with Matter-Server own contexts
+         * and easy reuse. When you also do that, be careful to not overlap with Matter-Server own contexts
          * (so maybe better not ;-)).
          */
         const deviceName = this.parameters.devicename || 'Matter device';
@@ -101,10 +98,102 @@ class Controller {
             regulatoryLocation: GeneralCommissioning.RegulatoryLocationType.IndoorOutdoor,
             regulatoryCountryCode: 'XX',
         };
-        const commissioningController = new CommissioningController({
+        // if (this.controllerOptions?.ble) {
+        //     const wifiSsid = getParameter("ble-wifi-ssid");
+        //     const wifiCredentials = getParameter("ble-wifi-credentials");
+        //     const threadNetworkName = getParameter("ble-thread-networkname");
+        //     const threadOperationalDataset = getParameter("ble-thread-operationaldataset");
+        //     if (wifiSsid !== undefined && wifiCredentials !== undefined) {
+        //         logger.info(`Registering Commissioning over BLE with WiFi: ${wifiSsid}`);
+        //         commissioningOptions.wifiNetwork = {
+        //             wifiSsid: wifiSsid,
+        //             wifiCredentials: wifiCredentials,
+        //         };
+        //     }
+        //     if (threadNetworkName !== undefined && threadOperationalDataset !== undefined) {
+        //         logger.info(`Registering Commissioning over BLE with Thread: ${threadNetworkName}`);
+        //         commissioningOptions.threadNetwork = {
+        //             networkName: threadNetworkName,
+        //             operationalDataset: threadOperationalDataset,
+        //         };
+        //     }
+        // }
+
+
+        this.commissioningController = new CommissioningController({
             autoConnect: false,
         });
-        this.matterServer?.addCommissioningController(commissioningController);
+
+        this.matterServer?.addCommissioningController(this.commissioningController);
+        // get nodes
+        const nodes = this.commissioningController.getCommissionedNodes();
+
+        // attach all nodes to the controller
+        for (const nodeId of nodes) {
+            const node = await this.commissioningController.connectNode(nodeId, {
+                attributeChangedCallback: (
+                    peerNodeId,
+                    { path: { nodeId, clusterId, endpointId, attributeName }, value },
+                ) =>
+                    console.log(
+                        `attributeChangedCallback ${peerNodeId}: Attribute ${nodeId}/${endpointId}/${clusterId}/${attributeName} changed to ${Logger.toJSON(
+                            value,
+                        )}`,
+                    ),
+                eventTriggeredCallback: (peerNodeId, { path: { nodeId, clusterId, endpointId, eventName }, events }) =>
+                    console.log(
+                        `eventTriggeredCallback ${peerNodeId}: Event ${nodeId}/${endpointId}/${clusterId}/${eventName} triggered with ${Logger.toJSON(
+                            events,
+                        )}`,
+                    ),
+                stateInformationCallback: (peerNodeId, info) => {
+                    switch (info) {
+                        case NodeStateInformation.Connected:
+                            console.log(`stateInformationCallback ${peerNodeId}: Node ${nodeId} connected`);
+                            break;
+                        case NodeStateInformation.Disconnected:
+                            console.log(`stateInformationCallback ${peerNodeId}: Node ${nodeId} disconnected`);
+                            break;
+                        case NodeStateInformation.Reconnecting:
+                            console.log(`stateInformationCallback ${peerNodeId}: Node ${nodeId} reconnecting`);
+                            break;
+                        case NodeStateInformation.WaitingForDeviceDiscovery:
+                            console.log(
+                                `stateInformationCallback ${peerNodeId}: Node ${nodeId} waiting for device discovery`,
+                            );
+                            break;
+                        case NodeStateInformation.StructureChanged:
+                            console.log(`stateInformationCallback ${peerNodeId}: Node ${nodeId} structure changed`);
+                            break;
+                    }
+                },
+            });
+
+            this.matterNodeIds.push(nodeId);
+
+            const rootEndpoint = node.getDeviceById(0);
+            if (rootEndpoint === void 0) {
+                this.adapter.log.debug(`Node ${this.nodeId} has not yet been initialized!`);
+                return;
+            }
+            logEndpoint(rootEndpoint);
+        }
+
+    }
+
+    _endPointToIoBrokerStructure(endpoint: Endpoint): void {
+        this.adapter.log.info(`Endpoint ${endpoint.id} (${endpoint.name}):`);
+        for (const clusterServer of endpoint.getAllClusterServers()) {
+            this.logClusterServer(endpoint, clusterServer);
+        }
+
+        // for (const clusterClient of endpoint.getAllClusterClients()) {
+        //     this.logClusterClient(endpoint, clusterClient, options);
+        // }
+
+        for (const childEndpoint of endpoint.getChildEndpoints()) {
+            this._endPointToIoBrokerStructure(childEndpoint);
+        }
     }
 
     async getState(): Promise<NodeStateResponse> {
@@ -183,8 +272,141 @@ class Controller {
         }
     }
 
+    async commissionDevice(qrCode: string, manualCode: string, device: CommissionableDevice): Promise<PairedNode> {
+        if (!this.commissioningController) {
+            return;
+        }
+        const commissioningOptions: CommissioningOptions = {
+            regulatoryLocation: GeneralCommissioning.RegulatoryLocationType.IndoorOutdoor,
+            regulatoryCountryCode: 'XX',
+        };
+        // if (hasParameter("ble")) {
+        //     const wifiSsid = getParameter("ble-wifi-ssid");
+        //     const wifiCredentials = getParameter("ble-wifi-credentials");
+        //     const threadNetworkName = getParameter("ble-thread-networkname");
+        //     const threadOperationalDataset = getParameter("ble-thread-operationaldataset");
+        //     if (wifiSsid !== undefined && wifiCredentials !== undefined) {
+        //         logger.info(`Registering Commissioning over BLE with WiFi: ${wifiSsid}`);
+        //         commissioningOptions.wifiNetwork = {
+        //             wifiSsid: wifiSsid,
+        //             wifiCredentials: wifiCredentials,
+        //         };
+        //     }
+        //     if (threadNetworkName !== undefined && threadOperationalDataset !== undefined) {
+        //         logger.info(`Registering Commissioning over BLE with Thread: ${threadNetworkName}`);
+        //         commissioningOptions.threadNetwork = {
+        //             networkName: threadNetworkName,
+        //             operationalDataset: threadOperationalDataset,
+        //         };
+        //     }
+        // }
+
+        let passcode: number | undefined;
+        let shortDiscriminator: number | undefined;
+        let longDiscriminator: number | undefined;
+        if (manualCode) {
+            const pairingCodeCodec = ManualPairingCodeCodec.decode(manualCode);
+            shortDiscriminator = pairingCodeCodec.shortDiscriminator;
+            longDiscriminator = undefined;
+            passcode = pairingCodeCodec.passcode;
+        } else if (qrCode) {
+            const pairingCodeCodec = QrPairingCodeCodec.decode(qrCode);
+            longDiscriminator = pairingCodeCodec.discriminator;
+            shortDiscriminator = undefined;
+            passcode = pairingCodeCodec.passcode;
+        }
+        if (device) {
+            longDiscriminator = undefined;
+            shortDiscriminator = undefined;
+        }
+
+        const options = {
+            commissioning: commissioningOptions,
+            discovery: {
+                commissionableDevice: device || undefined,
+                identifierData: longDiscriminator !== undefined
+                        ? { longDiscriminator }
+                        : shortDiscriminator !== undefined
+                            ? { shortDiscriminator }
+                            : undefined,
+            },
+            passcode,
+            attributeChangedCallback: (peerNodeId, { path: { nodeId, clusterId, endpointId, attributeName }, value }) =>
+                console.log(
+                    `attributeChangedCallback ${peerNodeId}: Attribute ${nodeId}/${endpointId}/${clusterId}/${attributeName} changed to ${Logger.toJSON(
+                        value,
+                    )}`,
+                ),
+            eventTriggeredCallback: (peerNodeId, { path: { nodeId, clusterId, endpointId, eventName }, events }) =>
+                console.log(
+                    `eventTriggeredCallback ${peerNodeId}: Event ${nodeId}/${endpointId}/${clusterId}/${eventName} triggered with ${Logger.toJSON(
+                        events,
+                    )}`,
+                ),
+            stateInformationCallback: (peerNodeId, info) => {
+                switch (info) {
+                    case NodeStateInformation.Connected:
+                        console.log(`stateInformationCallback Node ${peerNodeId} connected`);
+                        break;
+                    case NodeStateInformation.Disconnected:
+                        console.log(`stateInformationCallback Node ${peerNodeId} disconnected`);
+                        break;
+                    case NodeStateInformation.Reconnecting:
+                        console.log(`stateInformationCallback Node ${peerNodeId} reconnecting`);
+                        break;
+                    case NodeStateInformation.WaitingForDeviceDiscovery:
+                        console.log(
+                            `stateInformationCallback Node ${peerNodeId} waiting that device gets discovered again`,
+                        );
+                        break;
+                    case NodeStateInformation.StructureChanged:
+                        console.log(`stateInformationCallback Node ${peerNodeId} structure changed`);
+                        break;
+                }
+            },
+        } as NodeCommissioningOptions;
+
+        // logger.info(`Commissioning ... ${JSON.stringify(options)}`);
+        const nodeObject = await this.commissioningController.commissionNode(options);
+        this.matterNodeIds.push(nodeObject.nodeId);
+
+        console.log(`Commissioning successfully done with nodeId ${nodeObject.nodeId}`);
+        return nodeObject;
+    }
+
+    async discovery(): Promise<void> {
+        if (!this.commissioningController) {
+            return;
+        }
+        const results = await this.commissioningController.discoverCommissionableDevices(
+            {},
+            {
+                ble: false,
+                onIpNetwork: true,
+            },
+            device => {
+                // console.log(`Discovered device ${this.adapter.log.debug(`Found: ${Logger.toJSON(device)}`)}`);
+            },
+            60, // timeoutSeconds
+        );
+    }
+
+    async showNewCommissioningCode(nodeId: NodeId): Promise<{
+        manualPairingCode: string;
+        qrPairingCode: string;
+    } | null> {
+        if (!this.commissioningController) {
+            return null;
+        }
+        const node = this.commissioningController.getConnectedNode(nodeId);
+        if (node) {
+            return await node.openEnhancedCommissioningWindow();
+        }
+        return null;
+    }
+
     async stop(): Promise<void> {
-        await this.device.destroy();
+        // await this.device.destroy();
     }
 }
 

@@ -19,6 +19,7 @@ import {
     DeviceDescription,
     MatterAdapterConfig
 } from './ioBrokerStorageTypes';
+import DeviceNode from "./matter/DeviceNode";
 
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
@@ -120,6 +121,46 @@ export class MatterAdapter extends utils.Adapter {
         } else if (obj.command === 'getLicense') {
             const license = await this.checkLicense(obj.message.login, obj.message.pass);
             obj.callback && this.sendTo(obj.from, obj.command, { result: license }, obj.callback);
+        } else if (obj.command === 're-announce') {
+            for (const oid in this.bridges) {
+                const uuid = oid.split('.').pop() || '';
+                if (uuid === obj.message.uuid) {
+                    await this.bridges[oid].advertise();
+                    break;
+                }
+            }
+            for (const oid in this.devices) {
+                const uuid = oid.split('.').pop() || '';
+                if (uuid === obj.message.uuid) {
+                    await this.devices[oid].advertise();
+                    break;
+                }
+            }
+        } else if (obj.command === 'factoryReset') {
+            let found = false;
+            for (const oid in this.bridges) {
+                const uuid = oid.split('.').pop() || '';
+                if (uuid === obj.message.uuid) {
+                    found = true;
+                    await this.bridges[oid].factoryReset();
+                    obj.callback && this.sendTo(obj.from, obj.command, { result: await this.bridges[oid].getState() }, obj.callback);
+                    break;
+                }
+            }
+            if (!found) {
+                for (const oid in this.devices) {
+                    const uuid = oid.split('.').pop() || '';
+                    if (uuid === obj.message.uuid) {
+                        found = true;
+                        await this.devices[oid].factoryReset();
+                        obj.callback && this.sendTo(obj.from, obj.command, { result: await this.devices[oid].getState() }, obj.callback);
+                        break;
+                    }
+                }
+                if (!found) {
+                    obj.callback && this.sendTo(obj.from, obj.command, { error: 'Device not found' }, obj.callback);
+                }
+            }
         }
     }
 
@@ -214,7 +255,7 @@ export class MatterAdapter extends utils.Adapter {
         if (!config.interface) {
             this.matterServer = new MatterServer(this.storageManager);
         } else {
-            this.matterServer = new MatterServer(this.storageManager, { mdnsAnnounceInterface: config.interface });
+            this.matterServer = new MatterServer(this.storageManager, { mdnsInterface: config.interface });
         }
     }
 
@@ -577,14 +618,27 @@ export class MatterAdapter extends utils.Adapter {
             if (!object) {
                 return;
             }
-            if (object._id.startsWith(`${this.namespace}.devices.`) && object.native.enabled !== false) {
-                _devices.push(object);
-            } else if (object._id.startsWith(`${this.namespace}.bridges.`) &&
-                object.native.enabled !== false &&
-                object.native.list?.length &&
-                object.native.list.find((item: BridgeDeviceDescription) => item.enabled !== false)
-            ) {
-                _bridges.push(object);
+            if (object._id.startsWith(`${this.namespace}.devices.`)) {
+                if (object.native.enabled !== false && !object.native.deleted) {
+                    _devices.push(object);
+                } else if (object.native.deleted) {
+                    // delete device
+                    await this.delObjectAsync(object._id);
+                    // how to delete information in the matter server?
+                }
+            } else if (object._id.startsWith(`${this.namespace}.bridges.`)) {
+                if (object.native.enabled !== false &&
+                    !object.native.deleted &&
+                    object.native.list?.length &&
+                    object.native.list.find((item: BridgeDeviceDescription) => item.enabled !== false)
+                ) {
+                    _bridges.push(object);
+                } else if (object.native.deleted) {
+                    // delete bridge
+                    await this.delObjectAsync(object._id);
+
+                    // how to delete information in the matter server?
+                }
             }
         }
 

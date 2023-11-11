@@ -2,6 +2,7 @@ import { CommissioningServer, MatterServer } from '@project-chip/matter-node.js'
 
 import { VendorId } from '@project-chip/matter-node.js/datatype';
 import { DeviceTypes } from '@project-chip/matter-node.js/device';
+import { Logger } from '@project-chip/matter-node.js/log';
 
 import { GenericDevice } from '../lib';
 import { DeviceDescription } from '../ioBrokerStorageTypes';
@@ -9,9 +10,10 @@ import { DeviceDescription } from '../ioBrokerStorageTypes';
 import matterDeviceFactory from './matterFactory';
 import VENDOR_IDS from './vendorIds';
 import { NodeStateResponse, NodeStates } from './BridgedDevicesNode';
+import { MatterAdapter } from '../main';
 
 export interface DeviceCreateOptions {
-    adapter: ioBroker.Adapter;
+    adapter: MatterAdapter;
     parameters: DeviceOptions,
     device: GenericDevice;
     matterServer: MatterServer;
@@ -31,10 +33,10 @@ export interface DeviceOptions {
 class Device {
     private matterServer: MatterServer | undefined;
     private parameters: DeviceOptions;
-    private device: GenericDevice;
+    private readonly device: GenericDevice;
     private commissioningServer: CommissioningServer | undefined;
     private deviceOptions: DeviceDescription;
-    private adapter: ioBroker.Adapter;
+    private adapter: MatterAdapter;
     private commissioned: boolean | null = null;
 
     constructor(options: DeviceCreateOptions) {
@@ -110,6 +112,17 @@ class Device {
                 productId,
                 serialNumber: uniqueId,
             },
+            activeSessionsChangedCallback: async fabricIndex => {
+                this.adapter.log.debug(
+                    `activeSessionsChangedCallback: Active sessions changed on Fabric ${fabricIndex}` +
+                    Logger.toJSON(this.commissioningServer?.getActiveSessionInformation(fabricIndex)));
+                await this.adapter.sendToGui({ type: 'update', [this.parameters.uuid]: await this.getState() });
+            },
+            commissioningChangedCallback: async fabricIndex => {
+                this.adapter.log.debug(
+                    `commissioningChangedCallback: Commissioning changed on Fabric ${fabricIndex}: ${Logger.toJSON(this.commissioningServer?.getCommissionedFabricInformation(fabricIndex)[0])}`);
+                await this.adapter.sendToGui({ type: 'update', [this.parameters.uuid]: await this.getState() });
+            },
         });
 
         /**
@@ -129,10 +142,14 @@ class Device {
         if (mappingDevice) {
             this.commissioningServer.addDevice(mappingDevice.getMatterDevice());
         } else {
-            console.error(`ioBroker Device "${this.device.getDeviceType()}" is not supported`);
+            this.adapter.log.error(`ioBroker Device "${this.device.getDeviceType()}" is not supported`);
         }
 
-        this.matterServer?.addCommissioningServer(this.commissioningServer, { uniqueNodeId: this.parameters.uuid });
+        try {
+            this.matterServer?.addCommissioningServer(this.commissioningServer, { uniqueNodeId: this.parameters.uuid });
+        } catch (e) {
+            this.adapter.log.error(`Could not add commissioning server for device ${this.parameters.uuid}: ${e.message}`);
+        }
     }
 
     async getState(): Promise<NodeStateResponse> {
@@ -211,7 +228,16 @@ class Device {
         }
     }
 
+    async advertise(): Promise<void> {
+        await this.commissioningServer?.advertise();
+    }
+
+    async factoryReset(): Promise<void> {
+        await this.commissioningServer?.factoryReset();
+    }
+
     async stop(): Promise<void> {
+        this.commissioningServer && this.matterServer?.removeCommissioningServer(this.commissioningServer);
         await this.device.destroy();
     }
 }

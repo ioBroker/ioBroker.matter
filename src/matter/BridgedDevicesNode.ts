@@ -5,12 +5,14 @@ import { Aggregator, DeviceTypes } from '@project-chip/matter-node.js/device';
 
 import { GenericDevice } from '../lib';
 import { BridgeDeviceDescription } from '../ioBrokerStorageTypes';
+import { Logger } from '@project-chip/matter-node.js/log';
 
 import matterDeviceFactory from './matterFactory';
 import VENDOR_IDS from './vendorIds';
+import { MatterAdapter } from '../main';
 
 export interface BridgeCreateOptions {
-    adapter: ioBroker.Adapter;
+    adapter: MatterAdapter;
     parameters: BridgeOptions,
     devices: GenericDevice[];
     matterServer: MatterServer;
@@ -44,10 +46,10 @@ export interface NodeStateResponse {
 class BridgedDevices {
     private matterServer: MatterServer | undefined;
     private parameters: BridgeOptions;
-    private devices: GenericDevice[];
+    private readonly devices: GenericDevice[];
     private commissioningServer: CommissioningServer | undefined;
     private devicesOptions: BridgeDeviceDescription[];
-    private adapter: ioBroker.Adapter;
+    private adapter: MatterAdapter;
     private commissioned: boolean | null = null;
 
     constructor(options: BridgeCreateOptions) {
@@ -102,7 +104,7 @@ class BridgedDevices {
         /**
          * Create Matter Server and CommissioningServer Node
          *
-         * To allow the device to be announced, found, paired and operated we need a MatterServer instance and add a
+         * To allow the device to be announced, found, paired and operated, we need a MatterServer instance and add a
          * commissioningServer to it and add the just created device instance to it.
          * The CommissioningServer node defines the port where the server listens for the UDP packages of the Matter protocol
          * and initializes deice specific certificates and such.
@@ -125,6 +127,17 @@ class BridgedDevices {
                 productLabel: productName,
                 productId,
                 serialNumber: uniqueId,
+            },
+            activeSessionsChangedCallback: async fabricIndex => {
+                this.adapter.log.debug(
+                    `activeSessionsChangedCallback: Active sessions changed on Fabric ${fabricIndex}` +
+                    Logger.toJSON(this.commissioningServer?.getActiveSessionInformation(fabricIndex)));
+                await this.adapter.sendToGui({ type: 'update', [this.parameters.uuid]: await this.getState() });
+            },
+            commissioningChangedCallback: async fabricIndex => {
+                this.adapter.log.debug(
+                    `commissioningChangedCallback: Commissioning changed on Fabric ${fabricIndex}: ${Logger.toJSON(this.commissioningServer?.getCommissionedFabricInformation(fabricIndex)[0])}`);
+                await this.adapter.sendToGui({ type: 'update', [this.parameters.uuid]: await this.getState() });
             },
         });
 
@@ -155,23 +168,17 @@ class BridgedDevices {
                     reachable: true,
                 });
             } else {
-                console.error(`ioBroker Device in Bridge "${this.devices[i - 1].getDeviceType()}" is not supported`);
+                this.adapter.log.error(`ioBroker Device in Bridge "${this.devices[i - 1].getDeviceType()}" is not supported`);
             }
-
-            // const onOffDevice = new OnOffPluginUnitDevice();
-            //
-            // onOffDevice.setOnOff(true);
-            // onOffDevice.addOnOffListener(on => device.setPower(on));
-            // onOffDevice.addCommandHandler('identify', async ({request: {identifyTime}}) => {
-            //     console.log(
-            //         `Identify called for OnOffDevice ${onOffDevice.name} with id: ${i} and identifyTime: ${identifyTime}`,
-            //     );
-            // });
         }
 
         this.commissioningServer.addDevice(aggregator);
 
-        this.matterServer?.addCommissioningServer(this.commissioningServer, { uniqueNodeId: this.parameters.uuid });
+        try {
+            this.matterServer?.addCommissioningServer(this.commissioningServer, {uniqueNodeId: this.parameters.uuid});
+        } catch (e) {
+            this.adapter.log.error(`Could not add commissioning server for device ${this.parameters.uuid}: ${e.message}`);
+        }
     }
 
     async getState(): Promise<NodeStateResponse> {
@@ -250,7 +257,16 @@ class BridgedDevices {
         }
     }
 
+    async advertise(): Promise<void> {
+        await this.commissioningServer?.advertise();
+    }
+
+    async factoryReset(): Promise<void> {
+        await this.commissioningServer?.factoryReset();
+    }
+
     async stop(): Promise<void> {
+        this.commissioningServer && this.matterServer?.removeCommissioningServer(this.commissioningServer);
         for (let d = 0; d < this.devices.length; d++) {
             await this.devices[d].destroy();
         }

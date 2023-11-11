@@ -189,6 +189,7 @@ class ConfigHandler {
                 },
                 native: {
                     enabled: false,
+                    ble: false,
                 },
             });
         }

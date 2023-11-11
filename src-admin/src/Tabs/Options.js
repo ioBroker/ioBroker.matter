@@ -11,7 +11,7 @@ import {
     InputLabel,
     MenuItem,
     Select,
-    TextField,
+    TextField, FormControlLabel, Checkbox,
 } from '@mui/material';
 
 import { I18n, Logo } from '@iobroker/adapter-react-v5';
@@ -238,6 +238,18 @@ class Options extends React.Component {
                     >
                         {I18n.t('Sync credentials with %s', this.state.iotInstance.replace('system.adapter.', ''))}
                     </Button> : null}
+            </div>
+            <div style={{ marginTop: 50 }}>
+                <FormControlLabel
+                    control={
+                        <Checkbox
+                            checked={this.props.native.debug}
+                            onChange={e => this.props.onChange('debug', e.target.checked)}
+                            color="primary"
+                        />
+                    }
+                    label={I18n.t('Show all debug logs')}
+                />
             </div>
             <div style={{ marginTop: 50 }}>
                 <Button

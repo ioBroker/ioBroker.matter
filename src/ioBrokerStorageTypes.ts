@@ -1,5 +1,6 @@
 export interface MatterAdapterConfig extends ioBroker.AdapterConfig {
     interface: string;
+    debug: boolean;
     login: string;
     pass: string;
 }

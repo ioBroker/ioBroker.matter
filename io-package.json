@@ -123,6 +123,7 @@
   ],
   "native": {
     "interface": "",
+    "debug": false,
     "login": "",
     "pass": ""
   },

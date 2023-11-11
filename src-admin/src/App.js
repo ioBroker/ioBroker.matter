@@ -82,12 +82,14 @@ class App extends GenericApp {
             bridges: {},
             devices: {},
         };
+        this.state.detectedDevices = {};
 
-        this.state.detectedDevices = null;
         this.configHandler = null;
         this.intervalSubscribe = null;
         this.alert = window.alert;
         window.alert = text => this.showToast(text);
+
+        this.controllerMessageHandler = null;
     }
 
     refreshBackendSubscription() {
@@ -163,7 +165,7 @@ class App extends GenericApp {
         } else if (update?.command === 'stopped') {
             setTimeout(() => this.refreshBackendSubscription(), 5000);
         } else {
-            console.log(`Unknown update: ${JSON.stringify(update)}`);
+            this.controllerMessageHandler && this.controllerMessageHandler(update);
         }
     };
 
@@ -201,6 +203,8 @@ class App extends GenericApp {
             onChange={(id, value) => {
                 this.updateNativeValue(id, value);
             }}
+            registerMessageHandler={handler => this.controllerMessageHandler = handler}
+            alive={this.state.alive}
             socket={this.socket}
             native={this.state.native}
             themeType={this.state.themeType}

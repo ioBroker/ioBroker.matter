@@ -7,6 +7,7 @@ import ChannelDetector, { DetectorState, PatternControl, Types } from '@iobroker
 import { MatterServer } from '@project-chip/matter-node.js';
 import { StorageManager } from '@project-chip/matter-node.js/storage';
 import { Level, Logger } from '@project-chip/matter-node.js/log';
+import { CommissionableDevice } from '@project-chip/matter-node.js/common';
 
 import { StorageIoBroker } from './matter/StorageIoBroker';
 import { DeviceFabric, SubscribeManager } from './lib';
@@ -19,8 +20,7 @@ import {
     DeviceDescription,
     MatterAdapterConfig
 } from './ioBrokerStorageTypes';
-import DeviceNode from "./matter/DeviceNode";
-
+import MatterController, {ControllerOptions} from './matter/ControllerNode';
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
 
@@ -69,6 +69,12 @@ interface NodeStatesOptions {
     controller?: boolean;
 }
 
+interface CommissioningOptions {
+    qrCode?: string;
+    manualCode?: string;
+    device: CommissionableDevice;
+}
+
 export class MatterAdapter extends utils.Adapter {
     private detector: ChannelDetector;
     private devices: { [key: string]: MatterDevice } = {};
@@ -80,6 +86,7 @@ export class MatterAdapter extends utils.Adapter {
     private stateTimeout: NodeJS.Timeout | null = null;
     private subscribed: boolean = false;
     private license: { [key: string]: boolean | undefined } = {};
+    private controller: MatterController | null = null;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -161,6 +168,22 @@ export class MatterAdapter extends utils.Adapter {
                     obj.callback && this.sendTo(obj.from, obj.command, { error: 'Device not found' }, obj.callback);
                 }
             }
+        } else if (obj.command === 'controllerDiscovery') {
+            if (this.controller) {
+                obj.callback && this.sendTo(obj.from, obj.command, { result: await this.controller.discovery() }, obj.callback);
+            } else {
+                obj.callback && this.sendTo(obj.from, obj.command, { error: 'Controller not exist' }, obj.callback);
+            }
+        } else if (obj.command === 'controllerAddDevice') {
+            if (this.controller) {
+                const options: CommissioningOptions = obj.message as CommissioningOptions;
+
+                const result = await this.controller.commissionDevice(options.qrCode, options.manualCode, options.device);
+
+                obj.callback && this.sendTo(obj.from, obj.command, result, obj.callback);
+            } else {
+                obj.callback && this.sendTo(obj.from, obj.command, { error: 'Controller not exist' }, obj.callback);
+            }
         }
     }
 
@@ -225,7 +248,7 @@ export class MatterAdapter extends utils.Adapter {
         Logger.log = (level: Level, formattedLog: string) => {
             switch (level) {
                 case Level.DEBUG:
-                    this.log.silly(formattedLog);
+                    config.debug ? this.log.debug(formattedLog) : this.log.silly(formattedLog);
                     break;
                 case Level.INFO:
                     this.log.debug(formattedLog);
@@ -280,6 +303,10 @@ export class MatterAdapter extends utils.Adapter {
          * then this command also starts the announcement of the device into the network.
          */
         await this.matterServer?.start();
+
+        if (this.controller) {
+            await this.controller.start()
+        }
     }
 
     async requestNodeStates(options?: NodeStatesOptions): Promise<{ [uuid: string]: NodeStateResponse }> {
@@ -601,6 +628,21 @@ export class MatterAdapter extends utils.Adapter {
         throw new Error('Matter server not initialized');
     }
 
+    async createMatterController(controllerOptions: ControllerOptions): Promise<MatterController | null> {
+        if (this.matterServer) {
+            const matterController = new MatterController({
+                adapter: this,
+                controllerOptions,
+                matterServer: this.matterServer,
+            });
+            await matterController.init(); // add bridge to server
+
+            return matterController;
+        }
+        throw new Error('Matter server not initialized');
+    }
+
+
     async loadDevices(): Promise<void> {
         const _devices: ioBroker.Object[] = [];
         const _bridges: ioBroker.Object[] = [];
@@ -695,6 +737,13 @@ export class MatterAdapter extends utils.Adapter {
                     this.devices[device._id] = matterDevice;
                 }
             }
+        }
+        const controllerObj = await this.getObjectAsync('controller')
+        if (controllerObj?.native?.enabled && !this.controller) {
+            this.controller = await this.createMatterController(controllerObj.native as ControllerOptions);
+        } else if (!controllerObj?.native?.enabled && this.controller) {
+            await this.controller.stop();
+            this.controller = null;
         }
     }
 }

@@ -35,7 +35,7 @@ export interface ControllerOptions {
 interface AddDeviceResult {
     result: boolean;
     error?: Error;
-    nodeId?: NodeId;
+    nodeId?: string;
 }
 
 class Controller {
@@ -286,15 +286,11 @@ class Controller {
             passcode,
             attributeChangedCallback: (peerNodeId, { path: { nodeId, clusterId, endpointId, attributeName }, value }) =>
                 console.log(
-                    `attributeChangedCallback ${peerNodeId}: Attribute ${nodeId}/${endpointId}/${clusterId}/${attributeName} changed to ${Logger.toJSON(
-                        value,
-                    )}`,
+                    `attributeChangedCallback ${peerNodeId}: Attribute ${nodeId}/${endpointId}/${clusterId}/${attributeName} changed to ${Logger.toJSON(value)}`,
                 ),
             eventTriggeredCallback: (peerNodeId, { path: { nodeId, clusterId, endpointId, eventName }, events }) =>
                 console.log(
-                    `eventTriggeredCallback ${peerNodeId}: Event ${nodeId}/${endpointId}/${clusterId}/${eventName} triggered with ${Logger.toJSON(
-                        events,
-                    )}`,
+                    `eventTriggeredCallback ${peerNodeId}: Event ${nodeId}/${endpointId}/${clusterId}/${eventName} triggered with ${Logger.toJSON(events)}`,
                 ),
             stateInformationCallback: (peerNodeId, info) => {
                 switch (info) {
@@ -324,8 +320,15 @@ class Controller {
             const nodeObject = await this.commissioningController.commissionNode(options);
             this.matterNodeIds.push(nodeObject.nodeId);
 
+            const rootEndpoint = nodeObject.getDeviceById(0);
+            if (rootEndpoint === void 0) {
+                this.adapter.log.debug(`Node ${nodeObject.nodeId} has not yet been initialized!`);
+            } else {
+                this.endPointToIoBrokerStructure(rootEndpoint);
+            }
+
             console.log(`Commissioning successfully done with nodeId ${nodeObject.nodeId}`);
-            return { result: true, nodeId: nodeObject.nodeId };
+            return { result: true, nodeId: Logger.toJSON(nodeObject.nodeId) };
         } catch (error) {
             console.log(`Commissioning failed: ${error}`);
             return { error, result: false };

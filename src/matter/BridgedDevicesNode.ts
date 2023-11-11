@@ -132,12 +132,12 @@ class BridgedDevices {
                 this.adapter.log.debug(
                     `activeSessionsChangedCallback: Active sessions changed on Fabric ${fabricIndex}` +
                     Logger.toJSON(this.commissioningServer?.getActiveSessionInformation(fabricIndex)));
-                await this.adapter.sendToGui({ type: 'update', [this.parameters.uuid]: await this.getState() });
+                await this.adapter.sendToGui({ command: 'updateStates', states: { [this.parameters.uuid]: await this.getState() }});
             },
             commissioningChangedCallback: async fabricIndex => {
                 this.adapter.log.debug(
                     `commissioningChangedCallback: Commissioning changed on Fabric ${fabricIndex}: ${Logger.toJSON(this.commissioningServer?.getCommissionedFabricInformation(fabricIndex)[0])}`);
-                await this.adapter.sendToGui({ type: 'update', [this.parameters.uuid]: await this.getState() });
+                await this.adapter.sendToGui({ command: 'updateStates', states: { [this.parameters.uuid]: await this.getState() }});
             },
         });
 

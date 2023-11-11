@@ -955,12 +955,14 @@ export class Bridges extends React.Component {
                 <Button
                     onClick={() => {
                         if (this.state.showResetDialog.step === 1) {
-                            this.props.socket.sendTo(`matter.${this.props.instance}`, 'factoryReset', { uuid: this.state.showResetDialog.bridge.uuid })
+                            const uuid = this.state.showResetDialog.bridge.uuid;
+                            this.setState({ showResetDialog: null });
+                            this.props.socket.sendTo(`matter.${this.props.instance}`, 'factoryReset', { uuid })
                                 .then(result => {
                                     if (result.error) {
                                         window.alert(`Cannot reset: ${result.error}`);
                                     } else {
-                                        this.props.updateNodeStates({ [this.state.showResetDialog.bridge.uuid]: result.result });
+                                        this.props.updateNodeStates({ [uuid]: result.result });
                                     }
                                 });
                         } else {
@@ -1075,7 +1077,7 @@ export class Bridges extends React.Component {
                     >
                         <span>
                             <Switch
-                                disabled={bridge.enabled && !allowDisable}
+                                disabled={false /* bridge.enabled && !allowDisable */}
                                 checked={bridge.enabled}
                                 onClick={e => e.stopPropagation()}
                                 onChange={e => {
@@ -1154,8 +1156,8 @@ export class Bridges extends React.Component {
                     >
                         {I18n.t('Devices')}
                     </TableCell>
-                    <TableCell style={{ width: 0, textAlign: 'center' }} className={this.props.classes.devicesHeader}>
-                        {this.props.alive && this.props.nodeStates[bridge.uuid]?.status === 'waitingForCommissioning' ? <Tooltip title={I18n.t('Re-announce')} classes={{ popper: this.props.classes.tooltip }}>
+                    <TableCell style={{ width: 0, textAlign: 'center', opacity: bridge.enabled ? 1 : 0.5 }} className={this.props.classes.devicesHeader}>
+                        {this.props.alive && bridge.enabled && this.props.nodeStates[bridge.uuid]?.status === 'waitingForCommissioning' ? <Tooltip title={I18n.t('Re-announce')} classes={{ popper: this.props.classes.tooltip }}>
                             <IconButton
                                 onClick={() => {
                                     this.props.socket.sendTo(`matter.${this.props.instance}`, 're-announce', { uuid: bridge.uuid })
@@ -1172,14 +1174,14 @@ export class Bridges extends React.Component {
                             </IconButton>
                         </Tooltip> : null}
                     </TableCell>
-                    <TableCell style={{ width: 0, textAlign: 'center' }} className={this.props.classes.devicesHeader}>
-                        {this.props.alive ? <Tooltip title={I18n.t('Reset to factory defaults')} classes={{ popper: this.props.classes.tooltip }}>
+                    <TableCell style={{ width: 0, textAlign: 'center', opacity: bridge.enabled ? 1 : 0.5 }} className={this.props.classes.devicesHeader}>
+                        {this.props.alive && bridge.enabled ? <Tooltip title={I18n.t('Reset to factory defaults')} classes={{ popper: this.props.classes.tooltip }}>
                             <IconButton onClick={() => this.setState({ showResetDialog: { bridge, step: 0 } })}>
                                 <DomainDisabled />
                             </IconButton>
                         </Tooltip> : null}
                     </TableCell>
-                    <TableCell style={{ width: 0 }} className={this.props.classes.devicesHeader}>
+                    <TableCell style={{ width: 0, opacity: bridge.enabled ? 1 : 0.5 }} className={this.props.classes.devicesHeader}>
                         <Tooltip title={I18n.t('Add device with auto-detection')} classes={{ popper: this.props.classes.tooltip }}>
                             <IconButton
                                 onClick={async () => {
@@ -1202,7 +1204,7 @@ export class Bridges extends React.Component {
                             </IconButton>
                         </Tooltip>
                     </TableCell>
-                    <TableCell style={{ width: 0 }} className={this.props.classes.devicesHeader}>
+                    <TableCell style={{ width: 0, opacity: bridge.enabled ? 1 : 0.5 }} className={this.props.classes.devicesHeader}>
                         <Tooltip title={I18n.t('Add device from one state')} classes={{ popper: this.props.classes.tooltip }}>
                             <IconButton
                                 style={{ color: 'gray' }}

@@ -153,16 +153,24 @@ class App extends GenericApp {
     };
 
     onBackendUpdates = update => {
-        if (update?.command === 'bridgeStates') {
+        if (!update) {
+            return;
+        }
+
+        if (update.command === 'bridgeStates') {
+            // all states at once
             const nodeStates = {};
             Object.keys(update.states).forEach(uuid =>
                 nodeStates[uuid.split('.').pop()] = update.states[uuid]);
             this.setState({ nodeStates });
-        } else if (update.uuid) {
+        } else if (update.command === 'updateStates') {
+            // normally only the state of one device
             const nodeStates = JSON.parse(JSON.stringify(this.state.nodeStates));
-            nodeStates[update.uuid] = update;
+            Object.keys(update.states).forEach(uuid =>
+                nodeStates[uuid] = update.states[uuid]);
             this.setState({ nodeStates });
-        } else if (update?.command === 'stopped') {
+        } else if (update.command === 'stopped') {
+            // indication, that backend stopped
             setTimeout(() => this.refreshBackendSubscription(), 5000);
         } else {
             this.controllerMessageHandler && this.controllerMessageHandler(update);

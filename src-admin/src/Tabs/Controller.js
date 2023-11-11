@@ -244,6 +244,10 @@ class Controller extends React.Component {
     }
 
     render() {
+        if (!this.props.alive && (this.state.discoveryRunning || this.state.discoveryDone)) {
+            setTimeout(() => this.setState({ discoveryRunning: false, discoveryDone: false }), 100);
+        }
+
         return <div className={this.props.classes.panel}>
             {this.renderShowDiscoveredDevices()}
             {this.renderQrCodeDialog()}

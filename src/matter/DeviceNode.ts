@@ -146,7 +146,7 @@ class Device {
         }
 
         try {
-            this.matterServer?.addCommissioningServer(this.commissioningServer, { uniqueNodeId: this.parameters.uuid });
+            this.matterServer?.addCommissioningServer(this.commissioningServer, { uniqueStorageKey: this.parameters.uuid });
         } catch (e) {
             this.adapter.log.error(`Could not add commissioning server for device ${this.parameters.uuid}: ${e.message}`);
         }

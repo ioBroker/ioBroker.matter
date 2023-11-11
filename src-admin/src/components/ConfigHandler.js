@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import { v4 as uuidv4 } from 'uuid';
 
 class ConfigHandler {
     constructor(instance, socket, onChanged, onCommissioningChanged) {
@@ -190,8 +191,12 @@ class ConfigHandler {
                 native: {
                     enabled: false,
                     ble: false,
+                    uuid: uuidv4(),
                 },
             });
+        } else if (!controllerObj.native.uuid) {
+            controllerObj.native.uuid = uuidv4();
+            await this.socket.setObject(controllerObj._id, controllerObj);
         }
 
         controllerObj = controllerObj || {};

@@ -5,10 +5,16 @@ import {
     NodeCommissioningOptions,
 } from '@project-chip/matter-node.js';
 import { NodeId } from '@project-chip/matter-node.js/datatype';
-import { Endpoint, PairedNode } from '@project-chip/matter-node.js/device';
+import { Endpoint } from '@project-chip/matter-node.js/device';
 import { toHexString } from '@project-chip/matter-node.js/util';
-import { asClusterServerInternal, ClusterServerObj, GlobalAttributes } from '@project-chip/matter-node.js/cluster';
-import { AnyAttributeServer, FabricScopeError } from '@project-chip/matter-node.js/cluster';
+import {
+    asClusterServerInternal,
+    ClusterServerObj,
+    GlobalAttributes,
+    AnyAttributeServer, FabricScopeError,
+
+} from '@project-chip/matter-node.js/cluster';
+// import { EventClient } from '@project-chip/matter-node.js/cluster';
 import { CommissionableDevice } from '@project-chip/matter-node.js/common';
 
 import { ManualPairingCodeCodec, QrPairingCodeCodec } from '@project-chip/matter-node.js/schema';
@@ -30,6 +36,7 @@ export interface ControllerCreateOptions {
 
 export interface ControllerOptions {
     ble?: boolean;
+    uuid: string;
 }
 
 interface AddDeviceResult {
@@ -67,8 +74,9 @@ class Controller {
         this.commissioningController = new CommissioningController({
             autoConnect: false,
         });
+        const uniqueStorageKey = this.parameters.uuid.replace(/-/g, '').split('.').pop() || '0000000000000000';
 
-        this.matterServer?.addCommissioningController(this.commissioningController);
+        this.matterServer?.addCommissioningController(this.commissioningController, { uniqueStorageKey });
     }
 
     async start(): Promise<void> {
@@ -204,15 +212,81 @@ class Controller {
         }
     }
 
+    logClusterClient(endpoint: Endpoint, clusterClient: any) {
+        const { supportedFeatures: features } = clusterClient;
+        const globalAttributes = GlobalAttributes(features);
+        const supportedFeatures = [];
+        for (const featureName in features) {
+            if (features[featureName] === true) {
+                supportedFeatures.push(featureName);
+            }
+        }
+        this.adapter.log.debug(
+            `Cluster-Client "${clusterClient.name}" (${toHexString(clusterClient.id)}) ${supportedFeatures.length ? `(Features: ${supportedFeatures.join(", ")})` : ""}`
+        );
+        this.adapter.log.debug("Global-Attributes:");
+        for (const attributeName in globalAttributes) {
+            const attribute = clusterClient.attributes[attributeName];
+            if (attribute === void 0) {
+                continue;
+            }
+            this.adapter.log.debug(`"${attribute.name}" (${toHexString(attribute.id)})`);
+        }
+
+        this.adapter.log.debug("Attributes:");
+        for (const attributeName in clusterClient.attributes) {
+            if (attributeName in globalAttributes) {
+                continue;
+            }
+            const attribute = clusterClient.attributes[attributeName];
+            if (attribute === void 0) {
+                continue;
+            }
+            // const present = attribute instanceof PresentAttributeClient;
+            // const unknown = attribute instanceof UnknownPresentAttributeClient;
+            // let info = "";
+            // if (!present) {
+            //     info += " (Not Present)";
+            // }
+            // if (unknown) {
+            //     info += " (Unknown)";
+            // }
+            // this.adapter.log.debug(`"${attribute.name}" (${toHexString(attribute.id)})${info}`);
+        }
+
+        this.adapter.log.debug("Commands:");
+        for (const commandName in clusterClient.commands) {
+            this.adapter.log.debug(`"${commandName}"`);
+        }
+
+        this.adapter.log.debug('Events:');
+        for (const eventName in clusterClient.events) {
+            const event = clusterClient.events[eventName];
+            if (event === void 0) {
+                continue;
+            }
+            // const present = event instanceof PresentEventClient;
+            // const unknown = event instanceof UnknownPresentEventClient;
+            // let info = '';
+            // if (!present) {
+            //     info += ' (Not Present)';
+            // }
+            // if (unknown) {
+            //     info += ' (Unknown)';
+            // }
+            // this.adapter.log.debug(`"${event.name}" (${toHexString(event.id)})${info}`);
+        }
+    }
+
     endPointToIoBrokerStructure(endpoint: Endpoint): void {
         this.adapter.log.info(`Endpoint ${endpoint.id} (${endpoint.name}):`);
         for (const clusterServer of endpoint.getAllClusterServers()) {
             this.logClusterServer(clusterServer);
         }
 
-        // for (const clusterClient of endpoint.getAllClusterClients()) {
-        //     this.logClusterClient(endpoint, clusterClient, options);
-        // }
+        for (const clusterClient of endpoint.getAllClusterClients()) {
+             this.logClusterClient(endpoint, clusterClient);
+        }
 
         for (const childEndpoint of endpoint.getChildEndpoints()) {
             this.endPointToIoBrokerStructure(childEndpoint);

@@ -24,8 +24,8 @@
 - fake delete (so the real deletion will be done in backend with factory reset of device)
 
 ## Changelog
-### **WORK IN PROGRESS**
-* (bluefox) Implemented the factory reset and re-announcing 
+### 0.1.3 (2023-11-11)
+* (bluefox) Implemented the factory reset and re-announcing
 
 ### 0.1.2 (2023-10-25)
 * (bluefox) Devices were implemented

@@ -184,6 +184,14 @@ export class MatterAdapter extends utils.Adapter {
             } else {
                 obj.callback && this.sendTo(obj.from, obj.command, { error: 'Controller not exist' }, obj.callback);
             }
+        } else if (obj.command === 'controllerDeviceQrCode') {
+            if (this.controller) {
+                const result = await this.controller.showNewCommissioningCode(obj.message.nodeId);
+
+                obj.callback && this.sendTo(obj.from, obj.command, result, obj.callback);
+            } else {
+                obj.callback && this.sendTo(obj.from, obj.command, { error: 'Controller not exist' }, obj.callback);
+            }
         }
     }
 

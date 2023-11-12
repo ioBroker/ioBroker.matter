@@ -74,9 +74,8 @@ class Controller {
         this.commissioningController = new CommissioningController({
             autoConnect: false,
         });
-        const uniqueStorageKey = this.parameters.uuid.replace(/-/g, '').split('.').pop() || '0000000000000000';
 
-        this.matterServer?.addCommissioningController(this.commissioningController, { uniqueStorageKey });
+        this.matterServer?.addCommissioningController(this.commissioningController, { uniqueStorageKey: this.parameters.uuid });
     }
 
     async start(): Promise<void> {

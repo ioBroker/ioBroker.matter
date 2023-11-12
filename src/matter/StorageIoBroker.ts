@@ -39,7 +39,7 @@ export class StorageIoBroker implements Storage {
 
         // read all keys
         const states = await this.adapter.getStatesAsync('storage.*');
-        const len = 'storage'.length + 1;
+        const len = `${this.adapter.namespace}.storage.`.length;
         for (const key in states) {
             this.createdKeys[key] = true;
             this.data[key.substring(len)] = fromJson(states[key].val as string);

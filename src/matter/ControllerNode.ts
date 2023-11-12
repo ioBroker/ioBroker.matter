@@ -241,7 +241,6 @@ class Controller {
             await this.adapter.setObjectAsync(channelObj._id, channelObj);
         }
 
-
         this.adapter.log.debug(
             `${''.padStart(level * 2)}Cluster-Client "${clusterClient.name}" (${toHexString(clusterClient.id)}) ${supportedFeatures.length ? `(Features: ${supportedFeatures.join(", ")})` : ""}`
         );

@@ -24,7 +24,7 @@ import {
     QuestionMark,
     Save, SettingsInputAntenna,
     UnfoldLess,
-    UnfoldMore
+    UnfoldMore,
 } from '@mui/icons-material';
 
 import { I18n, SelectID } from '@iobroker/adapter-react-v5';

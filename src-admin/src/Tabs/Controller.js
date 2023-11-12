@@ -11,8 +11,13 @@ import {
     LinearProgress, Select, MenuItem,
 } from '@mui/material';
 import {
-    Add, Close,
+    Add, Close, KeyboardArrowDown, KeyboardArrowUp,
     LeakAdd, Search,
+    SettingsInputHdmi as ChannelIcon,
+    TabletAndroid as DeviceIcon,
+    CompareArrows as ReadWriteStateIcon,
+    ArrowRightAlt as WriteOnlyStateIcon,
+    KeyboardBackspace as ReadOnlyStateIcon,
 } from '@mui/icons-material';
 
 import { I18n } from '@iobroker/adapter-react-v5';
@@ -28,11 +33,60 @@ const styles = () => ({
         width: 400,
         height: 250,
     },
+    deviceName: {
+        fontWeight: 'bold',
+    },
+    nodeId: {
+        opacity: 0.5,
+        fontStyle: 'italic',
+        fontSize: 'smaller',
+    },
+    device: {
+        position: 'relative',
+        display: 'flex',
+        gap: 4,
+        alignItems: 'end',
+        height: 32,
+    },
+    cluster: {
+        display: 'flex',
+        position: 'relative',
+        paddingLeft: 50,
+        gap: 4,
+        alignItems: 'end',
+        height: 32,
+    },
+    state: {
+        display: 'flex',
+        paddingLeft: 100,
+        fontSize: 'smaller',
+        gap: 4,
+        alignItems: 'end',
+        height: 32,
+    },
+    number: {
+        position: 'absolute',
+        top: 3,
+        right: 3,
+        opacity: 0.5,
+        fontSize: 10,
+    },
 });
 
 class Controller extends React.Component {
     constructor(props) {
         super(props);
+        let openedNodes = window.localStorage.getItem('openedNodes');
+        if (openedNodes) {
+            try {
+                openedNodes = JSON.parse(openedNodes);
+            } catch (e) {
+                openedNodes = [];
+            }
+        } else {
+            openedNodes = [];
+        }
+
         this.state = {
             discovered: [],
             discoveryRunning: false,
@@ -42,19 +96,90 @@ class Controller extends React.Component {
             cameras: [],
             camera: '',
             hideVideo: false,
+            nodes: {},
+            openedNodes,
         };
 
         this.refQrScanner = React.createRef();
         this.qrScanner = null;
     }
 
-    componentDidMount() {
-        this.props.registerMessageHandler(this.onMessage);
+    async readStructure() {
+        let nodes;
+        try {
+            nodes = await this.props.socket.getObjectViewSystem(
+                'channel',
+                `matter.${this.props.instance}.controller.`,
+                `matter.${this.props.instance}.controller.\u9999`,
+            );
+        } catch (e) {
+            nodes = {};
+        }
+        try {
+            const _states = await this.props.socket.getObjectViewSystem(
+                'state',
+                `matter.${this.props.instance}.controller.`,
+                `matter.${this.props.instance}.controller.\u9999`,
+            );
+            Object.keys(_states).forEach(id => {
+                nodes[id] = _states[id];
+            });
+        } catch (e) {
+            // ignore
+        }
+        try {
+            const devices = await this.props.socket.getObjectViewSystem(
+                'device',
+                `matter.${this.props.instance}.controller.`,
+                `matter.${this.props.instance}.controller.\u9999`,
+            );
+            Object.keys(devices).forEach(id => {
+                nodes[id] = devices[id];
+            });
+        } catch (e) {
+            // ignore
+        }
+
+        const states = await this.props.socket.getStates(`matter.${this.props.instance}.controller.*`);
+
+        this.setState({ nodes, states });
     }
 
-    componentWillUnmount() {
+    async componentDidMount() {
+        this.props.registerMessageHandler(this.onMessage);
+        this.readStructure()
+            .catch(e => window.alert(`Cannot read structure: ${e}`))
+            .then(() => this.props.socket.subscribeObject(`matter.${this.props.instance}.controller.*`, this.onObjectChange)
+                .catch(e => window.alert(`Cannot subscribe: ${e}`)))
+            .then(() => this.props.socket.subscribeState(`matter.${this.props.instance}.controller.*`, this.onStateChange)
+                .catch(e => window.alert(`Cannot subscribe: ${e}`)));
+    }
+
+    onObjectChange = (id, obj) => {
+        const nodes = JSON.parse(JSON.stringify(this.state.nodes));
+        if (obj) {
+            nodes[id] = obj;
+        } else {
+            delete nodes[id];
+        }
+        this.setState({ nodes });
+    };
+
+    onStateChange(id, state) {
+        const states = JSON.parse(JSON.stringify(this.state.states));
+        if (state) {
+            states[id] = state;
+        } else {
+            delete states[id];
+        }
+        this.setState({ states });
+    }
+
+    async componentWillUnmount() {
         this.props.registerMessageHandler(null);
         this.destroyQrCode();
+        await this.props.socket.unsubscribeObject(`matter.${this.props.instance}.controller.*`, this.onObjectChange);
+        await this.props.socket.unsubscribeState(`matter.${this.props.instance}.controller.*`, this.onStateChange);
     }
 
     async initQrCode() {
@@ -243,6 +368,90 @@ class Controller extends React.Component {
         </Dialog>;
     }
 
+    renderState(stateId) {
+        let icon;
+        if (this.state.nodes[stateId].common.write === false && this.state.nodes[stateId].common.read !== false) {
+            icon = <ReadOnlyStateIcon />;
+        } else if (this.state.nodes[stateId].common.write !== false && this.state.nodes[stateId].common.read === false) {
+            icon = <WriteOnlyStateIcon />;
+        } else {
+            icon = <ReadWriteStateIcon />;
+        }
+
+        return <TableRow key={stateId}>
+            <TableCell></TableCell>
+            <TableCell className={this.props.classes.state}>
+                {icon}
+                {stateId.split('.').pop()}
+            </TableCell>
+            <TableCell>{this.state.states[stateId]?.val || '--'}</TableCell>
+        </TableRow>;
+    }
+
+    renderCluster(clusterId) {
+        const _clusterId = `${clusterId}.`;
+        const states = Object.keys(this.state.nodes).filter(id => id.startsWith(_clusterId) && this.state.nodes[id].type === 'state');
+        return [
+            <TableRow key={clusterId}>
+                <TableCell></TableCell>
+                <TableCell className={this.props.classes.cluster}>
+                    <ChannelIcon />
+                    {clusterId.split('.').pop()}
+                    <div className={this.props.classes.number}>{states.length}</div>
+                </TableCell>
+                <TableCell></TableCell>
+            </TableRow>,
+            states.map(id => this.renderState(id)),
+        ];
+    }
+
+    renderNode(deviceId) {
+        const _deviceId = `${deviceId}.`;
+        // get channels
+        const channels = Object.keys(this.state.nodes).filter(id => id.startsWith(_deviceId) && this.state.nodes[id].type === 'channel');
+        return [
+            <TableRow key={deviceId}>
+                <TableCell style={{ width: 0, padding: 0, height: 32 }}>
+                    <IconButton
+                        size="small"
+                        className={this.props.classes.bridgeButtonsAndTitleColor}
+                        onClick={() => {
+                            const openedNodes = [...this.state.openedNodes];
+                            const index = openedNodes.indexOf(deviceId);
+                            if (index === -1) {
+                                openedNodes.push(deviceId);
+                                openedNodes.sort();
+                            } else {
+                                openedNodes.splice(index, 1);
+                            }
+                            window.localStorage.setItem('openedNodes', JSON.stringify(openedNodes));
+                            this.setState({ openedNodes });
+                        }}
+                    >
+                        {this.state.openedNodes.includes(deviceId) ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
+                    </IconButton>
+                </TableCell>
+                <TableCell className={this.props.classes.device}>
+                    <div>
+                        <DeviceIcon />
+                    </div>
+                    <div>
+                        <div className={this.props.classes.deviceName}>{this.state.nodes[deviceId].common.name}</div>
+                        <div className={this.props.classes.nodeId}>{deviceId.split('.').pop()}</div>
+                    </div>
+                    <div className={this.props.classes.number}>{channels.length}</div>
+                </TableCell>
+                <TableCell></TableCell>
+            </TableRow>,
+            this.state.openedNodes.includes(deviceId) ? channels.map(id => this.renderCluster(id)) : null,
+        ];
+    }
+
+    renderNodes() {
+        const deviceIds = Object.keys(this.state.nodes).filter(id => this.state.nodes[id].type === 'device');
+        return deviceIds.map(id => this.renderNode(id));
+    }
+
     render() {
         if (!this.props.alive && (this.state.discoveryRunning || this.state.discoveryDone)) {
             setTimeout(() => this.setState({ discoveryRunning: false, discoveryDone: false }), 100);
@@ -285,11 +494,22 @@ class Controller extends React.Component {
                     {I18n.t('Discovery devices')}
                 </Button>
             </div> : null}
+            <Table style={{ maxWidth: 600 }} size="small">
+                <TableHead>
+                    <TableCell style={{ width: 0, padding: 0 }} />
+                    <TableCell>{I18n.t('Name')}</TableCell>
+                    <TableCell>{I18n.t('Value')}</TableCell>
+                </TableHead>
+                <TableBody>
+                    {this.renderNodes()}
+                </TableBody>
+            </Table>
         </div>;
     }
 }
 
 Controller.propTypes = {
+    instance: PropTypes.number,
     matter: PropTypes.object,
     updateConfig: PropTypes.func,
     alive: PropTypes.bool,

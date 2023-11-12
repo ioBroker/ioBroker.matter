@@ -12,7 +12,7 @@ import {
     DialogTitle,
     IconButton,
     InputAdornment, Table, TableBody, TableCell, TableRow,
-    TextField, Tooltip
+    TextField, Tooltip,
 } from '@mui/material';
 import { I18n, Utils } from '@iobroker/adapter-react-v5';
 import {
@@ -23,7 +23,7 @@ import {
     QuestionMark,
     SignalWifiStatusbarNull,
     Wifi,
-    WifiOff
+    WifiOff,
 } from '@mui/icons-material';
 
 export const STYLES = {
@@ -48,6 +48,7 @@ class BridgesAndDevices extends React.Component {
             showDebugData: null,
         };
     }
+
     componentDidMount() {
         if (this.props.alive) {
             this.props.socket.sendTo(`matter.${this.props.instance}`, 'nodeStates', { bridges: true, devices: true })
@@ -309,6 +310,19 @@ class BridgesAndDevices extends React.Component {
                 </Button>
             </DialogActions>
         </Dialog>;
+    }
+
+    render() {
+        // this method is only to shut up the linter. It will be overloaded
+        if (this.state.suppressDelete || this.state.deleteDialog) {
+            return null;
+        }
+        return <div style={{ height: '100%', overflow: 'auto' }}>
+            {this.renderStatus()}
+            {this.renderDebugDialog()}
+            {this.renderResetDialog()}
+            {this.renderQrCodeDialog()}
+        </div>;
     }
 }
 

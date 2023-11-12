@@ -70,7 +70,7 @@ class Device {
          * come from.
          *
          * Note: This example also uses the initialized storage system to store the device parameter data for convenience
-         * and easy reuse. When you also do that be careful to not overlap with Matter-Server own contexts
+         * and easy reuse. When you also do that, be careful to not overlap with Matter-Server own contexts
          * (so maybe better not ;-)).
          */
         const deviceName = this.parameters.devicename || 'Matter device';
@@ -80,7 +80,7 @@ class Device {
         const discriminator = this.parameters.discriminator; // 3840);
 
         // product name / id and vendor id should match what is in the device certificate
-        const vendorId = this.parameters.vendorid;// 0xfff1;
+        const vendorId = this.parameters.vendorid; // 0xfff1;
         const productName = `ioBroker OnOff-Bridge`;
         const productId = this.parameters.productid; // 0x8000;
 

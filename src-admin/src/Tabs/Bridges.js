@@ -388,7 +388,6 @@ export class Bridges extends React.Component {
                 </FormControl>
                 {this.state.editDeviceDialog.deviceType === 'dimmer' && !this.state.editDeviceDialog.hasOnState ? <FormControlLabel
                     style={{ marginTop: 20 }}
-                    fullWidth
                     label={I18n.t('Use last value for ON')}
                     control={<Checkbox
                         checked={!!this.state.editDeviceDialog.dimmerUseLastLevelForOn}
@@ -738,11 +737,12 @@ export class Bridges extends React.Component {
     }
 
     renderDevice(bridge, bridgeIndex, device, devIndex) {
+        const isLast = devIndex === bridge.list.length - 1;
         return <TableRow
             key={devIndex}
             style={{ opacity: device.enabled && bridge.enabled ? 1 : 0.4 }}
         >
-            <TableCell style={{ border: 0 }} />
+            <TableCell style={{ border: 0, borderBottomLeftRadius: isLast ? 4 : 0 }} />
             <TableCell>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                     <div style={{ marginRight: 8 }} title={device.type}>
@@ -804,7 +804,7 @@ export class Bridges extends React.Component {
                     </IconButton>
                 </Tooltip>
             </TableCell>
-            <TableCell style={{ width: 0 }}>
+            <TableCell style={{ width: 0, borderBottomRightRadius: isLast ? 4 : 0 }}>
                 <Tooltip title={I18n.t('Delete device')} classes={{ popper: this.props.classes.tooltip }}>
                     <IconButton onClick={() => {
                         this.setState(
@@ -827,7 +827,8 @@ export class Bridges extends React.Component {
     }
 
     renderQrCodeDialog() {
-        if (!this.state.showQrCode || !this.props.nodeStates[this.state.showQrCode.uuid]) {
+        const nodeState = this.props.nodeStates[this.state.showQrCode.uuid];
+        if (!this.state.showQrCode || !nodeState) {
             return null;
         }
         return <Dialog
@@ -838,16 +839,17 @@ export class Bridges extends React.Component {
             <DialogTitle>{I18n.t('QR Code to connect')}</DialogTitle>
             <DialogContent>
                 <div style={{ background: 'white', padding: 16 }}>
-                    <QRCode value={this.props.nodeStates[this.state.showQrCode.uuid].qrPairingCode} />
+                    {nodeState.qrPairingCode ?
+                        <QRCode value={nodeState.qrPairingCode} /> : null}
                 </div>
                 <TextField
-                    value={this.props.nodeStates[this.state.showQrCode.uuid].manualPairingCode}
+                    value={nodeState.manualPairingCode || ''}
                     InputProps={{
                         readOnly: true,
                         endAdornment: <InputAdornment position="end">
                             <IconButton
                                 onClick={() => {
-                                    Utils.copyToClipboard(this.props.nodeStates[this.state.showQrCode.uuid].manualPairingCode);
+                                    Utils.copyToClipboard(nodeState.manualPairingCode);
                                     this.props.showToast(I18n.t('Copied to clipboard'));
                                 }}
                                 edge="end"
@@ -1014,17 +1016,9 @@ export class Bridges extends React.Component {
                 className={this.props.classes.bridgeButtonsAndTitle}
                 sx={() => ({
                     opacity: bridge.enabled ? 1 : 0.4,
-                    '&>td:first-child': {
-                        borderTopLeftRadius: 4,
-                        borderBottomLeftRadius: 4,
-                    },
-                    '&>td:last-child': {
-                        borderTopRightRadius: 4,
-                        borderBottomRightRadius: 4,
-                    },
                 })}
             >
-                <TableCell style={{ width: 0 }} className={this.props.classes.bridgeButtonsAndTitle}>
+                <TableCell style={{ width: 0, borderTopLeftRadius: 4, borderBottomLeftRadius: this.state.bridgesOpened[bridgeIndex] ? 0 : 4 }} className={this.props.classes.bridgeButtonsAndTitle}>
                     <IconButton
                         size="small"
                         className={this.props.classes.bridgeButtonsAndTitleColor}
@@ -1115,7 +1109,7 @@ export class Bridges extends React.Component {
                         </IconButton>
                     </Tooltip>
                 </TableCell>
-                <TableCell style={{ width: 0 }} className={this.props.classes.bridgeButtonsAndTitle}>
+                <TableCell style={{ width: 0, borderTopRightRadius: 4, borderBottomRightRadius: this.state.bridgesOpened[bridgeIndex] ? 0 : 4 }} className={this.props.classes.bridgeButtonsAndTitle}>
                     <Tooltip
                         classes={{ popper: this.props.classes.tooltip }}
                         title={bridge.enabled && !allowDisable ? I18n.t('At least one enabled bridge must exist') : I18n.t('Delete bridge')}
@@ -1328,7 +1322,7 @@ Bridges.propTypes = {
     productIDs: PropTypes.array,
     updateConfig: PropTypes.func,
     themeType: PropTypes.string,
-    detectedDevices: PropTypes.array,
+    detectedDevices: PropTypes.object,
     setDetectedDevices: PropTypes.func,
     nodeStates: PropTypes.object,
     updateNodeStates: PropTypes.func,

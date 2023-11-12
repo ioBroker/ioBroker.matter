@@ -286,7 +286,6 @@ class Devices extends React.Component {
                 </FormControl>
                 {this.state.editDeviceDialog.deviceType === 'dimmer' && !this.state.editDeviceDialog.hasOnState ? <FormControlLabel
                     style={{ marginTop: 20 }}
-                    fullWidth
                     label={I18n.t('Use last value for ON')}
                     control={<Checkbox
                         checked={!!this.state.editDeviceDialog.dimmerUseLastLevelForOn}
@@ -555,7 +554,8 @@ class Devices extends React.Component {
     }
 
     renderQrCodeDialog() {
-        if (!this.state.showQrCode || !this.props.nodeStates[this.state.showQrCode.uuid]) {
+        const nodeState = this.props.nodeStates[this.state.showQrCode.uuid];
+        if (!this.state.showQrCode || !nodeState) {
             return null;
         }
         return <Dialog
@@ -566,16 +566,17 @@ class Devices extends React.Component {
             <DialogTitle>{I18n.t('QR Code to connect')}</DialogTitle>
             <DialogContent>
                 <div style={{ background: 'white', padding: 16 }}>
-                    <QRCode value={this.props.nodeStates[this.state.showQrCode.uuid].qrPairingCode} />
+                    {nodeState.qrPairingCode ?
+                        <QRCode value={nodeState.qrPairingCode} /> : null}
                 </div>
                 <TextField
-                    value={this.props.nodeStates[this.state.showQrCode.uuid].manualPairingCode}
+                    value={nodeState.manualPairingCode || ''}
                     InputProps={{
                         readOnly: true,
                         endAdornment: <InputAdornment position="end">
                             <IconButton
                                 onClick={() => {
-                                    Utils.copyToClipboard(this.props.nodeStates[this.state.showQrCode.uuid].manualPairingCode);
+                                    Utils.copyToClipboard(nodeState.manualPairingCode);
                                     this.props.showToast(I18n.t('Copied to clipboard'));
                                 }}
                                 edge="end"
@@ -954,7 +955,7 @@ Devices.propTypes = {
     productIDs: PropTypes.array,
     updateConfig: PropTypes.func,
     themeType: PropTypes.string,
-    detectedDevices: PropTypes.array,
+    detectedDevices: PropTypes.object,
     setDetectedDevices: PropTypes.func,
     commissioning: PropTypes.object,
     checkLicenseOnAdd: PropTypes.func,

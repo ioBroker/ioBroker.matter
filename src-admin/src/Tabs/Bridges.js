@@ -2,13 +2,13 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { withStyles } from '@mui/styles';
 import { v4 as uuidv4 } from 'uuid';
-import QRCode from 'react-qr-code';
 import { Types } from '@iobroker/type-detector';
 
 import {
     Button, Checkbox,
     Dialog, DialogActions, DialogContent, DialogTitle,
-    Fab, FormControl, FormControlLabel, IconButton, InputAdornment, InputLabel, MenuItem, Select, Switch, Table,
+    Fab, FormControl, FormControlLabel, IconButton,
+    InputLabel, MenuItem, Select, Switch, Table,
     TableBody,
     TableCell,
     TableRow, TextField,
@@ -17,29 +17,23 @@ import {
 import {
     Add,
     Close,
-    ContentCopy,
     Delete, DomainDisabled,
     Edit,
     KeyboardArrowDown,
     KeyboardArrowUp,
-    QrCode,
     QuestionMark,
-    Save, SettingsInputAntenna, SignalWifiStatusbarNull,
+    Save, SettingsInputAntenna,
     UnfoldLess,
-    UnfoldMore, Wifi, WifiOff,
+    UnfoldMore
 } from '@mui/icons-material';
 
-import {
-    SiAmazonalexa, SiApple,
-    SiGoogleassistant, SiSmartthings,
-} from 'react-icons/si';
-
-import { I18n, Utils, SelectID } from '@iobroker/adapter-react-v5';
+import { I18n, SelectID } from '@iobroker/adapter-react-v5';
 
 import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import { detectDevices, getText } from '../Utils';
+import BridgesAndDevices, { STYLES } from './BridgesAndDevices';
 
-const styles = theme => ({
+const styles = theme => (Object.assign(STYLES, {
     table: {
         '& td': {
             border: 0,
@@ -100,16 +94,9 @@ const styles = theme => ({
     bridgeButtonsAndTitleColor: {
         color: theme.palette.secondary.contrastText,
     },
-    tooltip: {
-        pointerEvents: 'none',
-    },
-    vendorIcon: {
-        width: 24,
-        height: 24,
-    },
-});
+}));
 
-export class Bridges extends React.Component {
+export class Bridges extends BridgesAndDevices {
     constructor(props) {
         super(props);
         let bridgesOpened = {};
@@ -119,17 +106,15 @@ export class Bridges extends React.Component {
             //
         }
 
-        this.state = {
-            addDeviceDialog: null,
-            editBridgeDialog: null,
-            editDeviceDialog: null,
-            deleteDialog: false,
-            bridgesOpened,
-            showQrCode: null,
-        };
+        this.state.addDeviceDialog = null;
+        this.state.editBridgeDialog = null;
+        this.state.editDeviceDialog = null;
+        this.state.bridgesOpened = bridgesOpened;
     }
 
     componentDidMount() {
+        super.componentDidMount();
+
         if (!this.props.matter.bridges.length) {
             setTimeout(() => {
                 const matter = JSON.parse(JSON.stringify(this.props.matter));
@@ -143,11 +128,6 @@ export class Bridges extends React.Component {
                 });
                 this.props.updateConfig(matter);
             }, 100);
-        }
-
-        if (this.props.alive) {
-            this.props.socket.sendTo(`matter.${this.props.instance}`, 'nodeStates', { bridges: true })
-                .then(result => result.states && this.props.updateNodeStates(result.states));
         }
     }
 
@@ -515,89 +495,6 @@ export class Bridges extends React.Component {
         </Dialog>;
     }
 
-    static getVendorIcon(vendor, classes, themeType) {
-        if (vendor === 'Amazon Lab126') {
-            return <SiAmazonalexa className={classes?.vendorIcon} title={vendor} style={{ color: themeType ? '#001ca8' : '#0000dc' }} />;
-        }
-        if (vendor === 'Google LLC') {
-            return <SiGoogleassistant className={classes?.vendorIcon} title={vendor} style={{ color: themeType ? '#ea9b33' : '#8f6020' }} />;
-        }
-        if (vendor === 'Apple Inc.') {
-            return <SiApple className={classes?.vendorIcon} title={vendor} style={{ color: themeType ? '#c9c9c9' : '#4f4f4f' }} />;
-        }
-        if (vendor === 'Samsung') {
-            return <SiSmartthings className={classes?.vendorIcon} title={vendor} style={{ color: themeType ? '#33ea8f' : '#209b60' }} />;
-        }
-        return null;
-    }
-
-    renderDebugDialog() {
-        if (!this.state.showDebugData) {
-            return null;
-        }
-
-        // Information about the commissioning process
-        // {
-        //     uuid: 'UUID',
-        //     command: 'status',
-        //     status: 'connecting', // creating, waitingForCommissioning, connecting, connected,
-        //     connectionInfo: [
-        //         {
-        //             vendor: 'NAME' or '0x1123',
-        //             connected: false/true,
-        //             label: 'User controller name',
-        //         }
-        //     ],
-        // }
-        const data = this.props.nodeStates[this.state.showDebugData.uuid];
-
-        return <Dialog
-            onClose={() => this.setState({ showDebugData: null })}
-            open={!0}
-            maxWidth="md"
-        >
-            <DialogTitle>{I18n.t('Commissioning information')}</DialogTitle>
-            <DialogContent>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <Table>
-                        <TableBody>
-                            <TableRow>
-                                <TableCell>{I18n.t('Status')}</TableCell>
-                                <TableCell>
-                                    {Bridges.getStatusIcon(data.status, this.props.themeType)}
-                                    <span style={{ marginLeft: 10 }}>{I18n.t(`status_${data.status}`)}</span>
-                                </TableCell>
-                            </TableRow>
-                            {data.connectionInfo.map((info, i) => <TableRow key={i}>
-                                <TableCell>
-                                    {Bridges.getVendorIcon(info.vendor, this.props.classes, this.props.themeType) || info.vendor}
-                                    {info.label ? <span style={{ opacity: 0.7, marginLeft: 8, fontStyle: 'italic' }}>
-                                        (
-                                        {info.label}
-                                        )
-                                    </span> : null}
-                                </TableCell>
-                                <TableCell>
-                                    {info.connected ? <span style={{ color: this.props.themeType === 'dark' ? '#5ffc5f' : '#368836' }}>{I18n.t('Connected')}</span> : I18n.t('Not connected')}
-                                </TableCell>
-                            </TableRow>)}
-                        </TableBody>
-                    </Table>
-                </div>
-            </DialogContent>
-            <DialogActions>
-                <Button
-                    onClick={() => this.setState({ showDebugData: null })}
-                    startIcon={<Close />}
-                    color="grey"
-                    variant="contained"
-                >
-                    {I18n.t('Close')}
-                </Button>
-            </DialogActions>
-        </Dialog>;
-    }
-
     renderAddDeviceDialog() {
         if (!this.state.addDeviceDialog) {
             return null;
@@ -826,174 +723,6 @@ export class Bridges extends React.Component {
         </TableRow>;
     }
 
-    renderQrCodeDialog() {
-        const nodeState = this.state.showQrCode?.uuid && this.props.nodeStates[this.state.showQrCode.uuid];
-        if (!this.state.showQrCode || !nodeState) {
-            return null;
-        }
-        return <Dialog
-            onClose={() => this.setState({ showQrCode: null })}
-            open={!0}
-            maxWidth="md"
-        >
-            <DialogTitle>{I18n.t('QR Code to connect')}</DialogTitle>
-            <DialogContent>
-                <div style={{ background: 'white', padding: 16 }}>
-                    {nodeState.qrPairingCode ?
-                        <QRCode value={nodeState.qrPairingCode} /> : null}
-                </div>
-                <TextField
-                    value={nodeState.manualPairingCode || ''}
-                    InputProps={{
-                        readOnly: true,
-                        endAdornment: <InputAdornment position="end">
-                            <IconButton
-                                onClick={() => {
-                                    Utils.copyToClipboard(nodeState.manualPairingCode);
-                                    this.props.showToast(I18n.t('Copied to clipboard'));
-                                }}
-                                edge="end"
-                            >
-                                <ContentCopy />
-                            </IconButton>
-                        </InputAdornment>,
-                    }}
-                    fullWidth
-                    label={I18n.t('Manual pairing code')}
-                    variant="standard"
-                />
-            </DialogContent>
-            <DialogActions>
-                <Button
-                    onClick={() => this.setState({ showQrCode: null })}
-                    startIcon={<Close />}
-                    color="grey"
-                    variant="contained"
-                >
-                    {I18n.t('Close')}
-                </Button>
-            </DialogActions>
-        </Dialog>;
-    }
-
-    static getStatusColor(status, themeType) {
-        if (status === 'creating') {
-            return themeType === 'dark' ? '#a4a4a4' : '#1c1c1c';
-        }
-        if (status === 'waitingForCommissioning') {
-            return themeType === 'dark' ? '#2865ea' : '#00288d';
-        }
-        if (status === 'commissioned') {
-            return themeType === 'dark' ? '#fcb35f' : '#b24a00';
-        }
-        if (status === 'connected') {
-            return themeType === 'dark' ? '#5ffc5f' : '#368836';
-        }
-        return 'grey';
-    }
-
-    static getStatusIcon(status, themeType) {
-        const color = Bridges.getStatusColor(status, themeType);
-        if (status === 'creating') {
-            return <SignalWifiStatusbarNull style={{ color }} />;
-        }
-        if (status === 'waitingForCommissioning') {
-            return <QrCode style={{ color }} />;
-        }
-        if (status === 'commissioned') {
-            return <WifiOff style={{ color }} />;
-        }
-        if (status === 'connected') {
-            return <Wifi style={{ color }} />;
-        }
-        return <QuestionMark style={{ color }} />;
-    }
-
-    renderStatus(bridge) {
-        if (!this.props.nodeStates[bridge.uuid]) {
-            return null;
-        }
-        if (this.props.nodeStates[bridge.uuid].status === 'waitingForCommissioning') {
-            return <Tooltip title={I18n.t('Bridge is not commissioned. Show QR Code got commissioning')} classes={{ popper: this.props.classes.tooltip }}>
-                <IconButton
-                    style={{ height: 40 }}
-                    onClick={() => this.setState({ showQrCode: bridge })}
-                >
-                    <QrCode />
-                </IconButton>
-            </Tooltip>;
-        }
-        if (this.props.nodeStates[bridge.uuid].status) {
-            return <Tooltip title={I18n.t('Device is already commissioning. Show status information')} classes={{ popper: this.props.classes.tooltip }}>
-                <IconButton
-                    style={{ height: 40 }}
-                    onClick={e => {
-                        e.stopPropagation();
-                        this.setState({ showDebugData: bridge });
-                    }}
-                >
-                    {Bridges.getStatusIcon(this.props.nodeStates[bridge.uuid].status, this.props.themeType)}
-                </IconButton>
-            </Tooltip>;
-        }
-        return null;
-    }
-
-    renderResetDialog() {
-        if (!this.state.showResetDialog) {
-            return null;
-        }
-        return <Dialog
-            open={!0}
-            onClose={() => this.setState({ showResetDialog: false })}
-        >
-            <DialogTitle>{I18n.t('Reset bridge')}</DialogTitle>
-            <DialogContent>
-                <p>{I18n.t('Bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.')}</p>
-                <p>{I18n.t('Are you sure?')}</p>
-                {this.state.showResetDialog.step === 1 ? <p>{I18n.t('This cannot be undone')}</p> : null}
-            </DialogContent>
-            <DialogActions>
-                <Button
-                    onClick={() => {
-                        if (this.state.showResetDialog.step === 1) {
-                            const uuid = this.state.showResetDialog.bridge.uuid;
-                            this.setState({ showResetDialog: null });
-                            this.props.socket.sendTo(`matter.${this.props.instance}`, 'factoryReset', { uuid })
-                                .then(result => {
-                                    if (result.error) {
-                                        window.alert(`Cannot reset: ${result.error}`);
-                                    } else {
-                                        this.props.updateNodeStates({ [uuid]: result.result });
-                                    }
-                                });
-                        } else {
-                            this.setState({ showResetDialog: { bridge: this.state.showResetDialog.bridge, step: 1 } });
-                        }
-                    }}
-                    disabled={!this.props.alive}
-                    startIcon={<Delete />}
-                    color="primary"
-                    style={{
-                        color: this.state.showResetDialog.step === 1 ? 'white' : undefined,
-                        backgroundColor: this.state.showResetDialog.step === 1 ? 'red' : undefined,
-                    }}
-                    variant="contained"
-                >
-                    {I18n.t('Reset')}
-                </Button>
-                <Button
-                    onClick={() => this.setState({ showResetDialog: false })}
-                    startIcon={<Close />}
-                    color="grey"
-                    variant="contained"
-                >
-                    {I18n.t('Cancel')}
-                </Button>
-            </DialogActions>
-        </Dialog>;
-    }
-
     renderBridge(bridge, bridgeIndex) {
         if (bridge.deleted) {
             return null;
@@ -1170,7 +899,7 @@ export class Bridges extends React.Component {
                     </TableCell>
                     <TableCell style={{ width: 0, textAlign: 'center', opacity: bridge.enabled ? 1 : 0.5 }} className={this.props.classes.devicesHeader}>
                         {this.props.alive && bridge.enabled ? <Tooltip title={I18n.t('Reset to factory defaults')} classes={{ popper: this.props.classes.tooltip }}>
-                            <IconButton onClick={() => this.setState({ showResetDialog: { bridge, step: 0 } })}>
+                            <IconButton onClick={() => this.setState({ showResetDialog: { device: bridge, step: 0 } })}>
                                 <DomainDisabled />
                             </IconButton>
                         </Tooltip> : null}

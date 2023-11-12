@@ -5,14 +5,13 @@ import {
     NodeCommissioningOptions,
 } from '@project-chip/matter-node.js';
 import { NodeId } from '@project-chip/matter-node.js/datatype';
-import { Endpoint } from '@project-chip/matter-node.js/device';
+import { Endpoint, CommissioningControllerNodeOptions } from '@project-chip/matter-node.js/device';
 import { toHexString } from '@project-chip/matter-node.js/util';
 import {
     asClusterServerInternal,
     ClusterServerObj,
     GlobalAttributes,
     AnyAttributeServer, FabricScopeError,
-
 } from '@project-chip/matter-node.js/cluster';
 // import { EventClient } from '@project-chip/matter-node.js/cluster';
 import { CommissionableDevice } from '@project-chip/matter-node.js/common';
@@ -78,6 +77,46 @@ class Controller {
         this.matterServer?.addCommissioningController(this.commissioningController, { uniqueStorageKey: this.parameters.uuid });
     }
 
+    initEventHandlers(originalNodeId: NodeId | null, options?: any): any {
+        return Object.assign(options || {}, {
+            attributeChangedCallback: (peerNodeId: NodeId, { path: { nodeId, clusterId, endpointId, attributeName }, value }: any) => {
+                this.adapter.log.debug(
+                    `attributeChangedCallback ${peerNodeId}: Attribute ${nodeId}/${endpointId}/${clusterId}/${attributeName} changed to ${Logger.toJSON(
+                        value,
+                    )}`,
+                )
+            },
+            eventTriggeredCallback: (peerNodeId: NodeId, { path: { nodeId, clusterId, endpointId, eventName }, events }: any) => {
+                this.adapter.log.debug(
+                    `eventTriggeredCallback ${peerNodeId}: Event ${nodeId}/${endpointId}/${clusterId}/${eventName} triggered with ${Logger.toJSON(
+                        events,
+                    )}`,
+                );
+            },
+            stateInformationCallback: (peerNodeId: NodeId, info: NodeStateInformation) => {
+                switch (info) {
+                    case NodeStateInformation.Connected:
+                        this.adapter.log.debug(`stateInformationCallback ${peerNodeId}: Node ${originalNodeId} connected`);
+                        break;
+                    case NodeStateInformation.Disconnected:
+                        this.adapter.log.debug(`stateInformationCallback ${peerNodeId}: Node ${originalNodeId} disconnected`);
+                        break;
+                    case NodeStateInformation.Reconnecting:
+                        this.adapter.log.debug(`stateInformationCallback ${peerNodeId}: Node ${originalNodeId} reconnecting`);
+                        break;
+                    case NodeStateInformation.WaitingForDeviceDiscovery:
+                        this.adapter.log.debug(
+                            `stateInformationCallback ${peerNodeId}: Node ${originalNodeId} waiting for device discovery`,
+                        );
+                        break;
+                    case NodeStateInformation.StructureChanged:
+                        this.adapter.log.debug(`stateInformationCallback ${peerNodeId}: Node ${originalNodeId} structure changed`);
+                        break;
+                }
+            },
+        });
+    }
+
     async start(): Promise<void> {
         if (!this.commissioningController) {
             throw new Error('CommissioningController not initialized');
@@ -87,53 +126,19 @@ class Controller {
 
         // attach all nodes to the controller
         for (const nodeId of nodes) {
-            const node = await this.commissioningController.connectNode(nodeId, {
-                attributeChangedCallback: (
-                    peerNodeId,
-                    { path: { nodeId, clusterId, endpointId, attributeName }, value },
-                ) =>
-                    console.log(
-                        `attributeChangedCallback ${peerNodeId}: Attribute ${nodeId}/${endpointId}/${clusterId}/${attributeName} changed to ${Logger.toJSON(
-                            value,
-                        )}`,
-                    ),
-                eventTriggeredCallback: (peerNodeId, { path: { nodeId, clusterId, endpointId, eventName }, events }) =>
-                    console.log(
-                        `eventTriggeredCallback ${peerNodeId}: Event ${nodeId}/${endpointId}/${clusterId}/${eventName} triggered with ${Logger.toJSON(
-                            events,
-                        )}`,
-                    ),
-                stateInformationCallback: (peerNodeId, info) => {
-                    switch (info) {
-                        case NodeStateInformation.Connected:
-                            console.log(`stateInformationCallback ${peerNodeId}: Node ${nodeId} connected`);
-                            break;
-                        case NodeStateInformation.Disconnected:
-                            console.log(`stateInformationCallback ${peerNodeId}: Node ${nodeId} disconnected`);
-                            break;
-                        case NodeStateInformation.Reconnecting:
-                            console.log(`stateInformationCallback ${peerNodeId}: Node ${nodeId} reconnecting`);
-                            break;
-                        case NodeStateInformation.WaitingForDeviceDiscovery:
-                            console.log(
-                                `stateInformationCallback ${peerNodeId}: Node ${nodeId} waiting for device discovery`,
-                            );
-                            break;
-                        case NodeStateInformation.StructureChanged:
-                            console.log(`stateInformationCallback ${peerNodeId}: Node ${nodeId} structure changed`);
-                            break;
-                    }
-                },
-            });
+            try {
+                const node = await this.commissioningController.connectNode(nodeId, this.initEventHandlers(nodeId) as CommissioningControllerNodeOptions);
+                this.matterNodeIds.push(nodeId);
 
-            this.matterNodeIds.push(nodeId);
-
-            const rootEndpoint = node.getDeviceById(0);
-            if (rootEndpoint === void 0) {
-                this.adapter.log.debug(`Node ${nodeId} has not yet been initialized!`);
-                return;
+                const rootEndpoint = node.getDeviceById(0);
+                if (rootEndpoint === void 0) {
+                    this.adapter.log.debug(`Node ${nodeId} has not yet been initialized!`);
+                    return;
+                }
+                this.endPointToIoBrokerStructure(rootEndpoint, 0);
+            } catch (error) {
+                this.adapter.log.debug(`Failed to connect node ${nodeId}: ${error}`);
             }
-            this.endPointToIoBrokerStructure(rootEndpoint);
         }
     }
 
@@ -157,18 +162,20 @@ class Controller {
         return value;
     }
 
-    logClusterServer(clusterServer: ClusterServerObj<any, any>) {
+    logClusterServer(clusterServer: ClusterServerObj<any, any>, level: number) {
         const featureMap = clusterServer.attributes.featureMap?.getLocal() ?? {};
         const globalAttributes = GlobalAttributes<any>(featureMap);
         const supportedFeatures = new Array<string>();
         for (const featureName in featureMap) {
-            if ((featureMap as any)[featureName] === true) supportedFeatures.push(featureName);
+            if ((featureMap as any)[featureName] === true) {
+                supportedFeatures.push(featureName);
+            }
         }
         this.adapter.log.debug(
-            `Cluster-Server "${clusterServer.name}" (${toHexString(clusterServer.id)}) ${
+            `${''.padStart(level * 2)}Cluster-Server "${clusterServer.name}" (${toHexString(clusterServer.id)}) ${
                 supportedFeatures.length ? `(Features: ${supportedFeatures.join(", ")})` : ''
             }`);
-
+        this.adapter.log.debug(`${''.padStart(level * 2)}Global-Attributes:`);
         for (const attributeName in globalAttributes) {
             const attribute = clusterServer.attributes[attributeName];
             if (attribute === undefined) {
@@ -177,10 +184,11 @@ class Controller {
 
             const value = this.getAttributeServerValue(attribute);
             this.adapter.log.debug(
-                `"${attribute.name}" (${toHexString(attribute.id)})${value !== '' ? `: value = ${value}` : ''}`,
+                `${''.padStart(level * 2 + 2)}"${attribute.name}" (${toHexString(attribute.id)})${value !== '' ? `: value = ${value}` : ''}`,
             );
         }
 
+        this.adapter.log.debug(`${''.padStart(level * 2)}Cluster-Attributes:`);
         for (const attributeName in clusterServer.attributes) {
             if (attributeName in globalAttributes) {
                 continue;
@@ -192,26 +200,28 @@ class Controller {
 
             const value = this.getAttributeServerValue(attribute);
             this.adapter.log.debug(
-                `"${attribute.name}" (${toHexString(attribute.id)})${value !== '' ? `: value = ${value}` : ''}`,
+                `${''.padStart(level * 2 + 2)}"${attribute.name}" (${toHexString(attribute.id)})${value !== '' ? `: value = ${value}` : ''}`,
             );
         }
 
+        this.adapter.log.debug(`${''.padStart(level * 2)}Commands:`);
         const commands = asClusterServerInternal(clusterServer)._commands;
         for (const commandName in commands) {
             const command = commands[commandName];
             if (command === undefined) continue;
-            this.adapter.log.debug(`"${command.name}" (${toHexString(command.invokeId)}/${command.responseId})`);
+            this.adapter.log.debug(`${''.padStart(level * 2 + 2)}"${command.name}" (${toHexString(command.invokeId)}/${command.responseId})`);
         }
 
+        this.adapter.log.debug(`${''.padStart(level * 2)}Events:`);
         const events = asClusterServerInternal(clusterServer)._events;
         for (const eventName in events) {
             const event = events[eventName];
             if (event === undefined) continue;
-            this.adapter.log.debug(`"${event.name}" (${toHexString(event.id)})`);
+            this.adapter.log.debug(`${''.padStart(level * 2 + 2)}"${event.name}" (${toHexString(event.id)})`);
         }
     }
 
-    logClusterClient(endpoint: Endpoint, clusterClient: any) {
+    logClusterClient(clusterClient: any, level: number) {
         const { supportedFeatures: features } = clusterClient;
         const globalAttributes = GlobalAttributes(features);
         const supportedFeatures = [];
@@ -221,18 +231,18 @@ class Controller {
             }
         }
         this.adapter.log.debug(
-            `Cluster-Client "${clusterClient.name}" (${toHexString(clusterClient.id)}) ${supportedFeatures.length ? `(Features: ${supportedFeatures.join(", ")})` : ""}`
+            `${''.padStart(level * 2)}Cluster-Client "${clusterClient.name}" (${toHexString(clusterClient.id)}) ${supportedFeatures.length ? `(Features: ${supportedFeatures.join(", ")})` : ""}`
         );
-        this.adapter.log.debug("Global-Attributes:");
+        this.adapter.log.debug(`${''.padStart(level * 2)}Global-Attributes:`);
         for (const attributeName in globalAttributes) {
             const attribute = clusterClient.attributes[attributeName];
             if (attribute === void 0) {
                 continue;
             }
-            this.adapter.log.debug(`"${attribute.name}" (${toHexString(attribute.id)})`);
+            this.adapter.log.debug(`${''.padStart(level * 2 + 2)}"${attribute.name}" (${toHexString(attribute.id)})`);
         }
 
-        this.adapter.log.debug("Attributes:");
+        this.adapter.log.debug(`${''.padStart(level * 2)}Attributes:`);
         for (const attributeName in clusterClient.attributes) {
             if (attributeName in globalAttributes) {
                 continue;
@@ -250,15 +260,15 @@ class Controller {
             // if (unknown) {
             //     info += " (Unknown)";
             // }
-            // this.adapter.log.debug(`"${attribute.name}" (${toHexString(attribute.id)})${info}`);
+            this.adapter.log.debug(`${''.padStart(level * 2 + 2)}"${attribute.name}" (${toHexString(attribute.id)})`);
         }
 
-        this.adapter.log.debug("Commands:");
+        this.adapter.log.debug(`${''.padStart(level * 2)}Commands:`);
         for (const commandName in clusterClient.commands) {
-            this.adapter.log.debug(`"${commandName}"`);
+            this.adapter.log.debug(`${''.padStart(level * 2 + 2)}"${commandName}"`);
         }
 
-        this.adapter.log.debug('Events:');
+        this.adapter.log.debug(`${''.padStart(level * 2)}Events:`);
         for (const eventName in clusterClient.events) {
             const event = clusterClient.events[eventName];
             if (event === void 0) {
@@ -273,22 +283,22 @@ class Controller {
             // if (unknown) {
             //     info += ' (Unknown)';
             // }
-            // this.adapter.log.debug(`"${event.name}" (${toHexString(event.id)})${info}`);
+            this.adapter.log.debug(`${''.padStart(level * 2 + 2)}"${event.name}" (${toHexString(event.id)})`);
         }
     }
 
-    endPointToIoBrokerStructure(endpoint: Endpoint): void {
-        this.adapter.log.info(`Endpoint ${endpoint.id} (${endpoint.name}):`);
+    endPointToIoBrokerStructure(endpoint: Endpoint, level: number): void {
+        this.adapter.log.info(`${''.padStart(level * 2)}Endpoint ${endpoint.id} (${endpoint.name}):`);
         for (const clusterServer of endpoint.getAllClusterServers()) {
-            this.logClusterServer(clusterServer);
+            this.logClusterServer(clusterServer, level * 2 + 2);
         }
 
         for (const clusterClient of endpoint.getAllClusterClients()) {
-             this.logClusterClient(endpoint, clusterClient);
+             this.logClusterClient(clusterClient, level * 2 + 2);
         }
 
         for (const childEndpoint of endpoint.getChildEndpoints()) {
-            this.endPointToIoBrokerStructure(childEndpoint);
+            this.endPointToIoBrokerStructure(childEndpoint, level * 2 + 2);
         }
     }
 
@@ -346,47 +356,18 @@ class Controller {
             shortDiscriminator = undefined;
         }
 
-        const options = {
+        const options = this.initEventHandlers(null, {
             commissioning: commissioningOptions,
             discovery: {
                 commissionableDevice: device || undefined,
                 identifierData: longDiscriminator !== undefined
-                        ? { longDiscriminator }
-                        : shortDiscriminator !== undefined
-                            ? { shortDiscriminator }
-                            : undefined,
+                    ? {longDiscriminator}
+                    : shortDiscriminator !== undefined
+                        ? {shortDiscriminator}
+                        : undefined,
             },
             passcode,
-            attributeChangedCallback: (peerNodeId, { path: { nodeId, clusterId, endpointId, attributeName }, value }) =>
-                console.log(
-                    `attributeChangedCallback ${peerNodeId}: Attribute ${nodeId}/${endpointId}/${clusterId}/${attributeName} changed to ${Logger.toJSON(value)}`,
-                ),
-            eventTriggeredCallback: (peerNodeId, { path: { nodeId, clusterId, endpointId, eventName }, events }) =>
-                console.log(
-                    `eventTriggeredCallback ${peerNodeId}: Event ${nodeId}/${endpointId}/${clusterId}/${eventName} triggered with ${Logger.toJSON(events)}`,
-                ),
-            stateInformationCallback: (peerNodeId, info) => {
-                switch (info) {
-                    case NodeStateInformation.Connected:
-                        console.log(`stateInformationCallback Node ${peerNodeId} connected`);
-                        break;
-                    case NodeStateInformation.Disconnected:
-                        console.log(`stateInformationCallback Node ${peerNodeId} disconnected`);
-                        break;
-                    case NodeStateInformation.Reconnecting:
-                        console.log(`stateInformationCallback Node ${peerNodeId} reconnecting`);
-                        break;
-                    case NodeStateInformation.WaitingForDeviceDiscovery:
-                        console.log(
-                            `stateInformationCallback Node ${peerNodeId} waiting that device gets discovered again`,
-                        );
-                        break;
-                    case NodeStateInformation.StructureChanged:
-                        console.log(`stateInformationCallback Node ${peerNodeId} structure changed`);
-                        break;
-                }
-            },
-        } as NodeCommissioningOptions;
+        }) as NodeCommissioningOptions;
 
         // this.adapter.log.debug(`Commissioning ... ${JSON.stringify(options)}`);
         try {
@@ -397,13 +378,13 @@ class Controller {
             if (rootEndpoint === void 0) {
                 this.adapter.log.debug(`Node ${nodeObject.nodeId} has not yet been initialized!`);
             } else {
-                this.endPointToIoBrokerStructure(rootEndpoint);
+                this.endPointToIoBrokerStructure(rootEndpoint, 0);
             }
 
-            console.log(`Commissioning successfully done with nodeId ${nodeObject.nodeId}`);
+            this.adapter.log.debug(`Commissioning successfully done with nodeId ${nodeObject.nodeId}`);
             return { result: true, nodeId: Logger.toJSON(nodeObject.nodeId) };
         } catch (error) {
-            console.log(`Commissioning failed: ${error}`);
+            this.adapter.log.debug(`Commissioning failed: ${error}`);
             return { error, result: false };
         }
     }

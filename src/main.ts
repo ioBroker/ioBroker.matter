@@ -305,7 +305,7 @@ export class MatterAdapter extends utils.Adapter {
         await this.matterServer?.start();
 
         if (this.controller) {
-            setTimeout(() => this.controller?.start(), 5000);
+            this.controller?.start();
         }
     }
 

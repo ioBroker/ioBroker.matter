@@ -5,7 +5,7 @@ import {
     NodeCommissioningOptions,
 } from '@project-chip/matter-node.js';
 import { NodeId } from '@project-chip/matter-node.js/datatype';
-import { Endpoint, CommissioningControllerNodeOptions } from '@project-chip/matter-node.js/device';
+import { Endpoint, CommissioningControllerNodeOptions, PairedNode } from '@project-chip/matter-node.js/device';
 import { toHexString } from '@project-chip/matter-node.js/util';
 import {
     asClusterServerInternal,
@@ -129,13 +129,7 @@ class Controller {
             try {
                 const node = await this.commissioningController.connectNode(nodeId, this.initEventHandlers(nodeId) as CommissioningControllerNodeOptions);
                 this.matterNodeIds.push(nodeId);
-
-                const rootEndpoint = node.getDeviceById(0);
-                if (rootEndpoint === void 0) {
-                    this.adapter.log.debug(`Node ${nodeId} has not yet been initialized!`);
-                    return;
-                }
-                this.endPointToIoBrokerStructure(rootEndpoint, 0);
+                await this.nodeToIoBrokerStructure(node);
             } catch (error) {
                 this.adapter.log.debug(`Failed to connect node ${nodeId}: ${error}`);
             }
@@ -162,7 +156,7 @@ class Controller {
         return value;
     }
 
-    logClusterServer(clusterServer: ClusterServerObj<any, any>, level: number) {
+    logClusterServer(nodeId: NodeId, clusterServer: ClusterServerObj<any, any>, level: number) {
         const featureMap = clusterServer.attributes.featureMap?.getLocal() ?? {};
         const globalAttributes = GlobalAttributes<any>(featureMap);
         const supportedFeatures = new Array<string>();
@@ -175,7 +169,7 @@ class Controller {
             `${''.padStart(level * 2)}Cluster-Server "${clusterServer.name}" (${toHexString(clusterServer.id)}) ${
                 supportedFeatures.length ? `(Features: ${supportedFeatures.join(", ")})` : ''
             }`);
-        this.adapter.log.debug(`${''.padStart(level * 2)}Global-Attributes:`);
+        this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Global-Attributes:`);
         for (const attributeName in globalAttributes) {
             const attribute = clusterServer.attributes[attributeName];
             if (attribute === undefined) {
@@ -184,11 +178,11 @@ class Controller {
 
             const value = this.getAttributeServerValue(attribute);
             this.adapter.log.debug(
-                `${''.padStart(level * 2 + 2)}"${attribute.name}" (${toHexString(attribute.id)})${value !== '' ? `: value = ${value}` : ''}`,
+                `${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHexString(attribute.id)})${value !== '' ? `: value = ${value}` : ''}`,
             );
         }
 
-        this.adapter.log.debug(`${''.padStart(level * 2)}Cluster-Attributes:`);
+        this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Cluster-Attributes:`);
         for (const attributeName in clusterServer.attributes) {
             if (attributeName in globalAttributes) {
                 continue;
@@ -200,28 +194,28 @@ class Controller {
 
             const value = this.getAttributeServerValue(attribute);
             this.adapter.log.debug(
-                `${''.padStart(level * 2 + 2)}"${attribute.name}" (${toHexString(attribute.id)})${value !== '' ? `: value = ${value}` : ''}`,
+                `${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHexString(attribute.id)})${value !== '' ? `: value = ${value}` : ''}`,
             );
         }
 
-        this.adapter.log.debug(`${''.padStart(level * 2)}Commands:`);
+        this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Commands:`);
         const commands = asClusterServerInternal(clusterServer)._commands;
         for (const commandName in commands) {
             const command = commands[commandName];
             if (command === undefined) continue;
-            this.adapter.log.debug(`${''.padStart(level * 2 + 2)}"${command.name}" (${toHexString(command.invokeId)}/${command.responseId})`);
+            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${command.name}" (${toHexString(command.invokeId)}/${command.responseId})`);
         }
 
-        this.adapter.log.debug(`${''.padStart(level * 2)}Events:`);
+        this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Events:`);
         const events = asClusterServerInternal(clusterServer)._events;
         for (const eventName in events) {
             const event = events[eventName];
             if (event === undefined) continue;
-            this.adapter.log.debug(`${''.padStart(level * 2 + 2)}"${event.name}" (${toHexString(event.id)})`);
+            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${event.name}" (${toHexString(event.id)})`);
         }
     }
 
-    logClusterClient(clusterClient: any, level: number) {
+    async logClusterClient(nodeId: NodeId, clusterClient: any, level: number) {
         const { supportedFeatures: features } = clusterClient;
         const globalAttributes = GlobalAttributes(features);
         const supportedFeatures = [];
@@ -230,19 +224,37 @@ class Controller {
                 supportedFeatures.push(featureName);
             }
         }
+        const id = `controller.${Logger.toJSON(nodeId).replace(/"/g, '')}.${clusterClient.name}`;
+        let channelObj = await this.adapter.getObjectAsync(id);
+        if (!channelObj) {
+            channelObj = {
+                _id: id,
+                type: 'channel',
+                common: {
+                    name: clusterClient.name,
+                },
+                native: {
+                    nodeId: Logger.toJSON(nodeId),
+                    clusterId: clusterClient.id,
+                },
+            };
+            await this.adapter.setObjectAsync(channelObj._id, channelObj);
+        }
+
+
         this.adapter.log.debug(
             `${''.padStart(level * 2)}Cluster-Client "${clusterClient.name}" (${toHexString(clusterClient.id)}) ${supportedFeatures.length ? `(Features: ${supportedFeatures.join(", ")})` : ""}`
         );
-        this.adapter.log.debug(`${''.padStart(level * 2)}Global-Attributes:`);
+        this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Global-Attributes:`);
         for (const attributeName in globalAttributes) {
             const attribute = clusterClient.attributes[attributeName];
             if (attribute === void 0) {
                 continue;
             }
-            this.adapter.log.debug(`${''.padStart(level * 2 + 2)}"${attribute.name}" (${toHexString(attribute.id)})`);
+            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHexString(attribute.id)})`);
         }
 
-        this.adapter.log.debug(`${''.padStart(level * 2)}Attributes:`);
+        this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Attributes:`);
         for (const attributeName in clusterClient.attributes) {
             if (attributeName in globalAttributes) {
                 continue;
@@ -260,15 +272,15 @@ class Controller {
             // if (unknown) {
             //     info += " (Unknown)";
             // }
-            this.adapter.log.debug(`${''.padStart(level * 2 + 2)}"${attribute.name}" (${toHexString(attribute.id)})`);
+            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHexString(attribute.id)})`);
         }
 
-        this.adapter.log.debug(`${''.padStart(level * 2)}Commands:`);
+        this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Commands:`);
         for (const commandName in clusterClient.commands) {
-            this.adapter.log.debug(`${''.padStart(level * 2 + 2)}"${commandName}"`);
+            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${commandName}"`);
         }
 
-        this.adapter.log.debug(`${''.padStart(level * 2)}Events:`);
+        this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Events:`);
         for (const eventName in clusterClient.events) {
             const event = clusterClient.events[eventName];
             if (event === void 0) {
@@ -283,22 +295,52 @@ class Controller {
             // if (unknown) {
             //     info += ' (Unknown)';
             // }
-            this.adapter.log.debug(`${''.padStart(level * 2 + 2)}"${event.name}" (${toHexString(event.id)})`);
+            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${event.name}" (${toHexString(event.id)})`);
         }
     }
 
-    endPointToIoBrokerStructure(endpoint: Endpoint, level: number): void {
+    async nodeToIoBrokerStructure(nodeObject: PairedNode): Promise<void> {
+        const rootEndpoint = nodeObject.getDeviceById(0);
+        if (rootEndpoint === void 0) {
+            this.adapter.log.debug(`Node ${nodeObject.nodeId} has not yet been initialized!`);
+        } else {
+            // create device
+            const nodeIdString = Logger.toJSON(nodeObject.nodeId).replace(/"/g, '');
+            const id = `controller.${nodeIdString}`;
+            let deviceObj = await this.adapter.getObjectAsync(id);
+            if (!deviceObj) {
+                deviceObj = {
+                    _id: id,
+                    type: 'device',
+                    common: {
+                        name: nodeIdString,
+                    },
+                    native: {
+                        nodeId: Logger.toJSON(nodeObject.nodeId),
+                    },
+                };
+                await this.adapter.setObjectAsync(deviceObj._id, deviceObj);
+            }
+
+            await this.endPointToIoBrokerStructure(nodeObject.nodeId, rootEndpoint, 0);
+        }
+    }
+
+    async endPointToIoBrokerStructure(nodeId: NodeId, endpoint: Endpoint, level: number): Promise<void> {
         this.adapter.log.info(`${''.padStart(level * 2)}Endpoint ${endpoint.id} (${endpoint.name}):`);
+
         for (const clusterServer of endpoint.getAllClusterServers()) {
-            this.logClusterServer(clusterServer, level * 2 + 2);
+            this.logClusterServer(nodeId, clusterServer, level + 1);
         }
 
-        for (const clusterClient of endpoint.getAllClusterClients()) {
-             this.logClusterClient(clusterClient, level * 2 + 2);
+        const clusters = endpoint.getAllClusterClients();
+        for (const clusterClient of clusters) {
+             await this.logClusterClient(nodeId, clusterClient, level + 1);
         }
 
-        for (const childEndpoint of endpoint.getChildEndpoints()) {
-            this.endPointToIoBrokerStructure(childEndpoint, level * 2 + 2);
+        const endpoints = endpoint.getChildEndpoints();
+        for (const childEndpoint of endpoints) {
+            await this.endPointToIoBrokerStructure(nodeId, childEndpoint, level + 1);
         }
     }
 
@@ -374,12 +416,7 @@ class Controller {
             const nodeObject = await this.commissioningController.commissionNode(options);
             this.matterNodeIds.push(nodeObject.nodeId);
 
-            const rootEndpoint = nodeObject.getDeviceById(0);
-            if (rootEndpoint === void 0) {
-                this.adapter.log.debug(`Node ${nodeObject.nodeId} has not yet been initialized!`);
-            } else {
-                this.endPointToIoBrokerStructure(rootEndpoint, 0);
-            }
+            await this.nodeToIoBrokerStructure(nodeObject);
 
             this.adapter.log.debug(`Commissioning successfully done with nodeId ${nodeObject.nodeId}`);
             return { result: true, nodeId: Logger.toJSON(nodeObject.nodeId) };

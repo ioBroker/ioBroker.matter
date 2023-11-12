@@ -554,7 +554,7 @@ class Devices extends React.Component {
     }
 
     renderQrCodeDialog() {
-        const nodeState = this.props.nodeStates[this.state.showQrCode.uuid];
+        const nodeState = this.state.showQrCode?.uuid && this.props.nodeStates[this.state.showQrCode.uuid];
         if (!this.state.showQrCode || !nodeState) {
             return null;
         }

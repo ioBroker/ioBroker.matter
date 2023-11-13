@@ -71,8 +71,14 @@ class Base {
         clusterId: number,
         currentValue: any | undefined = undefined,
     ): Promise<string> {
+        let _id;
         // create onOff
-        const _id = `controller.${jsonNodeId.replace(/"/g, '')}.states.${id}`;
+        if (id.includes('.')) {
+            _id = `controller.${jsonNodeId.replace(/"/g, '')}.${id}`;
+        } else {
+            _id = `controller.${jsonNodeId.replace(/"/g, '')}.states.${id}`;
+        }
+
         let stateObj = await this.adapter.getObjectAsync(id);
         if (!stateObj) {
             stateObj = {

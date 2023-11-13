@@ -75,18 +75,22 @@ class LevelControl extends Base {
             if (!state || state.ack) {
                 return;
             }
-            await cluster.moveToLevel({
-                level: state.val as number,
-                transitionTime: 0,
-                optionsMask: {
-                    executeIfOff: true,
-                    coupleColorTempToLevel: false,
-                },
-                optionsOverride: {
-                    executeIfOff: false,
-                    coupleColorTempToLevel: false,
-                }
-            });
+            try {
+                await cluster.moveToLevel({
+                    level: state.val as number,
+                    transitionTime: 0,
+                    optionsMask: {
+                        executeIfOff: true,
+                        coupleColorTempToLevel: false,
+                    },
+                    optionsOverride: {
+                        executeIfOff: false,
+                        coupleColorTempToLevel: false,
+                    }
+                });
+            } catch (e) {
+                this.adapter.log.error(`Cannot set ${id}: ${e.message}, stack: ${e.stack}`);
+            }
         };
         await this.subscribe(id, levelHandler);
     }

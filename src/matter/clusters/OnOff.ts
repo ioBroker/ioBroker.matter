@@ -17,7 +17,7 @@ class OnOff extends Base {
         const features = await cluster.getFeatureMapAttribute();
         // create onOff
         const id = await this.createState(
-            'booleanState',
+            'onOff',
             {
                 name: 'Boolean state',
                 type: 'boolean',
@@ -41,10 +41,14 @@ class OnOff extends Base {
             if (!state || state.ack) {
                 return;
             }
-            if (state.val) {
-                await cluster.on();
-            } else {
-                await cluster.off();
+            try {
+                if (state.val) {
+                    await cluster.on();
+                } else {
+                    await cluster.off();
+                }
+            } catch (e) {
+                this.adapter.log.error(`Cannot set ${id}: ${e.message}, stack: ${e.stack}`);
             }
         };
         await this.subscribe(id, onOffHandler);

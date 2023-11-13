@@ -87,7 +87,6 @@ export class MatterAdapter extends utils.Adapter {
     private subscribed: boolean = false;
     private license: { [key: string]: boolean | undefined } = {};
     private controller: MatterController | null = null;
-    private subscribes: Record<string, ((id: string, state: any) => void)[]> = {};
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -250,35 +249,6 @@ export class MatterAdapter extends utils.Adapter {
             }
         }
     };
-
-    async subscribeCustom(id: string, cb: ((id: string, state: any) => void)) {
-        if (this.subscribes[id]) {
-            if (!this.subscribes[id].includes(cb)) {
-                this.subscribes[id].push(cb);
-            }
-        } else {
-            this.subscribes[id] = [cb];
-            await this.subscribeObjectsAsync(id);
-        }
-    }
-
-    async unsubscribeCustom(id: string, cb: ((id: string, state: any) => void) | undefined) {
-        if (this.subscribes[id]) {
-            if (!cb) {
-                delete this.subscribes[id];
-                await this.unsubscribeObjectsAsync(id);
-            } else {
-                const pos = this.subscribes[id].indexOf(cb);
-                if (pos !== -1) {
-                    this.subscribes[id].splice(pos, 1);
-                    if (!this.subscribes[id].length) {
-                        delete this.subscribes[id];
-                        await this.unsubscribeObjectsAsync(id);
-                    }
-                }
-            }
-        }
-    }
 
     async createMatterServer(): Promise<void> {
         const config: MatterAdapterConfig = this.config as MatterAdapterConfig;

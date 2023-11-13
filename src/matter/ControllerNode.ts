@@ -4,8 +4,11 @@ import {
     MatterServer,
     NodeCommissioningOptions,
 } from '@project-chip/matter-node.js';
-import { NodeId } from '@project-chip/matter-node.js/datatype';
-import { Endpoint, CommissioningControllerNodeOptions, PairedNode } from '@project-chip/matter-node.js/device';
+import { NodeId, ClusterId } from '@project-chip/matter-node.js/datatype';
+import {
+    Endpoint, CommissioningControllerNodeOptions,
+    PairedNode,
+} from '@project-chip/matter-node.js/device';
 import { toHexString } from '@project-chip/matter-node.js/util';
 import {
     asClusterServerInternal,
@@ -13,12 +16,7 @@ import {
     GlobalAttributes,
     AnyAttributeServer, FabricScopeError,
     BasicInformationCluster,
-    OnOffCluster,
-    BooleanStateCluster,
-    LevelControlCluster,
-    LevelControl,
 } from '@project-chip/matter-node.js/cluster';
-// import { EventClient } from '@project-chip/matter-node.js/cluster';
 import { CommissionableDevice } from '@project-chip/matter-node.js/common';
 
 import { ManualPairingCodeCodec, QrPairingCodeCodec } from '@project-chip/matter-node.js/schema';
@@ -31,6 +29,8 @@ import {
 } from '@project-chip/matter-node.js/cluster';
 
 import { MatterAdapter } from '../main';
+import Factories from './clusters/factories';
+import Base from './clusters/Base';
 
 export interface ControllerCreateOptions {
     adapter: MatterAdapter;
@@ -49,6 +49,33 @@ interface AddDeviceResult {
     nodeId?: string;
 }
 
+const IGNORE_CLUSTERS: ClusterId[] = [
+    0x0004 as ClusterId, // Groups
+    0x0005 as ClusterId, // Scenes
+    0x001D as ClusterId, // Descriptor
+    0x001D as ClusterId, // Descriptor
+    0x001E as ClusterId, // Binding
+    0x001F as ClusterId, // Access Control
+    0x002B as ClusterId, // Localization Configuration
+    0x002C as ClusterId, // Time Format Localization
+    0x002D as ClusterId, // Unit Localization
+    0x002E as ClusterId, // Power Source Configuration
+    0x0030 as ClusterId, // General Commissioning
+    0x0031 as ClusterId, // Network Commissioning
+    0x0032 as ClusterId, // Diagnostic Logs
+    0x0033 as ClusterId, // General Diagnostics
+    0x0034 as ClusterId, // Software Diagnostics
+    0x0035 as ClusterId, // Thread Network Diagnostics
+    0x0036 as ClusterId, // Wi-Fi Network Diagnostics
+    0x0037 as ClusterId, // Ethernet Network Diagnostics
+    0x0038 as ClusterId, // Time Synchronization
+    0x0039 as ClusterId, // Bridged Device Basic Information
+    0x003C as ClusterId, // Administrator Commissioning
+    0x003E as ClusterId, // Node Operational Credentials
+    0x003F as ClusterId, // Group Key Management
+    0x0046 as ClusterId, // ICD Management S
+];
+
 class Controller {
     private matterServer: MatterServer | undefined;
     private parameters: ControllerOptions;
@@ -56,7 +83,7 @@ class Controller {
     private adapter: MatterAdapter;
     private commissioningController: CommissioningController | null = null;
     private matterNodeIds: NodeId[] = [];
-    private subscribes: Record<string, ((id: string, state: any) => void)[]> = {};
+    private clusters: Base[] = [];
 
     constructor(options: ControllerCreateOptions) {
         this.adapter = options.adapter;
@@ -230,22 +257,22 @@ class Controller {
                 supportedFeatures.push(featureName);
             }
         }
-        const id = `controller.${Logger.toJSON(nodeId).replace(/"/g, '')}.${clusterClient.name}`;
-        let channelObj = await this.adapter.getObjectAsync(id);
-        if (!channelObj) {
-            channelObj = {
-                _id: id,
-                type: 'channel',
-                common: {
-                    name: clusterClient.name,
-                },
-                native: {
-                    nodeId: Logger.toJSON(nodeId),
-                    clusterId: clusterClient.id,
-                },
-            };
-            await this.adapter.setObjectAsync(channelObj._id, channelObj);
-        }
+        // const id = `controller.${Logger.toJSON(nodeId).replace(/"/g, '')}.${clusterClient.name}`;
+        // let channelObj = await this.adapter.getObjectAsync(id);
+        // if (!channelObj) {
+        //     channelObj = {
+        //         _id: id,
+        //         type: 'channel',
+        //         common: {
+        //             name: clusterClient.name,
+        //         },
+        //         native: {
+        //             nodeId: Logger.toJSON(nodeId),
+        //             clusterId: clusterClient.id,
+        //         },
+        //     };
+        //     await this.adapter.setObjectAsync(channelObj._id, channelObj);
+        // }
 
         this.adapter.log.debug(
             `${''.padStart(level * 2)}Cluster-Client "${clusterClient.name}" (${toHexString(clusterClient.id)}) ${supportedFeatures.length ? `(Features: ${supportedFeatures.join(", ")})` : ""}`
@@ -256,7 +283,8 @@ class Controller {
             if (attribute === void 0) {
                 continue;
             }
-            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHexString(attribute.id)})`);
+
+            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHexString(attribute.id)}) = ${this.getAttributeServerValue(attribute)}`);
         }
 
         this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Attributes:`);
@@ -277,7 +305,7 @@ class Controller {
             // if (unknown) {
             //     info += " (Unknown)";
             // }
-            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHexString(attribute.id)})`);
+            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHexString(attribute.id)}) = ${this.getAttributeServerValue(attribute)}`);
         }
 
         this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Commands:`);
@@ -305,7 +333,7 @@ class Controller {
     }
 
     async nodeToIoBrokerStructure(nodeObject: PairedNode): Promise<void> {
-        const rootEndpoint = nodeObject.getDeviceById(0);
+        const rootEndpoint = nodeObject.getDeviceById(0); // later use getRootEndpoint
         if (rootEndpoint === void 0) {
             this.adapter.log.debug(`Node ${nodeObject.nodeId} has not yet been initialized!`);
         } else {
@@ -346,6 +374,8 @@ class Controller {
                     changed = true;
                     deviceObj.common.name = name;
                 }
+
+                // todo: iterate here over all attributes in info
             }
 
             if (changed) {
@@ -356,20 +386,32 @@ class Controller {
         }
     }
 
+    addCluster(cluster: Base | undefined) {
+        if (cluster) {
+            this.clusters.push(cluster);
+        }
+    }
+
     async endPointToIoBrokerStructure(nodeId: NodeId, endpoint: Endpoint, level: number): Promise<void> {
         this.adapter.log.info(`${''.padStart(level * 2)}Endpoint ${endpoint.id} (${endpoint.name}):`);
-        await this.initOnOffCluster(nodeId, endpoint);
-        await this.initLevelControlCluster(nodeId, endpoint);
-        await this.initBooleanStateCluster(nodeId, endpoint);
-
-        for (const clusterServer of endpoint.getAllClusterServers()) {
-            this.logClusterServer(nodeId, clusterServer, level + 1);
+        const keys = Object.keys(Factories);
+        for (let f = 0; f < Factories.length; f++) {
+            const factory = Factories[f];
+            this.addCluster(await factory(this.adapter, nodeId, endpoint));
         }
 
-        const clusters = endpoint.getAllClusterClients();
-        for (const clusterClient of clusters) {
-             await this.logClusterClient(nodeId, clusterClient, level + 1);
-        }
+        // for (const clusterServer of endpoint.getAllClusterServers()) {
+        //     this.logClusterServer(nodeId, clusterServer, level + 1);
+        // }
+
+        // const clusters = endpoint.getAllClusterClients();
+        // for (const clusterClient of clusters) {
+        //     if (IGNORE_CLUSTERS.includes(clusterClient.id) || processedClusters.includes(clusterClient.id)) {
+        //         continue;
+        //     }
+        //
+        //      await this.logClusterClient(nodeId, clusterClient, level + 1);
+        // }
 
         const endpoints = endpoint.getChildEndpoints();
         for (const childEndpoint of endpoints) {
@@ -498,193 +540,17 @@ class Controller {
     }
 
     async stop(): Promise<void> {
-        // unsubscribe from all iobroker events
-        const ids = Object.keys(this.subscribes);
-        for (let i = 0; i < ids.length; i++) {
-            const id = ids[i];
-            const handlers = this.subscribes[id];
-            for (let j = 0; j < handlers.length; j++) {
-                await this.adapter.unsubscribeCustom(id, handlers[j]);
-            }
+        for (let i = 0; i < this.clusters.length; i++) {
+            const cluster = this.clusters[i];
+            await cluster.destroy();
         }
+
+        this.clusters = [];
 
         if (this.commissioningController) {
             this.matterServer?.removeCommissioningController(this.commissioningController);
             this.commissioningController = null;
         }
-    }
-
-    // ------------------ Devices ------------------
-    // ------------------ OnOff ------------------
-    async initOnOffCluster(nodeId: NodeId, endpoint: Endpoint) {
-        const cluster = endpoint.getClusterClient(OnOffCluster);
-        if (!cluster) {
-            return;
-        }
-        const features = await cluster.getFeatureMapAttribute();
-        console.log(features);
-
-        // create onOff
-        const id = `controller.${Logger.toJSON(nodeId).replace(/"/g, '')}.onOff.state`;
-        let stateObj = await this.adapter.getObjectAsync(id);
-        if (!stateObj) {
-            stateObj = {
-                _id: id,
-                type: 'state',
-                common: {
-                    name: 'OnOff',
-                    type: 'boolean',
-                    role: 'switch',
-                    read: true,
-                    write: true,
-                },
-                native: {
-                    nodeId: Logger.toJSON(nodeId),
-                    clusterId: cluster.id,
-                },
-            };
-            await this.adapter.setObjectAsync(stateObj._id, stateObj);
-        }
-        const state = await this.adapter.getStateAsync(id);
-
-        // init state
-        let onOffStatus = await cluster.getOnOffAttribute();
-        if (!state || state.val !== onOffStatus) {
-            await this.adapter.setStateAsync(id, onOffStatus, true);
-        }
-
-        // subscribe on matter changes
-        cluster.addOnOffAttributeListener(async value => {
-            await this.adapter.setStateAsync(id, onOffStatus, true);
-        });
-
-        const onOffHandler = async (id: string, state: ioBroker.State) => {
-            if (state.val) {
-                await cluster.on();
-            } else {
-                await cluster.off();
-            }
-        };
-        this.subscribes[id] = this.subscribes[id] || [];
-        this.subscribes[id].push(onOffHandler);
-
-        await this.adapter.subscribeCustom(id, onOffHandler);
-    }
-
-    // ------------------ Dimmer ------------------
-    async initLevelControlCluster(nodeId: NodeId, endpoint: Endpoint) {
-        const cluster = endpoint.getClusterClient(LevelControlCluster);
-        if (!cluster) {
-            return;
-        }
-        const features = await cluster.getFeatureMapAttribute();
-        console.log(features);
-        // create onOff
-        const id = `controller.${Logger.toJSON(nodeId).replace(/"/g, '')}.onOff.state`;
-        let stateObj = await this.adapter.getObjectAsync(id);
-        const max = await cluster.getMaxLevelAttribute();
-        const min = await cluster.getMinLevelAttribute();
-        let changed = false;
-
-        if (!stateObj) {
-            changed = true;
-            stateObj = {
-                _id: id,
-                type: 'state',
-                common: {
-                    name: 'OnOff',
-                    type: 'boolean',
-                    role: 'level.dimmer',
-                    read: true,
-                    write: true,
-                    min,
-                    max,
-                },
-                native: {
-                    nodeId: Logger.toJSON(nodeId),
-                    clusterId: cluster.id,
-                },
-            };
-        } else {
-            if (stateObj.common.min !== min) {
-                changed = true;
-                stateObj.common.min = min;
-            }
-            if (stateObj.common.max !== max) {
-                changed = true;
-                stateObj.common.max = max;
-            }
-        }
-        if (changed) {
-            await this.adapter.setObjectAsync(stateObj._id, stateObj);
-        }
-
-        const state = await this.adapter.getStateAsync(id);
-
-        // init state
-        let level = await cluster.getCurrentLevelAttribute();
-        if (!state || state.val !== level) {
-            await this.adapter.setStateAsync(id, level, true);
-        }
-
-        // subscribe on matter changes
-        cluster.addCurrentLevelAttributeListener(async value => {
-            await this.adapter.setStateAsync(id, value, true);
-        });
-
-        const levelHandler = async (id: string, state: ioBroker.State) => {
-            // await cluster.moveToLevel({
-            //     level: state.val as number,
-            //     transitionTime: 0,
-            //     // optionsMask: LevelControl.Options.executeIfOff,
-            //     // optionsOverride:
-            // });
-        };
-        this.subscribes[id] = this.subscribes[id] || [];
-        this.subscribes[id].push(levelHandler);
-
-        await this.adapter.subscribeCustom(id, levelHandler);
-    }
-
-    // ------------------ Boolean state ------------------
-    async initBooleanStateCluster(nodeId: NodeId, endpoint: Endpoint) {
-        const cluster = endpoint.getClusterClient(BooleanStateCluster);
-        if (!cluster) {
-            return;
-        }
-        // create onOff
-        const id = `controller.${Logger.toJSON(nodeId).replace(/"/g, '')}.booleanState`;
-        let stateObj = await this.adapter.getObjectAsync(id);
-        if (!stateObj) {
-            stateObj = {
-                _id: id,
-                type: 'state',
-                common: {
-                    name: 'Boolean state',
-                    type: 'boolean',
-                    role: 'state',
-                    read: true,
-                    write: false,
-                },
-                native: {
-                    nodeId: Logger.toJSON(nodeId),
-                    clusterId: cluster.id,
-                },
-            };
-            await this.adapter.setObjectAsync(stateObj._id, stateObj);
-        }
-        const state = await this.adapter.getStateAsync(id);
-
-        // init state
-        let booleanState = await cluster.getStateValueAttribute();
-        if (!state || state.val !== booleanState) {
-            await this.adapter.setStateAsync(id, booleanState, true);
-        }
-
-        // subscribe on matter changes
-        cluster.addStateValueAttributeListener(async value => {
-            await this.adapter.setStateAsync(id, value, true);
-        });
     }
 }
 

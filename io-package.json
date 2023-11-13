@@ -141,6 +141,7 @@
     "keywords": [
       "matter"
     ],
+    "stopTimeout": 5000,
     "enabled": true,
     "compact": true,
     "singleton": true,

@@ -8,12 +8,12 @@ import { MatterAdapter } from '../../main';
 class BooleanState extends Base {
     private handler: ((value: boolean) => void) | undefined = undefined;
 
-    async init(nodeId: NodeId) {
+    async init() {
         const cluster = this.endpoint.getClusterClient(BooleanStateCluster);
         if (!cluster) {
             return;
         }
-        await this.createChannel(nodeId, this.endpoint.getDeviceTypes());
+        await this.createChannel(this.endpoint.getDeviceTypes());
         const id = await this.createState(
             'booleanState',
             {
@@ -23,7 +23,6 @@ class BooleanState extends Base {
                 read: true,
                 write: false,
             },
-            Base.toJSON(nodeId),
             cluster.id,
             await cluster.getStateValueAttribute(),
         );
@@ -44,14 +43,14 @@ class BooleanState extends Base {
         }
     }
 
-    static async factory(adapter: MatterAdapter, nodeId: NodeId, endpoint: Endpoint): Promise<Base | undefined> {
+    static async factory(adapter: MatterAdapter, nodeId: NodeId, endpoint: Endpoint, path: number[]): Promise<Base | undefined> {
         const cluster = endpoint.getClusterClient(BooleanStateCluster);
         if (!cluster) {
             return;
         }
-        const result = new BooleanState(adapter, endpoint);
+        const result = new BooleanState(adapter, nodeId, endpoint, path);
         if (result) {
-            await result.init(nodeId);
+            await result.init();
         }
         return result;
     }

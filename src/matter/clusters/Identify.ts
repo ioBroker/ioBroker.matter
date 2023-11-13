@@ -9,15 +9,15 @@ class Identify extends Base {
     private handlerType: ((value: number) => void) | undefined = undefined;
     private handlerTime: ((value: number) => void) | undefined = undefined;
 
-    async init(nodeId: NodeId) {
+    async init() {
         const cluster = this.endpoint.getClusterClient(IdentifyCluster);
         if (!cluster) {
             return;
         }
-        await this.createChannel(nodeId, this.endpoint.getDeviceTypes());
+        await this.createChannel(this.endpoint.getDeviceTypes());
 
         // create Identify channel
-        const _id = `controller.${Base.toJSON(nodeId).replace(/"/g, '')}.identify`;
+        const _id = `controller.${this.jsonNodeId.replace(/"/g, '')}.${this.prefix}identify`;
         let channelObj = await this.adapter.getObjectAsync(_id);
         if (!channelObj) {
             channelObj = {
@@ -27,7 +27,7 @@ class Identify extends Base {
                     name: 'Identify',
                 },
                 native: {
-                    nodeId: Base.toJSON(nodeId),
+                    nodeId: this.jsonNodeId,
                     clusterId: cluster.id,
                 },
             };
@@ -52,7 +52,6 @@ class Identify extends Base {
                 write: true,
                 read: false,
             },
-            Base.toJSON(nodeId),
             cluster.id,
             await cluster.getIdentifyTypeAttribute(),
         );
@@ -67,7 +66,6 @@ class Identify extends Base {
                 write: true,
                 read: false,
             },
-            Base.toJSON(nodeId),
             cluster.id,
             await cluster.getIdentifyTimeAttribute(),
         );
@@ -92,7 +90,6 @@ class Identify extends Base {
                 write: true,
                 read: false,
             },
-            Base.toJSON(nodeId),
             cluster.id,
             false,
         );
@@ -126,14 +123,14 @@ class Identify extends Base {
         }
     }
 
-    static async factory(adapter: MatterAdapter, nodeId: NodeId, endpoint: Endpoint): Promise<Base | undefined> {
+    static async factory(adapter: MatterAdapter, nodeId: NodeId, endpoint: Endpoint, path: number[]): Promise<Base | undefined> {
         const cluster = endpoint.getClusterClient(IdentifyCluster);
         if (!cluster) {
             return;
         }
-        const result = new Identify(adapter, endpoint);
+        const result = new Identify(adapter, nodeId, endpoint, path);
         if (result) {
-            await result.init(nodeId);
+            await result.init();
         }
         return result;
     }

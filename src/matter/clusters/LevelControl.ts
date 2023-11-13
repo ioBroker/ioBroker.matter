@@ -8,61 +8,31 @@ import { MatterAdapter } from '../../main';
 class LevelControl extends Base {
     private handler: ((value: number | null) => void) | undefined = undefined;
 
-    async init(nodeId: NodeId) {
+    async init() {
         const cluster = this.endpoint.getClusterClient(LevelControlCluster);
         if (!cluster) {
             return;
         }
-        await this.createChannel(nodeId, this.endpoint.getDeviceTypes());
+        await this.createChannel(this.endpoint.getDeviceTypes());
         const features = await cluster.getFeatureMapAttribute();
 
-        // create onOff
-        const id = `controller.${Base.toJSON(nodeId).replace(/"/g, '')}.states.level`;
-        let stateObj = await this.adapter.getObjectAsync(id);
         const max = await cluster.getMaxLevelAttribute();
         const min = await cluster.getMinLevelAttribute();
-        let changed = false;
-
-        if (!stateObj) {
-            changed = true;
-            stateObj = {
-                _id: id,
-                type: 'state',
-                common: {
-                    name: 'OnOff',
-                    type: 'boolean',
-                    role: features.lighting ? 'level.dimmer' : 'level',
-                    read: true,
-                    write: true,
-                    min,
-                    max,
-                },
-                native: {
-                    nodeId: Base.toJSON(nodeId),
-                    clusterId: cluster.id,
-                },
-            };
-        } else {
-            if (stateObj.common.min !== min) {
-                changed = true;
-                stateObj.common.min = min;
-            }
-            if (stateObj.common.max !== max) {
-                changed = true;
-                stateObj.common.max = max;
-            }
-        }
-        if (changed) {
-            await this.adapter.setObjectAsync(stateObj._id, stateObj);
-        }
-
-        const state = await this.adapter.getStateAsync(id);
-
-        // init state
-        let level = await cluster.getCurrentLevelAttribute();
-        if (!state || state.val !== level) {
-            await this.adapter.setStateAsync(id, level, true);
-        }
+        // create onOff
+        const id = await this.createState(
+            'level',
+            {
+                name: 'OnOff',
+                type: 'boolean',
+                role: features.lighting ? 'level.dimmer' : 'level',
+                read: true,
+                write: true,
+                min,
+                max,
+            },
+            cluster.id,
+            await cluster.getCurrentLevelAttribute()
+        );
 
         this.handler = async (value: number | null) => {
             await this.adapter.setStateAsync(id, value, true);
@@ -103,14 +73,14 @@ class LevelControl extends Base {
         }
     }
 
-    static async factory(adapter: MatterAdapter, nodeId: NodeId, endpoint: Endpoint): Promise<Base | undefined> {
+    static async factory(adapter: MatterAdapter, nodeId: NodeId, endpoint: Endpoint, path: number[]): Promise<Base | undefined> {
         const cluster = endpoint.getClusterClient(LevelControlCluster);
         if (!cluster) {
             return;
         }
-        const result = new LevelControl(adapter, endpoint);
+        const result = new LevelControl(adapter, nodeId, endpoint, path);
         if (result) {
-            await result.init(nodeId);
+            await result.init();
         }
         return result;
     }

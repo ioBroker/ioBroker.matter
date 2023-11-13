@@ -11,10 +11,36 @@ class Base {
     protected adapter: MatterAdapter;
     protected endpoint: Endpoint;
     private subscribes: Record<string, ((state: any) => void)[]> = {};
+    protected prefix: string;
+    protected jsonNodeId: string;
 
-    constructor(adapter: MatterAdapter, endpoint: Endpoint) {
+    constructor(adapter: MatterAdapter, nodeId: NodeId, endpoint: Endpoint, path: number[]) {
         this.adapter = adapter;
         this.endpoint = endpoint;
+        this.jsonNodeId = Base.toJSON(nodeId).replace(/"/g, '');
+
+        if (path.length > 1) {
+            const newPath = [...path];
+            newPath.shift();
+            this.prefix = `${newPath.join('.')}.`;
+            // create folder
+            const id = `controller.${this.jsonNodeId.replace(/"/g, '')}.${this.prefix.substring(0, this.prefix.length - 1)}`;
+            this.adapter.getObjectAsync(id)
+                .then(obj => {
+                    if (!obj) {
+                        this.adapter.setObjectAsync(id, {
+                            type: 'device',
+                            common: {
+                                name: `Device ${this.prefix.substring(0, this.prefix.length - 1)}`,
+                            },
+                            native: {
+                            },
+                        });
+                    }
+                });
+        } else {
+            this.prefix = '';
+        }
     }
 
     static toJSON(nodeId: NodeId): string {
@@ -37,7 +63,7 @@ class Base {
         }
     }
 
-    async createChannel(nodeId: NodeId, deviceTypes: AtLeastOne<DeviceTypeDefinition>) {
+    async createChannel(deviceTypes: AtLeastOne<DeviceTypeDefinition>) {
         if (!deviceTypes) {
             return;
         }
@@ -46,7 +72,7 @@ class Base {
         const deviceType = deviceTypes.find(type => type.name !== 'MA-bridgednode');
 
         // create onOff
-        const id = `controller.${Base.toJSON(nodeId).replace(/"/g, '')}.states`;
+        const id = `controller.${this.jsonNodeId.replace(/"/g, '')}.${this.prefix}states`;
         let stateObj = await this.adapter.getObjectAsync(id);
         if (!stateObj) {
             stateObj = {
@@ -57,7 +83,7 @@ class Base {
                         (deviceTypes[0] ? deviceTypes[0].name.replace(/^MA-/, '') :'Unknown'),
                 },
                 native: {
-                    nodeId: Base.toJSON(nodeId),
+                    nodeId: this.jsonNodeId,
                 },
             };
             await this.adapter.setObjectAsync(stateObj._id, stateObj);
@@ -67,16 +93,15 @@ class Base {
     async createState(
         id: string,
         common: ioBroker.StateCommon,
-        jsonNodeId: string,
         clusterId: number,
         currentValue: any | undefined = undefined,
     ): Promise<string> {
         let _id;
         // create onOff
         if (id.includes('.')) {
-            _id = `controller.${jsonNodeId.replace(/"/g, '')}.${id}`;
+            _id = `controller.${this.jsonNodeId.replace(/"/g, '')}.${this.prefix}${id}`;
         } else {
-            _id = `controller.${jsonNodeId.replace(/"/g, '')}.states.${id}`;
+            _id = `controller.${this.jsonNodeId.replace(/"/g, '')}.${this.prefix}states.${id}`;
         }
 
         let stateObj = await this.adapter.getObjectAsync(id);
@@ -88,8 +113,7 @@ class Base {
                     ...common,
                 },
                 native: {
-                    nodeId: jsonNodeId,
-                    clusterId: clusterId,
+                    clusterId,
                 },
             };
             await this.adapter.setObjectAsync(stateObj._id, stateObj);

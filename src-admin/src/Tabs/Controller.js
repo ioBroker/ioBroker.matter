@@ -97,6 +97,7 @@ class Controller extends React.Component {
             camera: '',
             hideVideo: false,
             nodes: {},
+            states: {},
             openedNodes,
         };
 
@@ -152,10 +153,15 @@ class Controller extends React.Component {
             .then(() => this.props.socket.subscribeObject(`matter.${this.props.instance}.controller.*`, this.onObjectChange)
                 .catch(e => window.alert(`Cannot subscribe: ${e}`)))
             .then(() => this.props.socket.subscribeState(`matter.${this.props.instance}.controller.*`, this.onStateChange)
-                .catch(e => window.alert(`Cannot subscribe: ${e}`)));
+                .catch(e => {
+                    window.alert(`Cannot subscribe 1: ${e}`);
+                }));
     }
 
     onObjectChange = (id, obj) => {
+        if (!this.state.nodes) {
+            return;
+        }
         const nodes = JSON.parse(JSON.stringify(this.state.nodes));
         if (obj) {
             nodes[id] = obj;
@@ -165,7 +171,10 @@ class Controller extends React.Component {
         this.setState({ nodes });
     };
 
-    onStateChange(id, state) {
+    onStateChange = (id, state) => {
+        if (!this.state.states) {
+            return;
+        }
         const states = JSON.parse(JSON.stringify(this.state.states));
         if (state) {
             states[id] = state;
@@ -173,7 +182,7 @@ class Controller extends React.Component {
             delete states[id];
         }
         this.setState({ states });
-    }
+    };
 
     async componentWillUnmount() {
         this.props.registerMessageHandler(null);
@@ -322,15 +331,13 @@ class Controller extends React.Component {
                 {this.state.discoveryRunning ? <LinearProgress /> : null}
                 <Table style={{ width: '100%' }}>
                     <TableHead>
-                        <TableRow>
-                            <TableCell>
-                                {I18n.t('Name')}
-                            </TableCell>
-                            <TableCell>
-                                {I18n.t('Identifier')}
-                            </TableCell>
-                            <TableCell />
-                        </TableRow>
+                        <TableCell>
+                            {I18n.t('Name')}
+                        </TableCell>
+                        <TableCell>
+                            {I18n.t('Identifier')}
+                        </TableCell>
+                        <TableCell />
                     </TableHead>
                     <TableBody>
                         {this.state.discovered.map(device => <TableRow>
@@ -384,7 +391,7 @@ class Controller extends React.Component {
                 {icon}
                 {stateId.split('.').pop()}
             </TableCell>
-            <TableCell>{this.state.states[stateId]?.val || '--'}</TableCell>
+            <TableCell>{this.state.states[stateId] && this.state.states[stateId].val !== null && this.state.states[stateId].val !== undefined ? this.state.states[stateId].val.toString() : '--'}</TableCell>
         </TableRow>;
     }
 
@@ -496,9 +503,11 @@ class Controller extends React.Component {
             </div> : null}
             <Table style={{ maxWidth: 600 }} size="small">
                 <TableHead>
-                    <TableCell style={{ width: 0, padding: 0 }} />
-                    <TableCell>{I18n.t('Name')}</TableCell>
-                    <TableCell>{I18n.t('Value')}</TableCell>
+                    <TableRow>
+                        <TableCell style={{ width: 0, padding: 0 }} />
+                        <TableCell>{I18n.t('Name')}</TableCell>
+                        <TableCell>{I18n.t('Value')}</TableCell>
+                    </TableRow>
                 </TableHead>
                 <TableBody>
                     {this.renderNodes()}

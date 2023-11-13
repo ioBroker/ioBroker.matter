@@ -8,12 +8,12 @@ import { MatterAdapter } from '../../main';
 class OnOff extends Base {
     private handler: ((value: boolean) => void) | undefined = undefined;
 
-    async init(nodeId: NodeId) {
+    async init() {
         const cluster = this.endpoint.getClusterClient(OnOffCluster);
         if (!cluster) {
             return;
         }
-        await this.createChannel(nodeId, this.endpoint.getDeviceTypes());
+        await this.createChannel(this.endpoint.getDeviceTypes());
         const features = await cluster.getFeatureMapAttribute();
         // create onOff
         const id = await this.createState(
@@ -25,7 +25,6 @@ class OnOff extends Base {
                 read: true,
                 write: true,
             },
-            Base.toJSON(nodeId),
             cluster.id,
             await cluster.getOnOffAttribute(),
         );
@@ -62,14 +61,14 @@ class OnOff extends Base {
         }
     }
 
-    static async factory(adapter: MatterAdapter, nodeId: NodeId, endpoint: Endpoint): Promise<Base | undefined> {
+    static async factory(adapter: MatterAdapter, nodeId: NodeId, endpoint: Endpoint, path: number[]): Promise<Base | undefined> {
         const cluster = endpoint.getClusterClient(OnOffCluster);
         if (!cluster) {
             return;
         }
-        const result = new OnOff(adapter, endpoint);
+        const result = new OnOff(adapter, nodeId, endpoint, path);
         if (result) {
-            await result.init(nodeId);
+            await result.init();
         }
         return result;
     }

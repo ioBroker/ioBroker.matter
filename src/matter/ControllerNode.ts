@@ -76,6 +76,13 @@ const IGNORE_CLUSTERS: ClusterId[] = [
     0x0046 as ClusterId, // ICD Management S
 ];
 
+interface Device {
+    clusters: Base[];
+    nodeId: string;
+    connectionStateId?: string;
+    connectionStatusId?: string;
+}
+
 class Controller {
     private matterServer: MatterServer | undefined;
     private parameters: ControllerOptions;
@@ -83,7 +90,8 @@ class Controller {
     private adapter: MatterAdapter;
     private commissioningController: CommissioningController | null = null;
     private matterNodeIds: NodeId[] = [];
-    private clusters: Base[] = [];
+    private devices: Device[] = [];
+    private delayedStates: { [nodeId: string]: NodeStateInformation } = {};
 
     constructor(options: ControllerCreateOptions) {
         this.adapter = options.adapter;
@@ -126,7 +134,18 @@ class Controller {
                     )}`,
                 );
             },
-            stateInformationCallback: (peerNodeId: NodeId, info: NodeStateInformation) => {
+            stateInformationCallback: async (peerNodeId: NodeId, info: NodeStateInformation) => {
+                const jsonNodeId = Logger.toJSON(peerNodeId).replace(/"/g, '');
+                const device: Device | undefined = this.devices.find(device => device.nodeId === jsonNodeId);
+                if (device) {
+                    device.connectionStateId && (await this.adapter.setStateAsync(device.connectionStateId, info === NodeStateInformation.Connected, true));
+                    device.connectionStatusId && (await this.adapter.setStateAsync(device.connectionStatusId, info, true));
+                } else {
+                    this.adapter.log.warn(`Device ${Logger.toJSON(peerNodeId)} not found`);
+                    // delayed state
+                    this.delayedStates[jsonNodeId] = info;
+                }
+
                 switch (info) {
                     case NodeStateInformation.Connected:
                         this.adapter.log.debug(`stateInformationCallback ${peerNodeId}: Node ${originalNodeId} connected`);
@@ -346,15 +365,95 @@ class Controller {
                 changed = true;
                 deviceObj = {
                     _id: id,
-                    type: 'device',
+                    type: 'folder',
                     common: {
                         name: nodeIdString,
+                        statusStates: {
+                            onlineId: 'info.connection',
+                        },
                     },
                     native: {
                         nodeId: Logger.toJSON(nodeObject.nodeId),
                     },
                 };
                 await this.adapter.setObjectAsync(deviceObj._id, deviceObj);
+            }
+
+            const device: Device = {
+                nodeId: Logger.toJSON(nodeObject.nodeId),
+                clusters: [],
+            };
+
+            this.devices.push(device);
+
+            const infoId = `controller.${nodeIdString}.info`;
+            let infoObj = await this.adapter.getObjectAsync(infoId);
+            if (!infoObj) {
+                infoObj = {
+                    _id: infoId,
+                    type: 'channel',
+                    common: {
+                        name: 'Connection info',
+                    },
+                    native: {
+
+                    },
+                };
+                await this.adapter.setObjectAsync(infoObj._id, infoObj);
+            }
+
+            const infoConnectionId = `controller.${nodeIdString}.info.connection`;
+            let infoConnectionObj = await this.adapter.getObjectAsync(infoConnectionId);
+            if (!infoConnectionObj) {
+                infoConnectionObj = {
+                    _id: infoConnectionId,
+                    type: 'state',
+                    common: {
+                        name: 'Connected',
+                        role: 'indicator.connected',
+                        type: 'boolean',
+                        read: true,
+                        write: false,
+                    },
+                    native: {
+
+                    },
+                };
+                await this.adapter.setObjectAsync(infoConnectionObj._id, infoConnectionObj);
+            }
+            device.connectionStateId = infoConnectionId;
+
+            const infoStatusId = `controller.${nodeIdString}.info.status`;
+            let infoStatusObj = await this.adapter.getObjectAsync(infoStatusId);
+            if (!infoStatusObj) {
+                infoStatusObj = {
+                    _id: infoStatusId,
+                    type: 'state',
+                    common: {
+                        name: 'Connection status',
+                        role: 'state',
+                        type: 'number',
+                        states: {
+                            [NodeStateInformation.Connected]: 'connected',
+                            [NodeStateInformation.Disconnected]: 'disconnected',
+                            [NodeStateInformation.Reconnecting]: 'reconnecting',
+                            [NodeStateInformation.WaitingForDeviceDiscovery]: 'waitingForDeviceDiscovery',
+                            [NodeStateInformation.StructureChanged]: 'structureChanged',
+                        },
+                        read: true,
+                        write: false,
+                    },
+                    native: {
+
+                    },
+                };
+                await this.adapter.setObjectAsync(infoStatusObj._id, infoStatusObj);
+            }
+            device.connectionStatusId = infoStatusId;
+            if (this.delayedStates[nodeIdString] !== undefined) {
+                await this.adapter.setStateAsync(infoConnectionId, this.delayedStates[nodeIdString] === NodeStateInformation.Connected, true);
+                await this.adapter.setStateAsync(infoStatusId, this.delayedStates[nodeIdString], true);
+                delete this.delayedStates[nodeIdString];
             }
 
             // Example to initialize a ClusterClient and access concrete fields as API methods
@@ -382,22 +481,22 @@ class Controller {
                 await this.adapter.setObjectAsync(deviceObj._id, deviceObj);
             }
 
-            await this.endPointToIoBrokerStructure(nodeObject.nodeId, rootEndpoint, 0);
+            await this.endPointToIoBrokerStructure(nodeObject.nodeId, rootEndpoint, 0, [], device);
         }
     }
 
-    addCluster(cluster: Base | undefined) {
+    addCluster(device: Device, cluster: Base | undefined) {
         if (cluster) {
-            this.clusters.push(cluster);
+            device.clusters.push(cluster);
         }
     }
 
-    async endPointToIoBrokerStructure(nodeId: NodeId, endpoint: Endpoint, level: number): Promise<void> {
+    async endPointToIoBrokerStructure(nodeId: NodeId, endpoint: Endpoint, level: number, path: number[], device: Device): Promise<void> {
         this.adapter.log.info(`${''.padStart(level * 2)}Endpoint ${endpoint.id} (${endpoint.name}):`);
-        const keys = Object.keys(Factories);
-        for (let f = 0; f < Factories.length; f++) {
-            const factory = Factories[f];
-            this.addCluster(await factory(this.adapter, nodeId, endpoint));
+        if (level) {
+            for (let f = 0; f < Factories.length; f++) {
+                this.addCluster(device, await Factories[f](this.adapter, nodeId, endpoint, path));
+            }
         }
 
         // for (const clusterServer of endpoint.getAllClusterServers()) {
@@ -414,8 +513,10 @@ class Controller {
         // }
 
         const endpoints = endpoint.getChildEndpoints();
-        for (const childEndpoint of endpoints) {
-            await this.endPointToIoBrokerStructure(nodeId, childEndpoint, level + 1);
+        path.push(0);
+        for (let i = 0; i < endpoints.length; i++) {
+            path[path.length - 1] = i;
+            await this.endPointToIoBrokerStructure(nodeId, endpoints[i], level + 1, path, device);
         }
     }
 
@@ -540,12 +641,13 @@ class Controller {
     }
 
     async stop(): Promise<void> {
-        for (let i = 0; i < this.clusters.length; i++) {
-            const cluster = this.clusters[i];
-            await cluster.destroy();
+        for (let d = 0; d < this.devices.length; d++) {
+            for (let c = 0; c < this.devices[d].clusters.length; c++) {
+                await this.devices[d].clusters[c].destroy();
+            }
         }
 
-        this.clusters = [];
+        this.devices = [];
 
         if (this.commissioningController) {
             this.matterServer?.removeCommissioningController(this.commissioningController);

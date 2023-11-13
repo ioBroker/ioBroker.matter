@@ -322,7 +322,20 @@ class ConfigHandler {
 
         // compare config with this.config
         if (JSON.stringify(config.controller) !== JSON.stringify(this.config.controller)) {
-            const controller = await this.socket.getObject(`matter.${this.instance}.controller`);
+            let controller = await this.socket.getObject(`matter.${this.instance}.controller`);
+            if (!controller) {
+                controller = {
+                    type: 'folder',
+                    common: {
+                        name: 'Matter controller',
+                    },
+                    native: {
+                        enabled: false,
+                        ble: false,
+                        uuid: uuidv4(),
+                    },
+                };
+            }
             controller.native.enabled = config.controller.enabled;
             this.config.controller.enabled = config.controller.enabled;
             await this.socket.setObject(controller._id, controller);

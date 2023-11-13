@@ -116,7 +116,14 @@ export class MatterAdapter extends utils.Adapter {
         this.log.debug('Resetting');
         await this.matterServer?.close();
         await this.storage?.clearAll();
-        await this.onReady();
+        // clear all nodes in the controller
+        await this.delObjectAsync('controller', { recursive: true });
+
+        // restart adapter
+        const obj = await this.getForeignObjectAsync(`system.adapter.${this.namespace}`);
+        if (obj) {
+            await this.setForeignObjectAsync(obj._id, obj);
+        }
     }
 
     async onMessage(obj: ioBroker.Message): Promise<void> {

@@ -17,11 +17,11 @@ class Identify extends Base {
         await this.createChannel(nodeId, this.endpoint.getDeviceTypes());
 
         // create Identify channel
-        let id = `controller.${Base.toJSON(nodeId).replace(/"/g, '')}.identify`;
-        let channelObj = await this.adapter.getObjectAsync(id);
+        const _id = `controller.${Base.toJSON(nodeId).replace(/"/g, '')}.identify`;
+        let channelObj = await this.adapter.getObjectAsync(_id);
         if (!channelObj) {
             channelObj = {
-                _id: id,
+                _id,
                 type: 'channel',
                 common: {
                     name: 'Identify',
@@ -83,7 +83,7 @@ class Identify extends Base {
         cluster.addIdentifyTimeAttributeListener(this.handlerTime);
         cluster.addIdentifyTypeAttributeListener(this.handlerType);
 
-        this.createState(
+        const triggerId = await this.createState(
             'identify.trigger',
             {
                 name: 'Identify trigger',
@@ -103,14 +103,19 @@ class Identify extends Base {
             }
 
             if (state.val) {
-                const identifyTime = await this.adapter.getStateAsync(`${id}.time`);
+                try {
+                    const identifyTime = await this.adapter.getStateAsync(timeId);
 
-                await cluster.identify({
-                    identifyTime: parseInt((identifyTime?.val || 0).toString(), 10) || 5,
-                });
+                    await cluster.identify({
+                        identifyTime: parseInt((identifyTime?.val || 0).toString(), 10) || 5,
+                    });
+                } catch (e) {
+                    this.adapter.log.error(`Cannot send command identify: ${e.message}, stack: ${e.stack}`);
+                }
             }
         };
-        await this.subscribe(id, triggerIdentifyHandler);
+
+        await this.subscribe(triggerId, triggerIdentifyHandler);
     }
     async destroy() {
         await super.destroy();

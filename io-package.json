@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.1.9",
+    "version": "0.1.10",
     "news": {
+      "0.1.10": {
+        "en": "Implemented the factory reset and re-announcing",
+        "de": "Ergänzt die Werksanweisung und Wiederankündigung",
+        "ru": "Реализовано переустановку завода и переосмысление",
+        "pt": "Implementado o reset de fábrica e re-anunciamento",
+        "nl": "Vertaling:",
+        "fr": "Mise en œuvre de l'usine réinitialisée et renonçant",
+        "it": "Implementato il reset della fabbrica e riannuncio",
+        "es": "Implementado el reajuste de fábrica y reanunciamiento",
+        "pl": "Zrezygnował z resetu i ponowił działalność",
+        "uk": "Реалізовано заводське скидання та переадресацію",
+        "zh-cn": "执行工厂的重新定位和重新宣布"
+      },
       "0.1.9": {
         "en": "Implemented the factory reset and re-announcing",
         "de": "Ergänzt die Werksanweisung und Wiederankündigung",
@@ -80,19 +93,6 @@
         "pl": "Zrezygnował z resetu i ponowił działalność",
         "uk": "Реалізовано заводське скидання та переадресацію",
         "zh-cn": "执行工厂的重新定位和重新宣布"
-      },
-      "0.1.2": {
-        "en": "Devices were implemented",
-        "de": "Geräte wurden implementiert",
-        "ru": "Были реализованы устройства",
-        "pt": "Dispositivos foram implementados",
-        "nl": "De slachtoffers werden uitgevoerd",
-        "fr": "Des dispositifs ont été mis en œuvre",
-        "it": "I dispositivi sono stati implementati",
-        "es": "Se aplicaron dispositivos",
-        "pl": "Zbiór został zaimplementowany",
-        "uk": "Пристрої реалізовані",
-        "zh-cn": "被处决者"
       }
     },
     "title": "Matter",

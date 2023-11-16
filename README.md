@@ -24,7 +24,7 @@
 - fake delete (so the real deletion will be done in backend with factory reset of device)
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 0.1.11 (2023-11-16)
 * (bluefox) Working on the controller
 
 ### 0.1.10 (2023-11-13)

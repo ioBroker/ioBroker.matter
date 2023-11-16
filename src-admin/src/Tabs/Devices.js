@@ -266,7 +266,7 @@ class Devices extends BridgesAndDevices {
                     </Select>
                 </FormControl>
                 <FormControlLabel
-                    style={{ marginTop: 20 }}
+                    style={{ width: '100%', marginTop: 30 }}
                     label={I18n.t('Allow action by identify')}
                     control={<Checkbox
                         checked={!!this.state.editDeviceDialog.actionAllowedByIdentify}
@@ -351,6 +351,7 @@ class Devices extends BridgesAndDevices {
                         vendorID: device.vendorID,
                         noComposed: true,
                         enabled: true,
+                        actionAllowedByIdentify: false,
                     };
                     if (device.type === 'dimmer') {
                         obj.hasOnState = device.hasOnState;

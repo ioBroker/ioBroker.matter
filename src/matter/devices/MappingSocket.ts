@@ -3,7 +3,7 @@ import { OnOffPluginUnitDevice, Device } from '@project-chip/matter-node.js/devi
 import { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/GenericDevice';
 
-import { MappingGenericDevice } from './MappingGenericDevice';
+import {IdentifyOptions, MappingGenericDevice} from './MappingGenericDevice';
 import Socket from '../../lib/devices/Socket';
 
 export class MappingSocket extends MappingGenericDevice {
@@ -21,12 +21,34 @@ export class MappingSocket extends MappingGenericDevice {
                 await this.ioBrokerDevice.setPower(on);
             }
         });
-        this.matterDevice.addCommandHandler('identify', async({ request: { identifyTime } }) => {
-            // identifyTime is in seconds
-            console.log(
-                `Identify called for OnOffDevice ${this.getName()} with id: ${uniqueStorageKey} and identifyTime: ${identifyTime}`,
-            );
-        });
+        this.matterDevice.addCommandHandler(
+            'identify',
+            async({ request: { identifyTime }, attributes: { identifyTime: attrIdentifyTime} }) => {
+                // identifyTime is in seconds
+                console.log(`Identify called for OnOffDevice ${this.getName()} with id: ${uniqueStorageKey} and identifyTime: ${identifyTime}`);
+                const identifyInitialState = !!this.ioBrokerDevice.getPower();
+
+                const identifyOptions: IdentifyOptions = {
+                    identifyTime,
+                    counter: identifyTime / 2,
+                    currentState: identifyInitialState,
+                    initialState: identifyInitialState,
+                };
+
+                this.identify(attrIdentifyTime, identifyOptions);
+            },
+        );
+    }
+
+    // Just change the power state every second
+    doIdentify(identifyOptions: IdentifyOptions) {
+        identifyOptions.currentState = !identifyOptions.currentState;
+        this.ioBrokerDevice.setPower(identifyOptions.currentState as boolean);
+    }
+
+    // Restore the given initial state after the identity process is over
+    resetIdentify(identifyOptions: IdentifyOptions) {
+        this.ioBrokerDevice.setPower(identifyOptions.initialState as boolean);
     }
 
     getMatterDevice(): Device {
@@ -39,11 +61,16 @@ export class MappingSocket extends MappingGenericDevice {
 
     async init(): Promise<void> {
         await this.ioBrokerDevice.init();
+
+        // install ioBroker listeners
+        // here we react on changes from the ioBroker side for onOff and current lamp level
         this.ioBrokerDevice.onChange(event => {
             if (event.property === PropertyType.Power) {
                 this.matterDevice.setOnOff(!!event.value);
             }
         });
+
+        // init current state from ioBroker side
         this.matterDevice.setOnOff(!!this.ioBrokerDevice.getPower());
     }
 }

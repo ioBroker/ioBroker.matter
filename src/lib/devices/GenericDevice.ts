@@ -176,6 +176,7 @@ export enum PropertyType {
 export interface DeviceOptions {
     dimmerOnLevel?: number;
     dimmerUseLastLevelForOn?: boolean;
+    actionAllowedByIdentify?: boolean;
 }
 
 export class DeviceStateObject<T> {
@@ -452,6 +453,10 @@ abstract class GenericDevice {
             { name: 'WORKING', valueType: ValueType.Boolean, accessType: StateAccessType.Read, type: PropertyType.Working, callback: state => this._workingState = state },
             { name: 'DIRECTION', valueType: ValueType.Boolean, accessType: StateAccessType.Read, type: PropertyType.Direction, callback: state => this._directionState = state },
         ]));
+    }
+
+    isActionAllowedByIdentify(): boolean {
+        return !!this.options?.actionAllowedByIdentify;
     }
 
     async init(): Promise<void> {

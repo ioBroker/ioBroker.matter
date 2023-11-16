@@ -144,6 +144,7 @@ class Devices extends BridgesAndDevices {
 
             delete device.dimmerUseLastLevelForOn;
             delete device.dimmerOnLevel;
+            device.actionAllowedByIdentify = this.state.editDeviceDialog.actionAllowedByIdentify;
 
             if (device.type === 'dimmer') {
                 if (!device.hasOnState) {
@@ -164,6 +165,7 @@ class Devices extends BridgesAndDevices {
             this.state.editDeviceDialog.deviceType === this.state.editDeviceDialog.originalDeviceType &&
             this.state.editDeviceDialog.dimmerOnLevel === this.state.editDeviceDialog.originalDimmerOnLevel &&
             this.state.editDeviceDialog.dimmerUseLastLevelForOn === this.state.editDeviceDialog.originalDimmerUseLastLevelForOn &&
+            this.state.editDeviceDialog.actionAllowedByIdentify === this.state.editDeviceDialog.originalActionAllowedByIdentify &&
             this.state.editDeviceDialog.noComposed === this.state.editDeviceDialog.originalNoComposed) ||
             (!this.state.editDeviceDialog.dimmerUseLastLevelForOn && !this.state.editDeviceDialog.dimmerOnLevel) ||
             !this.state.editDeviceDialog.deviceType;
@@ -263,6 +265,19 @@ class Devices extends BridgesAndDevices {
                         </MenuItem>)}
                     </Select>
                 </FormControl>
+                <FormControlLabel
+                    style={{ marginTop: 20 }}
+                    label={I18n.t('Allow action by identify')}
+                    control={<Checkbox
+                        checked={!!this.state.editDeviceDialog.actionAllowedByIdentify}
+                        onChange={e => {
+                            const editDeviceDialog = JSON.parse(JSON.stringify(this.state.editDeviceDialog));
+                            editDeviceDialog.actionAllowedByIdentify = e.target.checked;
+                            this.setState({ editDeviceDialog });
+                        }}
+                    />}
+                    variant="standard"
+                />
                 {this.state.editDeviceDialog.deviceType === 'dimmer' && !this.state.editDeviceDialog.hasOnState ? <FormControlLabel
                     style={{ marginTop: 20 }}
                     label={I18n.t('Use last value for ON')}
@@ -322,6 +337,7 @@ class Devices extends BridgesAndDevices {
 
     addDevices = (devices, isAutoDetected) => {
         const matter = JSON.parse(JSON.stringify(this.props.matter));
+
         devices.forEach(device => {
             if (!matter.devices.find(d => d.oid === device)) {
                 if (this.props.checkLicenseOnAdd('addDevice', matter)) {
@@ -338,6 +354,9 @@ class Devices extends BridgesAndDevices {
                     };
                     if (device.type === 'dimmer') {
                         obj.hasOnState = device.hasOnState;
+                        obj.actionAllowedByIdentify = true;
+                    } else if (device.type === 'light') {
+                        obj.actionAllowedByIdentify = true;
                     }
                     matter.devices.push(obj);
                 }
@@ -616,6 +635,8 @@ class Devices extends BridgesAndDevices {
                                     originalDimmerOnLevel: parseFloat(device.dimmerOnLevel || 0) || 0,
                                     dimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
                                     originalDimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
+                                    actionAllowedByIdentify: !!device.actionAllowedByIdentify,
+                                    originalActionAllowedByIdentify: !!device.actionAllowedByIdentify,
                                     hasOnState: !!device.hasOnState,
                                 },
                             },

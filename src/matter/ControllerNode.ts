@@ -92,6 +92,7 @@ class Controller {
     private matterNodeIds: NodeId[] = [];
     private devices: Device[] = [];
     private delayedStates: { [nodeId: string]: NodeStateInformation } = {};
+    private connected: { [nodeId: string]: boolean } = {};
 
     constructor(options: ControllerCreateOptions) {
         this.adapter = options.adapter;
@@ -135,13 +136,24 @@ class Controller {
                 );
             },
             stateInformationCallback: async (peerNodeId: NodeId, info: NodeStateInformation) => {
-                const jsonNodeId = Logger.toJSON(peerNodeId).replace(/"/g, '');
+                const jsonNodeId = peerNodeId.toString();
+                const node = this.commissioningController?.getConnectedNode(peerNodeId);
                 const device: Device | undefined = this.devices.find(device => device.nodeId === jsonNodeId);
+                if (this.connected[jsonNodeId] !== undefined) {
+                    if (node?.isConnected && !this.connected[jsonNodeId]) {
+                        this.connected[jsonNodeId] = true;
+                        // Rebuild node structure
+                        await this.nodeToIoBrokerStructure(node);
+                    } else if (!node?.isConnected && this.connected[jsonNodeId]) {
+                        this.connected[jsonNodeId] = false;
+                    }
+                }
+
                 if (device) {
                     device.connectionStateId && (await this.adapter.setStateAsync(device.connectionStateId, info === NodeStateInformation.Connected, true));
                     device.connectionStatusId && (await this.adapter.setStateAsync(device.connectionStatusId, info, true));
                 } else {
-                    this.adapter.log.warn(`Device ${Logger.toJSON(peerNodeId)} not found`);
+                    this.adapter.log.warn(`Device ${jsonNodeId} not found`);
                     // delayed state
                     this.delayedStates[jsonNodeId] = info;
                 }
@@ -352,12 +364,22 @@ class Controller {
     }
 
     async nodeToIoBrokerStructure(nodeObject: PairedNode): Promise<void> {
+        const nodeIdString = nodeObject.nodeId.toString();
+
+        // find and destroy the old device
+        const oldNodeIndex = this.devices.findIndex(device => device.nodeId === nodeIdString);
+        if (oldNodeIndex !== -1) {
+            for (let c = 0; c < this.devices[oldNodeIndex].clusters.length; c++) {
+                await this.devices[oldNodeIndex].clusters[c].destroy();
+            }
+            this.devices.splice(oldNodeIndex, 1);
+        }
+
         const rootEndpoint = nodeObject.getDeviceById(0); // later use getRootEndpoint
         if (rootEndpoint === void 0) {
             this.adapter.log.debug(`Node ${nodeObject.nodeId} has not yet been initialized!`);
         } else {
             // create device
-            const nodeIdString = Logger.toJSON(nodeObject.nodeId).replace(/"/g, '');
             const id = `controller.${nodeIdString}`;
             let deviceObj = await this.adapter.getObjectAsync(id);
             let changed = false;
@@ -373,14 +395,14 @@ class Controller {
                         },
                     },
                     native: {
-                        nodeId: Logger.toJSON(nodeObject.nodeId),
+                        nodeId: nodeIdString,
                     },
                 };
                 await this.adapter.setObjectAsync(deviceObj._id, deviceObj);
             }
 
             const device: Device = {
-                nodeId: Logger.toJSON(nodeObject.nodeId),
+                nodeId: nodeIdString,
                 clusters: [],
             };
 
@@ -595,7 +617,7 @@ class Controller {
             await this.nodeToIoBrokerStructure(nodeObject);
 
             this.adapter.log.debug(`Commissioning successfully done with nodeId ${nodeObject.nodeId}`);
-            return { result: true, nodeId: Logger.toJSON(nodeObject.nodeId) };
+            return { result: true, nodeId: nodeObject.nodeId.toString() };
         } catch (error) {
             this.adapter.log.debug(`Commissioning failed: ${error}`);
             return { error, result: false };

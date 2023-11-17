@@ -62,35 +62,41 @@ class ConfigHandler {
                 const uuid = id.split('.').pop();
                 const device = this.config.devices.find(dev => dev.uuid === uuid);
                 if (device) {
-                    if (device.enabled !== obj.native.enabled) {
+                    if (!obj) {
+                        console.log(`Device ${uuid} deleted`);
                         changed = true;
-                        device.enabled = obj.native.enabled;
+                        this.config.devices.splice(this.config.devices.indexOf(device), 1);
+                    } else {
+                        if (device.enabled !== obj.native.enabled) {
+                            changed = true;
+                            device.enabled = obj.native.enabled;
+                        }
+                        if (device.noComposed !== obj.native.noComposed) {
+                            changed = true;
+                            device.noComposed = obj.native.noComposed;
+                        }
+                        if (device.name !== obj.common.name) {
+                            changed = true;
+                            device.name = obj.common.name;
+                        }
+                        if (device.oid !== obj.native.oid) {
+                            changed = true;
+                            device.oid = obj.native.oid;
+                        }
+                        if (device.type !== obj.native.type) {
+                            changed = true;
+                            device.type = obj.native.type;
+                        }
+                        if (device.productID !== obj.native.productID) {
+                            changed = true;
+                            device.productID = obj.native.productID;
+                        }
+                        if (device.vendorID !== obj.native.vendorID) {
+                            changed = true;
+                            device.vendorID = obj.native.vendorID;
+                        }
                     }
-                    if (device.noComposed !== obj.native.noComposed) {
-                        changed = true;
-                        device.noComposed = obj.native.noComposed;
-                    }
-                    if (device.name !== obj.common.name) {
-                        changed = true;
-                        device.name = obj.common.name;
-                    }
-                    if (device.oid !== obj.native.oid) {
-                        changed = true;
-                        device.oid = obj.native.oid;
-                    }
-                    if (device.type !== obj.native.type) {
-                        changed = true;
-                        device.type = obj.native.type;
-                    }
-                    if (device.productID !== obj.native.productID) {
-                        changed = true;
-                        device.productID = obj.native.productID;
-                    }
-                    if (device.vendorID !== obj.native.vendorID) {
-                        changed = true;
-                        device.vendorID = obj.native.vendorID;
-                    }
-                } else {
+                } else if (obj) {
                     console.log(`Detected new device: ${uuid}`);
                     changed = true;
                     this.config.devices.push({
@@ -114,27 +120,33 @@ class ConfigHandler {
                 const uuid = id.split('.').pop();
                 const bridge = this.config.bridges.find(dev => dev.uuid === uuid);
                 if (bridge) {
-                    if (bridge.enabled !== obj.native.enabled) {
+                    if (!obj) {
+                        console.log(`Bridge ${uuid} deleted`);
                         changed = true;
-                        bridge.enabled = obj.native.enabled;
+                        this.config.bridges.splice(this.config.bridges.indexOf(bridge), 1);
+                    } else {
+                        if (bridge.enabled !== obj.native.enabled) {
+                            changed = true;
+                            bridge.enabled = obj.native.enabled;
+                        }
+                        if (bridge.name !== obj.common.name) {
+                            changed = true;
+                            bridge.name = obj.common.name;
+                        }
+                        if (JSON.stringify(bridge.list) !== JSON.stringify(obj.native.list)) {
+                            changed = true;
+                            bridge.list = obj.native.list;
+                        }
+                        if (bridge.productID !== obj.native.productID) {
+                            changed = true;
+                            bridge.productID = obj.native.productID;
+                        }
+                        if (bridge.vendorID !== obj.native.vendorID) {
+                            changed = true;
+                            bridge.vendorID = obj.native.vendorID;
+                        }
                     }
-                    if (bridge.name !== obj.common.name) {
-                        changed = true;
-                        bridge.name = obj.common.name;
-                    }
-                    if (JSON.stringify(bridge.list) !== JSON.stringify(obj.native.list)) {
-                        changed = true;
-                        bridge.list = obj.native.list;
-                    }
-                    if (bridge.productID !== obj.native.productID) {
-                        changed = true;
-                        bridge.productID = obj.native.productID;
-                    }
-                    if (bridge.vendorID !== obj.native.vendorID) {
-                        changed = true;
-                        bridge.vendorID = obj.native.vendorID;
-                    }
-                } else {
+                } else if (obj) {
                     console.log(`Detected new bridge: ${uuid}`);
                     changed = true;
                     this.config.bridge.push({
@@ -152,8 +164,8 @@ class ConfigHandler {
                 }
             }
         } else if (id === `matter.${this.instance}.controller`) {
-            if (this.config.enabled !== obj.native.enabled) {
-                this.config.enabled = obj.native.enabled;
+            if (!obj || this.config.enabled !== obj.native.enabled) {
+                this.config.enabled = obj?.native?.enabled;
                 this.onChanged(this.config);
             }
         }
@@ -321,8 +333,8 @@ class ConfigHandler {
         ConfigHandler.sortAll(config);
 
         // compare config with this.config
-        if (JSON.stringify(config.controller) !== JSON.stringify(this.config.controller)) {
-            let controller = await this.socket.getObject(`matter.${this.instance}.controller`);
+        let controller = await this.socket.getObject(`matter.${this.instance}.controller`);
+        if (!controller || JSON.stringify(config.controller) !== JSON.stringify(this.config.controller)) {
             if (!controller) {
                 controller = {
                     type: 'folder',

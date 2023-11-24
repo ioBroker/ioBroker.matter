@@ -497,6 +497,20 @@ class Controller extends React.Component {
                 <TextField
                     fullWidth
                     style={{ maxWidth: 600 }}
+                    type="number"
+                    label={I18n.t('Bluetooth HCI ID')}
+                    value={this.props.matter.controller.hciId || ''}
+                    onChange={e => {
+                        const matter = JSON.parse(JSON.stringify(this.props.matter));
+                        matter.controller.hciId = e.target.value;
+                        this.props.updateConfig(matter);
+                    }}
+                />
+            </div> : null}
+            {this.props.matter.controller.enabled && this.props.matter.controller.ble ? <div>
+                <TextField
+                    fullWidth
+                    style={{ maxWidth: 600 }}
                     label={I18n.t('WiFI SSID')}
                     error={!this.props.matter.controller.wifiSSID}
                     helperText={this.props.matter.controller.wifiSSID ? '' : I18n.t('Required')}

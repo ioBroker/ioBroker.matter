@@ -9,7 +9,7 @@ import {
     Endpoint, CommissioningControllerNodeOptions,
     PairedNode,
 } from '@project-chip/matter-node.js/device';
-import { toHexString } from '@project-chip/matter-node.js/util';
+import { toHexString, singleton } from '@project-chip/matter-node.js/util';
 import {
     asClusterServerInternal,
     ClusterServerObj,
@@ -28,6 +28,9 @@ import {
     GeneralCommissioning,
 } from '@project-chip/matter-node.js/cluster';
 
+import { BleNode } from '@project-chip/matter-node-ble.js/ble';
+import { Ble } from '@project-chip/matter-node.js/ble';
+
 import { MatterAdapter } from '../main';
 import Factories from './clusters/factories';
 import Base from './clusters/Base';
@@ -45,6 +48,7 @@ export interface ControllerOptions {
     wifiPasword?: string;
     threadNetworkname?: string;
     threadOperationalDataSet?: string;
+    hciId?: number;
 }
 
 interface AddDeviceResult {
@@ -87,6 +91,7 @@ interface Device {
     connectionStatusId?: string;
 }
 
+
 class Controller {
     private matterServer: MatterServer | undefined;
     private parameters: ControllerOptions;
@@ -121,6 +126,10 @@ class Controller {
         });
 
         this.matterServer?.addCommissioningController(this.commissioningController, { uniqueStorageKey: this.parameters.uuid });
+
+        if (this.parameters.ble) {
+            Ble.get = singleton(() => new BleNode({ hciId: this.parameters.hciId }));
+        }
     }
 
     initEventHandlers(originalNodeId: NodeId | null, options?: any): any {

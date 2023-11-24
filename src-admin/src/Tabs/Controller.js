@@ -8,7 +8,7 @@ import {
     DialogActions, DialogContent, DialogTitle, IconButton,
     Switch, Table, TableBody,
     TableCell, TableHead, TableRow, TextField,
-    LinearProgress, Select, MenuItem,
+    LinearProgress, Select, MenuItem, FormControlLabel, Checkbox,
 } from '@mui/material';
 import {
     Add, Close, KeyboardArrowDown, KeyboardArrowUp,
@@ -480,6 +480,75 @@ class Controller extends React.Component {
                 />
                 {I18n.t('On')}
             </div>
+            {this.props.matter.controller.enabled ? <div>
+                <FormControlLabel
+                    control={<Checkbox
+                        checked={!!this.props.matter.controller.ble}
+                        onChange={e => {
+                            const matter = JSON.parse(JSON.stringify(this.props.matter));
+                            matter.controller.ble = e.target.checked;
+                            this.props.updateConfig(matter);
+                        }}
+                    />}
+                    label={I18n.t('Bluetooth')}
+                />
+            </div> : null}
+            {this.props.matter.controller.enabled && this.props.matter.controller.ble ? <div>
+                <TextField
+                    fullWidth
+                    style={{ maxWidth: 600 }}
+                    label={I18n.t('WiFI SSID')}
+                    error={!this.props.matter.controller.wifiSSID}
+                    helperText={this.props.matter.controller.wifiSSID ? '' : I18n.t('Required')}
+                    value={this.props.matter.controller.wifiSSID || ''}
+                    onChange={e => {
+                        const matter = JSON.parse(JSON.stringify(this.props.matter));
+                        matter.controller.wifiSSID = e.target.value;
+                        this.props.updateConfig(matter);
+                    }}
+                />
+            </div> : null}
+            {this.props.matter.controller.enabled && this.props.matter.controller.ble ? <div>
+                <TextField
+                    fullWidth
+                    style={{ maxWidth: 600 }}
+                    label={I18n.t('WiFI password')}
+                    error={!this.props.matter.controller.wifiPasword}
+                    helperText={this.props.matter.controller.wifiPasword ? '' : I18n.t('Required')}
+                    value={this.props.matter.controller.wifiPasword || ''}
+                    onChange={e => {
+                        const matter = JSON.parse(JSON.stringify(this.props.matter));
+                        matter.controller.wifiPasword = e.target.value;
+                        this.props.updateConfig(matter);
+                    }}
+                />
+            </div> : null}
+            {this.props.matter.controller.enabled && this.props.matter.controller.ble ? <div>
+                <TextField
+                    fullWidth
+                    style={{ maxWidth: 600 }}
+                    label={I18n.t('Thread network name')}
+                    value={this.props.matter.controller.threadNetworkname || ''}
+                    onChange={e => {
+                        const matter = JSON.parse(JSON.stringify(this.props.matter));
+                        matter.controller.threadNetworkname = e.target.value;
+                        this.props.updateConfig(matter);
+                    }}
+                />
+            </div> : null}
+            {this.props.matter.controller.enabled && this.props.matter.controller.ble ? <div>
+                <TextField
+                    fullWidth
+                    style={{ maxWidth: 600 }}
+                    label={I18n.t('Thread operational dataset')}
+                    value={this.props.matter.controller.threadOperationalDataSet || ''}
+                    onChange={e => {
+                        const matter = JSON.parse(JSON.stringify(this.props.matter));
+                        matter.controller.threadOperationalDataSet = e.target.value;
+                        this.props.updateConfig(matter);
+                    }}
+                />
+            </div> : null}
             {this.props.matter.controller.enabled && this.props.alive ? <div>
                 <Button
                     variant="contained"

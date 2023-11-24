@@ -41,6 +41,10 @@ export interface ControllerCreateOptions {
 export interface ControllerOptions {
     ble?: boolean;
     uuid: string;
+    wifiSSID?: string;
+    wifiPasword?: string;
+    threadNetworkname?: string;
+    threadOperationalDataSet?: string;
 }
 
 interface AddDeviceResult {
@@ -556,26 +560,22 @@ class Controller {
             regulatoryLocation: GeneralCommissioning.RegulatoryLocationType.IndoorOutdoor,
             regulatoryCountryCode: 'XX',
         };
-        // if (hasParameter("ble")) {
-        //     const wifiSsid = getParameter("ble-wifi-ssid");
-        //     const wifiCredentials = getParameter("ble-wifi-credentials");
-        //     const threadNetworkName = getParameter("ble-thread-networkname");
-        //     const threadOperationalDataset = getParameter("ble-thread-operationaldataset");
-        //     if (wifiSsid !== undefined && wifiCredentials !== undefined) {
-        //         this.adapter.log.debug(`Registering Commissioning over BLE with WiFi: ${wifiSsid}`);
-        //         commissioningOptions.wifiNetwork = {
-        //             wifiSsid: wifiSsid,
-        //             wifiCredentials: wifiCredentials,
-        //         };
-        //     }
-        //     if (threadNetworkName !== undefined && threadOperationalDataset !== undefined) {
-        //         this.adapter.log.debug(`Registering Commissioning over BLE with Thread: ${threadNetworkName}`);
-        //         commissioningOptions.threadNetwork = {
-        //             networkName: threadNetworkName,
-        //             operationalDataset: threadOperationalDataset,
-        //         };
-        //     }
-        // }
+        if (this.parameters.ble) {
+            if (this.parameters.wifiSSID && this.parameters.wifiPasword) {
+                this.adapter.log.debug(`Registering Commissioning over BLE with WiFi: ${this.parameters.wifiSSID}`);
+                commissioningOptions.wifiNetwork = {
+                    wifiSsid: this.parameters.wifiSSID,
+                    wifiCredentials: this.parameters.wifiPasword,
+                };
+            }
+            if (this.parameters.threadNetworkname !== undefined && this.parameters.threadOperationalDataSet !== undefined) {
+                this.adapter.log.debug(`Registering Commissioning over BLE with Thread: ${this.parameters.threadNetworkname}`);
+                commissioningOptions.threadNetwork = {
+                    networkName: this.parameters.threadNetworkname,
+                    operationalDataset: this.parameters.threadOperationalDataSet,
+                };
+            }
+        }
 
         let passcode: number | undefined;
         let shortDiscriminator: number | undefined;

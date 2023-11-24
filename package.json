@@ -18,6 +18,9 @@
     "type": "git",
     "url": "https://github.com/ioBroker/ioBroker.matter"
   },
+  "optionalDependencies": {
+    "@project-chip/matter-node-ble.js": "0.7.1-alpha.0-20231123-a7b3779"
+  },
   "dependencies": {
     "@iobroker/adapter-core": "^3.0.4",
     "@project-chip/matter-node.js": "0.7.1-alpha.0-20231123-a7b3779",

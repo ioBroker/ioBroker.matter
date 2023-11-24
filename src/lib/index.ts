@@ -7,7 +7,7 @@ import Camera from './devices/Camera';
 import Chart from './devices/Chart';
 import Cie from './devices/Cie';
 import Ct from './devices/Ct';
-import DeviceFabric from './DeviceFabric';
+import DeviceFactory from './DeviceFactory';
 import Dimmer from './devices/Dimmer';
 import Door from './devices/Door';
 import FireAlarm from './devices/FireAlarm';
@@ -51,7 +51,7 @@ export {
     Chart,
     Cie,
     Ct,
-    DeviceFabric,
+    DeviceFactory,
     Dimmer,
     Door,
     FireAlarm,

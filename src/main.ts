@@ -10,7 +10,7 @@ import { Level, Logger } from '@project-chip/matter-node.js/log';
 import { CommissionableDevice } from '@project-chip/matter-node.js/common';
 
 import { StorageIoBroker } from './matter/StorageIoBroker';
-import { DeviceFabric, SubscribeManager } from './lib';
+import { DeviceFactory, SubscribeManager } from './lib';
 import { DetectedDevice, DeviceOptions } from './lib/devices/GenericDevice';
 import BridgedDevice, { NodeStateResponse } from './matter/BridgedDevicesNode';
 import MatterDevice from './matter/DeviceNode';
@@ -384,27 +384,27 @@ export class MatterAdapter extends utils.Adapter {
             parts.pop();
             const channelId= parts.join('.');
             obj = await this.getForeignObjectAsync(channelId);
-            if (obj && obj.type === 'device') {
+            if (obj && (obj.type === 'device' || obj.type === 'channel')) {
                 return channelId;
             }
-            if (obj && obj.type === 'channel') {
-                parts.pop();
-                const deviceId = parts.join('.');
-                obj = await this.getForeignObjectAsync(deviceId);
-                if (obj && obj.type === 'device') {
-                    return deviceId;
-                }
-
-                return channelId;
-            }
+            // if (obj && obj.type === 'channel') {
+            //     parts.pop();
+            //     const deviceId = parts.join('.');
+            //     obj = await this.getForeignObjectAsync(deviceId);
+            //     if (obj && obj.type === 'device') {
+            //         return deviceId;
+            //     }
+            //
+            //     return channelId;
+            // }
             return id;
         } else if (obj && obj.type === 'channel') {
-            // we can go maximal two levels up: channel => device
-            parts.pop();
-            obj = await this.getForeignObjectAsync(parts.join('.'));
-            if (obj && obj.type === 'device') {
-                return parts.join('.');
-            }
+            // // we can go maximal two levels up: channel => device
+            // parts.pop();
+            // obj = await this.getForeignObjectAsync(parts.join('.'));
+            // if (obj && obj.type === 'device') {
+            //     return parts.join('.');
+            // }
 
             return id;
         }
@@ -550,7 +550,7 @@ export class MatterAdapter extends utils.Adapter {
                     };
                 }
                 if (detectedDevice) {
-                    const deviceObject = await DeviceFabric(detectedDevice, this, device as DeviceOptions);
+                    const deviceObject = await DeviceFactory(detectedDevice, this, device as DeviceOptions);
                     if (deviceObject) {
                         if (devices.length >= 5) {
                             if (!(await this.checkLicense())) {
@@ -612,7 +612,7 @@ export class MatterAdapter extends utils.Adapter {
                 };
             }
             if (detectedDevice) {
-                const deviceObject = await DeviceFabric(detectedDevice, this, options as DeviceOptions);
+                const deviceObject = await DeviceFactory(detectedDevice, this, options as DeviceOptions);
                 if (deviceObject) {
                     device = deviceObject;
                 }

@@ -181,6 +181,17 @@ export class MatterAdapter extends utils.Adapter {
             } else {
                 obj.callback && this.sendTo(obj.from, obj.command, { error: 'Controller not exist' }, obj.callback);
             }
+        } else if (obj.command === 'controllerDiscoveryStop') {
+            if (this.controller) {
+                if (this.controller.isDiscovering()) {
+                    await this.controller.discoveryStop();
+                    obj.callback && this.sendTo(obj.from, obj.command, { result: 'ok' }, obj.callback);
+                } else {
+                    obj.callback && this.sendTo(obj.from, obj.command, { error: 'Controller not discovering' }, obj.callback);
+                }
+            } else {
+                obj.callback && this.sendTo(obj.from, obj.command, { error: 'Controller not exist' }, obj.callback);
+            }
         } else if (obj.command === 'controllerAddDevice') {
             if (this.controller) {
                 const options: CommissioningOptions = obj.message as CommissioningOptions;

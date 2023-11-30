@@ -22,6 +22,7 @@
 - discriminator editable ?
 - ble
 - fake delete (so the real deletion will be done in backend with factory reset of device)
+- Check bridge in controller
 
 ## Changelog
 ### **WORK IN PROGRESS**

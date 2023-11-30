@@ -17,7 +17,7 @@ import {
     TabletAndroid as DeviceIcon,
     CompareArrows as ReadWriteStateIcon,
     ArrowRightAlt as WriteOnlyStateIcon,
-    KeyboardBackspace as ReadOnlyStateIcon,
+    KeyboardBackspace as ReadOnlyStateIcon, SearchOff,
 } from '@mui/icons-material';
 
 import { I18n } from '@iobroker/adapter-react-v5';
@@ -172,6 +172,15 @@ class Controller extends React.Component {
     };
 
     onStateChange = (id, state) => {
+        if (id === `matter.${this.props.instance}.controller.info.discovering`) {
+            if (state?.val) {
+                this.setState({ discoveryRunning: true });
+            } else {
+                this.setState({ discoveryRunning: false });
+            }
+            return;
+        }
+
         if (!this.state.states) {
             return;
         }
@@ -362,6 +371,15 @@ class Controller extends React.Component {
                 </Table>
             </DialogContent>
             <DialogActions>
+                <Button
+                    disabled={!this.state.discoveryRunning}
+                    variant="contained"
+                    onClick={() => this.props.socket.sendTo(`matter.${this.props.instance}`, 'controllerDiscoveryStop', { })
+                        .then(() => this.setState({ discoveryDone: false }))}
+                    startIcon={<SearchOff />}
+                >
+                    {I18n.t('Stop')}
+                </Button>
                 <Button
                     disabled={this.state.discoveryRunning}
                     variant="contained"
@@ -569,14 +587,13 @@ class Controller extends React.Component {
                     disabled={this.state.discoveryRunning}
                     startIcon={this.state.discoveryRunning ? <CircularProgress size={20} /> : <Search />}
                     onClick={() => {
-                        this.setState({ discoveryRunning: true, discovered: [] }, () =>
+                        this.setState({ discovered: [] }, () =>
                             this.props.socket.sendTo(`matter.${this.props.instance}`, 'controllerDiscovery', { })
                                 .then(result => {
                                     if (result.error) {
-                                        this.setState({ discoveryRunning: false });
                                         window.alert(`Cannot discover: ${result.error}`);
                                     } else {
-                                        this.setState({ discovered: result.result, discoveryDone: true, discoveryRunning: false });
+                                        this.setState({ discovered: result.result, discoveryDone: true });
                                     }
                                 }));
                     }}

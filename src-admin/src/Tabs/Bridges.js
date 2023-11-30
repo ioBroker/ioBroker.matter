@@ -523,7 +523,6 @@ export class Bridges extends BridgesAndDevices {
         if (this.state.addDeviceDialog.noAutoDetect) {
             this.bridgeIndex = this.state.addDeviceDialog.bridgeIndex;
             return <SelectID
-                imagePrefix="../.."
                 dialogName="matter"
                 themeType={this.props.themeType}
                 socket={this.props.socket}
@@ -991,6 +990,7 @@ export class Bridges extends BridgesAndDevices {
             {this.renderResetDialog()}
             <Tooltip title={I18n.t('Add bridge')} classes={{ popper: this.props.classes.tooltip }}>
                 <Fab
+                    size="small"
                     onClick={async () => {
                         const isLicenseOk = await this.props.checkLicenseOnAdd('addBridge');
                         if (!isLicenseOk) {
@@ -1017,8 +1017,8 @@ export class Bridges extends BridgesAndDevices {
                     }}
                     style={{
                         position: 'absolute',
-                        right: 20,
-                        bottom: 84,
+                        right: 15,
+                        bottom: 74,
                     }}
                 >
                     <Add />

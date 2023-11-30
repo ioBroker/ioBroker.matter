@@ -82,7 +82,7 @@ class App extends GenericApp {
             bridges: {},
             devices: {},
         };
-        this.state.detectedDevices = {};
+        this.state.detectedDevices = null;
 
         this.configHandler = null;
         this.intervalSubscribe = null;

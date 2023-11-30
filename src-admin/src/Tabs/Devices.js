@@ -497,7 +497,6 @@ class Devices extends BridgesAndDevices {
 
         if (this.state.addDeviceDialog.noAutoDetect) {
             return <SelectID
-                imagePrefix="../.."
                 dialogName="matter"
                 themeType={this.props.themeType}
                 socket={this.props.socket}
@@ -705,6 +704,7 @@ class Devices extends BridgesAndDevices {
             {this.renderResetDialog()}
             <Tooltip title={I18n.t('Add device with auto-detection')} classes={{ popper: this.props.classes.tooltip }}>
                 <Fab
+                    size="small"
                     onClick={() => this.setState({
                         addDeviceDialog: {
                             devices: this.props.matter.devices,
@@ -713,8 +713,8 @@ class Devices extends BridgesAndDevices {
                     })}
                     style={{
                         position: 'absolute',
-                        right: 84,
-                        bottom: 84,
+                        right: 64,
+                        bottom: 74,
                     }}
                 >
                     <Add />
@@ -722,6 +722,7 @@ class Devices extends BridgesAndDevices {
             </Tooltip>
             <Tooltip title={I18n.t('Add device from one state')} classes={{ popper: this.props.classes.tooltip }}>
                 <Fab
+                    size="small"
                     onClick={() => this.setState({
                         addDeviceDialog: {
                             devices: this.props.matter.devices,
@@ -731,8 +732,8 @@ class Devices extends BridgesAndDevices {
                     style={{
                         opacity: 0.6,
                         position: 'absolute',
-                        right: 20,
-                        bottom: 84,
+                        right: 15,
+                        bottom: 74,
                     }}
                 >
                     <Add />

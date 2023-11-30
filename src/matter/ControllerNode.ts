@@ -102,6 +102,9 @@ class Controller {
     private devices: Device[] = [];
     private delayedStates: { [nodeId: string]: NodeStateInformation } = {};
     private connected: { [nodeId: string]: boolean } = {};
+    private discovering: boolean = false;
+    private useBle: boolean = false;
+    private useThread: boolean = false;
 
     constructor(options: ControllerCreateOptions) {
         this.adapter = options.adapter;
@@ -128,7 +131,12 @@ class Controller {
         this.matterServer?.addCommissioningController(this.commissioningController, { uniqueStorageKey: this.parameters.uuid });
 
         if (this.parameters.ble) {
-            Ble.get = singleton(() => new BleNode({ hciId: this.parameters.hciId }));
+            try {
+                Ble.get = singleton(() => new BleNode({ hciId: this.parameters.hciId }));
+            } catch (error) {
+                this.adapter.log.error(`Failed to initialize BLE: ${error}`);
+                this.parameters.ble = false;
+            }
         }
     }
 
@@ -198,6 +206,40 @@ class Controller {
         if (!this.commissioningController) {
             throw new Error('CommissioningController not initialized');
         }
+
+
+        const infoObj = await this.adapter.getObjectAsync('controller.info');
+        if (!infoObj) {
+            await this.adapter.setObjectAsync('controller.info', {
+                type: 'channel',
+                common: {
+                    name: 'Information',
+                },
+                native: {
+
+                },
+            });
+        }
+
+        const discoveringObj = await this.adapter.getObjectAsync('controller.info.discovering');
+        if (!discoveringObj) {
+            await this.adapter.setObjectAsync('controller.info.discovering', {
+                type: 'state',
+                common: {
+                    name: 'Discovering',
+                    role: 'indicator',
+                    type: 'boolean',
+                    read: true,
+                    write: false,
+                },
+                native: {
+
+                },
+            });
+        }
+        await this.adapter.setStateAsync('controller.info.discovering', false, false);
+
+
         // get nodes
         const nodes = this.commissioningController.getCommissionedNodes();
 
@@ -396,11 +438,18 @@ class Controller {
             const id = `controller.${nodeIdString}`;
             let deviceObj = await this.adapter.getObjectAsync(id);
             let changed = false;
-            if (!deviceObj) {
+            let bridge = true;
+            const endpoints = rootEndpoint.getChildEndpoints();
+            if (endpoints.length === 1 && endpoints[0].name !== 'MA-bridge') {
+                // even if it is a bridge, threat it as a device
+                bridge = false;
+            }
+
+            if (!deviceObj || (deviceObj.type === 'folder' && !bridge) || (deviceObj.type === 'device' && bridge)) {
                 changed = true;
                 deviceObj = {
                     _id: id,
-                    type: 'folder',
+                    type: bridge ? 'folder' : 'device',
                     common: {
                         name: nodeIdString,
                         statusStates: {
@@ -411,7 +460,7 @@ class Controller {
                         nodeId: nodeIdString,
                     },
                 };
-                await this.adapter.setObjectAsync(deviceObj._id, deviceObj);
+                deviceObj && await this.adapter.setObjectAsync(deviceObj._id, deviceObj);
             }
 
             const device: Device = {
@@ -500,9 +549,9 @@ class Controller {
             //     console.log("No Descriptor Cluster found. This should never happen!");
             // }
 
-            // Example to subscribe to a field and get the value
+            // Subscribe to a field and get the value
             const info = nodeObject.getRootClusterClient(BasicInformationCluster);
-            if (info !== undefined) {
+            if (info !== undefined && deviceObj) {
                 const name = await info.getProductNameAttribute(); // This call is executed remotely
                 if (deviceObj.common.name !== name) {
                     changed = true;
@@ -512,7 +561,7 @@ class Controller {
                 // todo: iterate here over all attributes in info
             }
 
-            if (changed) {
+            if (changed && deviceObj) {
                 await this.adapter.setObjectAsync(deviceObj._id, deviceObj);
             }
 
@@ -571,6 +620,7 @@ class Controller {
         };
         if (this.parameters.ble) {
             if (this.parameters.wifiSSID && this.parameters.wifiPasword) {
+                this.useBle = true;
                 this.adapter.log.debug(`Registering Commissioning over BLE with WiFi: ${this.parameters.wifiSSID}`);
                 commissioningOptions.wifiNetwork = {
                     wifiSsid: this.parameters.wifiSSID,
@@ -579,6 +629,7 @@ class Controller {
             }
             if (this.parameters.threadNetworkname !== undefined && this.parameters.threadOperationalDataSet !== undefined) {
                 this.adapter.log.debug(`Registering Commissioning over BLE with Thread: ${this.parameters.threadNetworkname}`);
+                this.useThread = true;
                 commissioningOptions.threadNetwork = {
                     networkName: this.parameters.threadNetworkname,
                     operationalDataset: this.parameters.threadOperationalDataSet,
@@ -637,11 +688,13 @@ class Controller {
         if (!this.commissioningController) {
             return null;
         }
+        await this.adapter.setStateAsync('controller.info.discovering', true, true);
+        this.discovering = true;
         this.adapter.log.info(`Start the discovering...`);
         const result = await this.commissioningController.discoverCommissionableDevices(
             {},
             {
-                ble: false,
+                ble: this.useBle,
                 onIpNetwork: true,
             },
             device => {
@@ -654,7 +707,27 @@ class Controller {
             60, // timeoutSeconds
         );
         this.adapter.log.info(`Discovering stopped. Found ${result.length} devices.`);
+        this.discovering = false;
         return result;
+    }
+
+    isDiscovering(): boolean {
+        return this.discovering;
+    }
+
+    async discoveryStop(): Promise<void> {
+        if (this.commissioningController && this.discovering) {
+            this.adapter.log.info(`Stop the discovering...`);
+            this.discovering = false;
+            await this.adapter.setStateAsync('controller.info.discovering', false, false);
+            this.commissioningController.cancelCommissionableDeviceDiscovery(
+                {},
+                {
+                    ble: this.useBle,
+                    onIpNetwork: true,
+                },
+            );
+        }
     }
 
     async showNewCommissioningCode(nodeId: NodeId): Promise<{
@@ -672,6 +745,10 @@ class Controller {
     }
 
     async stop(): Promise<void> {
+        if (this.discovering) {
+            await this.discoveryStop();
+        }
+
         for (let d = 0; d < this.devices.length; d++) {
             for (let c = 0; c < this.devices[d].clusters.length; c++) {
                 await this.devices[d].clusters[c].destroy();

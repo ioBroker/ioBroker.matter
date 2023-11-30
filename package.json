@@ -19,26 +19,26 @@
     "url": "https://github.com/ioBroker/ioBroker.matter"
   },
   "optionalDependencies": {
-    "@project-chip/matter-node-ble.js": "0.7.1-alpha.0-20231123-a7b3779"
+    "@project-chip/matter-node-ble.js": "0.7.2-alpha.0-20231128-db9207d2"
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.0.4",
-    "@project-chip/matter-node.js": "0.7.1-alpha.0-20231123-a7b3779",
+    "@project-chip/matter-node.js": "0.7.2-alpha.0-20231128-db9207d2",
     "@iobroker/type-detector": "^3.0.5",
     "axios": "^1.6.2",
     "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
-    "@alcalzone/release-script": "^3.6.0",
-    "@alcalzone/release-script-plugin-iobroker": "^3.6.0",
-    "@alcalzone/release-script-plugin-license": "^3.5.9",
+    "@alcalzone/release-script": "^3.7.0",
+    "@alcalzone/release-script-plugin-iobroker": "^3.7.0",
+    "@alcalzone/release-script-plugin-license": "^3.7.0",
     "@iobroker/legacy-testing": "^1.0.3",
     "@types/iobroker": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.5",
-    "@types/node": "^20.9.4",
+    "@types/node": "^20.10.1",
     "colorette": "^2.0.20",
     "puppeteer": "^21.5.2",
-    "@typescript-eslint/eslint-plugin": "^6.12.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.1",
     "chai": "^4.3.10",
     "eslint": "^8.54.0",
     "eslint-config-standard-with-typescript": "^40.0.0",

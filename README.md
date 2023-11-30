@@ -25,7 +25,7 @@
 - Check bridge in controller
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 0.1.12 (2023-11-30)
 * (bluefox) Working on the controller
 
 ### 0.1.10 (2023-11-13)

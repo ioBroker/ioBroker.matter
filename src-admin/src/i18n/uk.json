@@ -98,5 +98,10 @@
   "Device names": "Назви пристроїв",
   "Room plus device type names": "Назви типів кімнат і пристроїв",
   "Show unsupported devices": "Показати непідтримувані пристрої",
-  "Hide unsupported devices": "Приховати непідтримувані пристрої"
+  "Hide unsupported devices": "Приховати непідтримувані пристрої",
+  "Bluetooth": "Bluetooth",
+  "Discovery devices": "Пристрої виявлення",
+  "Stop": "СТІЙ",
+  "Value": "Значення",
+  "status_waitingForDeviceDiscovery": "Очікування виявлення пристрою"
 }

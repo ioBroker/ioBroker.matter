@@ -98,5 +98,10 @@
   "Device names": "设备名称",
   "Room plus device type names": "房间加设备类型名称",
   "Show unsupported devices": "显示不支持的设备",
-  "Hide unsupported devices": "隐藏不支持的设备"
+  "Hide unsupported devices": "隐藏不支持的设备",
+  "Bluetooth": "蓝牙",
+  "Discovery devices": "发现设备",
+  "Stop": "停止",
+  "Value": "价值",
+  "status_waitingForDeviceDiscovery": "等待设备发现"
 }

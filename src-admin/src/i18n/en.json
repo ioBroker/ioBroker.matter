@@ -98,5 +98,10 @@
   "Device names": "Device names",
   "Room plus device type names": "Room plus device type names",
   "Show unsupported devices": "Show unsupported devices",
-  "Hide unsupported devices": "Hide unsupported devices"
+  "Hide unsupported devices": "Hide unsupported devices",
+  "Bluetooth": "Bluetooth",
+  "Discovery devices": "Discovery devices",
+  "Stop": "Stop",
+  "Value": "Value",
+  "status_waitingForDeviceDiscovery": "Waiting for device discovery"
 }

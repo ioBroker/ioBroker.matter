@@ -87,6 +87,7 @@ export class MatterAdapter extends utils.Adapter {
     private subscribed: boolean = false;
     private license: { [key: string]: boolean | undefined } = {};
     private controller: MatterController | null = null;
+    private sysLanguage: 'en' | 'de' | 'ru' | 'pt' | 'nl' | 'fr' | 'it' | 'es' | 'pl' | 'zh-cn' = 'en';
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -312,6 +313,9 @@ export class MatterAdapter extends utils.Adapter {
         this._guiSubscribes = this._guiSubscribes || [];
         SubscribeManager.setAdapter(this);
         await this.createMatterServer();
+
+        const systemConfig = await this.getForeignObjectAsync('system.config');
+        this.sysLanguage = systemConfig?.common?.language || 'en';
 
         await this.loadDevices();
         if (!this.subscribed) {
@@ -602,7 +606,7 @@ export class MatterAdapter extends utils.Adapter {
         throw new Error('Matter server not initialized');
     }
 
-    async createMatterDevice(options: DeviceDescription): Promise<MatterDevice | null> {
+    async createMatterDevice(deviceName: string, options: DeviceDescription): Promise<MatterDevice | null> {
         if (this.matterServer) {
             let device;
             let detectedDevice = await this.getDeviceStates(options.oid) as DetectedDevice;
@@ -637,8 +641,8 @@ export class MatterAdapter extends utils.Adapter {
                         discriminator: 3840,
                         vendorid: parseInt(options.vendorID) || 0xfff1,
                         productid: parseInt(options.productID) || 0x8000,
-                        devicename: options.name,
-                        productname: `Product ${options.name}`,
+                        devicename: deviceName,
+                        productname: `ioBroker ${options.type}`,
                     },
                     device,
                     deviceOptions: options,
@@ -751,7 +755,11 @@ export class MatterAdapter extends utils.Adapter {
         for (const d in _devices) {
             const device = _devices[d];
             if (!this.devices[device._id]) {
-                const matterDevice = await this.createMatterDevice(device.native as DeviceDescription);
+                const matterDevice = await this.createMatterDevice(
+                    typeof device.common.name === 'object' ?
+                        (device.common.name[this.sysLanguage] ? device.common.name[this.sysLanguage] as string : device.common.name.en) : device.common.name,
+                    device.native as DeviceDescription
+                );
                 if (matterDevice) {
                     if (Object.keys(this.devices).length >= 2) {
                         if (!(await this.checkLicense())) {

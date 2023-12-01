@@ -440,13 +440,17 @@ class Controller {
             let changed = false;
             let bridge = true;
             const endpoints = rootEndpoint.getChildEndpoints();
-            if (endpoints.length === 1 && endpoints[0].name !== 'MA-bridge') {
+            if (endpoints.length === 1 && endpoints[0].name !== 'MA-aggregator') {
                 // even if it is a bridge, threat it as a device
                 bridge = false;
             }
 
-            if (!deviceObj || (deviceObj.type === 'folder' && !bridge) || (deviceObj.type === 'device' && bridge)) {
+            if (!deviceObj ||
+                (deviceObj.type === 'folder' && !bridge) || (deviceObj.type === 'device' && bridge)
+            ) {
                 changed = true;
+                const oldCommon = deviceObj?.common || undefined;
+
                 deviceObj = {
                     _id: id,
                     type: bridge ? 'folder' : 'device',
@@ -460,6 +464,16 @@ class Controller {
                         nodeId: nodeIdString,
                     },
                 };
+                if (oldCommon?.custom && deviceObj?.common) {
+                    deviceObj.common.custom = oldCommon.custom;
+                }
+                if (oldCommon?.color && deviceObj) {
+                    deviceObj.common.color = oldCommon.color;
+                }
+                if (oldCommon?.desc && deviceObj) {
+                    deviceObj.common.desc = oldCommon.desc;
+                }
+
                 deviceObj && await this.adapter.setObjectAsync(deviceObj._id, deviceObj);
             }
 
@@ -557,8 +571,36 @@ class Controller {
                     changed = true;
                     deviceObj.common.name = name;
                 }
-
-                // todo: iterate here over all attributes in info
+                const vendorId = `0x${(await info.getVendorIdAttribute()).toString(16)}`;
+                if (deviceObj.native.vendorId !== vendorId) {
+                    changed = true;
+                    deviceObj.native.vendorId = vendorId;
+                }
+                const vendorName = await info.getVendorNameAttribute();
+                if (deviceObj.native.vendorName !== vendorName) {
+                    changed = true;
+                    deviceObj.native.vendorName = vendorName;
+                }
+                const productId = `0x${(await info.getProductIdAttribute()).toString(16)}`;
+                if (deviceObj.native.productId !== productId) {
+                    changed = true;
+                    deviceObj.native.productId = productId;
+                }
+                const nodeLabel = await info.getNodeLabelAttribute();
+                if (deviceObj.native.nodeLabel !== nodeLabel) {
+                    changed = true;
+                    deviceObj.native.nodeLabel = nodeLabel;
+                }
+                const productLabel = await info.getProductLabelAttribute();
+                if (deviceObj.native.productLabel !== productLabel) {
+                    changed = true;
+                    deviceObj.native.productLabel = productLabel;
+                }
+                const serialNumber = await info.getSerialNumberAttribute();
+                if (deviceObj.native.serialNumber !== serialNumber) {
+                    changed = true;
+                    deviceObj.native.serialNumber = serialNumber;
+                }
             }
 
             if (changed && deviceObj) {

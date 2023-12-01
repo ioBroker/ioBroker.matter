@@ -98,5 +98,10 @@
   "Device names": "Apparaatnamen",
   "Room plus device type names": "Kamer plus apparaattypenamen",
   "Show unsupported devices": "Toon niet-ondersteunde apparaten",
-  "Hide unsupported devices": "Verberg niet-ondersteunde apparaten"
+  "Hide unsupported devices": "Verberg niet-ondersteunde apparaten",
+  "Bluetooth": "Bluetooth",
+  "Discovery devices": "Ontdekkingsapparaten",
+  "Stop": "Stop",
+  "Value": "Waarde",
+  "status_waitingForDeviceDiscovery": "Wachten op apparaatdetectie"
 }

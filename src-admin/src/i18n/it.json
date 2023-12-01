@@ -98,5 +98,10 @@
   "Device names": "Nomi dei dispositivi",
   "Room plus device type names": "Nomi delle stanze e dei tipi di dispositivi",
   "Show unsupported devices": "Mostra i dispositivi non supportati",
-  "Hide unsupported devices": "Nascondi i dispositivi non supportati"
+  "Hide unsupported devices": "Nascondi i dispositivi non supportati",
+  "Bluetooth": "Bluetooth",
+  "Discovery devices": "Dispositivi di rilevamento",
+  "Stop": "Fermare",
+  "Value": "Valore",
+  "status_waitingForDeviceDiscovery": "In attesa del rilevamento del dispositivo"
 }

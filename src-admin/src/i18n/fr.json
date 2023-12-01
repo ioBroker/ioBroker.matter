@@ -98,5 +98,10 @@
   "Device names": "Noms des appareils",
   "Room plus device type names": "Noms des pièces et des types d'appareils",
   "Show unsupported devices": "Afficher les appareils non pris en charge",
-  "Hide unsupported devices": "Masquer les appareils non pris en charge"
+  "Hide unsupported devices": "Masquer les appareils non pris en charge",
+  "Bluetooth": "Bluetooth",
+  "Discovery devices": "Appareils de découverte",
+  "Stop": "Arrêt",
+  "Value": "Valeur",
+  "status_waitingForDeviceDiscovery": "En attente de découverte de périphérique"
 }

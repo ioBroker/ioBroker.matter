@@ -81,7 +81,7 @@ class Device {
 
         // product name / id and vendor id should match what is in the device certificate
         const vendorId = this.parameters.vendorid; // 0xfff1;
-        const productName = `ioBroker OnOff-Bridge`;
+        const productName = this.deviceOptions.name;
         const productId = this.parameters.productid; // 0x8000;
 
         const uniqueId = this.parameters.uuid.replace(/-/g, '').split('.').pop() || '0000000000000000';
@@ -89,7 +89,7 @@ class Device {
         /**
          * Create Matter Server and CommissioningServer Node
          *
-         * To allow the device to be announced, found, paired and operated we need a MatterServer instance and add a
+         * To allow the device to be announced, found, paired and operated, we need a MatterServer instance and add a
          * commissioningServer to it and add the just created device instance to it.
          * The CommissioningServer node defines the port where the server listens for the UDP packages of the Matter protocol
          * and initializes deice specific certificates and such.

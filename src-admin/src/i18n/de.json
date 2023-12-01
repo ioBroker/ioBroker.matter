@@ -98,5 +98,10 @@
   "Device names": "Gerätenamen",
   "Room plus device type names": "Raum- und Gerätetypnamen",
   "Show unsupported devices": "Nicht unterstützte Geräte anzeigen",
-  "Hide unsupported devices": "Nicht unterstützte Geräte ausblenden"
+  "Hide unsupported devices": "Nicht unterstützte Geräte ausblenden",
+  "Bluetooth": "Bluetooth",
+  "Discovery devices": "Erkennungsgeräte",
+  "Stop": "Stoppen",
+  "Value": "Wert",
+  "status_waitingForDeviceDiscovery": "Warten auf Geräteerkennung"
 }

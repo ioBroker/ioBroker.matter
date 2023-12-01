@@ -17,10 +17,12 @@ import {
     TabletAndroid as DeviceIcon,
     CompareArrows as ReadWriteStateIcon,
     ArrowRightAlt as WriteOnlyStateIcon,
-    KeyboardBackspace as ReadOnlyStateIcon, SearchOff,
+    KeyboardBackspace as ReadOnlyStateIcon,
+    SearchOff,
+    Wifi, WifiOff,
 } from '@mui/icons-material';
 
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n, IconClosed, IconOpen } from '@iobroker/adapter-react-v5';
 
 const styles = () => ({
     panel: {
@@ -122,9 +124,7 @@ class Controller extends React.Component {
                 `matter.${this.props.instance}.controller.`,
                 `matter.${this.props.instance}.controller.\u9999`,
             );
-            Object.keys(_states).forEach(id => {
-                nodes[id] = _states[id];
-            });
+            Object.keys(_states).forEach(id => nodes[id] = _states[id]);
         } catch (e) {
             // ignore
         }
@@ -134,9 +134,17 @@ class Controller extends React.Component {
                 `matter.${this.props.instance}.controller.`,
                 `matter.${this.props.instance}.controller.\u9999`,
             );
-            Object.keys(devices).forEach(id => {
-                nodes[id] = devices[id];
-            });
+            Object.keys(devices).forEach(id => nodes[id] = devices[id]);
+        } catch (e) {
+            // ignore
+        }
+        try {
+            const bridges = await this.props.socket.getObjectViewSystem(
+                'folder',
+                `matter.${this.props.instance}.controller.`,
+                `matter.${this.props.instance}.controller.\u9999`,
+            );
+            Object.keys(bridges).forEach(id => nodes[id] = bridges[id]);
         } catch (e) {
             // ignore
         }
@@ -430,13 +438,27 @@ class Controller extends React.Component {
         ];
     }
 
-    renderNode(deviceId) {
+    renderDevice(deviceId, inBridge) {
         const _deviceId = `${deviceId}.`;
         // get channels
         const channels = Object.keys(this.state.nodes).filter(id => id.startsWith(_deviceId) && this.state.nodes[id].type === 'channel');
+        let connected = null;
+        let status = null;
+        if (!inBridge) {
+            connected = this.state.states[`${_deviceId}info.connection`]?.val;
+            status = this.state.states[`${_deviceId}info.status`]?.val;
+            if (status !== null && status !== undefined && status !== '') {
+                status = status.toString();
+                const statusObj = this.state.nodes[`${_deviceId}info.status`];
+                if (statusObj?.common?.states[status]) {
+                    status = I18n.t(`status_${statusObj.common.states[status]}`).replace(/^status_/, '');
+                }
+            }
+        }
+
         return [
             <TableRow key={deviceId}>
-                <TableCell style={{ width: 0, padding: 0, height: 32 }}>
+                <TableCell style={{ width: 0, padding: inBridge ? '0 0 0 40px' : 0, height: 32 }}>
                     <IconButton
                         size="small"
                         className={this.props.classes.bridgeButtonsAndTitleColor}
@@ -466,15 +488,87 @@ class Controller extends React.Component {
                     </div>
                     <div className={this.props.classes.number}>{channels.length}</div>
                 </TableCell>
-                <TableCell></TableCell>
+                <TableCell>
+                    {connected !== null ? <div style={{ display: 'flex', gap: 6, alignItems: '' }}>
+                        {connected ? <Wifi style={{ color: 'green' }} /> : <WifiOff style={{ color: 'red' }} />}
+                        <div>{status || ''}</div>
+                    </div> : null}
+                </TableCell>
             </TableRow>,
             this.state.openedNodes.includes(deviceId) ? channels.map(id => this.renderCluster(id)) : null,
         ];
     }
 
-    renderNodes() {
-        const deviceIds = Object.keys(this.state.nodes).filter(id => this.state.nodes[id].type === 'device');
-        return deviceIds.map(id => this.renderNode(id));
+    renderBridge(bridgeId) {
+        // find all devices in this bridge
+        const _bridgeId = `${bridgeId}.`;
+        const deviceIds = Object.keys(this.state.nodes).filter(id => id.startsWith(_bridgeId) && this.state.nodes[id].type === 'device');
+
+        // get status
+        const connected = this.state.states[`${_bridgeId}info.connection`]?.val;
+        let status = this.state.states[`${_bridgeId}info.status`]?.val;
+        if (status !== null && status !== undefined && status !== '') {
+            status = status.toString();
+            const statusObj = this.state.nodes[`${_bridgeId}info.status`];
+            if (statusObj?.common?.states[status]) {
+                status = I18n.t(`status_${statusObj.common.states[status]}`).replace(/^status_/, '');
+            }
+        }
+
+        return [
+            <TableRow key={bridgeId}>
+                <TableCell style={{ width: 0, padding: 0, height: 32 }}>
+                    <IconButton
+                        size="small"
+                        className={this.props.classes.bridgeButtonsAndTitleColor}
+                        onClick={() => {
+                            const openedNodes = [...this.state.openedNodes];
+                            const index = openedNodes.indexOf(bridgeId);
+                            if (index === -1) {
+                                openedNodes.push(bridgeId);
+                                openedNodes.sort();
+                            } else {
+                                openedNodes.splice(index, 1);
+                            }
+                            window.localStorage.setItem('openedNodes', JSON.stringify(openedNodes));
+                            this.setState({ openedNodes });
+                        }}
+                    >
+                        {this.state.openedNodes.includes(bridgeId) ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
+                    </IconButton>
+                </TableCell>
+                <TableCell className={this.props.classes.device}>
+                    <div>
+                        {this.state.openedNodes.includes(bridgeId) ? <IconOpen /> : <IconClosed />}
+                    </div>
+                    <div>
+                        <div className={this.props.classes.deviceName}>{this.state.nodes[bridgeId].common.name}</div>
+                        <div className={this.props.classes.nodeId}>{bridgeId.split('.').pop()}</div>
+                    </div>
+                    <div className={this.props.classes.number}>{deviceIds.length}</div>
+                </TableCell>
+                <TableCell>
+                    <div style={{ display: 'flex', gap: 6, alignItems: '' }}>
+                        {connected ? <Wifi style={{ color: 'green' }} /> : <WifiOff style={{ color: 'red' }} />}
+                        <div>{status || ''}</div>
+                    </div>
+                </TableCell>
+            </TableRow>,
+            this.state.openedNodes.includes(bridgeId) ? deviceIds.map(id => this.renderDevice(id, true)) : null,
+        ];
+    }
+
+    renderDeviceOrBridge(deviceOrBridgeId) {
+        if (this.state.nodes[deviceOrBridgeId].type === 'device') {
+            return this.renderDevice(deviceOrBridgeId);
+        }
+        return this.renderBridge(deviceOrBridgeId);
+    }
+
+    renderDevicesAndBridges() {
+        // matter.0.controller.2808191892917842060
+        const deviceOrBridgeIds = Object.keys(this.state.nodes).filter(id => id.split('.').length === 4);
+        return deviceOrBridgeIds.map(id => this.renderDeviceOrBridge(id));
     }
 
     render() {
@@ -610,7 +704,7 @@ class Controller extends React.Component {
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {this.renderNodes()}
+                    {this.renderDevicesAndBridges()}
                 </TableBody>
             </Table>
         </div>;

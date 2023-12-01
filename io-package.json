@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.1.12",
+    "version": "0.1.13",
     "news": {
+      "0.1.13": {
+        "en": "Working on the controller",
+        "de": "Arbeiten am Controller",
+        "ru": "Работает на контроллере",
+        "pt": "Trabalhando no controlador",
+        "nl": "Werken aan de controller",
+        "fr": "Travailler sur le contrôleur",
+        "it": "Lavorare sul controller",
+        "es": "Trabajando en el controlador",
+        "pl": "Prace nad kontrolerem",
+        "uk": "Робота на контролері",
+        "zh-cn": "控制员的工作"
+      },
       "0.1.11": {
         "en": "Working on the controller",
         "de": "Arbeiten am Controller",

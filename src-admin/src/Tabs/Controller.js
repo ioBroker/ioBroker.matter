@@ -608,6 +608,7 @@ class Controller extends React.Component {
             {this.props.matter.controller.enabled && this.props.matter.controller.ble ? <div>
                 <TextField
                     fullWidth
+                    variant="standard"
                     style={{ maxWidth: 600 }}
                     type="number"
                     label={I18n.t('Bluetooth HCI ID')}
@@ -622,6 +623,7 @@ class Controller extends React.Component {
             {this.props.matter.controller.enabled && this.props.matter.controller.ble ? <div>
                 <TextField
                     fullWidth
+                    variant="standard"
                     style={{ maxWidth: 600 }}
                     label={I18n.t('WiFI SSID')}
                     error={!this.props.matter.controller.wifiSSID}
@@ -637,6 +639,7 @@ class Controller extends React.Component {
             {this.props.matter.controller.enabled && this.props.matter.controller.ble ? <div>
                 <TextField
                     fullWidth
+                    variant="standard"
                     style={{ maxWidth: 600 }}
                     label={I18n.t('WiFI password')}
                     error={!this.props.matter.controller.wifiPasword}
@@ -653,6 +656,7 @@ class Controller extends React.Component {
                 <TextField
                     fullWidth
                     style={{ maxWidth: 600 }}
+                    variant="standard"
                     label={I18n.t('Thread network name')}
                     value={this.props.matter.controller.threadNetworkname || ''}
                     onChange={e => {
@@ -666,6 +670,7 @@ class Controller extends React.Component {
                 <TextField
                     fullWidth
                     style={{ maxWidth: 600 }}
+                    variant="standard"
                     label={I18n.t('Thread operational dataset')}
                     value={this.props.matter.controller.threadOperationalDataSet || ''}
                     onChange={e => {

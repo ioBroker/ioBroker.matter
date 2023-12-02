@@ -109,5 +109,18 @@
   "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "Il dispositivo o il bridge perderanno tutte le informazioni di messa in servizio e sarà necessario riconnettersi nuovamente (con PIN o codice QR).",
   "Are you sure?": "Sei sicuro?",
   "Reset": "Ripristina",
-  "This cannot be undone!": "Questa operazione non può essere annullata!"
+  "This cannot be undone!": "Questa operazione non può essere annullata!",
+  "Show all debug logs": "Mostra tutti i log di debug",
+  "status_disconnected": "Disconnesso",
+  "Please confirm": "Per favore conferma",
+  "All state information of matter controller and devices will be deleted. You cannot undo it.": "Tutte le informazioni sullo stato del controller e dei dispositivi verranno eliminate. Non puoi annullarlo.",
+  "The configuration of controller, bridges and devices will stay unchanged.": "La configurazione di controller, bridge e dispositivi rimarrà invariata.",
+  "Reset to defaults": "Ripristina le impostazioni predefinite",
+  "Reset it at least to defaults": "Infine ripristina le impostazioni predefinite",
+  "Bluetooth HCI ID": "Bluetooth HCI ID",
+  "WiFI SSID": "WiFI SSID",
+  "Required": "",
+  "WiFI password": "",
+  "Thread network name": "Thread network name",
+  "Thread operational dataset": "Thread operational dataset"
 }

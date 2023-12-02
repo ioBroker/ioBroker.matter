@@ -109,5 +109,18 @@
   "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "Пристрій або міст втратить всю інформацію про введення в експлуатацію, і ви повинні знову підключитися (за допомогою PIN-коду або QR-коду).",
   "Are you sure?": "Ти впевнений?",
   "Reset": "Скинути",
-  "This cannot be undone!": "Це не може бути скасоване!"
+  "This cannot be undone!": "Це не може бути скасоване!",
+  "Show all debug logs": "Показати всі журнали налагодження",
+  "status_disconnected": "Відключено",
+  "Please confirm": "Будь-ласка підтвердіть",
+  "All state information of matter controller and devices will be deleted. You cannot undo it.": "Уся інформація про стан контролера матерії та пристроїв буде видалена. Ви не можете скасувати це.",
+  "The configuration of controller, bridges and devices will stay unchanged.": "Конфігурація контролера, мостів і пристроїв залишиться без змін.",
+  "Reset to defaults": "Відновити налаштування за замовчуванням",
+  "Reset it at least to defaults": "Нарешті скинути налаштування за замовчуванням",
+  "Bluetooth HCI ID": "Bluetooth HCI ID",
+  "WiFI SSID": "WiFI SSID",
+  "Required": "",
+  "WiFI password": "",
+  "Thread network name": "Thread network name",
+  "Thread operational dataset": "Thread operational dataset"
 }

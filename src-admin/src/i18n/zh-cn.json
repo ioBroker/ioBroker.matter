@@ -109,5 +109,18 @@
   "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "设备或网桥将丢失所有调试信息，您必须再次重新连接（使用 PIN 或 QR 码）。",
   "Are you sure?": "你确定吗？",
   "Reset": "重置",
-  "This cannot be undone!": "这不能被撤消！"
+  "This cannot be undone!": "这不能被撤消！",
+  "Show all debug logs": "显示所有调试日志",
+  "status_disconnected": "已断开连接",
+  "Please confirm": "请确认",
+  "All state information of matter controller and devices will be deleted. You cannot undo it.": "所有物质控制器和设备的状态信息都将被删除。您无法撤消它。",
+  "The configuration of controller, bridges and devices will stay unchanged.": "控制器、网桥和设备的配置将保持不变。",
+  "Reset to defaults": "重置为默认值",
+  "Reset it at least to defaults": "最后恢复默认设置",
+  "Bluetooth HCI ID": "",
+  "WiFI SSID": "WiFI SSID",
+  "Required": "",
+  "WiFI password": "",
+  "Thread network name": "Thread network name",
+  "Thread operational dataset": "Thread operational dataset"
 }

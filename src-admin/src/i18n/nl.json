@@ -109,5 +109,18 @@
   "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "Apparaat of bridge verliest alle inbedrijfstellingsinformatie en u moet opnieuw verbinding maken (met pincode of QR-code).",
   "Are you sure?": "Weet je het zeker?",
   "Reset": "Opnieuw instellen",
-  "This cannot be undone!": "Dit kan niet ongedaan gemaakt worden!"
+  "This cannot be undone!": "Dit kan niet ongedaan gemaakt worden!",
+  "Show all debug logs": "Toon alle foutopsporingslogboeken",
+  "status_disconnected": "Losgekoppeld",
+  "Please confirm": "Bevestig alstublieft",
+  "All state information of matter controller and devices will be deleted. You cannot undo it.": "Alle statusinformatie van de materiecontroller en apparaten wordt verwijderd. Je kunt het niet ongedaan maken.",
+  "The configuration of controller, bridges and devices will stay unchanged.": "De configuratie van controller, bruggen en apparaten blijft ongewijzigd.",
+  "Reset to defaults": "Resetten naar standaardwaarden",
+  "Reset it at least to defaults": "Eindelijk teruggezet naar de standaardinstellingen",
+  "Bluetooth HCI ID": "Bluetooth HCI ID",
+  "WiFI SSID": "WiFI SSID",
+  "Required": "",
+  "WiFI password": "",
+  "Thread network name": "Thread network name",
+  "Thread operational dataset": "Thread operational dataset"
 }

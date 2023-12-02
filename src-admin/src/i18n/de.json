@@ -100,7 +100,7 @@
   "Show unsupported devices": "Nicht unterstützte Geräte anzeigen",
   "Hide unsupported devices": "Nicht unterstützte Geräte ausblenden",
   "Bluetooth": "Bluetooth",
-  "Discovery devices": "Erkennungsgeräte",
+  "Discovery devices": "Geräte auffinden",
   "Stop": "Stoppen",
   "Value": "Wert",
   "status_waitingForDeviceDiscovery": "Warten auf Geräteerkennung",
@@ -109,5 +109,18 @@
   "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "Beim Gerät oder der Bridge gehen alle Inbetriebnahmeinformationen verloren und Sie müssen die Verbindung (mit PIN oder QR-Code) erneut herstellen.",
   "Are you sure?": "Bist du sicher?",
   "Reset": "Zurücksetzen",
-  "This cannot be undone!": "Das kann nicht rückgängig gemacht werden!"
+  "This cannot be undone!": "Das kann nicht rückgängig gemacht werden!",
+  "Show all debug logs": "Alle Debug-Protokolle anzeigen",
+  "status_disconnected": "Getrennt",
+  "Please confirm": "Bitte bestätigen",
+  "All state information of matter controller and devices will be deleted. You cannot undo it.": "Alle Statusinformationen des Materie-Controllers und der Geräte werden gelöscht. Sie können es nicht rückgängig machen.",
+  "The configuration of controller, bridges and devices will stay unchanged.": "Die Konfiguration von Controller, Bridges und Geräten bleibt unverändert.",
+  "Reset to defaults": "Auf Standardeinstellung zurücksetzen",
+  "Reset it at least to defaults": "Endlich auf die Standardeinstellungen zurücksetzten",
+  "Bluetooth HCI ID": "Bluetooth HCI ID",
+  "WiFI SSID": "WiFI SSID",
+  "Required": "",
+  "WiFI password": "",
+  "Thread network name": "Thread-Network-Name",
+  "Thread operational dataset": "Thread operational dataset"
 }

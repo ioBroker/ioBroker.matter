@@ -100,7 +100,7 @@
   "Show unsupported devices": "Показать неподдерживаемые устройства",
   "Hide unsupported devices": "Скрыть неподдерживаемые устройства",
   "Bluetooth": "Bluetooth",
-  "Discovery devices": "Устройства обнаружения",
+  "Discovery devices": "Обнаружить устройства",
   "Stop": "Останавливаться",
   "Value": "Значение",
   "status_waitingForDeviceDiscovery": "Ожидание обнаружения устройства",
@@ -109,5 +109,18 @@
   "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "Устройство или мост потеряют всю информацию о вводе в эксплуатацию, и вам придется повторно подключиться (с помощью PIN-кода или QR-кода).",
   "Are you sure?": "Вы уверены?",
   "Reset": "Перезагрузить",
-  "This cannot be undone!": "Это не может быть отменено!"
+  "This cannot be undone!": "Это не может быть отменено!",
+  "Show all debug logs": "Показать все журналы отладки",
+  "status_disconnected": "Отключено",
+  "Please confirm": "Пожалуйста подтвердите",
+  "All state information of matter controller and devices will be deleted. You cannot undo it.": "Вся информация о состоянии контроллера материи и устройств будет удалена. Вы не можете отменить это.",
+  "The configuration of controller, bridges and devices will stay unchanged.": "Конфигурация контроллера, мостов и устройств останется неизменной.",
+  "Reset to defaults": "Сбросить настройки по умолчанию",
+  "Reset it at least to defaults": "Наконец сброс к настройкам по умолчанию",
+  "Bluetooth HCI ID": "Bluetooth HCI ID",
+  "WiFI SSID": "WiFI SSID",
+  "Required": "",
+  "WiFI password": "",
+  "Thread network name": "Имя сети Thread",
+  "Thread operational dataset": "Thread operational dataset"
 }

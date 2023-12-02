@@ -109,5 +109,18 @@
   "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.",
   "Are you sure?": "Are you sure?",
   "Reset": "Reset",
-  "This cannot be undone!": "This cannot be undone!"
+  "This cannot be undone!": "This cannot be undone!",
+  "Show all debug logs": "Show all debug logs",
+  "status_disconnected": "Disconnected",
+  "Please confirm": "Please confirm",
+  "All state information of matter controller and devices will be deleted. You cannot undo it.": "All state information of matter controller and devices will be deleted. You cannot undo it.",
+  "The configuration of controller, bridges and devices will stay unchanged.": "The configuration of controller, bridges and devices will stay unchanged.",
+  "Reset to defaults": "Reset to defaults",
+  "Reset it at least to defaults": "Finally reset to default settings",
+  "Bluetooth HCI ID": "Bluetooth HCI ID",
+  "WiFI SSID": "WiFI SSID",
+  "Required": "Required",
+  "WiFI password": "WiFI password",
+  "Thread network name": "Thread network name",
+  "Thread operational dataset": "Thread operational dataset"
 }

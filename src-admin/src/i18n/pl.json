@@ -103,5 +103,11 @@
   "Discovery devices": "Urządzenia odkrywcze",
   "Stop": "Zatrzymywać się",
   "Value": "Wartość",
-  "status_waitingForDeviceDiscovery": "Oczekiwanie na wykrycie urządzenia"
+  "status_waitingForDeviceDiscovery": "Oczekiwanie na wykrycie urządzenia",
+  "Reset to factory defaults": "Przywróć ustawienia fabryczne",
+  "Reset device or bridge": "Zresetuj urządzenie lub most",
+  "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "Urządzenie lub most utraci wszystkie informacje dotyczące uruchomienia i konieczne będzie ponowne nawiązanie połączenia (za pomocą kodu PIN lub QR).",
+  "Are you sure?": "Jesteś pewny?",
+  "Reset": "Resetowanie",
+  "This cannot be undone!": "Tego nie da się cofnąć!"
 }

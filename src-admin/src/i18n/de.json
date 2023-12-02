@@ -103,5 +103,11 @@
   "Discovery devices": "Erkennungsgeräte",
   "Stop": "Stoppen",
   "Value": "Wert",
-  "status_waitingForDeviceDiscovery": "Warten auf Geräteerkennung"
+  "status_waitingForDeviceDiscovery": "Warten auf Geräteerkennung",
+  "Reset to factory defaults": "Zurücksetzen auf Werkseinstellungen",
+  "Reset device or bridge": "Gerät oder Bridge zurücksetzen",
+  "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "Beim Gerät oder der Bridge gehen alle Inbetriebnahmeinformationen verloren und Sie müssen die Verbindung (mit PIN oder QR-Code) erneut herstellen.",
+  "Are you sure?": "Bist du sicher?",
+  "Reset": "Zurücksetzen",
+  "This cannot be undone!": "Das kann nicht rückgängig gemacht werden!"
 }

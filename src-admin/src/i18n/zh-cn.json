@@ -103,5 +103,11 @@
   "Discovery devices": "发现设备",
   "Stop": "停止",
   "Value": "价值",
-  "status_waitingForDeviceDiscovery": "等待设备发现"
+  "status_waitingForDeviceDiscovery": "等待设备发现",
+  "Reset to factory defaults": "重置为出厂默认设置",
+  "Reset device or bridge": "重置设备或桥接器",
+  "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "设备或网桥将丢失所有调试信息，您必须再次重新连接（使用 PIN 或 QR 码）。",
+  "Are you sure?": "你确定吗？",
+  "Reset": "重置",
+  "This cannot be undone!": "这不能被撤消！"
 }

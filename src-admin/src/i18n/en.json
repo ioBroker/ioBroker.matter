@@ -103,5 +103,11 @@
   "Discovery devices": "Discovery devices",
   "Stop": "Stop",
   "Value": "Value",
-  "status_waitingForDeviceDiscovery": "Waiting for device discovery"
+  "status_waitingForDeviceDiscovery": "Waiting for device discovery",
+  "Reset to factory defaults": "Reset to factory defaults",
+  "Reset device or bridge": "Reset device or bridge",
+  "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.",
+  "Are you sure?": "Are you sure?",
+  "Reset": "Reset",
+  "This cannot be undone!": "This cannot be undone!"
 }

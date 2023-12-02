@@ -103,5 +103,11 @@
   "Discovery devices": "Пристрої виявлення",
   "Stop": "СТІЙ",
   "Value": "Значення",
-  "status_waitingForDeviceDiscovery": "Очікування виявлення пристрою"
+  "status_waitingForDeviceDiscovery": "Очікування виявлення пристрою",
+  "Reset to factory defaults": "Скидання до заводських налаштувань",
+  "Reset device or bridge": "Скинути пристрій або міст",
+  "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "Пристрій або міст втратить всю інформацію про введення в експлуатацію, і ви повинні знову підключитися (за допомогою PIN-коду або QR-коду).",
+  "Are you sure?": "Ти впевнений?",
+  "Reset": "Скинути",
+  "This cannot be undone!": "Це не може бути скасоване!"
 }

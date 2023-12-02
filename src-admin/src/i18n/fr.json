@@ -103,5 +103,11 @@
   "Discovery devices": "Appareils de découverte",
   "Stop": "Arrêt",
   "Value": "Valeur",
-  "status_waitingForDeviceDiscovery": "En attente de découverte de périphérique"
+  "status_waitingForDeviceDiscovery": "En attente de découverte de périphérique",
+  "Reset to factory defaults": "Réinitialiser aux paramètres d'usine",
+  "Reset device or bridge": "Réinitialiser l'appareil ou le pont",
+  "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "L'appareil ou le pont perdra toutes les informations de mise en service et vous devrez vous reconnecter (avec code PIN ou QR code).",
+  "Are you sure?": "Es-tu sûr?",
+  "Reset": "Réinitialiser",
+  "This cannot be undone!": "Ça ne peut pas être annulé!"
 }

@@ -103,5 +103,11 @@
   "Discovery devices": "Ontdekkingsapparaten",
   "Stop": "Stop",
   "Value": "Waarde",
-  "status_waitingForDeviceDiscovery": "Wachten op apparaatdetectie"
+  "status_waitingForDeviceDiscovery": "Wachten op apparaatdetectie",
+  "Reset to factory defaults": "Resetten naar fabrieksinstellingen",
+  "Reset device or bridge": "Apparaat of brug resetten",
+  "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "Apparaat of bridge verliest alle inbedrijfstellingsinformatie en u moet opnieuw verbinding maken (met pincode of QR-code).",
+  "Are you sure?": "Weet je het zeker?",
+  "Reset": "Opnieuw instellen",
+  "This cannot be undone!": "Dit kan niet ongedaan gemaakt worden!"
 }

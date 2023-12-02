@@ -103,5 +103,11 @@
   "Discovery devices": "Устройства обнаружения",
   "Stop": "Останавливаться",
   "Value": "Значение",
-  "status_waitingForDeviceDiscovery": "Ожидание обнаружения устройства"
+  "status_waitingForDeviceDiscovery": "Ожидание обнаружения устройства",
+  "Reset to factory defaults": "Сброс к заводским настройкам",
+  "Reset device or bridge": "Сброс устройства или моста",
+  "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "Устройство или мост потеряют всю информацию о вводе в эксплуатацию, и вам придется повторно подключиться (с помощью PIN-кода или QR-кода).",
+  "Are you sure?": "Вы уверены?",
+  "Reset": "Перезагрузить",
+  "This cannot be undone!": "Это не может быть отменено!"
 }

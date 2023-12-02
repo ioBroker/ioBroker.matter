@@ -103,5 +103,11 @@
   "Discovery devices": "Dispositivi di rilevamento",
   "Stop": "Fermare",
   "Value": "Valore",
-  "status_waitingForDeviceDiscovery": "In attesa del rilevamento del dispositivo"
+  "status_waitingForDeviceDiscovery": "In attesa del rilevamento del dispositivo",
+  "Reset to factory defaults": "Ripristina le impostazioni di fabbrica",
+  "Reset device or bridge": "Ripristina il dispositivo o il bridge",
+  "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "Il dispositivo o il bridge perderanno tutte le informazioni di messa in servizio e sarà necessario riconnettersi nuovamente (con PIN o codice QR).",
+  "Are you sure?": "Sei sicuro?",
+  "Reset": "Ripristina",
+  "This cannot be undone!": "Questa operazione non può essere annullata!"
 }

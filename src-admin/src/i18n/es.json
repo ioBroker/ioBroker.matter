@@ -103,5 +103,11 @@
   "Discovery devices": "Dispositivos de descubrimiento",
   "Stop": "Detener",
   "Value": "Valor",
-  "status_waitingForDeviceDiscovery": "Esperando el descubrimiento del dispositivo"
+  "status_waitingForDeviceDiscovery": "Esperando el descubrimiento del dispositivo",
+  "Reset to factory defaults": "Restablecer los valores predeterminados de fábrica",
+  "Reset device or bridge": "Restablecer dispositivo o puente",
+  "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "El dispositivo o puente perderá toda la información de puesta en servicio y deberá volver a conectarse (con PIN o código QR).",
+  "Are you sure?": "¿Está seguro?",
+  "Reset": "Reiniciar",
+  "This cannot be undone!": "¡Esto no se puede deshacer!"
 }

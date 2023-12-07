@@ -22,6 +22,8 @@ import {
 } from './ioBrokerStorageTypes';
 import MatterController, {ControllerOptions} from './matter/ControllerNode';
 
+import MatterAdapterDeviceManagement from './lib/DeviceManagement';
+
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
 
 // If the device was created by user and user defined the type of device => use this OID as given name
@@ -88,6 +90,7 @@ export class MatterAdapter extends utils.Adapter {
     private license: { [key: string]: boolean | undefined } = {};
     private controller: MatterController | null = null;
     private sysLanguage: 'en' | 'de' | 'ru' | 'pt' | 'nl' | 'fr' | 'it' | 'es' | 'pl' | 'zh-cn' = 'en';
+    private readonly deviceManagement: MatterAdapterDeviceManagement;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -109,6 +112,7 @@ export class MatterAdapter extends utils.Adapter {
         this.on('objectChange', (id /* , object */) => this.onObjectChange(id));
         this.on('unload', callback => this.onUnload(callback));
         this.on('message', this.onMessage.bind(this));
+        this.deviceManagement = new MatterAdapterDeviceManagement(this);
 
         this.detector = new ChannelDetector();
     }
@@ -128,6 +132,10 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async onMessage(obj: ioBroker.Message): Promise<void> {
+        if (obj?.command?.startsWith('dm:')) {
+            return;
+        }
+
         if (obj?.command === 'reset') {
             await this.onTotalReset();
         } else if (obj?.command === 'nodeStates') {

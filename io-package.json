@@ -152,6 +152,9 @@
       "sentry": {
         "dsn": "https://de38f4a20c964ce395d2e236c64aa075@sentry.iobroker.net/234"
       }
+    },
+    "supportedMessages": {
+      "deviceManager": true
     }
   },
   "protectedNative": [

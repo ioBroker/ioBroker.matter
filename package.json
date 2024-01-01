@@ -19,7 +19,7 @@
     "url": "https://github.com/ioBroker/ioBroker.matter"
   },
   "optionalDependencies": {
-    "@project-chip/matter-node-ble.js": "0.7.2-alpha.0-20231128-db9207d2"
+    "@project-chip/matter-node-ble.js": "0.7.4"
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.0.4",

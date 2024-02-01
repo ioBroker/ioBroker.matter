@@ -26,7 +26,7 @@
     "@project-chip/matter-node.js": "0.7.2-alpha.0-20231128-db9207d2",
     "@iobroker/type-detector": "^3.0.5",
     "@jey-cee/dm-utils": "^0.0.5",
-    "axios": "^1.6.2",
+    "axios": "^1.6.7",
     "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {

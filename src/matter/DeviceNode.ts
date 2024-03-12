@@ -1,8 +1,6 @@
-import { CommissioningServer, MatterServer } from '@project-chip/matter-node.js';
-
-import { VendorId } from '@project-chip/matter-node.js/datatype';
-import { DeviceTypes } from '@project-chip/matter-node.js/device';
-import { Logger } from '@project-chip/matter-node.js/log';
+import { VendorId } from '@project-chip/matter.js/datatype';
+import { DeviceTypes } from '@project-chip/matter.js/device';
+import { Logger } from '@project-chip/matter.js/log';
 
 import { GenericDevice } from '../lib';
 import { DeviceDescription } from '../ioBrokerStorageTypes';
@@ -10,31 +8,30 @@ import { DeviceDescription } from '../ioBrokerStorageTypes';
 import matterDeviceFactory from './matterFactory';
 import VENDOR_IDS from './vendorIds';
 import { NodeStateResponse, NodeStates } from './BridgedDevicesNode';
-import { MatterAdapter } from '../main';
+import type { MatterAdapter } from '../main';
+import { ServerNode } from '@project-chip/matter.js/node';
+import { SessionsBehavior } from '@project-chip/matter.js/behavior/system/sessions';
 
 export interface DeviceCreateOptions {
     adapter: MatterAdapter;
     parameters: DeviceOptions,
     device: GenericDevice;
-    matterServer: MatterServer;
     deviceOptions: DeviceDescription;
 }
 
 export interface DeviceOptions {
     uuid: string;
-    passcode: number;
-    discriminator: number;
-    vendorid: number;
-    productid: number;
-    devicename: string;
-    productname: string;
+    vendorId: number;
+    productId: number;
+    deviceName: string;
+    productName: string;
+    port: number;
 }
 
 class Device {
-    private matterServer: MatterServer | undefined;
     private parameters: DeviceOptions;
     private readonly device: GenericDevice;
-    private commissioningServer: CommissioningServer | undefined;
+    private serverNode: ServerNode | undefined;
     private deviceOptions: DeviceDescription;
     private adapter: MatterAdapter;
     private commissioned: boolean | null = null;
@@ -43,25 +40,21 @@ class Device {
         this.adapter = options.adapter;
         this.parameters = options.parameters;
         this.device = options.device;
-        this.matterServer = options.matterServer;
         this.deviceOptions = options.deviceOptions;
     }
 
     async init(): Promise<void> {
-        const commissionedObj = await this.adapter.getObjectAsync(`devices.${this.parameters.uuid}.commissioned`);
-        if (!commissionedObj) {
-            await this.adapter.setObjectAsync(`devices.${this.parameters.uuid}.commissioned`, {
-                type: 'state',
-                common: {
-                    name: 'commissioned',
-                    type: 'boolean',
-                    role: 'indicator',
-                    read: true,
-                    write: false,
-                },
-                native: {},
-            });
-        }
+        await this.adapter.extendObjectAsync(`devices.${this.parameters.uuid}.commissioned`, {
+            type: 'state',
+            common: {
+                name: 'commissioned',
+                type: 'boolean',
+                role: 'indicator',
+                read: true,
+                write: false,
+            },
+            native: {},
+        });
 
         /**
          * Collect all needed data
@@ -73,16 +66,14 @@ class Device {
          * and easy reuse. When you also do that, be careful to not overlap with Matter-Server own contexts
          * (so maybe better not ;-)).
          */
-        const deviceName = this.parameters.devicename || 'Matter device';
-        const deviceType = DeviceTypes.AGGREGATOR.code;
+        const deviceName = this.parameters.deviceName || 'Matter device';
+        const deviceType = DeviceTypes.AGGREGATOR.code; // TODO FIX!!! needs to be type of real devcie
         const vendorName = 'ioBroker';
-        const passcode = this.parameters.passcode; // 20202021;
-        const discriminator = this.parameters.discriminator; // 3840);
 
         // product name / id and vendor id should match what is in the device certificate
-        const vendorId = this.parameters.vendorid; // 0xfff1;
-        const productName = this.deviceOptions.name;
-        const productId = this.parameters.productid; // 0x8000;
+        const vendorId = this.parameters.vendorId; // 0xfff1;
+        const productName = this.deviceOptions.name || this.parameters.productName;
+        const productId = this.parameters.productId; // 0x8000;
 
         const uniqueId = this.parameters.uuid.replace(/-/g, '').split('.').pop() || '0000000000000000';
 
@@ -90,7 +81,7 @@ class Device {
          * Create Matter Server and CommissioningServer Node
          *
          * To allow the device to be announced, found, paired and operated, we need a MatterServer instance and add a
-         * commissioningServer to it and add the just created device instance to it.
+         * serverNode to it and add the just created device instance to it.
          * The CommissioningServer node defines the port where the server listens for the UDP packages of the Matter protocol
          * and initializes deice specific certificates and such.
          *
@@ -98,11 +89,15 @@ class Device {
          * like testEventTrigger (General Diagnostic Cluster) that can be implemented with the logic when these commands
          * are called.
          */
-        this.commissioningServer = new CommissioningServer({
-            deviceName,
-            deviceType,
-            passcode,
-            discriminator,
+        this.serverNode = await ServerNode.create({
+            id: this.parameters.uuid,
+            network: {
+                port: this.parameters.port
+            },
+            productDescription: {
+                name: deviceName,
+                deviceType,
+            },
             basicInformation: {
                 vendorName,
                 vendorId: VendorId(vendorId),
@@ -111,17 +106,7 @@ class Device {
                 productLabel: productName,
                 productId,
                 serialNumber: uniqueId,
-            },
-            activeSessionsChangedCallback: async fabricIndex => {
-                this.adapter.log.debug(
-                    `activeSessionsChangedCallback: Active sessions changed on Fabric ${fabricIndex}` +
-                    Logger.toJSON(this.commissioningServer?.getActiveSessionInformation(fabricIndex)));
-                await this.adapter.sendToGui({ command: 'updateStates', states: { [this.parameters.uuid]: await this.getState() }});
-            },
-            commissioningChangedCallback: async fabricIndex => {
-                this.adapter.log.debug(
-                    `commissioningChangedCallback: Commissioning changed on Fabric ${fabricIndex}: ${Logger.toJSON(this.commissioningServer?.getCommissionedFabricInformation(fabricIndex)[0])}`);
-                await this.adapter.sendToGui({ command: 'updateStates', states: { [this.parameters.uuid]: await this.getState() }});
+                uniqueId,
             },
         });
 
@@ -140,20 +125,34 @@ class Device {
         const ioBrokerDevice = this.device;
         const mappingDevice = await matterDeviceFactory(ioBrokerDevice, this.deviceOptions.name, this.parameters.uuid);
         if (mappingDevice) {
-            this.commissioningServer.addDevice(mappingDevice.getMatterDevice());
+            await this.serverNode.add(mappingDevice.getMatterDevice());
+            await mappingDevice.init();
         } else {
             this.adapter.log.error(`ioBroker Device "${this.device.getDeviceType()}" is not supported`);
+            return;
         }
 
-        try {
-            this.matterServer?.addCommissioningServer(this.commissioningServer, { uniqueStorageKey: this.parameters.uuid });
-        } catch (e) {
-            this.adapter.log.error(`Could not add commissioning server for device ${this.parameters.uuid}: ${e.message}`);
-        }
+        this.serverNode.events.commissioning.fabricsChanged.on(async(fabricIndex) => {
+            this.adapter.log.debug(
+                `commissioningChangedCallback: Commissioning changed on Fabric ${fabricIndex}: ${this.serverNode?.state.operationalCredentials.fabrics.find(fabric => fabric.fabricIndex === fabricIndex)}`);
+            // TODO find replacement for ${Logger.toJSON(this.serverNode?.getCommissionedFabricInformation(fabricIndex)[0])}
+            await this.adapter.sendToGui({ command: 'updateStates', states: { [this.parameters.uuid]: await this.getState() } });
+        });
+
+        const sessionChange = async(session: SessionsBehavior.Session): Promise<void> => {
+            this.adapter.log.debug(
+                `activeSessionsChangedCallback: Active sessions changed on Fabric ${session.fabric?.fabricIndex}` +
+                Logger.toJSON(session));
+            await this.adapter.sendToGui({ command: 'updateStates', states: { [this.parameters.uuid]: await this.getState() } });
+        };
+        this.serverNode.events.sessions.opened.on(sessionChange);
+        this.serverNode.events.sessions.closed.on(sessionChange);
+        this.serverNode.events.sessions.subscriptionsChanged.on(sessionChange);
+
     }
 
     async getState(): Promise<NodeStateResponse> {
-        if (!this.commissioningServer) {
+        if (!this.serverNode) {
             return {
                 status: NodeStates.Creating,
             };
@@ -167,22 +166,16 @@ class Device {
 
         // this.adapter.log.info('Listening');
 
-        if (!this.commissioningServer.isCommissioned()) {
+        if (!this.serverNode?.lifecycle.isCommissioned) {
             if (this.commissioned !== false) {
                 this.commissioned = false;
                 await this.adapter.setStateAsync(`devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
             }
-            const pairingData = this.commissioningServer.getPairingCode();
-            // const { qrPairingCode, manualPairingCode } = pairingData;
-            // console.log(QrCode.encode(qrPairingCode));
-            // console.log(
-            //     `QR Code URL: https://project-chip.github.io/connectedhomeip/qrcode.html?data=${qrPairingCode}`,
-            // );
-            // console.log(`Manual pairing code: ${manualPairingCode}`);
+            const { qrPairingCode, manualPairingCode } = this.serverNode?.state.commissioning.pairingCodes;
             return {
                 status: NodeStates.WaitingForCommissioning,
-                qrPairingCode: pairingData.qrPairingCode,
-                manualPairingCode: pairingData.manualPairingCode,
+                qrPairingCode: qrPairingCode,
+                manualPairingCode: manualPairingCode,
             };
         } else {
             if (this.commissioned !== true) {
@@ -190,10 +183,10 @@ class Device {
                 await this.adapter.setStateAsync(`devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
             }
 
-            const activeSession = this.commissioningServer.getActiveSessionInformation();
-            const fabric = this.commissioningServer.getCommissionedFabricInformation();
+            const activeSessions = Object.values(this.serverNode.state.sessions.sessions);
+            const fabrics = Object.values(this.serverNode.state.commissioning.fabrics);
 
-            const connectionInfo: any = activeSession.map(session => {
+            const connectionInfo: any = activeSessions.map(session => {
                 const vendorId = session?.fabric?.rootVendorId;
                 return {
                     vendor: (vendorId && VENDOR_IDS[vendorId]) || `0x${(vendorId || 0).toString(16)}`,
@@ -202,8 +195,8 @@ class Device {
                 };
             });
 
-            fabric.forEach(fabric => {
-                if (!activeSession.find(session => session.fabric?.fabricId === fabric.fabricId)) {
+            fabrics.forEach(fabric => {
+                if (!activeSessions.find(session => session.fabric?.fabricId === fabric.fabricId)) {
                     connectionInfo.push({
                         vendor: VENDOR_IDS[fabric?.rootVendorId] || `0x${(fabric?.rootVendorId || 0).toString(16)}`,
                         connected: false,
@@ -229,15 +222,20 @@ class Device {
     }
 
     async advertise(): Promise<void> {
-        await this.commissioningServer?.advertise();
+        await this.serverNode?.advertiseNow();
     }
 
     async factoryReset(): Promise<void> {
-        await this.commissioningServer?.factoryReset();
+        await this.serverNode?.factoryReset();
+    }
+
+    async start() {
+        if (!this.serverNode) return;
+        await this.serverNode.bringOnline();
     }
 
     async stop(): Promise<void> {
-        this.commissioningServer && this.matterServer?.removeCommissioningServer(this.commissioningServer);
+        await this.serverNode?.close();
         await this.device.destroy();
     }
 }

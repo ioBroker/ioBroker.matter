@@ -1,44 +1,43 @@
 import {
     CommissioningController,
-    CommissioningServer,
-    MatterServer,
     NodeCommissioningOptions,
-} from '@project-chip/matter-node.js';
-import { NodeId, ClusterId } from '@project-chip/matter-node.js/datatype';
+} from '@project-chip/matter.js';
+import { NodeId, ClusterId } from '@project-chip/matter.js/datatype';
 import {
     Endpoint, CommissioningControllerNodeOptions,
     PairedNode,
-} from '@project-chip/matter-node.js/device';
-import { toHexString, singleton } from '@project-chip/matter-node.js/util';
+} from '@project-chip/matter.js/device';
+import { toHexString, singleton } from '@project-chip/matter.js/util';
 import {
     asClusterServerInternal,
     ClusterServerObj,
     GlobalAttributes,
     AnyAttributeServer, FabricScopeError,
     BasicInformationCluster,
-} from '@project-chip/matter-node.js/cluster';
-import { CommissionableDevice } from '@project-chip/matter-node.js/common';
+} from '@project-chip/matter.js/cluster';
+import { CommissionableDevice } from '@project-chip/matter.js/common';
 
-import { ManualPairingCodeCodec, QrPairingCodeCodec } from '@project-chip/matter-node.js/schema';
-import { NodeStateInformation } from '@project-chip/matter-node.js/device';
-import { Logger } from '@project-chip/matter-node.js/log';
+import { ManualPairingCodeCodec, QrPairingCodeCodec } from '@project-chip/matter.js/schema';
+import { NodeStateInformation } from '@project-chip/matter.js/device';
+import { Logger } from '@project-chip/matter.js/log';
 
-import { CommissioningOptions } from '@project-chip/matter-node.js/protocol';
+import { CommissioningOptions } from '@project-chip/matter.js/protocol';
 import {
     GeneralCommissioning,
-} from '@project-chip/matter-node.js/cluster';
+} from '@project-chip/matter.js/cluster';
 
 import { BleNode } from '@project-chip/matter-node-ble.js/ble';
-import { Ble } from '@project-chip/matter-node.js/ble';
+import { Ble } from '@project-chip/matter.js/ble';
 
-import { MatterAdapter } from '../main';
+import type { MatterAdapter } from '../main';
 import Factories from './clusters/factories';
 import Base from './clusters/Base';
+import { Environment } from '@project-chip/matter.js/environment';
 
 export interface ControllerCreateOptions {
     adapter: MatterAdapter;
-    matterServer: MatterServer;
     controllerOptions: ControllerOptions;
+    matterEnvironment: Environment;
 }
 
 export interface ControllerOptions {
@@ -58,30 +57,30 @@ interface AddDeviceResult {
 }
 
 const IGNORE_CLUSTERS: ClusterId[] = [
-    0x0004 as ClusterId, // Groups
-    0x0005 as ClusterId, // Scenes
-    0x001D as ClusterId, // Descriptor
-    0x001D as ClusterId, // Descriptor
-    0x001E as ClusterId, // Binding
-    0x001F as ClusterId, // Access Control
-    0x002B as ClusterId, // Localization Configuration
-    0x002C as ClusterId, // Time Format Localization
-    0x002D as ClusterId, // Unit Localization
-    0x002E as ClusterId, // Power Source Configuration
-    0x0030 as ClusterId, // General Commissioning
-    0x0031 as ClusterId, // Network Commissioning
-    0x0032 as ClusterId, // Diagnostic Logs
-    0x0033 as ClusterId, // General Diagnostics
-    0x0034 as ClusterId, // Software Diagnostics
-    0x0035 as ClusterId, // Thread Network Diagnostics
-    0x0036 as ClusterId, // Wi-Fi Network Diagnostics
-    0x0037 as ClusterId, // Ethernet Network Diagnostics
-    0x0038 as ClusterId, // Time Synchronization
-    0x0039 as ClusterId, // Bridged Device Basic Information
-    0x003C as ClusterId, // Administrator Commissioning
-    0x003E as ClusterId, // Node Operational Credentials
-    0x003F as ClusterId, // Group Key Management
-    0x0046 as ClusterId, // ICD Management S
+    ClusterId(0x0004), // Groups
+    ClusterId(0x0005), // Scenes
+    ClusterId(0x001D), // Descriptor
+    ClusterId(0x001D), // Descriptor
+    ClusterId(0x001E), // Binding
+    ClusterId(0x001F), // Access Control
+    ClusterId(0x002B), // Localization Configuration
+    ClusterId(0x002C), // Time Format Localization
+    ClusterId(0x002D), // Unit Localization
+    ClusterId(0x002E), // Power Source Configuration
+    ClusterId(0x0030), // General Commissioning
+    ClusterId(0x0031), // Network Commissioning
+    ClusterId(0x0032), // Diagnostic Logs
+    ClusterId(0x0033), // General Diagnostics
+    ClusterId(0x0034), // Software Diagnostics
+    ClusterId(0x0035), // Thread Network ClusterId(Diagnostics
+    ClusterId(0x0036), // Wi-Fi Network Diagnostics
+    ClusterId(0x0037), // Ethernet Network Diagnostics
+    ClusterId(0x0038), // Time Synchronization
+    ClusterId(0x0039), // Bridged Device Basic Information
+    ClusterId(0x003C), // Administrator Commissioning
+    ClusterId(0x003E), // Node Operational Credentials
+    ClusterId(0x003F), // Group Key Management
+    ClusterId(0x0046), // ICD Management S
 ];
 
 interface Device {
@@ -93,10 +92,9 @@ interface Device {
 
 
 class Controller {
-    private matterServer: MatterServer | undefined;
     private parameters: ControllerOptions;
-    private commissioningServer: CommissioningServer | undefined;
     private adapter: MatterAdapter;
+    private matterEnvironment: Environment;
     private commissioningController: CommissioningController | null = null;
     private matterNodeIds: NodeId[] = [];
     private devices: Device[] = [];
@@ -109,7 +107,7 @@ class Controller {
     constructor(options: ControllerCreateOptions) {
         this.adapter = options.adapter;
         this.parameters = options.controllerOptions;
-        this.matterServer = options.matterServer;
+        this.matterEnvironment = options.matterEnvironment;
     }
 
     async init(): Promise<void> {
@@ -126,9 +124,11 @@ class Controller {
 
         this.commissioningController = new CommissioningController({
             autoConnect: false,
+            environment: {
+                environment: this.matterEnvironment,
+                id: 'controller'
+            }
         });
-
-        this.matterServer?.addCommissioningController(this.commissioningController, { uniqueStorageKey: this.parameters.uuid });
 
         if (this.parameters.ble) {
             try {
@@ -147,7 +147,7 @@ class Controller {
                     `attributeChangedCallback ${peerNodeId}: Attribute ${nodeId}/${endpointId}/${clusterId}/${attributeName} changed to ${Logger.toJSON(
                         value,
                     )}`,
-                )
+                );
             },
             eventTriggeredCallback: (peerNodeId: NodeId, { path: { nodeId, clusterId, endpointId, eventName }, events }: any) => {
                 this.adapter.log.debug(
@@ -156,7 +156,7 @@ class Controller {
                     )}`,
                 );
             },
-            stateInformationCallback: async (peerNodeId: NodeId, info: NodeStateInformation) => {
+            stateInformationCallback: async(peerNodeId: NodeId, info: NodeStateInformation) => {
                 const jsonNodeId = peerNodeId.toString();
                 const node = this.commissioningController?.getConnectedNode(peerNodeId);
                 const device: Device | undefined = this.devices.find(device => device.nodeId === jsonNodeId);
@@ -207,41 +207,36 @@ class Controller {
             throw new Error('CommissioningController not initialized');
         }
 
+        await this.adapter.extendObjectAsync('controller.info', {
+            type: 'channel',
+            common: {
+                name: 'Information',
+            },
+            native: {
 
-        const infoObj = await this.adapter.getObjectAsync('controller.info');
-        if (!infoObj) {
-            await this.adapter.setObjectAsync('controller.info', {
-                type: 'channel',
-                common: {
-                    name: 'Information',
-                },
-                native: {
+            },
+        });
 
-                },
-            });
-        }
+        await this.adapter.extendObjectAsync('controller.info.discovering', {
+            type: 'state',
+            common: {
+                name: 'Discovering',
+                role: 'indicator',
+                type: 'boolean',
+                read: true,
+                write: false,
+            },
+            native: {
+            },
+        });
 
-        const discoveringObj = await this.adapter.getObjectAsync('controller.info.discovering');
-        if (!discoveringObj) {
-            await this.adapter.setObjectAsync('controller.info.discovering', {
-                type: 'state',
-                common: {
-                    name: 'Discovering',
-                    role: 'indicator',
-                    type: 'boolean',
-                    read: true,
-                    write: false,
-                },
-                native: {
-
-                },
-            });
-        }
         await this.adapter.setStateAsync('controller.info.discovering', false, false);
 
+        await this.commissioningController.start();
 
         // get nodes
         const nodes = this.commissioningController.getCommissionedNodes();
+        this.adapter.log.info(`Found ${nodes.length} nodes: ${Logger.toJSON(nodes)}`);
 
         // attach all nodes to the controller
         for (const nodeId of nodes) {
@@ -255,7 +250,7 @@ class Controller {
         }
     }
 
-    getAttributeServerValue(attribute: AnyAttributeServer<any>) {
+    getAttributeServerValue(attribute: AnyAttributeServer<any>): string {
         let value = '';
         try {
             const attributeValue = attribute.getLocal();
@@ -275,7 +270,7 @@ class Controller {
         return value;
     }
 
-    logClusterServer(nodeId: NodeId, clusterServer: ClusterServerObj<any, any>, level: number) {
+    logClusterServer(nodeId: NodeId, clusterServer: ClusterServerObj<any, any>, level: number): void {
         const featureMap = clusterServer.attributes.featureMap?.getLocal() ?? {};
         const globalAttributes = GlobalAttributes<any>(featureMap);
         const supportedFeatures = new Array<string>();
@@ -286,7 +281,7 @@ class Controller {
         }
         this.adapter.log.debug(
             `${''.padStart(level * 2)}Cluster-Server "${clusterServer.name}" (${toHexString(clusterServer.id)}) ${
-                supportedFeatures.length ? `(Features: ${supportedFeatures.join(", ")})` : ''
+                supportedFeatures.length ? `(Features: ${supportedFeatures.join(', ')})` : ''
             }`);
         this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Global-Attributes:`);
         for (const attributeName in globalAttributes) {
@@ -361,7 +356,7 @@ class Controller {
         // }
 
         this.adapter.log.debug(
-            `${''.padStart(level * 2)}Cluster-Client "${clusterClient.name}" (${toHexString(clusterClient.id)}) ${supportedFeatures.length ? `(Features: ${supportedFeatures.join(", ")})` : ""}`
+            `${''.padStart(level * 2)}Cluster-Client "${clusterClient.name}" (${toHexString(clusterClient.id)}) ${supportedFeatures.length ? `(Features: ${supportedFeatures.join(', ')})` : ''}`
         );
         this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Global-Attributes:`);
         for (const attributeName in globalAttributes) {
@@ -611,14 +606,14 @@ class Controller {
         }
     }
 
-    addCluster(device: Device, cluster: Base | undefined) {
+    addCluster(device: Device, cluster: Base | undefined): void {
         if (cluster) {
             device.clusters.push(cluster);
         }
     }
 
     async endPointToIoBrokerStructure(nodeId: NodeId, endpoint: Endpoint, level: number, path: number[], device: Device): Promise<void> {
-        this.adapter.log.info(`${''.padStart(level * 2)}Endpoint ${endpoint.id} (${endpoint.name}):`);
+        this.adapter.log.info(`${''.padStart(level * 2)}Endpoint ${endpoint.number} (${endpoint.name}):`);
         if (level) {
             for (let f = 0; f < Factories.length; f++) {
                 this.addCluster(device, await Factories[f](this.adapter, nodeId, endpoint, path));
@@ -647,9 +642,7 @@ class Controller {
     }
 
     async getState(): Promise<void> {
-        if (!this.commissioningServer) {
-            return;
-        }
+        // nothing to do
     }
 
     async commissionDevice(qrCode: string | undefined, manualCode: string | undefined, device: CommissionableDevice): Promise<AddDeviceResult | null> {
@@ -703,9 +696,9 @@ class Controller {
             discovery: {
                 commissionableDevice: device || undefined,
                 identifierData: longDiscriminator !== undefined
-                    ? {longDiscriminator}
+                    ? { longDiscriminator }
                     : shortDiscriminator !== undefined
-                        ? {shortDiscriminator}
+                        ? { shortDiscriminator }
                         : undefined,
             },
             passcode,
@@ -744,7 +737,7 @@ class Controller {
                 this.adapter.sendToGui({
                     command: 'discoveredDevice',
                     device,
-                })
+                });
             },
             60, // timeoutSeconds
         );
@@ -800,7 +793,7 @@ class Controller {
         this.devices = [];
 
         if (this.commissioningController) {
-            this.matterServer?.removeCommissioningController(this.commissioningController);
+            await this.commissioningController.close();
             this.commissioningController = null;
         }
     }

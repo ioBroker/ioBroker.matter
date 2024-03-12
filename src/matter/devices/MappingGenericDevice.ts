@@ -1,52 +1,56 @@
-import { Device } from '@project-chip/matter-node.js/device';
-import { AttributeServer } from '@project-chip/matter-node.js/cluster';
-
 import { GenericDevice } from '../../lib';
+import { Endpoint } from '@project-chip/matter.js/endpoint';
 
 export interface IdentifyOptions {
-    counter: number;
-    identifyTime: number;
-    currentState: any;
-    initialState: any;
+    currentState?: any;
+    initialState?: any;
 }
 
 export abstract class MappingGenericDevice {
+    private identifyTimeout?: NodeJS.Timeout;
+    private identifyHighlightState = false;
+
     constructor(private name: string) {
 
     }
 
-    identify(attrIdentifyTime: AttributeServer<number>, identifyOptions: IdentifyOptions): void {
-        setTimeout(async () => {
-            identifyOptions.counter--;
-            identifyOptions.identifyTime -= 0.5;
-            // send update to controller
-            attrIdentifyTime.setLocal(identifyOptions.identifyTime);
-            if (identifyOptions.identifyTime > 0) {
-                if (identifyOptions.counter % 2 === 0) {
-                    if (this.getIoBrokerDevice().isActionAllowedByIdentify()) {
-                        this.doIdentify(identifyOptions);
-                    }
+    handleIdentify(identifyOptions: IdentifyOptions): void {
+        clearTimeout(this.identifyTimeout);
+        this.identifyTimeout = setTimeout(async() => {
+            this.identifyTimeout = undefined;
+            const highlightState = !this.identifyHighlightState;
+            if (highlightState) {
+                if (this.getIoBrokerDevice().isActionAllowedByIdentify()) {
+                    this.doIdentify(identifyOptions);
                 }
-
-                this.identify(attrIdentifyTime, identifyOptions);
             } else {
-                // set to initial state
                 if (this.getIoBrokerDevice().isActionAllowedByIdentify()) {
                     this.resetIdentify(identifyOptions);
                 }
             }
-        }, 500);
+            this.handleIdentify(identifyOptions);
+        }, 1000);
+    }
+
+    stopIdentify(identifyOptions: IdentifyOptions): void {
+        clearTimeout(this.identifyTimeout);
+        this.identifyTimeout = undefined;
+        // set to initial state
+        if (this.getIoBrokerDevice().isActionAllowedByIdentify()) {
+            this.resetIdentify(identifyOptions);
+        }
     }
 
     abstract doIdentify(identifyOptions: IdentifyOptions): void;
     abstract resetIdentify(identifyOptions: IdentifyOptions): void;
 
-    abstract getMatterDevice(): Device;
+    abstract getMatterDevice(): Endpoint<any>;
     abstract getIoBrokerDevice(): GenericDevice;
 
     getName(): string {
         return this.name;
     }
 
+    abstract registerMatterHandlers(): void;
     abstract init(): Promise<void>;
 }

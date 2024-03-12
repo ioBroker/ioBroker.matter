@@ -25,6 +25,10 @@
 - Check bridge in controller
 
 ## Changelog
+### **WORK IN PROGRESS**
+* IMPORTANT: Breaking change!! Please decommission ALL devices and do a full factory reset of the adapter Matter storage before installing this version. Pair the devices new afterwards. 
+* (Apollon77) Upgrade to new Matter.js version and API (breaks storage structure)
+
 ### 0.1.13 (2023-12-01)
 * (bluefox) Working on the controller
 

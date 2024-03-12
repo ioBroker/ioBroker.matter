@@ -1,15 +1,13 @@
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import fs from 'fs';
+import '@project-chip/matter-node.js';
 
 import * as utils from '@iobroker/adapter-core';
 import ChannelDetector, { DetectorState, PatternControl, Types } from '@iobroker/type-detector';
-import { MatterServer } from '@project-chip/matter-node.js';
-import { StorageManager } from '@project-chip/matter-node.js/storage';
-import { Level, Logger } from '@project-chip/matter-node.js/log';
-import { CommissionableDevice } from '@project-chip/matter-node.js/common';
+import { Level, Logger } from '@project-chip/matter.js/log';
 
-import { StorageIoBroker } from './matter/StorageIoBroker';
+import { IoBrokerNodeStorage } from './matter/IoBrokerNodeStorage';
 import { DeviceFactory, SubscribeManager } from './lib';
 import { DetectedDevice, DeviceOptions } from './lib/devices/GenericDevice';
 import BridgedDevice, { NodeStateResponse } from './matter/BridgedDevicesNode';
@@ -20,9 +18,11 @@ import {
     DeviceDescription,
     MatterAdapterConfig
 } from './ioBrokerStorageTypes';
-import MatterController, {ControllerOptions} from './matter/ControllerNode';
+import MatterController, { ControllerOptions } from './matter/ControllerNode';
 
 import MatterAdapterDeviceManagement from './lib/DeviceManagement';
+import { Environment, StorageService } from '@project-chip/matter.js/environment';
+import { CommissionableDevice } from '@project-chip/matter.js/common';
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
 
@@ -79,18 +79,17 @@ interface CommissioningOptions {
 
 export class MatterAdapter extends utils.Adapter {
     private detector: ChannelDetector;
-    private devices: { [key: string]: MatterDevice } = {};
-    private bridges: { [key: string]: BridgedDevice } = {};
+    private devices = new Map<string, MatterDevice>();
+    private bridges = new Map<string, BridgedDevice>();
     private _guiSubscribes: { clientId: string; ts: number }[] | null= null;
-    private matterServer: MatterServer | undefined;
-    private storage: StorageIoBroker | undefined;
-    private storageManager: StorageManager | null = null;
+    private matterEnvironment: Environment;
     private stateTimeout: NodeJS.Timeout | null = null;
     private subscribed: boolean = false;
     private license: { [key: string]: boolean | undefined } = {};
     private controller: MatterController | null = null;
     private sysLanguage: 'en' | 'de' | 'ru' | 'pt' | 'nl' | 'fr' | 'it' | 'es' | 'pl' | 'zh-cn' = 'en';
     private readonly deviceManagement: MatterAdapterDeviceManagement;
+    private nextPortNumber: number = 5540;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -113,14 +112,38 @@ export class MatterAdapter extends utils.Adapter {
         this.on('unload', callback => this.onUnload(callback));
         this.on('message', this.onMessage.bind(this));
         this.deviceManagement = new MatterAdapterDeviceManagement(this);
+        this.matterEnvironment = Environment.default;
 
         this.detector = new ChannelDetector();
     }
 
+    async shutDownMatterNodes() {
+        for (const device of this.devices.values()) {
+            await device.stop();
+        }
+        for (const bridge of this.bridges.values()) {
+            await bridge.stop();
+        }
+        await this.controller?.stop();
+    }
+
+    async startUpMatterNodes() {
+        for (const bridge of this.bridges.values()) {
+            await bridge.start();
+        }
+
+        for (const device of this.devices.values()) {
+            await device.start();
+        }
+
+        await this.controller?.start();
+    }
+
     async onTotalReset(): Promise<void> {
         this.log.debug('Resetting');
-        await this.matterServer?.close();
-        await this.storage?.clearAll();
+        await this.shutDownMatterNodes();
+        // clear all matter storage data of the device nodes
+        await this.delObjectAsync('storage', { recursive: true });
         // clear all nodes in the controller
         await this.delObjectAsync('controller', { recursive: true });
 
@@ -145,38 +168,38 @@ export class MatterAdapter extends utils.Adapter {
             const license = await this.checkLicense(obj.message.login, obj.message.pass);
             obj.callback && this.sendTo(obj.from, obj.command, { result: license }, obj.callback);
         } else if (obj.command === 're-announce') {
-            for (const oid in this.bridges) {
+            for (const [oid, bridge] of this.bridges.entries()) {
                 const uuid = oid.split('.').pop() || '';
                 if (uuid === obj.message.uuid) {
-                    await this.bridges[oid].advertise();
+                    await bridge.advertise();
                     break;
                 }
             }
-            for (const oid in this.devices) {
+            for (const [oid, device] of this.devices.entries()) {
                 const uuid = oid.split('.').pop() || '';
                 if (uuid === obj.message.uuid) {
-                    await this.devices[oid].advertise();
+                    await device.advertise();
                     break;
                 }
             }
         } else if (obj.command === 'factoryReset') {
             let found = false;
-            for (const oid in this.bridges) {
+            for (const [oid, bridge] of this.bridges.entries()) {
                 const uuid = oid.split('.').pop() || '';
                 if (uuid === obj.message.uuid) {
                     found = true;
-                    await this.bridges[oid].factoryReset();
-                    obj.callback && this.sendTo(obj.from, obj.command, { result: await this.bridges[oid].getState() }, obj.callback);
+                    await bridge.factoryReset();
+                    obj.callback && this.sendTo(obj.from, obj.command, { result: await bridge.getState() }, obj.callback);
                     break;
                 }
             }
             if (!found) {
-                for (const oid in this.devices) {
+                for (const [oid, device] of this.devices.entries()) {
                     const uuid = oid.split('.').pop() || '';
                     if (uuid === obj.message.uuid) {
                         found = true;
-                        await this.devices[oid].factoryReset();
-                        obj.callback && this.sendTo(obj.from, obj.command, { result: await this.devices[oid].getState() }, obj.callback);
+                        await device.factoryReset();
+                        obj.callback && this.sendTo(obj.from, obj.command, { result: await device.getState() }, obj.callback);
                         break;
                     }
                 }
@@ -277,7 +300,7 @@ export class MatterAdapter extends utils.Adapter {
         }
     };
 
-    async createMatterServer(): Promise<void> {
+    async prepareMatterEnvironment(): Promise<void> {
         const config: MatterAdapterConfig = this.config as MatterAdapterConfig;
         Logger.defaultLogLevel = Level.DEBUG;
         Logger.log = (level: Level, formattedLog: string) => {
@@ -285,6 +308,7 @@ export class MatterAdapter extends utils.Adapter {
                 case Level.DEBUG:
                     config.debug ? this.log.debug(formattedLog) : this.log.silly(formattedLog);
                     break;
+
                 case Level.INFO:
                     this.log.debug(formattedLog);
                     break;
@@ -306,21 +330,28 @@ export class MatterAdapter extends utils.Adapter {
          * The storage manager is then also used by the Matter server, so this code block in general is required,
          * but you can choose a different storage backend as long as it implements the required API.
          */
-        this.storage = new StorageIoBroker(this);
-        this.storageManager = new StorageManager(this.storage);
-        await this.storageManager.initialize();
+        await this.extendObjectAsync('storage',{
+            type: 'folder',
+            common: {
+                expert: true,
+                name: 'Matter storage',
+            },
+            native: {}
+        });
 
-        if (!config.interface) {
-            this.matterServer = new MatterServer(this.storageManager);
-        } else {
-            this.matterServer = new MatterServer(this.storageManager, { mdnsInterface: config.interface });
+        const storageService = this.matterEnvironment.get(StorageService);
+        storageService.factory = (namespace: string) => new IoBrokerNodeStorage(this, namespace);
+        storageService.location = `${this.namespace}.storage`; // For logging
+
+        if (config.interface) {
+            this.matterEnvironment.vars.set('mdns.networkInterface', config.interface);
         }
     }
 
     async onReady(): Promise<void> {
         this._guiSubscribes = this._guiSubscribes || [];
         SubscribeManager.setAdapter(this);
-        await this.createMatterServer();
+        await this.prepareMatterEnvironment();
 
         const systemConfig = await this.getForeignObjectAsync('system.config');
         this.sysLanguage = systemConfig?.common?.language || 'en';
@@ -330,36 +361,28 @@ export class MatterAdapter extends utils.Adapter {
             this.subscribed = true;
             await this.subscribeForeignObjectsAsync(`${this.namespace}.0.bridges.*`);
             await this.subscribeForeignObjectsAsync(`${this.namespace}.0.devices.*`);
-            await this.subscribeForeignObjectsAsync(`${this.namespace}.0.controller`);
+            await this.subscribeForeignObjectsAsync(`${this.namespace}.0.controller.*`);
         }
 
         /**
-         * Start the Matter Server
-         *
-         * After everything was plugged together we can start the server.
-         * When a not delayed announcement is set for the CommissioningServer node,
-         * then this command also starts the announcement of the device into the network.
+         * Start the nodes. This also announces them in the network
          */
-        await this.matterServer?.start();
-
-        if (this.controller) {
-            this.controller?.start();
-        }
+        await this.startUpMatterNodes();
     }
 
     async requestNodeStates(options?: NodeStatesOptions): Promise<{ [uuid: string]: NodeStateResponse }> {
         const states: { [uuid: string]: NodeStateResponse } = {};
         if (!options || !Object.keys(options).length || options.bridges) {
-            for (const oid in this.bridges) {
-                const state = await this.bridges[oid].getState();
+            for (const [oid, bridge] of this.bridges.entries()) {
+                const state = await bridge.getState();
                 this.log.debug(`State of bridge ${oid} is ${JSON.stringify(state)}`);
                 const uuid = oid.split('.').pop() || '';
                 states[uuid] = state;
             }
         }
         if (!options || !Object.keys(options).length || options.devices) {
-            for (const oid in this.devices) {
-                const state = await this.devices[oid].getState();
+            for (const [oid, device] of this.devices.entries()) {
+                const state = await device.getState();
                 this.log.debug(`State of device ${oid} is ${JSON.stringify(state)}`);
                 const uuid = oid.split('.').pop() || '';
                 states[uuid] = state;
@@ -377,8 +400,8 @@ export class MatterAdapter extends utils.Adapter {
         await this.sendToGui({ command: 'stopped' });
 
         try {
-            await this.matterServer?.close();
-            // close storage ??
+            await this.shutDownMatterNodes();
+            // close Environment/MDNS?
             callback();
         } catch (e) {
             callback();
@@ -550,82 +573,19 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async createMatterBridge(options: BridgeDescription): Promise<BridgedDevice | null> {
-        if (this.matterServer) {
-            const devices = [];
-            const optionsList = (options.list || []).filter(item => item.enabled !== false);
-            for (let l = 0; l < optionsList.length; l++) {
-                const device = optionsList[l];
-                let detectedDevice = await this.getDeviceStates(device.oid) as DetectedDevice;
-                if (!device.auto && (!detectedDevice || detectedDevice.type !== device.type)) {
-                    // ignore all detected states and let only one
-                    detectedDevice = {
-                        type: device.type as Types,
-                        states: [
-                            {
-                                name: DEVICE_DEFAULT_NAME[device.type] || 'SET',
-                                id: device.oid,
-                                // type: StateType.Number, // ignored
-                                write: true, // ignored
-                                defaultRole: 'button', // ignored
-                                required: true, // ignored
-                            },
-                        ],
-                    };
-                }
-                if (detectedDevice) {
-                    const deviceObject = await DeviceFactory(detectedDevice, this, device as DeviceOptions);
-                    if (deviceObject) {
-                        if (devices.length >= 5) {
-                            if (!(await this.checkLicense())) {
-                                this.log.error('You cannot use more than 5 devices without ioBroker.pro subscription. Only first 5 devices will be created.}');
-                                await deviceObject.destroy();
-                                break;
-                            }
-                        }
-                        devices.push(deviceObject);
-                    }
-                }
-            }
-
-            if (devices.length) {
-                const bridge = new BridgedDevice({
-                    adapter: this,
-                    parameters: {
-                        uuid: options.uuid,
-                        passcode: parseInt(options.passcode as string, 10) || 20202021,
-                        discriminator: 3840,
-                        vendorid: parseInt(options.vendorID) || 0xfff1,
-                        productid: parseInt(options.productID) || 0x8000,
-                        devicename: options.name,
-                        productname: `Product ${options.name}`,
-                    },
-                    devices,
-                    devicesOptions: optionsList,
-                    matterServer: this.matterServer,
-                });
-
-                await bridge.init(); // add bridge to server
-
-                return bridge;
-            }
-
-            return null;
-        }
-        throw new Error('Matter server not initialized');
-    }
-
-    async createMatterDevice(deviceName: string, options: DeviceDescription): Promise<MatterDevice | null> {
-        if (this.matterServer) {
-            let device;
-            let detectedDevice = await this.getDeviceStates(options.oid) as DetectedDevice;
-            if (!options.auto && (!detectedDevice || detectedDevice.type !== options.type)) {
+        const devices = [];
+        const optionsList = (options.list || []).filter(item => item.enabled !== false);
+        for (let l = 0; l < optionsList.length; l++) {
+            const device = optionsList[l];
+            let detectedDevice = await this.getDeviceStates(device.oid) as DetectedDevice;
+            if (!device.auto && (!detectedDevice || detectedDevice.type !== device.type)) {
                 // ignore all detected states and let only one
                 detectedDevice = {
-                    type: options.type as Types,
+                    type: device.type as Types,
                     states: [
                         {
-                            name: DEVICE_DEFAULT_NAME[options.type] || 'SET',
-                            id: options.oid,
+                            name: DEVICE_DEFAULT_NAME[device.type] || 'SET',
+                            id: device.oid,
                             // type: StateType.Number, // ignored
                             write: true, // ignored
                             defaultRole: 'button', // ignored
@@ -635,49 +595,99 @@ export class MatterAdapter extends utils.Adapter {
                 };
             }
             if (detectedDevice) {
-                const deviceObject = await DeviceFactory(detectedDevice, this, options as DeviceOptions);
+                const deviceObject = await DeviceFactory(detectedDevice, this, device as DeviceOptions);
                 if (deviceObject) {
-                    device = deviceObject;
+                    if (devices.length >= 5) {
+                        if (!(await this.checkLicense())) {
+                            this.log.error('You cannot use more than 5 devices without ioBroker.pro subscription. Only first 5 devices will be created.}');
+                            await deviceObject.destroy();
+                            break;
+                        }
+                    }
+                    devices.push(deviceObject);
                 }
             }
-            if (device) {
-                const matterDevice = new MatterDevice({
-                    adapter: this,
-                    parameters: {
-                        uuid: options.uuid,
-                        passcode: parseInt(options.passcode as string, 10) || 20202021,
-                        discriminator: 3840,
-                        vendorid: parseInt(options.vendorID) || 0xfff1,
-                        productid: parseInt(options.productID) || 0x8000,
-                        devicename: deviceName,
-                        productname: `ioBroker ${options.type}`,
-                    },
-                    device,
-                    deviceOptions: options,
-                    matterServer: this.matterServer,
-                });
-                await matterDevice.init(); // add bridge to server
-
-                return matterDevice;
-            }
-
-            return null;
         }
-        throw new Error('Matter server not initialized');
+
+        if (devices.length) {
+            const bridge = new BridgedDevice({
+                adapter: this,
+                parameters: {
+                    port: this.nextPortNumber++,
+                    uuid: options.uuid,
+                    vendorId: parseInt(options.vendorID) || 0xfff1,
+                    productId: parseInt(options.productID) || 0x8000,
+                    deviceName: options.name,
+                    productName: `Product ${options.name}`,
+                },
+                devices,
+                devicesOptions: optionsList,
+            });
+
+            await bridge.init(); // add bridge to server
+
+            return bridge;
+        }
+
+        return null;
+    }
+
+    async createMatterDevice(deviceName: string, options: DeviceDescription): Promise<MatterDevice | null> {
+        let device;
+        let detectedDevice = await this.getDeviceStates(options.oid) as DetectedDevice;
+        if (!options.auto && (!detectedDevice || detectedDevice.type !== options.type)) {
+            // ignore all detected states and let only one
+            detectedDevice = {
+                type: options.type as Types,
+                states: [
+                    {
+                        name: DEVICE_DEFAULT_NAME[options.type] || 'SET',
+                        id: options.oid,
+                        // type: StateType.Number, // ignored
+                        write: true, // ignored
+                        defaultRole: 'button', // ignored
+                        required: true, // ignored
+                    },
+                ],
+            };
+        }
+        if (detectedDevice) {
+            const deviceObject = await DeviceFactory(detectedDevice, this, options as DeviceOptions);
+            if (deviceObject) {
+                device = deviceObject;
+            }
+        }
+        if (device) {
+            const matterDevice = new MatterDevice({
+                adapter: this,
+                parameters: {
+                    port: this.nextPortNumber++,
+                    uuid: options.uuid,
+                    vendorId: parseInt(options.vendorID) || 0xfff1,
+                    productId: parseInt(options.productID) || 0x8000,
+                    deviceName: deviceName,
+                    productName: `ioBroker ${options.type}`,
+                },
+                device,
+                deviceOptions: options,
+            });
+            await matterDevice.init(); // add bridge to server
+
+            return matterDevice;
+        }
+
+        return null;
     }
 
     async createMatterController(controllerOptions: ControllerOptions): Promise<MatterController | null> {
-        if (this.matterServer) {
-            const matterController = new MatterController({
-                adapter: this,
-                controllerOptions,
-                matterServer: this.matterServer,
-            });
-            await matterController.init(); // add bridge to server
+        const matterController = new MatterController({
+            adapter: this,
+            controllerOptions,
+            matterEnvironment: this.matterEnvironment
+        });
+        await matterController.init(); // add bridge to server
 
-            return matterController;
-        }
-        throw new Error('Matter server not initialized');
+        return matterController;
     }
 
 
@@ -723,17 +733,17 @@ export class MatterAdapter extends utils.Adapter {
         }
 
         // Delete old non-existing bridges
-        for (const bridgeId in this.bridges) {
+        for (const [bridgeId, bridge] of this.bridges.entries()) {
             if (!_bridges.find(obj => obj._id === bridgeId)) {
-                await this.bridges[bridgeId].stop();
-                delete this.bridges[bridgeId];
+                await bridge.stop();
+                this.bridges.delete(bridgeId);
             }
         }
 
         // Create new bridges
         for (const b in _bridges) {
             const bridge = _bridges[b];
-            if (!this.bridges[bridge._id]) {
+            if (!this.bridges.has(bridge._id)) {
                 // if one bridge already exists, check the license
                 const matterBridge = await this.createMatterBridge(bridge.native as BridgeDescription);
                 if (matterBridge) {
@@ -746,23 +756,23 @@ export class MatterAdapter extends utils.Adapter {
                         }
                     }
 
-                    this.bridges[bridge._id] = matterBridge;
+                    this.bridges.set(bridge._id, matterBridge);
                 }
             }
         }
 
         // Delete old non-existing devices
-        for (const device in this.devices) {
-            if (!_devices.find(obj => obj._id === device)) {
-                await this.devices[device].stop();
-                delete this.devices[device];
+        for (const [deviceId, device] of this.devices.entries()) {
+            if (!_devices.find(obj => obj._id === deviceId)) {
+                await device.stop();
+                this.devices.delete(deviceId);
             }
         }
 
         // Create new devices
         for (const d in _devices) {
             const device = _devices[d];
-            if (!this.devices[device._id]) {
+            if (!this.devices.has(device._id)) {
                 const matterDevice = await this.createMatterDevice(
                     typeof device.common.name === 'object' ?
                         (device.common.name[this.sysLanguage] ? device.common.name[this.sysLanguage] as string : device.common.name.en) : device.common.name,
@@ -776,11 +786,11 @@ export class MatterAdapter extends utils.Adapter {
                             break;
                         }
                     }
-                    this.devices[device._id] = matterDevice;
+                    this.devices.set(device._id, matterDevice);
                 }
             }
         }
-        const controllerObj = await this.getObjectAsync('controller')
+        const controllerObj = await this.getObjectAsync('controller');
         if (controllerObj?.native?.enabled && !this.controller) {
             this.controller = await this.createMatterController(controllerObj.native as ControllerOptions);
         } else if (!controllerObj?.native?.enabled && this.controller) {

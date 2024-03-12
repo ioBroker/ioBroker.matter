@@ -1,36 +1,34 @@
-import { fromJson, Storage, StorageError, SupportedStorageTypes, toJson } from '@project-chip/matter-node.js/storage';
+import { fromJson, Storage, StorageError, SupportedStorageTypes, toJson } from '@project-chip/matter.js/storage';
 
-export class StorageIoBroker implements Storage {
-    private readonly adapter: ioBroker.Adapter;
+/**
+ * Class that implements the storage for one Node in the Matter ecosystem
+ */
+export class IoBrokerNodeStorage implements Storage {
     private data: Record<string, any> = {};
-    private clear: boolean = false;
     private savingNumber: number = 1;
     private readonly savingPromises: Record<string, Promise<void>> = {};
     private readonly createdKeys: Record<string, boolean>;
+    private readonly storageRootOid: string;
 
-    constructor(adapter: ioBroker.Adapter, clear = false) {
-        this.adapter = adapter;
-        this.clear = clear;
+    constructor(
+        private readonly adapter: ioBroker.Adapter,
+        private namespace: string,
+        private clear = false
+    ) {
         this.createdKeys = {};
+        this.storageRootOid = `storage.${this.namespace}`;
     }
 
     async initialize(): Promise<void> {
-        let object;
-        try {
-            object = await this.adapter.getObjectAsync('storage');
-        } catch (error) {
-            // create object
-            object = {
-                _id: 'storage',
-                type: 'folder',
-                common: {
-                    expert: true,
-                    name: 'Matter storage',
-                },
-                native: {}
-            };
-            await this.adapter.setObjectAsync('storage', object as ioBroker.Object);
-        }
+        this.adapter.log.debug(`[STORAGE] Initializing storage for ${this.storageRootOid}`);
+        await this.adapter.extendObjectAsync(this.storageRootOid, {
+            type: 'folder',
+            common: {
+                expert: true,
+                name: 'Matter storage',
+            },
+            native: {}
+        });
 
         if (this.clear) {
             await this.clearAll();
@@ -38,8 +36,8 @@ export class StorageIoBroker implements Storage {
         }
 
         // read all keys
-        const states = await this.adapter.getStatesAsync('storage.*');
-        const len = `${this.adapter.namespace}.storage.`.length;
+        const states = await this.adapter.getStatesAsync(`${this.storageRootOid}.*`);
+        const len = `${this.adapter.namespace}.${this.storageRootOid}.`.length;
         for (const key in states) {
             this.createdKeys[key] = true;
             this.data[key.substring(len)] = fromJson(states[key].val as string);
@@ -47,7 +45,7 @@ export class StorageIoBroker implements Storage {
     }
 
     async clearAll(): Promise<void> {
-        await this.adapter.delObjectAsync('storage', { recursive: true });
+        await this.adapter.delObjectAsync(this.storageRootOid, { recursive: true });
         this.clear = false;
         this.data = {};
     }
@@ -59,7 +57,7 @@ export class StorageIoBroker implements Storage {
         }
     }
 
-    static buildKey(contexts: string[], key: string): string {
+    buildKey(contexts: string[], key: string): string {
         return `${contexts.join('$$')}$$${key}`;
     }
 
@@ -67,7 +65,7 @@ export class StorageIoBroker implements Storage {
         if (!key.length) {
             throw new StorageError('[STORAGE] Context and key must not be empty strings!');
         }
-        const value = this.data[StorageIoBroker.buildKey(contexts, key)];
+        const value = this.data[this.buildKey(contexts, key)];
         if (value === null || value === undefined) {
             return undefined;
         }
@@ -75,7 +73,7 @@ export class StorageIoBroker implements Storage {
     }
 
     keys(contexts: string[]): string[] {
-        const contextKeyStart = StorageIoBroker.buildKey(contexts, '');
+        const contextKeyStart = this.buildKey(contexts, '');
         const len = contextKeyStart.length;
 
         return Object.keys(this.data)
@@ -89,7 +87,7 @@ export class StorageIoBroker implements Storage {
             this.savingNumber = 1;
         }
         if (this.createdKeys[oid]) {
-            this.savingPromises[index] = this.adapter.setStateAsync(`storage.${oid}`, value, true)
+            this.savingPromises[index] = this.adapter.setStateAsync(`${this.storageRootOid}.${oid}`, value, true)
                 .catch(error => this.adapter.log.error(`[STORAGE] Cannot save state: ${error}`))
                 .then(() => {
                     delete this.savingPromises[index];
@@ -97,7 +95,7 @@ export class StorageIoBroker implements Storage {
 
         } else {
             this.savingPromises[index] =
-                this.adapter.setObjectAsync(`storage.${oid}`, {
+                this.adapter.setObjectAsync(`${this.storageRootOid}.${oid}`, {
                     type: 'state',
                     common: {
                         name: 'key',
@@ -109,7 +107,7 @@ export class StorageIoBroker implements Storage {
                     },
                     native: {}
                 })
-                    .then(() => this.adapter.setStateAsync(`storage.${oid}`, value, true)
+                    .then(() => this.adapter.setStateAsync(`${this.storageRootOid}.${oid}`, value, true)
                         .catch(error => this.adapter.log.error(`[STORAGE] Cannot save state: ${error}`))
                         .then(() => {
                             this.createdKeys[oid] = true;
@@ -124,7 +122,7 @@ export class StorageIoBroker implements Storage {
             if (this.savingNumber >= 0xFFFFFFFF) {
                 this.savingNumber = 1;
             }
-            this.savingPromises[index] = this.adapter.delObjectAsync(`storage.${oid}`)
+            this.savingPromises[index] = this.adapter.delObjectAsync(`${this.storageRootOid}.${oid}`)
                 .catch(error => this.adapter.log.error(`[STORAGE] Cannot save state: ${error}`))
                 .then(() => {
                     delete this.createdKeys[oid];
@@ -139,7 +137,7 @@ export class StorageIoBroker implements Storage {
             throw new StorageError('[STORAGE] Context and key must not be empty strings!');
         }
 
-        const oid = StorageIoBroker.buildKey(contexts, key);
+        const oid = this.buildKey(contexts, key);
         this.data[oid] = value;
         this.saveKey(oid, toJson(value));
     }
@@ -148,7 +146,7 @@ export class StorageIoBroker implements Storage {
         if (!key.length) {
             throw new StorageError('[STORAGE] Context and key must not be empty strings!');
         }
-        const oid = StorageIoBroker.buildKey(contexts, key);
+        const oid = this.buildKey(contexts, key);
         delete this.data[oid];
 
         this.deleteKey(oid);

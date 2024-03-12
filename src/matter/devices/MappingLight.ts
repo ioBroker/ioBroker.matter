@@ -1,4 +1,5 @@
-import { OnOffLightDevice, Device } from '@project-chip/matter-node.js/device';
+import { OnOffLightDevice } from '@project-chip/matter.js/devices/OnOffLightDevice';
+import { Endpoint } from '@project-chip/matter.js/endpoint';
 
 import { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/GenericDevice';
@@ -8,72 +9,84 @@ import Light from '../../lib/devices/Light';
 
 export class MappingLight extends MappingGenericDevice {
     private readonly ioBrokerDevice: Light;
-    private readonly matterDevice: OnOffLightDevice;
+    private readonly matterDevice: Endpoint<OnOffLightDevice>;
 
     constructor(ioBrokerDevice: GenericDevice, name: string, uniqueStorageKey?: string) {
         super(name);
-        this.matterDevice = new OnOffLightDevice(undefined, { uniqueStorageKey });
+        this.matterDevice = new Endpoint(OnOffLightDevice, { id: uniqueStorageKey });
         this.ioBrokerDevice = ioBrokerDevice as Light;
-
-        // install matter listeners
-        // here we can react on changes from the matter side for onOff
-        this.matterDevice.addOnOffListener(async on => {
-            const currentValue = !!this.ioBrokerDevice.getPower();
-            if (on !== currentValue) {
-                await this.ioBrokerDevice.setPower(on);
-            }
-        });
-
-        // Add "identify" command listener. It is the same, but the action is different for every device
-        this.matterDevice.addCommandHandler(
-            'identify',
-            async({ request: { identifyTime }, attributes: { identifyTime: attrIdentifyTime} }) => {
-                // identifyTime is in seconds
-                console.log(`Identify called for OnOffDevice ${this.getName()} with id: ${uniqueStorageKey} and identifyTime: ${identifyTime}`);
-                const identifyInitialState = !!this.ioBrokerDevice.getPower();
-
-                const identifyOptions: IdentifyOptions = {
-                    identifyTime,
-                    counter: identifyTime / 2,
-                    currentState: identifyInitialState,
-                    initialState: identifyInitialState,
-                };
-
-                this.identify(attrIdentifyTime, identifyOptions);
-            },
-        );
     }
 
     // Just change the power state every second
     doIdentify(identifyOptions: IdentifyOptions) {
         identifyOptions.currentState = !identifyOptions.currentState;
-        this.ioBrokerDevice.setPower(identifyOptions.currentState as boolean);
+        void this.ioBrokerDevice.setPower(identifyOptions.currentState as boolean);
     }
 
     // Restore the given initial state after the identity process is over
     resetIdentify(identifyOptions: IdentifyOptions) {
-        this.ioBrokerDevice.setPower(identifyOptions.initialState as boolean);
+        void this.ioBrokerDevice.setPower(identifyOptions.initialState as boolean);
     }
 
-    getMatterDevice(): Device {
-        return this.matterDevice as Device;
+    getMatterDevice(): Endpoint {
+        return this.matterDevice;
     }
 
     getIoBrokerDevice(): GenericDevice {
         return this.ioBrokerDevice;
     }
 
+    registerMatterHandlers() {
+        // install matter listeners
+        // here we can react on changes from the matter side for onOff
+        this.matterDevice.events.onOff.onOff$Change.on(async on => {
+            const currentValue = !!this.ioBrokerDevice.getPower();
+            if (on !== currentValue) {
+                await this.ioBrokerDevice.setPower(on);
+            }
+        });
+
+        let isIdentifying = false;
+        const identifyOptions: IdentifyOptions = {};
+        this.matterDevice.events.identify.identifyTime$Change.on(value => {
+            // identifyTime is set when an identify command is called and then decreased every second while indentify logic runs.
+            if (value > 0 && !isIdentifying) {
+                isIdentifying = true;
+                const identifyInitialState = !!this.ioBrokerDevice.getPower();
+
+                identifyOptions.currentState = identifyInitialState;
+                identifyOptions.initialState = identifyInitialState;
+
+                this.handleIdentify(identifyOptions);
+            } else if (value === 0) {
+                isIdentifying = false;
+                this.stopIdentify(identifyOptions);
+            }
+        });
+    }
+
     async init(): Promise<void> {
+        this.registerMatterHandlers();
+
         await this.ioBrokerDevice.init();
+
         // install ioBroker listeners
         // here we react on changes from the ioBroker side for onOff and current lamp level
-        this.ioBrokerDevice.onChange(event => {
+        this.ioBrokerDevice.onChange(async event => {
             if (event.property === PropertyType.Power) {
-                this.matterDevice.setOnOff(!!event.value);
+                await this.matterDevice.set({
+                    onOff: {
+                        onOff: !!event.value
+                    }
+                });
             }
         });
 
         // init current state from ioBroker side
-        this.matterDevice.setOnOff(!!this.ioBrokerDevice.getPower());
+        await this.matterDevice.set({
+            onOff: {
+                onOff: !!this.ioBrokerDevice.getPower()
+            }
+        });
     }
 }

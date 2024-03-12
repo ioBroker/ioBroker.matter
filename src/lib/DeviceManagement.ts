@@ -1,6 +1,6 @@
 import { MatterAdapter } from '../main';
 
-import { DeviceManagement, DeviceInfo, RetVal, DeviceStatus } from '@jey-cee/dm-utils';
+import { DeviceManagement, DeviceInfo, RetVal, DeviceStatus } from '@iobroker/dm-utils';
 
 
 class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {

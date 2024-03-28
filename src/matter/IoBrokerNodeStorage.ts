@@ -1,9 +1,15 @@
-import { fromJson, Storage, StorageError, SupportedStorageTypes, toJson } from '@project-chip/matter.js/storage';
+import {
+    fromJson,
+    StorageError,
+    SupportedStorageTypes,
+    SyncStorage,
+    toJson
+} from '@project-chip/matter.js/storage';
 
 /**
  * Class that implements the storage for one Node in the Matter ecosystem
  */
-export class IoBrokerNodeStorage implements Storage {
+export class IoBrokerNodeStorage implements SyncStorage {
     private data: Record<string, any> = {};
     private savingNumber: number = 1;
     private readonly savingPromises: Record<string, Promise<void>> = {};
@@ -72,6 +78,22 @@ export class IoBrokerNodeStorage implements Storage {
         return value as T;
     }
 
+    contexts(contexts: string[]): string[] {
+        const contextKeyStart = this.buildKey(contexts, '');
+        const len = contextKeyStart.length;
+
+        const thisContexts = new Array<string>();
+        Object.keys(this.data)
+            .filter(key => key.startsWith(contextKeyStart) && key.indexOf('$$', len) !== -1)
+            .forEach(key => {
+                const context = key.substring(len, key.indexOf('$$', len));
+                if (!thisContexts.includes(context)) {
+                    thisContexts.push(context);
+                }
+            });
+        return thisContexts;
+    }
+
     keys(contexts: string[]): string[] {
         const contextKeyStart = this.buildKey(contexts, '');
         const len = contextKeyStart.length;
@@ -79,6 +101,14 @@ export class IoBrokerNodeStorage implements Storage {
         return Object.keys(this.data)
             .filter(key => key.startsWith(contextKeyStart) && key.indexOf('$$', len) === -1)
             .map(key => key.substring(len));
+    }
+
+    values(contexts: string[]): Record<string, SupportedStorageTypes> {
+        const values = {} as Record<string, SupportedStorageTypes>;
+        for (const key in this.keys(contexts)) {
+            values[key] = this.get(contexts,key);
+        }
+        return values;
     }
 
     saveKey(oid: string, value: string): void {
@@ -132,7 +162,7 @@ export class IoBrokerNodeStorage implements Storage {
         }
     }
 
-    set<T extends SupportedStorageTypes>(contexts: string[], key: string, value: T): void {
+    #setKey(contexts: string[], key: string, value: SupportedStorageTypes): void {
         if (!key.length) {
             throw new StorageError('[STORAGE] Context and key must not be empty strings!');
         }
@@ -140,6 +170,16 @@ export class IoBrokerNodeStorage implements Storage {
         const oid = this.buildKey(contexts, key);
         this.data[oid] = value;
         this.saveKey(oid, toJson(value));
+    }
+
+    set(contexts: string[], keyOrValue: string | Record<string, SupportedStorageTypes>, value?: SupportedStorageTypes): void {
+        if (typeof keyOrValue === 'string') {
+            this.#setKey(contexts, keyOrValue, value as SupportedStorageTypes);
+        } else {
+            for (const key in keyOrValue) {
+                this.#setKey(contexts, key, keyOrValue[key]);
+            }
+        }
     }
 
     delete(contexts: string[], key: string): void {

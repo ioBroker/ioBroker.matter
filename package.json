@@ -19,12 +19,12 @@
     "url": "https://github.com/ioBroker/ioBroker.matter"
   },
   "optionalDependencies": {
-    "@project-chip/matter-node-ble.js": "0.8.0-alpha.0-20240314-ed7b831b"
+    "@project-chip/matter-node-ble.js": "0.8.0-alpha.0-20240328-858ab599"
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.0.4",
-    "@project-chip/matter-node.js": "0.8.0-alpha.0-20240314-ed7b831b",
-    "@project-chip/matter.js": "0.8.0-alpha.0-20240314-ed7b831b",
+    "@project-chip/matter-node.js": "0.8.0-alpha.0-20240328-858ab599",
+    "@project-chip/matter.js": "0.8.0-alpha.0-20240328-858ab599",
     "@iobroker/type-detector": "^3.0.5",
     "@iobroker/dm-utils": "^0.1.9",
     "axios": "^1.6.7",
@@ -50,7 +50,7 @@
     "eslint-plugin-promise": "^6.1.1",
     "gulp": "^4.0.2",
     "mocha": "^10.3.0",
-    "typescript": "5.4.2"
+    "typescript": "~5.4.3"
   },
   "bugs": {
     "url": "https://github.com/ioBroker/ioBroker.matter/issues"

@@ -39,14 +39,14 @@ export class MappingDimmer extends MappingGenericDevice {
     registerMatterHandlers() {
         // install matter listeners
         // here we can react on changes from the matter side for onOff
-        this.matterDevice.events.onOff.onOff$Change.on(async on => {
+        this.matterDevice.events.onOff.onOff$Changed.on(async on => {
             const currentValue = !!this.ioBrokerDevice.getPower();
             if (on !== currentValue) {
                 await this.ioBrokerDevice.setPower(on);
             }
         });
         // here we can react on changes from the matter side for the current lamp level
-        this.matterDevice.events.levelControl.currentLevel$Change.on(async(level: number | null) => {
+        this.matterDevice.events.levelControl.currentLevel$Changed.on(async(level: number | null) => {
             const currentValue = this.ioBrokerDevice.getLevel();
             if (level !== currentValue && level !== null) {
                 await this.ioBrokerDevice.setLevel(level);
@@ -56,7 +56,7 @@ export class MappingDimmer extends MappingGenericDevice {
 
         let isIdentifying = false;
         const identifyOptions: IdentifyOptions = {};
-        this.matterDevice.events.identify.identifyTime$Change.on(value => {
+        this.matterDevice.events.identify.identifyTime$Changed.on(value => {
             // identifyTime is set when an identify command is called and then decreased every second while indentify logic runs.
             if (value > 0 && !isIdentifying) {
                 isIdentifying = true;

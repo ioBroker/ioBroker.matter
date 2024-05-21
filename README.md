@@ -50,4 +50,4 @@
 ## License
 Apache-2.0
 
-Copyright (c) 2023 Denis Haev <dogafox@gmail.com>
+Copyright (c) 2023-2024 Denis Haev <dogafox@gmail.com>

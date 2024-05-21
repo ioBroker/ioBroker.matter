@@ -7,7 +7,7 @@ import {
     Endpoint, CommissioningControllerNodeOptions,
     PairedNode,
 } from '@project-chip/matter.js/device';
-import { toHexString, singleton } from '@project-chip/matter.js/util';
+import { toHex, singleton } from '@project-chip/matter.js/util';
 import {
     asClusterServerInternal,
     ClusterServerObj,
@@ -93,8 +93,8 @@ interface Device {
 
 class Controller {
     private parameters: ControllerOptions;
-    private adapter: MatterAdapter;
-    private matterEnvironment: Environment;
+    private readonly adapter: MatterAdapter;
+    private readonly matterEnvironment: Environment;
     private commissioningController: CommissioningController | null = null;
     private matterNodeIds: NodeId[] = [];
     private devices: Device[] = [];
@@ -280,7 +280,7 @@ class Controller {
             }
         }
         this.adapter.log.debug(
-            `${''.padStart(level * 2)}Cluster-Server "${clusterServer.name}" (${toHexString(clusterServer.id)}) ${
+            `${''.padStart(level * 2)}Cluster-Server "${clusterServer.name}" (${toHex(clusterServer.id)}) ${
                 supportedFeatures.length ? `(Features: ${supportedFeatures.join(', ')})` : ''
             }`);
         this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Global-Attributes:`);
@@ -292,7 +292,7 @@ class Controller {
 
             const value = this.getAttributeServerValue(attribute);
             this.adapter.log.debug(
-                `${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHexString(attribute.id)})${value !== '' ? `: value = ${value}` : ''}`,
+                `${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHex(attribute.id)})${value !== '' ? `: value = ${value}` : ''}`,
             );
         }
 
@@ -308,7 +308,7 @@ class Controller {
 
             const value = this.getAttributeServerValue(attribute);
             this.adapter.log.debug(
-                `${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHexString(attribute.id)})${value !== '' ? `: value = ${value}` : ''}`,
+                `${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHex(attribute.id)})${value !== '' ? `: value = ${value}` : ''}`,
             );
         }
 
@@ -317,7 +317,7 @@ class Controller {
         for (const commandName in commands) {
             const command = commands[commandName];
             if (command === undefined) continue;
-            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${command.name}" (${toHexString(command.invokeId)}/${command.responseId})`);
+            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${command.name}" (${toHex(command.invokeId)}/${command.responseId})`);
         }
 
         this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Events:`);
@@ -325,7 +325,7 @@ class Controller {
         for (const eventName in events) {
             const event = events[eventName];
             if (event === undefined) continue;
-            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${event.name}" (${toHexString(event.id)})`);
+            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${event.name}" (${toHex(event.id)})`);
         }
     }
 
@@ -356,7 +356,7 @@ class Controller {
         // }
 
         this.adapter.log.debug(
-            `${''.padStart(level * 2)}Cluster-Client "${clusterClient.name}" (${toHexString(clusterClient.id)}) ${supportedFeatures.length ? `(Features: ${supportedFeatures.join(', ')})` : ''}`
+            `${''.padStart(level * 2)}Cluster-Client "${clusterClient.name}" (${toHex(clusterClient.id)}) ${supportedFeatures.length ? `(Features: ${supportedFeatures.join(', ')})` : ''}`
         );
         this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Global-Attributes:`);
         for (const attributeName in globalAttributes) {
@@ -365,7 +365,7 @@ class Controller {
                 continue;
             }
 
-            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHexString(attribute.id)}) = ${this.getAttributeServerValue(attribute)}`);
+            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHex(attribute.id)}) = ${this.getAttributeServerValue(attribute)}`);
         }
 
         this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Attributes:`);
@@ -386,7 +386,7 @@ class Controller {
             // if (unknown) {
             //     info += " (Unknown)";
             // }
-            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHexString(attribute.id)}) = ${this.getAttributeServerValue(attribute)}`);
+            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHex(attribute.id)}) = ${this.getAttributeServerValue(attribute)}`);
         }
 
         this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Commands:`);
@@ -409,7 +409,7 @@ class Controller {
             // if (unknown) {
             //     info += ' (Unknown)';
             // }
-            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${event.name}" (${toHexString(event.id)})`);
+            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${event.name}" (${toHex(event.id)})`);
         }
     }
 

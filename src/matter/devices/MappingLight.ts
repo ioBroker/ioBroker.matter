@@ -39,7 +39,7 @@ export class MappingLight extends MappingGenericDevice {
     registerMatterHandlers() {
         // install matter listeners
         // here we can react on changes from the matter side for onOff
-        this.matterDevice.events.onOff.onOff$Change.on(async on => {
+        this.matterDevice.events.onOff.onOff$Changed.on(async on => {
             const currentValue = !!this.ioBrokerDevice.getPower();
             if (on !== currentValue) {
                 await this.ioBrokerDevice.setPower(on);
@@ -48,7 +48,7 @@ export class MappingLight extends MappingGenericDevice {
 
         let isIdentifying = false;
         const identifyOptions: IdentifyOptions = {};
-        this.matterDevice.events.identify.identifyTime$Change.on(value => {
+        this.matterDevice.events.identify.identifyTime$Changed.on(value => {
             // identifyTime is set when an identify command is called and then decreased every second while indentify logic runs.
             if (value > 0 && !isIdentifying) {
                 isIdentifying = true;

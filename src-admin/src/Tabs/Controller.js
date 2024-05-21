@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { withStyles } from '@mui/styles';
 import QrScanner from 'qr-scanner';
@@ -23,6 +23,9 @@ import {
 } from '@mui/icons-material';
 
 import { I18n, IconClosed, IconOpen } from '@iobroker/adapter-react-v5';
+import DeviceManager from '@iobroker/dm-gui-components';
+
+// import DeviceManager from '../components/InstanceManager';
 
 const styles = () => ({
     panel: {
@@ -75,13 +78,14 @@ const styles = () => ({
     },
 });
 
-class Controller extends React.Component {
+class Controller extends Component {
     constructor(props) {
         super(props);
-        let openedNodes = window.localStorage.getItem('openedNodes');
-        if (openedNodes) {
+        const openedNodesStr = window.localStorage.getItem('openedNodes');
+        let openedNodes;
+        if (openedNodesStr) {
             try {
-                openedNodes = JSON.parse(openedNodes);
+                openedNodes = JSON.parse(openedNodesStr);
             } catch (e) {
                 openedNodes = [];
             }
@@ -118,6 +122,9 @@ class Controller extends React.Component {
         } catch (e) {
             nodes = {};
         }
+        // ignore 'matter.0.controller.info' channel
+        delete nodes[`matter.${this.props.instance}.controller.info`];
+
         try {
             const _states = await this.props.socket.getObjectViewSystem(
                 'state',
@@ -325,6 +332,7 @@ class Controller extends React.Component {
                 </Button>
                 <Button
                     variant="contained"
+                    // @ts-expect-error grey is valid color
                     color="grey"
                     onClick={() => this.setState({ showQrCodeDialog: false }, () => this.destroyQrCode())}
                     startIcon={<Close />}
@@ -391,6 +399,7 @@ class Controller extends React.Component {
                 <Button
                     disabled={this.state.discoveryRunning}
                     variant="contained"
+                    // @ts-expect-error grey is valid color
                     color="grey"
                     onClick={() => this.setState({ discoveryDone: false })}
                     startIcon={<Close />}
@@ -571,6 +580,20 @@ class Controller extends React.Component {
         return deviceOrBridgeIds.map(id => this.renderDeviceOrBridge(id));
     }
 
+    renderDeviceManager() {
+        if (!this.state.nodes) {
+            return null;
+        }
+        return <div style={{ width: '100%' }}>
+            <DeviceManager
+                title={I18n.t('Commitment devices')}
+                socket={this.props.socket}
+                selectedInstance={`${this.props.adapterName}.${this.props.instance}`}
+                style={{ justifyContent: 'start' }}
+            />
+        </div>;
+    }
+
     render() {
         if (!this.props.alive && (this.state.discoveryRunning || this.state.discoveryDone)) {
             setTimeout(() => this.setState({ discoveryRunning: false, discoveryDone: false }), 100);
@@ -700,7 +723,8 @@ class Controller extends React.Component {
                     {I18n.t('Discovery devices')}
                 </Button>
             </div> : null}
-            <Table style={{ maxWidth: 600 }} size="small">
+            {this.props.matter.controller.enabled ? this.renderDeviceManager() : null}
+            {/* this.props.matter.controller.enabled ? <Table style={{ maxWidth: 600 }} size="small">
                 <TableHead>
                     <TableRow>
                         <TableCell style={{ width: 0, padding: 0 }} />
@@ -711,7 +735,7 @@ class Controller extends React.Component {
                 <TableBody>
                     {this.renderDevicesAndBridges()}
                 </TableBody>
-            </Table>
+            </Table> : null */}
         </div>;
     }
 }
@@ -722,6 +746,8 @@ Controller.propTypes = {
     updateConfig: PropTypes.func,
     alive: PropTypes.bool,
     registerMessageHandler: PropTypes.func,
+    adapterName: PropTypes.string,
+    socket: PropTypes.object,
 };
 
 export default withStyles(styles)(Controller);

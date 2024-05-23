@@ -118,6 +118,8 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
     private qrScanner: QrScanner | null | true = null;
 
+    private aliveState: boolean;
+
     constructor(props: ComponentProps) {
         super(props);
         const openedNodesStr = window.localStorage.getItem('openedNodes');
@@ -146,6 +148,8 @@ class Controller extends Component<ComponentProps, ComponentState> {
             openedNodes,
             showQrCodeDialog: null,
         };
+
+        this.aliveState = this.props.alive;
 
         this.refQrScanner = React.createRef();
     }
@@ -207,9 +211,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
             .then(() => this.props.socket.subscribeObject(`matter.${this.props.instance}.controller.*`, this.onObjectChange)
                 .catch(e => window.alert(`Cannot subscribe: ${e}`)))
             .then(() => this.props.socket.subscribeState(`matter.${this.props.instance}.controller.*`, this.onStateChange)
-                .catch(e => {
-                    window.alert(`Cannot subscribe 1: ${e}`);
-                }));
+                .catch(e => window.alert(`Cannot subscribe 1: ${e}`)));
     }
 
     onObjectChange = (id: string, obj: ioBroker.Object | null | undefined) => {

@@ -54,10 +54,18 @@
         "ecmaVersion": "latest",
         "sourceType": "module"
     },
-    "files": [
-        "*.tsx",
-        "*.js",
-        "*.jsx"
-    ],
-    "parser": "@typescript-eslint/parser"
+
+    "parser": "@typescript-eslint/parser",
+    "overrides": [
+        {
+            "files": [
+                "*.tsx",
+                "*.js",
+                "*.jsx"
+            ],
+            "rules": {
+                // "@typescript-eslint/explicit-function-return-type": "off",
+            }
+        }
+    ]
 }

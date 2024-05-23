@@ -122,7 +122,7 @@ export async function detectDevices(socket: AdminConnection, list?: string[]): P
             if (id.startsWith('enum.rooms.')) {
                 rooms.push(id);
             }
-            const members = devicesObject[id].common.members;
+            const members: string[] = devicesObject[id].common.members;
 
             if (members && members.length) {
                 members.forEach(member => {

@@ -259,7 +259,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         if (!this.state.editBridgeDialog) {
             return null;
         }
-        const isCommissioned = !!this.props.commissioning[this.props.matter[this.state.editBridgeDialog.bridgeIndex || 0]];
+        const isCommissioned = !!this.props.commissioning[this.props.matter.bridges[this.state.editBridgeDialog.bridgeIndex || 0].uuid];
 
         const save = () => {
             if (!this.state.editBridgeDialog) {
@@ -467,7 +467,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         </span>}
                     >
                         {Object.keys(Types).filter(key => SUPPORTED_DEVICES.includes(key as Types)).map(type => <MenuItem key={type} value={type}>
-                            <span>{DEVICE_ICONS[type] || <QuestionMark />}</span>
+                            <span>{DEVICE_ICONS[type as Types] || <QuestionMark />}</span>
                             {I18n.t(type)}
                         </MenuItem>)}
                     </Select>
@@ -670,9 +670,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
             addDevices={(devices: DetectedDevice[]) => this.addDevicesToBridge(devices, this.state.addDeviceDialog?.bridgeIndex || 0, true)}
             matter={this.props.matter}
             socket={this.props.socket}
-            themeType={this.props.themeType}
             detectedDevices={this.props.detectedDevices}
             setDetectedDevices={(detectedDevices: DetectedRoom[]) => this.props.setDetectedDevices(detectedDevices)}
+            type="device"
+            name={this.props.matter.bridges[this.state.addDeviceDialog.bridgeIndex].name}
         />;
     }
 
@@ -713,7 +714,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         </span>}
                     >
                         {Object.keys(Types).filter(key => SUPPORTED_DEVICES.includes(key as Types)).map(type => <MenuItem key={type} value={type}>
-                            <span>{DEVICE_ICONS[type] || <QuestionMark />}</span>
+                            <span>{DEVICE_ICONS[type as Types] || <QuestionMark />}</span>
                             {I18n.t(type)}
                         </MenuItem>)}
                     </Select>

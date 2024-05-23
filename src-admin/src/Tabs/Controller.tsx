@@ -212,7 +212,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 }));
     }
 
-    onObjectChange = (id, obj) => {
+    onObjectChange = (id: string, obj: ioBroker.Object | null | undefined) => {
         if (!this.state.nodes) {
             return;
         }
@@ -225,7 +225,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
         this.setState({ nodes });
     };
 
-    onStateChange = (id, state) => {
+    onStateChange = (id: string, state: ioBroker.State | null | undefined) => {
         if (id === `matter.${this.props.instance}.controller.info.discovering`) {
             if (state?.val) {
                 this.setState({ discoveryRunning: true });
@@ -483,7 +483,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
         </TableRow>;
     }
 
-    renderCluster(clusterId) {
+    renderCluster(clusterId: string) {
         const _clusterId = `${clusterId}.`;
         const states = Object.keys(this.state.nodes).filter(id => id.startsWith(_clusterId) && this.state.nodes[id].type === 'state');
         return [
@@ -722,12 +722,12 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     variant="standard"
                     style={{ maxWidth: 600 }}
                     label={I18n.t('WiFI password')}
-                    error={!this.props.matter.controller.wifiPasword}
-                    helperText={this.props.matter.controller.wifiPasword ? '' : I18n.t('Required')}
-                    value={this.props.matter.controller.wifiPasword || ''}
+                    error={!this.props.matter.controller.wifiPassword}
+                    helperText={this.props.matter.controller.wifiPassword ? '' : I18n.t('Required')}
+                    value={this.props.matter.controller.wifiPassword || ''}
                     onChange={e => {
                         const matter = JSON.parse(JSON.stringify(this.props.matter));
-                        matter.controller.wifiPasword = e.target.value;
+                        matter.controller.wifiPassword = e.target.value;
                         this.props.updateConfig(matter);
                     }}
                 />
@@ -738,10 +738,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     style={{ maxWidth: 600 }}
                     variant="standard"
                     label={I18n.t('Thread network name')}
-                    value={this.props.matter.controller.threadNetworkname || ''}
+                    value={this.props.matter.controller.threadNetworkName || ''}
                     onChange={e => {
                         const matter = JSON.parse(JSON.stringify(this.props.matter));
-                        matter.controller.threadNetworkname = e.target.value;
+                        matter.controller.threadNetworkName = e.target.value;
                         this.props.updateConfig(matter);
                     }}
                 />

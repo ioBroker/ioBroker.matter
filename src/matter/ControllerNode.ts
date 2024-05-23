@@ -44,8 +44,8 @@ export interface ControllerOptions {
     ble?: boolean;
     uuid: string;
     wifiSSID?: string;
-    wifiPasword?: string;
-    threadNetworkname?: string;
+    wifiPassword?: string;
+    threadNetworkName?: string;
     threadOperationalDataSet?: string;
     hciId?: number;
 }
@@ -654,19 +654,19 @@ class Controller {
             regulatoryCountryCode: 'XX',
         };
         if (this.parameters.ble) {
-            if (this.parameters.wifiSSID && this.parameters.wifiPasword) {
+            if (this.parameters.wifiSSID && this.parameters.wifiPassword) {
                 this.useBle = true;
                 this.adapter.log.debug(`Registering Commissioning over BLE with WiFi: ${this.parameters.wifiSSID}`);
                 commissioningOptions.wifiNetwork = {
                     wifiSsid: this.parameters.wifiSSID,
-                    wifiCredentials: this.parameters.wifiPasword,
+                    wifiCredentials: this.parameters.wifiPassword,
                 };
             }
-            if (this.parameters.threadNetworkname !== undefined && this.parameters.threadOperationalDataSet !== undefined) {
-                this.adapter.log.debug(`Registering Commissioning over BLE with Thread: ${this.parameters.threadNetworkname}`);
+            if (this.parameters.threadNetworkName !== undefined && this.parameters.threadOperationalDataSet !== undefined) {
+                this.adapter.log.debug(`Registering Commissioning over BLE with Thread: ${this.parameters.threadNetworkName}`);
                 this.useThread = true;
                 commissioningOptions.threadNetwork = {
-                    networkName: this.parameters.threadNetworkname,
+                    networkName: this.parameters.threadNetworkName,
                     operationalDataset: this.parameters.threadOperationalDataSet,
                 };
             }

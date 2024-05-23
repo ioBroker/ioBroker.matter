@@ -69,7 +69,7 @@ class ConfigHandler {
         this.socket = null;
     }
 
-    onStateChange = (id, state) => {
+    onStateChange = (id: string, state: ioBroker.State | null | undefined) => {
         if (id.endsWith('.commissioning')) {
             const parts = id.split('.');
             let changed = false;
@@ -88,7 +88,7 @@ class ConfigHandler {
         }
     };
 
-    onObjectChange = (id, obj) => {
+    onObjectChange = (id: string, obj: ioBroker.Object | null | undefined) => {
         if (!this.onChanged) {
             return;
         }
@@ -147,7 +147,7 @@ class ConfigHandler {
                     });
                 }
                 if (changed) {
-                    ConfigHandler.sortAll(this.config);
+                    ConfigHandler.sortAll(this.config, this.lang);
                     this.onChanged(this.config);
                 }
             }
@@ -196,7 +196,7 @@ class ConfigHandler {
                     });
                 }
                 if (changed) {
-                    ConfigHandler.sortAll(this.config);
+                    ConfigHandler.sortAll(this.config, this.lang);
                     this.onChanged(this.config);
                 }
             }
@@ -310,7 +310,7 @@ class ConfigHandler {
             devices,
             bridges,
         };
-        ConfigHandler.sortAll(this.config);
+        ConfigHandler.sortAll(this.config, this.lang);
         this.changed = false;
         globalThis.changed = false;
         window.parent.postMessage('nochange', '*');
@@ -323,31 +323,46 @@ class ConfigHandler {
         return JSON.parse(JSON.stringify(this.config));
     }
 
-    static sortAll(config: MatterConfig) {
+    static getSortName(name: ioBroker.StringOrTranslated, lang: ioBroker.Languages): string {
+        if (!name || typeof name === 'string') {
+            return name as string || '';
+        } else {
+            return name.en || name[lang];
+        }
+    }
+
+    static sortAll(config: MatterConfig, lang: ioBroker.Languages) {
         config.devices.sort((a, b) => {
-            if (a.name === b.name) {
+            const aName = ConfigHandler.getSortName(a.name, lang);
+            const bName = ConfigHandler.getSortName(b.name, lang);
+
+            if (aName === bName) {
                 return a.uuid.localeCompare(b.uuid);
             }
-            return a.name.localeCompare(b.name);
+            return aName.localeCompare(bName);
         });
         config.bridges.sort((a, b) => {
-            if (a.name === b.name) {
+            const aName = ConfigHandler.getSortName(a.name, lang);
+            const bName = ConfigHandler.getSortName(b.name, lang);
+            if (aName === bName) {
                 return a.uuid.localeCompare(b.uuid);
             }
-            return a.name.localeCompare(b.name);
+            return aName.localeCompare(bName);
         });
         config.bridges.forEach(bridge => {
             bridge.list.sort((a, b) => {
-                if (a.name === b.name) {
+                const aName = ConfigHandler.getSortName(a.name, lang);
+                const bName = ConfigHandler.getSortName(b.name, lang);
+                if (aName === bName) {
                     return a.oid.localeCompare(b.oid);
                 }
-                return a.name.localeCompare(b.name);
+                return aName.localeCompare(bName);
             });
         });
     }
 
     isChanged(config: MatterConfig) {
-        ConfigHandler.sortAll(config);
+        ConfigHandler.sortAll(config, this.lang);
 
         let isChanged = false;
         // compare config with this.config
@@ -370,7 +385,6 @@ class ConfigHandler {
     }
 
     async saveConfig(config: MatterConfig) {
-        ConfigHandler.sortAll(config);
         if (!this.socket) {
             return;
         }
@@ -395,16 +409,16 @@ class ConfigHandler {
             controller.native.enabled = config.controller.enabled;
             controller.native.ble = config.controller.ble;
             controller.native.hciId = config.controller.hciId;
-            controller.native.threadNetworkname = config.controller.threadNetworkname;
-            controller.native.wifiPasword = config.controller.wifiPasword;
+            controller.native.threadNetworkName = config.controller.threadNetworkName;
+            controller.native.wifiPassword = config.controller.wifiPassword;
             controller.native.threadOperationalDataSet = config.controller.threadOperationalDataSet;
             controller.native.wifiSSID = config.controller.wifiSSID;
 
             this.config.controller.enabled = config.controller.enabled;
             this.config.controller.ble = config.controller.ble;
             this.config.controller.hciId = config.controller.hciId;
-            this.config.controller.threadNetworkname = config.controller.threadNetworkname;
-            this.config.controller.wifiPasword = config.controller.wifiPasword;
+            this.config.controller.threadNetworkName = config.controller.threadNetworkName;
+            this.config.controller.wifiPassword = config.controller.wifiPassword;
             this.config.controller.threadOperationalDataSet = config.controller.threadOperationalDataSet;
             this.config.controller.wifiSSID = config.controller.wifiSSID;
             await this.socket.setObject(controller._id, controller);
@@ -427,7 +441,6 @@ class ConfigHandler {
                 // create a new device
                 console.log(`Device ${newDev.uuid} created`);
                 this.config.devices.push(newDev);
-                ConfigHandler.sortAll(this.config);
                 await this.socket.setObject(obj._id, obj);
             } else if (JSON.stringify(newDev) !== JSON.stringify(oldDev)) {
                 const obj: ioBroker.ChannelObject = await this.socket.getObject(`matter.${this.instance}.devices.${newDev.uuid}`) as ioBroker.ChannelObject;
@@ -466,7 +479,7 @@ class ConfigHandler {
                 };
                 delete obj.native.name;
                 this.config.bridges.push(newBridge);
-                ConfigHandler.sortAll(this.config);
+                ConfigHandler.sortAll(this.config, this.lang);
                 // create a new bridge
                 console.log(`Bridge ${newBridge.uuid} created`);
                 await this.socket.setObject(obj._id, obj);
@@ -477,6 +490,7 @@ class ConfigHandler {
                 Object.assign(obj.native, newBridge);
                 Object.assign(oldBridge, newBridge);
                 delete obj.native.name;
+                ConfigHandler.sortAll(this.config, this.lang);
                 console.log(`Bridge ${obj._id} updated`);
                 await this.socket.setObject(obj._id, obj);
             }
@@ -491,6 +505,8 @@ class ConfigHandler {
                 await this.socket.delObject(`matter.${this.instance}.bridges.${oldBridge.uuid}`);
             }
         }
+
+        ConfigHandler.sortAll(config, this.lang);
 
         if (this.changed) {
             this.changed = false;

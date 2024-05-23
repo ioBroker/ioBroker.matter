@@ -10,7 +10,7 @@ export interface MatterAdapterConfig extends ioBroker.AdapterConfig {
 export interface BridgeDeviceDescription {
     uuid: string;
     enabled: boolean;
-    name: string;
+    name: ioBroker.StringOrTranslated;
     /** Object ID */
     oid: string;
     type: Types;
@@ -28,7 +28,7 @@ export interface BridgeDescription {
     productID: string;
     vendorID: string;
     passcode?: string;
-    name: string;
+    name: ioBroker.StringOrTranslated;
     deleted?: boolean;
     list: BridgeDeviceDescription[];
 }
@@ -65,8 +65,8 @@ export interface MatterConfig {
         ble?: boolean;
         hciId?: string;
         wifiSSID?: string;
-        wifiPasword?: string;
-        threadNetworkname?: string;
+        wifiPassword?: string;
+        threadNetworkName?: string;
         threadOperationalDataSet?: string;
     };
     devices: DeviceDescription[];

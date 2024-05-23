@@ -172,7 +172,7 @@ interface DeviceDialogProps {
     addDevices: (devices: DetectedDevice[]) => void;
     onClose: () => void;
     type: 'bridge' | 'device';
-    name: string;
+    name?: ioBroker.StringOrTranslated;
     classes: Record<string, string>;
 }
 
@@ -190,7 +190,7 @@ interface DeviceDialogState {
 }
 
 class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
-    constructor(props) {
+    constructor(props: DeviceDialogProps) {
         super(props);
         const expandedStr = window.localStorage.getItem('matter.expanded') || '[]';
         let expanded: string[];
@@ -241,11 +241,11 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
             });
         });
 
-        const _checked = {};
-        const devicesChecked = {};
-        const roomsChecked = {};
-        const deviceNames = {};
-        const deviceRoomTypeNames = {};
+        const _checked: Record<string, boolean> = {};
+        const devicesChecked: Record<string, boolean> = {};
+        const roomsChecked: Record<string, boolean> = {};
+        const deviceNames: Record<string, string> = {};
+        const deviceRoomTypeNames: Record<string, string> = {};
         rooms.forEach(room => {
             roomsChecked[room._id] = true;
             room.devices.forEach(device => {
@@ -259,7 +259,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
             });
         });
 
-        const usedDevices = {};
+        const usedDevices: Record<string, boolean> = {};
         this.props.matter.devices.forEach(device =>
             usedDevices[device.oid] = true);
 
@@ -408,7 +408,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
             fullWidth
         >
             <DialogTitle>
-                {I18n.t('Add devices') + (this.props.type === 'bridge' ? ` ${I18n.t('to bridge')} ${this.props.name}` : '')}
+                {`${I18n.t('Add devices')}${this.props.type === 'bridge' ? ` ${I18n.t('to bridge')} ${getText(this.props.name)}` : ''}`}
             </DialogTitle>
             <DialogContent className={this.props.classes.dialogContent}>
                 {this.state.rooms ? <div className={this.props.classes.header}>

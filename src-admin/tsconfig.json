@@ -1,13 +1,23 @@
 // Root tsconfig to set the settings and power editor support for all TS files
 {
-  "extends": "@tsconfig/node16/tsconfig.json",
   "compilerOptions": {
-    // do not compile anything, this file is just to configure type checking
-    "noEmit": true,
-
-    // check JS files
+    "target": "ES2022",
+    "baseUrl": "./",
+    "allowSyntheticDefaultImports": true,
     "allowJs": true,
-    "checkJs": true,
+    "checkJs": false,
+    "noEmit": false,
+    "declaration": true,
+    "outDir": "./build",
+    "sourceMap": true,
+    "sourceRoot": "./src",
+    "noImplicitAny": true,
+    "skipLibCheck": true,
+    "module": "commonjs",
+    "lib": [
+      "es2018",
+      "DOM"
+    ],
 
     // This is necessary for the automatic typing of the adapter config
     "resolveJsonModule": true,
@@ -18,16 +28,18 @@
     // "strictNullChecks": true,
     // "strictPropertyInitialization": true,
     // "strictBindCallApply": true,
-    "noImplicitAny": false,
     // "noUnusedLocals": true,
     // "noUnusedParameters": true,
     "useUnknownInCatchVariables": false,
     "jsx": "react",
-    "lib": ["ESNext", "DOM"],
+    "types": [
+      "@iobroker/types"
+    ],
   },
   "include": [
     "**/*.js",
-    "**/*.d.ts"
+    "**/*.d.ts",
+    "**/*.tsx"
   ],
   "exclude": [
     "node_modules/**",

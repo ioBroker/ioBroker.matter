@@ -14,25 +14,30 @@ import {
     SignalCellularOff as IconNotAlive,
 } from '@mui/icons-material';
 
-import { I18n, Loader, AdminConnection, GenericApp } from '@iobroker/adapter-react-v5';
-import { GenericAppProps, GenericAppState, Theme } from '@iobroker/adapter-react-v5/types';
+import {
+    I18n, Loader,
+    AdminConnection, GenericApp,
+} from '@iobroker/adapter-react-v5';
+import type { GenericAppProps, GenericAppState, Theme } from '@iobroker/adapter-react-v5/types';
 
 import ConfigHandler from './components/ConfigHandler';
 import OptionsTab from './Tabs/Options';
 import ControllerTab from './Tabs/Controller';
 import BridgesTab from './Tabs/Bridges';
 import DevicesTab from './Tabs/Devices';
-import {
-    MatterAdapterConfig,
-    NodeStateResponse,
-    MatterConfig, GUIMessage, type DetectedRoom, CommissioningInfo
-} from './types';
 
 declare global {
     interface Window {
         sentryDSN: string;
     }
 }
+
+import type {
+    MatterAdapterConfig,
+    NodeStateResponse,
+    MatterConfig, GUIMessage,
+    DetectedRoom, CommissioningInfo,
+} from './types';
 
 const productIDs: string[] = [];
 for (let i = 0x8000; i <= 0x801F; i++) {
@@ -138,10 +143,8 @@ class App extends GenericApp<AppProps, AppState> {
 
         this.socket.subscribeOnInstance(`matter.${this.instance}`, 'gui', null, this.onBackendUpdates)
             .then(result => {
-                // @ts-expect-error fixed in adapter-react-v5
                 if (typeof result === 'object' && result.accepted === false) {
                     console.error('Subscribe is not accepted');
-                    // @ts-expect-error fixed in adapter-react-v5
                     this.setState({ backendRunning: !!result.accepted });
                 } else if (!this.state.backendRunning) {
                     this.setState({ backendRunning: true });
@@ -257,7 +260,7 @@ class App extends GenericApp<AppProps, AppState> {
 
     renderController() {
         return <ControllerTab
-            registerMessageHandler={handler => this.controllerMessageHandler = handler}
+            registerMessageHandler={(handler: null | ((message: GUIMessage | null) => void)) => this.controllerMessageHandler = handler}
             alive={this.state.alive}
             socket={this.socket}
             instance={this.instance}
@@ -277,10 +280,8 @@ class App extends GenericApp<AppProps, AppState> {
             onChange={(id, value) => this.updateNativeValue(id, value)}
             onLoad={native => this.onLoadConfig(native)}
             socket={this.socket}
-            // @ts-expect-error fixed in adapter-react-v5
             common={this.common}
             native={this.state.native as MatterAdapterConfig}
-            themeType={this.state.themeType}
             instance={this.instance}
             showToast={text => this.showToast(text)}
         />;

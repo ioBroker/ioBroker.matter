@@ -343,7 +343,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         </span>}
                     >
                         {Object.keys(Types).filter(key => SUPPORTED_DEVICES.includes(key as Types)).map(type => <MenuItem key={type} value={type}>
-                            <span>{DEVICE_ICONS[type] || <QuestionMark />}</span>
+                            <span>{DEVICE_ICONS[type as Types] || <QuestionMark />}</span>
                             {I18n.t(type)}
                         </MenuItem>)}
                     </Select>
@@ -632,13 +632,12 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
 
         return <DeviceDialog
             onClose={() => this.setState({ addDeviceDialog: null })}
-            {...(this.state.addDeviceDialog || {})}
-            addDevices={devices => this.addDevices(devices, true)}
+            addDevices={(devices: DetectedDevice[]) => this.addDevices(devices, true)}
             matter={this.props.matter}
             socket={this.props.socket}
-            themeType={this.props.themeType}
             detectedDevices={this.props.detectedDevices}
-            setDetectedDevices={detectedDevices => this.props.setDetectedDevices(detectedDevices)}
+            setDetectedDevices={(detectedDevices: DetectedRoom[]) => this.props.setDetectedDevices(detectedDevices)}
+            type="device"
         />;
     }
 

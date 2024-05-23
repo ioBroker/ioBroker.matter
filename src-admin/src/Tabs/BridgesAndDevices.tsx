@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { Component } from 'react';
 import QRCode from 'react-qr-code';
 
 import {
-    SiAmazonalexa, SiApple, SiGoogleassistant, SiSmartthings,
+    SiAmazonalexa, SiApple,
+    SiGoogleassistant, SiSmartthings,
 } from 'react-icons/si';
 import {
     Button,
@@ -14,7 +15,7 @@ import {
     InputAdornment, Table, TableBody, TableCell, TableRow,
     TextField, Tooltip,
 } from '@mui/material';
-import { I18n, Utils } from '@iobroker/adapter-react-v5';
+import { AdminConnection, I18n, Utils } from '@iobroker/adapter-react-v5';
 import {
     Close,
     ContentCopy,
@@ -25,8 +26,10 @@ import {
     Wifi,
     WifiOff,
 } from '@mui/icons-material';
+import { ThemeType } from '@iobroker/adapter-react-v5/types';
+import type {BridgeDescription, DeviceDescription, NodeStateResponse, NodeStates} from '../types';
 
-export const STYLES = {
+export const STYLES: Record<string, any> = {
     vendorIcon: {
         width: 24,
         height: 24,
@@ -36,43 +39,74 @@ export const STYLES = {
     },
 };
 
-class BridgesAndDevices extends React.Component {
-    constructor(props) {
+export interface BridgesAndDevicesProps {
+    socket: AdminConnection;
+    instance: number;
+    alive: boolean;
+    themeType: ThemeType;
+    classes: Record<string, string>;
+    nodeStates: { [uuid: string]: NodeStateResponse };
+    updateNodeStates: (states: { [uuid: string]: NodeStateResponse }) => void;
+    showToast: (message: string) => void;
+}
+
+export interface BridgesAndDevicesState {
+    showQrCode: DeviceDescription | BridgeDescription | null;
+    showResetDialog: { bridgeOrDevice: DeviceDescription | BridgeDescription; step: number } | null;
+    showDebugData: DeviceDescription | BridgeDescription | null;
+}
+
+class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends BridgesAndDevicesState> extends Component<TProps, TState> {
+    constructor(props: TProps) {
         super(props);
 
         this.state = {
             showQrCode: null,
-            suppressDelete: false,
-            deleteDialog: false,
             showResetDialog: null,
             showDebugData: null,
-        };
+        } as TState;
     }
 
     componentDidMount() {
         if (this.props.alive) {
             this.props.socket.sendTo(`matter.${this.props.instance}`, 'nodeStates', { bridges: true, devices: true })
-                .then(result => result.states && this.props.updateNodeStates(result.states));
+                .then(result => result.states && this.props.updateNodeStates(result.states as { [uuid: string]: NodeStateResponse }));
         }
     }
 
-    static getVendorIcon(vendor, classes, themeType) {
+    static getVendorIcon(vendor: string, classes: Record<string, string>, themeType: ThemeType) {
         if (vendor === 'Amazon Lab126') {
-            return <SiAmazonalexa className={classes.vendorIcon} title={vendor} style={{ color: themeType ? '#001ca8' : '#0000dc' }} />;
+            return <SiAmazonalexa
+                className={classes.vendorIcon}
+                title={vendor}
+                style={{ color: themeType === 'dark' ? '#0000dc' : '#001ca8' }}
+            />;
         }
         if (vendor === 'Google LLC') {
-            return <SiGoogleassistant className={classes.vendorIcon} title={vendor} style={{ color: themeType ? '#ea9b33' : '#8f6020' }} />;
+            return <SiGoogleassistant
+                className={classes.vendorIcon}
+                title={vendor}
+                style={{ color: themeType === 'dark' ? '#ea9b33' : '#8f6020' }}
+            />;
         }
         if (vendor === 'Apple Inc.') {
-            return <SiApple className={classes.vendorIcon} title={vendor} style={{ color: themeType ? '#c9c9c9' : '#4f4f4f' }} />;
+            return <SiApple
+                className={classes.vendorIcon}
+                title={vendor}
+                style={{ color: themeType === 'dark' ? '#c9c9c9' : '#4f4f4f' }}
+            />;
         }
         if (vendor === 'Samsung') {
-            return <SiSmartthings className={classes.vendorIcon} title={vendor} style={{ color: themeType ? '#33ea8f' : '#209b60' }} />;
+            return <SiSmartthings
+                className={classes.vendorIcon}
+                title={vendor}
+                style={{ color: themeType === 'dark' ? '#33ea8f' : '#209b60' }}
+            />;
         }
         return null;
     }
 
-    static getStatusColor(status, themeType) {
+    static getStatusColor(status: NodeStates, themeType: ThemeType) {
         if (status === 'creating') {
             return themeType === 'dark' ? '#a4a4a4' : '#1c1c1c';
         }
@@ -88,7 +122,7 @@ class BridgesAndDevices extends React.Component {
         return 'grey';
     }
 
-    static getStatusIcon(status, themeType) {
+    static getStatusIcon(status: NodeStates, themeType: ThemeType) {
         const color = BridgesAndDevices.getStatusColor(status, themeType);
         if (status === 'creating') {
             return <SignalWifiStatusbarNull style={{ color }} />;
@@ -105,30 +139,30 @@ class BridgesAndDevices extends React.Component {
         return <QuestionMark style={{ color }} />;
     }
 
-    renderStatus(device) {
-        if (!this.props.nodeStates[device.uuid]) {
+    renderStatus(deviceOrBridge: DeviceDescription | BridgeDescription) {
+        if (!this.props.nodeStates[deviceOrBridge.uuid]) {
             return null;
         }
-        if (this.props.nodeStates[device.uuid].status === 'waitingForCommissioning') {
+        if (this.props.nodeStates[deviceOrBridge.uuid].status === 'waitingForCommissioning') {
             return <Tooltip title={I18n.t('Device is not commissioned. Show QR Code for commissioning')} classes={{ popper: this.props.classes.tooltip }}>
                 <IconButton
                     style={{ height: 40 }}
-                    onClick={() => this.setState({ showQrCode: device })}
+                    onClick={() => this.setState({ showQrCode: deviceOrBridge })}
                 >
                     <QrCode />
                 </IconButton>
             </Tooltip>;
         }
-        if (this.props.nodeStates[device.uuid].status) {
+        if (this.props.nodeStates[deviceOrBridge.uuid].status) {
             return <Tooltip title={I18n.t('Device is already commissioning. Show status information')} classes={{ popper: this.props.classes.tooltip }}>
                 <IconButton
                     style={{ height: 40 }}
                     onClick={e => {
                         e.stopPropagation();
-                        this.setState({ showDebugData: device });
+                        this.setState({ showDebugData: deviceOrBridge });
                     }}
                 >
-                    {BridgesAndDevices.getStatusIcon(this.props.nodeStates[device.uuid].status, this.props.themeType)}
+                    {BridgesAndDevices.getStatusIcon(this.props.nodeStates[deviceOrBridge.uuid].status, this.props.themeType)}
                 </IconButton>
             </Tooltip>;
         }
@@ -172,7 +206,7 @@ class BridgesAndDevices extends React.Component {
                                     <span style={{ marginLeft: 10 }}>{I18n.t(`status_${data.status}`)}</span>
                                 </TableCell>
                             </TableRow>
-                            {data.connectionInfo.map((info, i) => <TableRow key={i}>
+                            {data.connectionInfo?.map((info, i) => <TableRow key={i}>
                                 <TableCell>
                                     {BridgesAndDevices.getVendorIcon(info.vendor, this.props.classes, this.props.themeType) || info.vendor}
                                     {info.label ? <span style={{ opacity: 0.7, marginLeft: 8, fontStyle: 'italic' }}>
@@ -194,6 +228,7 @@ class BridgesAndDevices extends React.Component {
                 <Button
                     onClick={() => this.setState({ showDebugData: null })}
                     startIcon={<Close />}
+                    // @ts-expect-error grey is valid color
                     color="grey"
                     variant="contained"
                 >
@@ -227,17 +262,17 @@ class BridgesAndDevices extends React.Component {
                     value={nodeState.manualPairingCode || ''}
                     InputProps={{
                         readOnly: true,
-                        endAdornment: <InputAdornment position="end">
+                        endAdornment: nodeState.manualPairingCode ? <InputAdornment position="end">
                             <IconButton
                                 onClick={() => {
-                                    Utils.copyToClipboard(nodeState.manualPairingCode);
+                                    nodeState.manualPairingCode && Utils.copyToClipboard(nodeState.manualPairingCode);
                                     this.props.showToast(I18n.t('Copied to clipboard'));
                                 }}
                                 edge="end"
                             >
                                 <ContentCopy />
                             </IconButton>
-                        </InputAdornment>,
+                        </InputAdornment> : undefined,
                     }}
                     fullWidth
                     label={I18n.t('Manual pairing code')}
@@ -248,6 +283,7 @@ class BridgesAndDevices extends React.Component {
                 <Button
                     onClick={() => this.setState({ showQrCode: null })}
                     startIcon={<Close />}
+                    // @ts-expect-error grey is valid color
                     color="grey"
                     variant="contained"
                 >
@@ -263,7 +299,7 @@ class BridgesAndDevices extends React.Component {
         }
         return <Dialog
             open={!0}
-            onClose={() => this.setState({ showResetDialog: false })}
+            onClose={() => this.setState({ showResetDialog: null })}
         >
             <DialogTitle>{I18n.t('Reset device or bridge')}</DialogTitle>
             <DialogContent>
@@ -274,8 +310,8 @@ class BridgesAndDevices extends React.Component {
             <DialogActions>
                 <Button
                     onClick={() => {
-                        if (this.state.showResetDialog.step === 1) {
-                            const uuid = this.state.showResetDialog.device.uuid;
+                        if (this.state.showResetDialog?.step === 1) {
+                            const uuid = this.state.showResetDialog.bridgeOrDevice.uuid;
                             this.setState({ showResetDialog: null });
                             this.props.socket.sendTo(`matter.${this.props.instance}`, 'factoryReset', { uuid })
                                 .then(result => {
@@ -285,8 +321,8 @@ class BridgesAndDevices extends React.Component {
                                         this.props.updateNodeStates({ [uuid]: result.result });
                                     }
                                 });
-                        } else {
-                            this.setState({ showResetDialog: { device: this.state.showResetDialog.device, step: 1 } });
+                        } else if (this.state.showResetDialog) {
+                            this.setState({ showResetDialog: { bridgeOrDevice: this.state.showResetDialog.bridgeOrDevice, step: 1 } });
                         }
                     }}
                     disabled={!this.props.alive}
@@ -301,8 +337,9 @@ class BridgesAndDevices extends React.Component {
                     {I18n.t('Reset')}
                 </Button>
                 <Button
-                    onClick={() => this.setState({ showResetDialog: false })}
+                    onClick={() => this.setState({ showResetDialog: null })}
                     startIcon={<Close />}
+                    // @ts-expect-error grey is valid color
                     color="grey"
                     variant="contained"
                 >
@@ -314,11 +351,11 @@ class BridgesAndDevices extends React.Component {
 
     render() {
         // this method is only to shut up the linter. It will be overloaded
-        if (this.state.suppressDelete || this.state.deleteDialog) {
+        if (!this.state.showQrCode) {
             return null;
         }
         return <div style={{ height: '100%', overflow: 'auto' }}>
-            {this.renderStatus()}
+            {this.renderStatus(this.state.showQrCode)}
             {this.renderDebugDialog()}
             {this.renderResetDialog()}
             {this.renderQrCodeDialog()}

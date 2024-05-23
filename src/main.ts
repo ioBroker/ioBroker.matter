@@ -1,6 +1,6 @@
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
-import fs from 'fs';
+import fs from 'node:fs';
 import '@project-chip/matter-node.js';
 
 import * as utils from '@iobroker/adapter-core';
@@ -82,7 +82,7 @@ export class MatterAdapter extends utils.Adapter {
     private devices = new Map<string, MatterDevice>();
     private bridges = new Map<string, BridgedDevice>();
     private _guiSubscribes: { clientId: string; ts: number }[] | null= null;
-    private matterEnvironment: Environment;
+    private readonly matterEnvironment: Environment;
     private stateTimeout: NodeJS.Timeout | null = null;
     private subscribed: boolean = false;
     private license: { [key: string]: boolean | undefined } = {};

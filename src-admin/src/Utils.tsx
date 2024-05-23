@@ -1,17 +1,18 @@
-import { I18n } from '@iobroker/adapter-react-v5';
-import ChannelDetector from '@iobroker/type-detector';
+import { AdminConnection, I18n } from '@iobroker/adapter-react-v5';
+import ChannelDetector, { DetectOptions, Types } from '@iobroker/type-detector';
+import { DetectedDevice, DetectedRoom } from './types';
 
-function getObjectIcon(obj, id, imagePrefix) {
+function getObjectIcon(obj: ioBroker.Object | DetectedDevice, id: string, imagePrefix?: string): string | undefined {
     imagePrefix = imagePrefix || '.'; // http://localhost:8081';
     let src = '';
-    const common = obj && obj.common;
+    const common: ioBroker.ObjectCommon = obj?.common;
 
     if (common) {
         const cIcon = common.icon;
         if (cIcon) {
             if (!cIcon.startsWith('data:image/')) {
                 if (cIcon.includes('.')) {
-                    let instance;
+                    let instance: string[];
                     if (obj.type === 'instance' || obj.type === 'adapter') {
                         src = `${imagePrefix}/adapter/${common.name}/${cIcon}`;
                     } else if (id && id.startsWith('system.adapter.')) {
@@ -32,7 +33,7 @@ function getObjectIcon(obj, id, imagePrefix) {
                         src = `${imagePrefix}/adapter/${instance[0]}`;
                     }
                 } else {
-                    return null;
+                    return undefined;
                 }
             } else {
                 src = cIcon;
@@ -40,43 +41,73 @@ function getObjectIcon(obj, id, imagePrefix) {
         }
     }
 
-    return src || null;
+    return src || undefined;
 }
 
-let cachedObjects;
+let cachedObjects: Record<string, ioBroker.Object> | null = null;
 
-const allObjects = async socket => {
+async function allObjects(socket: AdminConnection): Promise<Record<string, ioBroker.Object>> {
     if (cachedObjects) {
         return cachedObjects;
     }
-    const states = await socket.getObjectView('', '\u9999', 'state');
-    const channels = await socket.getObjectView('', '\u9999', 'channel');
-    const devices = await socket.getObjectView('', '\u9999', 'device');
-    const folders = await socket.getObjectView('', '\u9999', 'folder');
-    const enums = await socket.getObjectView('', '\u9999', 'enum');
+    const states = await socket.getObjectViewSystem('state', '', '\u9999', );
+    const channels = await socket.getObjectViewSystem('channel', '', '\u9999', );
+    const devices = await socket.getObjectViewSystem('device', '', '\u9999', );
+    const folders = await socket.getObjectViewSystem('folder', '', '\u9999', );
+    const enums = await socket.getObjectViewSystem('enum', '', '\u9999', );
 
-    cachedObjects = Object.values(states)
-        .concat(Object.values(channels))
-        .concat(Object.values(devices))
-        .concat(Object.values(folders))
-        .concat(Object.values(enums))
-        // eslint-disable-next-line
-        .reduce((obj, item) => (obj[item._id] = item, obj), {});
+    cachedObjects = {};
+
+    if (states) {
+        for (const id in states) {
+            if (states[id]) {
+                cachedObjects[id] = states[id];
+            }
+        }
+    }
+    if (channels) {
+        for (const id in channels) {
+            if (channels[id]) {
+                cachedObjects[id] = channels[id];
+            }
+        }
+    }
+    if (devices) {
+        for (const id in devices) {
+            if (devices[id]) {
+                cachedObjects[id] = devices[id];
+            }
+        }
+    }
+    if (folders) {
+        for (const id in folders) {
+            if (folders[id]) {
+                cachedObjects[id] = folders[id];
+            }
+        }
+    }
+    if (enums) {
+        for (const id in enums) {
+            if (enums[id]) {
+                cachedObjects[id] = enums[id];
+            }
+        }
+    }
 
     return cachedObjects;
-};
+}
 
-export const detectDevices = async (socket, list) => {
+export async function detectDevices(socket: AdminConnection, list?: string[]): Promise<DetectedRoom[]> {
     const devicesObject = await allObjects(socket);
-    const keys = Object.keys(devicesObject).sort();
+    const keys: string[] = Object.keys(devicesObject).sort();
     const detector = new ChannelDetector();
 
-    const usedIds = [];
+    const usedIds: string[] = [];
     const ignoreIndicators = ['UNREACH_STICKY'];    // Ignore indicators by name
-    const excludedTypes = ['info'];
-    const enums = [];
-    const rooms = [];
-    let _list = [];
+    const excludedTypes: Types[] = [Types.info];
+    const enums: string[] = [];
+    const rooms: string[] = [];
+    let _list: string[] = [];
 
     if (!list) {
         keys.forEach(id => {
@@ -108,7 +139,8 @@ export const detectDevices = async (socket, list) => {
         _list = list;
     }
 
-    const options = {
+    const options: DetectOptions = {
+        id: '',
         objects: devicesObject,
         _keysOptional: keys,
         _usedIdsOptional: usedIds,
@@ -116,7 +148,7 @@ export const detectDevices = async (socket, list) => {
         excludedTypes,
     };
 
-    const result = [];
+    const result: DetectedRoom[] = [];
 
     _list.forEach(id => {
         options.id = id;
@@ -125,12 +157,16 @@ export const detectDevices = async (socket, list) => {
 
         if (controls) {
             controls.forEach(control => {
-                const stateId = control.states.find(state => state.id).id;
+                const stateIdObj = control?.states?.find(state => state.id);
+                if (!stateIdObj) {
+                    return;
+                }
+                const stateId = stateIdObj.id;
                 // if not yet added
                 if (result.find(item => item.devices.find(st => st._id === stateId))) {
                     return;
                 }
-                const deviceObject = {
+                const deviceObject: DetectedDevice = {
                     _id: stateId,
                     common: devicesObject[stateId].common,
                     type: devicesObject[stateId].type,
@@ -139,14 +175,17 @@ export const detectDevices = async (socket, list) => {
                         .filter(state => state.id)
                         .map(state => {
                             devicesObject[state.id].common.role = state.defaultRole;
-                            return devicesObject[state.id];
+                            devicesObject[state.id].native = devicesObject[state.id].native || {};
+                            devicesObject[state.id].native.__detectedName = state.name;
+                            return devicesObject[state.id] as ioBroker.StateObject;
                         }),
+                    roomName: '',
                 };
-                deviceObject.hasOnState = deviceObject.states.find(it => it.name === 'ON');
+                deviceObject.hasOnState = !!deviceObject.states.find(it => it.native.__detectedName === 'ON');
 
                 const parts = stateId.split('.');
-                let channelId;
-                let deviceId;
+                let channelId: string | null = null;
+                let deviceId: string | null = null;
                 if (devicesObject[stateId].type === 'channel' || devicesObject[stateId].type === 'state') {
                     parts.pop();
                     channelId = parts.join('.');
@@ -170,13 +209,14 @@ export const detectDevices = async (socket, list) => {
                     }
                     return deviceId && devicesObject[roomId].common.members.includes(deviceId);
                 });
-                let roomObj;
+
+                let roomObj: DetectedRoom | undefined;
                 if (room) {
                     roomObj = result.find(obj => obj._id === room);
                     if (!roomObj) {
                         roomObj = {
-                            _id: room,
-                            common: devicesObject[room].common,
+                            _id: room as `system.room.${string}`,
+                            common: devicesObject[room].common as ioBroker.EnumCommon,
                             devices: [],
                         };
                         result.push(roomObj);
@@ -236,6 +276,8 @@ export const detectDevices = async (socket, list) => {
     }
 
     return result;
-};
+}
 
-export const getText = text => (typeof text === 'object' ? (text?.[I18n.getLanguage()] || '') : (text || ''));
+export function getText(text: ioBroker.StringOrTranslated): string {
+    return typeof text === 'object' ? (text?.[I18n.getLanguage()] || '') : (text || '');
+}

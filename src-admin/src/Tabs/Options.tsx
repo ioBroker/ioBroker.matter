@@ -1,5 +1,4 @@
-import React from 'react';
-import PropTypes from 'prop-types';
+import React, { Component } from 'react';
 import { withStyles } from '@mui/styles';
 
 import {
@@ -14,10 +13,12 @@ import {
     TextField, FormControlLabel, Checkbox,
 } from '@mui/material';
 
-import { I18n, Logo } from '@iobroker/adapter-react-v5';
+import { AdminConnection, I18n, Logo } from '@iobroker/adapter-react-v5';
 import { Check, Close, LayersClear } from '@mui/icons-material';
 
-const styles = () => ({
+import { MatterAdapterConfig } from '../types';
+
+const styles: Record<string, any> = {
     address: {
         fontSize: 'smaller',
         opacity: 0.5,
@@ -32,10 +33,40 @@ const styles = () => ({
         width: '100%',
         maxWidth: 300,
     },
-});
+};
 
-class Options extends React.Component {
-    constructor(props) {
+interface NetworkInterface {
+    address: string;
+    netmask: string;
+    family: string;
+    mac: string;
+    internal: boolean;
+    cidr: string;
+}
+
+interface OptionsProps {
+    alive: boolean;
+    socket: AdminConnection;
+    native: MatterAdapterConfig;
+    common: ioBroker.InstanceCommon;
+    instance: number;
+    onChange: (attr: string, value: boolean | string) => void;
+    showToast: (text: string) => void;
+    classes: Record<string, string>;
+    onLoad: (native: Record<string, any>) => void;
+}
+
+interface OptionsState {
+    showDialog: boolean;
+    dialogLevel: number;
+    iotLogin: string;
+    iotPassword: string;
+    iotInstance: string;
+    interfaces?: { value: string; address: string }[];
+}
+
+class Options extends Component<OptionsProps, OptionsState> {
+    constructor(props: OptionsProps) {
         super(props);
         this.state = {
             showDialog: false,
@@ -68,6 +99,7 @@ class Options extends React.Component {
                 <Button
                     variant="contained"
                     style={{ backgroundColor: this.state.dialogLevel === 1 ? 'red' : undefined, color: this.state.dialogLevel === 1 ? 'white' : undefined }}
+                    // @ts-expect-error grey is valid color
                     color="grey"
                     onClick={() => {
                         if (this.state.dialogLevel === 1) {
@@ -86,7 +118,6 @@ class Options extends React.Component {
                 </Button>
                 <Button
                     variant="contained"
-                    default
                     color="primary"
                     onClick={() => this.setState({ showDialog: false })}
                     startIcon={<Close />}
@@ -100,9 +131,9 @@ class Options extends React.Component {
     async componentDidMount() {
         // detect if any iot or cloud with pro-account are available
         const instancesIot = await this.props.socket.getAdapterInstances('iot');
-        let instance;
+        let instance: ioBroker.InstanceObject | null = null;
         if (instancesIot) {
-            instance = instancesIot.find(it => it?.native?.login && it?.native?.pass);
+            instance = instancesIot.find(it => it?.native?.login && it?.native?.pass) || null;
             if (instance) {
                 // encode
                 const pass = await this.props.socket.decrypt(instance.native.pass);
@@ -112,7 +143,7 @@ class Options extends React.Component {
         }
         if (!instance) {
             const instancesCloud = await this.props.socket.getAdapterInstances('cloud');
-            instance = instancesCloud.find(it => it?.native?.login && it?.native?.pass);
+            instance = instancesCloud.find(it => it?.native?.login && it?.native?.pass) || null;
             if (instance) {
                 // encode
                 const pass = await this.props.socket.decrypt(instance.native.pass);
@@ -127,7 +158,7 @@ class Options extends React.Component {
                 { value: '_', address: I18n.t('All interfaces') },
             ];
             if (host?.native?.hardware?.networkInterfaces) {
-                const list = host.native.hardware.networkInterfaces;
+                const list: Record<string, NetworkInterface[]> = host.native.hardware.networkInterfaces as Record<string, NetworkInterface[]>;
                 Object.keys(list).forEach(inter => {
                     if (!list[inter].find(_ip => !_ip.internal)) {
                         return;
@@ -136,7 +167,7 @@ class Options extends React.Component {
                     // find ipv4 address
                     let ip = list[inter].find(_ip => _ip.family === 'IPv4');
                     ip = ip || list[inter].find(_ip => _ip.family === 'IPv6');
-                    interfaces.push({ value: inter, address: ip.address });
+                    interfaces.push({ value: inter, address: ip?.address || '' });
                 });
             }
 
@@ -146,7 +177,7 @@ class Options extends React.Component {
         }
     }
 
-    static checkPassword(pass) {
+    static checkPassword(pass: string): string | false {
         pass = (pass || '').toString();
         if (pass.length < 8 || !pass.match(/[a-z]/) || !pass.match(/[A-Z]/) || !pass.match(/\d/)) {
             return I18n.t('invalid_password_warning');
@@ -156,12 +187,11 @@ class Options extends React.Component {
 
     render() {
         const item = this.state.interfaces?.find(it => it.value === (this.props.native.interface || '_'));
-        const passwordError = Options.checkPassword(this.props.native.password);
+        const passwordError = Options.checkPassword(this.props.native.pass);
 
         return <div className={this.props.classes.panel}>
             {this.renderConfirmDialog()}
             <Logo
-                classes={{ }}
                 instance={this.props.instance}
                 common={this.props.common}
                 native={this.props.native}
@@ -256,6 +286,7 @@ class Options extends React.Component {
                     disabled={!this.props.alive}
                     onClick={() => this.setState({ showDialog: true, dialogLevel: 0 })}
                     variant="contained"
+                    // @ts-expect-error grey is valid color
                     color="grey"
                     startIcon={<LayersClear />}
                 >
@@ -265,14 +296,5 @@ class Options extends React.Component {
         </div>;
     }
 }
-
-Options.propTypes = {
-    alive: PropTypes.bool,
-    socket: PropTypes.object,
-    native: PropTypes.object,
-    instance: PropTypes.number,
-    onChange: PropTypes.func,
-    showToast: PropTypes.func,
-};
 
 export default withStyles(styles)(Options);

@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import PropTypes from 'prop-types';
 import { withStyles } from '@mui/styles';
 import QrScanner from 'qr-scanner';
 
@@ -22,12 +21,18 @@ import {
     Wifi, WifiOff,
 } from '@mui/icons-material';
 
-import { I18n, IconClosed, IconOpen } from '@iobroker/adapter-react-v5';
-import DeviceManager from '@iobroker/dm-gui-components';
+import {
+    AdminConnection, I18n,
+    IconClosed, IconOpen,
+} from '@iobroker/adapter-react-v5';
+import type { ThemeName, ThemeType } from '@iobroker/adapter-react-v5/types';
+// import DeviceManager from '@iobroker/dm-gui-components';
 
-// import DeviceManager from '../components/InstanceManager';
+import DeviceManager from '../components/InstanceManager';
+import { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
+import { getText } from '../Utils';
 
-const styles = () => ({
+const styles: Record<string, any> = {
     panel: {
         width: '100%',
         display: 'flex',
@@ -76,13 +81,47 @@ const styles = () => ({
         opacity: 0.5,
         fontSize: 10,
     },
-});
+};
 
-class Controller extends Component {
-    constructor(props) {
+interface ComponentProps {
+    instance: number;
+    matter: MatterConfig;
+    updateConfig: (config: MatterConfig) => void;
+    alive: boolean;
+    registerMessageHandler: (handler: null | ((message: GUIMessage | null) => void)) => void;
+    adapterName: string;
+    socket: AdminConnection;
+    classes: Record<string, string>;
+    isFloatComma: boolean;
+    dateFormat: string;
+    themeName: ThemeName;
+    themeType: ThemeType;
+}
+
+interface ComponentState {
+    discovered: CommissionableDevice[],
+    discoveryRunning: boolean;
+    discoveryDone: boolean;
+    qrCode: string | null;
+    manualCode: string;
+    cameras: QrScanner.Camera[];
+    camera: string;
+    hideVideo: boolean;
+    nodes: Record<string, ioBroker.Object>;
+    states: Record<string, ioBroker.State>;
+    openedNodes: string[];
+    showQrCodeDialog: CommissionableDevice | null;
+}
+
+class Controller extends Component<ComponentProps, ComponentState> {
+    private readonly refQrScanner: React.RefObject<HTMLVideoElement>;
+
+    private qrScanner: QrScanner | null | true = null;
+
+    constructor(props: ComponentProps) {
         super(props);
         const openedNodesStr = window.localStorage.getItem('openedNodes');
-        let openedNodes;
+        let openedNodes: string[];
         if (openedNodesStr) {
             try {
                 openedNodes = JSON.parse(openedNodesStr);
@@ -105,14 +144,14 @@ class Controller extends Component {
             nodes: {},
             states: {},
             openedNodes,
+            showQrCodeDialog: null,
         };
 
         this.refQrScanner = React.createRef();
-        this.qrScanner = null;
     }
 
     async readStructure() {
-        let nodes;
+        let nodes: Record<string, ioBroker.Object>;
         try {
             nodes = await this.props.socket.getObjectViewSystem(
                 'channel',
@@ -156,7 +195,7 @@ class Controller extends Component {
             // ignore
         }
 
-        const states = await this.props.socket.getStates(`matter.${this.props.instance}.controller.*`);
+        const states: Record<string, ioBroker.State> = await this.props.socket.getStates(`matter.${this.props.instance}.controller.*`);
 
         this.setState({ nodes, states });
     }
@@ -212,7 +251,7 @@ class Controller extends Component {
         this.props.registerMessageHandler(null);
         this.destroyQrCode();
         await this.props.socket.unsubscribeObject(`matter.${this.props.instance}.controller.*`, this.onObjectChange);
-        await this.props.socket.unsubscribeState(`matter.${this.props.instance}.controller.*`, this.onStateChange);
+        this.props.socket.unsubscribeState(`matter.${this.props.instance}.controller.*`, this.onStateChange);
     }
 
     async initQrCode() {
@@ -234,7 +273,7 @@ class Controller extends Component {
                 },
             );
 
-            const cameras = await QrScanner.listCameras(true);
+            const cameras: QrScanner.Camera[] = await QrScanner.listCameras(true);
 
             const camera = window.localStorage.getItem('camera') || (cameras.length ? cameras[0].id : '');
 
@@ -248,11 +287,15 @@ class Controller extends Component {
         }
     }
 
-    onMessage = message => {
+    onMessage = (message: GUIMessage | null) => {
         if (message?.command === 'discoveredDevice') {
-            const discovered = JSON.parse(JSON.stringify(this.state.discovered));
-            discovered.push(message.device);
-            this.setState({ discovered });
+            if (message.device) {
+                const discovered: CommissionableDevice[] = JSON.parse(JSON.stringify(this.state.discovered));
+                discovered.push(message.device);
+                this.setState({discovered});
+            } else {
+                console.log(`Invalid message with no device: ${JSON.stringify(message)}`);
+            }
         } else {
             console.log(`Unknown update: ${JSON.stringify(message)}`);
         }
@@ -271,7 +314,7 @@ class Controller extends Component {
         }
         return <Dialog
             open={!0}
-            onClose={() => this.setState({ showQrCodeDialog: false }, () => this.destroyQrCode())}
+            onClose={() => this.setState({ showQrCodeDialog: null }, () => this.destroyQrCode())}
         >
             <DialogTitle>{I18n.t('QR Code')}</DialogTitle>
             <DialogContent>
@@ -316,7 +359,7 @@ class Controller extends Component {
                     color="primary"
                     onClick={() => {
                         const device = this.state.showQrCodeDialog;
-                        this.setState({ showQrCodeDialog: false }, () => this.destroyQrCode());
+                        this.setState({ showQrCodeDialog: null }, () => this.destroyQrCode());
                         this.props.socket.sendTo(`matter.${this.props.instance}`, 'controllerAddDevice', { device, qrCode: this.state.qrCode, manualCode: this.state.manualCode })
                             .then(result => {
                                 if (result.error || !result.result) {
@@ -334,7 +377,7 @@ class Controller extends Component {
                     variant="contained"
                     // @ts-expect-error grey is valid color
                     color="grey"
-                    onClick={() => this.setState({ showQrCodeDialog: false }, () => this.destroyQrCode())}
+                    onClick={() => this.setState({ showQrCodeDialog: null }, () => this.destroyQrCode())}
                     startIcon={<Close />}
                 >
                     {I18n.t('Close')}
@@ -410,14 +453,24 @@ class Controller extends Component {
         </Dialog>;
     }
 
-    renderState(stateId) {
-        let icon;
+    renderState(stateId: string) {
+        let icon: React.JSX.Element;
         if (this.state.nodes[stateId].common.write === false && this.state.nodes[stateId].common.read !== false) {
             icon = <ReadOnlyStateIcon />;
         } else if (this.state.nodes[stateId].common.write !== false && this.state.nodes[stateId].common.read === false) {
             icon = <WriteOnlyStateIcon />;
         } else {
             icon = <ReadWriteStateIcon />;
+        }
+        let state: string;
+        if (this.state.states[stateId]) {
+            if (this.state.states[stateId].val === null || this.state.states[stateId].val === undefined) {
+                state = '--';
+            } else {
+                state = this.state.states[stateId].val?.toString() || '--';
+            }
+        } else {
+            state = '--';
         }
 
         return <TableRow key={stateId}>
@@ -426,7 +479,7 @@ class Controller extends Component {
                 {icon}
                 {stateId.split('.').pop()}
             </TableCell>
-            <TableCell>{this.state.states[stateId] && this.state.states[stateId].val !== null && this.state.states[stateId].val !== undefined ? this.state.states[stateId].val.toString() : '--'}</TableCell>
+            <TableCell>{state}</TableCell>
         </TableRow>;
     }
 
@@ -447,17 +500,17 @@ class Controller extends Component {
         ];
     }
 
-    renderDevice(deviceId, inBridge) {
+    renderDevice(deviceId: string, inBridge?: boolean) {
         const _deviceId = `${deviceId}.`;
         // get channels
         const channels = Object.keys(this.state.nodes).filter(id => id.startsWith(_deviceId) && this.state.nodes[id].type === 'channel');
-        let connected = null;
-        let status = null;
+        let connected: boolean | null = null;
+        let status: string | null = null;
         if (!inBridge) {
-            connected = this.state.states[`${_deviceId}info.connection`]?.val;
-            status = this.state.states[`${_deviceId}info.status`]?.val;
-            if (status !== null && status !== undefined && status !== '') {
-                status = status.toString();
+            connected = this.state.states[`${_deviceId}info.connection`] ? !!this.state.states[`${_deviceId}info.connection`].val : null;
+            const statusVal = this.state.states[`${_deviceId}info.status`]?.val;
+            if (statusVal !== null && statusVal !== undefined && statusVal !== '') {
+                status = statusVal.toString();
                 const statusObj = this.state.nodes[`${_deviceId}info.status`];
                 if (statusObj?.common?.states[status]) {
                     status = I18n.t(`status_${statusObj.common.states[status]}`).replace(/^status_/, '');
@@ -492,7 +545,7 @@ class Controller extends Component {
                         <DeviceIcon />
                     </div>
                     <div>
-                        <div className={this.props.classes.deviceName}>{this.state.nodes[deviceId].common.name}</div>
+                        <div className={this.props.classes.deviceName}>{getText(this.state.nodes[deviceId].common.name)}</div>
                         <div className={this.props.classes.nodeId}>{deviceId.split('.').pop()}</div>
                     </div>
                     <div className={this.props.classes.number}>{channels.length}</div>
@@ -508,7 +561,7 @@ class Controller extends Component {
         ];
     }
 
-    renderBridge(bridgeId) {
+    renderBridge(bridgeId: string) {
         // find all devices in this bridge
         const _bridgeId = `${bridgeId}.`;
         const deviceIds = Object.keys(this.state.nodes).filter(id => id.startsWith(_bridgeId) && this.state.nodes[id].type === 'device');
@@ -551,7 +604,7 @@ class Controller extends Component {
                         {this.state.openedNodes.includes(bridgeId) ? <IconOpen /> : <IconClosed />}
                     </div>
                     <div>
-                        <div className={this.props.classes.deviceName}>{this.state.nodes[bridgeId].common.name}</div>
+                        <div className={this.props.classes.deviceName}>{getText(this.state.nodes[bridgeId].common.name)}</div>
                         <div className={this.props.classes.nodeId}>{bridgeId.split('.').pop()}</div>
                     </div>
                     <div className={this.props.classes.number}>{deviceIds.length}</div>
@@ -567,7 +620,7 @@ class Controller extends Component {
         ];
     }
 
-    renderDeviceOrBridge(deviceOrBridgeId) {
+    renderDeviceOrBridge(deviceOrBridgeId: string) {
         if (this.state.nodes[deviceOrBridgeId].type === 'device') {
             return this.renderDevice(deviceOrBridgeId);
         }
@@ -590,6 +643,10 @@ class Controller extends Component {
                 socket={this.props.socket}
                 selectedInstance={`${this.props.adapterName}.${this.props.instance}`}
                 style={{ justifyContent: 'start' }}
+                themeName={this.props.themeName}
+                themeType={this.props.themeType}
+                isFloatComma={this.props.isFloatComma}
+                dateFormat={this.props.dateFormat}
             />
         </div>;
     }
@@ -711,7 +768,7 @@ class Controller extends Component {
                     onClick={() => {
                         this.setState({ discovered: [] }, () =>
                             this.props.socket.sendTo(`matter.${this.props.instance}`, 'controllerDiscovery', { })
-                                .then(result => {
+                                .then((result: { error?: string; result: CommissionableDevice[] }) => {
                                     if (result.error) {
                                         window.alert(`Cannot discover: ${result.error}`);
                                     } else {
@@ -739,15 +796,5 @@ class Controller extends Component {
         </div>;
     }
 }
-
-Controller.propTypes = {
-    instance: PropTypes.number,
-    matter: PropTypes.object,
-    updateConfig: PropTypes.func,
-    alive: PropTypes.bool,
-    registerMessageHandler: PropTypes.func,
-    adapterName: PropTypes.string,
-    socket: PropTypes.object,
-};
 
 export default withStyles(styles)(Controller);

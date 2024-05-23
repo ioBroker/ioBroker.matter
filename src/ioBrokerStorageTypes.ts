@@ -11,7 +11,7 @@ export interface BridgeDeviceDescription {
     name: string;
     oid: string;
     type: string;
-    auto: string;
+    auto: boolean;
 }
 
 export interface BridgeDescription {
@@ -24,14 +24,8 @@ export interface BridgeDescription {
     list: BridgeDeviceDescription[];
 }
 
-export interface DeviceDescription {
-    uuid: string;
-    enabled: boolean;
+export interface DeviceDescription extends BridgeDeviceDescription {
     productID: string;
     vendorID: string;
     passcode: string;
-    name: string;
-    oid: string;
-    type: string;
-    auto: string;
 }

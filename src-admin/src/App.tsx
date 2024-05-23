@@ -14,21 +14,32 @@ import {
     SignalCellularOff as IconNotAlive,
 } from '@mui/icons-material';
 
-import GenericApp from '@iobroker/adapter-react-v5/GenericApp';
-import { I18n, Loader, AdminConnection } from '@iobroker/adapter-react-v5';
+import { I18n, Loader, AdminConnection, GenericApp } from '@iobroker/adapter-react-v5';
+import { GenericAppProps, GenericAppState, Theme } from '@iobroker/adapter-react-v5/types';
 
 import ConfigHandler from './components/ConfigHandler';
 import OptionsTab from './Tabs/Options';
 import ControllerTab from './Tabs/Controller';
 import BridgesTab from './Tabs/Bridges';
 import DevicesTab from './Tabs/Devices';
+import {
+    MatterAdapterConfig,
+    NodeStateResponse,
+    MatterConfig, GUIMessage, type DetectedRoom, CommissioningInfo
+} from './types';
 
-const productIDs = [];
+declare global {
+    interface Window {
+        sentryDSN: string;
+    }
+}
+
+const productIDs: string[] = [];
 for (let i = 0x8000; i <= 0x801F; i++) {
     productIDs.push(`0x${i.toString(16)}`);
 }
 
-const styles = theme => ({
+const styles: Record<string, any> = (theme: Theme) => ({
     tabContent: {
         padding: 10,
         height: 'calc(100% - 64px - 48px - 20px)',
@@ -47,9 +58,36 @@ const styles = theme => ({
     },
 });
 
-class App extends GenericApp {
-    constructor(props) {
-        const extendedProps = { ...props };
+interface AppProps extends GenericAppProps {
+    classes: Record<string, string>;
+}
+
+interface AppState extends GenericAppState {
+    alive: boolean;
+    backendRunning: boolean;
+    matter: MatterConfig;
+    commissioning: CommissioningInfo | null;
+    nodeStates: { [uuid: string]: NodeStateResponse };
+    detectedDevices: DetectedRoom[] | null;
+    ready: boolean;
+}
+
+class App extends GenericApp<AppProps, AppState> {
+    private isIFrame: boolean = false;
+
+    private configHandler: ConfigHandler | null = null;
+
+    private intervalSubscribe: ReturnType<typeof setInterval> | null = null;
+
+    private refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+    private alert: null | ((message?: string) => void);
+
+    private controllerMessageHandler: ((message: GUIMessage | null) => void) | null = null;
+
+    constructor(props: AppProps) {
+        const extendedProps: AppProps = { ...props };
+        // @ts-expect-error no idea how to fix it
         extendedProps.Connection = AdminConnection;
         extendedProps.translations = {
             en: require('./i18n/en'),
@@ -74,22 +112,21 @@ class App extends GenericApp {
 
         super(props, extendedProps);
 
-        this.state.selectedTab = window.localStorage.getItem(`${this.adapterName}.${this.instance}.selectedTab`) || 'controller';
-        this.state.alive = false;
-        this.state.backendRunning = false;
-        this.state.nodeStates = {};
-        this.state.commissioning = {
-            bridges: {},
-            devices: {},
-        };
-        this.state.detectedDevices = null;
+        Object.assign(this.state, {
+            selectedTab: window.localStorage.getItem(`${this.adapterName}.${this.instance}.selectedTab`) || 'controller',
+            alive: false,
+            backendRunning: false,
+            nodeStates: {},
+            commissioning: {
+                bridges: {},
+                devices: {},
+            },
+            ready: false,
+            detectedDevices: null,
+        });
 
-        this.configHandler = null;
-        this.intervalSubscribe = null;
         this.alert = window.alert;
         window.alert = text => this.showToast(text);
-
-        this.controllerMessageHandler = null;
     }
 
     refreshBackendSubscription() {
@@ -101,8 +138,10 @@ class App extends GenericApp {
 
         this.socket.subscribeOnInstance(`matter.${this.instance}`, 'gui', null, this.onBackendUpdates)
             .then(result => {
+                // @ts-expect-error fixed in adapter-react-v5
                 if (typeof result === 'object' && result.accepted === false) {
                     console.error('Subscribe is not accepted');
+                    // @ts-expect-error fixed in adapter-react-v5
                     this.setState({ backendRunning: !!result.accepted });
                 } else if (!this.state.backendRunning) {
                     this.setState({ backendRunning: true });
@@ -125,7 +164,9 @@ class App extends GenericApp {
             matter.bridges = matter.bridges.list;
         }
 
-        this.socket.subscribeState(`system.adapter.matter.${this.instance}.alive`, this.onAlive);
+        this.socket.subscribeState(`system.adapter.matter.${this.instance}.alive`, this.onAlive)
+            .catch(e => this.showError(`Cannot subscribe on system.adapter.matter.${this.instance}.alive: ${e}`));
+
         const alive = await this.socket.getState(`system.adapter.matter.${this.instance}.alive`);
 
         if (alive?.val) {
@@ -141,7 +182,7 @@ class App extends GenericApp {
         });
     }
 
-    onAlive = (id, state) => {
+    onAlive = (id: string, state: ioBroker.State | null | undefined) => {
         if (state?.val && !this.state.alive) {
             this.setState({ alive: true });
             this.refreshBackendSubscription();
@@ -152,22 +193,30 @@ class App extends GenericApp {
         }
     };
 
-    onBackendUpdates = update => {
+    onBackendUpdates = (update: GUIMessage | null) => {
         if (!update) {
             return;
         }
 
         if (update.command === 'bridgeStates') {
             // all states at once
-            const nodeStates = {};
-            Object.keys(update.states).forEach(uuid =>
-                nodeStates[uuid.split('.').pop()] = update.states[uuid]);
+            const nodeStates: { [uuid: string]: NodeStateResponse } = {};
+            if (update.states) {
+                const uuids = update.states ? Object.keys(update.states) : [];
+                for (let i = 0; i < uuids.length; i++) {
+                    nodeStates[uuids[i].split('.').pop() as string] = update.states[uuids[i]];
+                }
+            }
             this.setState({ nodeStates });
         } else if (update.command === 'updateStates') {
             // normally only the state of one device
             const nodeStates = JSON.parse(JSON.stringify(this.state.nodeStates));
-            Object.keys(update.states).forEach(uuid =>
-                nodeStates[uuid] = update.states[uuid]);
+            if (update.states) {
+                const uuids = update.states ? Object.keys(update.states) : [];
+                for (let i = 0; i < uuids.length; i++) {
+                    nodeStates[uuids[i]] = update.states[uuids[i]];
+                }
+            }
             this.setState({ nodeStates });
         } else if (update.command === 'stopped') {
             // indication, that backend stopped
@@ -177,20 +226,20 @@ class App extends GenericApp {
         }
     };
 
-    onChanged = newConfig => {
+    onChanged = (newConfig: MatterConfig) => {
         if (this.state.ready) {
-            this.setState({ matter: newConfig, changed: this.configHandler.isChanged(newConfig) });
+            this.setState({ matter: newConfig, changed: !!this.configHandler?.isChanged(newConfig) });
         }
     };
 
-    onCommissioningChanged = newCommissioning => {
+    onCommissioningChanged = (newCommissioning: CommissioningInfo) => {
         if (this.state.ready) {
             this.setState({ commissioning: newCommissioning });
         }
     };
 
     async componentWillUnmount() {
-        window.alert = this.alert;
+        window.alert = this.alert as ((message?: any) => void);
         this.alert = null;
         this.intervalSubscribe && clearInterval(this.intervalSubscribe);
         this.intervalSubscribe = null;
@@ -208,30 +257,29 @@ class App extends GenericApp {
 
     renderController() {
         return <ControllerTab
-            onChange={(id, value) => {
-                this.updateNativeValue(id, value);
-            }}
             registerMessageHandler={handler => this.controllerMessageHandler = handler}
             alive={this.state.alive}
             socket={this.socket}
-            native={this.state.native}
-            themeType={this.state.themeType}
             instance={this.instance}
             matter={this.state.matter}
             updateConfig={this.onChanged}
+            adapterName={this.adapterName}
+            themeName={this.state.themeName}
+            themeType={this.state.themeType}
+            isFloatComma={this.socket.systemConfig.common.isFloatComma}
+            dateFormat={this.socket.systemConfig.common.dateFormat}
         />;
     }
 
     renderOptions() {
         return <OptionsTab
             alive={this.state.alive}
-            onChange={(id, value) => {
-                this.updateNativeValue(id, value);
-            }}
+            onChange={(id, value) => this.updateNativeValue(id, value)}
             onLoad={native => this.onLoadConfig(native)}
             socket={this.socket}
+            // @ts-expect-error fixed in adapter-react-v5
             common={this.common}
-            native={this.state.native}
+            native={this.state.native as MatterAdapterConfig}
             themeType={this.state.themeType}
             instance={this.instance}
             showToast={text => this.showToast(text)}
@@ -243,15 +291,15 @@ class App extends GenericApp {
             alive={this.state.alive}
             socket={this.socket}
             instance={this.instance}
-            commissioning={this.state.commissioning.bridges}
-            updateNodeStates={nodeStates => {
+            commissioning={this.state.commissioning?.bridges || {}}
+            updateNodeStates={(nodeStates: { [uuid: string]: NodeStateResponse }) => {
                 const _nodeStates = JSON.parse(JSON.stringify(this.state.nodeStates));
                 Object.assign(_nodeStates, nodeStates);
                 this.setState({ nodeStates: _nodeStates });
             }}
             nodeStates={this.state.nodeStates}
             themeType={this.state.themeType}
-            detectedDevices={this.state.detectedDevices}
+            detectedDevices={this.state.detectedDevices || []}
             setDetectedDevices={detectedDevices => this.setState({ detectedDevices })}
             productIDs={productIDs}
             matter={this.state.matter}
@@ -264,23 +312,23 @@ class App extends GenericApp {
     renderDevices() {
         return <DevicesTab
             alive={this.state.alive}
-            updateNodeStates={nodeStates => {
+            updateNodeStates={(nodeStates: { [uuid: string]: NodeStateResponse }) => {
                 const _nodeStates = JSON.parse(JSON.stringify(this.state.nodeStates));
                 Object.assign(_nodeStates, nodeStates);
                 this.setState({ nodeStates: _nodeStates });
             }}
             nodeStates={this.state.nodeStates}
-            commissioning={this.state.commissioning.devices}
+            commissioning={this.state.commissioning?.devices || {}}
             socket={this.socket}
             themeType={this.state.themeType}
-            detectedDevices={this.state.detectedDevices}
+            detectedDevices={this.state.detectedDevices || []}
             setDetectedDevices={detectedDevices => this.setState({ detectedDevices })}
             productIDs={productIDs}
             instance={this.instance}
             matter={this.state.matter}
             updateConfig={this.onChanged}
             showToast={text => this.showToast(text)}
-            checkLicenseOnAdd={(type, matter) => this.checkLicenseOnAdd('addDevice', matter)}
+            checkLicenseOnAdd={matter => this.checkLicenseOnAdd('addDevice', matter)}
         />;
     }
 
@@ -301,20 +349,24 @@ class App extends GenericApp {
         return false;
     }
 
-    async checkLicenseOnAdd(type, matter) {
+    async checkLicenseOnAdd(type: 'addBridge' | 'addDevice' | 'addDeviceToBridge', matter?: MatterConfig): Promise<boolean> {
         let result = true;
         matter = matter || this.state.matter;
-        if (type === 'addBridge') {
-            if (matter.bridges.filter(bridge => bridge.enabled).length >= 1) {
-                result = await this.getLicense();
-            }
-        } else if (type === 'addDevice') {
-            if (matter.devices.filter(device => device.enabled).length >= 2) {
-                result = await this.getLicense();
-            }
-        } else if (type === 'addDeviceToBridge') {
-            if (matter.bridges.find(bridge => bridge.enabled && bridge.list.filter(dev => dev.enabled).length >= 5)) {
-                result = await this.getLicense();
+        if (matter) {
+            if (type === 'addBridge') {
+                if (matter.bridges.filter(bridge => bridge.enabled).length >= 1) {
+                    result = await this.getLicense();
+                }
+            } else if (type === 'addDevice') {
+                if (matter.devices.filter(device => device.enabled).length >= 2) {
+                    result = await this.getLicense();
+                }
+            } else if (type === 'addDeviceToBridge') {
+                if (matter.bridges.find(bridge => bridge.enabled && bridge.list.filter(dev => dev.enabled).length >= 5)) {
+                    result = await this.getLicense();
+                }
+            } else {
+                return false;
             }
         } else {
             return false;
@@ -323,10 +375,10 @@ class App extends GenericApp {
         return result; // User may add one bridge or one device
     }
 
-    onSave(isClose) {
+    onSave(isClose?: boolean) {
         super.onSave && super.onSave(isClose);
 
-        this.configHandler.saveConfig(this.state.matter)
+        this.configHandler?.saveConfig(this.state.matter)
             .then(() => {
                 this.setState({ changed: false });
                 isClose && GenericApp.onClose();
@@ -338,7 +390,7 @@ class App extends GenericApp {
         if (!this.state.ready) {
             return <StyledEngineProvider injectFirst>
                 <ThemeProvider theme={this.state.theme}>
-                    <Loader theme={this.state.themeType} />
+                    <Loader themeType={this.state.themeType} />
                 </ThemeProvider>
             </StyledEngineProvider>;
         }

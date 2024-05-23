@@ -20,7 +20,7 @@ const generateClassName = createGenerateClassName({
 });
 
 function build() {
-    const container = document.getElementById('root');
+    const container = window.document.getElementById('root');
     const root = createRoot(container);
     return root.render(<StylesProvider generateClassName={generateClassName}>
         <StyledEngineProvider injectFirst>

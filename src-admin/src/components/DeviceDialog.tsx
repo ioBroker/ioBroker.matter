@@ -1,5 +1,4 @@
-import { Component } from 'react';
-import PropTypes from 'prop-types';
+import React, { Component } from 'react';
 import { withStyles } from '@mui/styles';
 
 import {
@@ -40,23 +39,28 @@ import {
     Window,
 } from '@mui/icons-material';
 
-import { I18n, Icon } from '@iobroker/adapter-react-v5';
+import { AdminConnection, I18n, Icon } from '@iobroker/adapter-react-v5';
+import type { Theme } from '@iobroker/adapter-react-v5/types';
+import { Types } from '@iobroker/type-detector';
 
-import { detectDevices, getText } from '../Utils';
+import {detectDevices, getText } from '../Utils';
+import type { DetectedRoom, DetectedDevice, MatterConfig } from '../types';
 
-export const DEVICE_ICONS = {
+export const DEVICE_ICONS: Record<Types, React.JSX.Element> = {
     blind: <Blinds />,
     dimmer: <TipsAndUpdates />,
     door: <SensorDoor />,
     fireAlarm: <Whatshot />,
     floodAlarm: <Water />,
     humidity: <WaterDrop />,
-    levelSlider: <Tune />,
+    slider: <Tune />,
     light: <Lightbulb />,
     lock: <Lock />,
     media: <PlayArrowRounded />,
     motion: <DirectionsRun />,
-    rgp: <Palette />,
+    rgb: <Palette />,
+    rgbSingle: <Palette />,
+    rgbwSingle: <Palette />,
     socket: <Power />,
     temperature: <Thermostat />,
     thermostat: <Thermostat />,
@@ -65,18 +69,37 @@ export const DEVICE_ICONS = {
     weatherForecast: <WbSunny />,
     window: <Window />,
     windowTilt: <Window />,
+
+    unknown: <QuestionMark />,
+    airCondition: <QuestionMark />,
+    blindButtons: <QuestionMark />,
+    button: <QuestionMark />,
+    buttonSensor: <QuestionMark />,
+    camera: <QuestionMark />,
+    chart: <QuestionMark />,
+    cie: <QuestionMark />,
+    ct: <QuestionMark />,
+    gate: <QuestionMark />,
+    hue: <QuestionMark />,
+    image: <QuestionMark />,
+    info: <QuestionMark />,
+    location: <QuestionMark />,
+    warning: <QuestionMark />,
+    weatherCurrent: <QuestionMark />,
+    vacuumCleaner: <QuestionMark />,
+    instance: <QuestionMark />,
 };
 
-export const SUPPORTED_DEVICES = [
-    'socket', 'light', 'dimmer',
+export const SUPPORTED_DEVICES: Types[] = [
+    Types.socket, Types.light, Types.dimmer,
 ];
 
-const productIds = [];
+const productIds: string[] = [];
 for (let i = 0x8000; i <= 0x801F; i++) {
     productIds.push(`0x${i.toString(16)}`);
 }
 
-const styles = theme => ({
+const styles: Record<string, any> = (theme: Theme) => ({
     dialogContent: {
         display: 'flex',
         flexDirection: 'column',
@@ -141,12 +164,38 @@ const styles = theme => ({
     },
 });
 
-class DeviceDialog extends Component {
+interface DeviceDialogProps {
+    detectedDevices: DetectedRoom[];
+    matter: MatterConfig;
+    socket: AdminConnection;
+    setDetectedDevices: (detectedDevices: DetectedRoom[]) => void;
+    addDevices: (devices: DetectedDevice[]) => void;
+    onClose: () => void;
+    type: 'bridge' | 'device';
+    name: string;
+    classes: Record<string, string>;
+}
+
+interface DeviceDialogState {
+    rooms: DetectedRoom[] | null;
+    devicesChecked: Record<string, boolean>;
+    roomsChecked: Record<string, boolean>;
+    usedDevices: Record<string, boolean>;
+    ignoreUsedDevices: boolean;
+    useRoomNames: boolean;
+    showUnsupported: boolean;
+    deviceNames: Record<string, string>;
+    deviceRoomTypeNames: Record<string, string>;
+    expanded: string[];
+}
+
+class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
     constructor(props) {
         super(props);
-        let expanded = window.localStorage.getItem('matter.expanded') || '[]';
+        const expandedStr = window.localStorage.getItem('matter.expanded') || '[]';
+        let expanded: string[];
         try {
-            expanded = JSON.parse(expanded);
+            expanded = JSON.parse(expandedStr);
         } catch (e) {
             expanded = [];
         }
@@ -171,7 +220,7 @@ class DeviceDialog extends Component {
             setTimeout(() => this.props.setDetectedDevices(detectedDevices), 100);
         }
 
-        let rooms = JSON.parse(JSON.stringify(detectedDevices));
+        let rooms: DetectedRoom[] = JSON.parse(JSON.stringify(detectedDevices));
 
         // ignore buttons
         rooms.forEach(room =>
@@ -229,8 +278,8 @@ class DeviceDialog extends Component {
     }
 
     handleSubmit = () => {
-        const devices = [];
-        this.state.rooms.forEach(room => {
+        const devices: DetectedDevice[] = [];
+        this.state.rooms?.forEach(room => {
             room.devices.forEach(device => {
                 if (this.state.devicesChecked[device._id]) {
                     devices.push(device);
@@ -241,7 +290,7 @@ class DeviceDialog extends Component {
         this.props.onClose();
     };
 
-    renderDevice(roomIndex, room, deviceIndex, device) {
+    renderDevice(roomIndex: number, room: DetectedRoom, deviceIndex: number, device: DetectedDevice) {
         const supported = SUPPORTED_DEVICES.includes(device.deviceType);
 
         if (!supported && !this.state.showUnsupported) {
@@ -337,21 +386,21 @@ class DeviceDialog extends Component {
     }
 
     render() {
-        const counters = this.state.rooms?.map(room => room.devices.reduce((a, b) => a + (this.state.devicesChecked[b._id] ? 1 : 0), 0));
+        const counters = this.state.rooms?.map(room => room.devices.reduce((a, b) => a + (this.state.devicesChecked[b._id] ? 1 : 0), 0)) || [];
         const absoluteLengths = this.state.rooms?.map(room => {
             if (this.state.ignoreUsedDevices) {
                 return room.devices.filter(device => !this.state.usedDevices[device._id]).length;
             }
 
             return room.devices.length;
-        });
+        }) || [];
         const lengths = this.state.rooms?.map(room => {
             if (this.state.ignoreUsedDevices) {
                 return room.devices.filter(device => !this.state.usedDevices[device._id] && SUPPORTED_DEVICES.includes(device.deviceType)).length;
             }
 
             return room.devices.filter(device => SUPPORTED_DEVICES.includes(device.deviceType)).length;
-        });
+        }) || [];
 
         return <Dialog
             open={!0}
@@ -375,7 +424,7 @@ class DeviceDialog extends Component {
                                             devicesChecked[deviceId] = false;
                                         }
                                     });
-                                    window.localStorage.setItem('matter.ignoreUsedDevices', e.target.checked);
+                                    window.localStorage.setItem('matter.ignoreUsedDevices', e.target.checked ? 'true' : 'false');
                                     this.setState({ devicesChecked, ignoreUsedDevices: e.target.checked });
                                 }}
                             />
@@ -388,9 +437,9 @@ class DeviceDialog extends Component {
                             <Switch
                                 checked={this.state.useRoomNames || false}
                                 onChange={e => {
-                                    window.localStorage.setItem('matter.useRoomNames', e.target.checked);
+                                    window.localStorage.setItem('matter.useRoomNames', e.target.checked ? 'true' : 'false');
 
-                                    const rooms = JSON.parse(JSON.stringify(this.state.rooms));
+                                    const rooms: DetectedRoom[] = JSON.parse(JSON.stringify(this.state.rooms));
                                     if (e.target.checked) {
                                         rooms.forEach(room => {
                                             room.devices.forEach(device => {
@@ -421,7 +470,7 @@ class DeviceDialog extends Component {
                             <Switch
                                 checked={this.state.showUnsupported || false}
                                 onChange={e => {
-                                    window.localStorage.setItem('matter.showUnsupported', e.target.checked);
+                                    window.localStorage.setItem('matter.showUnsupported', e.target.checked ? 'true' : 'false');
                                     this.setState({ showUnsupported: e.target.checked });
                                 }}
                             />
@@ -442,7 +491,7 @@ class DeviceDialog extends Component {
                                 <Accordion
                                     expanded={this.state.expanded.includes(room._id)}
                                     onChange={() => {
-                                        const expanded = JSON.parse(JSON.stringify(this.state.expanded));
+                                        const expanded: string[] = JSON.parse(JSON.stringify(this.state.expanded));
                                         const pos = expanded.indexOf(room._id);
                                         if (pos === -1) {
                                             expanded.push(room._id);
@@ -511,6 +560,7 @@ class DeviceDialog extends Component {
                     variant="contained"
                     onClick={() => this.props.onClose()}
                     startIcon={<Close />}
+                    // @ts-expect-error grey is valid color
                     color="grey"
                 >
                     {I18n.t('Cancel')}
@@ -519,15 +569,5 @@ class DeviceDialog extends Component {
         </Dialog>;
     }
 }
-
-DeviceDialog.propTypes = {
-    detectedDevices: PropTypes.array,
-    matter: PropTypes.object,
-    socket: PropTypes.object,
-    setDetectedDevices: PropTypes.func,
-    addDevices: PropTypes.func,
-    onClose: PropTypes.func,
-    type: PropTypes.string,
-};
 
 export default withStyles(styles)(DeviceDialog);

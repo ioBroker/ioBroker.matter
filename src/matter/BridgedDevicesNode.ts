@@ -37,11 +37,17 @@ export enum NodeStates {
     ConnectedWithController = 'connected',
 }
 
+export interface ConnectionInfo {
+    vendor: string;
+    connected: boolean;
+    label?: string;
+}
+
 export interface NodeStateResponse {
     status: NodeStates;
     qrPairingCode?: string;
     manualPairingCode?: string;
-    connectionInfo?: any;
+    connectionInfo?: ConnectionInfo[];
 }
 
 class BridgedDevices {
@@ -215,7 +221,7 @@ class BridgedDevices {
             const activeSessions = Object.values(this.serverNode.state.sessions.sessions);
             const fabrics = Object.values(this.serverNode.state.commissioning.fabrics);
 
-            const connectionInfo: any = activeSessions.map(session => {
+            const connectionInfo: ConnectionInfo[] = activeSessions.map(session => {
                 const vendorId = session?.fabric?.rootVendorId;
                 return {
                     vendor: (vendorId && VENDOR_IDS[vendorId]) || `0x${(vendorId || 0).toString(16)}`,
@@ -234,7 +240,7 @@ class BridgedDevices {
                 }
             });
 
-            if (connectionInfo.find((info: any) => info.connected)) {
+            if (connectionInfo.find(info => info.connected)) {
                 console.log('Device is already commissioned and connected with controller');
                 return {
                     status: NodeStates.ConnectedWithController,

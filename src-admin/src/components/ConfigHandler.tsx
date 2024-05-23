@@ -1,10 +1,35 @@
-import PropTypes from 'prop-types';
 import { v4 as uuidv4 } from 'uuid';
+import { AdminConnection } from '@iobroker/adapter-react-v5';
+import {
+    BridgeDescription, CommissioningInfo,
+    DeviceDescription, MatterConfig,
+} from '../types';
+import { I18n } from '@iobroker/adapter-react-v5';
 
 class ConfigHandler {
-    constructor(instance, socket, onChanged, onCommissioningChanged) {
+    private readonly instance: number;
+
+    private config: MatterConfig;
+
+    private socket: AdminConnection | null;
+
+    private onChanged: ((config: MatterConfig) => void) | null;
+
+    private readonly onCommissioningChanged: (commissioning: CommissioningInfo) => void;
+
+    private commissioning: CommissioningInfo;
+
+    private changed: boolean = false;
+
+    private readonly lang = I18n.getLanguage();
+
+    constructor(
+        instance: number,
+        socket: AdminConnection,
+        onChanged: ((config: MatterConfig) => void),
+        onCommissioningChanged: (commissioning: CommissioningInfo) => void,
+    ) {
         this.instance = instance;
-        this.config = null;
         this.socket = socket;
         this.onChanged = onChanged;
         this.onCommissioningChanged = onCommissioningChanged;
@@ -24,9 +49,17 @@ class ConfigHandler {
             .catch(e => console.error(e));
     }
 
+    getText(word: ioBroker.StringOrTranslated): string {
+        if (word && typeof word === 'object') {
+            return word[this.lang] || word.en;
+        }
+
+        return word as string;
+    }
+
     destroy() {
         this.onChanged = null;
-        if (this.socket.isConnected()) {
+        if (this.socket?.isConnected()) {
             this.socket.unsubscribeObject(`matter.${this.instance}.bridges.*`, this.onObjectChange);
             this.socket.unsubscribeObject(`matter.${this.instance}.devices.*`, this.onObjectChange);
             this.socket.unsubscribeObject(`matter.${this.instance}.controller`, this.onObjectChange);
@@ -56,6 +89,9 @@ class ConfigHandler {
     };
 
     onObjectChange = (id, obj) => {
+        if (!this.onChanged) {
+            return;
+        }
         if (id.startsWith(`matter.${this.instance}.devices.`)) {
             if (id.split('.').length === 4) {
                 let changed = false;
@@ -67,14 +103,15 @@ class ConfigHandler {
                         changed = true;
                         this.config.devices.splice(this.config.devices.indexOf(device), 1);
                     } else {
+                        // detect changes
                         if (device.enabled !== obj.native.enabled) {
                             changed = true;
                             device.enabled = obj.native.enabled;
                         }
-                        if (device.noComposed !== obj.native.noComposed) {
-                            changed = true;
-                            device.noComposed = obj.native.noComposed;
-                        }
+                        // if (device.noComposed !== obj.native.noComposed) {
+                        //     changed = true;
+                        //     device.noComposed = obj.native.noComposed;
+                        // }
                         if (device.name !== obj.common.name) {
                             changed = true;
                             device.name = obj.common.name;
@@ -149,7 +186,7 @@ class ConfigHandler {
                 } else if (obj) {
                     console.log(`Detected new bridge: ${uuid}`);
                     changed = true;
-                    this.config.bridge.push({
+                    this.config.bridges.push({
                         uuid,
                         name: obj.common.name,
                         list: obj.native.list,
@@ -164,33 +201,36 @@ class ConfigHandler {
                 }
             }
         } else if (id === `matter.${this.instance}.controller`) {
-            if (!obj || this.config.enabled !== obj.native.enabled) {
-                this.config.enabled = obj?.native?.enabled;
+            if (!obj || this.config.controller.enabled !== obj.native.enabled) {
+                this.config.controller.enabled = obj?.native?.enabled;
                 this.onChanged(this.config);
             }
         }
     };
 
-    getCommissioning() {
+    getCommissioning(): CommissioningInfo {
         return this.commissioning;
     }
 
     async loadConfig() {
-        let devicesAndBridges;
-        let controllerObj;
+        let devicesAndBridges: Record<string, ioBroker.ChannelObject>;
+        let controllerObj: ioBroker.FolderObject | null = null;
+        if (!this.socket) {
+            return;
+        }
 
         try {
-            devicesAndBridges = await this.socket.getObjectView(
+            devicesAndBridges = await this.socket.getObjectViewSystem<'channel'>(
+                'channel',
                 `matter.${this.instance}.`,
                 `matter.${this.instance}.\u9999`,
-                'channel',
             );
         } catch (e) {
             devicesAndBridges = {};
         }
 
         try {
-            controllerObj = await this.socket.getObject(`matter.${this.instance}.controller`);
+            controllerObj = await this.socket.getObject(`matter.${this.instance}.controller`) as ioBroker.FolderObject | null;
         } catch (e) {
             // ignore
         }
@@ -211,19 +251,19 @@ class ConfigHandler {
             await this.socket.setObject(controllerObj._id, controllerObj);
         }
 
-        controllerObj = controllerObj || {};
+        controllerObj = controllerObj || {} as ioBroker.FolderObject;
         controllerObj.native = controllerObj.native || {};
 
         const len = `matter.${this.instance}.`.length;
-        const devices = [];
-        const bridges = [];
+        const devices: DeviceDescription[] = [];
+        const bridges: BridgeDescription[] = [];
 
         // List devices
         Object.keys(devicesAndBridges).forEach(id => {
             if (id.substring(len).startsWith('devices.')) {
-                const obj = {
+                const obj: DeviceDescription = {
                     uuid: id.substring(len + 8),
-                    name: devicesAndBridges[id].common.name,
+                    name: this.getText(devicesAndBridges[id].common.name),
                     oid: devicesAndBridges[id].native.oid,
                     type: devicesAndBridges[id].native.type,
                     productID: devicesAndBridges[id].native.productID,
@@ -233,9 +273,9 @@ class ConfigHandler {
 
                 devices.push(obj);
             } else if (id.substring(len).startsWith('bridges.')) {
-                const obj = {
+                const obj: BridgeDescription = {
                     uuid: id.substring(len + 8),
-                    name: devicesAndBridges[id].common.name,
+                    name: this.getText(devicesAndBridges[id].common.name),
                     list: devicesAndBridges[id].native.list,
                     productID: devicesAndBridges[id].native.productID,
                     vendorID: devicesAndBridges[id].native.vendorID,
@@ -254,9 +294,9 @@ class ConfigHandler {
             Object.keys(commissioning).forEach(id => {
                 const parts = id.split('.');
                 if (parts[2] === 'bridges') {
-                    this.commissioning.bridges[parts[3]] = commissioning[id].val;
+                    this.commissioning.bridges[parts[3]] = !!commissioning[id]?.val;
                 } else if (parts[2] === 'devices') {
-                    this.commissioning.devices[parts[3]] = commissioning[id].val;
+                    this.commissioning.devices[parts[3]] = !!commissioning[id]?.val;
                 }
             });
         } catch (e) {
@@ -283,7 +323,7 @@ class ConfigHandler {
         return JSON.parse(JSON.stringify(this.config));
     }
 
-    static sortAll(config) {
+    static sortAll(config: MatterConfig) {
         config.devices.sort((a, b) => {
             if (a.name === b.name) {
                 return a.uuid.localeCompare(b.uuid);
@@ -306,7 +346,7 @@ class ConfigHandler {
         });
     }
 
-    isChanged(config) {
+    isChanged(config: MatterConfig) {
         ConfigHandler.sortAll(config);
 
         let isChanged = false;
@@ -329,14 +369,18 @@ class ConfigHandler {
         return isChanged;
     }
 
-    async saveConfig(config) {
+    async saveConfig(config: MatterConfig) {
         ConfigHandler.sortAll(config);
+        if (!this.socket) {
+            return;
+        }
 
         // compare config with this.config
-        let controller = await this.socket.getObject(`matter.${this.instance}.controller`);
+        let controller: ioBroker.FolderObject | null = await this.socket.getObject(`matter.${this.instance}.controller`) as ioBroker.FolderObject;
         if (!controller || JSON.stringify(config.controller) !== JSON.stringify(this.config.controller)) {
             if (!controller) {
                 controller = {
+                    _id: `matter.${this.instance}.controller`,
                     type: 'folder',
                     common: {
                         name: 'Matter controller',
@@ -349,7 +393,20 @@ class ConfigHandler {
                 };
             }
             controller.native.enabled = config.controller.enabled;
+            controller.native.ble = config.controller.ble;
+            controller.native.hciId = config.controller.hciId;
+            controller.native.threadNetworkname = config.controller.threadNetworkname;
+            controller.native.wifiPasword = config.controller.wifiPasword;
+            controller.native.threadOperationalDataSet = config.controller.threadOperationalDataSet;
+            controller.native.wifiSSID = config.controller.wifiSSID;
+
             this.config.controller.enabled = config.controller.enabled;
+            this.config.controller.ble = config.controller.ble;
+            this.config.controller.hciId = config.controller.hciId;
+            this.config.controller.threadNetworkname = config.controller.threadNetworkname;
+            this.config.controller.wifiPasword = config.controller.wifiPasword;
+            this.config.controller.threadOperationalDataSet = config.controller.threadOperationalDataSet;
+            this.config.controller.wifiSSID = config.controller.wifiSSID;
             await this.socket.setObject(controller._id, controller);
         }
 
@@ -358,7 +415,8 @@ class ConfigHandler {
             const newDev = config.devices[d];
             const oldDev = this.config.devices.find(dev => dev.uuid === newDev.uuid);
             if (!oldDev) {
-                const obj = {
+                const obj: ioBroker.ChannelObject = {
+                    _id: `matter.${this.instance}.devices.${newDev.uuid}`,
                     type: 'channel',
                     common: {
                         name: newDev.name,
@@ -370,9 +428,9 @@ class ConfigHandler {
                 console.log(`Device ${newDev.uuid} created`);
                 this.config.devices.push(newDev);
                 ConfigHandler.sortAll(this.config);
-                await this.socket.setObject(`matter.${this.instance}.devices.${newDev.uuid}`, obj);
+                await this.socket.setObject(obj._id, obj);
             } else if (JSON.stringify(newDev) !== JSON.stringify(oldDev)) {
-                const obj = await this.socket.getObject(`matter.${this.instance}.devices.${newDev.uuid}`);
+                const obj: ioBroker.ChannelObject = await this.socket.getObject(`matter.${this.instance}.devices.${newDev.uuid}`) as ioBroker.ChannelObject;
                 obj.common.name = newDev.name;
                 obj.native = obj.native || {};
                 Object.assign(obj.native, newDev);
@@ -382,6 +440,7 @@ class ConfigHandler {
                 await this.socket.setObject(obj._id, obj);
             }
         }
+
         for (let d = this.config.devices.length - 1; d >= 0; d--) {
             const oldDev = this.config.devices[d];
             const newDev = config.devices.find(dev => dev.uuid === oldDev.uuid);
@@ -397,7 +456,8 @@ class ConfigHandler {
             const newBridge = config.bridges[b];
             const oldBridge = this.config.bridges.find(brd => brd.uuid === newBridge.uuid);
             if (!oldBridge) {
-                const obj = {
+                const obj: ioBroker.ChannelObject = {
+                    _id: `matter.${this.instance}.bridges.${newBridge.uuid}`,
                     type: 'channel',
                     common: {
                         name: newBridge.name,
@@ -408,10 +468,10 @@ class ConfigHandler {
                 this.config.bridges.push(newBridge);
                 ConfigHandler.sortAll(this.config);
                 // create a new bridge
-                console.log(`Bridge ${obj.uuid} created`);
-                await this.socket.setObject(`matter.${this.instance}.bridges.${newBridge.uuid}`, obj);
+                console.log(`Bridge ${newBridge.uuid} created`);
+                await this.socket.setObject(obj._id, obj);
             } else if (JSON.stringify(newBridge) !== JSON.stringify(oldBridge)) {
-                const obj = await this.socket.getObject(`matter.${this.instance}.bridges.${newBridge.uuid}`);
+                const obj: ioBroker.ChannelObject = await this.socket.getObject(`matter.${this.instance}.bridges.${newBridge.uuid}`) as ioBroker.ChannelObject;
                 obj.common.name = newBridge.name;
                 obj.native = obj.native || {};
                 Object.assign(obj.native, newBridge);
@@ -440,11 +500,5 @@ class ConfigHandler {
         this.config = JSON.parse(JSON.stringify(config));
     }
 }
-
-ConfigHandler.propTypes = {
-    socket: PropTypes.object.isRequired,
-    onChanged: PropTypes.func.isRequired,
-    instance: PropTypes.number.isRequired,
-};
 
 export default ConfigHandler;

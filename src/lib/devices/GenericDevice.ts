@@ -561,7 +561,7 @@ abstract class GenericDevice {
         }
         const method: string = `get${property[0].toUpperCase()}${property.substring(1)}`;
         if (method in this) {
-            // @ts-ignore
+            // @ts-expect-error How to fix it?
             return this[method]();
         }
         throw new Error(`Method _getPropertyValue for ${property} is not implemented in ${this.constructor.name}`);
@@ -575,7 +575,7 @@ abstract class GenericDevice {
         }
         const method = `set${property[0].toUpperCase()}${property.substring(1)}`;
         if (method in this) {
-            // @ts-ignore
+            // @ts-expect-error How to fix it?
             await this[method](value);
         } else {
             throw new Error(`Method _setPropertyValue for ${property} and ${value} is not implemented in ${this.constructor.name}`);

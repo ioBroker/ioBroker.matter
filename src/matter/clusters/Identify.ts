@@ -9,7 +9,7 @@ class Identify extends Base {
     private handlerType: ((value: number) => void) | undefined = undefined;
     private handlerTime: ((value: number) => void) | undefined = undefined;
 
-    async init() {
+    async init(): Promise<void> {
         const cluster = this.endpoint.getClusterClient(IdentifyCluster);
         if (!cluster) {
             return;
@@ -70,10 +70,10 @@ class Identify extends Base {
             await cluster.getIdentifyTimeAttribute(),
         );
 
-        this.handlerType = async (value: number) => {
+        this.handlerType = async(value: number) => {
             await this.adapter.setStateAsync(typeId, value, true);
         };
-        this.handlerTime = async (value: number) => {
+        this.handlerTime = async(value: number) => {
             await this.adapter.setStateAsync(timeId, value, true);
         };
 
@@ -94,7 +94,7 @@ class Identify extends Base {
             false,
         );
 
-        const triggerIdentifyHandler = async (state: ioBroker.State) => {
+        const triggerIdentifyHandler = async(state: ioBroker.State): Promise<void> => {
             if (!state || state.ack) {
                 return;
             }
@@ -114,7 +114,7 @@ class Identify extends Base {
 
         await this.subscribe(triggerId, triggerIdentifyHandler);
     }
-    async destroy() {
+    async destroy(): Promise<void> {
         await super.destroy();
         const cluster = this.endpoint.getClusterClient(IdentifyCluster);
         if (cluster) {

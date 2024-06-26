@@ -2,34 +2,57 @@ import React, { Component } from 'react';
 import QrScanner from 'qr-scanner';
 
 import {
-    Button, CircularProgress, Dialog,
-    DialogActions, DialogContent, DialogTitle, IconButton,
-    Switch, Table, TableBody,
-    TableCell, TableHead, TableRow, TextField,
-    LinearProgress, Select, MenuItem, FormControlLabel, Checkbox,
+    Button,
+    CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    IconButton,
+    Switch,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableRow,
+    TextField,
+    LinearProgress,
+    Select,
+    MenuItem,
+    FormControlLabel,
+    Checkbox,
 } from '@mui/material';
 import {
-    Add, Close, KeyboardArrowDown, KeyboardArrowUp,
-    LeakAdd, Search,
+    Add,
+    Close,
+    KeyboardArrowDown,
+    KeyboardArrowUp,
+    LeakAdd,
+    Search,
     SettingsInputHdmi as ChannelIcon,
     TabletAndroid as DeviceIcon,
     CompareArrows as ReadWriteStateIcon,
     ArrowRightAlt as WriteOnlyStateIcon,
     KeyboardBackspace as ReadOnlyStateIcon,
     SearchOff,
-    Wifi, WifiOff,
+    Wifi,
+    WifiOff,
 } from '@mui/icons-material';
 
 import {
-    AdminConnection, I18n,
-    IconClosed, IconOpen,
-    type ThemeName, type ThemeType,
+    AdminConnection,
+    I18n,
+    IconClosed,
+    IconOpen,
+    type ThemeName,
+    type ThemeType,
+    type IobTheme,
 } from '@iobroker/adapter-react-v5';
 // import DeviceManager from '@iobroker/dm-gui-components';
 
-import DeviceManager from '../components/InstanceManager';
-import { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
+import type { CommissionableDevice, GUIMessage, MatterConfig } from '@/types';
 import { getText } from '../Utils';
+import DeviceManager from '../components/InstanceManager';
 
 const styles: Record<string, React.CSSProperties> = {
     panel: {
@@ -87,17 +110,20 @@ interface ComponentProps {
     matter: MatterConfig;
     updateConfig: (config: MatterConfig) => void;
     alive: boolean;
-    registerMessageHandler: (handler: null | ((message: GUIMessage | null) => void)) => void;
+    registerMessageHandler: (
+        handler: null | ((message: GUIMessage | null) => void),
+    ) => void;
     adapterName: string;
     socket: AdminConnection;
     isFloatComma: boolean;
     dateFormat: string;
     themeName: ThemeName;
     themeType: ThemeType;
+    theme: IobTheme;
 }
 
 interface ComponentState {
-    discovered: CommissionableDevice[],
+    discovered: CommissionableDevice[];
     discoveryRunning: boolean;
     discoveryDone: boolean;
     qrCode: string | null;
@@ -172,7 +198,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 `matter.${this.props.instance}.controller.`,
                 `matter.${this.props.instance}.controller.\u9999`,
             );
-            Object.keys(_states).forEach(id => nodes[id] = _states[id]);
+            Object.keys(_states).forEach(id => (nodes[id] = _states[id]));
         } catch (e) {
             // ignore
         }
@@ -182,7 +208,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 `matter.${this.props.instance}.controller.`,
                 `matter.${this.props.instance}.controller.\u9999`,
             );
-            Object.keys(devices).forEach(id => nodes[id] = devices[id]);
+            Object.keys(devices).forEach(id => (nodes[id] = devices[id]));
         } catch (e) {
             // ignore
         }
@@ -192,12 +218,15 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 `matter.${this.props.instance}.controller.`,
                 `matter.${this.props.instance}.controller.\u9999`,
             );
-            Object.keys(bridges).forEach(id => nodes[id] = bridges[id]);
+            Object.keys(bridges).forEach(id => (nodes[id] = bridges[id]));
         } catch (e) {
             // ignore
         }
 
-        const states: Record<string, ioBroker.State> = await this.props.socket.getStates(`matter.${this.props.instance}.controller.*`);
+        const states: Record<string, ioBroker.State> =
+      await this.props.socket.getStates(
+          `matter.${this.props.instance}.controller.*`,
+      );
 
         this.setState({ nodes, states });
     }
@@ -206,10 +235,22 @@ class Controller extends Component<ComponentProps, ComponentState> {
         this.props.registerMessageHandler(this.onMessage);
         this.readStructure()
             .catch(e => window.alert(`Cannot read structure: ${e}`))
-            .then(() => this.props.socket.subscribeObject(`matter.${this.props.instance}.controller.*`, this.onObjectChange)
-                .catch(e => window.alert(`Cannot subscribe: ${e}`)))
-            .then(() => this.props.socket.subscribeState(`matter.${this.props.instance}.controller.*`, this.onStateChange)
-                .catch(e => window.alert(`Cannot subscribe 1: ${e}`)));
+            .then(() =>
+                this.props.socket
+                    .subscribeObject(
+                        `matter.${this.props.instance}.controller.*`,
+                        this.onObjectChange,
+                    )
+                    .catch(e => window.alert(`Cannot subscribe: ${e}`)),
+            )
+            .then(() =>
+                this.props.socket
+                    .subscribeState(
+                        `matter.${this.props.instance}.controller.*`,
+                        this.onStateChange,
+                    )
+                    .catch(e => window.alert(`Cannot subscribe 1: ${e}`)),
+            );
     }
 
     onObjectChange = (id: string, obj: ioBroker.Object | null | undefined) => {
@@ -250,8 +291,14 @@ class Controller extends Component<ComponentProps, ComponentState> {
     async componentWillUnmount() {
         this.props.registerMessageHandler(null);
         this.destroyQrCode();
-        await this.props.socket.unsubscribeObject(`matter.${this.props.instance}.controller.*`, this.onObjectChange);
-        this.props.socket.unsubscribeState(`matter.${this.props.instance}.controller.*`, this.onStateChange);
+        await this.props.socket.unsubscribeObject(
+            `matter.${this.props.instance}.controller.*`,
+            this.onObjectChange,
+        );
+        this.props.socket.unsubscribeState(
+            `matter.${this.props.instance}.controller.*`,
+            this.onStateChange,
+        );
     }
 
     async initQrCode() {
@@ -275,7 +322,9 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
             const cameras: QrScanner.Camera[] = await QrScanner.listCameras(true);
 
-            const camera = window.localStorage.getItem('camera') || (cameras.length ? cameras[0].id : '');
+            const camera =
+        window.localStorage.getItem('camera') ||
+        (cameras.length ? cameras[0].id : '');
 
             await this.qrScanner.setCamera(camera);
 
@@ -290,11 +339,15 @@ class Controller extends Component<ComponentProps, ComponentState> {
     onMessage = (message: GUIMessage | null) => {
         if (message?.command === 'discoveredDevice') {
             if (message.device) {
-                const discovered: CommissionableDevice[] = JSON.parse(JSON.stringify(this.state.discovered));
+                const discovered: CommissionableDevice[] = JSON.parse(
+                    JSON.stringify(this.state.discovered),
+                );
                 discovered.push(message.device);
-                this.setState({discovered});
+                this.setState({ discovered });
             } else {
-                console.log(`Invalid message with no device: ${JSON.stringify(message)}`);
+                console.log(
+                    `Invalid message with no device: ${JSON.stringify(message)}`,
+                );
             }
         } else {
             console.log(`Unknown update: ${JSON.stringify(message)}`);
@@ -314,7 +367,9 @@ class Controller extends Component<ComponentProps, ComponentState> {
         }
         return <Dialog
             open={!0}
-            onClose={() => this.setState({ showQrCodeDialog: null }, () => this.destroyQrCode())}
+            onClose={() =>
+                this.setState({ showQrCodeDialog: null }, () => this.destroyQrCode())
+            }
         >
             <DialogTitle>{I18n.t('QR Code')}</DialogTitle>
             <DialogContent>
@@ -336,21 +391,33 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 />
                 {this.state.camera ? <br /> : null}
                 {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                <video ref={this.refQrScanner} style={{ ...styles.qrScanner, display: this.state.hideVideo ? 'none' : 'block' }} />
-                {this.state.cameras.length ? <br /> : null}
-                {this.state.camera.length ? <Select
-                    variant="standard"
-                    value={this.state.camera}
-                    onChange={async e => {
-                        if (this.qrScanner && this.qrScanner !== true) {
-                            await this.qrScanner.setCamera(e.target.value);
-                        }
-                        window.localStorage.setItem('camera', e.target.value);
-                        this.setState({ camera: e.target.value });
+                <video
+                    ref={this.refQrScanner}
+                    style={{
+                        ...styles.qrScanner,
+                        display: this.state.hideVideo ? 'none' : 'block',
                     }}
-                >
-                    {this.state.cameras.map((camera, i) => <MenuItem key={i} value={camera.id}>{camera.label}</MenuItem>)}
-                </Select> : null}
+                />
+                {this.state.cameras.length ? <br /> : null}
+                {this.state.camera.length ? (
+                    <Select
+                        variant="standard"
+                        value={this.state.camera}
+                        onChange={async e => {
+                            if (this.qrScanner && this.qrScanner !== true) {
+                                await this.qrScanner.setCamera(e.target.value);
+                            }
+                            window.localStorage.setItem('camera', e.target.value);
+                            this.setState({ camera: e.target.value });
+                        }}
+                    >
+                        {this.state.cameras.map((camera, i) => (
+                            <MenuItem key={i} value={camera.id}>
+                                {camera.label}
+                            </MenuItem>
+                        ))}
+                    </Select>
+                ) : null}
             </DialogContent>
             <DialogActions>
                 <Button
@@ -359,11 +426,24 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     color="primary"
                     onClick={() => {
                         const device = this.state.showQrCodeDialog;
-                        this.setState({ showQrCodeDialog: null }, () => this.destroyQrCode());
-                        this.props.socket.sendTo(`matter.${this.props.instance}`, 'controllerAddDevice', { device, qrCode: this.state.qrCode, manualCode: this.state.manualCode })
+                        this.setState({ showQrCodeDialog: null }, () =>
+                            this.destroyQrCode(),
+                        );
+                        this.props.socket
+                            .sendTo(
+                                `matter.${this.props.instance}`,
+                                'controllerAddDevice',
+                                {
+                                    device,
+                                    qrCode: this.state.qrCode,
+                                    manualCode: this.state.manualCode,
+                                },
+                            )
                             .then(result => {
                                 if (result.error || !result.result) {
-                                    window.alert(`Cannot connect: ${result.error || 'Unknown error'}`);
+                                    window.alert(
+                                        `Cannot connect: ${result.error || 'Unknown error'}`,
+                                    );
                                 } else {
                                     window.alert('Connected');
                                 }
@@ -376,7 +456,11 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 <Button
                     variant="contained"
                     color="grey"
-                    onClick={() => this.setState({ showQrCodeDialog: null }, () => this.destroyQrCode())}
+                    onClick={() =>
+                        this.setState({ showQrCodeDialog: null }, () =>
+                            this.destroyQrCode(),
+                        )
+                    }
                     startIcon={<Close />}
                 >
                     {I18n.t('Close')}
@@ -389,42 +473,37 @@ class Controller extends Component<ComponentProps, ComponentState> {
         if (!this.state.discoveryRunning && !this.state.discoveryDone) {
             return null;
         }
-        return <Dialog
-            open={!0}
-            onClose={() => this.setState({ discoveryDone: false })}
-        >
+        return <Dialog open={!0} onClose={() => this.setState({ discoveryDone: false })}>
             <DialogTitle>{I18n.t('Discovered devices')}</DialogTitle>
             <DialogContent>
                 {this.state.discoveryRunning ? <LinearProgress /> : null}
                 <Table style={{ width: '100%' }}>
                     <TableHead>
-                        <TableCell>
-                            {I18n.t('Name')}
-                        </TableCell>
-                        <TableCell>
-                            {I18n.t('Identifier')}
-                        </TableCell>
+                        <TableCell>{I18n.t('Name')}</TableCell>
+                        <TableCell>{I18n.t('Identifier')}</TableCell>
                         <TableCell />
                     </TableHead>
                     <TableBody>
-                        {this.state.discovered.map(device => <TableRow>
-                            <TableCell>
-                                {device.DN}
-                            </TableCell>
-                            <TableCell>
-                                {device.deviceIdentifier}
-                            </TableCell>
-                            <TableCell>
-                                <IconButton
-                                    onClick={() => {
-                                        this.setState({ showQrCodeDialog: device, manualCode: '', qrCode: '' });
-                                        setTimeout(async () => this.initQrCode(), 500);
-                                    }}
-                                >
-                                    <LeakAdd />
-                                </IconButton>
-                            </TableCell>
-                        </TableRow>)}
+                        {this.state.discovered.map(device => (
+                            <TableRow>
+                                <TableCell>{device.DN}</TableCell>
+                                <TableCell>{device.deviceIdentifier}</TableCell>
+                                <TableCell>
+                                    <IconButton
+                                        onClick={() => {
+                                            this.setState({
+                                                showQrCodeDialog: device,
+                                                manualCode: '',
+                                                qrCode: '',
+                                            });
+                                            setTimeout(async() => this.initQrCode(), 500);
+                                        }}
+                                    >
+                                        <LeakAdd />
+                                    </IconButton>
+                                </TableCell>
+                            </TableRow>
+                        ))}
                     </TableBody>
                 </Table>
             </DialogContent>
@@ -432,8 +511,15 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 <Button
                     disabled={!this.state.discoveryRunning}
                     variant="contained"
-                    onClick={() => this.props.socket.sendTo(`matter.${this.props.instance}`, 'controllerDiscoveryStop', { })
-                        .then(() => this.setState({ discoveryDone: false }))}
+                    onClick={() =>
+                        this.props.socket
+                            .sendTo(
+                                `matter.${this.props.instance}`,
+                                'controllerDiscoveryStop',
+                                {},
+                            )
+                            .then(() => this.setState({ discoveryDone: false }))
+                    }
                     startIcon={<SearchOff />}
                 >
                     {I18n.t('Stop')}
@@ -460,6 +546,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
         } else {
             icon = <ReadWriteStateIcon />;
         }
+
         let state: string;
         if (this.state.states[stateId]) {
             if (this.state.states[stateId].val === null || this.state.states[stateId].val === undefined) {
@@ -483,7 +570,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
     renderCluster(clusterId: string) {
         const _clusterId = `${clusterId}.`;
-        const states = Object.keys(this.state.nodes).filter(id => id.startsWith(_clusterId) && this.state.nodes[id].type === 'state');
+        const states = Object.keys(this.state.nodes).filter(
+            id =>
+                id.startsWith(_clusterId) && this.state.nodes[id].type === 'state',
+        );
         return [
             <TableRow key={clusterId}>
                 <TableCell></TableCell>
@@ -501,24 +591,34 @@ class Controller extends Component<ComponentProps, ComponentState> {
     renderDevice(deviceId: string, inBridge?: boolean) {
         const _deviceId = `${deviceId}.`;
         // get channels
-        const channels = Object.keys(this.state.nodes).filter(id => id.startsWith(_deviceId) && this.state.nodes[id].type === 'channel');
+        const channels = Object.keys(this.state.nodes).filter(
+            id =>
+                id.startsWith(_deviceId) && this.state.nodes[id].type === 'channel',
+        );
         let connected: boolean | null = null;
         let status: string | null = null;
         if (!inBridge) {
-            connected = this.state.states[`${_deviceId}info.connection`] ? !!this.state.states[`${_deviceId}info.connection`].val : null;
+            connected = this.state.states[`${_deviceId}info.connection`]
+                ? !!this.state.states[`${_deviceId}info.connection`].val
+                : null;
             const statusVal = this.state.states[`${_deviceId}info.status`]?.val;
             if (statusVal !== null && statusVal !== undefined && statusVal !== '') {
                 status = statusVal.toString();
                 const statusObj = this.state.nodes[`${_deviceId}info.status`];
                 if (statusObj?.common?.states[status]) {
-                    status = I18n.t(`status_${statusObj.common.states[status]}`).replace(/^status_/, '');
+                    status = I18n.t(`status_${statusObj.common.states[status]}`).replace(
+                        /^status_/,
+                        '',
+                    );
                 }
             }
         }
 
         return [
             <TableRow key={deviceId}>
-                <TableCell style={{ width: 0, padding: inBridge ? '0 0 0 40px' : 0, height: 32 }}>
+                <TableCell
+                    style={{ width: 0, padding: inBridge ? '0 0 0 40px' : 0, height: 32 }}
+                >
                     <IconButton
                         size="small"
                         style={styles.bridgeButtonsAndTitleColor}
@@ -531,11 +631,18 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             } else {
                                 openedNodes.splice(index, 1);
                             }
-                            window.localStorage.setItem('openedNodes', JSON.stringify(openedNodes));
+                            window.localStorage.setItem(
+                                'openedNodes',
+                                JSON.stringify(openedNodes),
+                            );
                             this.setState({ openedNodes });
                         }}
                     >
-                        {this.state.openedNodes.includes(deviceId) ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
+                        {this.state.openedNodes.includes(deviceId) ? (
+                            <KeyboardArrowUp />
+                        ) : (
+                            <KeyboardArrowDown />
+                        )}
                     </IconButton>
                 </TableCell>
                 <TableCell style={styles.device}>
@@ -543,7 +650,9 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         <DeviceIcon />
                     </div>
                     <div>
-                        <div style={styles.deviceName}>{getText(this.state.nodes[deviceId].common.name)}</div>
+                        <div style={styles.deviceName}>
+                            {getText(this.state.nodes[deviceId].common.name)}
+                        </div>
                         <div style={styles.nodeId}>{deviceId.split('.').pop()}</div>
                     </div>
                     <div style={styles.number}>{channels.length}</div>
@@ -555,14 +664,19 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     </div> : null}
                 </TableCell>
             </TableRow>,
-            this.state.openedNodes.includes(deviceId) ? channels.map(id => this.renderCluster(id)) : null,
+            this.state.openedNodes.includes(deviceId)
+                ? channels.map(id => this.renderCluster(id))
+                : null,
         ];
     }
 
     renderBridge(bridgeId: string) {
-        // find all devices in this bridge
+    // find all devices in this bridge
         const _bridgeId = `${bridgeId}.`;
-        const deviceIds = Object.keys(this.state.nodes).filter(id => id.startsWith(_bridgeId) && this.state.nodes[id].type === 'device');
+        const deviceIds = Object.keys(this.state.nodes).filter(
+            id =>
+                id.startsWith(_bridgeId) && this.state.nodes[id].type === 'device',
+        );
 
         // get status
         const connected = this.state.states[`${_bridgeId}info.connection`]?.val;
@@ -571,7 +685,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
             status = status.toString();
             const statusObj = this.state.nodes[`${_bridgeId}info.status`];
             if (statusObj?.common?.states[status]) {
-                status = I18n.t(`status_${statusObj.common.states[status]}`).replace(/^status_/, '');
+                status = I18n.t(`status_${statusObj.common.states[status]}`).replace(
+                    /^status_/,
+                    '',
+                );
             }
         }
 
@@ -590,7 +707,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             } else {
                                 openedNodes.splice(index, 1);
                             }
-                            window.localStorage.setItem('openedNodes', JSON.stringify(openedNodes));
+                            window.localStorage.setItem(
+                                'openedNodes',
+                                JSON.stringify(openedNodes),
+                            );
                             this.setState({ openedNodes });
                         }}
                     >
@@ -602,7 +722,9 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         {this.state.openedNodes.includes(bridgeId) ? <IconOpen /> : <IconClosed />}
                     </div>
                     <div>
-                        <div style={styles.deviceName}>{getText(this.state.nodes[bridgeId].common.name)}</div>
+                        <div style={styles.deviceName}>
+                            {getText(this.state.nodes[bridgeId].common.name)}
+                        </div>
                         <div style={styles.nodeId}>{bridgeId.split('.').pop()}</div>
                     </div>
                     <div style={styles.number}>{deviceIds.length}</div>
@@ -614,7 +736,9 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     </div>
                 </TableCell>
             </TableRow>,
-            this.state.openedNodes.includes(bridgeId) ? deviceIds.map(id => this.renderDevice(id, true)) : null,
+            this.state.openedNodes.includes(bridgeId)
+                ? deviceIds.map(id => this.renderDevice(id, true))
+                : null,
         ];
     }
 
@@ -626,8 +750,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
     }
 
     renderDevicesAndBridges() {
-        // matter.0.controller.2808191892917842060
-        const deviceOrBridgeIds = Object.keys(this.state.nodes).filter(id => id.split('.').length === 4);
+    // matter.0.controller.2808191892917842060
+        const deviceOrBridgeIds = Object.keys(this.state.nodes).filter(
+            id => id.split('.').length === 4,
+        );
         return deviceOrBridgeIds.map(id => this.renderDeviceOrBridge(id));
     }
 
@@ -643,6 +769,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 style={{ justifyContent: 'start' }}
                 themeName={this.props.themeName}
                 themeType={this.props.themeType}
+                theme={this.props.theme}
                 isFloatComma={this.props.isFloatComma}
                 dateFormat={this.props.dateFormat}
             />
@@ -651,7 +778,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
     render() {
         if (!this.props.alive && (this.state.discoveryRunning || this.state.discoveryDone)) {
-            setTimeout(() => this.setState({ discoveryRunning: false, discoveryDone: false }), 100);
+            setTimeout(
+                () => this.setState({ discoveryRunning: false, discoveryDone: false }),
+                100,
+            );
         }
 
         return <div style={styles.panel}>
@@ -670,127 +800,180 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 />
                 {I18n.t('On')}
             </div>
-            {this.props.matter.controller.enabled ? <div>
-                <FormControlLabel
-                    control={<Checkbox
-                        checked={!!this.props.matter.controller.ble}
-                        onChange={e => {
-                            const matter = JSON.parse(JSON.stringify(this.props.matter));
-                            matter.controller.ble = e.target.checked;
-                            this.props.updateConfig(matter);
+            {this.props.matter.controller.enabled ? (
+                <div>
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={!!this.props.matter.controller.ble}
+                                onChange={e => {
+                                    const matter = JSON.parse(
+                                        JSON.stringify(this.props.matter),
+                                    );
+                                    matter.controller.ble = e.target.checked;
+                                    this.props.updateConfig(matter);
+                                }}
+                            />
+                        }
+                        label={I18n.t('Bluetooth')}
+                    />
+                </div>
+            ) : null}
+            {this.props.matter.controller.enabled &&
+    this.props.matter.controller.ble ? (
+                    <div>
+                        <TextField
+                            fullWidth
+                            variant="standard"
+                            style={{ maxWidth: 600 }}
+                            type="number"
+                            label={I18n.t('Bluetooth HCI ID')}
+                            value={this.props.matter.controller.hciId || ''}
+                            onChange={e => {
+                                const matter = JSON.parse(JSON.stringify(this.props.matter));
+                                matter.controller.hciId = e.target.value;
+                                this.props.updateConfig(matter);
+                            }}
+                        />
+                    </div>
+                ) : null}
+            {this.props.matter.controller.enabled &&
+    this.props.matter.controller.ble ? (
+                    <div>
+                        <TextField
+                            fullWidth
+                            variant="standard"
+                            style={{ maxWidth: 600 }}
+                            label={I18n.t('WiFI SSID')}
+                            error={!this.props.matter.controller.wifiSSID}
+                            helperText={
+                                this.props.matter.controller.wifiSSID ? '' : I18n.t('Required')
+                            }
+                            value={this.props.matter.controller.wifiSSID || ''}
+                            onChange={e => {
+                                const matter = JSON.parse(JSON.stringify(this.props.matter));
+                                matter.controller.wifiSSID = e.target.value;
+                                this.props.updateConfig(matter);
+                            }}
+                        />
+                    </div>
+                ) : null}
+            {this.props.matter.controller.enabled &&
+    this.props.matter.controller.ble ? (
+                    <div>
+                        <TextField
+                            fullWidth
+                            variant="standard"
+                            style={{ maxWidth: 600 }}
+                            label={I18n.t('WiFI password')}
+                            error={!this.props.matter.controller.wifiPassword}
+                            helperText={
+                                this.props.matter.controller.wifiPassword
+                                    ? ''
+                                    : I18n.t('Required')
+                            }
+                            value={this.props.matter.controller.wifiPassword || ''}
+                            onChange={e => {
+                                const matter = JSON.parse(JSON.stringify(this.props.matter));
+                                matter.controller.wifiPassword = e.target.value;
+                                this.props.updateConfig(matter);
+                            }}
+                        />
+                    </div>
+                ) : null}
+            {this.props.matter.controller.enabled &&
+    this.props.matter.controller.ble ? (
+                    <div>
+                        <TextField
+                            fullWidth
+                            style={{ maxWidth: 600 }}
+                            variant="standard"
+                            label={I18n.t('Thread network name')}
+                            value={this.props.matter.controller.threadNetworkName || ''}
+                            onChange={e => {
+                                const matter = JSON.parse(JSON.stringify(this.props.matter));
+                                matter.controller.threadNetworkName = e.target.value;
+                                this.props.updateConfig(matter);
+                            }}
+                        />
+                    </div>
+                ) : null}
+            {this.props.matter.controller.enabled &&
+    this.props.matter.controller.ble ? (
+                    <div>
+                        <TextField
+                            fullWidth
+                            style={{ maxWidth: 600 }}
+                            variant="standard"
+                            label={I18n.t('Thread operational dataset')}
+                            value={
+                                this.props.matter.controller.threadOperationalDataSet || ''
+                            }
+                            onChange={e => {
+                                const matter = JSON.parse(JSON.stringify(this.props.matter));
+                                matter.controller.threadOperationalDataSet = e.target.value;
+                                this.props.updateConfig(matter);
+                            }}
+                        />
+                    </div>
+                ) : null}
+            {this.props.matter.controller.enabled && this.props.alive ? (
+                <div>
+                    <Button
+                        variant="contained"
+                        disabled={this.state.discoveryRunning}
+                        startIcon={
+                            this.state.discoveryRunning ? (
+                                <CircularProgress size={20} />
+                            ) : (
+                                <Search />
+                            )
+                        }
+                        onClick={() => {
+                            this.setState({ discovered: [] }, () =>
+                                this.props.socket
+                                    .sendTo(
+                                        `matter.${this.props.instance}`,
+                                        'controllerDiscovery',
+                                        {},
+                                    )
+                                    .then(
+                                        (result: {
+                                            error?: string;
+                                            result: CommissionableDevice[];
+                                        }) => {
+                                            if (result.error) {
+                                                window.alert(`Cannot discover: ${result.error}`);
+                                            } else {
+                                                this.setState({
+                                                    discovered: result.result,
+                                                    discoveryDone: true,
+                                                });
+                                            }
+                                        },
+                                    ),
+                            );
                         }}
-                    />}
-                    label={I18n.t('Bluetooth')}
-                />
-            </div> : null}
-            {this.props.matter.controller.enabled && this.props.matter.controller.ble ? <div>
-                <TextField
-                    fullWidth
-                    variant="standard"
-                    style={{ maxWidth: 600 }}
-                    type="number"
-                    label={I18n.t('Bluetooth HCI ID')}
-                    value={this.props.matter.controller.hciId || ''}
-                    onChange={e => {
-                        const matter = JSON.parse(JSON.stringify(this.props.matter));
-                        matter.controller.hciId = e.target.value;
-                        this.props.updateConfig(matter);
-                    }}
-                />
-            </div> : null}
-            {this.props.matter.controller.enabled && this.props.matter.controller.ble ? <div>
-                <TextField
-                    fullWidth
-                    variant="standard"
-                    style={{ maxWidth: 600 }}
-                    label={I18n.t('WiFI SSID')}
-                    error={!this.props.matter.controller.wifiSSID}
-                    helperText={this.props.matter.controller.wifiSSID ? '' : I18n.t('Required')}
-                    value={this.props.matter.controller.wifiSSID || ''}
-                    onChange={e => {
-                        const matter = JSON.parse(JSON.stringify(this.props.matter));
-                        matter.controller.wifiSSID = e.target.value;
-                        this.props.updateConfig(matter);
-                    }}
-                />
-            </div> : null}
-            {this.props.matter.controller.enabled && this.props.matter.controller.ble ? <div>
-                <TextField
-                    fullWidth
-                    variant="standard"
-                    style={{ maxWidth: 600 }}
-                    label={I18n.t('WiFI password')}
-                    error={!this.props.matter.controller.wifiPassword}
-                    helperText={this.props.matter.controller.wifiPassword ? '' : I18n.t('Required')}
-                    value={this.props.matter.controller.wifiPassword || ''}
-                    onChange={e => {
-                        const matter = JSON.parse(JSON.stringify(this.props.matter));
-                        matter.controller.wifiPassword = e.target.value;
-                        this.props.updateConfig(matter);
-                    }}
-                />
-            </div> : null}
-            {this.props.matter.controller.enabled && this.props.matter.controller.ble ? <div>
-                <TextField
-                    fullWidth
-                    style={{ maxWidth: 600 }}
-                    variant="standard"
-                    label={I18n.t('Thread network name')}
-                    value={this.props.matter.controller.threadNetworkName || ''}
-                    onChange={e => {
-                        const matter = JSON.parse(JSON.stringify(this.props.matter));
-                        matter.controller.threadNetworkName = e.target.value;
-                        this.props.updateConfig(matter);
-                    }}
-                />
-            </div> : null}
-            {this.props.matter.controller.enabled && this.props.matter.controller.ble ? <div>
-                <TextField
-                    fullWidth
-                    style={{ maxWidth: 600 }}
-                    variant="standard"
-                    label={I18n.t('Thread operational dataset')}
-                    value={this.props.matter.controller.threadOperationalDataSet || ''}
-                    onChange={e => {
-                        const matter = JSON.parse(JSON.stringify(this.props.matter));
-                        matter.controller.threadOperationalDataSet = e.target.value;
-                        this.props.updateConfig(matter);
-                    }}
-                />
-            </div> : null}
-            {this.props.matter.controller.enabled && this.props.alive ? <div>
-                <Button
-                    variant="contained"
-                    disabled={this.state.discoveryRunning}
-                    startIcon={this.state.discoveryRunning ? <CircularProgress size={20} /> : <Search />}
-                    onClick={() => {
-                        this.setState({ discovered: [] }, () =>
-                            this.props.socket.sendTo(`matter.${this.props.instance}`, 'controllerDiscovery', { })
-                                .then((result: { error?: string; result: CommissionableDevice[] }) => {
-                                    if (result.error) {
-                                        window.alert(`Cannot discover: ${result.error}`);
-                                    } else {
-                                        this.setState({ discovered: result.result, discoveryDone: true });
-                                    }
-                                }));
-                    }}
-                >
-                    {I18n.t('Discovery devices')}
-                </Button>
-            </div> : null}
-            {this.props.matter.controller.enabled ? this.renderDeviceManager() : null}
+                    >
+                        {I18n.t('Discovery devices')}
+                    </Button>
+                </div>
+            ) : null}
+            {this.props.matter.controller.enabled
+                ? this.renderDeviceManager()
+                : null}
             {/* this.props.matter.controller.enabled ? <Table style={{ maxWidth: 600 }} size="small">
-                <TableHead>
-                    <TableRow>
-                        <TableCell style={{ width: 0, padding: 0 }} />
-                        <TableCell>{I18n.t('Name')}</TableCell>
-                        <TableCell>{I18n.t('Value')}</TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {this.renderDevicesAndBridges()}
-                </TableBody>
-            </Table> : null */}
+            <TableHead>
+                <TableRow>
+                    <TableCell style={{ width: 0, padding: 0 }} />
+                    <TableCell>{I18n.t('Name')}</TableCell>
+                    <TableCell>{I18n.t('Value')}</TableCell>
+                </TableRow>
+            </TableHead>
+            <TableBody>
+                {this.renderDevicesAndBridges()}
+            </TableBody>
+        </Table> : null */}
         </div>;
     }
 }

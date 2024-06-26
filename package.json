@@ -26,7 +26,7 @@
     "@project-chip/matter-node.js": "0.9.2",
     "@project-chip/matter.js": "0.9.2",
     "@iobroker/type-detector": "^3.0.5",
-    "@iobroker/dm-utils": "^0.2.1",
+    "@iobroker/dm-utils": "^0.2.2",
     "axios": "^1.7.2",
     "jsonwebtoken": "^9.0.2"
   },

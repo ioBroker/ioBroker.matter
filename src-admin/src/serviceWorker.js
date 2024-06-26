@@ -37,7 +37,7 @@ function registerValidSW(swUrl, config) {
                             // content until all client tabs are closed.
                             console.log(
                                 'New content is available and will be used when all ' +
-                                'tabs for this page are closed. See http://bit.ly/CRA-PWA.',
+                  'tabs for this page are closed. See http://bit.ly/CRA-PWA.',
                             );
 
                             // Execute callback
@@ -72,7 +72,7 @@ function checkValidServiceWorker(swUrl, config) {
             const contentType = response.headers.get('content-type');
             if (
                 response.status === 404 ||
-                (contentType !== null && !contentType.includes('javascript'))
+        (contentType !== null && !contentType.includes('javascript'))
             ) {
                 // No service worker found. Probably a different app. Reload the page.
                 navigator.serviceWorker.ready.then(registration => {
@@ -85,7 +85,11 @@ function checkValidServiceWorker(swUrl, config) {
                 registerValidSW(swUrl, config);
             }
         })
-        .catch(() => console.log('No internet connection found. App is running in offline mode.'));
+        .catch(() =>
+            console.log(
+                'No internet connection found. App is running in offline mode.',
+            ),
+        );
 }
 
 export function register(config) {

@@ -10,7 +10,8 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
-    LinearProgress, MenuItem,
+    LinearProgress,
+    MenuItem,
     Switch,
     TextField,
 } from '@mui/material';
@@ -25,7 +26,8 @@ import {
     Lock,
     Palette,
     PlayArrowRounded,
-    Power, QuestionMark,
+    Power,
+    QuestionMark,
     SensorDoor,
     Thermostat,
     TipsAndUpdates,
@@ -94,11 +96,13 @@ export const DEVICE_ICONS: Record<Types, React.JSX.Element> = {
 };
 
 export const SUPPORTED_DEVICES: Types[] = [
-    Types.socket, Types.light, Types.dimmer,
+    Types.socket,
+    Types.light,
+    Types.dimmer,
 ];
 
 const productIds: string[] = [];
-for (let i = 0x8000; i <= 0x801F; i++) {
+for (let i = 0x8000; i <= 0x801f; i++) {
     productIds.push(`0x${i.toString(16)}`);
 }
 
@@ -163,7 +167,7 @@ const styles: Record<string, any> = {
     secondTitle: {
         marginLeft: 8,
         width: 'calc(50% - 40px)',
-        // flexGrow: 1,
+    // flexGrow: 1,
     },
 };
 
@@ -207,9 +211,12 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
             devicesChecked: {},
             roomsChecked: {},
             usedDevices: {},
-            ignoreUsedDevices: window.localStorage.getItem('matter.ignoreUsedDevices') === 'true',
-            useRoomNames: window.localStorage.getItem('matter.useRoomNames') !== 'false',
-            showUnsupported: window.localStorage.getItem('matter.showUnsupported') === 'true',
+            ignoreUsedDevices:
+        window.localStorage.getItem('matter.ignoreUsedDevices') === 'true',
+            useRoomNames:
+        window.localStorage.getItem('matter.useRoomNames') !== 'false',
+            showUnsupported:
+        window.localStorage.getItem('matter.showUnsupported') === 'true',
             deviceNames: {},
             deviceRoomTypeNames: {},
             expanded,
@@ -217,7 +224,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
     }
 
     async componentDidMount() {
-        const detectedDevices = this.props.detectedDevices || await detectDevices(this.props.socket);
+        const detectedDevices = this.props.detectedDevices || (await detectDevices(this.props.socket));
         if (!this.props.detectedDevices) {
             setTimeout(() => this.props.setDetectedDevices(detectedDevices), 100);
         }
@@ -225,8 +232,12 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
         let rooms: DetectedRoom[] = JSON.parse(JSON.stringify(detectedDevices));
 
         // ignore buttons
-        rooms.forEach(room =>
-            room.devices = room.devices.filter(device => device.common.role !== 'button'));
+        rooms.forEach(
+            room =>
+                (room.devices = room.devices.filter(
+                    device => device.common.role !== 'button',
+                )),
+        );
 
         // ignore empty rooms
         rooms = rooms.filter(room => room.devices.length);
@@ -235,10 +246,14 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
         rooms.forEach(room => {
             room.devices.forEach(device => {
                 // Device.Name.Room => Device Name Room
-                device.common.name = (getText(device.common.name) || '').replace(/\./g, ' ').trim();
+                device.common.name = (getText(device.common.name) || '')
+                    .replace(/\./g, ' ')
+                    .trim();
                 // delete room name from device name
                 if (device.roomName) {
-                    device.common.name = device.common.name.replace(getText(device.roomName), '').trim();
+                    device.common.name = device.common.name
+                        .replace(getText(device.roomName), '')
+                        .trim();
                 }
             });
         });
@@ -254,20 +269,24 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                 devicesChecked[device._id] = false;
                 device.vendorID = '0xFFF1';
                 device.productID = '0x8000';
-                device.states.forEach(state => _checked[state._id] = true);
+                device.states.forEach(state => (_checked[state._id] = true));
                 deviceNames[device._id] = getText(device.common.name);
-                deviceRoomTypeNames[device._id] = `${getText(room.common.name)} ${I18n.t(device.deviceType)}`;
-                device.common.name = this.state.useRoomNames ? deviceRoomTypeNames[device._id] : deviceNames[device._id];
+                deviceRoomTypeNames[device._id] =
+          `${getText(room.common.name)} ${I18n.t(device.deviceType)}`;
+                device.common.name = this.state.useRoomNames
+                    ? deviceRoomTypeNames[device._id]
+                    : deviceNames[device._id];
             });
         });
 
         const usedDevices: Record<string, boolean> = {};
-        this.props.matter.devices.forEach(device =>
-            usedDevices[device.oid] = true);
+        this.props.matter.devices.forEach(
+            device => (usedDevices[device.oid] = true),
+        );
 
         this.props.matter.bridges.forEach(bridge =>
-            bridge.list.forEach(device =>
-                usedDevices[device.oid] = true));
+            bridge.list.forEach(device => (usedDevices[device.oid] = true)),
+        );
 
         this.setState({
             rooms,
@@ -292,7 +311,12 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
         this.props.onClose();
     };
 
-    renderDevice(roomIndex: number, room: DetectedRoom, deviceIndex: number, device: DetectedDevice) {
+    renderDevice(
+        roomIndex: number,
+        room: DetectedRoom,
+        deviceIndex: number,
+        device: DetectedDevice,
+    ) {
         const supported = SUPPORTED_DEVICES.includes(device.deviceType);
 
         if (!supported && !this.state.showUnsupported) {
@@ -306,15 +330,21 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                 opacity: supported ? 1 : 0.3,
             }}
         >
-            {supported ? null : <div style={{ marginLeft: 20 }}>{I18n.t('Not supported yet')}</div>}
+            {supported ? null :
+                <div style={{ marginLeft: 20 }}>{I18n.t('Not supported yet')}</div>}
             <div
-                style={{ ...styles.summaryBody, opacity: this.state.roomsChecked[room._id] ? 1 : 0.5 }}
+                style={{
+                    ...styles.summaryBody,
+                    opacity: this.state.roomsChecked[room._id] ? 1 : 0.5,
+                }}
             >
                 <Checkbox
                     checked={!!this.state.devicesChecked[device._id]}
                     disabled={!supported}
                     onChange={e => {
-                        const devicesChecked = JSON.parse(JSON.stringify(this.state.devicesChecked));
+                        const devicesChecked = JSON.parse(
+                            JSON.stringify(this.state.devicesChecked),
+                        );
                         devicesChecked[device._id] = e.target.checked;
                         this.setState({ devicesChecked });
                     }}
@@ -328,13 +358,16 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                     disabled={!supported}
                     fullWidth
                     label={device._id}
-                    helperText={<span style={{ fontStyle: 'italic' }}>
-                        {`${I18n.t('Device type')}: ${I18n.t(device.deviceType)}`}
-                    </span>}
+                    helperText={
+                        <span style={{ fontStyle: 'italic' }}>
+                            {`${I18n.t('Device type')}: ${I18n.t(device.deviceType)}`}
+                        </span>
+                    }
                     value={device.common.name}
                     onChange={e => {
                         const rooms = JSON.parse(JSON.stringify(this.state.rooms));
-                        rooms[roomIndex].devices[deviceIndex].common.name = e.target.value;
+                        rooms[roomIndex].devices[deviceIndex].common.name =
+            e.target.value;
                         this.setState({ rooms });
                     }}
                 />
@@ -352,13 +385,9 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                     helperText={<span style={styles.spaceHolder} />}
                     variant="standard"
                 >
-                    {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorId =>
-                        <MenuItem
-                            key={vendorId}
-                            value={vendorId}
-                        >
-                            {vendorId}
-                        </MenuItem>)}
+                    {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorId => <MenuItem key={vendorId} value={vendorId}>
+                        {vendorId}
+                    </MenuItem>)}
                 </TextField>
                 <TextField
                     select
@@ -374,40 +403,40 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                     helperText={<span style={styles.spaceHolder} />}
                     variant="standard"
                 >
-                    {productIds.map(productId =>
-                        <MenuItem
-                            key={productId}
-                            value={productId}
-                        >
-                            {productId}
-                        </MenuItem>)}
+                    {productIds.map(productId => <MenuItem key={productId} value={productId}>
+                        {productId}
+                    </MenuItem>)}
                 </TextField>
             </div>
         </div>;
     }
 
     render() {
-        const counters = this.state.rooms?.map(room => room.devices.reduce((a, b) => a + (this.state.devicesChecked[b._id] ? 1 : 0), 0)) || [];
+        const counters = this.state.rooms?.map(room =>
+            room.devices.reduce((a, b) => a + (this.state.devicesChecked[b._id] ? 1 : 0), 0)) || [];
+
         const absoluteLengths = this.state.rooms?.map(room => {
             if (this.state.ignoreUsedDevices) {
-                return room.devices.filter(device => !this.state.usedDevices[device._id]).length;
+                return room.devices.filter(
+                    device => !this.state.usedDevices[device._id],
+                ).length;
             }
 
             return room.devices.length;
         }) || [];
+
         const lengths = this.state.rooms?.map(room => {
             if (this.state.ignoreUsedDevices) {
-                return room.devices.filter(device => !this.state.usedDevices[device._id] && SUPPORTED_DEVICES.includes(device.deviceType)).length;
+                return room.devices.filter(device =>
+                        !this.state.usedDevices[device._id] && SUPPORTED_DEVICES.includes(device.deviceType)).length;
             }
 
-            return room.devices.filter(device => SUPPORTED_DEVICES.includes(device.deviceType)).length;
+            return room.devices.filter(device =>
+                SUPPORTED_DEVICES.includes(device.deviceType),
+            ).length;
         }) || [];
 
-        return <Dialog
-            open={!0}
-            onClose={this.props.onClose}
-            fullWidth
-        >
+        return <Dialog open={!0} onClose={this.props.onClose} fullWidth>
             <DialogTitle>
                 {`${I18n.t('Add devices')}${this.props.type === 'bridge' ? ` ${I18n.t('to bridge')} ${getText(this.props.name)}` : ''}`}
             </DialogTitle>
@@ -419,18 +448,28 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                             <Switch
                                 checked={this.state.ignoreUsedDevices || false}
                                 onChange={e => {
-                                    const devicesChecked = JSON.parse(JSON.stringify(this.state.devicesChecked));
+                                    const devicesChecked = JSON.parse(
+                                        JSON.stringify(this.state.devicesChecked),
+                                    );
                                     Object.keys(devicesChecked).forEach(deviceId => {
                                         if (e.target.checked && this.state.usedDevices[deviceId]) {
                                             devicesChecked[deviceId] = false;
                                         }
                                     });
-                                    window.localStorage.setItem('matter.ignoreUsedDevices', e.target.checked ? 'true' : 'false');
-                                    this.setState({ devicesChecked, ignoreUsedDevices: e.target.checked });
+                                    window.localStorage.setItem(
+                                        'matter.ignoreUsedDevices',
+                                        e.target.checked ? 'true' : 'false',
+                                    );
+                                    this.setState({
+                                        devicesChecked,
+                                        ignoreUsedDevices: e.target.checked,
+                                    });
                                 }}
                             />
                         </div>
-                        <div style={styles.secondTitle}>{I18n.t('Not used devices')}</div>
+                        <div style={styles.secondTitle}>
+                            {I18n.t('Not used devices')}
+                        </div>
                     </div>
                     <div style={styles.flex}>
                         <div style={styles.firstTitle}>{I18n.t('Device names')}</div>
@@ -438,13 +477,20 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                             <Switch
                                 checked={this.state.useRoomNames || false}
                                 onChange={e => {
-                                    window.localStorage.setItem('matter.useRoomNames', e.target.checked ? 'true' : 'false');
+                                    window.localStorage.setItem(
+                                        'matter.useRoomNames',
+                                        e.target.checked ? 'true' : 'false',
+                                    );
 
-                                    const rooms: DetectedRoom[] = JSON.parse(JSON.stringify(this.state.rooms));
+                                    const rooms: DetectedRoom[] = JSON.parse(
+                                        JSON.stringify(this.state.rooms),
+                                    );
                                     if (e.target.checked) {
                                         rooms.forEach(room => {
                                             room.devices.forEach(device => {
-                                                if (device.common.name === this.state.deviceNames[device._id]) {
+                                                if (
+                                                    device.common.name === this.state.deviceNames[device._id]
+                                                ) {
                                                     device.common.name = this.state.deviceRoomTypeNames[device._id];
                                                 }
                                             });
@@ -452,7 +498,9 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                                     } else {
                                         rooms.forEach(room => {
                                             room.devices.forEach(device => {
-                                                if (device.common.name === this.state.deviceRoomTypeNames[device._id]) {
+                                                if (
+                                                    device.common.name === this.state.deviceRoomTypeNames[device._id]
+                                                ) {
                                                     device.common.name = this.state.deviceNames[device._id];
                                                 }
                                             });
@@ -463,28 +511,41 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                                 }}
                             />
                         </div>
-                        <div style={styles.secondTitle}>{I18n.t('Room plus device type names')}</div>
+                        <div style={styles.secondTitle}>
+                            {I18n.t('Room plus device type names')}
+                        </div>
                     </div>
                     <div style={styles.flex}>
-                        <div style={{ ...styles.firstTitle, fontSize: 'smaller' }}>{I18n.t('Hide unsupported devices')}</div>
+                        <div style={{ ...styles.firstTitle, fontSize: 'smaller' }}>
+                            {I18n.t('Hide unsupported devices')}
+                        </div>
                         <div>
                             <Switch
                                 checked={this.state.showUnsupported || false}
                                 onChange={e => {
-                                    window.localStorage.setItem('matter.showUnsupported', e.target.checked ? 'true' : 'false');
+                                    window.localStorage.setItem(
+                                        'matter.showUnsupported',
+                                        e.target.checked ? 'true' : 'false',
+                                    );
                                     this.setState({ showUnsupported: e.target.checked });
                                 }}
                             />
                         </div>
-                        <div style={{ ...styles.secondTitle, fontSize: 'smaller' }}>{I18n.t('Show unsupported devices')}</div>
+                        <div style={{ ...styles.secondTitle, fontSize: 'smaller' }}>
+                            {I18n.t('Show unsupported devices')}
+                        </div>
                     </div>
                     <div style={{ flex: 1, overflowY: 'auto' }}>
-                        {!this.state.rooms.length ? <div>{I18n.t('Nothing detected')}</div> : null}
+                        {!this.state.rooms.length ? (
+                            <div>{I18n.t('Nothing detected')}</div>
+                        ) : null}
                         {this.state.rooms.map((room, roomIndex) => {
                             if (!absoluteLengths[roomIndex]) {
                                 return null;
                             }
-                            if (!this.state.showUnsupported && !room.devices.filter(device => SUPPORTED_DEVICES.includes(device.deviceType)).length) {
+                            if (
+                                !this.state.showUnsupported && !room.devices.filter(device => SUPPORTED_DEVICES.includes(device.deviceType),).length
+                            ) {
                                 return null;
                             }
 
@@ -492,7 +553,9 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                                 <Accordion
                                     expanded={this.state.expanded.includes(room._id)}
                                     onChange={() => {
-                                        const expanded: string[] = JSON.parse(JSON.stringify(this.state.expanded));
+                                        const expanded: string[] = JSON.parse(
+                                            JSON.stringify(this.state.expanded),
+                                        );
                                         const pos = expanded.indexOf(room._id);
                                         if (pos === -1) {
                                             expanded.push(room._id);
@@ -500,28 +563,56 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                                             expanded.splice(pos, 1);
                                         }
                                         this.setState({ expanded });
-                                        window.localStorage.setItem('matter.expanded', JSON.stringify(expanded));
+                                        window.localStorage.setItem(
+                                            'matter.expanded',
+                                            JSON.stringify(expanded),
+                                        );
                                     }}
                                 >
                                     <AccordionSummary expandIcon={<ExpandMore />}>
                                         <div style={styles.summaryDiv}>
-                                            {room.common.icon ? <Icon src={room.common.icon} style={styles.icon} alt="" /> : null}
+                                            {room.common.icon ? (
+                                                <Icon
+                                                    src={room.common.icon}
+                                                    style={styles.icon}
+                                                    alt=""
+                                                />
+                                            ) : null}
 
-                                            <div style={styles.flexGrow}>{getText(room.common.name)}</div>
+                                            <div style={styles.flexGrow}>
+                                                {getText(room.common.name)}
+                                            </div>
 
                                             <Checkbox
-                                                title={I18n.t('Select/Unselect all devices in room')}
-                                                indeterminate={counters[roomIndex] !== room.devices.length && !!counters[roomIndex]}
-                                                checked={counters[roomIndex] === room.devices.length}
+                                                title={I18n.t(
+                                                    'Select/Unselect all devices in room',
+                                                )}
+                                                indeterminate={
+                                                    counters[roomIndex] !== room.devices.length && !!counters[roomIndex]
+                                                }
+                                                checked={
+                                                    counters[roomIndex] === room.devices.length
+                                                }
                                                 onClick={e => {
                                                     e.stopPropagation();
                                                     e.preventDefault();
-                                                    const devicesChecked = JSON.parse(JSON.stringify(this.state.devicesChecked));
-                                                    if (counters[roomIndex] === room.devices.length) {
-                                                        room.devices.forEach(device => devicesChecked[device._id] = false);
+                                                    const devicesChecked = JSON.parse(
+                                                        JSON.stringify(this.state.devicesChecked),
+                                                    );
+                                                    if (
+                                                        counters[roomIndex] === room.devices.length
+                                                    ) {
+                                                        room.devices.forEach(
+                                                            device =>
+                                                                (devicesChecked[device._id] = false),
+                                                        );
                                                     } else {
                                                         room.devices.forEach(device => {
-                                                            if (SUPPORTED_DEVICES.includes(device.deviceType)) {
+                                                            if (
+                                                                SUPPORTED_DEVICES.includes(
+                                                                    device.deviceType,
+                                                                )
+                                                            ) {
                                                                 devicesChecked[device._id] = true;
                                                             }
                                                         });
@@ -530,16 +621,28 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                                                 }}
                                             />
                                             <div style={styles.selectedText}>
-                                                {I18n.t('%s of %s devices selected', counters[roomIndex], lengths[roomIndex])}
+                                                {I18n.t(
+                                                    '%s of %s devices selected',
+                                                    counters[roomIndex],
+                                                    lengths[roomIndex],
+                                                )}
                                             </div>
                                         </div>
                                     </AccordionSummary>
                                     <AccordionDetails sx={styles.details}>
                                         {this.state.expanded.includes(room._id) && room.devices.map((device, deviceIndex) => {
-                                            if (this.state.ignoreUsedDevices && this.state.usedDevices[device._id]) {
+                                            if (
+                                                this.state.ignoreUsedDevices &&
+                                            this.state.usedDevices[device._id]
+                                            ) {
                                                 return null;
                                             }
-                                            return this.renderDevice(roomIndex, room, deviceIndex, device);
+                                            return this.renderDevice(
+                                                roomIndex,
+                                                room,
+                                                deviceIndex,
+                                                device,
+                                            );
                                         })}
                                     </AccordionDetails>
                                 </Accordion>
@@ -551,11 +654,16 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
             <DialogActions>
                 <Button
                     variant="contained"
-                    disabled={!this.state.rooms || counters?.reduce((a, b) => a + b, 0) === 0}
+                    disabled={
+                        !this.state.rooms || counters?.reduce((a, b) => a + b, 0) === 0
+                    }
                     onClick={this.handleSubmit}
                     startIcon={<Add />}
                 >
-                    {I18n.t('Add %s device(s)', counters?.reduce((a, b) => a + b, 0))}
+                    {I18n.t(
+                        'Add %s device(s)',
+                        counters?.reduce((a, b) => a + b, 0),
+                    )}
                 </Button>
                 <Button
                     variant="contained"

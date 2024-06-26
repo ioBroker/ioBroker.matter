@@ -18,13 +18,13 @@ export class MappingLight extends MappingGenericDevice {
     }
 
     // Just change the power state every second
-    doIdentify(identifyOptions: IdentifyOptions) {
+    doIdentify(identifyOptions: IdentifyOptions): void {
         identifyOptions.currentState = !identifyOptions.currentState;
         void this.ioBrokerDevice.setPower(identifyOptions.currentState as boolean);
     }
 
     // Restore the given initial state after the identity process is over
-    resetIdentify(identifyOptions: IdentifyOptions) {
+    resetIdentify(identifyOptions: IdentifyOptions): void {
         void this.ioBrokerDevice.setPower(identifyOptions.initialState as boolean);
     }
 
@@ -36,7 +36,7 @@ export class MappingLight extends MappingGenericDevice {
         return this.ioBrokerDevice;
     }
 
-    registerMatterHandlers() {
+    registerMatterHandlers(): void {
         // install matter listeners
         // here we can react on changes from the matter side for onOff
         this.matterDevice.events.onOff.onOff$Changed.on(async on => {

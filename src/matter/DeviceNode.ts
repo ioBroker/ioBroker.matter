@@ -229,7 +229,7 @@ class Device {
         await this.serverNode?.factoryReset();
     }
 
-    async start() {
+    async start(): Promise<void> {
         if (!this.serverNode) return;
         await this.serverNode.bringOnline();
     }

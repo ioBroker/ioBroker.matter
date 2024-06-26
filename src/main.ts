@@ -119,7 +119,7 @@ export class MatterAdapter extends utils.Adapter {
         this.detector = new ChannelDetector();
     }
 
-    async shutDownMatterNodes() {
+    async shutDownMatterNodes(): Promise<void> {
         for (const device of this.devices.values()) {
             await device.stop();
         }
@@ -129,7 +129,7 @@ export class MatterAdapter extends utils.Adapter {
         await this.controller?.stop();
     }
 
-    async startUpMatterNodes() {
+    async startUpMatterNodes(): Promise<void> {
         for (const bridge of this.bridges.values()) {
             await bridge.start();
         }

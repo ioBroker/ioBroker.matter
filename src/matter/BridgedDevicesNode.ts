@@ -264,8 +264,10 @@ class BridgedDevices {
         await this.serverNode?.factoryReset();
     }
 
-    async start() {
-        if (!this.serverNode) return;
+    async start(): Promise<void> {
+        if (!this.serverNode) {
+            return;
+        }
         await this.serverNode.bringOnline();
     }
 

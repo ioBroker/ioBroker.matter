@@ -2,7 +2,7 @@ import {
     CommissioningController,
     NodeCommissioningOptions,
 } from '@project-chip/matter.js';
-import { NodeId, ClusterId } from '@project-chip/matter.js/datatype';
+import { NodeId /* , ClusterId */ } from '@project-chip/matter.js/datatype';
 import {
     Endpoint, CommissioningControllerNodeOptions,
     PairedNode,
@@ -56,32 +56,32 @@ interface AddDeviceResult {
     nodeId?: string;
 }
 
-const IGNORE_CLUSTERS: ClusterId[] = [
-    ClusterId(0x0004), // Groups
-    ClusterId(0x0005), // Scenes
-    ClusterId(0x001D), // Descriptor
-    ClusterId(0x001D), // Descriptor
-    ClusterId(0x001E), // Binding
-    ClusterId(0x001F), // Access Control
-    ClusterId(0x002B), // Localization Configuration
-    ClusterId(0x002C), // Time Format Localization
-    ClusterId(0x002D), // Unit Localization
-    ClusterId(0x002E), // Power Source Configuration
-    ClusterId(0x0030), // General Commissioning
-    ClusterId(0x0031), // Network Commissioning
-    ClusterId(0x0032), // Diagnostic Logs
-    ClusterId(0x0033), // General Diagnostics
-    ClusterId(0x0034), // Software Diagnostics
-    ClusterId(0x0035), // Thread Network ClusterId(Diagnostics
-    ClusterId(0x0036), // Wi-Fi Network Diagnostics
-    ClusterId(0x0037), // Ethernet Network Diagnostics
-    ClusterId(0x0038), // Time Synchronization
-    ClusterId(0x0039), // Bridged Device Basic Information
-    ClusterId(0x003C), // Administrator Commissioning
-    ClusterId(0x003E), // Node Operational Credentials
-    ClusterId(0x003F), // Group Key Management
-    ClusterId(0x0046), // ICD Management S
-];
+// const IGNORE_CLUSTERS: ClusterId[] = [
+//     ClusterId(0x0004), // Groups
+//     ClusterId(0x0005), // Scenes
+//     ClusterId(0x001D), // Descriptor
+//     ClusterId(0x001D), // Descriptor
+//     ClusterId(0x001E), // Binding
+//     ClusterId(0x001F), // Access Control
+//     ClusterId(0x002B), // Localization Configuration
+//     ClusterId(0x002C), // Time Format Localization
+//     ClusterId(0x002D), // Unit Localization
+//     ClusterId(0x002E), // Power Source Configuration
+//     ClusterId(0x0030), // General Commissioning
+//     ClusterId(0x0031), // Network Commissioning
+//     ClusterId(0x0032), // Diagnostic Logs
+//     ClusterId(0x0033), // General Diagnostics
+//     ClusterId(0x0034), // Software Diagnostics
+//     ClusterId(0x0035), // Thread Network ClusterId(Diagnostics
+//     ClusterId(0x0036), // Wi-Fi Network Diagnostics
+//     ClusterId(0x0037), // Ethernet Network Diagnostics
+//     ClusterId(0x0038), // Time Synchronization
+//     ClusterId(0x0039), // Bridged Device Basic Information
+//     ClusterId(0x003C), // Administrator Commissioning
+//     ClusterId(0x003E), // Node Operational Credentials
+//     ClusterId(0x003F), // Group Key Management
+//     ClusterId(0x0046), // ICD Management S
+// ];
 
 interface Device {
     clusters: Base[];
@@ -330,7 +330,7 @@ class Controller {
         }
     }
 
-    async logClusterClient(nodeId: NodeId, clusterClient: any, level: number) {
+    async logClusterClient(nodeId: NodeId, clusterClient: any, level: number): Promise<void> {
         const { supportedFeatures: features } = clusterClient;
         const globalAttributes = GlobalAttributes(features);
         const supportedFeatures = [];

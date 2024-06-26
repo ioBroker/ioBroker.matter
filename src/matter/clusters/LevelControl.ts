@@ -8,7 +8,7 @@ import { MatterAdapter } from '../../main';
 class LevelControl extends Base {
     private handler: ((value: number | null) => void) | undefined = undefined;
 
-    async init() {
+    async init(): Promise<void> {
         const cluster = this.endpoint.getClusterClient(LevelControlCluster);
         if (!cluster) {
             return;
@@ -34,14 +34,14 @@ class LevelControl extends Base {
             await cluster.getCurrentLevelAttribute()
         );
 
-        this.handler = async (value: number | null) => {
+        this.handler = async(value: number | null) => {
             await this.adapter.setStateAsync(id, value, true);
         };
 
         // subscribe on matter changes
         cluster.addCurrentLevelAttributeListener(this.handler);
 
-        const levelHandler = async (state: ioBroker.State) => {
+        const levelHandler = async(state: ioBroker.State): Promise<void> => {
             if (!state || state.ack) {
                 return;
             }
@@ -65,7 +65,7 @@ class LevelControl extends Base {
         await this.subscribe(id, levelHandler);
     }
 
-    async destroy() {
+    async destroy(): Promise<void> {
         await super.destroy();
         const cluster = this.endpoint.getClusterClient(LevelControlCluster);
         if (cluster) {

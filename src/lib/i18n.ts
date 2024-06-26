@@ -12,7 +12,7 @@ import zhCN from './i18n/zh-CN.json';
 
 const words: Record<string, Record<ioBroker.Languages, string>> = {};
 
-function init() {
+function init(): void {
     const langs: Record<ioBroker.Languages, Record<string, string>> = {
         en,
         de,
@@ -26,6 +26,7 @@ function init() {
         uk,
         'zh-cn': zhCN,
     };
+
     Object.keys(langs).forEach(lang => {
         const lWords: Record<string, string> = langs[lang as ioBroker.Languages] as Record<string, string>;
         Object.keys(lWords).forEach(word => {
@@ -33,7 +34,6 @@ function init() {
                 words[word] = {} as Record<ioBroker.Languages, string>;
             }
             words[word][lang as ioBroker.Languages] = langs[lang as ioBroker.Languages][word];
-
         });
     });
 }
@@ -46,7 +46,7 @@ export function t(word: string, lang?: ioBroker.Languages): ioBroker.StringOrTra
     }
 
     if (words[word]) {
-        return words[word][lang] || words[word].en || word
+        return words[word][lang] || words[word].en || word;
     }
     return word;
 }

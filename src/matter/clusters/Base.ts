@@ -55,7 +55,7 @@ class Base {
         await SubscribeManager.subscribe(stateId, handler);
     }
 
-    async destroy() {
+    async destroy(): Promise<void> {
         for (const id in this.subscribes) {
             for (const handler of this.subscribes[id]) {
                 await SubscribeManager.unsubscribe(id, handler);
@@ -63,7 +63,7 @@ class Base {
         }
     }
 
-    async createChannel(deviceTypes: AtLeastOne<DeviceTypeDefinition>) {
+    async createChannel(deviceTypes: AtLeastOne<DeviceTypeDefinition>): Promise<void> {
         if (!deviceTypes) {
             return;
         }

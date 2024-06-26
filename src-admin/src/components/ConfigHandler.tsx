@@ -3,10 +3,12 @@ import { AdminConnection } from '@iobroker/adapter-react-v5';
 
 import { I18n } from '@iobroker/adapter-react-v5';
 
-import {
-    BridgeDescription, CommissioningInfo,
-    DeviceDescription, MatterConfig,
-} from '../types';
+import type {
+    BridgeDescription,
+    CommissioningInfo,
+    DeviceDescription,
+    MatterConfig,
+} from '@/types';
 
 class ConfigHandler {
     private readonly instance: number;
@@ -17,7 +19,9 @@ class ConfigHandler {
 
     private onChanged: ((config: MatterConfig) => void) | null;
 
-    private readonly onCommissioningChanged: (commissioning: CommissioningInfo) => void;
+    private readonly onCommissioningChanged: (
+        commissioning: CommissioningInfo,
+    ) => void;
 
     private commissioning: CommissioningInfo;
 
@@ -28,7 +32,7 @@ class ConfigHandler {
     constructor(
         instance: number,
         socket: AdminConnection,
-        onChanged: ((config: MatterConfig) => void),
+        onChanged: (config: MatterConfig) => void,
         onCommissioningChanged: (commissioning: CommissioningInfo) => void,
     ) {
         this.instance = instance;
@@ -47,8 +51,7 @@ class ConfigHandler {
             bridges: [],
         };
 
-        this.loadConfig()
-            .catch(e => console.error(e));
+        this.loadConfig().catch(e => console.error(e));
     }
 
     getText(word: ioBroker.StringOrTranslated): string {
@@ -62,11 +65,26 @@ class ConfigHandler {
     destroy() {
         this.onChanged = null;
         if (this.socket?.isConnected()) {
-            this.socket.unsubscribeObject(`matter.${this.instance}.bridges.*`, this.onObjectChange);
-            this.socket.unsubscribeObject(`matter.${this.instance}.devices.*`, this.onObjectChange);
-            this.socket.unsubscribeObject(`matter.${this.instance}.controller`, this.onObjectChange);
-            this.socket.unsubscribeState(`matter.${this.instance}.bridges.*`, this.onStateChange);
-            this.socket.unsubscribeState(`matter.${this.instance}.devices.*`, this.onStateChange);
+            this.socket.unsubscribeObject(
+                `matter.${this.instance}.bridges.*`,
+                this.onObjectChange,
+            );
+            this.socket.unsubscribeObject(
+                `matter.${this.instance}.devices.*`,
+                this.onObjectChange,
+            );
+            this.socket.unsubscribeObject(
+                `matter.${this.instance}.controller`,
+                this.onObjectChange,
+            );
+            this.socket.unsubscribeState(
+                `matter.${this.instance}.bridges.*`,
+                this.onStateChange,
+            );
+            this.socket.unsubscribeState(
+                `matter.${this.instance}.devices.*`,
+                this.onStateChange,
+            );
         }
         this.socket = null;
     }
@@ -172,7 +190,9 @@ class ConfigHandler {
                             changed = true;
                             bridge.name = obj.common.name;
                         }
-                        if (JSON.stringify(bridge.list) !== JSON.stringify(obj.native.list)) {
+                        if (
+                            JSON.stringify(bridge.list) !== JSON.stringify(obj.native.list)
+                        ) {
                             changed = true;
                             bridge.list = obj.native.list;
                         }
@@ -232,7 +252,9 @@ class ConfigHandler {
         }
 
         try {
-            controllerObj = await this.socket.getObject(`matter.${this.instance}.controller`) as ioBroker.FolderObject | null;
+            controllerObj = (await this.socket.getObject(
+                `matter.${this.instance}.controller`,
+            )) as ioBroker.FolderObject | null;
         } catch (e) {
             // ignore
         }
@@ -253,7 +275,7 @@ class ConfigHandler {
             await this.socket.setObject(controllerObj._id, controllerObj);
         }
 
-        controllerObj = controllerObj || {} as ioBroker.FolderObject;
+        controllerObj = controllerObj || ({} as ioBroker.FolderObject);
         controllerObj.native = controllerObj.native || {};
 
         const len = `matter.${this.instance}.`.length;
@@ -288,7 +310,9 @@ class ConfigHandler {
         });
 
         try {
-            const commissioning = await this.socket.getStates(`matter.${this.instance}.*`);
+            const commissioning = await this.socket.getStates(
+                `matter.${this.instance}.*`,
+            );
             this.commissioning = {
                 bridges: {},
                 devices: {},
@@ -317,17 +341,35 @@ class ConfigHandler {
         globalThis.changed = false;
         window.parent.postMessage('nochange', '*');
 
-        this.socket.subscribeObject(`matter.${this.instance}.bridges.*`, this.onObjectChange);
-        this.socket.subscribeObject(`matter.${this.instance}.devices.*`, this.onObjectChange);
-        this.socket.subscribeObject(`matter.${this.instance}.controller`, this.onObjectChange);
-        this.socket.subscribeState(`matter.${this.instance}.bridges.*`, this.onStateChange);
-        this.socket.subscribeState(`matter.${this.instance}.devices.*`, this.onStateChange);
+        this.socket.subscribeObject(
+            `matter.${this.instance}.bridges.*`,
+            this.onObjectChange,
+        );
+        this.socket.subscribeObject(
+            `matter.${this.instance}.devices.*`,
+            this.onObjectChange,
+        );
+        this.socket.subscribeObject(
+            `matter.${this.instance}.controller`,
+            this.onObjectChange,
+        );
+        this.socket.subscribeState(
+            `matter.${this.instance}.bridges.*`,
+            this.onStateChange,
+        );
+        this.socket.subscribeState(
+            `matter.${this.instance}.devices.*`,
+            this.onStateChange,
+        );
         return JSON.parse(JSON.stringify(this.config));
     }
 
-    static getSortName(name: ioBroker.StringOrTranslated, lang: ioBroker.Languages): string {
+    static getSortName(
+        name: ioBroker.StringOrTranslated,
+        lang: ioBroker.Languages,
+    ): string {
         if (!name || typeof name === 'string') {
-            return name as string || '';
+            return (name as string) || '';
         } else {
             return name.en || name[lang];
         }
@@ -368,13 +410,20 @@ class ConfigHandler {
 
         let isChanged = false;
         // compare config with this.config
-        if (JSON.stringify(config.controller) !== JSON.stringify(this.config.controller)) {
+        if (
+            JSON.stringify(config.controller) !==
+      JSON.stringify(this.config.controller)
+        ) {
             isChanged = true;
         }
-        if (JSON.stringify(config.bridges) !== JSON.stringify(this.config.bridges)) {
+        if (
+            JSON.stringify(config.bridges) !== JSON.stringify(this.config.bridges)
+        ) {
             isChanged = true;
         }
-        if (JSON.stringify(config.devices) !== JSON.stringify(this.config.devices)) {
+        if (
+            JSON.stringify(config.devices) !== JSON.stringify(this.config.devices)
+        ) {
             isChanged = true;
         }
         if (this.changed !== isChanged) {
@@ -392,8 +441,14 @@ class ConfigHandler {
         }
 
         // compare config with this.config
-        let controller: ioBroker.FolderObject | null = await this.socket.getObject(`matter.${this.instance}.controller`) as ioBroker.FolderObject;
-        if (!controller || JSON.stringify(config.controller) !== JSON.stringify(this.config.controller)) {
+        let controller: ioBroker.FolderObject | null = (await this.socket.getObject(
+            `matter.${this.instance}.controller`,
+        )) as ioBroker.FolderObject;
+        if (
+            !controller ||
+      JSON.stringify(config.controller) !==
+        JSON.stringify(this.config.controller)
+        ) {
             if (!controller) {
                 controller = {
                     _id: `matter.${this.instance}.controller`,
@@ -413,15 +468,18 @@ class ConfigHandler {
             controller.native.hciId = config.controller.hciId;
             controller.native.threadNetworkName = config.controller.threadNetworkName;
             controller.native.wifiPassword = config.controller.wifiPassword;
-            controller.native.threadOperationalDataSet = config.controller.threadOperationalDataSet;
+            controller.native.threadOperationalDataSet =
+        config.controller.threadOperationalDataSet;
             controller.native.wifiSSID = config.controller.wifiSSID;
 
             this.config.controller.enabled = config.controller.enabled;
             this.config.controller.ble = config.controller.ble;
             this.config.controller.hciId = config.controller.hciId;
-            this.config.controller.threadNetworkName = config.controller.threadNetworkName;
+            this.config.controller.threadNetworkName =
+        config.controller.threadNetworkName;
             this.config.controller.wifiPassword = config.controller.wifiPassword;
-            this.config.controller.threadOperationalDataSet = config.controller.threadOperationalDataSet;
+            this.config.controller.threadOperationalDataSet =
+        config.controller.threadOperationalDataSet;
             this.config.controller.wifiSSID = config.controller.wifiSSID;
             await this.socket.setObject(controller._id, controller);
         }
@@ -429,7 +487,9 @@ class ConfigHandler {
         // sync devices
         for (let d = 0; d < config.devices.length; d++) {
             const newDev = config.devices[d];
-            const oldDev = this.config.devices.find(dev => dev.uuid === newDev.uuid);
+            const oldDev = this.config.devices.find(
+                dev => dev.uuid === newDev.uuid,
+            );
             if (!oldDev) {
                 const obj: ioBroker.ChannelObject = {
                     _id: `matter.${this.instance}.devices.${newDev.uuid}`,
@@ -445,7 +505,9 @@ class ConfigHandler {
                 this.config.devices.push(newDev);
                 await this.socket.setObject(obj._id, obj);
             } else if (JSON.stringify(newDev) !== JSON.stringify(oldDev)) {
-                const obj: ioBroker.ChannelObject = await this.socket.getObject(`matter.${this.instance}.devices.${newDev.uuid}`) as ioBroker.ChannelObject;
+                const obj: ioBroker.ChannelObject = (await this.socket.getObject(
+                    `matter.${this.instance}.devices.${newDev.uuid}`,
+                )) as ioBroker.ChannelObject;
                 obj.common.name = newDev.name;
                 obj.native = obj.native || {};
                 Object.assign(obj.native, newDev);
@@ -462,14 +524,18 @@ class ConfigHandler {
             if (!newDev) {
                 this.config.devices.splice(d, 1);
                 console.log(`Device ${oldDev.uuid} created`);
-                await this.socket.delObject(`matter.${this.instance}.devices.${oldDev.uuid}`);
+                await this.socket.delObject(
+                    `matter.${this.instance}.devices.${oldDev.uuid}`,
+                );
             }
         }
 
         // sync bridges
         for (let b = 0; b < config.bridges.length; b++) {
             const newBridge = config.bridges[b];
-            const oldBridge = this.config.bridges.find(brd => brd.uuid === newBridge.uuid);
+            const oldBridge = this.config.bridges.find(
+                brd => brd.uuid === newBridge.uuid,
+            );
             if (!oldBridge) {
                 const obj: ioBroker.ChannelObject = {
                     _id: `matter.${this.instance}.bridges.${newBridge.uuid}`,
@@ -486,7 +552,9 @@ class ConfigHandler {
                 console.log(`Bridge ${newBridge.uuid} created`);
                 await this.socket.setObject(obj._id, obj);
             } else if (JSON.stringify(newBridge) !== JSON.stringify(oldBridge)) {
-                const obj: ioBroker.ChannelObject = await this.socket.getObject(`matter.${this.instance}.bridges.${newBridge.uuid}`) as ioBroker.ChannelObject;
+                const obj: ioBroker.ChannelObject = (await this.socket.getObject(
+                    `matter.${this.instance}.bridges.${newBridge.uuid}`,
+                )) as ioBroker.ChannelObject;
                 obj.common.name = newBridge.name;
                 obj.native = obj.native || {};
                 Object.assign(obj.native, newBridge);
@@ -500,11 +568,15 @@ class ConfigHandler {
 
         for (let b = this.config.bridges.length - 1; b >= 0; b--) {
             const oldBridge = this.config.bridges[b];
-            const newBridge = config.bridges.find(brd => brd.uuid === oldBridge.uuid);
+            const newBridge = config.bridges.find(
+                brd => brd.uuid === oldBridge.uuid,
+            );
             if (!newBridge) {
                 this.config.bridges.splice(b, 1);
                 console.log(`Bridge ${oldBridge.uuid} deleted`);
-                await this.socket.delObject(`matter.${this.instance}.bridges.${oldBridge.uuid}`);
+                await this.socket.delObject(
+                    `matter.${this.instance}.bridges.${oldBridge.uuid}`,
+                );
             }
         }
 

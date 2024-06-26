@@ -40,7 +40,8 @@ import WeatherCurrent from './devices/WeatherCurrent';
 import WeatherForecast from './devices/WeatherForecast';
 import Warning from './devices/Warning';
 
-const types = {
+
+const types: { [key in Types]: any } = {
     [Types.airCondition]: AirCondition,
     [Types.blind]: Blind,
     [Types.blindButtons]: BlindButtons,
@@ -56,6 +57,7 @@ const types = {
     [Types.gate]: Gate,
     [Types.humidity]: Humidity,
     [Types.info]: Info,
+    [Types.instance]: null,
     [Types.light]: Light,
     [Types.lock]: Lock,
     [Types.location]: Location,
@@ -75,17 +77,22 @@ const types = {
     [Types.vacuumCleaner]: VacuumCleaner,
     [Types.volumeGroup]: VolumeGroup,
     [Types.window]: Window,
+    [Types.unknown]: null,
     [Types.windowTilt]: WindowTilt,
     [Types.weatherCurrent]: WeatherCurrent,
     [Types.weatherForecast]: WeatherForecast,
     [Types.warning]: Warning,
 };
 
-async function DeviceFactory(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options: DeviceOptions): Promise<GenericDevice | undefined> {
-    // @ts-ignore
-    const type = types[detectedDevice.type];
-    if (type) {
-        const deviceObject = new type(detectedDevice, adapter, options);
+async function DeviceFactory(
+    detectedDevice: DetectedDevice,
+    adapter: ioBroker.Adapter,
+    options: DeviceOptions,
+): Promise<GenericDevice | undefined> {
+    // @1ts-expect-error how to fix it?
+    const DeviceType = types[detectedDevice.type];
+    if (DeviceType) {
+        const deviceObject = new DeviceType(detectedDevice, adapter, options);
         await deviceObject.init();
         return deviceObject;
     }

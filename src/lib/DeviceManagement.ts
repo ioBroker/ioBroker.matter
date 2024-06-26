@@ -14,7 +14,7 @@ import { t, getText } from './i18n';
 const demoDevice = {
     id: 'my ID',
     name: 'My Name',
-}
+};
 
 class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     private demoState: ioBroker.State | null | undefined;
@@ -50,7 +50,6 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 status,
                 hasDetails: true,
                 actions: [
-                    // @ts-expect-error fixed in dm-utils
                     {
                         id: 'delete',
                         icon: 'fa-solid fa-trash-can',
@@ -58,7 +57,6 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                         handler: this.handleDeleteDevice.bind(this),
                         confirmation: t('Are you sure?'),
                     },
-                    // @ts-expect-error fixed in dm-utils
                     {
                         id: 'rename',
                         icon: 'fa-solid fa-pen',
@@ -88,7 +86,6 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             status: 'connected',
             hasDetails: true,
             actions: [
-                // @ts-expect-error fixed in dm-utils
                 {
                     id: 'delete',
                     icon: '',
@@ -96,7 +93,6 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     handler: this.handleDeleteDevice.bind(this),
                     confirmation: t('Are you sure?'),
                 },
-                // @ts-expect-error fixed in dm-utils
                 {
                     id: 'rename',
                     icon: '',
@@ -126,10 +122,10 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     async handleControlDevice(
-        deviceId: string,
-        actionId: string,
+        _deviceId: string,
+        _actionId: string,
         state: ControlState,
-        context: ActionContext,
+        _context: ActionContext,
     ): Promise<ErrorResponse | ioBroker.State> {
         if (this.demoState) {
             this.demoState.val = state as boolean;
@@ -142,9 +138,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     async handleGetControlState(
-        deviceId: string,
-        actionId: string,
-        context: ActionContext,
+        _deviceId: string,
+        _actionId: string,
+        _context: ActionContext,
     ): Promise<ErrorResponse | ioBroker.State> {
         if (this.demoState) {
             return this.demoState;
@@ -202,7 +198,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         return { refresh: false };
     }
 
-    async getDeviceDetails(id: string): Promise<DeviceDetails | null | {error: string}> {
+    async getDeviceDetails(id: string): Promise<DeviceDetails | null | { error: string }> {
         this.adapter.log.info(`Get device details ${id}`);
         return {
             id,

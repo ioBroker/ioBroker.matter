@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 
 import {
-    Button, Dialog,
+    Button,
+    Dialog,
     DialogActions,
     DialogTitle,
     DialogContent,
@@ -9,14 +10,16 @@ import {
     InputLabel,
     MenuItem,
     Select,
-    TextField, FormControlLabel, Checkbox,
+    TextField,
+    FormControlLabel,
+    Checkbox,
 } from '@mui/material';
 
 import { Check, Close, LayersClear } from '@mui/icons-material';
 
 import { type AdminConnection, I18n, Logo } from '@iobroker/adapter-react-v5';
 
-import { MatterAdapterConfig } from '../types';
+import type { MatterAdapterConfig } from '@/types';
 
 const styles: Record<string, React.CSSProperties> = {
     address: {
@@ -88,22 +91,32 @@ class Options extends Component<OptionsProps, OptionsState> {
         >
             <DialogTitle>{I18n.t('Please confirm')}</DialogTitle>
             <DialogContent>
-                {I18n.t('All state information of matter controller and devices will be deleted. You cannot undo it.')}
+                {I18n.t(
+                    'All state information of matter controller and devices will be deleted. You cannot undo it.',
+                )}
                 <br />
-                {I18n.t('The configuration of controller, bridges and devices will stay unchanged.')}
+                {I18n.t(
+                    'The configuration of controller, bridges and devices will stay unchanged.',
+                )}
                 <br />
-                {this.state.dialogLevel ? I18n.t('Are you really sure?') : I18n.t('Are you sure?')}
+                {this.state.dialogLevel
+                    ? I18n.t('Are you really sure?')
+                    : I18n.t('Are you sure?')}
             </DialogContent>
             <DialogActions>
                 <Button
                     variant="contained"
-                    style={{ backgroundColor: this.state.dialogLevel === 1 ? 'red' : undefined, color: this.state.dialogLevel === 1 ? 'white' : undefined }}
+                    style={{
+                        backgroundColor: this.state.dialogLevel === 1 ? 'red' : undefined,
+                        color: this.state.dialogLevel === 1 ? 'white' : undefined,
+                    }}
                     color="grey"
                     onClick={() => {
                         if (this.state.dialogLevel === 1) {
                             this.setState({ showDialog: false });
                             // send command to reset all states
-                            this.props.socket.sendTo(`matter.${this.props.instance}`, 'reset', { })
+                            this.props.socket
+                                .sendTo(`matter.${this.props.instance}`, 'reset', {})
                                 .then(() => this.props.showToast(I18n.t('Done')))
                                 .catch(e => this.props.showToast(`Cannot reset: ${e}`));
                         } else {
@@ -112,7 +125,9 @@ class Options extends Component<OptionsProps, OptionsState> {
                     }}
                     startIcon={<Check />}
                 >
-                    {this.state.dialogLevel === 1 ? I18n.t('Reset it at least to defaults') : I18n.t('Reset to defaults')}
+                    {this.state.dialogLevel === 1
+                        ? I18n.t('Reset it at least to defaults')
+                        : I18n.t('Reset to defaults')}
                 </Button>
                 <Button
                     variant="contained"
@@ -127,36 +142,50 @@ class Options extends Component<OptionsProps, OptionsState> {
     }
 
     async componentDidMount() {
-        // detect if any iot or cloud with pro-account are available
+    // detect if any iot or cloud with pro-account are available
         const instancesIot = await this.props.socket.getAdapterInstances('iot');
         let instance: ioBroker.InstanceObject | null = null;
         if (instancesIot) {
-            instance = instancesIot.find(it => it?.native?.login && it?.native?.pass) || null;
+            instance =
+        instancesIot.find(it => it?.native?.login && it?.native?.pass) ||
+        null;
             if (instance) {
                 // encode
                 const pass = await this.props.socket.decrypt(instance.native.pass);
 
-                this.setState({ iotInstance: instance._id, iotPassword: pass, iotLogin: instance.native.login });
+                this.setState({
+                    iotInstance: instance._id,
+                    iotPassword: pass,
+                    iotLogin: instance.native.login,
+                });
             }
         }
         if (!instance) {
-            const instancesCloud = await this.props.socket.getAdapterInstances('cloud');
-            instance = instancesCloud.find(it => it?.native?.login && it?.native?.pass) || null;
+            const instancesCloud =
+        await this.props.socket.getAdapterInstances('cloud');
+            instance =
+        instancesCloud.find(it => it?.native?.login && it?.native?.pass) ||
+        null;
             if (instance) {
                 // encode
                 const pass = await this.props.socket.decrypt(instance.native.pass);
 
-                this.setState({ iotInstance: instance._id, iotPassword: pass, iotLogin: instance.native.login });
+                this.setState({
+                    iotInstance: instance._id,
+                    iotPassword: pass,
+                    iotLogin: instance.native.login,
+                });
             }
         }
 
         try {
-            const host = await this.props.socket.getObject(`system.host.${this.props.common.host}`);
-            const interfaces = [
-                { value: '_', address: I18n.t('All interfaces') },
-            ];
+            const host = await this.props.socket.getObject(
+                `system.host.${this.props.common.host}`,
+            );
+            const interfaces = [{ value: '_', address: I18n.t('All interfaces') }];
             if (host?.native?.hardware?.networkInterfaces) {
-                const list: Record<string, NetworkInterface[]> = host.native.hardware.networkInterfaces as Record<string, NetworkInterface[]>;
+                const list: Record<string, NetworkInterface[]> = host.native.hardware
+                    .networkInterfaces as Record<string, NetworkInterface[]>;
                 Object.keys(list).forEach(inter => {
                     if (!list[inter].find(_ip => !_ip.internal)) {
                         return;
@@ -177,14 +206,21 @@ class Options extends Component<OptionsProps, OptionsState> {
 
     static checkPassword(pass: string): string | false {
         pass = (pass || '').toString();
-        if (pass.length < 8 || !pass.match(/[a-z]/) || !pass.match(/[A-Z]/) || !pass.match(/\d/)) {
+        if (
+            pass.length < 8 ||
+      !pass.match(/[a-z]/) ||
+      !pass.match(/[A-Z]/) ||
+      !pass.match(/\d/)
+        ) {
             return I18n.t('invalid_password_warning');
         }
         return false;
     }
 
     render() {
-        const item = this.state.interfaces?.find(it => it.value === (this.props.native.interface || '_'));
+        const item = this.state.interfaces?.find(
+            it => it.value === (this.props.native.interface || '_'),
+        );
         const passwordError = Options.checkPassword(this.props.native.pass);
 
         return <div style={styles.panel}>
@@ -196,41 +232,71 @@ class Options extends Component<OptionsProps, OptionsState> {
                 onError={text => this.props.showToast(text)}
                 onLoad={this.props.onLoad}
             />
-            {!this.state.interfaces?.length ?
-                <TextField
-                    style={styles.input}
+            {!this.state.interfaces?.length ? <TextField
+                style={styles.input}
+                variant="standard"
+                value={this.props.native.interface}
+                onChange={e =>
+                    this.props.onChange(
+                        'interface',
+                        e.target.value === '_' ? '' : e.target.value,
+                    )
+                }
+                label={I18n.t('Interface')}
+            /> : <FormControl style={styles.input}>
+                <InputLabel>{I18n.t('Interface')}</InputLabel>
+                <Select
                     variant="standard"
-                    value={this.props.native.interface}
-                    onChange={e => this.props.onChange('interface', e.target.value === '_' ? '' : e.target.value)}
-                    label={I18n.t('Interface')}
-                /> :
-                <FormControl style={styles.input}>
-                    <InputLabel>{I18n.t('Interface')}</InputLabel>
-                    <Select
-                        variant="standard"
-                        style={styles.input}
-                        value={this.props.native.interface || '_'}
-                        renderValue={val => {
-                            if (item) {
-                                return <span style={{ fontWeight: item.value === '_' ? 'bold' : undefined }}>
-                                    {item.value === '_' ? I18n.t('All interfaces') : item.value}
-                                    {item.value === '_' ? null : <span style={styles.address}>{item.address}</span>}
-                                </span>;
-                            }
-                            return val;
-                        }}
-                        onChange={e => this.props.onChange('interface', e.target.value === '_' ? '' : e.target.value)}
-                    >
-                        {this.state.interfaces.map((it, i) => <MenuItem key={i} value={it.value}>
-                            <span style={{ fontWeight: it.value === '_' ? 'bold' : undefined }}>
+                    style={styles.input}
+                    value={this.props.native.interface || '_'}
+                    renderValue={val => {
+                        if (item) {
+                            return (
+                                <span
+                                    style={{
+                                        fontWeight: item.value === '_' ? 'bold' : undefined,
+                                    }}
+                                >
+                                    {item.value === '_'
+                                        ? I18n.t('All interfaces')
+                                        : item.value}
+                                    {item.value === '_' ? null : (
+                                        <span style={styles.address}>{item.address}</span>
+                                    )}
+                                </span>
+                            );
+                        }
+                        return val;
+                    }}
+                    onChange={e =>
+                        this.props.onChange(
+                            'interface',
+                            e.target.value === '_' ? '' : e.target.value,
+                        )
+                    }
+                >
+                    {this.state.interfaces.map((it, i) => (
+                        <MenuItem key={i} value={it.value}>
+                            <span
+                                style={{
+                                    fontWeight: it.value === '_' ? 'bold' : undefined,
+                                }}
+                            >
                                 {it.value === '_' ? I18n.t('All interfaces') : it.value}
-                                {it.value === '_' ? null : <span style={styles.address}>{it.address}</span>}
+                                {it.value === '_' ? null : (
+                                    <span style={styles.address}>{it.address}</span>
+                                )}
                             </span>
-                        </MenuItem>)}
-                    </Select>
-                </FormControl>}
+                        </MenuItem>
+                    ))}
+                </Select>
+            </FormControl>}
 
-            <div style={{ marginTop: 50 }}>{I18n.t('Only required if you want to use bridge or device options with more than 5 devices')}</div>
+            <div style={{ marginTop: 50 }}>
+                {I18n.t(
+                    'Only required if you want to use bridge or device options with more than 5 devices',
+                )}
+            </div>
             <div style={{ display: 'flex', alignItems: 'baseline' }}>
                 <TextField
                     variant="standard"
@@ -253,8 +319,9 @@ class Options extends Component<OptionsProps, OptionsState> {
                     onChange={e => this.props.onChange('pass', e.target.value)}
                     margin="normal"
                 />
-                {this.state.iotInstance && (this.state.iotPassword !== this.props.native.pass || this.state.iotLogin !== this.props.native.login) ?
-                    <Button
+                {this.state.iotInstance &&
+                    (this.state.iotPassword !== this.props.native.pass ||
+                    this.state.iotLogin !== this.props.native.login) ? <Button
                         style={{ marginLeft: 16 }}
                         variant="contained"
                         color="primary"
@@ -263,7 +330,10 @@ class Options extends Component<OptionsProps, OptionsState> {
                             this.props.onChange('pass', this.state.iotPassword);
                         }}
                     >
-                        {I18n.t('Sync credentials with %s', this.state.iotInstance.replace('system.adapter.', ''))}
+                        {I18n.t(
+                            'Sync credentials with %s',
+                            this.state.iotInstance.replace('system.adapter.', ''),
+                        )}
                     </Button> : null}
             </div>
             <div style={{ marginTop: 50 }}>

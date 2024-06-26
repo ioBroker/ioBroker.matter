@@ -1,27 +1,13 @@
-// Root tsconfig to set the settings and power editor support for all TS files
+// Specialized tsconfig for the admin directory,
+// includes DOM typings and configures the admin build
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "baseUrl": "./",
-    "allowSyntheticDefaultImports": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    // check JS files
     "allowJs": true,
-    "checkJs": false,
-    "noEmit": false,
-    "declaration": true,
-    "outDir": "./build",
-    "sourceMap": true,
-    "sourceRoot": "./src",
-    "noImplicitAny": true,
-    "skipLibCheck": true,
-    "module": "commonjs",
-    "lib": [
-      "es2018",
-      "DOM"
-    ],
-
     // This is necessary for the automatic typing of the adapter config
     "resolveJsonModule": true,
-
     // If you want to disable the stricter type checks (not recommended), uncomment the following line
     // "strict": false,
     // And enable some of those features for more fine-grained control
@@ -31,17 +17,40 @@
     // "noUnusedLocals": true,
     // "noUnusedParameters": true,
     "useUnknownInCatchVariables": false,
+    "target": "ES2022",
+    "baseUrl": "./",
+    "allowSyntheticDefaultImports": true,
+    "checkJs": false,
+    "noEmit": false,
+    "outDir": "./build",
+    "sourceMap": true,
+    "sourceRoot": "./src",
+    "noImplicitAny": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true,
+    "lib": [
+      "es2018",
+      "DOM"
+    ],
     "jsx": "react",
     "types": [
       "@iobroker/types"
     ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+    }
   },
   "include": [
-    "**/*.js",
-    "**/*.d.ts",
-    "**/*.tsx"
+    "./src/**/*.ts",
+    "./src/**/*.d.ts",
+    "./src/**/*.tsx",
+    "./src/**/*.json",
+    "./src/**/*.css"
   ],
   "exclude": [
-    "node_modules/**",
-  ]
+    "**/node_modules",
+    "**/dist",
+  ],
 }

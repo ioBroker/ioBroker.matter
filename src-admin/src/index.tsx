@@ -12,7 +12,8 @@ declare global {
 }
 
 window.adapterName = 'matter';
-window.sentryDSN = 'https://438ec54c1889444e98541d523d465f47@sentry.iobroker.net/233';
+window.sentryDSN =
+  'https://438ec54c1889444e98541d523d465f47@sentry.iobroker.net/233';
 
 console.log(`iobroker.${window.adapterName}@${pack.version}`);
 

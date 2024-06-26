@@ -1,12 +1,7 @@
 import React from 'react';
 import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 
-import {
-    AppBar,
-    Tabs,
-    Tab,
-    IconButton,
-} from '@mui/material';
+import { AppBar, Tabs, Tab, IconButton } from '@mui/material';
 
 import {
     SignalWifiConnectedNoInternet4 as IconNoConnection,
@@ -14,9 +9,13 @@ import {
 } from '@mui/icons-material';
 
 import {
-    I18n, Loader,
-    AdminConnection, GenericApp, IobTheme,
-    type GenericAppProps, type  GenericAppState
+    I18n,
+    Loader,
+    AdminConnection,
+    GenericApp,
+    type IobTheme,
+    type GenericAppProps,
+    type GenericAppState,
 } from '@iobroker/adapter-react-v5';
 
 import ConfigHandler from './components/ConfigHandler';
@@ -34,16 +33,18 @@ declare global {
 import type {
     MatterAdapterConfig,
     NodeStateResponse,
-    MatterConfig, GUIMessage,
-    DetectedRoom, CommissioningInfo,
+    MatterConfig,
+    GUIMessage,
+    DetectedRoom,
+    CommissioningInfo,
 } from './types';
 
 const productIDs: string[] = [];
-for (let i = 0x8000; i <= 0x801F; i++) {
+for (let i = 0x8000; i <= 0x801f; i++) {
     productIDs.push(`0x${i.toString(16)}`);
 }
 
-const styles: Record<string, any> = {
+const styles: Record<string, React.CSSProperties | ((_theme: IobTheme) => React.CSSProperties)> = {
     tabContent: {
         padding: 10,
         height: 'calc(100% - 64px - 48px - 20px)',
@@ -58,7 +59,8 @@ const styles: Record<string, any> = {
         color: theme.palette.mode === 'dark' ? undefined : '#FFF !important',
     }),
     indicator: (theme: IobTheme) => ({
-        backgroundColor: theme.palette.mode === 'dark' ? theme.palette.secondary.main : '#FFF',
+        backgroundColor:
+      theme.palette.mode === 'dark' ? theme.palette.secondary.main : '#FFF',
     }),
 };
 
@@ -81,9 +83,11 @@ class App extends GenericApp<GenericAppProps, AppState> {
 
     private refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
-    private alert: null | ((message?: string) => void);
+    private alert: null | ((_message?: string) => void);
 
-    private controllerMessageHandler: ((message: GUIMessage | null) => void) | null = null;
+    private controllerMessageHandler:
+    | ((_message: GUIMessage | null) => void)
+    | null = null;
 
     constructor(props: GenericAppProps) {
         const extendedProps: GenericAppProps = { ...props };
@@ -113,7 +117,10 @@ class App extends GenericApp<GenericAppProps, AppState> {
         super(props, extendedProps);
 
         Object.assign(this.state, {
-            selectedTab: window.localStorage.getItem(`${this.adapterName}.${this.instance}.selectedTab`) || 'controller',
+            selectedTab:
+        window.localStorage.getItem(
+            `${this.adapterName}.${this.instance}.selectedTab`,
+        ) || 'controller',
             alive: false,
             backendRunning: false,
             nodeStates: {},
@@ -136,7 +143,13 @@ class App extends GenericApp<GenericAppProps, AppState> {
             this.refreshBackendSubscription();
         }, 60000);
 
-        this.socket.subscribeOnInstance(`matter.${this.instance}`, 'gui', null, this.onBackendUpdates)
+        this.socket
+            .subscribeOnInstance(
+                `matter.${this.instance}`,
+                'gui',
+                null,
+                this.onBackendUpdates,
+            )
             .then(result => {
                 if (typeof result === 'object' && result.accepted === false) {
                     console.error('Subscribe is not accepted');
@@ -149,7 +162,12 @@ class App extends GenericApp<GenericAppProps, AppState> {
 
     async onConnectionReady() {
         this.configHandler && this.configHandler.destroy();
-        this.configHandler = new ConfigHandler(this.instance, this.socket, this.onChanged, this.onCommissioningChanged);
+        this.configHandler = new ConfigHandler(
+            this.instance,
+            this.socket,
+            this.onChanged,
+            this.onCommissioningChanged,
+        );
         const matter = await this.configHandler.loadConfig();
         const commissioning = this.configHandler.getCommissioning();
         matter.controller = matter.controller || { enabled: false };
@@ -162,10 +180,20 @@ class App extends GenericApp<GenericAppProps, AppState> {
             matter.bridges = matter.bridges.list;
         }
 
-        this.socket.subscribeState(`system.adapter.matter.${this.instance}.alive`, this.onAlive)
-            .catch(e => this.showError(`Cannot subscribe on system.adapter.matter.${this.instance}.alive: ${e}`));
+        this.socket
+            .subscribeState(
+                `system.adapter.matter.${this.instance}.alive`,
+                this.onAlive,
+            )
+            .catch(e =>
+                this.showError(
+                    `Cannot subscribe on system.adapter.matter.${this.instance}.alive: ${e}`,
+                ),
+            );
 
-        const alive = await this.socket.getState(`system.adapter.matter.${this.instance}.alive`);
+        const alive = await this.socket.getState(
+            `system.adapter.matter.${this.instance}.alive`,
+        );
 
         if (alive?.val) {
             this.refreshBackendSubscription();
@@ -176,11 +204,11 @@ class App extends GenericApp<GenericAppProps, AppState> {
             commissioning,
             changed: this.configHandler.isChanged(matter),
             ready: true,
-            alive: !!(alive?.val),
+            alive: !!alive?.val,
         });
     }
 
-    onAlive = (id: string, state: ioBroker.State | null | undefined) => {
+    onAlive = (_id: string, state: ioBroker.State | null | undefined) => {
         if (state?.val && !this.state.alive) {
             this.setState({ alive: true });
             this.refreshBackendSubscription();
@@ -202,7 +230,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
             if (update.states) {
                 const uuids = update.states ? Object.keys(update.states) : [];
                 for (let i = 0; i < uuids.length; i++) {
-                    nodeStates[uuids[i].split('.').pop() as string] = update.states[uuids[i]];
+                    nodeStates[uuids[i].split('.').pop() as string] =
+            update.states[uuids[i]];
                 }
             }
             this.setState({ nodeStates });
@@ -226,7 +255,10 @@ class App extends GenericApp<GenericAppProps, AppState> {
 
     onChanged = (newConfig: MatterConfig) => {
         if (this.state.ready) {
-            this.setState({ matter: newConfig, changed: !!this.configHandler?.isChanged(newConfig) });
+            this.setState({
+                matter: newConfig,
+                changed: !!this.configHandler?.isChanged(newConfig),
+            });
         }
     };
 
@@ -237,14 +269,21 @@ class App extends GenericApp<GenericAppProps, AppState> {
     };
 
     async componentWillUnmount() {
-        window.alert = this.alert as ((message?: any) => void);
+        window.alert = this.alert as (_message?: any) => void;
         this.alert = null;
         this.intervalSubscribe && clearInterval(this.intervalSubscribe);
         this.intervalSubscribe = null;
 
         try {
-            await this.socket.unsubscribeState(`system.adapter.matter.${this.instance}.alive`, this.onAlive);
-            await this.socket.unsubscribeFromInstance(`matter.${this.instance}`, 'gui', this.onBackendUpdates);
+            this.socket.unsubscribeState(
+                `system.adapter.matter.${this.instance}.alive`,
+                this.onAlive,
+            );
+            await this.socket.unsubscribeFromInstance(
+                `matter.${this.instance}`,
+                'gui',
+                this.onBackendUpdates,
+            );
         } catch (e) {
             // ignore
         }
@@ -255,7 +294,9 @@ class App extends GenericApp<GenericAppProps, AppState> {
 
     renderController() {
         return <ControllerTab
-            registerMessageHandler={(handler: null | ((message: GUIMessage | null) => void)) => this.controllerMessageHandler = handler}
+            registerMessageHandler={(
+                handler: null | ((_message: GUIMessage | null) => void),
+            ) => (this.controllerMessageHandler = handler)}
             alive={this.state.alive}
             socket={this.socket}
             instance={this.instance}
@@ -264,6 +305,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             adapterName={this.adapterName}
             themeName={this.state.themeName}
             themeType={this.state.themeType}
+            theme={this.state.theme}
             isFloatComma={this.socket.systemConfig.common.isFloatComma}
             dateFormat={this.socket.systemConfig.common.dateFormat}
         />;
@@ -288,7 +330,9 @@ class App extends GenericApp<GenericAppProps, AppState> {
             socket={this.socket}
             instance={this.instance}
             commissioning={this.state.commissioning?.bridges || {}}
-            updateNodeStates={(nodeStates: { [uuid: string]: NodeStateResponse }) => {
+            updateNodeStates={(nodeStates: {
+                [uuid: string]: NodeStateResponse;
+            }) => {
                 const _nodeStates = JSON.parse(JSON.stringify(this.state.nodeStates));
                 Object.assign(_nodeStates, nodeStates);
                 this.setState({ nodeStates: _nodeStates });
@@ -297,19 +341,26 @@ class App extends GenericApp<GenericAppProps, AppState> {
             themeType={this.state.themeType}
             theme={this.state.theme}
             detectedDevices={this.state.detectedDevices || []}
-            setDetectedDevices={(detectedDevices: DetectedRoom[]) => this.setState({ detectedDevices })}
+            setDetectedDevices={(detectedDevices: DetectedRoom[]) =>
+                this.setState({ detectedDevices })
+            }
             productIDs={productIDs}
             matter={this.state.matter}
             updateConfig={this.onChanged}
             showToast={(text: string) => this.showToast(text)}
-            checkLicenseOnAdd={(type: 'addBridge' | 'addDevice' | 'addDeviceToBridge', matter: MatterConfig) => this.checkLicenseOnAdd(type, matter)}
+            checkLicenseOnAdd={(
+                type: 'addBridge' | 'addDevice' | 'addDeviceToBridge',
+                matter: MatterConfig,
+            ) => this.checkLicenseOnAdd(type, matter)}
         />;
     }
 
     renderDevices() {
         return <DevicesTab
             alive={this.state.alive}
-            updateNodeStates={(nodeStates: { [uuid: string]: NodeStateResponse }) => {
+            updateNodeStates={(nodeStates: {
+                [uuid: string]: NodeStateResponse;
+            }) => {
                 const _nodeStates = JSON.parse(JSON.stringify(this.state.nodeStates));
                 Object.assign(_nodeStates, nodeStates);
                 this.setState({ nodeStates: _nodeStates });
@@ -320,13 +371,17 @@ class App extends GenericApp<GenericAppProps, AppState> {
             themeType={this.state.themeType}
             theme={this.state.theme}
             detectedDevices={this.state.detectedDevices || []}
-            setDetectedDevices={(detectedDevices: DetectedRoom[]) => this.setState({ detectedDevices })}
+            setDetectedDevices={(detectedDevices: DetectedRoom[]) =>
+                this.setState({ detectedDevices })
+            }
             productIDs={productIDs}
             instance={this.instance}
             matter={this.state.matter}
             updateConfig={this.onChanged}
             showToast={(text: string) => this.showToast(text)}
-            checkLicenseOnAdd={(matter: MatterConfig) => this.checkLicenseOnAdd('addDevice', matter)}
+            checkLicenseOnAdd={(matter: MatterConfig) =>
+                this.checkLicenseOnAdd('addDevice', matter)
+            }
         />;
     }
 
@@ -334,20 +389,29 @@ class App extends GenericApp<GenericAppProps, AppState> {
         if (this.state.native.login && this.state.native.pass) {
             if (this.state.alive) {
                 // ask the instance
-                const result = await this.socket.sendTo(`matter.${this.instance}`, 'getLicense', { login: this.state.native.login, pass: this.state.native.pass });
+                const result = await this.socket.sendTo(
+                    `matter.${this.instance}`,
+                    'getLicense',
+                    { login: this.state.native.login, pass: this.state.native.pass },
+                );
                 if (result.error) {
                     this.showToast(result.error);
                     return false;
                 }
                 return result.result;
             }
-            this.showToast('You need a running matter instance to add more than one bridge or more than 2 devices');
+            this.showToast(
+                'You need a running matter instance to add more than one bridge or more than 2 devices',
+            );
             return false;
         }
         return false;
     }
 
-    async checkLicenseOnAdd(type: 'addBridge' | 'addDevice' | 'addDeviceToBridge', matter?: MatterConfig): Promise<boolean> {
+    async checkLicenseOnAdd(
+        type: 'addBridge' | 'addDevice' | 'addDeviceToBridge',
+        matter?: MatterConfig,
+    ): Promise<boolean> {
         let result = true;
         matter = matter || this.state.matter;
         if (matter) {
@@ -360,7 +424,13 @@ class App extends GenericApp<GenericAppProps, AppState> {
                     result = await this.getLicense();
                 }
             } else if (type === 'addDeviceToBridge') {
-                if (matter.bridges.find(bridge => bridge.enabled && bridge.list.filter(dev => dev.enabled).length >= 5)) {
+                if (
+                    matter.bridges.find(
+                        bridge =>
+                            bridge.enabled &&
+              bridge.list.filter(dev => dev.enabled).length >= 5,
+                    )
+                ) {
                     result = await this.getLicense();
                 }
             } else {
@@ -376,7 +446,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
     onSave(isClose?: boolean) {
         super.onSave && super.onSave(isClose);
 
-        this.configHandler?.saveConfig(this.state.matter)
+        this.configHandler
+            ?.saveConfig(this.state.matter)
             .then(() => {
                 this.setState({ changed: false });
                 isClose && GenericApp.onClose();
@@ -396,41 +467,70 @@ class App extends GenericApp<GenericAppProps, AppState> {
         return <StyledEngineProvider injectFirst>
             <ThemeProvider theme={this.state.theme}>
                 {this.renderToast()}
-                <div className="App" style={{ background: this.state.theme.palette.background.default, color: this.state.theme.palette.text.primary }}>
+                <div
+                    className="App"
+                    style={{
+                        background: this.state.theme.palette.background.default,
+                        color: this.state.theme.palette.text.primary,
+                    }}
+                >
                     <AppBar position="static">
                         <Tabs
                             value={this.state.selectedTab || 'options'}
-                            onChange={(e, value) => {
+                            onChange={(_e, value) => {
                                 this.setState({ selectedTab: value });
-                                window.localStorage.setItem(`${this.adapterName}.${this.instance}.selectedTab`, value);
+                                window.localStorage.setItem(
+                                    `${this.adapterName}.${this.instance}.selectedTab`,
+                                    value,
+                                );
                             }}
                             scrollButtons="auto"
                             sx={{ '& .MuiTabs-indicator': styles.indicator }}
                         >
-                            <Tab sx={{ '&.Mui-selected': styles.selected }} label={I18n.t('Options')} value="options" />
-                            <Tab sx={{ '&.Mui-selected': styles.selected }} label={I18n.t('Controller')} value="controller" />
-                            <Tab sx={{ '&.Mui-selected': styles.selected }} label={I18n.t('Bridges')} value="bridges" />
-                            <Tab sx={{ '&.Mui-selected': styles.selected }} label={I18n.t('Devices')} value="devices" />
+                            <Tab
+                                sx={{ '&.Mui-selected': styles.selected }}
+                                label={I18n.t('Options')}
+                                value="options"
+                            />
+                            <Tab
+                                sx={{ '&.Mui-selected': styles.selected }}
+                                label={I18n.t('Controller')}
+                                value="controller"
+                            />
+                            <Tab
+                                sx={{ '&.Mui-selected': styles.selected }}
+                                label={I18n.t('Bridges')}
+                                value="bridges"
+                            />
+                            <Tab
+                                sx={{ '&.Mui-selected': styles.selected }}
+                                label={I18n.t('Devices')}
+                                value="devices"
+                            />
                             <div style={{ flexGrow: 1 }} />
-                            {this.state.alive ? null : <IconNotAlive
-                                style={{ color: 'orange', padding: 12 }}
-                            />}
-                            {this.state.backendRunning ? null : <IconButton
-                                onClick={() => {
-                                    this.refreshBackendSubscription();
-                                }}
-                            >
-                                <IconNoConnection
-                                    style={{ color: 'orange' }}
-                                />
-                            </IconButton>}
+                            {this.state.alive ? null : (
+                                <IconNotAlive style={{ color: 'orange', padding: 12 }} />
+                            )}
+                            {this.state.backendRunning ? null : (
+                                <IconButton
+                                    onClick={() => {
+                                        this.refreshBackendSubscription();
+                                    }}
+                                >
+                                    <IconNoConnection style={{ color: 'orange' }} />
+                                </IconButton>
+                            )}
                         </Tabs>
-
                     </AppBar>
 
-                    <div className={this.isIFrame ? styles.tabContentIFrame : styles.tabContent}>
+                    <div
+                        style={
+                            this.isIFrame ? styles.tabContentIFrame as React.CSSProperties : styles.tabContent as React.CSSProperties
+                        }
+                    >
                         {this.state.selectedTab === 'options' && this.renderOptions()}
-                        {this.state.selectedTab === 'controller' && this.renderController()}
+                        {this.state.selectedTab === 'controller' &&
+            this.renderController()}
                         {this.state.selectedTab === 'bridges' && this.renderBridges()}
                         {this.state.selectedTab === 'devices' && this.renderDevices()}
                     </div>

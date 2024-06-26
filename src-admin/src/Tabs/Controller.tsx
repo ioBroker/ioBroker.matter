@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { withStyles } from '@mui/styles';
 import QrScanner from 'qr-scanner';
 
 import {
@@ -24,15 +23,15 @@ import {
 import {
     AdminConnection, I18n,
     IconClosed, IconOpen,
+    type ThemeName, type ThemeType,
 } from '@iobroker/adapter-react-v5';
-import type { ThemeName, ThemeType } from '@iobroker/adapter-react-v5/types';
 // import DeviceManager from '@iobroker/dm-gui-components';
 
 import DeviceManager from '../components/InstanceManager';
 import { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
 import { getText } from '../Utils';
 
-const styles: Record<string, any> = {
+const styles: Record<string, React.CSSProperties> = {
     panel: {
         width: '100%',
         display: 'flex',
@@ -91,7 +90,6 @@ interface ComponentProps {
     registerMessageHandler: (handler: null | ((message: GUIMessage | null) => void)) => void;
     adapterName: string;
     socket: AdminConnection;
-    classes: Record<string, string>;
     isFloatComma: boolean;
     dateFormat: string;
     themeName: ThemeName;
@@ -338,7 +336,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 />
                 {this.state.camera ? <br /> : null}
                 {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                <video ref={this.refQrScanner} className={this.props.classes.qrScanner} style={{ display: this.state.hideVideo ? 'none' : 'block' }} />
+                <video ref={this.refQrScanner} style={{ ...styles.qrScanner, display: this.state.hideVideo ? 'none' : 'block' }} />
                 {this.state.cameras.length ? <br /> : null}
                 {this.state.camera.length ? <Select
                     variant="standard"
@@ -377,7 +375,6 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 </Button>
                 <Button
                     variant="contained"
-                    // @ts-expect-error grey is valid color
                     color="grey"
                     onClick={() => this.setState({ showQrCodeDialog: null }, () => this.destroyQrCode())}
                     startIcon={<Close />}
@@ -444,7 +441,6 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 <Button
                     disabled={this.state.discoveryRunning}
                     variant="contained"
-                    // @ts-expect-error grey is valid color
                     color="grey"
                     onClick={() => this.setState({ discoveryDone: false })}
                     startIcon={<Close />}
@@ -477,7 +473,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
         return <TableRow key={stateId}>
             <TableCell></TableCell>
-            <TableCell className={this.props.classes.state}>
+            <TableCell style={styles.state}>
                 {icon}
                 {stateId.split('.').pop()}
             </TableCell>
@@ -491,10 +487,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
         return [
             <TableRow key={clusterId}>
                 <TableCell></TableCell>
-                <TableCell className={this.props.classes.cluster}>
+                <TableCell style={styles.cluster}>
                     <ChannelIcon />
                     {clusterId.split('.').pop()}
-                    <div className={this.props.classes.number}>{states.length}</div>
+                    <div style={styles.number}>{states.length}</div>
                 </TableCell>
                 <TableCell></TableCell>
             </TableRow>,
@@ -525,7 +521,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 <TableCell style={{ width: 0, padding: inBridge ? '0 0 0 40px' : 0, height: 32 }}>
                     <IconButton
                         size="small"
-                        className={this.props.classes.bridgeButtonsAndTitleColor}
+                        style={styles.bridgeButtonsAndTitleColor}
                         onClick={() => {
                             const openedNodes = [...this.state.openedNodes];
                             const index = openedNodes.indexOf(deviceId);
@@ -542,15 +538,15 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         {this.state.openedNodes.includes(deviceId) ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
                     </IconButton>
                 </TableCell>
-                <TableCell className={this.props.classes.device}>
+                <TableCell style={styles.device}>
                     <div>
                         <DeviceIcon />
                     </div>
                     <div>
-                        <div className={this.props.classes.deviceName}>{getText(this.state.nodes[deviceId].common.name)}</div>
-                        <div className={this.props.classes.nodeId}>{deviceId.split('.').pop()}</div>
+                        <div style={styles.deviceName}>{getText(this.state.nodes[deviceId].common.name)}</div>
+                        <div style={styles.nodeId}>{deviceId.split('.').pop()}</div>
                     </div>
-                    <div className={this.props.classes.number}>{channels.length}</div>
+                    <div style={styles.number}>{channels.length}</div>
                 </TableCell>
                 <TableCell>
                     {connected !== null ? <div style={{ display: 'flex', gap: 6, alignItems: '' }}>
@@ -584,7 +580,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 <TableCell style={{ width: 0, padding: 0, height: 32 }}>
                     <IconButton
                         size="small"
-                        className={this.props.classes.bridgeButtonsAndTitleColor}
+                        style={styles.bridgeButtonsAndTitleColor}
                         onClick={() => {
                             const openedNodes = [...this.state.openedNodes];
                             const index = openedNodes.indexOf(bridgeId);
@@ -601,15 +597,15 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         {this.state.openedNodes.includes(bridgeId) ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
                     </IconButton>
                 </TableCell>
-                <TableCell className={this.props.classes.device}>
+                <TableCell style={styles.device}>
                     <div>
                         {this.state.openedNodes.includes(bridgeId) ? <IconOpen /> : <IconClosed />}
                     </div>
                     <div>
-                        <div className={this.props.classes.deviceName}>{getText(this.state.nodes[bridgeId].common.name)}</div>
-                        <div className={this.props.classes.nodeId}>{bridgeId.split('.').pop()}</div>
+                        <div style={styles.deviceName}>{getText(this.state.nodes[bridgeId].common.name)}</div>
+                        <div style={styles.nodeId}>{bridgeId.split('.').pop()}</div>
                     </div>
-                    <div className={this.props.classes.number}>{deviceIds.length}</div>
+                    <div style={styles.number}>{deviceIds.length}</div>
                 </TableCell>
                 <TableCell>
                     <div style={{ display: 'flex', gap: 6, alignItems: '' }}>
@@ -658,7 +654,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
             setTimeout(() => this.setState({ discoveryRunning: false, discoveryDone: false }), 100);
         }
 
-        return <div className={this.props.classes.panel}>
+        return <div style={styles.panel}>
             {this.renderShowDiscoveredDevices()}
             {this.renderQrCodeDialog()}
             <div>
@@ -799,4 +795,4 @@ class Controller extends Component<ComponentProps, ComponentState> {
     }
 }
 
-export default withStyles(styles)(Controller);
+export default Controller;

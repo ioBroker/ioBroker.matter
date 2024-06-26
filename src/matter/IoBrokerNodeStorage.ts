@@ -2,14 +2,16 @@ import {
     fromJson,
     StorageError,
     SupportedStorageTypes,
-    SyncStorage,
+    Storage,
     toJson
 } from '@project-chip/matter.js/storage';
 
 /**
  * Class that implements the storage for one Node in the Matter ecosystem
  */
-export class IoBrokerNodeStorage implements SyncStorage {
+export class IoBrokerNodeStorage implements Storage {
+    initialized = false;
+
     private data: Record<string, any> = {};
     private savingNumber: number = 1;
     private readonly savingPromises: Record<string, Promise<void>> = {};
@@ -27,7 +29,8 @@ export class IoBrokerNodeStorage implements SyncStorage {
 
     async initialize(): Promise<void> {
         this.adapter.log.debug(`[STORAGE] Initializing storage for ${this.storageRootOid}`);
-        await this.adapter.extendObjectAsync(this.storageRootOid, {
+
+        await this.adapter.extendObject(this.storageRootOid, {
             type: 'folder',
             common: {
                 expert: true,
@@ -37,6 +40,7 @@ export class IoBrokerNodeStorage implements SyncStorage {
         });
 
         if (this.clear) {
+            this.initialized = true;
             await this.clearAll();
             return;
         }
@@ -48,6 +52,8 @@ export class IoBrokerNodeStorage implements SyncStorage {
             this.createdKeys[key] = true;
             this.data[key.substring(len)] = fromJson(states[key].val as string);
         }
+
+        this.initialized = true;
     }
 
     async clearAll(): Promise<void> {
@@ -67,7 +73,7 @@ export class IoBrokerNodeStorage implements SyncStorage {
         return `${contexts.join('$$')}$$${key}`;
     }
 
-    get<T extends SupportedStorageTypes>(contexts: string[], key: string): T | undefined {
+    async get<T extends SupportedStorageTypes>(contexts: string[], key: string): Promise<T | undefined> {
         if (!key.length) {
             throw new StorageError('[STORAGE] Context and key must not be empty strings!');
         }
@@ -78,7 +84,7 @@ export class IoBrokerNodeStorage implements SyncStorage {
         return value as T;
     }
 
-    contexts(contexts: string[]): string[] {
+    async contexts(contexts: string[]): Promise<string[]> {
         const contextKeyStart = this.buildKey(contexts, '');
         const len = contextKeyStart.length;
 
@@ -94,7 +100,7 @@ export class IoBrokerNodeStorage implements SyncStorage {
         return thisContexts;
     }
 
-    keys(contexts: string[]): string[] {
+    async keys(contexts: string[]): Promise<string[]> {
         const contextKeyStart = this.buildKey(contexts, '');
         const len = contextKeyStart.length;
 
@@ -103,10 +109,11 @@ export class IoBrokerNodeStorage implements SyncStorage {
             .map(key => key.substring(len));
     }
 
-    values(contexts: string[]): Record<string, SupportedStorageTypes> {
+    async values(contexts: string[]): Promise<Record<string, SupportedStorageTypes>> {
         const values = {} as Record<string, SupportedStorageTypes>;
-        for (const key in this.keys(contexts)) {
-            values[key] = this.get(contexts,key);
+        const keys = await this.keys(contexts);
+        for (const key in keys) {
+            values[key] = await this.get(contexts,key);
         }
         return values;
     }
@@ -172,7 +179,7 @@ export class IoBrokerNodeStorage implements SyncStorage {
         this.saveKey(oid, toJson(value));
     }
 
-    set(contexts: string[], keyOrValue: string | Record<string, SupportedStorageTypes>, value?: SupportedStorageTypes): void {
+    async set(contexts: string[], keyOrValue: string | Record<string, SupportedStorageTypes>, value?: SupportedStorageTypes): Promise<void> {
         if (typeof keyOrValue === 'string') {
             this.#setKey(contexts, keyOrValue, value as SupportedStorageTypes);
         } else {
@@ -182,7 +189,7 @@ export class IoBrokerNodeStorage implements SyncStorage {
         }
     }
 
-    delete(contexts: string[], key: string): void {
+    async delete(contexts: string[], key: string): Promise<void> {
         if (!key.length) {
             throw new StorageError('[STORAGE] Context and key must not be empty strings!');
         }

@@ -15,7 +15,6 @@ import {
     InputAdornment, Table, TableBody, TableCell, TableRow,
     TextField, Tooltip,
 } from '@mui/material';
-import { AdminConnection, I18n, Utils } from '@iobroker/adapter-react-v5';
 import {
     Close,
     ContentCopy,
@@ -26,10 +25,18 @@ import {
     Wifi,
     WifiOff,
 } from '@mui/icons-material';
-import { ThemeType } from '@iobroker/adapter-react-v5/types';
-import type {BridgeDescription, DeviceDescription, NodeStateResponse, NodeStates} from '../types';
 
-export const STYLES: Record<string, any> = {
+import {
+    type AdminConnection, I18n,
+    type IobTheme, Utils,
+    type ThemeType,
+} from '@iobroker/adapter-react-v5';
+import type {
+    BridgeDescription, DetectedRoom, DeviceDescription, MatterConfig,
+    NodeStateResponse, NodeStates,
+} from '../types';
+
+export const STYLES: Record<string, React.CSSProperties> = {
     vendorIcon: {
         width: 24,
         height: 24,
@@ -40,14 +47,20 @@ export const STYLES: Record<string, any> = {
 };
 
 export interface BridgesAndDevicesProps {
-    socket: AdminConnection;
-    instance: number;
     alive: boolean;
-    themeType: ThemeType;
-    classes: Record<string, string>;
+    commissioning: Record<string, boolean>;
+    detectedDevices: DetectedRoom[];
+    instance: number;
+    matter: MatterConfig;
     nodeStates: { [uuid: string]: NodeStateResponse };
-    updateNodeStates: (states: { [uuid: string]: NodeStateResponse }) => void;
+    productIDs: string[];
+    setDetectedDevices: (detectedDevices: DetectedRoom[]) => void;
     showToast: (message: string) => void;
+    socket: AdminConnection;
+    theme: IobTheme;
+    themeType: ThemeType;
+    updateConfig: (config: MatterConfig) => void;
+    updateNodeStates: (states: { [uuid: string]: NodeStateResponse }) => void;
 }
 
 export interface BridgesAndDevicesState {
@@ -74,33 +87,29 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         }
     }
 
-    static getVendorIcon(vendor: string, classes: Record<string, string>, themeType: ThemeType) {
+    static getVendorIcon(vendor: string, themeType: ThemeType) {
         if (vendor === 'Amazon Lab126') {
             return <SiAmazonalexa
-                className={classes.vendorIcon}
                 title={vendor}
-                style={{ color: themeType === 'dark' ? '#0000dc' : '#001ca8' }}
+                style={{ ...STYLES.vendorIcon, color: themeType === 'dark' ? '#0000dc' : '#001ca8' }}
             />;
         }
         if (vendor === 'Google LLC') {
             return <SiGoogleassistant
-                className={classes.vendorIcon}
                 title={vendor}
-                style={{ color: themeType === 'dark' ? '#ea9b33' : '#8f6020' }}
+                style={{ ...STYLES.vendorIcon, color: themeType === 'dark' ? '#ea9b33' : '#8f6020' }}
             />;
         }
         if (vendor === 'Apple Inc.') {
             return <SiApple
-                className={classes.vendorIcon}
                 title={vendor}
-                style={{ color: themeType === 'dark' ? '#c9c9c9' : '#4f4f4f' }}
+                style={{ ...STYLES.vendorIcon, color: themeType === 'dark' ? '#c9c9c9' : '#4f4f4f' }}
             />;
         }
         if (vendor === 'Samsung') {
             return <SiSmartthings
-                className={classes.vendorIcon}
                 title={vendor}
-                style={{ color: themeType === 'dark' ? '#33ea8f' : '#209b60' }}
+                style={{ ...STYLES.vendorIcon, color: themeType === 'dark' ? '#33ea8f' : '#209b60' }}
             />;
         }
         return null;
@@ -144,7 +153,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
             return null;
         }
         if (this.props.nodeStates[deviceOrBridge.uuid].status === 'waitingForCommissioning') {
-            return <Tooltip title={I18n.t('Device is not commissioned. Show QR Code for commissioning')} classes={{ popper: this.props.classes.tooltip }}>
+            return <Tooltip title={I18n.t('Device is not commissioned. Show QR Code for commissioning')} componentsProps={{ popper: { sx: STYLES.tooltip } }}>
                 <IconButton
                     style={{ height: 40 }}
                     onClick={() => this.setState({ showQrCode: deviceOrBridge })}
@@ -154,7 +163,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
             </Tooltip>;
         }
         if (this.props.nodeStates[deviceOrBridge.uuid].status) {
-            return <Tooltip title={I18n.t('Device is already commissioning. Show status information')} classes={{ popper: this.props.classes.tooltip }}>
+            return <Tooltip title={I18n.t('Device is already commissioning. Show status information')} componentsProps={{ popper: { sx: STYLES.tooltip } }}>
                 <IconButton
                     style={{ height: 40 }}
                     onClick={e => {
@@ -208,7 +217,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                             </TableRow>
                             {data.connectionInfo?.map((info, i) => <TableRow key={i}>
                                 <TableCell>
-                                    {BridgesAndDevices.getVendorIcon(info.vendor, this.props.classes, this.props.themeType) || info.vendor}
+                                    {BridgesAndDevices.getVendorIcon(info.vendor, this.props.themeType) || info.vendor}
                                     {info.label ? <span style={{ opacity: 0.7, marginLeft: 8, fontStyle: 'italic' }}>
                                         (
                                         {info.label}
@@ -228,7 +237,6 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 <Button
                     onClick={() => this.setState({ showDebugData: null })}
                     startIcon={<Close />}
-                    // @ts-expect-error grey is valid color
                     color="grey"
                     variant="contained"
                 >
@@ -283,7 +291,6 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 <Button
                     onClick={() => this.setState({ showQrCode: null })}
                     startIcon={<Close />}
-                    // @ts-expect-error grey is valid color
                     color="grey"
                     variant="contained"
                 >
@@ -339,7 +346,6 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 <Button
                     onClick={() => this.setState({ showResetDialog: null })}
                     startIcon={<Close />}
-                    // @ts-expect-error grey is valid color
                     color="grey"
                     variant="contained"
                 >

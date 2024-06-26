@@ -1,5 +1,4 @@
 import React from 'react';
-import { withStyles } from '@mui/styles';
 import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 
 import {
@@ -16,9 +15,9 @@ import {
 
 import {
     I18n, Loader,
-    AdminConnection, GenericApp,
+    AdminConnection, GenericApp, IobTheme,
+    type GenericAppProps, type  GenericAppState
 } from '@iobroker/adapter-react-v5';
-import type { GenericAppProps, GenericAppState, Theme } from '@iobroker/adapter-react-v5/types';
 
 import ConfigHandler from './components/ConfigHandler';
 import OptionsTab from './Tabs/Options';
@@ -44,7 +43,7 @@ for (let i = 0x8000; i <= 0x801F; i++) {
     productIDs.push(`0x${i.toString(16)}`);
 }
 
-const styles: Record<string, any> = (theme: Theme) => ({
+const styles: Record<string, any> = {
     tabContent: {
         padding: 10,
         height: 'calc(100% - 64px - 48px - 20px)',
@@ -55,17 +54,13 @@ const styles: Record<string, any> = (theme: Theme) => ({
         height: 'calc(100% - 64px - 48px - 20px - 38px)',
         overflow: 'auto',
     },
-    selected: {
+    selected: (theme: IobTheme) => ({
         color: theme.palette.mode === 'dark' ? undefined : '#FFF !important',
-    },
-    indicator: {
+    }),
+    indicator: (theme: IobTheme) => ({
         backgroundColor: theme.palette.mode === 'dark' ? theme.palette.secondary.main : '#FFF',
-    },
-});
-
-interface AppProps extends GenericAppProps {
-    classes: Record<string, string>;
-}
+    }),
+};
 
 interface AppState extends GenericAppState {
     alive: boolean;
@@ -77,7 +72,7 @@ interface AppState extends GenericAppState {
     ready: boolean;
 }
 
-class App extends GenericApp<AppProps, AppState> {
+class App extends GenericApp<GenericAppProps, AppState> {
     private isIFrame: boolean = false;
 
     private configHandler: ConfigHandler | null = null;
@@ -90,8 +85,8 @@ class App extends GenericApp<AppProps, AppState> {
 
     private controllerMessageHandler: ((message: GUIMessage | null) => void) | null = null;
 
-    constructor(props: AppProps) {
-        const extendedProps: AppProps = { ...props };
+    constructor(props: GenericAppProps) {
+        const extendedProps: GenericAppProps = { ...props };
         // @ts-expect-error no idea how to fix it
         extendedProps.Connection = AdminConnection;
         extendedProps.translations = {
@@ -277,13 +272,13 @@ class App extends GenericApp<AppProps, AppState> {
     renderOptions() {
         return <OptionsTab
             alive={this.state.alive}
-            onChange={(id, value) => this.updateNativeValue(id, value)}
-            onLoad={native => this.onLoadConfig(native)}
+            onChange={(id: string, value: any) => this.updateNativeValue(id, value)}
+            onLoad={(native: Record<string, any>) => this.onLoadConfig(native)}
             socket={this.socket}
             common={this.common}
             native={this.state.native as MatterAdapterConfig}
             instance={this.instance}
-            showToast={text => this.showToast(text)}
+            showToast={(text: string) => this.showToast(text)}
         />;
     }
 
@@ -300,13 +295,14 @@ class App extends GenericApp<AppProps, AppState> {
             }}
             nodeStates={this.state.nodeStates}
             themeType={this.state.themeType}
+            theme={this.state.theme}
             detectedDevices={this.state.detectedDevices || []}
-            setDetectedDevices={detectedDevices => this.setState({ detectedDevices })}
+            setDetectedDevices={(detectedDevices: DetectedRoom[]) => this.setState({ detectedDevices })}
             productIDs={productIDs}
             matter={this.state.matter}
             updateConfig={this.onChanged}
-            showToast={text => this.showToast(text)}
-            checkLicenseOnAdd={(type, matter) => this.checkLicenseOnAdd(type, matter)}
+            showToast={(text: string) => this.showToast(text)}
+            checkLicenseOnAdd={(type: 'addBridge' | 'addDevice' | 'addDeviceToBridge', matter: MatterConfig) => this.checkLicenseOnAdd(type, matter)}
         />;
     }
 
@@ -322,14 +318,15 @@ class App extends GenericApp<AppProps, AppState> {
             commissioning={this.state.commissioning?.devices || {}}
             socket={this.socket}
             themeType={this.state.themeType}
+            theme={this.state.theme}
             detectedDevices={this.state.detectedDevices || []}
-            setDetectedDevices={detectedDevices => this.setState({ detectedDevices })}
+            setDetectedDevices={(detectedDevices: DetectedRoom[]) => this.setState({ detectedDevices })}
             productIDs={productIDs}
             instance={this.instance}
             matter={this.state.matter}
             updateConfig={this.onChanged}
-            showToast={text => this.showToast(text)}
-            checkLicenseOnAdd={matter => this.checkLicenseOnAdd('addDevice', matter)}
+            showToast={(text: string) => this.showToast(text)}
+            checkLicenseOnAdd={(matter: MatterConfig) => this.checkLicenseOnAdd('addDevice', matter)}
         />;
     }
 
@@ -408,12 +405,12 @@ class App extends GenericApp<AppProps, AppState> {
                                 window.localStorage.setItem(`${this.adapterName}.${this.instance}.selectedTab`, value);
                             }}
                             scrollButtons="auto"
-                            classes={{ indicator: this.props.classes.indicator }}
+                            sx={{ '& .MuiTabs-indicator': styles.indicator }}
                         >
-                            <Tab classes={{ selected: this.props.classes.selected }} label={I18n.t('Options')} value="options" />
-                            <Tab classes={{ selected: this.props.classes.selected }} label={I18n.t('Controller')} value="controller" />
-                            <Tab classes={{ selected: this.props.classes.selected }} label={I18n.t('Bridges')} value="bridges" />
-                            <Tab classes={{ selected: this.props.classes.selected }} label={I18n.t('Devices')} value="devices" />
+                            <Tab sx={{ '&.Mui-selected': styles.selected }} label={I18n.t('Options')} value="options" />
+                            <Tab sx={{ '&.Mui-selected': styles.selected }} label={I18n.t('Controller')} value="controller" />
+                            <Tab sx={{ '&.Mui-selected': styles.selected }} label={I18n.t('Bridges')} value="bridges" />
+                            <Tab sx={{ '&.Mui-selected': styles.selected }} label={I18n.t('Devices')} value="devices" />
                             <div style={{ flexGrow: 1 }} />
                             {this.state.alive ? null : <IconNotAlive
                                 style={{ color: 'orange', padding: 12 }}
@@ -431,7 +428,7 @@ class App extends GenericApp<AppProps, AppState> {
 
                     </AppBar>
 
-                    <div className={this.isIFrame ? this.props.classes.tabContentIFrame : this.props.classes.tabContent}>
+                    <div className={this.isIFrame ? styles.tabContentIFrame : styles.tabContent}>
                         {this.state.selectedTab === 'options' && this.renderOptions()}
                         {this.state.selectedTab === 'controller' && this.renderController()}
                         {this.state.selectedTab === 'bridges' && this.renderBridges()}
@@ -445,4 +442,4 @@ class App extends GenericApp<AppProps, AppState> {
     }
 }
 
-export default withStyles(styles)(App);
+export default App;

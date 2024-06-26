@@ -90,13 +90,12 @@ interface Device {
     connectionStatusId?: string;
 }
 
-
 class Controller {
     private parameters: ControllerOptions;
     private readonly adapter: MatterAdapter;
     private readonly matterEnvironment: Environment;
     private commissioningController: CommissioningController | null = null;
-    private matterNodeIds: NodeId[] = [];
+    private readonly matterNodeIds: NodeId[] = [];
     private devices: Device[] = [];
     private delayedStates: { [nodeId: string]: NodeStateInformation } = {};
     private connected: { [nodeId: string]: boolean } = {};
@@ -149,6 +148,7 @@ class Controller {
                     )}`,
                 );
             },
+
             eventTriggeredCallback: (peerNodeId: NodeId, { path: { nodeId, clusterId, endpointId, eventName }, events }: any) => {
                 this.adapter.log.debug(
                     `eventTriggeredCallback ${peerNodeId}: Event ${nodeId}/${endpointId}/${clusterId}/${eventName} triggered with ${Logger.toJSON(
@@ -156,6 +156,7 @@ class Controller {
                     )}`,
                 );
             },
+
             stateInformationCallback: async(peerNodeId: NodeId, info: NodeStateInformation) => {
                 const jsonNodeId = peerNodeId.toString();
                 const node = this.commissioningController?.getConnectedNode(peerNodeId);
@@ -207,7 +208,7 @@ class Controller {
             throw new Error('CommissioningController not initialized');
         }
 
-        await this.adapter.extendObjectAsync('controller.info', {
+        await this.adapter.extendObject('controller.info', {
             type: 'channel',
             common: {
                 name: 'Information',
@@ -217,7 +218,7 @@ class Controller {
             },
         });
 
-        await this.adapter.extendObjectAsync('controller.info.discovering', {
+        await this.adapter.extendObject('controller.info.discovering', {
             type: 'state',
             common: {
                 name: 'Discovering',
@@ -230,7 +231,7 @@ class Controller {
             },
         });
 
-        await this.adapter.setStateAsync('controller.info.discovering', false, false);
+        await this.adapter.setState('controller.info.discovering', false);
 
         await this.commissioningController.start();
 
@@ -459,6 +460,7 @@ class Controller {
                         nodeId: nodeIdString,
                     },
                 };
+
                 if (oldCommon?.custom && deviceObj?.common) {
                     deviceObj.common.custom = oldCommon.custom;
                 }
@@ -645,7 +647,11 @@ class Controller {
         // nothing to do
     }
 
-    async commissionDevice(qrCode: string | undefined, manualCode: string | undefined, device: CommissionableDevice): Promise<AddDeviceResult | null> {
+    async commissionDevice(
+        qrCode: string | undefined,
+        manualCode: string | undefined,
+        device: CommissionableDevice,
+    ): Promise<AddDeviceResult | null> {
         if (!this.commissioningController) {
             return null;
         }
@@ -653,6 +659,7 @@ class Controller {
             regulatoryLocation: GeneralCommissioning.RegulatoryLocationType.IndoorOutdoor,
             regulatoryCountryCode: 'XX',
         };
+
         if (this.parameters.ble) {
             if (this.parameters.wifiSSID && this.parameters.wifiPassword) {
                 this.useBle = true;
@@ -723,7 +730,7 @@ class Controller {
         if (!this.commissioningController) {
             return null;
         }
-        await this.adapter.setStateAsync('controller.info.discovering', true, true);
+        await this.adapter.setState('controller.info.discovering', { val: true, ack: true } );
         this.discovering = true;
         this.adapter.log.info(`Start the discovering...`);
         const result = await this.commissioningController.discoverCommissionableDevices(
@@ -754,7 +761,7 @@ class Controller {
         if (this.commissioningController && this.discovering) {
             this.adapter.log.info(`Stop the discovering...`);
             this.discovering = false;
-            await this.adapter.setStateAsync('controller.info.discovering', false, false);
+            await this.adapter.setState('controller.info.discovering', { val: false, ack: true });
             this.commissioningController.cancelCommissionableDeviceDiscovery(
                 {},
                 {

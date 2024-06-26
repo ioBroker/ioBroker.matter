@@ -78,16 +78,18 @@ interface CommissioningOptions {
 }
 
 export class MatterAdapter extends utils.Adapter {
-    private detector: ChannelDetector;
     private devices = new Map<string, MatterDevice>();
     private bridges = new Map<string, BridgedDevice>();
-    private _guiSubscribes: { clientId: string; ts: number }[] | null= null;
+    private controller: MatterController | null = null;
+
+    private detector: ChannelDetector;
+
+    private _guiSubscribes: { clientId: string; ts: number }[] | null = null;
     private readonly matterEnvironment: Environment;
     private stateTimeout: NodeJS.Timeout | null = null;
     private subscribed: boolean = false;
     private license: { [key: string]: boolean | undefined } = {};
-    private controller: MatterController | null = null;
-    private sysLanguage: 'en' | 'de' | 'ru' | 'pt' | 'nl' | 'fr' | 'it' | 'es' | 'pl' | 'zh-cn' = 'en';
+    public sysLanguage: ioBroker.Languages = 'en';
     private readonly deviceManagement: MatterAdapterDeviceManagement;
     private nextPortNumber: number = 5540;
 
@@ -353,7 +355,7 @@ export class MatterAdapter extends utils.Adapter {
         SubscribeManager.setAdapter(this);
         await this.prepareMatterEnvironment();
 
-        const systemConfig = await this.getForeignObjectAsync('system.config');
+        const systemConfig: ioBroker.SystemConfigObject = await this.getForeignObjectAsync('system.config') as ioBroker.SystemConfigObject;
         this.sysLanguage = systemConfig?.common?.language || 'en';
 
         await this.loadDevices();
@@ -398,6 +400,8 @@ export class MatterAdapter extends utils.Adapter {
 
         // inform GUI about stop
         await this.sendToGui({ command: 'stopped' });
+
+        this.deviceManagement && this.deviceManagement.close();
 
         try {
             await this.shutDownMatterNodes();

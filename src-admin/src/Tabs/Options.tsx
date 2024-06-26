@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { withStyles } from '@mui/styles';
 
 import {
     Button, Dialog,
@@ -13,12 +12,13 @@ import {
     TextField, FormControlLabel, Checkbox,
 } from '@mui/material';
 
-import { AdminConnection, I18n, Logo } from '@iobroker/adapter-react-v5';
 import { Check, Close, LayersClear } from '@mui/icons-material';
+
+import { type AdminConnection, I18n, Logo } from '@iobroker/adapter-react-v5';
 
 import { MatterAdapterConfig } from '../types';
 
-const styles: Record<string, any> = {
+const styles: Record<string, React.CSSProperties> = {
     address: {
         fontSize: 'smaller',
         opacity: 0.5,
@@ -52,7 +52,6 @@ interface OptionsProps {
     instance: number;
     onChange: (attr: string, value: boolean | string) => void;
     showToast: (text: string) => void;
-    classes: Record<string, string>;
     onLoad: (native: Record<string, any>) => void;
 }
 
@@ -99,7 +98,6 @@ class Options extends Component<OptionsProps, OptionsState> {
                 <Button
                     variant="contained"
                     style={{ backgroundColor: this.state.dialogLevel === 1 ? 'red' : undefined, color: this.state.dialogLevel === 1 ? 'white' : undefined }}
-                    // @ts-expect-error grey is valid color
                     color="grey"
                     onClick={() => {
                         if (this.state.dialogLevel === 1) {
@@ -189,7 +187,7 @@ class Options extends Component<OptionsProps, OptionsState> {
         const item = this.state.interfaces?.find(it => it.value === (this.props.native.interface || '_'));
         const passwordError = Options.checkPassword(this.props.native.pass);
 
-        return <div className={this.props.classes.panel}>
+        return <div style={styles.panel}>
             {this.renderConfirmDialog()}
             <Logo
                 instance={this.props.instance}
@@ -200,23 +198,23 @@ class Options extends Component<OptionsProps, OptionsState> {
             />
             {!this.state.interfaces?.length ?
                 <TextField
-                    className={this.props.classes.input}
+                    style={styles.input}
                     variant="standard"
                     value={this.props.native.interface}
                     onChange={e => this.props.onChange('interface', e.target.value === '_' ? '' : e.target.value)}
                     label={I18n.t('Interface')}
                 /> :
-                <FormControl className={this.props.classes.input}>
+                <FormControl style={styles.input}>
                     <InputLabel>{I18n.t('Interface')}</InputLabel>
                     <Select
                         variant="standard"
-                        className={this.props.classes.input}
+                        style={styles.input}
                         value={this.props.native.interface || '_'}
                         renderValue={val => {
                             if (item) {
                                 return <span style={{ fontWeight: item.value === '_' ? 'bold' : undefined }}>
                                     {item.value === '_' ? I18n.t('All interfaces') : item.value}
-                                    {item.value === '_' ? null : <span className={this.props.classes.address}>{item.address}</span>}
+                                    {item.value === '_' ? null : <span style={styles.address}>{item.address}</span>}
                                 </span>;
                             }
                             return val;
@@ -226,7 +224,7 @@ class Options extends Component<OptionsProps, OptionsState> {
                         {this.state.interfaces.map((it, i) => <MenuItem key={i} value={it.value}>
                             <span style={{ fontWeight: it.value === '_' ? 'bold' : undefined }}>
                                 {it.value === '_' ? I18n.t('All interfaces') : it.value}
-                                {it.value === '_' ? null : <span className={this.props.classes.address}>{it.address}</span>}
+                                {it.value === '_' ? null : <span style={styles.address}>{it.address}</span>}
                             </span>
                         </MenuItem>)}
                     </Select>
@@ -237,19 +235,18 @@ class Options extends Component<OptionsProps, OptionsState> {
                 <TextField
                     variant="standard"
                     label={I18n.t('ioBroker.pro Login')}
-                    className={this.props.classes.input}
                     value={this.props.native.login}
                     type="text"
                     onChange={e => this.props.onChange('login', e.target.value)}
                     margin="normal"
-                    style={{ marginRight: 16 }}
+                    style={{ ...styles.input, marginRight: 16 }}
                 />
                 <TextField
                     variant="standard"
                     label={I18n.t('ioBroker.pro Password')}
                     error={!!passwordError}
                     autoComplete="current-password"
-                    className={this.props.classes.input}
+                    style={styles.input}
                     value={this.props.native.pass}
                     type="password"
                     helperText={passwordError || ''}
@@ -286,7 +283,6 @@ class Options extends Component<OptionsProps, OptionsState> {
                     disabled={!this.props.alive}
                     onClick={() => this.setState({ showDialog: true, dialogLevel: 0 })}
                     variant="contained"
-                    // @ts-expect-error grey is valid color
                     color="grey"
                     startIcon={<LayersClear />}
                 >
@@ -297,4 +293,4 @@ class Options extends Component<OptionsProps, OptionsState> {
     }
 }
 
-export default withStyles(styles)(Options);
+export default Options;

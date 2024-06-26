@@ -1,5 +1,4 @@
 import React from 'react';
-import { withStyles } from '@mui/styles';
 import { v4 as uuidv4 } from 'uuid';
 import { Types } from '@iobroker/type-detector';
 
@@ -26,8 +25,11 @@ import {
     UnfoldMore,
 } from '@mui/icons-material';
 
-import {AdminConnection, I18n, SelectID} from '@iobroker/adapter-react-v5';
-import type {Theme, ThemeType} from '@iobroker/adapter-react-v5/types';
+import {
+    I18n,
+    SelectID,
+    type IobTheme,
+} from '@iobroker/adapter-react-v5';
 
 import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import { detectDevices, getText } from '../Utils';
@@ -43,10 +45,10 @@ import type {
     DetectedRoom,
     DeviceDescription,
     MatterConfig,
-    NodeStateResponse
 } from '../types';
 
-const styles: Record<string, any> = (theme: Theme) => (Object.assign(STYLES, {
+const styles: Record<string, any> = {
+    ...STYLES,
     table: {
         '& td': {
             border: 0,
@@ -97,32 +99,19 @@ const styles: Record<string, any> = (theme: Theme) => (Object.assign(STYLES, {
         display: 'flex',
         alignItems: 'center',
     },
-    devicesHeader: {
+    devicesHeader: (theme: IobTheme) => ({
         backgroundColor: theme.palette.mode === 'dark' ? '#3e3d3d' : '#c0c0c0',
-    },
-    bridgeButtonsAndTitle: {
+    }),
+    bridgeButtonsAndTitle: (theme: IobTheme) => ({
         backgroundColor: theme.palette.secondary.main,
         color: theme.palette.secondary.contrastText,
-    },
-    bridgeButtonsAndTitleColor: {
+    }),
+    bridgeButtonsAndTitleColor: (theme: IobTheme) => ({
         color: theme.palette.secondary.contrastText,
-    },
-}));
+    }),
+};
 
 interface BridgesProps extends BridgesAndDevicesProps {
-    instance: number;
-    themeType: ThemeType;
-    socket: AdminConnection;
-    alive: boolean;
-    nodeStates: { [uuid: string]: NodeStateResponse };
-    matter: MatterConfig;
-    updateConfig: (config: MatterConfig) => void;
-    showToast: (text: string) => void;
-    detectedDevices: DetectedRoom[];
-    setDetectedDevices: (detectedDevices: DetectedRoom[]) => void;
-    productIDs: string[];
-    commissioning: Record<string, boolean>;
-    classes: Record<string, string>;
     checkLicenseOnAdd: (type: 'addBridge' | 'addDevice' | 'addDeviceToBridge', config?: MatterConfig) => Promise<boolean>;
 }
 
@@ -366,7 +355,6 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 <Button
                     onClick={() => this.setState({ editBridgeDialog: null })}
                     startIcon={<Close />}
-                    // @ts-expect-error grey is valid color
                     color="grey"
                     variant="contained"
                 >
@@ -531,7 +519,6 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 <Button
                     onClick={() => this.setState({ editDeviceDialog: null })}
                     startIcon={<Close />}
-                    // @ts-expect-error grey is valid color
                     color="grey"
                     variant="contained"
                 >
@@ -605,7 +592,6 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 <Button
                     onClick={() => this.setState({ deleteDialog: null })}
                     startIcon={<Close />}
-                    // @ts-expect-error grey is valid color
                     color="grey"
                     variant="contained"
                 >
@@ -626,6 +612,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 dialogName="matter"
                 themeType={this.props.themeType}
                 socket={this.props.socket}
+                theme={this.props.theme}
                 onClose={() => this.setState({ addDeviceDialog: null })}
                 onOk={async (_oid, name) => {
                     const oid: string | undefined = Array.isArray(_oid) ? _oid[0] : _oid as string;
@@ -748,7 +735,6 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 <Button
                     onClick={() => this.setState({ addCustomDeviceDialog: null })}
                     startIcon={<Close />}
-                    // @ts-expect-error grey is valid color
                     color="grey"
                     variant="contained"
                 >
@@ -773,13 +759,13 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <div>
                             {getText(device.name)}
-                            <span className={this.props.classes.deviceOid}>
+                            <span style={styles.deviceOid}>
                                 (
                                 {device.oid}
                                 )
                             </span>
                         </div>
-                        <div className={this.props.classes.deviceType}>
+                        <div style={styles.deviceType}>
                             {`${I18n.t('Device type')}: ${I18n.t(device.type)}`}
                         </div>
                     </div>
@@ -797,7 +783,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 />
             </TableCell>
             <TableCell style={{ width: 0 }}>
-                <Tooltip title={I18n.t('Edit device')} classes={{ popper: this.props.classes.tooltip }}>
+                <Tooltip title={I18n.t('Edit device')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                     <IconButton onClick={() => {
                         this.setState(
                             {
@@ -829,7 +815,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 </Tooltip>
             </TableCell>
             <TableCell style={{ width: 0, borderBottomRightRadius: isLast ? 4 : 0 }}>
-                <Tooltip title={I18n.t('Delete device')} classes={{ popper: this.props.classes.tooltip }}>
+                <Tooltip title={I18n.t('Delete device')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                     <IconButton onClick={() => {
                         this.setState(
                             {
@@ -869,15 +855,20 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
 
         return <React.Fragment key={bridgeIndex}>
             <TableRow
-                className={this.props.classes.bridgeButtonsAndTitle}
-                sx={() => ({
-                    opacity: bridge.enabled ? 1 : 0.4,
-                })}
+                style={{ opacity: bridge.enabled ? 1 : 0.4 }}
+                sx={styles.bridgeButtonsAndTitle}
             >
-                <TableCell style={{ width: 0, borderTopLeftRadius: 4, borderBottomLeftRadius: this.state.bridgesOpened[bridgeIndex] ? 0 : 4 }} className={this.props.classes.bridgeButtonsAndTitle}>
+                <TableCell
+                    style={{
+                        width: 0,
+                        borderTopLeftRadius: 4,
+                        borderBottomLeftRadius: this.state.bridgesOpened[bridgeIndex] ? 0 : 4,
+                    }}
+                    sx={styles.bridgeButtonsAndTitle}
+                >
                     <IconButton
                         size="small"
-                        className={this.props.classes.bridgeButtonsAndTitleColor}
+                        style={styles.bridgeButtonsAndTitleColor}
                         onClick={() => {
                             const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
                             bridgesOpened[bridgeIndex] = !bridgesOpened[bridgeIndex];
@@ -889,7 +880,8 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     </IconButton>
                 </TableCell>
                 <TableCell
-                    className={`${this.props.classes.bridgeHeader} ${this.props.classes.bridgeButtonsAndTitle}`}
+                    style={styles.bridgeHeader}
+                    sx={styles.bridgeButtonsAndTitle}
                     onClick={() => {
                         const bridgesOpened = JSON.parse(JSON.stringify(this.state.bridgesOpened));
                         bridgesOpened[bridgeIndex] = !bridgesOpened[bridgeIndex];
@@ -897,33 +889,33 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         this.setState({ bridgesOpened });
                     }}
                 >
-                    <div className={this.props.classes.bridgeDiv}>
-                        <div className={this.props.classes.bridgeName}>
+                    <div style={styles.bridgeDiv}>
+                        <div style={styles.bridgeName}>
                             {getText(bridge.name)}
-                            <span className={this.props.classes.devicesCount}>{countText}</span>
+                            <span style={styles.devicesCount}>{countText}</span>
                         </div>
                         <div>
-                            <span className={this.props.classes.bridgeTitle}>
+                            <span style={styles.bridgeTitle}>
                                 {I18n.t('Vendor ID')}
                                 :
                             </span>
-                            <span className={this.props.classes.bridgeValue}>{bridge.vendorID || ''}</span>
-                            <span className={this.props.classes.bridgeTitle}>
+                            <span style={styles.bridgeValue}>{bridge.vendorID || ''}</span>
+                            <span style={styles.bridgeTitle}>
 ,
                                 {I18n.t('Product ID')}
                                 :
                             </span>
-                            <span className={this.props.classes.bridgeValue}>{bridge.productID || ''}</span>
+                            <span style={styles.bridgeValue}>{bridge.productID || ''}</span>
                         </div>
                     </div>
-                    <div className={this.props.classes.flexGrow} />
+                    <div style={styles.flexGrow} />
                     {this.renderStatus(bridge)}
                 </TableCell>
-                <TableCell style={{ width: 0 }} className={this.props.classes.bridgeButtonsAndTitle} />
-                <TableCell style={{ width: 0 }} className={this.props.classes.bridgeButtonsAndTitle}>
+                <TableCell style={{ width: 0 }} sx={styles.bridgeButtonsAndTitle} />
+                <TableCell style={{ width: 0 }} sx={styles.bridgeButtonsAndTitle}>
                     <Tooltip
                         title={bridge.enabled && !allowDisable ? I18n.t('At least one bridge must be enabled') : I18n.t('Enable/disable bridge')}
-                        classes={{ popper: this.props.classes.tooltip }}
+                        componentsProps={{ popper: { sx: styles.tooltip } }}
                     >
                         <span>
                             <Switch
@@ -939,10 +931,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         </span>
                     </Tooltip>
                 </TableCell>
-                <TableCell style={{ width: 0 }} className={this.props.classes.bridgeButtonsAndTitle}>
-                    <Tooltip title={I18n.t('Edit bridge')} classes={{ popper: this.props.classes.tooltip }}>
+                <TableCell style={{ width: 0 }} sx={styles.bridgeButtonsAndTitle}>
+                    <Tooltip title={I18n.t('Edit bridge')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                         <IconButton
-                            className={this.props.classes.bridgeButtonsAndTitleColor}
+                            style={styles.bridgeButtonsAndTitleColor}
                             onClick={e => {
                                 e.stopPropagation();
                                 this.setState(
@@ -965,14 +957,21 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         </IconButton>
                     </Tooltip>
                 </TableCell>
-                <TableCell style={{ width: 0, borderTopRightRadius: 4, borderBottomRightRadius: this.state.bridgesOpened[bridgeIndex] ? 0 : 4 }} className={this.props.classes.bridgeButtonsAndTitle}>
+                <TableCell
+                    style={{
+                        width: 0,
+                        borderTopRightRadius: 4,
+                        borderBottomRightRadius: this.state.bridgesOpened[bridgeIndex] ? 0 : 4,
+                    }}
+                    sx={styles.bridgeButtonsAndTitle}
+                >
                     <Tooltip
-                        classes={{ popper: this.props.classes.tooltip }}
+                        componentsProps={{ popper: { sx: styles.tooltip } }}
                         title={bridge.enabled && !allowDisable ? I18n.t('At least one enabled bridge must exist') : I18n.t('Delete bridge')}
                     >
                         <span>
                             <IconButton
-                                className={this.props.classes.bridgeButtonsAndTitleColor}
+                                style={styles.bridgeButtonsAndTitleColor}
                                 disabled={bridge.enabled && !allowDisable}
                                 onClick={e => {
                                     e.stopPropagation();
@@ -1002,12 +1001,15 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             opacity: bridge.enabled ? 1 : 0.5,
                             paddingLeft: 8,
                         }}
-                        className={this.props.classes.devicesHeader}
+                        sx={styles.devicesHeader}
                     >
                         {I18n.t('Devices')}
                     </TableCell>
-                    <TableCell style={{ width: 0, textAlign: 'center', opacity: bridge.enabled ? 1 : 0.5 }} className={this.props.classes.devicesHeader}>
-                        {this.props.alive && bridge.enabled && this.props.nodeStates[bridge.uuid]?.status === 'waitingForCommissioning' ? <Tooltip title={I18n.t('Re-announce')} classes={{ popper: this.props.classes.tooltip }}>
+                    <TableCell
+                        style={{ width: 0, textAlign: 'center', opacity: bridge.enabled ? 1 : 0.5 }}
+                        sx={styles.devicesHeader}
+                    >
+                        {this.props.alive && bridge.enabled && this.props.nodeStates[bridge.uuid]?.status === 'waitingForCommissioning' ? <Tooltip title={I18n.t('Re-announce')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                             <IconButton
                                 onClick={() => {
                                     this.props.socket.sendTo(`matter.${this.props.instance}`, 're-announce', { uuid: bridge.uuid })
@@ -1024,15 +1026,21 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             </IconButton>
                         </Tooltip> : null}
                     </TableCell>
-                    <TableCell style={{ width: 0, textAlign: 'center', opacity: bridge.enabled ? 1 : 0.5 }} className={this.props.classes.devicesHeader}>
-                        {this.props.alive && bridge.enabled ? <Tooltip title={I18n.t('Reset to factory defaults')} classes={{ popper: this.props.classes.tooltip }}>
+                    <TableCell
+                        style={{ width: 0, textAlign: 'center', opacity: bridge.enabled ? 1 : 0.5 }}
+                        sx={styles.devicesHeader}
+                    >
+                        {this.props.alive && bridge.enabled ? <Tooltip title={I18n.t('Reset to factory defaults')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                             <IconButton onClick={() => this.setState({ showResetDialog: { bridgeOrDevice: bridge, step: 0 } })}>
                                 <DomainDisabled />
                             </IconButton>
                         </Tooltip> : null}
                     </TableCell>
-                    <TableCell style={{ width: 0, opacity: bridge.enabled ? 1 : 0.5 }} className={this.props.classes.devicesHeader}>
-                        <Tooltip title={I18n.t('Add device with auto-detection')} classes={{ popper: this.props.classes.tooltip }}>
+                    <TableCell
+                        style={{ width: 0, opacity: bridge.enabled ? 1 : 0.5 }}
+                        sx={styles.devicesHeader}
+                    >
+                        <Tooltip title={I18n.t('Add device with auto-detection')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                             <IconButton
                                 onClick={async () => {
                                     const isLicenseOk = await this.props.checkLicenseOnAdd('addDeviceToBridge');
@@ -1054,8 +1062,8 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             </IconButton>
                         </Tooltip>
                     </TableCell>
-                    <TableCell style={{ width: 0, opacity: bridge.enabled ? 1 : 0.5 }} className={this.props.classes.devicesHeader}>
-                        <Tooltip title={I18n.t('Add device from one state')} classes={{ popper: this.props.classes.tooltip }}>
+                    <TableCell style={{ width: 0, opacity: bridge.enabled ? 1 : 0.5 }} sx={styles.devicesHeader}>
+                        <Tooltip title={I18n.t('Add device from one state')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                             <IconButton
                                 style={{ color: 'gray' }}
                                 onClick={async () => {
@@ -1094,7 +1102,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
             {this.renderQrCodeDialog()}
             {this.renderDebugDialog()}
             {this.renderResetDialog()}
-            <Tooltip title={I18n.t('Add bridge')} classes={{ popper: this.props.classes.tooltip }}>
+            <Tooltip title={I18n.t('Add bridge')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                 <Fab
                     size="small"
                     onClick={async () => {
@@ -1131,7 +1139,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 </Fab>
             </Tooltip>
             {this.props.matter.bridges.length ? <div>
-                <Tooltip title={I18n.t('Expand all')} classes={{ popper: this.props.classes.tooltip }}>
+                <Tooltip title={I18n.t('Expand all')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                     <span>
                         <IconButton
                             onClick={() => {
@@ -1146,7 +1154,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         </IconButton>
                     </span>
                 </Tooltip>
-                <Tooltip title={I18n.t('Collapse all')} classes={{ popper: this.props.classes.tooltip }}>
+                <Tooltip title={I18n.t('Collapse all')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                     <span>
                         <IconButton
                             onClick={() => {
@@ -1162,7 +1170,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     </span>
                 </Tooltip>
             </div> : I18n.t('No bridges created. Create one, by clicking on the "+" button in the bottom right corner.')}
-            <Table size="small" style={{ width: '100%', maxWidth: 600 }} padding="none" className={this.props.classes.table}>
+            <Table size="small" style={{ width: '100%', maxWidth: 600 }} padding="none" sx={styles.table}>
                 <TableBody>
                     {this.props.matter.bridges.map((bridge, bridgeIndex) => this.renderBridge(bridge, bridgeIndex))}
                 </TableBody>
@@ -1171,4 +1179,4 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
     }
 }
 
-export default withStyles(styles)(Bridges);
+export default Bridges;

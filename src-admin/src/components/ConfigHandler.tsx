@@ -1,10 +1,12 @@
 import { v4 as uuidv4 } from 'uuid';
 import { AdminConnection } from '@iobroker/adapter-react-v5';
+
+import { I18n } from '@iobroker/adapter-react-v5';
+
 import {
     BridgeDescription, CommissioningInfo,
     DeviceDescription, MatterConfig,
 } from '../types';
-import { I18n } from '@iobroker/adapter-react-v5';
 
 class ConfigHandler {
     private readonly instance: number;

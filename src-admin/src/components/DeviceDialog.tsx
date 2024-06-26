@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import { withStyles } from '@mui/styles';
 
 import {
     Accordion,
@@ -39,11 +38,15 @@ import {
     Window,
 } from '@mui/icons-material';
 
-import { AdminConnection, I18n, Icon } from '@iobroker/adapter-react-v5';
-import type { Theme } from '@iobroker/adapter-react-v5/types';
+import {
+    type AdminConnection,
+    type IobTheme,
+    I18n,
+    Icon,
+} from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 
-import {detectDevices, getText } from '../Utils';
+import { detectDevices, getText } from '../Utils';
 import type { DetectedRoom, DetectedDevice, MatterConfig } from '../types';
 
 export const DEVICE_ICONS: Record<Types, React.JSX.Element> = {
@@ -99,7 +102,7 @@ for (let i = 0x8000; i <= 0x801F; i++) {
     productIds.push(`0x${i.toString(16)}`);
 }
 
-const styles: Record<string, any> = (theme: Theme) => ({
+const styles: Record<string, any> = {
     dialogContent: {
         display: 'flex',
         flexDirection: 'column',
@@ -131,9 +134,9 @@ const styles: Record<string, any> = (theme: Theme) => ({
         marginLeft: 20,
         minWidth: 160,
     },
-    details: {
+    details: (theme: IobTheme) => ({
         backgroundColor: theme.palette.mode === 'dark' ? '#111' : '#eee',
-    },
+    }),
     summaryBody: {
         display: 'flex',
         alignItems: 'center',
@@ -162,7 +165,7 @@ const styles: Record<string, any> = (theme: Theme) => ({
         width: 'calc(50% - 40px)',
         // flexGrow: 1,
     },
-});
+};
 
 interface DeviceDialogProps {
     detectedDevices: DetectedRoom[];
@@ -173,7 +176,6 @@ interface DeviceDialogProps {
     onClose: () => void;
     type: 'bridge' | 'device';
     name?: ioBroker.StringOrTranslated;
-    classes: Record<string, string>;
 }
 
 interface DeviceDialogState {
@@ -306,8 +308,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
         >
             {supported ? null : <div style={{ marginLeft: 20 }}>{I18n.t('Not supported yet')}</div>}
             <div
-                className={this.props.classes.summaryBody}
-                style={{ opacity: this.state.roomsChecked[room._id] ? 1 : 0.5 }}
+                style={{ ...styles.summaryBody, opacity: this.state.roomsChecked[room._id] ? 1 : 0.5 }}
             >
                 <Checkbox
                     checked={!!this.state.devicesChecked[device._id]}
@@ -348,7 +349,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                         this.setState({ rooms });
                     }}
                     label={I18n.t('Vendor ID')}
-                    helperText={<span className={this.props.classes.spaceHolder} />}
+                    helperText={<span style={styles.spaceHolder} />}
                     variant="standard"
                 >
                     {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorId =>
@@ -370,7 +371,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                         this.setState({ rooms });
                     }}
                     label={I18n.t('Product ID')}
-                    helperText={<span className={this.props.classes.spaceHolder} />}
+                    helperText={<span style={styles.spaceHolder} />}
                     variant="standard"
                 >
                     {productIds.map(productId =>
@@ -410,10 +411,10 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
             <DialogTitle>
                 {`${I18n.t('Add devices')}${this.props.type === 'bridge' ? ` ${I18n.t('to bridge')} ${getText(this.props.name)}` : ''}`}
             </DialogTitle>
-            <DialogContent className={this.props.classes.dialogContent}>
-                {this.state.rooms ? <div className={this.props.classes.header}>
-                    <div className={this.props.classes.flex}>
-                        <div className={this.props.classes.firstTitle}>{I18n.t('All devices')}</div>
+            <DialogContent style={styles.dialogContent}>
+                {this.state.rooms ? <div style={styles.header}>
+                    <div style={styles.flex}>
+                        <div style={styles.firstTitle}>{I18n.t('All devices')}</div>
                         <div>
                             <Switch
                                 checked={this.state.ignoreUsedDevices || false}
@@ -429,10 +430,10 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                                 }}
                             />
                         </div>
-                        <div className={this.props.classes.secondTitle}>{I18n.t('Not used devices')}</div>
+                        <div style={styles.secondTitle}>{I18n.t('Not used devices')}</div>
                     </div>
-                    <div className={this.props.classes.flex}>
-                        <div className={this.props.classes.firstTitle}>{I18n.t('Device names')}</div>
+                    <div style={styles.flex}>
+                        <div style={styles.firstTitle}>{I18n.t('Device names')}</div>
                         <div>
                             <Switch
                                 checked={this.state.useRoomNames || false}
@@ -462,10 +463,10 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                                 }}
                             />
                         </div>
-                        <div className={this.props.classes.secondTitle}>{I18n.t('Room plus device type names')}</div>
+                        <div style={styles.secondTitle}>{I18n.t('Room plus device type names')}</div>
                     </div>
-                    <div className={this.props.classes.flex}>
-                        <div className={this.props.classes.firstTitle} style={{ fontSize: 'smaller' }}>{I18n.t('Hide unsupported devices')}</div>
+                    <div style={styles.flex}>
+                        <div style={{ ...styles.firstTitle, fontSize: 'smaller' }}>{I18n.t('Hide unsupported devices')}</div>
                         <div>
                             <Switch
                                 checked={this.state.showUnsupported || false}
@@ -475,7 +476,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                                 }}
                             />
                         </div>
-                        <div className={this.props.classes.secondTitle} style={{ fontSize: 'smaller' }}>{I18n.t('Show unsupported devices')}</div>
+                        <div style={{ ...styles.secondTitle, fontSize: 'smaller' }}>{I18n.t('Show unsupported devices')}</div>
                     </div>
                     <div style={{ flex: 1, overflowY: 'auto' }}>
                         {!this.state.rooms.length ? <div>{I18n.t('Nothing detected')}</div> : null}
@@ -503,10 +504,10 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                                     }}
                                 >
                                     <AccordionSummary expandIcon={<ExpandMore />}>
-                                        <div className={this.props.classes.summaryDiv}>
-                                            {room.common.icon ? <Icon src={room.common.icon} className={this.props.classes.icon} alt="" /> : null}
+                                        <div style={styles.summaryDiv}>
+                                            {room.common.icon ? <Icon src={room.common.icon} style={styles.icon} alt="" /> : null}
 
-                                            <div className={this.props.classes.flexGrow}>{getText(room.common.name)}</div>
+                                            <div style={styles.flexGrow}>{getText(room.common.name)}</div>
 
                                             <Checkbox
                                                 title={I18n.t('Select/Unselect all devices in room')}
@@ -528,12 +529,12 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                                                     this.setState({ devicesChecked });
                                                 }}
                                             />
-                                            <div className={this.props.classes.selectedText}>
+                                            <div style={styles.selectedText}>
                                                 {I18n.t('%s of %s devices selected', counters[roomIndex], lengths[roomIndex])}
                                             </div>
                                         </div>
                                     </AccordionSummary>
-                                    <AccordionDetails className={this.props.classes.details}>
+                                    <AccordionDetails sx={styles.details}>
                                         {this.state.expanded.includes(room._id) && room.devices.map((device, deviceIndex) => {
                                             if (this.state.ignoreUsedDevices && this.state.usedDevices[device._id]) {
                                                 return null;
@@ -560,7 +561,6 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                     variant="contained"
                     onClick={() => this.props.onClose()}
                     startIcon={<Close />}
-                    // @ts-expect-error grey is valid color
                     color="grey"
                 >
                     {I18n.t('Cancel')}
@@ -570,4 +570,4 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
     }
 }
 
-export default withStyles(styles)(DeviceDialog);
+export default DeviceDialog;

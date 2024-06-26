@@ -1,5 +1,4 @@
 import React from 'react';
-import { withStyles } from '@mui/styles';
 import { v4 as uuidv4 } from 'uuid';
 import { Types } from '@iobroker/type-detector';
 
@@ -16,7 +15,10 @@ import {
     Add, Close, Delete, DomainDisabled, Edit, QuestionMark, Save, SettingsInputAntenna,
 } from '@mui/icons-material';
 
-import { AdminConnection, I18n, SelectID } from '@iobroker/adapter-react-v5';
+import {
+    I18n,
+    SelectID
+} from '@iobroker/adapter-react-v5';
 
 import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import { detectDevices, getText } from '../Utils';
@@ -25,14 +27,13 @@ import BridgesAndDevices, {
     BridgesAndDevicesState,
     STYLES
 } from './BridgesAndDevices';
-import { ThemeType } from '@iobroker/adapter-react-v5/types';
 import type {
     DeviceDescription, DetectedDevice,
     MatterConfig, DetectedRoom,
-    NodeStateResponse
 } from '../types';
 
-const styles: Record<string, any> = Object.assign(STYLES, {
+const styles: Record<string, React.CSSProperties> = {
+    ...STYLES,
     deviceName: {
         marginTop: 4,
         fontSize: 16,
@@ -66,24 +67,10 @@ const styles: Record<string, any> = Object.assign(STYLES, {
         marginLeft: 8,
         opacity: 0.6,
     },
-});
+};
 
 interface DevicesProps extends BridgesAndDevicesProps {
-    classes: Record<string, string>;
-    matter: MatterConfig;
-    alive: boolean
-    socket: AdminConnection;
-    productIDs: string[],
-    updateConfig: (config: MatterConfig) => void;
-    themeType: ThemeType;
-    detectedDevices: DetectedRoom[];
-    setDetectedDevices: (detectedDevices: DetectedRoom[]) => void;
-    commissioning: Record<string, boolean>;
     checkLicenseOnAdd: (config?: MatterConfig) => Promise<boolean>;
-    instance: number;
-    updateNodeStates: (nodeStates: { [uuid: string]: NodeStateResponse }) => void;
-    nodeStates: { [uuid: string]: NodeStateResponse },
-    showToast: (text: string) => void;
 }
 
 interface DevicesState extends BridgesAndDevicesState {
@@ -195,7 +182,6 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 <Button
                     onClick={() => this.setState({ deleteDialog: null })}
                     startIcon={<Close />}
-                    // @ts-expect-error grey is valid color
                     color="grey"
                     variant="contained"
                 >
@@ -407,7 +393,6 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 <Button
                     onClick={() => this.setState({ editDeviceDialog: null })}
                     startIcon={<Close />}
-                    // @ts-expect-error grey is valid color
                     color="grey"
                     variant="contained"
                 >
@@ -571,7 +556,6 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 <Button
                     onClick={() => this.setState({ addCustomDeviceDialog: null })}
                     startIcon={<Close />}
-                    // @ts-expect-error grey is valid color
                     color="grey"
                     variant="contained"
                 >
@@ -591,6 +575,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 dialogName="matter"
                 themeType={this.props.themeType}
                 socket={this.props.socket}
+                theme={this.props.theme}
                 onClose={() => this.setState({ addDeviceDialog: null })}
                 onOk={async (_oid, name) => {
                     const oid: string | undefined = Array.isArray(_oid) ? _oid[0] : _oid as string;
@@ -654,37 +639,37 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                     <span style={{ marginRight: 8 }} title={device.type}>
                         {DEVICE_ICONS[device.type] || <QuestionMark />}
                     </span>
-                    <div className={this.props.classes.bridgeDiv}>
-                        <div className={this.props.classes.deviceName}>
+                    <div style={styles.bridgeDiv}>
+                        <div style={styles.deviceName}>
                             {getText(device.name)}
-                            <span className={this.props.classes.deviceOid}>
+                            <span style={styles.deviceOid}>
                                 (
                                 {device.oid}
                                 )
                             </span>
                         </div>
                         <div>
-                            <span className={this.props.classes.deviceTitle}>
+                            <span style={styles.deviceTitle}>
                                 {I18n.t('Vendor ID')}
                                 :
                             </span>
-                            <span className={this.props.classes.deviceValue}>
+                            <span style={styles.deviceValue}>
                                 {device.vendorID || ''}
                                 ,
                             </span>
-                            <span className={this.props.classes.deviceTitle}>
+                            <span style={styles.deviceTitle}>
                                 {I18n.t('Product ID')}
                                 :
                             </span>
-                            <span className={this.props.classes.deviceValue}>
+                            <span style={styles.deviceValue}>
                                 {device.productID || ''}
                                 ,
                             </span>
-                            <span className={this.props.classes.deviceType}>
+                            <span style={styles.deviceType}>
                                 {I18n.t('Device type')}
                                 :
                             </span>
-                            <span className={this.props.classes.deviceType}>{I18n.t(device.type)}</span>
+                            <span style={styles.deviceType}>{I18n.t(device.type)}</span>
                         </div>
                     </div>
                 </div>
@@ -703,7 +688,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 />
             </TableCell>
             <TableCell style={{ width: 0 }}>
-                <Tooltip title={I18n.t('Edit device')} classes={{ popper: this.props.classes.tooltip }}>
+                <Tooltip title={I18n.t('Edit device')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                     <IconButton onClick={() => {
                         this.setState(
                             {
@@ -738,14 +723,14 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 </Tooltip>
             </TableCell>
             <TableCell style={{ width: 0 }}>
-                {this.props.alive ? <Tooltip title={I18n.t('Reset to factory defaults')} classes={{ popper: this.props.classes.tooltip }}>
+                {this.props.alive ? <Tooltip title={I18n.t('Reset to factory defaults')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                     <IconButton onClick={() => this.setState({ showResetDialog: { bridgeOrDevice: device, step: 0 } })}>
                         <DomainDisabled />
                     </IconButton>
                 </Tooltip> : null}
             </TableCell>
             <TableCell style={{ width: 0 }}>
-                {this.props.alive && this.props.nodeStates[device.uuid]?.status === 'waitingForCommissioning' ? <Tooltip title={I18n.t('Re-announce')} classes={{ popper: this.props.classes.tooltip }}>
+                {this.props.alive && this.props.nodeStates[device.uuid]?.status === 'waitingForCommissioning' ? <Tooltip title={I18n.t('Re-announce')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                     <IconButton
                         onClick={() => {
                             this.props.socket.sendTo(`matter.${this.props.instance}`, 're-announce', { uuid: device.uuid })
@@ -763,7 +748,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 </Tooltip> : null}
             </TableCell>
             <TableCell style={{ width: 0 }}>
-                <Tooltip title={I18n.t('Delete device')} classes={{ popper: this.props.classes.tooltip }}>
+                <Tooltip title={I18n.t('Delete device')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                     <IconButton onClick={() => {
                         this.setState(
                             {
@@ -792,7 +777,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
             {this.renderDebugDialog()}
             {this.renderQrCodeDialog()}
             {this.renderResetDialog()}
-            <Tooltip title={I18n.t('Add device with auto-detection')} classes={{ popper: this.props.classes.tooltip }}>
+            <Tooltip title={I18n.t('Add device with auto-detection')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                 <Fab
                     size="small"
                     onClick={() => this.setState({
@@ -810,7 +795,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                     <Add />
                 </Fab>
             </Tooltip>
-            <Tooltip title={I18n.t('Add device from one state')} classes={{ popper: this.props.classes.tooltip }}>
+            <Tooltip title={I18n.t('Add device from one state')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                 <Fab
                     size="small"
                     onClick={() => this.setState({
@@ -840,4 +825,4 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
     }
 }
 
-export default withStyles(styles)(Devices);
+export default Devices;

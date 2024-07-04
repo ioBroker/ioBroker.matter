@@ -48,11 +48,10 @@ import {
     type ThemeType,
     type IobTheme,
 } from '@iobroker/adapter-react-v5';
-// import DeviceManager from '@iobroker/dm-gui-components';
+import DeviceManager from '@iobroker/dm-gui-components';
 
 import type { CommissionableDevice, GUIMessage, MatterConfig } from '@/types';
-import { getText } from '../Utils';
-import DeviceManager from '../components/InstanceManager';
+import { getText } from '@/Utils';
 
 const styles: Record<string, React.CSSProperties> = {
     panel: {

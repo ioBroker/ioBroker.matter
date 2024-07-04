@@ -240,8 +240,7 @@ class Options extends Component<OptionsProps, OptionsState> {
                     this.props.onChange(
                         'interface',
                         e.target.value === '_' ? '' : e.target.value,
-                    )
-                }
+                    )}
                 label={I18n.t('Interface')}
             /> : <FormControl style={styles.input}>
                 <InputLabel>{I18n.t('Interface')}</InputLabel>
@@ -272,8 +271,7 @@ class Options extends Component<OptionsProps, OptionsState> {
                         this.props.onChange(
                             'interface',
                             e.target.value === '_' ? '' : e.target.value,
-                        )
-                    }
+                        )}
                 >
                     {this.state.interfaces.map((it, i) => (
                         <MenuItem key={i} value={it.value}>

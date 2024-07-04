@@ -1,6 +1,8 @@
-import { AdminConnection, I18n } from '@iobroker/adapter-react-v5';
-import ChannelDetector, { DetectOptions, Types } from '@iobroker/type-detector';
-import { DetectedDevice, DetectedRoom } from './types';
+import type { AdminConnection } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/adapter-react-v5';
+import type { DetectOptions } from '@iobroker/type-detector';
+import ChannelDetector, { Types } from '@iobroker/type-detector';
+import type { DetectedDevice, DetectedRoom } from './types';
 
 function getObjectIcon(
     obj: ioBroker.Object | DetectedDevice,

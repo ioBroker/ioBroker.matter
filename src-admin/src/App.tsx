@@ -1,7 +1,9 @@
 import React from 'react';
 import { ThemeProvider, StyledEngineProvider } from '@mui/material/styles';
 
-import { AppBar, Tabs, Tab, IconButton } from '@mui/material';
+import {
+    AppBar, Tabs, Tab, IconButton,
+} from '@mui/material';
 
 import {
     SignalWifiConnectedNoInternet4 as IconNoConnection,
@@ -24,12 +26,6 @@ import ControllerTab from './Tabs/Controller';
 import BridgesTab from './Tabs/Bridges';
 import DevicesTab from './Tabs/Devices';
 
-declare global {
-    interface Window {
-        sentryDSN: string;
-    }
-}
-
 import type {
     MatterAdapterConfig,
     NodeStateResponse,
@@ -38,6 +34,12 @@ import type {
     DetectedRoom,
     CommissioningInfo,
 } from './types';
+
+declare global {
+    interface Window {
+        sentryDSN: string;
+    }
+}
 
 const productIDs: string[] = [];
 for (let i = 0x8000; i <= 0x801f; i++) {
@@ -75,7 +77,7 @@ interface AppState extends GenericAppState {
 }
 
 class App extends GenericApp<GenericAppProps, AppState> {
-    private isIFrame: boolean = false;
+    private isIFrame = false;
 
     private configHandler: ConfigHandler | null = null;
 
@@ -188,8 +190,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             .catch(e =>
                 this.showError(
                     `Cannot subscribe on system.adapter.matter.${this.instance}.alive: ${e}`,
-                ),
-            );
+                ));
 
         const alive = await this.socket.getState(
             `system.adapter.matter.${this.instance}.alive`,
@@ -342,8 +343,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             theme={this.state.theme}
             detectedDevices={this.state.detectedDevices || []}
             setDetectedDevices={(detectedDevices: DetectedRoom[]) =>
-                this.setState({ detectedDevices })
-            }
+                this.setState({ detectedDevices })}
             productIDs={productIDs}
             matter={this.state.matter}
             updateConfig={this.onChanged}
@@ -372,16 +372,14 @@ class App extends GenericApp<GenericAppProps, AppState> {
             theme={this.state.theme}
             detectedDevices={this.state.detectedDevices || []}
             setDetectedDevices={(detectedDevices: DetectedRoom[]) =>
-                this.setState({ detectedDevices })
-            }
+                this.setState({ detectedDevices })}
             productIDs={productIDs}
             instance={this.instance}
             matter={this.state.matter}
             updateConfig={this.onChanged}
             showToast={(text: string) => this.showToast(text)}
             checkLicenseOnAdd={(matter: MatterConfig) =>
-                this.checkLicenseOnAdd('addDevice', matter)
-            }
+                this.checkLicenseOnAdd('addDevice', matter)}
         />;
     }
 

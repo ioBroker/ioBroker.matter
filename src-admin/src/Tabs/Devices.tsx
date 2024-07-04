@@ -37,16 +37,16 @@ import {
 
 import { I18n, SelectID } from '@iobroker/adapter-react-v5';
 
-import DeviceDialog, {
-    DEVICE_ICONS,
-    SUPPORTED_DEVICES,
-} from '../components/DeviceDialog';
 import type {
     DeviceDescription,
     DetectedDevice,
     MatterConfig,
     DetectedRoom,
 } from '@/types';
+import DeviceDialog, {
+    DEVICE_ICONS,
+    SUPPORTED_DEVICES,
+} from '../components/DeviceDialog';
 import BridgesAndDevices, {
     type BridgesAndDevicesProps,
     type BridgesAndDevicesState,

@@ -143,8 +143,6 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
     private qrScanner: QrScanner | null | true = null;
 
-    private aliveState: boolean;
-
     constructor(props: ComponentProps) {
         super(props);
         const openedNodesStr = window.localStorage.getItem('openedNodes');
@@ -173,8 +171,6 @@ class Controller extends Component<ComponentProps, ComponentState> {
             openedNodes,
             showQrCodeDialog: null,
         };
-
-        this.aliveState = this.props.alive;
 
         this.refQrScanner = React.createRef();
     }

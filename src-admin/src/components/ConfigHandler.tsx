@@ -233,7 +233,7 @@ class ConfigHandler {
         return this.commissioning;
     }
 
-    async loadConfig() {
+    async loadConfig(): Promise<MatterConfig> {
         let devicesAndBridges: Record<string, ioBroker.ChannelObject>;
         let controllerObj: ioBroker.FolderObject | null = null;
         if (!this.socket) {
@@ -360,6 +360,7 @@ class ConfigHandler {
             `matter.${this.instance}.devices.*`,
             this.onStateChange,
         );
+
         return JSON.parse(JSON.stringify(this.config));
     }
 

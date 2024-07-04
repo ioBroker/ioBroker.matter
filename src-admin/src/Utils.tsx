@@ -210,15 +210,13 @@ export async function detectDevices(
                     channelId = parts.join('.');
                     if (
                         devicesObject[channelId] &&
-            (devicesObject[channelId].type === 'channel' ||
-              devicesObject[stateId].type === 'folder')
+            (devicesObject[channelId].type === 'channel')
                     ) {
                         parts.pop();
                         deviceId = parts.join('.');
                         if (
                             !devicesObject[deviceId] ||
-              (devicesObject[deviceId].type !== 'device' &&
-                devicesObject[stateId].type !== 'folder')
+              (devicesObject[deviceId].type !== 'device')
                         ) {
                             deviceId = null;
                         }

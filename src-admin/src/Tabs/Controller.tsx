@@ -51,7 +51,7 @@ import {
 import DeviceManager from '@iobroker/dm-gui-components';
 
 import type { CommissionableDevice, GUIMessage, MatterConfig } from '@/types';
-import { getText } from '@/Utils';
+import { getText } from '../Utils';
 
 const styles: Record<string, React.CSSProperties> = {
     panel: {

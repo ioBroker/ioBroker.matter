@@ -46,9 +46,9 @@ import {
 } from '@iobroker/adapter-react-v5';
 import type {
     AdminConnection,
-    type ThemeName,
-    type ThemeType,
-    type IobTheme,
+    ThemeName,
+    ThemeType,
+    IobTheme,
 } from '@iobroker/adapter-react-v5';
 import DeviceManager from '@iobroker/dm-gui-components';
 

@@ -174,11 +174,15 @@ class App extends GenericApp<GenericAppProps, AppState> {
         const commissioning = this.configHandler.getCommissioning();
         matter.controller = matter.controller || { enabled: false };
         matter.devices = matter.devices || [];
+        // @ts-expect-error list should not exist as it should be an array.. fix types
         if (matter.devices.list) {
+            // @ts-expect-error list should not exist as it should be an array.. fix types
             matter.devices = matter.devices.list;
         }
         matter.bridges = matter.bridges || [];
+        // @ts-expect-error list should not exist as it should be an array.. fix types
         if (matter.bridges.list) {
+            // @ts-expect-error list should not exist as it should be an array.. fix types
             matter.bridges = matter.bridges.list;
         }
 

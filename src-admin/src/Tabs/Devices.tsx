@@ -495,8 +495,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
     addDevices = async (devices: DetectedDevice[], isAutoDetected: boolean) => {
         const matter: MatterConfig = JSON.parse(JSON.stringify(this.props.matter));
 
-        for (let d = 0; d < devices.length; d++) {
-            const device = devices[d];
+        for (const device of devices) {
             if (!matter.devices.find(d => d.oid === device._id)) {
                 if (await this.props.checkLicenseOnAdd(matter)) {
                     const obj: DeviceDescription = {

@@ -237,7 +237,7 @@ class ConfigHandler {
         let devicesAndBridges: Record<string, ioBroker.ChannelObject>;
         let controllerObj: ioBroker.FolderObject | null = null;
         if (!this.socket) {
-            return;
+            return undefined;
         }
 
         try {
@@ -246,7 +246,7 @@ class ConfigHandler {
                 `matter.${this.instance}.`,
                 `matter.${this.instance}.\u9999`,
             );
-        } catch (e) {
+        } catch {
             devicesAndBridges = {};
         }
 
@@ -254,7 +254,7 @@ class ConfigHandler {
             controllerObj = (await this.socket.getObject(
                 `matter.${this.instance}.controller`,
             )) as ioBroker.FolderObject | null;
-        } catch (e) {
+        } catch {
             // ignore
         }
         if (!controllerObj) {
@@ -324,7 +324,7 @@ class ConfigHandler {
                     this.commissioning.devices[parts[3]] = !!commissioning[id]?.val;
                 }
             });
-        } catch (e) {
+        } catch {
             // ignore
         }
 

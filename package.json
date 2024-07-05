@@ -65,7 +65,7 @@
   "scripts": {
     "test": "mocha --exit",
     "prepublishOnly": "npm run build",
-    "lint": "eslint --ext .ts src/",
+    "lint": "eslint src/",
     "lint-frontend": "eslint src-admin/",
     "build": "npm run build:ts && npm run build:gui",
     "build:gui": "gulp",

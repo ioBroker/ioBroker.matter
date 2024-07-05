@@ -1,4 +1,4 @@
-import { Types } from '@iobroker/type-detector';
+import type { Types } from '@iobroker/type-detector';
 
 export interface MatterAdapterConfig extends ioBroker.AdapterConfig {
     interface: string;
@@ -56,7 +56,7 @@ export interface DetectedDevice {
 export interface DetectedRoom {
     _id: `system.room.${string}` | 'unknown';
     common: ioBroker.EnumCommon;
-    devices: DetectedDevice[],
+    devices: DetectedDevice[];
 }
 
 export interface MatterConfig {
@@ -74,13 +74,13 @@ export interface MatterConfig {
 }
 
 export type ServerAddressIp = {
-    type: "udp";
+    type: 'udp';
     ip: string;
     port: number;
 };
 
 export type ServerAddressBle = {
-    type: "ble";
+    type: 'ble';
     peripheralAddress: string;
 };
 

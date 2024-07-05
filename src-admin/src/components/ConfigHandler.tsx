@@ -1,7 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
-import { AdminConnection } from '@iobroker/adapter-react-v5';
-
 import { I18n } from '@iobroker/adapter-react-v5';
+import type { AdminConnection  } from '@iobroker/adapter-react-v5';
 
 import type {
     BridgeDescription,
@@ -25,7 +24,7 @@ class ConfigHandler {
 
     private commissioning: CommissioningInfo;
 
-    private changed: boolean = false;
+    private changed = false;
 
     private readonly lang = I18n.getLanguage();
 
@@ -234,11 +233,11 @@ class ConfigHandler {
         return this.commissioning;
     }
 
-    async loadConfig() {
+    async loadConfig(): Promise<MatterConfig> {
         let devicesAndBridges: Record<string, ioBroker.ChannelObject>;
         let controllerObj: ioBroker.FolderObject | null = null;
         if (!this.socket) {
-            return;
+            return undefined;
         }
 
         try {
@@ -247,7 +246,7 @@ class ConfigHandler {
                 `matter.${this.instance}.`,
                 `matter.${this.instance}.\u9999`,
             );
-        } catch (e) {
+        } catch {
             devicesAndBridges = {};
         }
 
@@ -255,7 +254,7 @@ class ConfigHandler {
             controllerObj = (await this.socket.getObject(
                 `matter.${this.instance}.controller`,
             )) as ioBroker.FolderObject | null;
-        } catch (e) {
+        } catch {
             // ignore
         }
         if (!controllerObj) {
@@ -325,7 +324,7 @@ class ConfigHandler {
                     this.commissioning.devices[parts[3]] = !!commissioning[id]?.val;
                 }
             });
-        } catch (e) {
+        } catch {
             // ignore
         }
 
@@ -361,6 +360,7 @@ class ConfigHandler {
             `matter.${this.instance}.devices.*`,
             this.onStateChange,
         );
+
         return JSON.parse(JSON.stringify(this.config));
     }
 
@@ -370,9 +370,8 @@ class ConfigHandler {
     ): string {
         if (!name || typeof name === 'string') {
             return (name as string) || '';
-        } else {
-            return name.en || name[lang];
         }
+        return name.en || name[lang];
     }
 
     static sortAll(config: MatterConfig, lang: ioBroker.Languages) {

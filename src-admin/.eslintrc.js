@@ -3,6 +3,7 @@ module.exports = {
     globals: {
         ioBroker: true,
     },
+    ignorePatterns: ['build/*'],
     env: {
         browser: true,
         es2021: true,

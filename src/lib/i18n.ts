@@ -8,7 +8,7 @@ import pt from './i18n/pt.json';
 import pl from './i18n/pl.json';
 import ru from './i18n/ru.json';
 import uk from './i18n/uk.json';
-import zhCN from './i18n/zh-CN.json';
+import zhCN from './i18n/zh-cn.json';
 
 const words: Record<string, Record<ioBroker.Languages, string>> = {};
 

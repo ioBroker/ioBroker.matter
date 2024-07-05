@@ -285,8 +285,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
         );
 
         this.props.matter.bridges.forEach(bridge =>
-            bridge.list.forEach(device => (usedDevices[device.oid] = true)),
-        );
+            bridge.list.forEach(device => (usedDevices[device.oid] = true)));
 
         this.setState({
             rooms,
@@ -428,12 +427,11 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
         const lengths = this.state.rooms?.map(room => {
             if (this.state.ignoreUsedDevices) {
                 return room.devices.filter(device =>
-                        !this.state.usedDevices[device._id] && SUPPORTED_DEVICES.includes(device.deviceType)).length;
+                    !this.state.usedDevices[device._id] && SUPPORTED_DEVICES.includes(device.deviceType)).length;
             }
 
             return room.devices.filter(device =>
-                SUPPORTED_DEVICES.includes(device.deviceType),
-            ).length;
+                SUPPORTED_DEVICES.includes(device.deviceType)).length;
         }) || [];
 
         return <Dialog open={!0} onClose={this.props.onClose} fullWidth>
@@ -544,7 +542,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                                 return null;
                             }
                             if (
-                                !this.state.showUnsupported && !room.devices.filter(device => SUPPORTED_DEVICES.includes(device.deviceType),).length
+                                !this.state.showUnsupported && !room.devices.filter(device => SUPPORTED_DEVICES.includes(device.deviceType)).length
                             ) {
                                 return null;
                             }

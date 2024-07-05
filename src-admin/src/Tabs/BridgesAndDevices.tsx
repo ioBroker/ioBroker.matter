@@ -305,7 +305,9 @@ class BridgesAndDevices<
                                                         fontStyle: 'italic',
                                                     }}
                                                 >
-                          ({info.label})
+                          (
+                                                    {info.label}
+)
                                                 </span>
                                             ) : null}
                                         </TableCell>

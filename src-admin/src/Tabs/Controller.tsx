@@ -40,19 +40,20 @@ import {
 } from '@mui/icons-material';
 
 import {
-    AdminConnection,
     I18n,
     IconClosed,
     IconOpen,
-    type ThemeName,
-    type ThemeType,
-    type IobTheme,
 } from '@iobroker/adapter-react-v5';
-// import DeviceManager from '@iobroker/dm-gui-components';
+import type {
+    AdminConnection,
+    ThemeName,
+    ThemeType,
+    IobTheme,
+} from '@iobroker/adapter-react-v5';
+import DeviceManager from '@iobroker/dm-gui-components';
 
 import type { CommissionableDevice, GUIMessage, MatterConfig } from '@/types';
 import { getText } from '../Utils';
-import DeviceManager from '../components/InstanceManager';
 
 const styles: Record<string, React.CSSProperties> = {
     panel: {
@@ -142,8 +143,6 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
     private qrScanner: QrScanner | null | true = null;
 
-    private aliveState: boolean;
-
     constructor(props: ComponentProps) {
         super(props);
         const openedNodesStr = window.localStorage.getItem('openedNodes');
@@ -172,8 +171,6 @@ class Controller extends Component<ComponentProps, ComponentState> {
             openedNodes,
             showQrCodeDialog: null,
         };
-
-        this.aliveState = this.props.alive;
 
         this.refQrScanner = React.createRef();
     }
@@ -241,16 +238,14 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         `matter.${this.props.instance}.controller.*`,
                         this.onObjectChange,
                     )
-                    .catch(e => window.alert(`Cannot subscribe: ${e}`)),
-            )
+                    .catch(e => window.alert(`Cannot subscribe: ${e}`)))
             .then(() =>
                 this.props.socket
                     .subscribeState(
                         `matter.${this.props.instance}.controller.*`,
                         this.onStateChange,
                     )
-                    .catch(e => window.alert(`Cannot subscribe 1: ${e}`)),
-            );
+                    .catch(e => window.alert(`Cannot subscribe 1: ${e}`)));
     }
 
     onObjectChange = (id: string, obj: ioBroker.Object | null | undefined) => {
@@ -368,8 +363,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
         return <Dialog
             open={!0}
             onClose={() =>
-                this.setState({ showQrCodeDialog: null }, () => this.destroyQrCode())
-            }
+                this.setState({ showQrCodeDialog: null }, () => this.destroyQrCode())}
         >
             <DialogTitle>{I18n.t('QR Code')}</DialogTitle>
             <DialogContent>
@@ -427,8 +421,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     onClick={() => {
                         const device = this.state.showQrCodeDialog;
                         this.setState({ showQrCodeDialog: null }, () =>
-                            this.destroyQrCode(),
-                        );
+                            this.destroyQrCode());
                         this.props.socket
                             .sendTo(
                                 `matter.${this.props.instance}`,
@@ -458,9 +451,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     color="grey"
                     onClick={() =>
                         this.setState({ showQrCodeDialog: null }, () =>
-                            this.destroyQrCode(),
-                        )
-                    }
+                            this.destroyQrCode())}
                     startIcon={<Close />}
                 >
                     {I18n.t('Close')}
@@ -496,7 +487,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                                 manualCode: '',
                                                 qrCode: '',
                                             });
-                                            setTimeout(async() => this.initQrCode(), 500);
+                                            setTimeout(async () => this.initQrCode(), 500);
                                         }}
                                     >
                                         <LeakAdd />
@@ -518,8 +509,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                 'controllerDiscoveryStop',
                                 {},
                             )
-                            .then(() => this.setState({ discoveryDone: false }))
-                    }
+                            .then(() => this.setState({ discoveryDone: false }))}
                     startIcon={<SearchOff />}
                 >
                     {I18n.t('Stop')}
@@ -951,8 +941,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                                 });
                                             }
                                         },
-                                    ),
-                            );
+                                    ));
                         }}
                     >
                         {I18n.t('Discovery devices')}

@@ -67,6 +67,7 @@
     "test": "mocha --exit",
     "prepublishOnly": "npm run build",
     "lint": "eslint --ext .ts src/",
+    "lint-frontend": "eslint src-admin/",
     "build": "npm run build:ts && npm run build:gui",
     "build:gui": "gulp",
     "build:ts": "tsc -p tsconfig.build.json",

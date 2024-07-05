@@ -77,7 +77,8 @@ function build() {
     return new Promise((resolve, reject) => {
         const options = {
             stdio: 'pipe',
-            cwd:   `${__dirname}/src-admin/`
+            cwd:   `${__dirname}/src-admin/`,
+            env: { DISABLE_ESLINT_PLUGIN: true }
         };
 
         const version = JSON.parse(fs.readFileSync(`${__dirname}/package.json`).toString('utf8')).version;

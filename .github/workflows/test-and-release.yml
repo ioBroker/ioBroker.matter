@@ -33,17 +33,14 @@ jobs:
       - name: Install Dependencies
         run: npm run npm
 
+      - name: Lint TypeScript backend code
+        run: npm run lint
+
+      - name: Lint TypeScript frontend code
+        run: npm run lint-frontend
+
       - name: Build
         run: npm run build
-
-#      - name: Perform a type check
-#        run: npm run check:ts
-#        env:
-#          CI: true
-      # - name: Lint TypeScript code
-      #   run: npm run lint
-#      - name: Test package files
-#        run: npm run test:package
 
   # Runs adapter tests on all supported node versions and OSes
   adapter-tests:
@@ -54,7 +51,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
+        node-version: [18.x, 20.x, 22.x]
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:

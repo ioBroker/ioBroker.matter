@@ -44,7 +44,6 @@
     "@typescript-eslint/eslint-plugin": "^7.14.1",
     "chai": "^4.4.1",
     "eslint": "^8.57.0",
-    "eslint-config-standard-with-typescript": "^43.0.1",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-n": "^17.9.0",
     "eslint-plugin-promise": "^6.2.0",
@@ -76,7 +75,7 @@
     "release-minor": "release-script minor --yes",
     "release-major": "release-script major --yes",
     "update-packages": "ncu --upgrade && cd src-admin && ncu --upgrade",
-    "npm": "npm i -f && cd src-admin && npm i -f",
+    "npm": "npm i && cd src-admin && npm i",
     "dev-server": "dev-server"
   },
   "license": "Apache-2.0",

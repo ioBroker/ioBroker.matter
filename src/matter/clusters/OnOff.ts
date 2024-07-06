@@ -21,7 +21,7 @@ class OnOff extends Base {
             {
                 name: 'Boolean state',
                 type: 'boolean',
-                role: features.levelControlForLighting ? 'switch.light' : 'switch',
+                role: features.lighting ? 'switch.light' : 'switch',
                 read: true,
                 write: true,
             },

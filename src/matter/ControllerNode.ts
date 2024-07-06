@@ -689,9 +689,10 @@ class Controller {
             passcode = pairingCodeCodec.passcode;
         } else if (qrCode) {
             const pairingCodeCodec = QrPairingCodeCodec.decode(qrCode);
-            longDiscriminator = pairingCodeCodec.discriminator;
+            // TODO handle the case where multiple devices are included
+            longDiscriminator = pairingCodeCodec[0].discriminator;
             shortDiscriminator = undefined;
-            passcode = pairingCodeCodec.passcode;
+            passcode = pairingCodeCodec[0].passcode;
         }
         if (device) {
             longDiscriminator = undefined;
@@ -713,13 +714,18 @@ class Controller {
 
         // this.adapter.log.debug(`Commissioning ... ${JSON.stringify(options)}`);
         try {
-            const nodeObject = await this.commissioningController.commissionNode(options);
-            this.matterNodeIds.push(nodeObject.nodeId);
+            const nodeId = await this.commissioningController.commissionNode(options);
+            this.matterNodeIds.push(nodeId);
+            const nodeObject = this.commissioningController.getConnectedNode(nodeId);
+            if (nodeObject === undefined) {
+                // should never happen
+                throw new Error(`Node ${nodeId} not found connected but commissioning was successful.`);
+            }
 
             await this.nodeToIoBrokerStructure(nodeObject);
 
-            this.adapter.log.debug(`Commissioning successfully done with nodeId ${nodeObject.nodeId}`);
-            return { result: true, nodeId: nodeObject.nodeId.toString() };
+            this.adapter.log.debug(`Commissioning successfully done with nodeId ${nodeId}`);
+            return { result: true, nodeId: nodeId.toString() };
         } catch (error) {
             this.adapter.log.debug(`Commissioning failed: ${error}`);
             return { error, result: false };

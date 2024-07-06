@@ -1,29 +1,23 @@
 import {
-    fromJson,
+    fromJson, MaybeAsyncStorage,
     StorageError,
     SupportedStorageTypes,
-    Storage,
     toJson
 } from '@project-chip/matter.js/storage';
 
 /**
  * Class that implements the storage for one Node in the Matter ecosystem
  */
-export class IoBrokerNodeStorage implements Storage {
-    initialized = false;
-
-    private data: Record<string, any> = {};
-    private savingNumber: number = 1;
-    private readonly savingPromises: Record<string, Promise<void>> = {};
-    private readonly createdKeys: Record<string, boolean>;
+export class IoBrokerNodeStorage implements MaybeAsyncStorage {
+    private existingObjectIds = new Set<string>();
     private readonly storageRootOid: string;
+    initialized = false;
 
     constructor(
         private readonly adapter: ioBroker.Adapter,
         private namespace: string,
         private clear = false
     ) {
-        this.createdKeys = {};
         this.storageRootOid = `storage.${this.namespace}`;
     }
 
@@ -45,66 +39,74 @@ export class IoBrokerNodeStorage implements Storage {
             return;
         }
 
-        // read all keys
+        // read all keys, storage entries always have a value, so we can use the states
         const states = await this.adapter.getStatesAsync(`${this.storageRootOid}.*`);
-        const len = `${this.adapter.namespace}.${this.storageRootOid}.`.length;
+        const namespaceLength = this.adapter.namespace.length + 1;
         for (const key in states) {
-            this.createdKeys[key] = true;
-            this.data[key.substring(len)] = fromJson(states[key].val as string);
+            this.existingObjectIds.add(key.substring(namespaceLength));
         }
 
         this.initialized = true;
     }
 
     async clearAll(): Promise<void> {
-        await this.adapter.delObjectAsync(this.storageRootOid, { recursive: true });
+        try {
+            await this.adapter.delObjectAsync(this.storageRootOid, { recursive: true });
+        } catch (error) {
+            this.adapter.log.error(`[STORAGE] Cannot clear all state: ${error}`);
+        }
+        this.existingObjectIds.clear();
         this.clear = false;
-        this.data = {};
     }
 
     async close(): Promise<void> {
-        const keys = Object.keys(this.savingPromises);
-        if (keys.length) {
-            await Promise.all(keys.map(key => this.savingPromises[key]));
-        }
+        // Nothing todo
     }
 
     buildKey(contexts: string[], key: string): string {
-        return `${contexts.join('$$')}$$${key}`;
+        return `${this.storageRootOid}.${contexts.join('$$')}$$${key}`;
     }
 
     async get<T extends SupportedStorageTypes>(contexts: string[], key: string): Promise<T | undefined> {
         if (!key.length) {
             throw new StorageError('[STORAGE] Context and key must not be empty strings!');
         }
-        const value = this.data[this.buildKey(contexts, key)];
-        if (value === null || value === undefined) {
-            return undefined;
+        try {
+            const valueState = await this.adapter.getStateAsync(this.buildKey(contexts, key));
+            if (valueState === null || valueState === undefined) {
+                return undefined;
+            }
+            if (typeof valueState.val !== 'string') {
+                this.adapter.log.error(`[STORAGE] Invalid value for key ${key} in context ${contexts.join('$$')}: ${toJson(valueState.val)}`);
+                return undefined;
+            }
+            return fromJson(valueState.val) as T;
+        } catch (error) {
+            this.adapter.log.error(`[STORAGE] Cannot read state: ${error}`);
         }
-        return value as T;
     }
 
     async contexts(contexts: string[]): Promise<string[]> {
         const contextKeyStart = this.buildKey(contexts, '');
         const len = contextKeyStart.length;
 
-        const thisContexts = new Array<string>();
-        Object.keys(this.data)
+        const foundContexts = new Set<string>();
+        Array.from(this.existingObjectIds.keys())
             .filter(key => key.startsWith(contextKeyStart) && key.indexOf('$$', len) !== -1)
             .forEach(key => {
                 const context = key.substring(len, key.indexOf('$$', len));
-                if (!thisContexts.includes(context)) {
-                    thisContexts.push(context);
+                if (!foundContexts.has(context)) {
+                    foundContexts.add(context);
                 }
             });
-        return thisContexts;
+        return Array.from(foundContexts.keys());
     }
 
     async keys(contexts: string[]): Promise<string[]> {
         const contextKeyStart = this.buildKey(contexts, '');
         const len = contextKeyStart.length;
 
-        return Object.keys(this.data)
+        return Array.from(this.existingObjectIds.keys())
             .filter(key => key.startsWith(contextKeyStart) && key.indexOf('$$', len) === -1)
             .map(key => key.substring(len));
     }
@@ -118,73 +120,41 @@ export class IoBrokerNodeStorage implements Storage {
         return values;
     }
 
-    saveKey(oid: string, value: string): void {
-        const index = this.savingNumber++;
-        if (this.savingNumber >= 0xFFFFFFFF) {
-            this.savingNumber = 1;
+    async #setKey(contexts: string[], key: string, value: SupportedStorageTypes): Promise<void> {
+        if (!key.length) {
+            throw new StorageError('[STORAGE] Context and key must not be empty strings!');
         }
-        if (this.createdKeys[oid]) {
-            this.savingPromises[index] = this.adapter.setStateAsync(`${this.storageRootOid}.${oid}`, value, true)
-                .catch(error => this.adapter.log.error(`[STORAGE] Cannot save state: ${error}`))
-                .then(() => {
-                    delete this.savingPromises[index];
-                });
 
-        } else {
-            this.savingPromises[index] =
-                this.adapter.setObjectAsync(`${this.storageRootOid}.${oid}`, {
+        const oid = this.buildKey(contexts, key);
+
+        try {
+            if (!this.existingObjectIds.has(oid)) {
+                await this.adapter.setObjectAsync(oid, {
                     type: 'state',
                     common: {
-                        name: 'key',
-                        type: 'mixed',
+                        name: key,
+                        type: 'string',
                         role: 'state',
                         expert: true,
                         read: true,
                         write: false,
                     },
                     native: {}
-                })
-                    .then(() => this.adapter.setStateAsync(`${this.storageRootOid}.${oid}`, value, true)
-                        .catch(error => this.adapter.log.error(`[STORAGE] Cannot save state: ${error}`))
-                        .then(() => {
-                            this.createdKeys[oid] = true;
-                            delete this.savingPromises[index];
-                        }));
-        }
-    }
-
-    deleteKey(oid: string): void {
-        const index = this.savingNumber++;
-        if (this.createdKeys[oid]) {
-            if (this.savingNumber >= 0xFFFFFFFF) {
-                this.savingNumber = 1;
-            }
-            this.savingPromises[index] = this.adapter.delObjectAsync(`${this.storageRootOid}.${oid}`)
-                .catch(error => this.adapter.log.error(`[STORAGE] Cannot save state: ${error}`))
-                .then(() => {
-                    delete this.createdKeys[oid];
-                    delete this.savingPromises[index];
                 });
-
+                this.existingObjectIds.add(oid);
+            }
+            await this.adapter.setState(oid, toJson(value), true);
+        } catch (error) {
+            this.adapter.log.error(`[STORAGE] Cannot save state: ${error}`);
         }
-    }
-
-    #setKey(contexts: string[], key: string, value: SupportedStorageTypes): void {
-        if (!key.length) {
-            throw new StorageError('[STORAGE] Context and key must not be empty strings!');
-        }
-
-        const oid = this.buildKey(contexts, key);
-        this.data[oid] = value;
-        this.saveKey(oid, toJson(value));
     }
 
     async set(contexts: string[], keyOrValue: string | Record<string, SupportedStorageTypes>, value?: SupportedStorageTypes): Promise<void> {
         if (typeof keyOrValue === 'string') {
-            this.#setKey(contexts, keyOrValue, value as SupportedStorageTypes);
+            await this.#setKey(contexts, keyOrValue, value);
         } else {
             for (const key in keyOrValue) {
-                this.#setKey(contexts, key, keyOrValue[key]);
+                await this.#setKey(contexts, key, keyOrValue[key]);
             }
         }
     }
@@ -194,8 +164,12 @@ export class IoBrokerNodeStorage implements Storage {
             throw new StorageError('[STORAGE] Context and key must not be empty strings!');
         }
         const oid = this.buildKey(contexts, key);
-        delete this.data[oid];
 
-        this.deleteKey(oid);
+        try {
+            await this.adapter.delObjectAsync(oid);
+        } catch (error) {
+            this.adapter.log.error(`[STORAGE] Cannot delete state: ${error}`);
+        }
+        this.existingObjectIds.delete(oid);
     }
 }

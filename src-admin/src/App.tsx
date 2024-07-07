@@ -20,9 +20,9 @@ import {
     type GenericAppState,
 } from '@iobroker/adapter-react-v5';
 
+import ControllerTab from './Tabs/Controller';
 import ConfigHandler from './components/ConfigHandler';
 import OptionsTab from './Tabs/Options';
-import ControllerTab from './Tabs/Controller';
 import BridgesTab from './Tabs/Bridges';
 import DevicesTab from './Tabs/Devices';
 
@@ -259,12 +259,16 @@ class App extends GenericApp<GenericAppProps, AppState> {
     };
 
     onChanged = (newConfig: MatterConfig) => {
-        if (this.state.ready) {
+        if (!this.state.ready) {
+            return Promise.resolve();
+        }
+
+        return new Promise<void>(resolve => {
             this.setState({
                 matter: newConfig,
                 changed: !!this.configHandler?.isChanged(newConfig),
-            });
-        }
+            }, resolve);
+        });
     };
 
     onCommissioningChanged = (newCommissioning: CommissioningInfo) => {
@@ -306,7 +310,11 @@ class App extends GenericApp<GenericAppProps, AppState> {
             socket={this.socket}
             instance={this.instance}
             matter={this.state.matter}
-            updateConfig={this.onChanged}
+            updateConfig={async config => {
+                await this.onChanged(config);
+                await this.configHandler.saveControllerConfig(config);
+                this.setState({ changed: this.configHandler.isChanged(config) });
+            }}
             adapterName={this.adapterName}
             themeName={this.state.themeName}
             themeType={this.state.themeType}

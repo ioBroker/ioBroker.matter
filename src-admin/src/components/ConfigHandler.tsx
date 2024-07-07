@@ -8,6 +8,7 @@ import type {
     DeviceDescription,
     MatterConfig,
 } from '@/types';
+import { clone } from '../Utils';
 
 class ConfigHandler {
     private readonly instance: number;
@@ -434,54 +435,65 @@ class ConfigHandler {
         return isChanged;
     }
 
+    /**
+     * Saves the controller config to the controller object
+     *
+     * @param config the new MatterConfig
+     */
+    async saveControllerConfig(config: MatterConfig): Promise<void> {
+        // compare config with this.config
+        let controller: ioBroker.FolderObject | null = (await this.socket.getObject(
+            `matter.${this.instance}.controller`,
+        )) as ioBroker.FolderObject;
+
+        if (controller && JSON.stringify(config.controller) === JSON.stringify(controller)) {
+            return;
+        }
+
+        if (!controller) {
+            controller = {
+                _id: `matter.${this.instance}.controller`,
+                type: 'folder',
+                common: {
+                    name: 'Matter controller',
+                },
+                native: {
+                    enabled: false,
+                    ble: false,
+                    uuid: uuidv4(),
+                },
+            };
+        }
+
+        controller.native.enabled = config.controller.enabled;
+        controller.native.ble = config.controller.ble;
+        controller.native.hciId = config.controller.hciId;
+        controller.native.threadNetworkName = config.controller.threadNetworkName;
+        controller.native.wifiPassword = config.controller.wifiPassword;
+        controller.native.threadOperationalDataSet =
+                config.controller.threadOperationalDataSet;
+        controller.native.wifiSSID = config.controller.wifiSSID;
+
+        this.config.controller.enabled = config.controller.enabled;
+        this.config.controller.ble = config.controller.ble;
+        this.config.controller.hciId = config.controller.hciId;
+        this.config.controller.threadNetworkName =
+                config.controller.threadNetworkName;
+        this.config.controller.wifiPassword = config.controller.wifiPassword;
+        this.config.controller.threadOperationalDataSet =
+                config.controller.threadOperationalDataSet;
+        this.config.controller.wifiSSID = config.controller.wifiSSID;
+
+        await this.socket.setObject(controller._id, controller);
+        this.config.controller = clone(config.controller);
+    }
+
     async saveConfig(config: MatterConfig) {
         if (!this.socket) {
             return;
         }
 
-        // compare config with this.config
-        let controller: ioBroker.FolderObject | null = (await this.socket.getObject(
-            `matter.${this.instance}.controller`,
-        )) as ioBroker.FolderObject;
-        if (
-            !controller ||
-      JSON.stringify(config.controller) !==
-        JSON.stringify(this.config.controller)
-        ) {
-            if (!controller) {
-                controller = {
-                    _id: `matter.${this.instance}.controller`,
-                    type: 'folder',
-                    common: {
-                        name: 'Matter controller',
-                    },
-                    native: {
-                        enabled: false,
-                        ble: false,
-                        uuid: uuidv4(),
-                    },
-                };
-            }
-            controller.native.enabled = config.controller.enabled;
-            controller.native.ble = config.controller.ble;
-            controller.native.hciId = config.controller.hciId;
-            controller.native.threadNetworkName = config.controller.threadNetworkName;
-            controller.native.wifiPassword = config.controller.wifiPassword;
-            controller.native.threadOperationalDataSet =
-        config.controller.threadOperationalDataSet;
-            controller.native.wifiSSID = config.controller.wifiSSID;
-
-            this.config.controller.enabled = config.controller.enabled;
-            this.config.controller.ble = config.controller.ble;
-            this.config.controller.hciId = config.controller.hciId;
-            this.config.controller.threadNetworkName =
-        config.controller.threadNetworkName;
-            this.config.controller.wifiPassword = config.controller.wifiPassword;
-            this.config.controller.threadOperationalDataSet =
-        config.controller.threadOperationalDataSet;
-            this.config.controller.wifiSSID = config.controller.wifiSSID;
-            await this.socket.setObject(controller._id, controller);
-        }
+        await this.saveControllerConfig(config);
 
         // sync devices
         for (let d = 0; d < config.devices.length; d++) {
@@ -586,7 +598,7 @@ class ConfigHandler {
             window.parent.postMessage('nochange', '*');
             globalThis.changed = false;
         }
-        this.config = JSON.parse(JSON.stringify(config));
+        this.config = clone(config);
     }
 }
 

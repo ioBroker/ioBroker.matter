@@ -53,7 +53,7 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
         try {
             await this.adapter.delObjectAsync(this.storageRootOid, { recursive: true });
         } catch (error) {
-            this.adapter.log.error(`[STORAGE] Cannot clear all state: ${error}`);
+            this.adapter.log.error(`[STORAGE] Cannot clear all state: ${error.message}`);
         }
         this.existingObjectIds.clear();
         this.clear = false;
@@ -77,12 +77,12 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
                 return undefined;
             }
             if (typeof valueState.val !== 'string') {
-                this.adapter.log.error(`[STORAGE] Invalid value for key ${key} in context ${contexts.join('$$')}: ${toJson(valueState.val)}`);
+                this.adapter.log.error(`[STORAGE] Invalid value for key "${key}" in context "${contexts.join('$$')}": ${toJson(valueState.val)}`);
                 return undefined;
             }
             return fromJson(valueState.val) as T;
         } catch (error) {
-            this.adapter.log.error(`[STORAGE] Cannot read state: ${error}`);
+            this.adapter.log.error(`[STORAGE] Cannot read state: ${error.message}`);
         }
     }
 
@@ -168,7 +168,7 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
         try {
             await this.adapter.delObjectAsync(oid);
         } catch (error) {
-            this.adapter.log.error(`[STORAGE] Cannot delete state: ${error}`);
+            this.adapter.log.error(`[STORAGE] Cannot delete state: ${error.message}`);
         }
         this.existingObjectIds.delete(oid);
     }

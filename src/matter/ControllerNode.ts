@@ -231,7 +231,7 @@ class Controller {
             },
         });
 
-        await this.adapter.setState('controller.info.discovering', false);
+        await this.adapter.setState('controller.info.discovering', false, true);
 
         await this.commissioningController.start();
 
@@ -719,7 +719,7 @@ class Controller {
             const nodeObject = this.commissioningController.getConnectedNode(nodeId);
             if (nodeObject === undefined) {
                 // should never happen
-                throw new Error(`Node ${nodeId} not found connected but commissioning was successful.`);
+                throw new Error(`Node ${nodeId} is not connected but commissioning was successful. Should never happen.`);
             }
 
             await this.nodeToIoBrokerStructure(nodeObject);
@@ -736,7 +736,7 @@ class Controller {
         if (!this.commissioningController) {
             return null;
         }
-        await this.adapter.setState('controller.info.discovering', { val: true, ack: true } );
+        await this.adapter.setState('controller.info.discovering', true, true );
         this.discovering = true;
         this.adapter.log.info(`Start the discovering...`);
         const result = await this.commissioningController.discoverCommissionableDevices(
@@ -767,7 +767,7 @@ class Controller {
         if (this.commissioningController && this.discovering) {
             this.adapter.log.info(`Stop the discovering...`);
             this.discovering = false;
-            await this.adapter.setState('controller.info.discovering', { val: false, ack: true });
+            await this.adapter.setState('controller.info.discovering', false, true);
             this.commissioningController.cancelCommissionableDeviceDiscovery(
                 {},
                 {

@@ -53,7 +53,7 @@ import type {
 import DeviceManager from '@iobroker/dm-gui-components';
 
 import type { CommissionableDevice, GUIMessage, MatterConfig } from '@/types';
-import { getText } from '../Utils';
+import { getText, clone } from '../Utils';
 
 const styles: Record<string, React.CSSProperties> = {
     panel: {
@@ -252,7 +252,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
         if (!this.state.nodes) {
             return;
         }
-        const nodes = JSON.parse(JSON.stringify(this.state.nodes));
+        const nodes = clone(this.state.nodes);
         if (obj) {
             nodes[id] = obj;
         } else {
@@ -274,7 +274,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
         if (!this.state.states) {
             return;
         }
-        const states = JSON.parse(JSON.stringify(this.state.states));
+        const states = clone(this.state.states);
         if (state) {
             states[id] = state;
         } else {
@@ -502,14 +502,15 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 <Button
                     disabled={!this.state.discoveryRunning}
                     variant="contained"
-                    onClick={() =>
-                        this.props.socket
+                    onClick={async () => {
+                        await this.props.socket
                             .sendTo(
                                 `matter.${this.props.instance}`,
                                 'controllerDiscoveryStop',
                                 {},
-                            )
-                            .then(() => this.setState({ discoveryDone: false }))}
+                            );
+                        this.setState({ discoveryDone: false });
+                    }}
                     startIcon={<SearchOff />}
                 >
                     {I18n.t('Stop')}
@@ -783,7 +784,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     disabled={this.state.discoveryRunning}
                     checked={this.props.matter.controller.enabled}
                     onChange={e => {
-                        const matter = JSON.parse(JSON.stringify(this.props.matter));
+                        const matter = clone(this.props.matter);
                         matter.controller.enabled = e.target.checked;
                         this.props.updateConfig(matter);
                     }}
@@ -820,7 +821,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             label={I18n.t('Bluetooth HCI ID')}
                             value={this.props.matter.controller.hciId || ''}
                             onChange={e => {
-                                const matter = JSON.parse(JSON.stringify(this.props.matter));
+                                const matter = clone(this.props.matter);
                                 matter.controller.hciId = e.target.value;
                                 this.props.updateConfig(matter);
                             }}
@@ -841,7 +842,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             }
                             value={this.props.matter.controller.wifiSSID || ''}
                             onChange={e => {
-                                const matter = JSON.parse(JSON.stringify(this.props.matter));
+                                const matter = clone(this.props.matter);
                                 matter.controller.wifiSSID = e.target.value;
                                 this.props.updateConfig(matter);
                             }}
@@ -864,7 +865,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             }
                             value={this.props.matter.controller.wifiPassword || ''}
                             onChange={e => {
-                                const matter = JSON.parse(JSON.stringify(this.props.matter));
+                                const matter = clone(this.props.matter);
                                 matter.controller.wifiPassword = e.target.value;
                                 this.props.updateConfig(matter);
                             }}
@@ -881,7 +882,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             label={I18n.t('Thread network name')}
                             value={this.props.matter.controller.threadNetworkName || ''}
                             onChange={e => {
-                                const matter = JSON.parse(JSON.stringify(this.props.matter));
+                                const matter = clone(this.props.matter);
                                 matter.controller.threadNetworkName = e.target.value;
                                 this.props.updateConfig(matter);
                             }}
@@ -900,7 +901,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                 this.props.matter.controller.threadOperationalDataSet || ''
                             }
                             onChange={e => {
-                                const matter = JSON.parse(JSON.stringify(this.props.matter));
+                                const matter = clone(this.props.matter);
                                 matter.controller.threadOperationalDataSet = e.target.value;
                                 this.props.updateConfig(matter);
                             }}

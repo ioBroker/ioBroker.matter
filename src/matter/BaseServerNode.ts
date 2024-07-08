@@ -1,4 +1,10 @@
 import { GeneralNode, MessageResponse } from './GeneralNode';
+import type { MatterAdapter } from '../main';
+import { ServerNode } from '@project-chip/matter.js/node';
+
+export interface BaseCreateOptions {
+    adapter: MatterAdapter;
+}
 
 export enum NodeStates {
     Creating = 'creating',
@@ -21,8 +27,21 @@ export interface NodeStateResponse {
 }
 
 export abstract class BaseServerNode implements GeneralNode {
-    abstract advertise(): Promise<void>;
-    abstract factoryReset(): Promise<void>;
+    protected adapter: MatterAdapter;
+    protected serverNode?: ServerNode;
+
+    protected constructor(options: BaseCreateOptions) {
+        this.adapter = options.adapter;
+    }
+
+    async advertise(): Promise<void> {
+        await this.serverNode?.advertiseNow();
+    }
+
+    async factoryReset(): Promise<void> {
+        await this.serverNode?.factoryReset();
+    }
+
     abstract getState(): Promise<NodeStateResponse>;
 
     async handleCommand(command: string, _message: ioBroker.MessagePayload): Promise<MessageResponse> {

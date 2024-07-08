@@ -10,10 +10,9 @@ import VENDOR_IDS from './vendorIds';
 import type { MatterAdapter } from '../main';
 import { ServerNode } from '@project-chip/matter.js/node';
 import { SessionsBehavior } from '@project-chip/matter.js/behavior/system/sessions';
-import { BaseServerNode, NodeStateResponse, NodeStates } from './BaseServerNode';
+import { BaseCreateOptions, BaseServerNode, NodeStateResponse, NodeStates } from './BaseServerNode';
 
-export interface DeviceCreateOptions {
-    adapter: MatterAdapter;
+export interface DeviceCreateOptions extends BaseCreateOptions {
     parameters: DeviceOptions,
     device: GenericDevice;
     deviceOptions: DeviceDescription;
@@ -31,14 +30,11 @@ export interface DeviceOptions {
 class Device extends BaseServerNode {
     private parameters: DeviceOptions;
     private readonly device: GenericDevice;
-    private serverNode?: ServerNode;
     private deviceOptions: DeviceDescription;
-    private adapter: MatterAdapter;
     private commissioned: boolean | null = null;
 
     constructor(options: DeviceCreateOptions) {
-        super();
-        this.adapter = options.adapter;
+        super(options);
         this.parameters = options.parameters;
         this.device = options.device;
         this.deviceOptions = options.deviceOptions;
@@ -170,7 +166,7 @@ class Device extends BaseServerNode {
         if (!this.serverNode?.lifecycle.isCommissioned) {
             if (this.commissioned !== false) {
                 this.commissioned = false;
-                await this.adapter.setStateAsync(`devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
+                await this.adapter.setState(`devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
             }
             const { qrPairingCode, manualPairingCode } = this.serverNode?.state.commissioning.pairingCodes;
             return {
@@ -181,7 +177,7 @@ class Device extends BaseServerNode {
         } else {
             if (this.commissioned !== true) {
                 this.commissioned = true;
-                await this.adapter.setStateAsync(`devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
+                await this.adapter.setState(`devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
             }
 
             const activeSessions = Object.values(this.serverNode.state.sessions.sessions);
@@ -220,14 +216,6 @@ class Device extends BaseServerNode {
                 };
             }
         }
-    }
-
-    async advertise(): Promise<void> {
-        await this.serverNode?.advertiseNow();
-    }
-
-    async factoryReset(): Promise<void> {
-        await this.serverNode?.factoryReset();
     }
 
     async start(): Promise<void> {

@@ -15,9 +15,9 @@ import { AggregatorEndpoint } from '@project-chip/matter.js/endpoint/definitions
 import {
     BridgedDeviceBasicInformationServer
 } from '@project-chip/matter.js/behavior/definitions/bridged-device-basic-information';
-import { BaseServerNode, ConnectionInfo, NodeStateResponse, NodeStates } from './BaseServerNode';
+import { BaseCreateOptions, BaseServerNode, ConnectionInfo, NodeStateResponse, NodeStates } from './BaseServerNode';
 
-export interface BridgeCreateOptions {
+export interface BridgeCreateOptions extends BaseCreateOptions {
     adapter: MatterAdapter;
     parameters: BridgeOptions,
     devices: GenericDevice[];
@@ -36,14 +36,11 @@ export interface BridgeOptions {
 class BridgedDevices extends BaseServerNode {
     private parameters: BridgeOptions;
     private readonly devices: GenericDevice[];
-    private serverNode?: ServerNode;
     private devicesOptions: BridgeDeviceDescription[];
-    private adapter: MatterAdapter;
     private commissioned: boolean | null = null;
 
     constructor(options: BridgeCreateOptions) {
-        super();
-        this.adapter = options.adapter;
+        super(options);
         this.parameters = options.parameters;
         this.devices = options.devices;
         this.devicesOptions = options.devicesOptions;
@@ -188,7 +185,7 @@ class BridgedDevices extends BaseServerNode {
         if (!this.serverNode?.lifecycle.isCommissioned) {
             if (this.commissioned !== false) {
                 this.commissioned = false;
-                await this.adapter.setStateAsync(`bridges.${this.parameters.uuid}.commissioned`, this.commissioned, true);
+                await this.adapter.setState(`bridges.${this.parameters.uuid}.commissioned`, this.commissioned, true);
             }
             const { qrPairingCode, manualPairingCode } = this.serverNode?.state.commissioning.pairingCodes;
             return {
@@ -199,7 +196,7 @@ class BridgedDevices extends BaseServerNode {
         } else {
             if (this.commissioned !== true) {
                 this.commissioned = true;
-                await this.adapter.setStateAsync(`bridges.${this.parameters.uuid}.commissioned`, this.commissioned, true);
+                await this.adapter.setState(`bridges.${this.parameters.uuid}.commissioned`, this.commissioned, true);
             }
 
             const activeSessions = Object.values(this.serverNode.state.sessions.sessions);
@@ -238,14 +235,6 @@ class BridgedDevices extends BaseServerNode {
                 };
             }
         }
-    }
-
-    async advertise(): Promise<void> {
-        await this.serverNode?.advertiseNow();
-    }
-
-    async factoryReset(): Promise<void> {
-        await this.serverNode?.factoryReset();
     }
 
     async start(): Promise<void> {

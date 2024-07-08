@@ -7,7 +7,6 @@ import { DeviceDescription } from '../ioBrokerStorageTypes';
 
 import matterDeviceFactory from './matterFactory';
 import VENDOR_IDS from './vendorIds';
-import type { MatterAdapter } from '../main';
 import { ServerNode } from '@project-chip/matter.js/node';
 import { SessionsBehavior } from '@project-chip/matter.js/behavior/system/sessions';
 import { BaseCreateOptions, BaseServerNode, NodeStateResponse, NodeStates } from './BaseServerNode';

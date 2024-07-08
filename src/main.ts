@@ -304,7 +304,7 @@ export class MatterAdapter extends utils.Adapter {
          * The storage manager is then also used by the Matter server, so this code block in general is required,
          * but you can choose a different storage backend as long as it implements the required API.
          */
-        await this.extendObjectAsync('storage',{
+        await this.extendObject('storage',{
             type: 'folder',
             common: {
                 expert: true,
@@ -370,12 +370,14 @@ export class MatterAdapter extends utils.Adapter {
         this.stateTimeout && clearTimeout(this.stateTimeout);
         this.stateTimeout = null;
 
-        // inform GUI about stop
-        await this.sendToGui({ command: 'stopped' });
-
-        this.deviceManagement && this.deviceManagement.close();
-
         try {
+            // inform GUI about stop
+            await this.sendToGui({ command: 'stopped' });
+
+            if (this.deviceManagement) {
+                await this.deviceManagement.close();
+            }
+
             await this.shutDownMatterNodes();
             // close Environment/MDNS?
             callback();
@@ -518,11 +520,11 @@ export class MatterAdapter extends utils.Adapter {
             } catch (e) {
                 this.log.warn(`Cannot verify license: ${e}`);
                 this.license[key] = false;
-                return !!this.license[key];
+                return this.license[key];
             }
         })) {
             this.license[key] = true;
-            return !!this.license[key];
+            return this.license[key];
         }
 
         let userResponse;
@@ -536,16 +538,16 @@ export class MatterAdapter extends utils.Adapter {
         } catch (e) {
             this.license[key] = false;
             this.log.error(`Cannot verify license: ${e}`);
-            return !!this.license[key];
+            return this.license[key];
         }
         if (userResponse.data?.tester) {
             this.license[key] = true;
-            return !!this.license[key];
+            return this.license[key];
         }
 
         this.log.warn('No valid ioBroker.pro subscription found. Only one bridge and 5 devices are allowed.');
         this.license[key] = false;
-        return !!this.license[key];
+        return this.license[key];
     }
 
     async createMatterBridge(options: BridgeDescription): Promise<BridgedDevice | null> {
@@ -668,8 +670,8 @@ export class MatterAdapter extends utils.Adapter {
 
 
     async loadDevices(): Promise<void> {
-        const _devices: ioBroker.Object[] = [];
-        const _bridges: ioBroker.Object[] = [];
+        const devices: ioBroker.Object[] = [];
+        const bridges: ioBroker.Object[] = [];
 
         const objects = await this.getObjectViewAsync(
             'system', 'channel',
@@ -686,7 +688,7 @@ export class MatterAdapter extends utils.Adapter {
             }
             if (object._id.startsWith(`${this.namespace}.devices.`)) {
                 if (object.native.enabled !== false && !object.native.deleted) {
-                    _devices.push(object);
+                    devices.push(object);
                 } else if (object.native.deleted) {
                     // delete device
                     await this.delObjectAsync(object._id);
@@ -698,7 +700,7 @@ export class MatterAdapter extends utils.Adapter {
                     object.native.list?.length &&
                     object.native.list.find((item: BridgeDeviceDescription) => item.enabled !== false)
                 ) {
-                    _bridges.push(object);
+                    bridges.push(object);
                 } else if (object.native.deleted) {
                     // delete bridge
                     await this.delObjectAsync(object._id);
@@ -710,15 +712,15 @@ export class MatterAdapter extends utils.Adapter {
 
         // Delete old non-existing bridges
         for (const [bridgeId, bridge] of this.bridges.entries()) {
-            if (!_bridges.find(obj => obj._id === bridgeId)) {
+            if (!bridges.find(obj => obj._id === bridgeId)) {
                 await bridge.stop();
                 this.bridges.delete(bridgeId);
             }
         }
 
         // Create new bridges
-        for (const b in _bridges) {
-            const bridge = _bridges[b];
+        for (const b in bridges) {
+            const bridge = bridges[b];
             if (!this.bridges.has(bridge._id)) {
                 // if one bridge already exists, check the license
                 const matterBridge = await this.createMatterBridge(bridge.native as BridgeDescription);
@@ -739,15 +741,15 @@ export class MatterAdapter extends utils.Adapter {
 
         // Delete old non-existing devices
         for (const [deviceId, device] of this.devices.entries()) {
-            if (!_devices.find(obj => obj._id === deviceId)) {
+            if (!devices.find(obj => obj._id === deviceId)) {
                 await device.stop();
                 this.devices.delete(deviceId);
             }
         }
 
         // Create new devices
-        for (const d in _devices) {
-            const device = _devices[d];
+        for (const d in devices) {
+            const device = devices[d];
             if (!this.devices.has(device._id)) {
                 const matterDevice = await this.createMatterDevice(
                     typeof device.common.name === 'object' ?

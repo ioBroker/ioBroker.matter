@@ -140,7 +140,7 @@ class Controller implements GeneralNode {
             try {
                 Ble.get = singleton(() => new BleNode({ hciId: this.parameters.hciId }));
             } catch (error) {
-                this.adapter.log.error(`Failed to initialize BLE: ${error}`);
+                this.adapter.log.info(`Failed to initialize BLE: ${error.message}`);
                 this.parameters.ble = false;
             }
         }
@@ -285,7 +285,7 @@ class Controller implements GeneralNode {
                 this.matterNodeIds.push(nodeId);
                 await this.nodeToIoBrokerStructure(node);
             } catch (error) {
-                this.adapter.log.debug(`Failed to connect node ${nodeId}: ${error}`);
+                this.adapter.log.info(`Failed to connect to node ${nodeId}: ${error.stack}`);
             }
         }
     }
@@ -766,7 +766,7 @@ class Controller implements GeneralNode {
             this.adapter.log.debug(`Commissioning successfully done with nodeId ${nodeId}`);
             return { result: true, nodeId: nodeId.toString() };
         } catch (error) {
-            this.adapter.log.debug(`Commissioning failed: ${error}`);
+            this.adapter.log.info(`Commissioning failed: ${error.stack}`);
             return { error, result: false };
         }
     }

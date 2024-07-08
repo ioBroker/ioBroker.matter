@@ -145,7 +145,7 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
             }
             await this.adapter.setState(oid, toJson(value), true);
         } catch (error) {
-            this.adapter.log.error(`[STORAGE] Cannot save state: ${error}`);
+            this.adapter.log.error(`[STORAGE] Cannot save state: ${error.message}`);
         }
     }
 

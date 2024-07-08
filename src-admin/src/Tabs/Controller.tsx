@@ -571,7 +571,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         this.props.socket
                             .sendTo(
                                 `matter.${this.props.instance}`,
-                                'controllerAddDevice',
+                                'controllerCommissionDevice',
                                 {
                                     device,
                                     qrCode: this.state.qrCode,

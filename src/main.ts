@@ -157,12 +157,12 @@ export class MatterAdapter extends utils.Adapter {
                 try {
                     const result = await this.controller.handleCommand(obj.command, obj.message);
                     if (result !== undefined && obj.callback) {
-                         this.sendTo(obj.from, obj.command, result, obj.callback);
+                        this.sendTo(obj.from, obj.command, result, obj.callback);
                     }
                 } catch (error) {
                     this.log.warn(`Error while handling command "${obj.command}" for controller: ${error.stack}`);
                     if (obj.callback) {
-                        this.sendTo(obj.from, obj.command, {error: error.message}, obj.callback);
+                        this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
                     }
                 }
             } else if (obj.callback) {
@@ -182,7 +182,7 @@ export class MatterAdapter extends utils.Adapter {
                     } catch (error) {
                         this.log.warn(`Error while handling command "${obj.command}" for device ${uuid}: ${error.stack}`);
                         if (obj.callback) {
-                            this.sendTo(obj.from, obj.command, {error: error.message}, obj.callback);
+                            this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
                         }
                     }
                     return;

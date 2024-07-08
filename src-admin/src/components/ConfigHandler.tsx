@@ -8,6 +8,7 @@ import type {
     DeviceDescription,
     MatterConfig,
 } from '@/types';
+import controller from '@/Tabs/Controller';
 import { clone } from '../Utils';
 
 class ConfigHandler {
@@ -330,9 +331,7 @@ class ConfigHandler {
         }
 
         this.config = {
-            controller: {
-                enabled: !!controllerObj.native.enabled,
-            },
+            controller: controllerObj.native,
             devices,
             bridges,
         };

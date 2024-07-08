@@ -19,6 +19,7 @@ import {
     type GenericAppProps,
     type GenericAppState,
 } from '@iobroker/adapter-react-v5';
+import { clone } from './Utils';
 
 import ControllerTab from './Tabs/Controller';
 import ConfigHandler from './components/ConfigHandler';
@@ -234,19 +235,19 @@ class App extends GenericApp<GenericAppProps, AppState> {
             const nodeStates: { [uuid: string]: NodeStateResponse } = {};
             if (update.states) {
                 const uuids = update.states ? Object.keys(update.states) : [];
-                for (let i = 0; i < uuids.length; i++) {
-                    nodeStates[uuids[i].split('.').pop() as string] =
-            update.states[uuids[i]];
+                for (const uuid of uuids) {
+                    nodeStates[uuid.split('.').pop()] =
+            update.states[uuid];
                 }
             }
             this.setState({ nodeStates });
         } else if (update.command === 'updateStates') {
             // normally only the state of one device
-            const nodeStates = JSON.parse(JSON.stringify(this.state.nodeStates));
+            const nodeStates = clone(this.state.nodeStates);
             if (update.states) {
                 const uuids = update.states ? Object.keys(update.states) : [];
-                for (let i = 0; i < uuids.length; i++) {
-                    nodeStates[uuids[i]] = update.states[uuids[i]];
+                for (const uuid of uuids) {
+                    nodeStates[uuid] = update.states[uuid];
                 }
             }
             this.setState({ nodeStates });
@@ -346,7 +347,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             updateNodeStates={(nodeStates: {
                 [uuid: string]: NodeStateResponse;
             }) => {
-                const _nodeStates = JSON.parse(JSON.stringify(this.state.nodeStates));
+                const _nodeStates = clone(this.state.nodeStates);
                 Object.assign(_nodeStates, nodeStates);
                 this.setState({ nodeStates: _nodeStates });
             }}
@@ -373,7 +374,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             updateNodeStates={(nodeStates: {
                 [uuid: string]: NodeStateResponse;
             }) => {
-                const _nodeStates = JSON.parse(JSON.stringify(this.state.nodeStates));
+                const _nodeStates = clone(this.state.nodeStates);
                 Object.assign(_nodeStates, nodeStates);
                 this.setState({ nodeStates: _nodeStates });
             }}

@@ -23,6 +23,7 @@ import MatterController, { ControllerOptions } from './matter/ControllerNode';
 import MatterAdapterDeviceManagement from './lib/DeviceManagement';
 import { Environment, StorageService } from '@project-chip/matter.js/environment';
 import { CommissionableDevice } from '@project-chip/matter.js/common';
+import { MatterControllerConfig } from '../src-admin/src/types';
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
 
@@ -244,6 +245,21 @@ export class MatterAdapter extends utils.Adapter {
             } else {
                 obj.callback && this.sendTo(obj.from, obj.command, { error: 'Controller not exist' }, obj.callback);
             }
+        } else if (obj.command === 'updateControllerSettings') {
+            if (!obj.callback) {
+                return;
+            }
+
+            const newControllerConfig: MatterControllerConfig = JSON.parse(obj.message);
+            this.log.info(JSON.stringify(newControllerConfig));
+            // TODO: perform logic @Apollon77
+            await new Promise<void>(resolve => {
+                // just wait to simulate some time for frontend
+                setTimeout(() => resolve(), 2_000);
+            });
+
+            await this.extendObject(`${this.namespace}.controller`, { native: newControllerConfig });
+            this.sendTo(obj.from, obj.command, { success: true }, obj.callback);
         }
     }
 
@@ -361,9 +377,9 @@ export class MatterAdapter extends utils.Adapter {
         await this.loadDevices();
         if (!this.subscribed) {
             this.subscribed = true;
-            await this.subscribeForeignObjectsAsync(`${this.namespace}.0.bridges.*`);
-            await this.subscribeForeignObjectsAsync(`${this.namespace}.0.devices.*`);
-            await this.subscribeForeignObjectsAsync(`${this.namespace}.0.controller.*`);
+            await this.subscribeForeignObjectsAsync(`${this.namespace}.bridges.*`);
+            await this.subscribeForeignObjectsAsync(`${this.namespace}.devices.*`);
+            await this.subscribeForeignObjectsAsync(`${this.namespace}.controller.*`);
         }
 
         /**

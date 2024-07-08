@@ -1234,7 +1234,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                     this.props.socket
                                         .sendTo(
                                             `matter.${this.props.instance}`,
-                                            're-announce',
+                                            'deviceReAnnounce',
                                             { uuid: bridge.uuid },
                                         )
                                         .then(result => {

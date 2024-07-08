@@ -444,7 +444,7 @@ class BridgesAndDevices<
                                 const uuid = this.state.showResetDialog.bridgeOrDevice.uuid;
                                 this.setState({ showResetDialog: null });
                                 this.props.socket
-                                    .sendTo(`matter.${this.props.instance}`, 'factoryReset', {
+                                    .sendTo(`matter.${this.props.instance}`, 'deviceFactoryReset', {
                                         uuid,
                                     })
                                     .then(result => {

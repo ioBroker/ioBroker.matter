@@ -889,7 +889,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 <IconButton
                                     onClick={() => {
                                         this.props.socket
-                                            .sendTo(`matter.${this.props.instance}`, 're-announce', {
+                                            .sendTo(`matter.${this.props.instance}`, 'deviceReAnnounce', {
                                                 uuid: device.uuid,
                                             })
                                             .then(result => {

@@ -12,7 +12,10 @@ import { ServerNode } from '@project-chip/matter.js/node';
 import { SessionsBehavior } from '@project-chip/matter.js/behavior/system/sessions';
 import { Endpoint } from '@project-chip/matter.js/endpoint';
 import { AggregatorEndpoint } from '@project-chip/matter.js/endpoint/definitions';
-import { BridgedDeviceBasicInformationServer } from '@project-chip/matter.js/behavior/definitions/bridged-device-basic-information';
+import {
+    BridgedDeviceBasicInformationServer
+} from '@project-chip/matter.js/behavior/definitions/bridged-device-basic-information';
+import { BaseServerNode, ConnectionInfo, NodeStateResponse, NodeStates } from './BaseServerNode';
 
 export interface BridgeCreateOptions {
     adapter: MatterAdapter;
@@ -30,35 +33,16 @@ export interface BridgeOptions {
     port: number;
 }
 
-export enum NodeStates {
-    Creating = 'creating',
-    WaitingForCommissioning = 'waitingForCommissioning',
-    Commissioned = 'commissioned',
-    ConnectedWithController = 'connected',
-}
-
-export interface ConnectionInfo {
-    vendor: string;
-    connected: boolean;
-    label?: string;
-}
-
-export interface NodeStateResponse {
-    status: NodeStates;
-    qrPairingCode?: string;
-    manualPairingCode?: string;
-    connectionInfo?: ConnectionInfo[];
-}
-
-class BridgedDevices {
+class BridgedDevices extends BaseServerNode {
     private parameters: BridgeOptions;
     private readonly devices: GenericDevice[];
-    private serverNode: ServerNode | undefined;
+    private serverNode?: ServerNode;
     private devicesOptions: BridgeDeviceDescription[];
     private adapter: MatterAdapter;
     private commissioned: boolean | null = null;
 
     constructor(options: BridgeCreateOptions) {
+        super();
         this.adapter = options.adapter;
         this.parameters = options.parameters;
         this.devices = options.devices;
@@ -66,7 +50,7 @@ class BridgedDevices {
     }
 
     async init(): Promise<void> {
-        await this.adapter.extendObjectAsync(`bridges.${this.parameters.uuid}.commissioned`, {
+        await this.adapter.extendObject(`bridges.${this.parameters.uuid}.commissioned`, {
             type: 'state',
             common: {
                 name: 'commissioned',
@@ -146,7 +130,7 @@ class BridgedDevices {
 
         const aggregator = new Endpoint(AggregatorEndpoint, { id: 'bridge' });
 
-        this.serverNode.add(aggregator);
+        await this.serverNode.add(aggregator);
 
         for (let i = 0; i < this.devices.length; i++) {
             const ioBrokerDevice = this.devices[i];

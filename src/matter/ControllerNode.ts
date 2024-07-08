@@ -33,6 +33,7 @@ import type { MatterAdapter } from '../main';
 import Factories from './clusters/factories';
 import Base from './clusters/Base';
 import { Environment } from '@project-chip/matter.js/environment';
+import { GeneralNode, MessageResponse } from './GeneralNode';
 
 export interface ControllerCreateOptions {
     adapter: MatterAdapter;
@@ -54,6 +55,12 @@ interface AddDeviceResult {
     result: boolean;
     error?: Error;
     nodeId?: string;
+}
+
+interface EndUserCommissioningOptions {
+    qrCode: string | undefined;
+    manualCode: string | undefined;
+    device: CommissionableDevice;
 }
 
 // const IGNORE_CLUSTERS: ClusterId[] = [
@@ -90,11 +97,11 @@ interface Device {
     connectionStatusId?: string;
 }
 
-class Controller {
+class Controller implements GeneralNode {
     private parameters: ControllerOptions;
     private readonly adapter: MatterAdapter;
     private readonly matterEnvironment: Environment;
-    private commissioningController: CommissioningController | null = null;
+    private commissioningController?: CommissioningController;
     private readonly matterNodeIds: NodeId[] = [];
     private devices: Device[] = [];
     private delayedStates: { [nodeId: string]: NodeStateInformation } = {};
@@ -137,6 +144,38 @@ class Controller {
                 this.parameters.ble = false;
             }
         }
+    }
+
+    async handleCommand(command: string, message: ioBroker.MessagePayload): Promise<MessageResponse> {
+        switch (command) {
+            case 'controllerDiscovery':
+                return { result: await this.discovery() };
+            case 'controllerDiscoveryStop':
+                if (this.isDiscovering()) {
+                    await this.discoveryStop();
+                    return { result: 'ok' };
+                } else {
+                    return { error: 'Controller not discovering' };
+                }
+            case 'controllerAddDevice':
+                const options = message as EndUserCommissioningOptions;
+
+                return { result: await this.commissionDevice(options.qrCode, options.manualCode, options.device) };
+            case 'controllerDeviceQrCode':
+                return { result: await this.showNewCommissioningCode(message.nodeId) };
+            case 'controllerInitializePaseCommissioner':
+                if (this.commissioningController === undefined) {
+                    return { error: 'Controller is not initialized.' };
+                }
+                return { result: this.commissioningController.paseCommissionerData };
+            case 'controllerCompletePaseCommissioning':
+                if (this.commissioningController === undefined) {
+                    return { error: 'Controller is not initialized.' };
+                }
+                return { result: await this.commissioningController.completeCommissioningForNode(message.peerNodeId, message.discoveryData) };
+        }
+
+        return { error: `Unknown command ${command}` };
     }
 
     initEventHandlers(originalNodeId: NodeId | null, options?: any): any {
@@ -807,7 +846,7 @@ class Controller {
 
         if (this.commissioningController) {
             await this.commissioningController.close();
-            this.commissioningController = null;
+            this.commissioningController = undefined;
         }
     }
 }

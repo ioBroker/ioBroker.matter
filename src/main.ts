@@ -10,7 +10,7 @@ import { Level, Logger } from '@project-chip/matter.js/log';
 import { IoBrokerNodeStorage } from './matter/IoBrokerNodeStorage';
 import { DeviceFactory, SubscribeManager } from './lib';
 import { DetectedDevice, DeviceOptions } from './lib/devices/GenericDevice';
-import BridgedDevice, { NodeStateResponse } from './matter/BridgedDevicesNode';
+import BridgedDevice from './matter/BridgedDevicesNode';
 import MatterDevice from './matter/DeviceNode';
 import {
     BridgeDescription,
@@ -22,7 +22,7 @@ import MatterController, { ControllerOptions } from './matter/ControllerNode';
 
 import MatterAdapterDeviceManagement from './lib/DeviceManagement';
 import { Environment, StorageService } from '@project-chip/matter.js/environment';
-import { CommissionableDevice } from '@project-chip/matter.js/common';
+import { NodeStateResponse } from './matter/BaseServerNode';
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
 
@@ -69,12 +69,6 @@ interface NodeStatesOptions {
     devices?: boolean;
     bridges?: boolean;
     controller?: boolean;
-}
-
-interface CommissioningOptions {
-    qrCode?: string;
-    manualCode?: string;
-    device: CommissionableDevice;
 }
 
 export class MatterAdapter extends utils.Adapter {
@@ -150,100 +144,78 @@ export class MatterAdapter extends utils.Adapter {
         await this.delObjectAsync('controller', { recursive: true });
 
         // restart adapter
-        const obj = await this.getForeignObjectAsync(`system.adapter.${this.namespace}`);
-        if (obj) {
-            await this.setForeignObjectAsync(obj._id, obj);
-        }
+        this.restart();
     }
 
     async onMessage(obj: ioBroker.Message): Promise<void> {
-        if (obj?.command?.startsWith('dm:')) {
+        if (obj.command?.startsWith('dm:')) {
+            // Handled by Device Manager class itself, so ignored here
             return;
-        }
-
-        if (obj?.command === 'reset') {
-            await this.onTotalReset();
-        } else if (obj?.command === 'nodeStates') {
-            const states = await this.requestNodeStates(obj.message as NodeStatesOptions);
-            obj.callback && this.sendTo(obj.from, obj.command, { states }, obj.callback);
-        } else if (obj.command === 'getLicense') {
-            const license = await this.checkLicense(obj.message.login, obj.message.pass);
-            obj.callback && this.sendTo(obj.from, obj.command, { result: license }, obj.callback);
-        } else if (obj.command === 're-announce') {
+        } else if (obj.command?.startsWith('controller')) {
+            if (this.controller) {
+                try {
+                    const result = await this.controller.handleCommand(obj.command, obj.message);
+                    if (result !== undefined) {
+                        obj.callback && this.sendTo(obj.from, obj.command, result, obj.callback);
+                    }
+                } catch (error) {
+                    this.log.warn(`Error while handling command ${obj.command} for controller: ${error.stack}`);
+                    obj.callback && this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
+                }
+            } else {
+                obj.callback && this.sendTo(obj.from, obj.command, { error: 'Controller not enabled' }, obj.callback);
+            }
+            return;
+        } else if (obj.command?.startsWith('device')) {
             for (const [oid, bridge] of this.bridges.entries()) {
                 const uuid = oid.split('.').pop() || '';
                 if (uuid === obj.message.uuid) {
-                    await bridge.advertise();
-                    break;
+                    try {
+                        const result = await bridge.handleCommand(obj.command, obj.message);
+                        if (result !== undefined) {
+                            obj.callback && this.sendTo(obj.from, obj.command, result, obj.callback);
+                        }
+                    } catch (error) {
+                        this.log.warn(`Error while handling command ${obj.command} for device ${uuid}: ${error.stack}`);
+                        obj.callback && this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
+                    }
+                    return;
                 }
             }
             for (const [oid, device] of this.devices.entries()) {
                 const uuid = oid.split('.').pop() || '';
                 if (uuid === obj.message.uuid) {
-                    await device.advertise();
-                    break;
-                }
-            }
-        } else if (obj.command === 'factoryReset') {
-            let found = false;
-            for (const [oid, bridge] of this.bridges.entries()) {
-                const uuid = oid.split('.').pop() || '';
-                if (uuid === obj.message.uuid) {
-                    found = true;
-                    await bridge.factoryReset();
-                    obj.callback && this.sendTo(obj.from, obj.command, { result: await bridge.getState() }, obj.callback);
-                    break;
-                }
-            }
-            if (!found) {
-                for (const [oid, device] of this.devices.entries()) {
-                    const uuid = oid.split('.').pop() || '';
-                    if (uuid === obj.message.uuid) {
-                        found = true;
-                        await device.factoryReset();
-                        obj.callback && this.sendTo(obj.from, obj.command, { result: await device.getState() }, obj.callback);
-                        break;
+                    try {
+                        const result = await device.handleCommand(obj.command, obj.message);
+                        if (result !== undefined) {
+                            obj.callback && this.sendTo(obj.from, obj.command, result, obj.callback);
+                        }
+                    } catch (error) {
+                        this.log.warn(`Error while handling command ${obj.command}for device ${uuid}: ${error.stack}`);
+                        obj.callback && this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
                     }
-                }
-                if (!found) {
-                    obj.callback && this.sendTo(obj.from, obj.command, { error: 'Device not found' }, obj.callback);
-                }
-            }
-        } else if (obj.command === 'controllerDiscovery') {
-            if (this.controller) {
-                obj.callback && this.sendTo(obj.from, obj.command, { result: await this.controller.discovery() }, obj.callback);
-            } else {
-                obj.callback && this.sendTo(obj.from, obj.command, { error: 'Controller not exist' }, obj.callback);
-            }
-        } else if (obj.command === 'controllerDiscoveryStop') {
-            if (this.controller) {
-                if (this.controller.isDiscovering()) {
-                    await this.controller.discoveryStop();
-                    obj.callback && this.sendTo(obj.from, obj.command, { result: 'ok' }, obj.callback);
-                } else {
-                    obj.callback && this.sendTo(obj.from, obj.command, { error: 'Controller not discovering' }, obj.callback);
-                }
-            } else {
-                obj.callback && this.sendTo(obj.from, obj.command, { error: 'Controller not exist' }, obj.callback);
-            }
-        } else if (obj.command === 'controllerAddDevice') {
-            if (this.controller) {
-                const options: CommissioningOptions = obj.message as CommissioningOptions;
 
-                const result = await this.controller.commissionDevice(options.qrCode, options.manualCode, options.device);
-
-                obj.callback && this.sendTo(obj.from, obj.command, result, obj.callback);
-            } else {
-                obj.callback && this.sendTo(obj.from, obj.command, { error: 'Controller not exist' }, obj.callback);
+                    return;
+                }
             }
-        } else if (obj.command === 'controllerDeviceQrCode') {
-            if (this.controller) {
-                const result = await this.controller.showNewCommissioningCode(obj.message.nodeId);
+            obj.callback && this.sendTo(obj.from, obj.command, { error: 'Device or Bridge not found' }, obj.callback);
+            return;
+        }
 
-                obj.callback && this.sendTo(obj.from, obj.command, result, obj.callback);
-            } else {
-                obj.callback && this.sendTo(obj.from, obj.command, { error: 'Controller not exist' }, obj.callback);
-            }
+        switch (obj.command) {
+            case 'reset':
+                await this.onTotalReset();
+                break;
+            case 'nodeStates':
+                const states = await this.requestNodeStates(obj.message as NodeStatesOptions);
+                obj.callback && this.sendTo(obj.from, obj.command, { states }, obj.callback);
+                break;
+            case 'getLicense':
+                const license = await this.checkLicense(obj.message.login, obj.message.pass);
+                obj.callback && this.sendTo(obj.from, obj.command, { result: license }, obj.callback);
+                break;
+            default:
+                obj.callback && this.sendTo(obj.from, obj.command, { error: `Unknown command ${obj.command}` }, obj.callback);
         }
     }
 

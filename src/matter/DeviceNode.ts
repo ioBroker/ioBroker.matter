@@ -7,10 +7,10 @@ import { DeviceDescription } from '../ioBrokerStorageTypes';
 
 import matterDeviceFactory from './matterFactory';
 import VENDOR_IDS from './vendorIds';
-import { NodeStateResponse, NodeStates } from './BridgedDevicesNode';
 import type { MatterAdapter } from '../main';
 import { ServerNode } from '@project-chip/matter.js/node';
 import { SessionsBehavior } from '@project-chip/matter.js/behavior/system/sessions';
+import { BaseServerNode, NodeStateResponse, NodeStates } from './BaseServerNode';
 
 export interface DeviceCreateOptions {
     adapter: MatterAdapter;
@@ -28,15 +28,16 @@ export interface DeviceOptions {
     port: number;
 }
 
-class Device {
+class Device extends BaseServerNode {
     private parameters: DeviceOptions;
     private readonly device: GenericDevice;
-    private serverNode: ServerNode | undefined;
+    private serverNode?: ServerNode;
     private deviceOptions: DeviceDescription;
     private adapter: MatterAdapter;
     private commissioned: boolean | null = null;
 
     constructor(options: DeviceCreateOptions) {
+        super();
         this.adapter = options.adapter;
         this.parameters = options.parameters;
         this.device = options.device;
@@ -44,7 +45,7 @@ class Device {
     }
 
     async init(): Promise<void> {
-        await this.adapter.extendObjectAsync(`devices.${this.parameters.uuid}.commissioned`, {
+        await this.adapter.extendObject(`devices.${this.parameters.uuid}.commissioned`, {
             type: 'state',
             common: {
                 name: 'commissioned',
@@ -67,7 +68,7 @@ class Device {
          * (so maybe better not ;-)).
          */
         const deviceName = this.parameters.deviceName || 'Matter device';
-        const deviceType = DeviceTypes.AGGREGATOR.code; // TODO FIX!!! needs to be type of real devcie
+        const deviceType = DeviceTypes.AGGREGATOR.code; // TODO we need one Device type here to use!
         const vendorName = 'ioBroker';
 
         // product name / id and vendor id should match what is in the device certificate

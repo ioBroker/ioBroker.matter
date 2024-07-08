@@ -15,7 +15,7 @@ import {
     AnyAttributeServer, FabricScopeError,
     BasicInformationCluster,
 } from '@project-chip/matter.js/cluster';
-import { CommissionableDevice } from '@project-chip/matter.js/common';
+import { CommissionableDevice, DiscoveryData } from '@project-chip/matter.js/common';
 
 import { ManualPairingCodeCodec, QrPairingCodeCodec } from '@project-chip/matter.js/schema';
 import { NodeStateInformation } from '@project-chip/matter.js/device';
@@ -102,8 +102,7 @@ class Controller implements GeneralNode {
     private readonly adapter: MatterAdapter;
     private readonly matterEnvironment: Environment;
     private commissioningController?: CommissioningController;
-    private readonly matterNodeIds: NodeId[] = [];
-    private devices: Device[] = [];
+    private devices= new Map<string, Device>();
     private delayedStates: { [nodeId: string]: NodeStateInformation } = {};
     private connected: { [nodeId: string]: boolean } = {};
     private discovering: boolean = false;
@@ -117,25 +116,6 @@ class Controller implements GeneralNode {
     }
 
     async init(): Promise<void> {
-        /**
-         * Collect all needed data
-         *
-         * This block makes sure to collect all needed data from cli or storage. Replace this with where ever your data
-         * come from.
-         *
-         * Note: This example also uses the initialized storage system to store the device parameter data for convenience
-         * and easy reuse. When you also do that, be careful to not overlap with Matter-Server own contexts
-         * (so maybe better not ;-)).
-         */
-
-        this.commissioningController = new CommissioningController({
-            autoConnect: false,
-            environment: {
-                environment: this.matterEnvironment,
-                id: 'controller'
-            }
-        });
-
         if (this.parameters.ble) {
             try {
                 Ble.get = singleton(() => new BleNode({ hciId: this.parameters.hciId }));
@@ -144,35 +124,51 @@ class Controller implements GeneralNode {
                 this.parameters.ble = false;
             }
         }
+
+        this.commissioningController = new CommissioningController({
+            autoConnect: false,
+            // TODO add listeningAddressIpv4 and listeningAddressIpv6 to limit controller to one network interface
+            environment: {
+                environment: this.matterEnvironment,
+                id: 'controller'
+            }
+        });
     }
 
     async handleCommand(command: string, message: ioBroker.MessagePayload): Promise<MessageResponse> {
-        switch (command) {
-            case 'controllerDiscovery':
-                return { result: await this.discovery() };
-            case 'controllerDiscoveryStop':
-                if (this.isDiscovering()) {
-                    await this.discoveryStop();
-                    return { result: 'ok' };
-                } else {
-                    return { error: 'Controller not discovering' };
-                }
-            case 'controllerAddDevice':
-                const options = message as EndUserCommissioningOptions;
-
-                return { result: await this.commissionDevice(options.qrCode, options.manualCode, options.device) };
-            case 'controllerDeviceQrCode':
-                return { result: await this.showNewCommissioningCode(message.nodeId) };
-            case 'controllerInitializePaseCommissioner':
-                if (this.commissioningController === undefined) {
-                    return { error: 'Controller is not initialized.' };
-                }
-                return { result: this.commissioningController.paseCommissionerData };
-            case 'controllerCompletePaseCommissioning':
-                if (this.commissioningController === undefined) {
-                    return { error: 'Controller is not initialized.' };
-                }
-                return { result: await this.commissioningController.completeCommissioningForNode(message.peerNodeId, message.discoveryData) };
+        if (this.commissioningController === undefined) {
+            return { error: 'Controller is not initialized.' };
+        }
+        try {
+            switch (command) {
+                case 'controllerDiscovery':
+                    // Discover for Matter devices in the IP and potentially BLE network
+                    return { result: await this.discovery() };
+                case 'controllerDiscoveryStop':
+                    // Stop Discovery
+                    if (this.isDiscovering()) {
+                        await this.discoveryStop();
+                        return { result: 'ok' };
+                    } else {
+                        return { error: 'Controller not discovering' };
+                    }
+                case 'controllerCommissionDevice':
+                    // Commission a new device with Commissioning payloads like a QR Code or pairing code
+                    const options = message as EndUserCommissioningOptions;
+                    return { result: await this.commissionDevice(options.qrCode, options.manualCode, options.device) };
+                case 'controllerDeviceQrCode':
+                    // Opens a new commissioning window for a paired node and returns the QRCode and pairing code for display
+                    return { result: await this.showNewCommissioningCode(message.nodeId) };
+                case 'controllerInitializePaseCommissioner':
+                    // Returns the data needed to initialize a PaseCommissioner on the mobile App
+                    return { result: this.commissioningController.paseCommissionerData };
+                case 'controllerCompletePaseCommissioning':
+                    // Completes a commissioning process that was started by the mobile app in the main controller
+                    return { result: await this.completeCommissioningForNode(message.peerNodeId, message.discoveryData) };
+            }
+        } catch (error) {
+            this.adapter.log.info(`Error while executing command ${command}: ${error.stack}`);
+            return { error: `Error while executing command ${command}: ${error.message}` };
         }
 
         return { error: `Unknown command ${command}` };
@@ -199,7 +195,7 @@ class Controller implements GeneralNode {
             stateInformationCallback: async(peerNodeId: NodeId, info: NodeStateInformation) => {
                 const jsonNodeId = peerNodeId.toString();
                 const node = this.commissioningController?.getConnectedNode(peerNodeId);
-                const device: Device | undefined = this.devices.find(device => device.nodeId === jsonNodeId);
+                const device: Device | undefined = this.devices.get(jsonNodeId);
                 if (this.connected[jsonNodeId] !== undefined) {
                     if (node?.isConnected && !this.connected[jsonNodeId]) {
                         this.connected[jsonNodeId] = true;
@@ -265,6 +261,7 @@ class Controller implements GeneralNode {
                 type: 'boolean',
                 read: true,
                 write: false,
+                def: false
             },
             native: {
             },
@@ -282,7 +279,6 @@ class Controller implements GeneralNode {
         for (const nodeId of nodes) {
             try {
                 const node = await this.commissioningController.connectNode(nodeId, this.initEventHandlers(nodeId) as CommissioningControllerNodeOptions);
-                this.matterNodeIds.push(nodeId);
                 await this.nodeToIoBrokerStructure(node);
             } catch (error) {
                 this.adapter.log.info(`Failed to connect to node ${nodeId}: ${error.stack}`);
@@ -457,194 +453,174 @@ class Controller implements GeneralNode {
         const nodeIdString = nodeObject.nodeId.toString();
 
         // find and destroy the old device
-        const oldNodeIndex = this.devices.findIndex(device => device.nodeId === nodeIdString);
-        if (oldNodeIndex !== -1) {
-            for (let c = 0; c < this.devices[oldNodeIndex].clusters.length; c++) {
-                await this.devices[oldNodeIndex].clusters[c].destroy();
+        const oldDevice = this.devices.get(nodeIdString);
+        if (oldDevice !== undefined) {
+            for (const cluster of oldDevice.clusters) {
+                await cluster.destroy();
             }
-            this.devices.splice(oldNodeIndex, 1);
         }
 
         const rootEndpoint = nodeObject.getDeviceById(0); // later use getRootEndpoint
-        if (rootEndpoint === void 0) {
+        if (rootEndpoint === undefined) {
             this.adapter.log.debug(`Node ${nodeObject.nodeId} has not yet been initialized!`);
-        } else {
-            // create device
-            const id = `controller.${nodeIdString}`;
-            let deviceObj = await this.adapter.getObjectAsync(id);
-            let changed = false;
-            let bridge = true;
-            const endpoints = rootEndpoint.getChildEndpoints();
-            if (endpoints.length === 1 && endpoints[0].name !== 'MA-aggregator') {
-                // even if it is a bridge, threat it as a device
-                bridge = false;
-            }
+            return;
+        }
 
-            if (!deviceObj ||
-                (deviceObj.type === 'folder' && !bridge) || (deviceObj.type === 'device' && bridge)
-            ) {
-                changed = true;
-                const oldCommon = deviceObj?.common || undefined;
+        // TODO refactor this
+        let bridge = true;
+        const endpoints = rootEndpoint.getChildEndpoints();
+        if (endpoints.length === 1 && endpoints[0].name !== 'MA-aggregator') {
+            // even if it is a bridge, threat it as a device
+            // TODO REMOVE this case
+            bridge = false;
+        }
 
-                deviceObj = {
-                    _id: id,
-                    type: bridge ? 'folder' : 'device',
-                    common: {
-                        name: nodeIdString,
-                        statusStates: {
-                            onlineId: 'info.connection',
-                        },
+        // create device
+        const id = `controller.${nodeIdString}`;
+        let deviceObj = await this.adapter.getObjectAsync(id);
+        let changed = false;
+        if (
+            !deviceObj ||
+            (deviceObj.type === 'folder' && !bridge) ||
+            (deviceObj.type === 'device' && bridge)
+        ) {
+            changed = true;
+            const oldCommon = deviceObj?.common || undefined;
+
+            deviceObj = {
+                _id: id,
+                type: bridge ? 'folder' : 'device',
+                common: {
+                    name: nodeIdString,
+                    statusStates: {
+                        onlineId: `controller.${nodeIdString}.info.connection`,
                     },
-                    native: {
-                        nodeId: nodeIdString,
-                    },
-                };
-
-                if (oldCommon?.custom && deviceObj?.common) {
-                    deviceObj.common.custom = oldCommon.custom;
-                }
-                if (oldCommon?.color && deviceObj) {
-                    deviceObj.common.color = oldCommon.color;
-                }
-                if (oldCommon?.desc && deviceObj) {
-                    deviceObj.common.desc = oldCommon.desc;
-                }
-
-                deviceObj && await this.adapter.setObjectAsync(deviceObj._id, deviceObj);
-            }
-
-            const device: Device = {
-                nodeId: nodeIdString,
-                clusters: [],
+                },
+                native: {
+                    nodeId: nodeIdString,
+                },
             };
 
-            this.devices.push(device);
-
-            const infoId = `controller.${nodeIdString}.info`;
-            let infoObj = await this.adapter.getObjectAsync(infoId);
-            if (!infoObj) {
-                infoObj = {
-                    _id: infoId,
-                    type: 'channel',
-                    common: {
-                        name: 'Connection info',
-                    },
-                    native: {
-
-                    },
-                };
-                await this.adapter.setObjectAsync(infoObj._id, infoObj);
+            if (oldCommon?.custom && deviceObj?.common) {
+                deviceObj.common.custom = oldCommon.custom;
+            }
+            if (oldCommon?.color && deviceObj) {
+                deviceObj.common.color = oldCommon.color;
+            }
+            if (oldCommon?.desc && deviceObj) {
+                deviceObj.common.desc = oldCommon.desc;
             }
 
-            const infoConnectionId = `controller.${nodeIdString}.info.connection`;
-            let infoConnectionObj = await this.adapter.getObjectAsync(infoConnectionId);
-            if (!infoConnectionObj) {
-                infoConnectionObj = {
-                    _id: infoConnectionId,
-                    type: 'state',
-                    common: {
-                        name: 'Connected',
-                        role: 'indicator.connected',
-                        type: 'boolean',
-                        read: true,
-                        write: false,
-                    },
-                    native: {
-
-                    },
-                };
-                await this.adapter.setObjectAsync(infoConnectionObj._id, infoConnectionObj);
-            }
-            device.connectionStateId = infoConnectionId;
-
-            const infoStatusId = `controller.${nodeIdString}.info.status`;
-            let infoStatusObj = await this.adapter.getObjectAsync(infoStatusId);
-            if (!infoStatusObj) {
-                infoStatusObj = {
-                    _id: infoStatusId,
-                    type: 'state',
-                    common: {
-                        name: 'Connection status',
-                        role: 'state',
-                        type: 'number',
-                        states: {
-                            [NodeStateInformation.Connected]: 'connected',
-                            [NodeStateInformation.Disconnected]: 'disconnected',
-                            [NodeStateInformation.Reconnecting]: 'reconnecting',
-                            [NodeStateInformation.WaitingForDeviceDiscovery]: 'waitingForDeviceDiscovery',
-                            [NodeStateInformation.StructureChanged]: 'structureChanged',
-                        },
-                        read: true,
-                        write: false,
-                    },
-                    native: {
-
-                    },
-                };
-                await this.adapter.setObjectAsync(infoStatusObj._id, infoStatusObj);
-            }
-            device.connectionStatusId = infoStatusId;
-            if (this.delayedStates[nodeIdString] !== undefined) {
-                await this.adapter.setStateAsync(infoConnectionId, this.delayedStates[nodeIdString] === NodeStateInformation.Connected, true);
-                await this.adapter.setStateAsync(infoStatusId, this.delayedStates[nodeIdString], true);
-                delete this.delayedStates[nodeIdString];
-            }
-
-            // Example to initialize a ClusterClient and access concrete fields as API methods
-            // const descriptor = nodeObject.getRootClusterClient(DescriptorCluster);
-            // if (descriptor !== undefined) {
-            //     console.log(await descriptor.attributes.deviceTypeList.get()); // you can call that way
-            //     console.log(await descriptor.getServerListAttribute()); // or more convenient that way
-            // } else {
-            //     console.log("No Descriptor Cluster found. This should never happen!");
-            // }
-
-            // Subscribe to a field and get the value
-            const info = nodeObject.getRootClusterClient(BasicInformationCluster);
-            if (info !== undefined && deviceObj) {
-                const name = await info.getProductNameAttribute(); // This call is executed remotely
-                if (deviceObj.common.name !== name) {
-                    changed = true;
-                    deviceObj.common.name = name;
-                }
-                const vendorId = `0x${(await info.getVendorIdAttribute()).toString(16)}`;
-                if (deviceObj.native.vendorId !== vendorId) {
-                    changed = true;
-                    deviceObj.native.vendorId = vendorId;
-                }
-                const vendorName = await info.getVendorNameAttribute();
-                if (deviceObj.native.vendorName !== vendorName) {
-                    changed = true;
-                    deviceObj.native.vendorName = vendorName;
-                }
-                const productId = `0x${(await info.getProductIdAttribute()).toString(16)}`;
-                if (deviceObj.native.productId !== productId) {
-                    changed = true;
-                    deviceObj.native.productId = productId;
-                }
-                const nodeLabel = await info.getNodeLabelAttribute();
-                if (deviceObj.native.nodeLabel !== nodeLabel) {
-                    changed = true;
-                    deviceObj.native.nodeLabel = nodeLabel;
-                }
-                const productLabel = await info.getProductLabelAttribute();
-                if (deviceObj.native.productLabel !== productLabel) {
-                    changed = true;
-                    deviceObj.native.productLabel = productLabel;
-                }
-                const serialNumber = await info.getSerialNumberAttribute();
-                if (deviceObj.native.serialNumber !== serialNumber) {
-                    changed = true;
-                    deviceObj.native.serialNumber = serialNumber;
-                }
-            }
-
-            if (changed && deviceObj) {
-                await this.adapter.setObjectAsync(deviceObj._id, deviceObj);
-            }
-
-            await this.endPointToIoBrokerStructure(nodeObject.nodeId, rootEndpoint, 0, [], device);
+            deviceObj && await this.adapter.setObjectAsync(deviceObj._id, deviceObj);
         }
+
+        const device: Device = {
+            nodeId: nodeIdString,
+            clusters: [],
+        };
+
+        this.devices.set(nodeIdString, device);
+
+        await this.adapter.setObjectNotExists(`controller.${nodeIdString}.info`, {
+            type: 'channel',
+            common: {
+                name: 'Connection info',
+            },
+            native: {},
+        });
+
+        device.connectionStateId = `controller.${nodeIdString}.info.connection`;
+        await this.adapter.getObjectAsync(device.connectionStateId,{
+            type: 'state',
+            common: {
+                name: 'Connected',
+                role: 'indicator.connected',
+                type: 'boolean',
+                read: true,
+                write: false,
+            },
+            native: {},
+        });
+
+        device.connectionStatusId = `controller.${nodeIdString}.info.status`;
+        await this.adapter.getObjectAsync(device.connectionStatusId, {
+            type: 'state',
+            common: {
+                name: 'Connection status',
+                role: 'state',
+                type: 'number',
+                states: {
+                    [NodeStateInformation.Connected]: 'connected',
+                    [NodeStateInformation.Disconnected]: 'disconnected',
+                    [NodeStateInformation.Reconnecting]: 'reconnecting',
+                    [NodeStateInformation.WaitingForDeviceDiscovery]: 'waitingForDeviceDiscovery',
+                    [NodeStateInformation.StructureChanged]: 'structureChanged',
+                },
+                read: true,
+                write: false,
+            },
+            native: {},
+        });
+
+        if (this.delayedStates[nodeIdString] !== undefined) {
+            await this.adapter.setState(device.connectionStateId, this.delayedStates[nodeIdString] === NodeStateInformation.Connected, true);
+            await this.adapter.setState(device.connectionStatusId, this.delayedStates[nodeIdString], true);
+            delete this.delayedStates[nodeIdString];
+        }
+
+        // Example to initialize a ClusterClient and access concrete fields as API methods
+        // const descriptor = nodeObject.getRootClusterClient(DescriptorCluster);
+        // if (descriptor !== undefined) {
+        //     console.log(await descriptor.attributes.deviceTypeList.get()); // you can call that way
+        //     console.log(await descriptor.getServerListAttribute()); // or more convenient that way
+        // } else {
+        //     console.log("No Descriptor Cluster found. This should never happen!");
+        // }
+
+        const info = nodeObject.getRootClusterClient(BasicInformationCluster);
+        if (info !== undefined && deviceObj) {
+            const name = await info.getProductNameAttribute(); // This call is executed remotely (is it?)
+            if (deviceObj.common.name !== name) {
+                changed = true;
+                deviceObj.common.name = name;
+            }
+            const vendorId = `0x${(await info.getVendorIdAttribute()).toString(16)}`;
+            if (deviceObj.native.vendorId !== vendorId) {
+                changed = true;
+                deviceObj.native.vendorId = vendorId;
+            }
+            const vendorName = await info.getVendorNameAttribute();
+            if (deviceObj.native.vendorName !== vendorName) {
+                changed = true;
+                deviceObj.native.vendorName = vendorName;
+            }
+            const productId = `0x${(await info.getProductIdAttribute()).toString(16)}`;
+            if (deviceObj.native.productId !== productId) {
+                changed = true;
+                deviceObj.native.productId = productId;
+            }
+            const nodeLabel = await info.getNodeLabelAttribute();
+            if (deviceObj.native.nodeLabel !== nodeLabel) {
+                changed = true;
+                deviceObj.native.nodeLabel = nodeLabel;
+            }
+            const productLabel = await info.getProductLabelAttribute();
+            if (deviceObj.native.productLabel !== productLabel) {
+                changed = true;
+                deviceObj.native.productLabel = productLabel;
+            }
+            const serialNumber = await info.getSerialNumberAttribute();
+            if (deviceObj.native.serialNumber !== serialNumber) {
+                changed = true;
+                deviceObj.native.serialNumber = serialNumber;
+            }
+        }
+
+        if (changed && deviceObj) {
+            await this.adapter.setObjectAsync(deviceObj._id, deviceObj);
+        }
+
+        await this.endPointToIoBrokerStructure(nodeObject.nodeId, rootEndpoint, 0, [], device);
     }
 
     addCluster(device: Device, cluster: Base | undefined): void {
@@ -754,21 +730,42 @@ class Controller implements GeneralNode {
         // this.adapter.log.debug(`Commissioning ... ${JSON.stringify(options)}`);
         try {
             const nodeId = await this.commissioningController.commissionNode(options);
-            this.matterNodeIds.push(nodeId);
-            const nodeObject = this.commissioningController.getConnectedNode(nodeId);
-            if (nodeObject === undefined) {
-                // should never happen
-                throw new Error(`Node ${nodeId} is not connected but commissioning was successful. Should never happen.`);
-            }
 
-            await this.nodeToIoBrokerStructure(nodeObject);
+            await this.registerCommissionedNode(nodeId);
 
-            this.adapter.log.debug(`Commissioning successfully done with nodeId ${nodeId}`);
             return { result: true, nodeId: nodeId.toString() };
         } catch (error) {
             this.adapter.log.info(`Commissioning failed: ${error.stack}`);
             return { error, result: false };
         }
+    }
+
+    async completeCommissioningForNode(nodeId: NodeId, discoveryData?: DiscoveryData): Promise<AddDeviceResult> {
+        if (!this.commissioningController) {
+            throw new Error(`Can not register NodeId ${nodeId} because controller not initialized.`);
+        }
+
+        await this.commissioningController.completeCommissioningForNode(nodeId, discoveryData);
+
+        await this.registerCommissionedNode(nodeId);
+
+        return { result: true, nodeId: nodeId.toString() };
+    }
+
+    async registerCommissionedNode(nodeId: NodeId): Promise<void> {
+        if (!this.commissioningController) {
+            throw new Error(`Can not register NodeId ${nodeId} because controller not initialized.`);
+        }
+
+        const nodeObject = this.commissioningController.getConnectedNode(nodeId);
+        if (nodeObject === undefined) {
+            // should never happen
+            throw new Error(`Node ${nodeId} is not connected but commissioning was successful. Should never happen.`);
+        }
+
+        await this.nodeToIoBrokerStructure(nodeObject);
+
+        this.adapter.log.debug(`Commissioning successfully done with nodeId ${nodeId}`);
     }
 
     async discovery(): Promise<CommissionableDevice[] | null> {
@@ -836,13 +833,13 @@ class Controller implements GeneralNode {
             await this.discoveryStop();
         }
 
-        for (let d = 0; d < this.devices.length; d++) {
-            for (let c = 0; c < this.devices[d].clusters.length; c++) {
-                await this.devices[d].clusters[c].destroy();
+        for (const device of this.devices.values()) {
+            for (const cluster of device.clusters) {
+                await cluster.destroy();
             }
         }
 
-        this.devices = [];
+        this.devices.clear();
 
         if (this.commissioningController) {
             await this.commissioningController.close();

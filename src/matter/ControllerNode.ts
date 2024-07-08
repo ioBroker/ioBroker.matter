@@ -58,8 +58,8 @@ interface AddDeviceResult {
 }
 
 interface EndUserCommissioningOptions {
-    qrCode: string | undefined;
-    manualCode: string | undefined;
+    qrCode?: string;
+    manualCode?: string;
     device: CommissionableDevice;
 }
 
@@ -120,7 +120,7 @@ class Controller implements GeneralNode {
             try {
                 Ble.get = singleton(() => new BleNode({ hciId: this.parameters.hciId }));
             } catch (error) {
-                this.adapter.log.info(`Failed to initialize BLE: ${error.message}`);
+                this.adapter.log.warn(`Failed to initialize BLE: ${error.message}`);
                 this.parameters.ble = false;
             }
         }
@@ -167,8 +167,8 @@ class Controller implements GeneralNode {
                     return { result: await this.completeCommissioningForNode(message.peerNodeId, message.discoveryData) };
             }
         } catch (error) {
-            this.adapter.log.info(`Error while executing command ${command}: ${error.stack}`);
-            return { error: `Error while executing command ${command}: ${error.message}` };
+            this.adapter.log.warn(`Error while executing command "${command}": ${error.stack}`);
+            return { error: `Error while executing command "${command}": ${error.message}` };
         }
 
         return { error: `Unknown command ${command}` };

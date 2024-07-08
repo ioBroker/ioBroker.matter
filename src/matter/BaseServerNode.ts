@@ -54,6 +54,6 @@ export abstract class BaseServerNode implements GeneralNode {
                 return { result: await this.getState() };
         }
 
-        return { error: `Unknown command ${command}` };
+        return { error: `Unknown command "${command}"` };
     }
 }

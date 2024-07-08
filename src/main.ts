@@ -151,33 +151,39 @@ export class MatterAdapter extends utils.Adapter {
         if (obj.command?.startsWith('dm:')) {
             // Handled by Device Manager class itself, so ignored here
             return;
-        } else if (obj.command?.startsWith('controller')) {
+        }
+        if (obj.command?.startsWith('controller')) {
             if (this.controller) {
                 try {
                     const result = await this.controller.handleCommand(obj.command, obj.message);
-                    if (result !== undefined) {
-                        obj.callback && this.sendTo(obj.from, obj.command, result, obj.callback);
+                    if (result !== undefined && obj.callback) {
+                         this.sendTo(obj.from, obj.command, result, obj.callback);
                     }
                 } catch (error) {
-                    this.log.warn(`Error while handling command ${obj.command} for controller: ${error.stack}`);
-                    obj.callback && this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
+                    this.log.warn(`Error while handling command "${obj.command}" for controller: ${error.stack}`);
+                    if (obj.callback) {
+                        this.sendTo(obj.from, obj.command, {error: error.message}, obj.callback);
+                    }
                 }
-            } else {
-                obj.callback && this.sendTo(obj.from, obj.command, { error: 'Controller not enabled' }, obj.callback);
+            } else if (obj.callback) {
+                this.sendTo(obj.from, obj.command, { error: 'Controller not enabled' }, obj.callback);
             }
             return;
-        } else if (obj.command?.startsWith('device')) {
+        }
+        if (obj.command?.startsWith('device')) {
             for (const [oid, bridge] of this.bridges.entries()) {
                 const uuid = oid.split('.').pop() || '';
                 if (uuid === obj.message.uuid) {
                     try {
                         const result = await bridge.handleCommand(obj.command, obj.message);
-                        if (result !== undefined) {
-                            obj.callback && this.sendTo(obj.from, obj.command, result, obj.callback);
+                        if (result !== undefined && obj.callback) {
+                            this.sendTo(obj.from, obj.command, result, obj.callback);
                         }
                     } catch (error) {
-                        this.log.warn(`Error while handling command ${obj.command} for device ${uuid}: ${error.stack}`);
-                        obj.callback && this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
+                        this.log.warn(`Error while handling command "${obj.command}" for device ${uuid}: ${error.stack}`);
+                        if (obj.callback) {
+                            this.sendTo(obj.from, obj.command, {error: error.message}, obj.callback);
+                        }
                     }
                     return;
                 }
@@ -187,18 +193,22 @@ export class MatterAdapter extends utils.Adapter {
                 if (uuid === obj.message.uuid) {
                     try {
                         const result = await device.handleCommand(obj.command, obj.message);
-                        if (result !== undefined) {
-                            obj.callback && this.sendTo(obj.from, obj.command, result, obj.callback);
+                        if (result !== undefined && obj.callback) {
+                            this.sendTo(obj.from, obj.command, result, obj.callback);
                         }
                     } catch (error) {
-                        this.log.warn(`Error while handling command ${obj.command}for device ${uuid}: ${error.stack}`);
-                        obj.callback && this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
+                        this.log.warn(`Error while handling command "${obj.command}" for device ${uuid}: ${error.stack}`);
+                        if (obj.callback) {
+                            this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
+                        }
                     }
 
                     return;
                 }
             }
-            obj.callback && this.sendTo(obj.from, obj.command, { error: 'Device or Bridge not found' }, obj.callback);
+            if (obj.callback) {
+                this.sendTo(obj.from, obj.command, { error: 'Device or Bridge not found' }, obj.callback);
+            }
             return;
         }
 
@@ -208,14 +218,20 @@ export class MatterAdapter extends utils.Adapter {
                 break;
             case 'nodeStates':
                 const states = await this.requestNodeStates(obj.message as NodeStatesOptions);
-                obj.callback && this.sendTo(obj.from, obj.command, { states }, obj.callback);
+                if (obj.callback) {
+                    this.sendTo(obj.from, obj.command, { states }, obj.callback);
+                }
                 break;
             case 'getLicense':
                 const license = await this.checkLicense(obj.message.login, obj.message.pass);
-                obj.callback && this.sendTo(obj.from, obj.command, { result: license }, obj.callback);
+                if (obj.callback) {
+                    this.sendTo(obj.from, obj.command, { result: license }, obj.callback);
+                }
                 break;
             default:
-                obj.callback && this.sendTo(obj.from, obj.command, { error: `Unknown command ${obj.command}` }, obj.callback);
+                if (obj.callback) {
+                    this.sendTo(obj.from, obj.command, { error: `Unknown command "${obj.command}"` }, obj.callback);
+                }
         }
     }
 
@@ -719,8 +735,7 @@ export class MatterAdapter extends utils.Adapter {
         }
 
         // Create new bridges
-        for (const b in bridges) {
-            const bridge = bridges[b];
+        for (const bridge of bridges) {
             if (!this.bridges.has(bridge._id)) {
                 // if one bridge already exists, check the license
                 const matterBridge = await this.createMatterBridge(bridge.native as BridgeDescription);
@@ -748,8 +763,7 @@ export class MatterAdapter extends utils.Adapter {
         }
 
         // Create new devices
-        for (const d in devices) {
-            const device = devices[d];
+        for (const device of devices) {
             if (!this.devices.has(device._id)) {
                 const matterDevice = await this.createMatterDevice(
                     typeof device.common.name === 'object' ?

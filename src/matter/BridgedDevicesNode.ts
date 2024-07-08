@@ -12,9 +12,12 @@ import { ServerNode } from '@project-chip/matter.js/node';
 import { SessionsBehavior } from '@project-chip/matter.js/behavior/system/sessions';
 import { Endpoint } from '@project-chip/matter.js/endpoint';
 import { AggregatorEndpoint } from '@project-chip/matter.js/endpoint/definitions';
-import { BridgedDeviceBasicInformationServer } from '@project-chip/matter.js/behavior/definitions/bridged-device-basic-information';
+import {
+    BridgedDeviceBasicInformationServer
+} from '@project-chip/matter.js/behavior/definitions/bridged-device-basic-information';
+import { BaseCreateOptions, BaseServerNode, ConnectionInfo, NodeStateResponse, NodeStates } from './BaseServerNode';
 
-export interface BridgeCreateOptions {
+export interface BridgeCreateOptions extends BaseCreateOptions {
     adapter: MatterAdapter;
     parameters: BridgeOptions,
     devices: GenericDevice[];
@@ -30,43 +33,21 @@ export interface BridgeOptions {
     port: number;
 }
 
-export enum NodeStates {
-    Creating = 'creating',
-    WaitingForCommissioning = 'waitingForCommissioning',
-    Commissioned = 'commissioned',
-    ConnectedWithController = 'connected',
-}
-
-export interface ConnectionInfo {
-    vendor: string;
-    connected: boolean;
-    label?: string;
-}
-
-export interface NodeStateResponse {
-    status: NodeStates;
-    qrPairingCode?: string;
-    manualPairingCode?: string;
-    connectionInfo?: ConnectionInfo[];
-}
-
-class BridgedDevices {
+class BridgedDevices extends BaseServerNode {
     private parameters: BridgeOptions;
     private readonly devices: GenericDevice[];
-    private serverNode: ServerNode | undefined;
     private devicesOptions: BridgeDeviceDescription[];
-    private adapter: MatterAdapter;
     private commissioned: boolean | null = null;
 
     constructor(options: BridgeCreateOptions) {
-        this.adapter = options.adapter;
+        super(options);
         this.parameters = options.parameters;
         this.devices = options.devices;
         this.devicesOptions = options.devicesOptions;
     }
 
     async init(): Promise<void> {
-        await this.adapter.extendObjectAsync(`bridges.${this.parameters.uuid}.commissioned`, {
+        await this.adapter.extendObject(`bridges.${this.parameters.uuid}.commissioned`, {
             type: 'state',
             common: {
                 name: 'commissioned',
@@ -146,7 +127,7 @@ class BridgedDevices {
 
         const aggregator = new Endpoint(AggregatorEndpoint, { id: 'bridge' });
 
-        this.serverNode.add(aggregator);
+        await this.serverNode.add(aggregator);
 
         for (let i = 0; i < this.devices.length; i++) {
             const ioBrokerDevice = this.devices[i];
@@ -204,7 +185,7 @@ class BridgedDevices {
         if (!this.serverNode?.lifecycle.isCommissioned) {
             if (this.commissioned !== false) {
                 this.commissioned = false;
-                await this.adapter.setStateAsync(`bridges.${this.parameters.uuid}.commissioned`, this.commissioned, true);
+                await this.adapter.setState(`bridges.${this.parameters.uuid}.commissioned`, this.commissioned, true);
             }
             const { qrPairingCode, manualPairingCode } = this.serverNode?.state.commissioning.pairingCodes;
             return {
@@ -215,7 +196,7 @@ class BridgedDevices {
         } else {
             if (this.commissioned !== true) {
                 this.commissioned = true;
-                await this.adapter.setStateAsync(`bridges.${this.parameters.uuid}.commissioned`, this.commissioned, true);
+                await this.adapter.setState(`bridges.${this.parameters.uuid}.commissioned`, this.commissioned, true);
             }
 
             const activeSessions = Object.values(this.serverNode.state.sessions.sessions);
@@ -254,14 +235,6 @@ class BridgedDevices {
                 };
             }
         }
-    }
-
-    async advertise(): Promise<void> {
-        await this.serverNode?.advertiseNow();
-    }
-
-    async factoryReset(): Promise<void> {
-        await this.serverNode?.factoryReset();
     }
 
     async start(): Promise<void> {

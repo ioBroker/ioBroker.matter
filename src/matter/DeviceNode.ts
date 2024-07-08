@@ -7,13 +7,11 @@ import { DeviceDescription } from '../ioBrokerStorageTypes';
 
 import matterDeviceFactory from './matterFactory';
 import VENDOR_IDS from './vendorIds';
-import { NodeStateResponse, NodeStates } from './BridgedDevicesNode';
-import type { MatterAdapter } from '../main';
 import { ServerNode } from '@project-chip/matter.js/node';
 import { SessionsBehavior } from '@project-chip/matter.js/behavior/system/sessions';
+import { BaseCreateOptions, BaseServerNode, NodeStateResponse, NodeStates } from './BaseServerNode';
 
-export interface DeviceCreateOptions {
-    adapter: MatterAdapter;
+export interface DeviceCreateOptions extends BaseCreateOptions {
     parameters: DeviceOptions,
     device: GenericDevice;
     deviceOptions: DeviceDescription;
@@ -28,23 +26,21 @@ export interface DeviceOptions {
     port: number;
 }
 
-class Device {
+class Device extends BaseServerNode {
     private parameters: DeviceOptions;
     private readonly device: GenericDevice;
-    private serverNode: ServerNode | undefined;
     private deviceOptions: DeviceDescription;
-    private adapter: MatterAdapter;
     private commissioned: boolean | null = null;
 
     constructor(options: DeviceCreateOptions) {
-        this.adapter = options.adapter;
+        super(options);
         this.parameters = options.parameters;
         this.device = options.device;
         this.deviceOptions = options.deviceOptions;
     }
 
     async init(): Promise<void> {
-        await this.adapter.extendObjectAsync(`devices.${this.parameters.uuid}.commissioned`, {
+        await this.adapter.extendObject(`devices.${this.parameters.uuid}.commissioned`, {
             type: 'state',
             common: {
                 name: 'commissioned',
@@ -67,7 +63,7 @@ class Device {
          * (so maybe better not ;-)).
          */
         const deviceName = this.parameters.deviceName || 'Matter device';
-        const deviceType = DeviceTypes.AGGREGATOR.code; // TODO FIX!!! needs to be type of real devcie
+        const deviceType = DeviceTypes.AGGREGATOR.code; // TODO we need one Device type here to use!
         const vendorName = 'ioBroker';
 
         // product name / id and vendor id should match what is in the device certificate
@@ -169,7 +165,7 @@ class Device {
         if (!this.serverNode?.lifecycle.isCommissioned) {
             if (this.commissioned !== false) {
                 this.commissioned = false;
-                await this.adapter.setStateAsync(`devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
+                await this.adapter.setState(`devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
             }
             const { qrPairingCode, manualPairingCode } = this.serverNode?.state.commissioning.pairingCodes;
             return {
@@ -180,7 +176,7 @@ class Device {
         } else {
             if (this.commissioned !== true) {
                 this.commissioned = true;
-                await this.adapter.setStateAsync(`devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
+                await this.adapter.setState(`devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
             }
 
             const activeSessions = Object.values(this.serverNode.state.sessions.sessions);
@@ -219,14 +215,6 @@ class Device {
                 };
             }
         }
-    }
-
-    async advertise(): Promise<void> {
-        await this.serverNode?.advertiseNow();
-    }
-
-    async factoryReset(): Promise<void> {
-        await this.serverNode?.factoryReset();
     }
 
     async start(): Promise<void> {

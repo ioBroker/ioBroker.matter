@@ -239,7 +239,7 @@ export class MatterAdapter extends utils.Adapter {
                 });
 
                 await this.extendObject(`${this.namespace}.controller`, { native: newControllerConfig });
-                this.sendTo(obj.from, obj.command, { success: true }, obj.callback);
+                this.sendTo(obj.from, obj.command, { result: true }, obj.callback);
                 break;
             }
             default:

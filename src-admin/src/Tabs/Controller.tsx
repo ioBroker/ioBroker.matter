@@ -478,7 +478,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 <Button
                     variant="contained"
                     color="primary"
-                    disabled={!this.props.matter.controller.wifiSSID || !this.props.matter.controller.threadNetworkName || (this.props.matter.controller.ble && JSON.stringify(this.props.savedConfig) === JSON.stringify(this.props.matter))}
+                    disabled={!this.isRequiredBleInformationProvided() || (this.props.matter.controller.ble && JSON.stringify(this.props.savedConfig) === JSON.stringify(this.props.matter))}
                     onClick={async () => {
                         await this.setBleEnabled(true);
                     }}
@@ -744,6 +744,15 @@ class Controller extends Component<ComponentProps, ComponentState> {
             </TableRow>,
             states.map(id => this.renderState(id)),
         ];
+    }
+
+    /**
+     * If BLE can be activated
+     */
+    isRequiredBleInformationProvided(): boolean {
+        const controllerConfig = this.props.matter.controller;
+
+        return (controllerConfig.wifiSSID && controllerConfig.wifiPassword) || (controllerConfig.threadNetworkName && controllerConfig.threadOperationalDataSet);
     }
 
     renderDevice(deviceId: string, inBridge?: boolean) {

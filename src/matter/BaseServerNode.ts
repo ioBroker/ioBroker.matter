@@ -2,10 +2,6 @@ import { GeneralNode, MessageResponse } from './GeneralNode';
 import type { MatterAdapter } from '../main';
 import { ServerNode } from '@project-chip/matter.js/node';
 
-export interface BaseCreateOptions {
-    adapter: MatterAdapter;
-}
-
 export enum NodeStates {
     Creating = 'creating',
     WaitingForCommissioning = 'waitingForCommissioning',
@@ -27,11 +23,11 @@ export interface NodeStateResponse {
 }
 
 export abstract class BaseServerNode implements GeneralNode {
-    protected adapter: MatterAdapter;
     protected serverNode?: ServerNode;
 
-    protected constructor(options: BaseCreateOptions) {
-        this.adapter = options.adapter;
+    abstract uuid: string;
+
+    protected constructor(protected adapter: MatterAdapter) {
     }
 
     async advertise(): Promise<void> {

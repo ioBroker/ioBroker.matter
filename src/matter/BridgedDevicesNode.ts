@@ -15,10 +15,9 @@ import { AggregatorEndpoint } from '@project-chip/matter.js/endpoint/definitions
 import {
     BridgedDeviceBasicInformationServer
 } from '@project-chip/matter.js/behavior/definitions/bridged-device-basic-information';
-import { BaseCreateOptions, BaseServerNode, ConnectionInfo, NodeStateResponse, NodeStates } from './BaseServerNode';
+import { BaseServerNode, ConnectionInfo, NodeStateResponse, NodeStates } from './BaseServerNode';
 
-export interface BridgeCreateOptions extends BaseCreateOptions {
-    adapter: MatterAdapter;
+export interface BridgeCreateOptions {
     parameters: BridgeOptions,
     devices: GenericDevice[];
     devicesOptions: BridgeDeviceDescription[];
@@ -39,11 +38,15 @@ class BridgedDevices extends BaseServerNode {
     private devicesOptions: BridgeDeviceDescription[];
     private commissioned: boolean | null = null;
 
-    constructor(options: BridgeCreateOptions) {
-        super(options);
+    constructor(adapter: MatterAdapter, options: BridgeCreateOptions) {
+        super(adapter);
         this.parameters = options.parameters;
         this.devices = options.devices;
         this.devicesOptions = options.devicesOptions;
+    }
+
+    get uuid(): string {
+        return this.parameters.uuid;
     }
 
     async init(): Promise<void> {
@@ -165,6 +168,10 @@ class BridgedDevices extends BaseServerNode {
         this.serverNode.events.sessions.opened.on(sessionChange);
         this.serverNode.events.sessions.closed.on(sessionChange);
         this.serverNode.events.sessions.subscriptionsChanged.on(sessionChange);
+    }
+
+    async applyConfiguration(_options: BridgeCreateOptions): Promise<void> {
+        // TODO
     }
 
     async getState(): Promise<NodeStateResponse> {

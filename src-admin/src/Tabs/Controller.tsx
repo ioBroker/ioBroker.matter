@@ -19,11 +19,11 @@ import {
     LinearProgress,
     Select,
     MenuItem,
-    FormControlLabel,
-    Checkbox,
+    Backdrop,
 } from '@mui/material';
 import {
     Add,
+    Bluetooth,
     Close,
     KeyboardArrowDown,
     KeyboardArrowUp,
@@ -36,7 +36,7 @@ import {
     KeyboardBackspace as ReadOnlyStateIcon,
     SearchOff,
     Wifi,
-    WifiOff,
+    WifiOff, BluetoothDisabled,
 } from '@mui/icons-material';
 
 import {
@@ -53,7 +53,7 @@ import type {
 import DeviceManager from '@iobroker/dm-gui-components';
 
 import type { CommissionableDevice, GUIMessage, MatterConfig } from '@/types';
-import { getText } from '../Utils';
+import { getText, clone } from '../Utils';
 
 const styles: Record<string, React.CSSProperties> = {
     panel: {
@@ -107,6 +107,8 @@ const styles: Record<string, React.CSSProperties> = {
 };
 
 interface ComponentProps {
+    /** The current saved config */
+    savedConfig: MatterConfig;
     instance: number;
     matter: MatterConfig;
     updateConfig: (config: MatterConfig) => void;
@@ -124,6 +126,10 @@ interface ComponentProps {
 }
 
 interface ComponentState {
+    /** If the BLE dialog should be shown */
+    bleDialogOpen: boolean;
+    /** If we are currently waiting for backend processing */
+    backendProcessingActive: boolean;
     discovered: CommissionableDevice[];
     discoveryRunning: boolean;
     discoveryDone: boolean;
@@ -150,7 +156,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
         if (openedNodesStr) {
             try {
                 openedNodes = JSON.parse(openedNodesStr);
-            } catch (e) {
+            } catch {
                 openedNodes = [];
             }
         } else {
@@ -170,6 +176,8 @@ class Controller extends Component<ComponentProps, ComponentState> {
             states: {},
             openedNodes,
             showQrCodeDialog: null,
+            backendProcessingActive: false,
+            bleDialogOpen: false,
         };
 
         this.refQrScanner = React.createRef();
@@ -252,7 +260,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
         if (!this.state.nodes) {
             return;
         }
-        const nodes = JSON.parse(JSON.stringify(this.state.nodes));
+        const nodes = clone(this.state.nodes);
         if (obj) {
             nodes[id] = obj;
         } else {
@@ -274,7 +282,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
         if (!this.state.states) {
             return;
         }
-        const states = JSON.parse(JSON.stringify(this.state.states));
+        const states = clone(this.state.states);
         if (state) {
             states[id] = state;
         } else {
@@ -354,6 +362,165 @@ class Controller extends Component<ComponentProps, ComponentState> {
             this.qrScanner.destroy();
         }
         this.qrScanner = null;
+    }
+
+    /**
+     * Render the loading spinner if backend processing is active
+     */
+    renderLoadingSpinner(): React.JSX.Element {
+        if (!this.state.backendProcessingActive) {
+            return null;
+        }
+
+        return <Backdrop sx={{ zIndex: theme => theme.zIndex.drawer + 1 }} open><CircularProgress /></Backdrop>;
+    }
+
+    /**
+     * Render the BLE dialog
+     */
+    renderBleDialog(): React.JSX.Element {
+        if (!this.state.bleDialogOpen) {
+            return null;
+        }
+
+        return <Dialog open={!0}>
+            <DialogTitle>{I18n.t('Bluetooth')}</DialogTitle>
+            <DialogContent>
+                <div>
+                    <TextField
+                        fullWidth
+                        variant="standard"
+                        style={{ maxWidth: 600 }}
+                        type="number"
+                        label={I18n.t('Bluetooth HCI ID')}
+                        value={this.props.matter.controller.hciId || ''}
+                        onChange={e => {
+                            const matter = clone(this.props.matter);
+                            matter.controller.hciId = e.target.value;
+                            this.props.updateConfig(matter);
+                        }}
+                    />
+                </div>
+
+                <div>
+                    <TextField
+                        fullWidth
+                        variant="standard"
+                        style={{ maxWidth: 600 }}
+                        label={I18n.t('WiFI SSID')}
+                        error={!this.props.matter.controller.wifiSSID}
+                        helperText={
+                            this.props.matter.controller.wifiSSID ? '' : I18n.t('Required')
+                        }
+                        value={this.props.matter.controller.wifiSSID || ''}
+                        onChange={e => {
+                            const matter = clone(this.props.matter);
+                            matter.controller.wifiSSID = e.target.value;
+                            this.props.updateConfig(matter);
+                        }}
+                    />
+                </div>
+
+                <div>
+                    <TextField
+                        fullWidth
+                        variant="standard"
+                        style={{ maxWidth: 600 }}
+                        label={I18n.t('WiFI password')}
+                        error={!this.props.matter.controller.wifiPassword}
+                        helperText={
+                            this.props.matter.controller.wifiPassword
+                                ? ''
+                                : I18n.t('Required')
+                        }
+                        value={this.props.matter.controller.wifiPassword || ''}
+                        onChange={e => {
+                            const matter = clone(this.props.matter);
+                            matter.controller.wifiPassword = e.target.value;
+                            this.props.updateConfig(matter);
+                        }}
+                    />
+                </div>
+
+                <div>
+                    <TextField
+                        fullWidth
+                        style={{ maxWidth: 600 }}
+                        variant="standard"
+                        label={I18n.t('Thread network name')}
+                        value={this.props.matter.controller.threadNetworkName || ''}
+                        onChange={e => {
+                            const matter = clone(this.props.matter);
+                            matter.controller.threadNetworkName = e.target.value;
+                            this.props.updateConfig(matter);
+                        }}
+                    />
+                </div>
+
+                <div>
+                    <TextField
+                        fullWidth
+                        style={{ maxWidth: 600 }}
+                        variant="standard"
+                        label={I18n.t('Thread operational dataset')}
+                        value={
+                            this.props.matter.controller.threadOperationalDataSet || ''
+                        }
+                        onChange={e => {
+                            const matter = clone(this.props.matter);
+                            matter.controller.threadOperationalDataSet = e.target.value;
+                            this.props.updateConfig(matter);
+                        }}
+                    />
+                </div>
+            </DialogContent>
+            <DialogActions>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    disabled={this.props.matter.controller.ble && JSON.stringify(this.props.savedConfig) === JSON.stringify(this.props.matter)}
+                    onClick={async () => {
+                        await this.setBleEnabled(true);
+                    }}
+                    startIcon={<Bluetooth />}
+                >
+                    {I18n.t('Enable')}
+                </Button>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={async () => {
+                        await this.setBleEnabled(false);
+                    }}
+                    startIcon={<BluetoothDisabled />}
+                    disabled={!this.props.matter.controller.ble}
+                >
+                    {I18n.t('Disable')}
+                </Button>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => this.setState({ bleDialogOpen: false })}
+                    startIcon={<Close />}
+                >
+                    {I18n.t('Close')}
+                </Button>
+            </DialogActions>
+        </Dialog>;
+    }
+
+    /**
+     * Tell backend to enable/disable BLE
+     *
+     * @param enabled if enabled or disabled
+     */
+    async setBleEnabled(enabled: boolean): Promise<void> {
+        const matter = clone(this.props.matter);
+        matter.controller.ble = enabled;
+        this.setState({ backendProcessingActive: true, bleDialogOpen: false });
+        const res = await this.props.socket.sendTo(`matter.${this.props.instance}`, 'updateControllerSettings', JSON.stringify(matter.controller));
+        console.log(res);
+        this.setState({ backendProcessingActive: false });
     }
 
     renderQrCodeDialog() {
@@ -502,14 +669,15 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 <Button
                     disabled={!this.state.discoveryRunning}
                     variant="contained"
-                    onClick={() =>
-                        this.props.socket
+                    onClick={async () => {
+                        await this.props.socket
                             .sendTo(
                                 `matter.${this.props.instance}`,
                                 'controllerDiscoveryStop',
                                 {},
-                            )
-                            .then(() => this.setState({ discoveryDone: false }))}
+                            );
+                        this.setState({ discoveryDone: false });
+                    }}
                     startIcon={<SearchOff />}
                 >
                     {I18n.t('Stop')}
@@ -775,140 +943,40 @@ class Controller extends Component<ComponentProps, ComponentState> {
         }
 
         return <div style={styles.panel}>
+            {this.renderLoadingSpinner()}
             {this.renderShowDiscoveredDevices()}
             {this.renderQrCodeDialog()}
+            {this.renderBleDialog()}
             <div>
                 {I18n.t('Off')}
                 <Switch
                     disabled={this.state.discoveryRunning}
                     checked={this.props.matter.controller.enabled}
-                    onChange={e => {
-                        const matter = JSON.parse(JSON.stringify(this.props.matter));
+                    onChange={async e => {
+                        const matter = clone(this.props.matter);
                         matter.controller.enabled = e.target.checked;
-                        this.props.updateConfig(matter);
+                        // this.props.updateConfig(matter);
+                        this.setState({ backendProcessingActive: true });
+                        const res = await this.props.socket.sendTo(`matter.${this.props.instance}`, 'updateControllerSettings', JSON.stringify(matter.controller));
+                        console.log(res);
+                        this.setState({ backendProcessingActive: false });
                     }}
                 />
                 {I18n.t('On')}
             </div>
-            {this.props.matter.controller.enabled ? (
-                <div>
-                    <FormControlLabel
-                        control={
-                            <Checkbox
-                                checked={!!this.props.matter.controller.ble}
-                                onChange={e => {
-                                    const matter = JSON.parse(
-                                        JSON.stringify(this.props.matter),
-                                    );
-                                    matter.controller.ble = e.target.checked;
-                                    this.props.updateConfig(matter);
-                                }}
-                            />
-                        }
-                        label={I18n.t('Bluetooth')}
-                    />
-                </div>
-            ) : null}
-            {this.props.matter.controller.enabled &&
-    this.props.matter.controller.ble ? (
-                    <div>
-                        <TextField
-                            fullWidth
-                            variant="standard"
-                            style={{ maxWidth: 600 }}
-                            type="number"
-                            label={I18n.t('Bluetooth HCI ID')}
-                            value={this.props.matter.controller.hciId || ''}
-                            onChange={e => {
-                                const matter = JSON.parse(JSON.stringify(this.props.matter));
-                                matter.controller.hciId = e.target.value;
-                                this.props.updateConfig(matter);
-                            }}
-                        />
-                    </div>
+            <div>
+                {this.props.matter.controller.enabled && this.props.alive ? (
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        sx={{ marginRight: 1 }}
+                        onClick={() => this.setState({ bleDialogOpen: true })}
+                        startIcon={this.props.matter.controller.ble ? <Bluetooth /> : <BluetoothDisabled />}
+                    >
+                        {I18n.t('Bluetooth')}
+                    </Button>
                 ) : null}
-            {this.props.matter.controller.enabled &&
-    this.props.matter.controller.ble ? (
-                    <div>
-                        <TextField
-                            fullWidth
-                            variant="standard"
-                            style={{ maxWidth: 600 }}
-                            label={I18n.t('WiFI SSID')}
-                            error={!this.props.matter.controller.wifiSSID}
-                            helperText={
-                                this.props.matter.controller.wifiSSID ? '' : I18n.t('Required')
-                            }
-                            value={this.props.matter.controller.wifiSSID || ''}
-                            onChange={e => {
-                                const matter = JSON.parse(JSON.stringify(this.props.matter));
-                                matter.controller.wifiSSID = e.target.value;
-                                this.props.updateConfig(matter);
-                            }}
-                        />
-                    </div>
-                ) : null}
-            {this.props.matter.controller.enabled &&
-    this.props.matter.controller.ble ? (
-                    <div>
-                        <TextField
-                            fullWidth
-                            variant="standard"
-                            style={{ maxWidth: 600 }}
-                            label={I18n.t('WiFI password')}
-                            error={!this.props.matter.controller.wifiPassword}
-                            helperText={
-                                this.props.matter.controller.wifiPassword
-                                    ? ''
-                                    : I18n.t('Required')
-                            }
-                            value={this.props.matter.controller.wifiPassword || ''}
-                            onChange={e => {
-                                const matter = JSON.parse(JSON.stringify(this.props.matter));
-                                matter.controller.wifiPassword = e.target.value;
-                                this.props.updateConfig(matter);
-                            }}
-                        />
-                    </div>
-                ) : null}
-            {this.props.matter.controller.enabled &&
-    this.props.matter.controller.ble ? (
-                    <div>
-                        <TextField
-                            fullWidth
-                            style={{ maxWidth: 600 }}
-                            variant="standard"
-                            label={I18n.t('Thread network name')}
-                            value={this.props.matter.controller.threadNetworkName || ''}
-                            onChange={e => {
-                                const matter = JSON.parse(JSON.stringify(this.props.matter));
-                                matter.controller.threadNetworkName = e.target.value;
-                                this.props.updateConfig(matter);
-                            }}
-                        />
-                    </div>
-                ) : null}
-            {this.props.matter.controller.enabled &&
-    this.props.matter.controller.ble ? (
-                    <div>
-                        <TextField
-                            fullWidth
-                            style={{ maxWidth: 600 }}
-                            variant="standard"
-                            label={I18n.t('Thread operational dataset')}
-                            value={
-                                this.props.matter.controller.threadOperationalDataSet || ''
-                            }
-                            onChange={e => {
-                                const matter = JSON.parse(JSON.stringify(this.props.matter));
-                                matter.controller.threadOperationalDataSet = e.target.value;
-                                this.props.updateConfig(matter);
-                            }}
-                        />
-                    </div>
-                ) : null}
-            {this.props.matter.controller.enabled && this.props.alive ? (
-                <div>
+                {this.props.matter.controller.enabled && this.props.alive ? (
                     <Button
                         variant="contained"
                         disabled={this.state.discoveryRunning}
@@ -946,8 +1014,8 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     >
                         {I18n.t('Discovery devices')}
                     </Button>
-                </div>
-            ) : null}
+                ) : null}
+            </div>
             {this.props.matter.controller.enabled
                 ? this.renderDeviceManager()
                 : null}

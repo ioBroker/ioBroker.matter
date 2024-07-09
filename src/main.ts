@@ -22,6 +22,7 @@ import MatterController, { ControllerOptions } from './matter/ControllerNode';
 
 import MatterAdapterDeviceManagement from './lib/DeviceManagement';
 import { Environment, StorageService } from '@project-chip/matter.js/environment';
+import { MatterControllerConfig } from '../src-admin/src/types';
 import { NodeStateResponse } from './matter/BaseServerNode';
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
@@ -228,6 +229,19 @@ export class MatterAdapter extends utils.Adapter {
                     this.sendTo(obj.from, obj.command, { result: license }, obj.callback);
                 }
                 break;
+            case 'updateControllerSettings': {
+                const newControllerConfig: MatterControllerConfig = JSON.parse(obj.message);
+                this.log.info(JSON.stringify(newControllerConfig));
+                // TODO: perform logic @Apollon77
+                await new Promise<void>(resolve => {
+                    // just wait to simulate some time for frontend
+                    setTimeout(() => resolve(), 2_000);
+                });
+
+                await this.extendObject(`${this.namespace}.controller`, { native: newControllerConfig });
+                this.sendTo(obj.from, obj.command, { result: true }, obj.callback);
+                break;
+            }
             default:
                 if (obj.callback) {
                     this.sendTo(obj.from, obj.command, { error: `Unknown command "${obj.command}"` }, obj.callback);

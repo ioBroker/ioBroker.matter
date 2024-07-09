@@ -19,10 +19,11 @@ import {
     type GenericAppProps,
     type GenericAppState,
 } from '@iobroker/adapter-react-v5';
+import { clone } from './Utils';
 
+import ControllerTab from './Tabs/Controller';
 import ConfigHandler from './components/ConfigHandler';
 import OptionsTab from './Tabs/Options';
-import ControllerTab from './Tabs/Controller';
 import BridgesTab from './Tabs/Bridges';
 import DevicesTab from './Tabs/Devices';
 
@@ -34,6 +35,7 @@ import type {
     DetectedRoom,
     CommissioningInfo,
 } from './types';
+import configHandler from './components/ConfigHandler';
 
 declare global {
     interface Window {
@@ -234,19 +236,19 @@ class App extends GenericApp<GenericAppProps, AppState> {
             const nodeStates: { [uuid: string]: NodeStateResponse } = {};
             if (update.states) {
                 const uuids = update.states ? Object.keys(update.states) : [];
-                for (let i = 0; i < uuids.length; i++) {
-                    nodeStates[uuids[i].split('.').pop() as string] =
-            update.states[uuids[i]];
+                for (const uuid of uuids) {
+                    nodeStates[uuid.split('.').pop()] =
+            update.states[uuid];
                 }
             }
             this.setState({ nodeStates });
         } else if (update.command === 'updateStates') {
             // normally only the state of one device
-            const nodeStates = JSON.parse(JSON.stringify(this.state.nodeStates));
+            const nodeStates = clone(this.state.nodeStates);
             if (update.states) {
                 const uuids = update.states ? Object.keys(update.states) : [];
-                for (let i = 0; i < uuids.length; i++) {
-                    nodeStates[uuids[i]] = update.states[uuids[i]];
+                for (const uuid of uuids) {
+                    nodeStates[uuid] = update.states[uuid];
                 }
             }
             this.setState({ nodeStates });
@@ -259,12 +261,16 @@ class App extends GenericApp<GenericAppProps, AppState> {
     };
 
     onChanged = (newConfig: MatterConfig) => {
-        if (this.state.ready) {
+        if (!this.state.ready) {
+            return Promise.resolve();
+        }
+
+        return new Promise<void>(resolve => {
             this.setState({
                 matter: newConfig,
                 changed: !!this.configHandler?.isChanged(newConfig),
-            });
-        }
+            }, resolve);
+        });
     };
 
     onCommissioningChanged = (newCommissioning: CommissioningInfo) => {
@@ -306,7 +312,10 @@ class App extends GenericApp<GenericAppProps, AppState> {
             socket={this.socket}
             instance={this.instance}
             matter={this.state.matter}
-            updateConfig={this.onChanged}
+            updateConfig={async config => {
+                await this.onChanged(config);
+            }}
+            savedConfig={this.configHandler.getSavedConfig()}
             adapterName={this.adapterName}
             themeName={this.state.themeName}
             themeType={this.state.themeType}
@@ -338,7 +347,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             updateNodeStates={(nodeStates: {
                 [uuid: string]: NodeStateResponse;
             }) => {
-                const _nodeStates = JSON.parse(JSON.stringify(this.state.nodeStates));
+                const _nodeStates = clone(this.state.nodeStates);
                 Object.assign(_nodeStates, nodeStates);
                 this.setState({ nodeStates: _nodeStates });
             }}
@@ -365,7 +374,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             updateNodeStates={(nodeStates: {
                 [uuid: string]: NodeStateResponse;
             }) => {
-                const _nodeStates = JSON.parse(JSON.stringify(this.state.nodeStates));
+                const _nodeStates = clone(this.state.nodeStates);
                 Object.assign(_nodeStates, nodeStates);
                 this.setState({ nodeStates: _nodeStates });
             }}
@@ -537,7 +546,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                         {this.state.selectedTab === 'devices' && this.renderDevices()}
                     </div>
                     {this.renderError()}
-                    {this.renderSaveCloseButtons()}
+                    {this.state.selectedTab !== 'controller' ? this.renderSaveCloseButtons() : null}
                 </div>
             </ThemeProvider>
         </StyledEngineProvider>;

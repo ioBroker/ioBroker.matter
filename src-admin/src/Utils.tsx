@@ -340,3 +340,12 @@ export function getText(text: ioBroker.StringOrTranslated): string {
         ? text?.[I18n.getLanguage()] || ''
         : text || '';
 }
+
+/**
+ * Clone an object
+ *
+ * @param obj the object to clone
+ */
+export function clone<TObject extends Record<string, any>>(obj: TObject): TObject {
+    return JSON.parse(JSON.stringify(obj));
+}

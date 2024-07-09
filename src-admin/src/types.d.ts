@@ -59,16 +59,18 @@ export interface DetectedRoom {
     devices: DetectedDevice[];
 }
 
+export interface MatterControllerConfig {
+    enabled?: boolean;
+    ble?: boolean;
+    hciId?: string;
+    wifiSSID?: string;
+    wifiPassword?: string;
+    threadNetworkName?: string;
+    threadOperationalDataSet?: string;
+}
+
 export interface MatterConfig {
-    controller: {
-        enabled?: boolean;
-        ble?: boolean;
-        hciId?: string;
-        wifiSSID?: string;
-        wifiPassword?: string;
-        threadNetworkName?: string;
-        threadOperationalDataSet?: string;
-    };
+    controller: MatterControllerConfig;
     devices: DeviceDescription[];
     bridges: BridgeDescription[];
 }

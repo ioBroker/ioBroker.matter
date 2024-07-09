@@ -1,12 +1,17 @@
 type SubscribeCallback = (state: ioBroker.State) => void;
 
 class SubscribeManager {
+    /** List of all registered subscribed state ids. */
     static subscribes = new Map<string, SubscribeCallback[]>();
+
+    /** Whether the adapter is subscribed to all own states (own namespace) already. */
     static locallySubscribed = false;
     static adapter: ioBroker.Adapter;
+
     static setAdapter(adapter: ioBroker.Adapter): void {
         SubscribeManager.adapter = adapter;
     }
+
     static observer(id: string, state: ioBroker.State | null | undefined): void {
         const callbacks = SubscribeManager.subscribes.get(id);
         if (callbacks !== undefined && state && !state.ack) {
@@ -24,7 +29,6 @@ class SubscribeManager {
         if (subscribes === undefined) {
             subscribes = [];
             if (!localSubscribe) {
-                // SubscribeManager.adapter.log.debug(`Subscribe to "${id}"`);
                 await SubscribeManager.adapter.subscribeForeignStatesAsync(id);
             }
         }
@@ -41,7 +45,6 @@ class SubscribeManager {
             subscribes.splice(pos, 1);
         }
         if (!subscribes.length) {
-            // SubscribeManager.adapter.log.debug(`Unsubscribe from "${id}"`);
             SubscribeManager.subscribes.delete(id);
             const namespace = SubscribeManager.adapter.namespace;
             if (id.startsWith(namespace)) {

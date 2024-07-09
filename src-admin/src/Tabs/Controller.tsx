@@ -476,7 +476,9 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 <Button
                     variant="contained"
                     color="primary"
-                    onClick={() => this.setState({ bleDialogOpen: false })}
+                    onClick={async () => {
+                        await this.setBleEnabled(true);
+                    }}
                     startIcon={<Bluetooth />}
                 >
                     {I18n.t('Enable')}
@@ -484,7 +486,9 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 <Button
                     variant="contained"
                     color="primary"
-                    onClick={() => this.setState({ bleDialogOpen: false })}
+                    onClick={async () => {
+                        await this.setBleEnabled(false);
+                    }}
                     startIcon={<BluetoothDisabled />}
                     disabled={!this.props.matter.controller.ble}
                 >
@@ -500,6 +504,20 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 </Button>
             </DialogActions>
         </Dialog>;
+    }
+
+    /**
+     * Tell backend to enable/disable BLE
+     *
+     * @param enabled if enabled or disabled
+     */
+    async setBleEnabled(enabled: boolean): Promise<void> {
+        const matter = clone(this.props.matter);
+        matter.controller.ble = enabled;
+        this.setState({ backendProcessingActive: true, bleDialogOpen: false });
+        const res = await this.props.socket.sendTo(`matter.${this.props.instance}`, 'updateControllerSettings', JSON.stringify(matter.controller));
+        console.log(res);
+        this.setState({ backendProcessingActive: false });
     }
 
     renderQrCodeDialog() {

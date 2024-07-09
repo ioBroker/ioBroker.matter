@@ -8,7 +8,6 @@ import type {
     DeviceDescription,
     MatterConfig,
 } from '@/types';
-import controller from '@/Tabs/Controller';
 import { clone } from '../Utils';
 
 class ConfigHandler {
@@ -224,8 +223,8 @@ class ConfigHandler {
                 }
             }
         } else if (id === `matter.${this.instance}.controller`) {
-            if (!obj || this.config.controller.enabled !== obj.native.enabled) {
-                this.config.controller.enabled = obj?.native?.enabled;
+            if (!obj || JSON.stringify(this.config.controller) !== JSON.stringify(obj.native)) {
+                this.config.controller = (obj as ioBroker.FolderObject).native;
                 this.onChanged(this.config);
             }
         }
@@ -361,7 +360,7 @@ class ConfigHandler {
             this.onStateChange,
         );
 
-        return JSON.parse(JSON.stringify(this.config));
+        return clone(this.config);
     }
 
     static getSortName(
@@ -495,8 +494,7 @@ class ConfigHandler {
         await this.saveControllerConfig(config);
 
         // sync devices
-        for (let d = 0; d < config.devices.length; d++) {
-            const newDev = config.devices[d];
+        for (const newDev of config.devices) {
             const oldDev = this.config.devices.find(
                 dev => dev.uuid === newDev.uuid,
             );
@@ -541,8 +539,7 @@ class ConfigHandler {
         }
 
         // sync bridges
-        for (let b = 0; b < config.bridges.length; b++) {
-            const newBridge = config.bridges[b];
+        for (const newBridge of config.bridges) {
             const oldBridge = this.config.bridges.find(
                 brd => brd.uuid === newBridge.uuid,
             );

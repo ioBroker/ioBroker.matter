@@ -478,7 +478,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 <Button
                     variant="contained"
                     color="primary"
-                    disabled={this.props.matter.controller.ble && JSON.stringify(this.props.savedConfig) === JSON.stringify(this.props.matter)}
+                    disabled={!this.props.matter.controller.wifiSSID || !this.props.matter.controller.threadNetworkName || (this.props.matter.controller.ble && JSON.stringify(this.props.savedConfig) === JSON.stringify(this.props.matter))}
                     onClick={async () => {
                         await this.setBleEnabled(true);
                     }}

@@ -363,9 +363,9 @@ export class MatterAdapter extends utils.Adapter {
         await this.loadDevices();
         if (!this.subscribed) {
             this.subscribed = true;
-            await this.subscribeForeignObjectsAsync(`${this.namespace}.bridges.*`);
-            await this.subscribeForeignObjectsAsync(`${this.namespace}.devices.*`);
-            await this.subscribeForeignObjectsAsync(`${this.namespace}.controller.*`);
+            await this.subscribeForeignObjectsAsync(`${this.namespace}.0.bridges.*`);
+            await this.subscribeForeignObjectsAsync(`${this.namespace}.0.devices.*`);
+            await this.subscribeForeignObjectsAsync(`${this.namespace}.0.controller.*`);
         }
 
         /**

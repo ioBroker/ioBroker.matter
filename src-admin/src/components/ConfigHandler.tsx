@@ -234,6 +234,13 @@ class ConfigHandler {
         return this.commissioning;
     }
 
+    /**
+     * Get the saved config
+     */
+    getSavedConfig(): MatterConfig {
+        return this.config;
+    }
+
     async loadConfig(): Promise<MatterConfig> {
         let devicesAndBridges: Record<string, ioBroker.ChannelObject>;
         let controllerObj: ioBroker.FolderObject | null = null;
@@ -407,13 +414,7 @@ class ConfigHandler {
         ConfigHandler.sortAll(config, this.lang);
 
         let isChanged = false;
-        // compare config with this.config
-        if (
-            JSON.stringify(config.controller) !==
-      JSON.stringify(this.config.controller)
-        ) {
-            isChanged = true;
-        }
+
         if (
             JSON.stringify(config.bridges) !== JSON.stringify(this.config.bridges)
         ) {

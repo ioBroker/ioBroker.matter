@@ -107,6 +107,8 @@ const styles: Record<string, React.CSSProperties> = {
 };
 
 interface ComponentProps {
+    /** The current saved config */
+    savedConfig: MatterConfig;
     instance: number;
     matter: MatterConfig;
     updateConfig: (config: MatterConfig) => void;
@@ -154,7 +156,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
         if (openedNodesStr) {
             try {
                 openedNodes = JSON.parse(openedNodesStr);
-            } catch (e) {
+            } catch {
                 openedNodes = [];
             }
         } else {
@@ -476,6 +478,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 <Button
                     variant="contained"
                     color="primary"
+                    disabled={this.props.matter.controller.ble && JSON.stringify(this.props.savedConfig) === JSON.stringify(this.props.matter)}
                     onClick={async () => {
                         await this.setBleEnabled(true);
                     }}
@@ -962,7 +965,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 {I18n.t('On')}
             </div>
             <div>
-                {this.props.matter.controller.enabled ? (
+                {this.props.matter.controller.enabled && this.props.alive ? (
                     <Button
                         variant="contained"
                         color="primary"

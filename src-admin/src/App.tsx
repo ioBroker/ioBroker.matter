@@ -35,6 +35,7 @@ import type {
     DetectedRoom,
     CommissioningInfo,
 } from './types';
+import configHandler from './components/ConfigHandler';
 
 declare global {
     interface Window {
@@ -313,9 +314,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
             matter={this.state.matter}
             updateConfig={async config => {
                 await this.onChanged(config);
-                await this.configHandler.saveControllerConfig(config);
-                this.setState({ changed: this.configHandler.isChanged(config) });
             }}
+            savedConfig={this.configHandler.getSavedConfig()}
             adapterName={this.adapterName}
             themeName={this.state.themeName}
             themeType={this.state.themeType}
@@ -546,7 +546,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                         {this.state.selectedTab === 'devices' && this.renderDevices()}
                     </div>
                     {this.renderError()}
-                    {this.renderSaveCloseButtons()}
+                    {this.state.selectedTab !== 'controller' ? this.renderSaveCloseButtons() : null}
                 </div>
             </ThemeProvider>
         </StyledEngineProvider>;

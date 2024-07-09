@@ -752,7 +752,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
     isRequiredBleInformationProvided(): boolean {
         const controllerConfig = this.props.matter.controller;
 
-        return (controllerConfig.wifiSSID && controllerConfig.wifiPassword) || (controllerConfig.threadNetworkName && controllerConfig.threadOperationalDataSet);
+        return !!((controllerConfig.wifiSSID && controllerConfig.wifiPassword) || (controllerConfig.threadNetworkName && controllerConfig.threadOperationalDataSet));
     }
 
     renderDevice(deviceId: string, inBridge?: boolean) {

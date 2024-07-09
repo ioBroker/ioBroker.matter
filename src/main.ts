@@ -18,12 +18,13 @@ import {
     DeviceDescription,
     MatterAdapterConfig
 } from './ioBrokerStorageTypes';
-import MatterController, { ControllerOptions } from './matter/ControllerNode';
+import MatterController from './matter/ControllerNode';
 
 import MatterAdapterDeviceManagement from './lib/DeviceManagement';
 import { Environment, StorageService } from '@project-chip/matter.js/environment';
 import { MatterControllerConfig } from '../src-admin/src/types';
 import { NodeStateResponse } from './matter/BaseServerNode';
+import { MessageResponse } from './matter/GeneralNode';
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
 
@@ -75,7 +76,7 @@ interface NodeStatesOptions {
 export class MatterAdapter extends utils.Adapter {
     private devices = new Map<string, MatterDevice>();
     private bridges = new Map<string, BridgedDevice>();
-    private controller: MatterController | null = null;
+    private controller?: MatterController;
 
     private detector: ChannelDetector;
 
@@ -232,14 +233,11 @@ export class MatterAdapter extends utils.Adapter {
             case 'updateControllerSettings': {
                 const newControllerConfig: MatterControllerConfig = JSON.parse(obj.message);
                 this.log.info(JSON.stringify(newControllerConfig));
-                // TODO: perform logic @Apollon77
-                await new Promise<void>(resolve => {
-                    // just wait to simulate some time for frontend
-                    setTimeout(() => resolve(), 2_000);
-                });
-
-                await this.extendObject(`${this.namespace}.controller`, { native: newControllerConfig });
-                this.sendTo(obj.from, obj.command, { result: true }, obj.callback);
+                const result = await this.applyControllerConfiguration(newControllerConfig);
+                if (result && 'result' in result) { // was successfull
+                    await this.extendObject(`${this.namespace}.controller`, { native: newControllerConfig });
+                }
+                this.sendTo(obj.from, obj.command, result, obj.callback);
                 break;
             }
             default:
@@ -687,7 +685,7 @@ export class MatterAdapter extends utils.Adapter {
         return null;
     }
 
-    async createMatterController(controllerOptions: ControllerOptions): Promise<MatterController | null> {
+    async createMatterController(controllerOptions: MatterControllerConfig): Promise<MatterController> {
         const matterController = new MatterController({
             adapter: this,
             controllerOptions,
@@ -797,12 +795,24 @@ export class MatterAdapter extends utils.Adapter {
             }
         }
         const controllerObj = await this.getObjectAsync('controller');
-        if (controllerObj?.native?.enabled && !this.controller) {
-            this.controller = await this.createMatterController(controllerObj.native as ControllerOptions);
-        } else if (!controllerObj?.native?.enabled && this.controller) {
+        const controllerConfig = (controllerObj?.native ?? { enabled: false }) as MatterControllerConfig;
+        await this.applyControllerConfiguration(controllerConfig);
+    }
+
+    async applyControllerConfiguration(config: MatterControllerConfig): Promise<MessageResponse> {
+        if (config.enabled) {
+            if (this.controller) {
+                return this.controller.applyConfiguration(config);
+            }
+
+            this.controller = await this.createMatterController(config);
+        } else if (this.controller) {
+            // Controller should be disabled but is not
             await this.controller.stop();
-            this.controller = null;
+            this.controller = undefined;
         }
+
+        return { result: true };
     }
 }
 

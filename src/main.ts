@@ -749,12 +749,12 @@ export class MatterAdapter extends utils.Adapter {
 
         for (const object of objects) {
             // No valid object or a sub-channel
-            if (!object || !object.native || object._id.split('.').length !== 4) return;
+            if (!object || !object.native || object._id.split('.').length !== 4) continue;
 
             if (object._id.startsWith(`${this.namespace}.devices.`)) {
                 if (object.native.deleted) {
                     // delete device
-                    this.log.info(`Delete Device ${object.native.uuid} because deleted in the frontend.`);
+                    this.log.info(`Delete Device "${object.native.uuid}" because deleted in the frontend.`);
                     await this.deleteBridgeOrDevice('device', object._id, object.native.uuid);
                     await this.delObjectAsync(object._id, { recursive: true });
                 } else if (object.native.enabled !== false) {
@@ -763,7 +763,7 @@ export class MatterAdapter extends utils.Adapter {
             } else if (object._id.startsWith(`${this.namespace}.bridges.`)) {
                 if (object.native.deleted) {
                     // delete bridge
-                    this.log.info(`Delete bridge ${object.native.uuid} because deleted in the frontend.`);
+                    this.log.info(`Delete bridge "${object.native.uuid}" because deleted in the frontend.`);
                     await this.deleteBridgeOrDevice('bridge', object._id, object.native.uuid);
                     await this.delObjectAsync(object._id);
                 } else if (
@@ -781,13 +781,13 @@ export class MatterAdapter extends utils.Adapter {
             // Objects existing, not deleted, so disable not enabled bridges or devices
             for (const bridgeId of this.bridges.keys()) {
                 if (!bridges.find(obj => obj._id === bridgeId)) {
-                    this.log.info(`Bridge ${bridgeId} is not enabled anymore, so stop it.`);
+                    this.log.info(`Bridge "${bridgeId}" is not enabled anymore, so stop it.`);
                     await this.stopBridgeOrDevice('bridge', bridgeId);
                 }
             }
             for (const deviceId of this.devices.keys()) {
                 if (!devices.find(obj => obj._id === deviceId)) {
-                    this.log.info(`Device ${deviceId} is not enabled anymore, so stop it.`);
+                    this.log.info(`Device "${deviceId}" is not enabled anymore, so stop it.`);
                     await this.stopBridgeOrDevice('device', deviceId);
                 }
             }
@@ -803,7 +803,7 @@ export class MatterAdapter extends utils.Adapter {
                     if (Object.keys(this.bridges).length) {
                         // check license
                         if (!(await this.checkLicense())) {
-                            this.log.error(`You cannot use more than one bridge without ioBroker.pro subscription. Bridge ${bridge._id} will be ignored.}`);
+                            this.log.error(`You cannot use more than one bridge without ioBroker.pro subscription. Bridge "${bridge._id}" will be ignored.}`);
                             await matterBridge.stop();
                             break;
                         }
@@ -814,10 +814,10 @@ export class MatterAdapter extends utils.Adapter {
             } else {
                 const config = await this.prepareMatterBridgeConfiguration(bridge.native as BridgeDescription);
                 if (config) {
-                    this.log.info(`Apply configuration update for bridge ${bridge._id}.`);
+                    this.log.info(`Apply configuration update for bridge "${bridge._id}".`);
                     await existingBridge.applyConfiguration(config);
                 } else {
-                    this.log.info(`Configuration for bridge ${bridge._id} is no longer valid or bridge disabled. Stopping it now.`);
+                    this.log.info(`Configuration for bridge "${bridge._id}" is no longer valid or bridge disabled. Stopping it now.`);
                     await existingBridge.stop();
                 }
             }
@@ -846,10 +846,10 @@ export class MatterAdapter extends utils.Adapter {
             } else {
                 const config = await this.prepareMatterDeviceConfiguration(deviceName, device.native as DeviceDescription);
                 if (config) {
-                    this.log.info(`Apply configuration update for device ${device._id}.`);
+                    this.log.info(`Apply configuration update for device "${device._id}".`);
                     await existingDevice.applyConfiguration(config);
                 } else {
-                    this.log.info(`Configuration for device ${device._id} is no longer valid or bridge disabled. Stopping it now.`);
+                    this.log.info(`Configuration for device "${device._id}" is no longer valid or bridge disabled. Stopping it now.`);
                     await existingDevice.stop();
                 }
             }

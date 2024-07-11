@@ -9,9 +9,10 @@ import matterDeviceFactory from './matterFactory';
 import VENDOR_IDS from './vendorIds';
 import { ServerNode } from '@project-chip/matter.js/node';
 import { SessionsBehavior } from '@project-chip/matter.js/behavior/system/sessions';
-import { BaseCreateOptions, BaseServerNode, NodeStateResponse, NodeStates } from './BaseServerNode';
+import { BaseServerNode, NodeStateResponse, NodeStates } from './BaseServerNode';
+import type { MatterAdapter } from '../main';
 
-export interface DeviceCreateOptions extends BaseCreateOptions {
+export interface DeviceCreateOptions {
     parameters: DeviceOptions,
     device: GenericDevice;
     deviceOptions: DeviceDescription;
@@ -32,11 +33,15 @@ class Device extends BaseServerNode {
     private deviceOptions: DeviceDescription;
     private commissioned: boolean | null = null;
 
-    constructor(options: DeviceCreateOptions) {
-        super(options);
+    constructor(adapter: MatterAdapter, options: DeviceCreateOptions) {
+        super(adapter);
         this.parameters = options.parameters;
         this.device = options.device;
         this.deviceOptions = options.deviceOptions;
+    }
+
+    get uuid(): string {
+        return this.parameters.uuid;
     }
 
     async init(): Promise<void> {
@@ -145,6 +150,10 @@ class Device extends BaseServerNode {
         this.serverNode.events.sessions.closed.on(sessionChange);
         this.serverNode.events.sessions.subscriptionsChanged.on(sessionChange);
 
+    }
+
+    async applyConfiguration(_options: DeviceCreateOptions): Promise<void> {
+        // TODO
     }
 
     async getState(): Promise<NodeStateResponse> {

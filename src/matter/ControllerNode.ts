@@ -34,21 +34,12 @@ import Factories from './clusters/factories';
 import Base from './clusters/Base';
 import { Environment } from '@project-chip/matter.js/environment';
 import { GeneralNode, MessageResponse } from './GeneralNode';
+import { MatterControllerConfig } from '../../src-admin/src/types';
 
 export interface ControllerCreateOptions {
     adapter: MatterAdapter;
-    controllerOptions: ControllerOptions;
+    controllerOptions: MatterControllerConfig;
     matterEnvironment: Environment;
-}
-
-export interface ControllerOptions {
-    ble?: boolean;
-    uuid: string;
-    wifiSSID?: string;
-    wifiPassword?: string;
-    threadNetworkName?: string;
-    threadOperationalDataSet?: string;
-    hciId?: number;
 }
 
 interface AddDeviceResult {
@@ -98,16 +89,15 @@ interface Device {
 }
 
 class Controller implements GeneralNode {
-    private parameters: ControllerOptions;
+    private parameters: MatterControllerConfig;
     private readonly adapter: MatterAdapter;
     private readonly matterEnvironment: Environment;
     private commissioningController?: CommissioningController;
     private devices= new Map<string, Device>();
     private delayedStates: { [nodeId: string]: NodeStateInformation } = {};
     private connected: { [nodeId: string]: boolean } = {};
-    private discovering: boolean = false;
-    private useBle: boolean = false;
-    private useThread: boolean = false;
+    private discovering = false;
+    private useBle = false;
 
     constructor(options: ControllerCreateOptions) {
         this.adapter = options.adapter;
@@ -116,15 +106,7 @@ class Controller implements GeneralNode {
     }
 
     async init(): Promise<void> {
-        if (this.parameters.ble) {
-            try {
-                Ble.get = singleton(() => new BleNode({ hciId: this.parameters.hciId }));
-            } catch (error) {
-                this.adapter.log.warn(`Failed to initialize BLE: ${error.message}`);
-                this.parameters.ble = false;
-            }
-        }
-
+        await this.applyConfiguration(this.parameters, true);
         this.commissioningController = new CommissioningController({
             autoConnect: false,
             // TODO add listeningAddressIpv4 and listeningAddressIpv6 to limit controller to one network interface
@@ -133,6 +115,30 @@ class Controller implements GeneralNode {
                 id: 'controller'
             }
         });
+    }
+
+    async applyConfiguration(config: MatterControllerConfig, isInitialization = false): Promise<MessageResponse> {
+        const currentConfig: MatterControllerConfig = isInitialization ? { enabled: true } : this.parameters;
+
+        this.useBle = false;
+        if (config.ble !== currentConfig.ble || config.hciId !== currentConfig.hciId) {
+            if (config.ble && (
+                (config.wifiSSID && config.wifiPassword) ||
+                (config.threadNetworkName !== undefined && config.threadOperationalDataSet !== undefined)
+            )) {
+                try {
+                    const hciId = config.hciId === undefined ? undefined : parseInt(config.hciId);
+                    Ble.get = singleton(() => new BleNode({ hciId }));
+                    this.useBle = true;
+                } catch (error) {
+                    this.adapter.log.warn(`Failed to initialize BLE: ${error.message}`);
+                    config.ble = false;
+                    return { error: `Can not adjust configuration and enable BLE because of error: ${error.message}` };
+                }
+            }
+        }
+        this.parameters = config;
+        return { result: true };
     }
 
     async handleCommand(command: string, message: ioBroker.MessagePayload): Promise<MessageResponse> {
@@ -675,9 +681,8 @@ class Controller implements GeneralNode {
             regulatoryCountryCode: 'XX',
         };
 
-        if (this.parameters.ble) {
+        if (this.useBle) {
             if (this.parameters.wifiSSID && this.parameters.wifiPassword) {
-                this.useBle = true;
                 this.adapter.log.debug(`Registering Commissioning over BLE with WiFi: ${this.parameters.wifiSSID}`);
                 commissioningOptions.wifiNetwork = {
                     wifiSsid: this.parameters.wifiSSID,
@@ -686,7 +691,6 @@ class Controller implements GeneralNode {
             }
             if (this.parameters.threadNetworkName !== undefined && this.parameters.threadOperationalDataSet !== undefined) {
                 this.adapter.log.debug(`Registering Commissioning over BLE with Thread: ${this.parameters.threadNetworkName}`);
-                this.useThread = true;
                 commissioningOptions.threadNetwork = {
                     networkName: this.parameters.threadNetworkName,
                     operationalDataset: this.parameters.threadOperationalDataSet,

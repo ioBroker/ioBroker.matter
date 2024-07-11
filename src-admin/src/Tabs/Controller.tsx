@@ -19,7 +19,7 @@ import {
     LinearProgress,
     Select,
     MenuItem,
-    Backdrop,
+    Backdrop, Typography,
 } from '@mui/material';
 import {
     Add,
@@ -500,8 +500,9 @@ class Controller extends Component<ComponentProps, ComponentState> {
             </DialogActions>
 
             <DialogTitle>{I18n.t('Bluetooth')}</DialogTitle>
-            {// TODO: clarify that local BLE is optional and app can be used
-            }
+            <DialogContent>
+                <Typography sx={{ fontSize: 18 }}>{I18n.t('Activate BLE to pair devices nearby. You can also use the "ioBroker Visu" App to pair other devices.')}</Typography>
+            </DialogContent>
 
             <DialogActions>
                 <Button

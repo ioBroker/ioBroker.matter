@@ -1,5 +1,6 @@
 {
   "%s of %s devices selected": "已选择 %s 个设备（共 %s 个）",
+  "Activate BLE to pair devices nearby. You can also use the \"ioBroker Visu\" App to pair other devices.": "激活BLE以配对附近的设备。您也可以使用“ioBroker Visu”应用程序配对其他设备。",
   "Add": "添加",
   "Add %s device(s)": "添加 %s 台设备",
   "Add bridge": "添加桥接",

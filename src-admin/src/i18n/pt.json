@@ -1,5 +1,6 @@
 {
   "%s of %s devices selected": "%s de %s dispositivos selecionados",
+  "Activate BLE to pair devices nearby. You can also use the \"ioBroker Visu\" App to pair other devices.": "Ative o BLE para emparelhar dispositivos próximos. Você também pode usar o aplicativo \"ioBroker Visu\" para emparelhar outros dispositivos.",
   "Add": "Adicionar",
   "Add %s device(s)": "Adicionar %s dispositivos",
   "Add bridge": "Adicionar ponte",

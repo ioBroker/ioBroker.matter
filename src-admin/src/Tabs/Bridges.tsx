@@ -406,7 +406,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
             if (!this.state.editDeviceDialog) {
                 return;
             }
-            const matter: MatterConfig = clone(this.props.matter);
+            const matter = clone(this.props.matter);
             const device =
         matter.bridges[this.state.editDeviceDialog.bridgeIndex].list[
             this.state.editDeviceDialog.device
@@ -675,7 +675,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                 {
                                     deleteDialog: null,
                                     suppressDeleteTime: this.state.suppressDeleteEnabled
-                                        ? Date.now() + 120000
+                                        ? Date.now() + 120_000
                                         : 0,
                                 },
                                 () => this.props.updateConfig(matter),

@@ -58,7 +58,7 @@ import BridgesAndDevices, {
     STYLES,
     type BridgesAndDevicesState,
 } from './BridgesAndDevices';
-import { detectDevices, getText } from '../Utils';
+import { clone, detectDevices, getText } from '../Utils';
 
 const styles: Record<string, any> = {
     ...STYLES,
@@ -175,7 +175,7 @@ interface BridgesState extends BridgesAndDevicesState {
         bridgeIndex: number;
         hasOnState?: boolean;
     } | null;
-    bridgesOpened: Record<number, boolean>;
+    bridgesOpened: Record<string, boolean>;
     deleteDialog: {
         deviceIndex?: number;
         bridgeIndex: number;
@@ -191,7 +191,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
 
     constructor(props: BridgesProps) {
         super(props);
-        let bridgesOpened: Record<number, boolean> = {};
+        let bridgesOpened: Record<string, boolean> = {};
         try {
             const bridgesOpenedStr = window.localStorage.getItem(
                 `matter.${props.instance}.bridgesOpened`,
@@ -216,7 +216,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
 
         if (!this.props.matter.bridges.length) {
             setTimeout(() => {
-                const matter = JSON.parse(JSON.stringify(this.props.matter));
+                const matter = clone(this.props.matter);
                 matter.bridges.push({
                     name: I18n.t('Default bridge'),
                     enabled: true,
@@ -235,7 +235,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         bridgeIndex: number,
         isAutoDetected: boolean,
     ) {
-        const matter: MatterConfig = JSON.parse(JSON.stringify(this.props.matter));
+        const matter = clone(this.props.matter);
         const bridge = matter.bridges[bridgeIndex];
         for (let d = 0; d < devices.length; d++) {
             const device = devices[d];
@@ -276,9 +276,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
             if (!this.state.editBridgeDialog) {
                 return;
             }
-            const matter: MatterConfig = JSON.parse(
-                JSON.stringify(this.props.matter),
-            );
+            const matter = clone(this.props.matter);
             if (this.state.editBridgeDialog.add) {
                 matter.bridges.push({
                     name: this.state.editBridgeDialog.name,
@@ -317,9 +315,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     disabled={isCommissioned}
                     value={this.state.editBridgeDialog.name}
                     onChange={e => {
-                        const editBridgeDialog = JSON.parse(
-                            JSON.stringify(this.state.editBridgeDialog),
-                        );
+                        const editBridgeDialog = clone(this.state.editBridgeDialog);
                         editBridgeDialog.name = e.target.value;
                         this.setState({ editBridgeDialog });
                     }}
@@ -333,9 +329,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     style={{ width: 'calc(50% - 8px)', marginRight: 16, marginTop: 16 }}
                     value={this.state.editBridgeDialog.vendorID}
                     onChange={e => {
-                        const editBridgeDialog = JSON.parse(
-                            JSON.stringify(this.state.editBridgeDialog),
-                        );
+                        const editBridgeDialog = clone(this.state.editBridgeDialog);
                         editBridgeDialog.vendorID = e.target.value;
                         this.setState({ editBridgeDialog });
                     }}
@@ -355,9 +349,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     style={{ width: 'calc(50% - 8px)', marginTop: 16 }}
                     value={this.state.editBridgeDialog.productID}
                     onChange={e => {
-                        const editBridgeDialog = JSON.parse(
-                            JSON.stringify(this.state.editBridgeDialog),
-                        );
+                        const editBridgeDialog = clone(this.state.editBridgeDialog);
                         editBridgeDialog.productID = e.target.value;
                         this.setState({ editBridgeDialog });
                     }}
@@ -414,9 +406,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
             if (!this.state.editDeviceDialog) {
                 return;
             }
-            const matter: MatterConfig = JSON.parse(
-                JSON.stringify(this.props.matter),
-            );
+            const matter: MatterConfig = clone(this.props.matter);
             const device =
         matter.bridges[this.state.editDeviceDialog.bridgeIndex].list[
             this.state.editDeviceDialog.device
@@ -474,9 +464,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         disabled={isCommissioned}
                         value={this.state.editDeviceDialog.name}
                         onChange={e => {
-                            const editDeviceDialog = JSON.parse(
-                                JSON.stringify(this.state.editDeviceDialog),
-                            );
+                            const editDeviceDialog = clone(this.state.editDeviceDialog);
                             editDeviceDialog.name = e.target.value;
                             this.setState({ editDeviceDialog });
                         }}
@@ -490,9 +478,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             <Checkbox
                                 checked={this.state.editDeviceDialog.noComposed}
                                 onChange={e => {
-                                    const editDeviceDialog = JSON.parse(
-                                        JSON.stringify(this.state.editDeviceDialog),
-                                    );
+                                    const editDeviceDialog = clone(this.state.editDeviceDialog);
                                     editDeviceDialog.noComposed = e.target.checked;
                                     this.setState({ editDeviceDialog });
                                 }}
@@ -516,10 +502,8 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             disabled={isCommissioned || this.state.editDeviceDialog.auto}
                             value={this.state.editDeviceDialog.deviceType}
                             onChange={e => {
-                                const editDeviceDialog = JSON.parse(
-                                    JSON.stringify(this.state.editDeviceDialog),
-                                );
-                                editDeviceDialog.deviceType = e.target.value;
+                                const editDeviceDialog = clone(this.state.editDeviceDialog);
+                                editDeviceDialog.deviceType = e.target.value as Types;
                                 this.setState({ editDeviceDialog });
                             }}
                             renderValue={value => (
@@ -548,9 +532,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             <Checkbox
                                 checked={this.state.editDeviceDialog.actionAllowedByIdentify}
                                 onChange={e => {
-                                    const editDeviceDialog = JSON.parse(
-                                        JSON.stringify(this.state.editDeviceDialog),
-                                    );
+                                    const editDeviceDialog = clone(this.state.editDeviceDialog);
                                     editDeviceDialog.actionAllowedByIdentify = e.target.checked;
                                     this.setState({ editDeviceDialog });
                                 }}
@@ -566,9 +548,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                     <Checkbox
                                         checked={this.state.editDeviceDialog.dimmerUseLastLevelForOn}
                                         onChange={e => {
-                                            const editDeviceDialog = JSON.parse(
-                                                JSON.stringify(this.state.editDeviceDialog),
-                                            );
+                                            const editDeviceDialog = clone(this.state.editDeviceDialog);
                                             editDeviceDialog.dimmerUseLastLevelForOn = e.target.checked;
                                             this.setState({ editDeviceDialog });
                                         }}
@@ -586,10 +566,8 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                     variant="standard"
                                     value={this.state.editDeviceDialog.dimmerOnLevel}
                                     onChange={e => {
-                                        const editDeviceDialog = JSON.parse(
-                                            JSON.stringify(this.state.editDeviceDialog),
-                                        );
-                                        editDeviceDialog.dimmerOnLevel = e.target.value;
+                                        const editDeviceDialog = clone(this.state.editDeviceDialog);
+                                        editDeviceDialog.dimmerOnLevel = e.target.value as number;
                                         this.setState({ editDeviceDialog });
                                     }}
                                     renderValue={value => `${value}%`}
@@ -644,9 +622,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 if (!this.state.deleteDialog) {
                     return;
                 }
-                const matter: MatterConfig = JSON.parse(
-                    JSON.stringify(this.props.matter),
-                );
+                const matter: MatterConfig = clone(this.props.matter);
                 if (this.state.deleteDialog.type === 'bridge') {
                     matter.bridges[this.state.deleteDialog.bridgeIndex].deleted = true;
                 } else if (this.state.deleteDialog.bridgeIndex !== undefined) {
@@ -685,9 +661,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 <DialogActions>
                     <Button
                         onClick={() => {
-                            const matter: MatterConfig = JSON.parse(
-                                JSON.stringify(this.props.matter),
-                            );
+                            const matter = clone(this.props.matter);
                             if (this.state.deleteDialog) {
                                 if (this.state.deleteDialog.type === 'bridge') {
                                     matter.bridges.splice(this.state.deleteDialog.bridgeIndex, 1);
@@ -819,9 +793,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         label={I18n.t('Name')}
                         value={this.state.addCustomDeviceDialog.name}
                         onChange={e => {
-                            const addCustomDeviceDialog = JSON.parse(
-                                JSON.stringify(this.state.addCustomDeviceDialog),
-                            );
+                            const addCustomDeviceDialog = clone(this.state.addCustomDeviceDialog);
                             addCustomDeviceDialog.name = e.target.value;
                             this.setState({ addCustomDeviceDialog });
                         }}
@@ -842,10 +814,8 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             variant="standard"
                             value={this.state.addCustomDeviceDialog.deviceType}
                             onChange={e => {
-                                const addCustomDeviceDialog = JSON.parse(
-                                    JSON.stringify(this.state.addCustomDeviceDialog),
-                                );
-                                addCustomDeviceDialog.deviceType = e.target.value;
+                                const addCustomDeviceDialog = clone(this.state.addCustomDeviceDialog);
+                                addCustomDeviceDialog.deviceType = e.target.value as Types;
                                 this.setState({ addCustomDeviceDialog });
                             }}
                             renderValue={value => (
@@ -951,9 +921,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     <Switch
                         checked={device.enabled}
                         onChange={e => {
-                            const matter: MatterConfig = JSON.parse(
-                                JSON.stringify(this.props.matter),
-                            );
+                            const matter = clone(this.props.matter);
                             matter.bridges[bridgeIndex].list[devIndex].enabled =
                 e.target.checked;
                             this.props.updateConfig(matter);
@@ -1061,9 +1029,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         size="small"
                         sx={styles.bridgeButtonsAndTitleColor}
                         onClick={() => {
-                            const bridgesOpened = JSON.parse(
-                                JSON.stringify(this.state.bridgesOpened),
-                            );
+                            const bridgesOpened = clone(this.state.bridgesOpened);
                             bridgesOpened[bridgeIndex] = !bridgesOpened[bridgeIndex];
                             window.localStorage.setItem(
                                 `matter.${this.props.instance}.bridgesOpened`,
@@ -1079,9 +1045,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     style={styles.bridgeHeader}
                     sx={styles.bridgeButtonsAndTitle}
                     onClick={() => {
-                        const bridgesOpened = JSON.parse(
-                            JSON.stringify(this.state.bridgesOpened),
-                        );
+                        const bridgesOpened = clone(this.state.bridgesOpened);
                         bridgesOpened[bridgeIndex] = !bridgesOpened[bridgeIndex];
                         window.localStorage.setItem(
                             `matter.${this.props.instance}.bridgesOpened`,
@@ -1128,9 +1092,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                 checked={bridge.enabled}
                                 onClick={e => e.stopPropagation()}
                                 onChange={e => {
-                                    const matter: MatterConfig = JSON.parse(
-                                        JSON.stringify(this.props.matter),
-                                    );
+                                    const matter: MatterConfig = clone(this.props.matter);
                                     matter.bridges[bridgeIndex].enabled = e.target.checked;
                                     this.props.updateConfig(matter);
                                 }}
@@ -1404,9 +1366,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     <span>
                         <IconButton
                             onClick={() => {
-                                const bridgesOpened = JSON.parse(
-                                    JSON.stringify(this.state.bridgesOpened),
-                                );
+                                const bridgesOpened = clone(this.state.bridgesOpened);
                                 Object.keys(bridgesOpened).forEach(
                                     key => (bridgesOpened[key] = true),
                                 );
@@ -1431,9 +1391,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     <span>
                         <IconButton
                             onClick={() => {
-                                const bridgesOpened = JSON.parse(
-                                    JSON.stringify(this.state.bridgesOpened),
-                                );
+                                const bridgesOpened = clone(this.state.bridgesOpened);
                                 Object.keys(bridgesOpened).forEach(
                                     key => (bridgesOpened[key] = false),
                                 );

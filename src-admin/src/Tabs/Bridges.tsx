@@ -1390,7 +1390,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     style={{
                         position: 'absolute',
                         right: 15,
-                        bottom: 74,
+                        bottom: 10,
                     }}
                 >
                     <Add />

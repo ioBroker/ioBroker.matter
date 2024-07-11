@@ -52,7 +52,7 @@ import BridgesAndDevices, {
     type BridgesAndDevicesState,
     STYLES,
 } from './BridgesAndDevices';
-import { detectDevices, getText } from '../Utils';
+import { clone, detectDevices, getText } from '../Utils';
 
 const styles: Record<string, React.CSSProperties> = {
     ...STYLES,
@@ -194,16 +194,14 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
             <DialogActions>
                 <Button
                     onClick={() => {
-                        const matter: MatterConfig = JSON.parse(
-                            JSON.stringify(this.props.matter),
-                        );
+                        const matter = clone(this.props.matter);
                         this.state.deleteDialog &&
             matter.devices.splice(this.state.deleteDialog.deviceIndex, 1);
                         this.setState(
                             {
                                 deleteDialog: null,
                                 suppressDeleteTime: this.state.suppressDeleteEnabled
-                                    ? Date.now() + 120000
+                                    ? Date.now() + 120_000
                                     : 0,
                             },
                             () => this.props.updateConfig(matter),
@@ -958,7 +956,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         style={{
                             position: 'absolute',
                             right: 64,
-                            bottom: 74,
+                            bottom: 10,
                         }}
                     >
                         <Add />
@@ -981,7 +979,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                             opacity: 0.6,
                             position: 'absolute',
                             right: 15,
-                            bottom: 74,
+                            bottom: 10,
                         }}
                     >
                         <Add />

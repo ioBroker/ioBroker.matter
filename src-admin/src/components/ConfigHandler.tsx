@@ -128,10 +128,7 @@ class ConfigHandler {
                             changed = true;
                             device.enabled = obj.native.enabled;
                         }
-                        // if (device.noComposed !== obj.native.noComposed) {
-                        //     changed = true;
-                        //     device.noComposed = obj.native.noComposed;
-                        // }
+
                         if (device.name !== obj.common.name) {
                             changed = true;
                             device.name = obj.common.name;
@@ -342,8 +339,6 @@ class ConfigHandler {
             bridges,
         };
         ConfigHandler.sortAll(this.config, this.lang);
-        this.changed = false;
-        globalThis.changed = false;
         window.parent.postMessage('nochange', '*');
 
         this.socket.subscribeObject(
@@ -410,28 +405,116 @@ class ConfigHandler {
         });
     }
 
-    isChanged(config: MatterConfig) {
+    /**
+     * Save the devices config to the objects
+     *
+     * @param config the new MatterConfig
+     */
+    async saveDevicesConfig(config: MatterConfig): Promise<void> {
+        // sync devices
+        for (const newDev of config.devices) {
+            const oldDev = this.config.devices.find(
+                dev => dev.uuid === newDev.uuid,
+            );
+            if (!oldDev) {
+                const obj: ioBroker.ChannelObject = {
+                    _id: `matter.${this.instance}.devices.${newDev.uuid}`,
+                    type: 'channel',
+                    common: {
+                        name: newDev.name,
+                    },
+                    native: clone(newDev),
+                };
+                delete obj.native.name;
+                // create a new device
+                console.log(`Device ${newDev.uuid} created`);
+                this.config.devices.push(newDev);
+                await this.socket.setObject(obj._id, obj);
+            } else if (JSON.stringify(newDev) !== JSON.stringify(oldDev)) {
+                const obj: ioBroker.ChannelObject = (await this.socket.getObject(
+                    `matter.${this.instance}.devices.${newDev.uuid}`,
+                )) as ioBroker.ChannelObject;
+                obj.common.name = newDev.name;
+                obj.native = obj.native || {};
+                Object.assign(obj.native, newDev);
+                Object.assign(oldDev, newDev);
+                delete obj.native.name;
+                console.log(`Device ${obj._id} updated`);
+                await this.socket.setObject(obj._id, obj);
+            }
+        }
+
+        for (let d = this.config.devices.length - 1; d >= 0; d--) {
+            const oldDev = this.config.devices[d];
+            const newDev = config.devices.find(dev => dev.uuid === oldDev.uuid);
+            if (!newDev) {
+                this.config.devices.splice(d, 1);
+                console.log(`Device ${oldDev.uuid} created`);
+                await this.socket.delObject(
+                    `matter.${this.instance}.devices.${oldDev.uuid}`,
+                );
+            }
+        }
+
         ConfigHandler.sortAll(config, this.lang);
+    }
 
-        let isChanged = false;
+    /**
+     * Save the bridges config to the objects
+     *
+     * @param config the new MatterConfig
+     */
+    async saveBridgesConfig(config: MatterConfig): Promise<void> {
+        // sync bridges
+        for (const newBridge of config.bridges) {
+            const oldBridge = this.config.bridges.find(
+                brd => brd.uuid === newBridge.uuid,
+            );
+            if (!oldBridge) {
+                const obj: ioBroker.ChannelObject = {
+                    _id: `matter.${this.instance}.bridges.${newBridge.uuid}`,
+                    type: 'channel',
+                    common: {
+                        name: newBridge.name,
+                    },
+                    native: JSON.parse(JSON.stringify(newBridge)),
+                };
+                delete obj.native.name;
+                this.config.bridges.push(newBridge);
+                ConfigHandler.sortAll(this.config, this.lang);
+                // create a new bridge
+                console.log(`Bridge ${newBridge.uuid} created`);
+                await this.socket.setObject(obj._id, obj);
+            } else if (JSON.stringify(newBridge) !== JSON.stringify(oldBridge)) {
+                const obj: ioBroker.ChannelObject = (await this.socket.getObject(
+                    `matter.${this.instance}.bridges.${newBridge.uuid}`,
+                )) as ioBroker.ChannelObject;
+                obj.common.name = newBridge.name;
+                obj.native = obj.native || {};
+                Object.assign(obj.native, newBridge);
+                Object.assign(oldBridge, newBridge);
+                delete obj.native.name;
+                ConfigHandler.sortAll(this.config, this.lang);
+                console.log(`Bridge ${obj._id} updated`);
+                await this.socket.setObject(obj._id, obj);
+            }
+        }
 
-        if (
-            JSON.stringify(config.bridges) !== JSON.stringify(this.config.bridges)
-        ) {
-            isChanged = true;
-        }
-        if (
-            JSON.stringify(config.devices) !== JSON.stringify(this.config.devices)
-        ) {
-            isChanged = true;
-        }
-        if (this.changed !== isChanged) {
-            this.changed = isChanged;
-            globalThis.changed = isChanged;
-            window.parent.postMessage(isChanged ? 'change' : 'nochange', '*');
+        for (let b = this.config.bridges.length - 1; b >= 0; b--) {
+            const oldBridge = this.config.bridges[b];
+            const newBridge = config.bridges.find(
+                brd => brd.uuid === oldBridge.uuid,
+            );
+            if (!newBridge) {
+                this.config.bridges.splice(b, 1);
+                console.log(`Bridge ${oldBridge.uuid} deleted`);
+                await this.socket.delObject(
+                    `matter.${this.instance}.bridges.${oldBridge.uuid}`,
+                );
+            }
         }
 
-        return isChanged;
+        ConfigHandler.sortAll(config, this.lang);
     }
 
     /**
@@ -485,6 +568,8 @@ class ConfigHandler {
 
         await this.socket.setObject(controller._id, controller);
         this.config.controller = clone(config.controller);
+
+        ConfigHandler.sortAll(config, this.lang);
     }
 
     async saveConfig(config: MatterConfig) {
@@ -493,108 +578,11 @@ class ConfigHandler {
         }
 
         await this.saveControllerConfig(config);
-
-        // sync devices
-        for (const newDev of config.devices) {
-            const oldDev = this.config.devices.find(
-                dev => dev.uuid === newDev.uuid,
-            );
-            if (!oldDev) {
-                const obj: ioBroker.ChannelObject = {
-                    _id: `matter.${this.instance}.devices.${newDev.uuid}`,
-                    type: 'channel',
-                    common: {
-                        name: newDev.name,
-                    },
-                    native: JSON.parse(JSON.stringify(newDev)),
-                };
-                delete obj.native.name;
-                // create a new device
-                console.log(`Device ${newDev.uuid} created`);
-                this.config.devices.push(newDev);
-                await this.socket.setObject(obj._id, obj);
-            } else if (JSON.stringify(newDev) !== JSON.stringify(oldDev)) {
-                const obj: ioBroker.ChannelObject = (await this.socket.getObject(
-                    `matter.${this.instance}.devices.${newDev.uuid}`,
-                )) as ioBroker.ChannelObject;
-                obj.common.name = newDev.name;
-                obj.native = obj.native || {};
-                Object.assign(obj.native, newDev);
-                Object.assign(oldDev, newDev);
-                delete obj.native.name;
-                console.log(`Device ${obj._id} updated`);
-                await this.socket.setObject(obj._id, obj);
-            }
-        }
-
-        for (let d = this.config.devices.length - 1; d >= 0; d--) {
-            const oldDev = this.config.devices[d];
-            const newDev = config.devices.find(dev => dev.uuid === oldDev.uuid);
-            if (!newDev) {
-                this.config.devices.splice(d, 1);
-                console.log(`Device ${oldDev.uuid} created`);
-                await this.socket.delObject(
-                    `matter.${this.instance}.devices.${oldDev.uuid}`,
-                );
-            }
-        }
-
-        // sync bridges
-        for (const newBridge of config.bridges) {
-            const oldBridge = this.config.bridges.find(
-                brd => brd.uuid === newBridge.uuid,
-            );
-            if (!oldBridge) {
-                const obj: ioBroker.ChannelObject = {
-                    _id: `matter.${this.instance}.bridges.${newBridge.uuid}`,
-                    type: 'channel',
-                    common: {
-                        name: newBridge.name,
-                    },
-                    native: JSON.parse(JSON.stringify(newBridge)),
-                };
-                delete obj.native.name;
-                this.config.bridges.push(newBridge);
-                ConfigHandler.sortAll(this.config, this.lang);
-                // create a new bridge
-                console.log(`Bridge ${newBridge.uuid} created`);
-                await this.socket.setObject(obj._id, obj);
-            } else if (JSON.stringify(newBridge) !== JSON.stringify(oldBridge)) {
-                const obj: ioBroker.ChannelObject = (await this.socket.getObject(
-                    `matter.${this.instance}.bridges.${newBridge.uuid}`,
-                )) as ioBroker.ChannelObject;
-                obj.common.name = newBridge.name;
-                obj.native = obj.native || {};
-                Object.assign(obj.native, newBridge);
-                Object.assign(oldBridge, newBridge);
-                delete obj.native.name;
-                ConfigHandler.sortAll(this.config, this.lang);
-                console.log(`Bridge ${obj._id} updated`);
-                await this.socket.setObject(obj._id, obj);
-            }
-        }
-
-        for (let b = this.config.bridges.length - 1; b >= 0; b--) {
-            const oldBridge = this.config.bridges[b];
-            const newBridge = config.bridges.find(
-                brd => brd.uuid === oldBridge.uuid,
-            );
-            if (!newBridge) {
-                this.config.bridges.splice(b, 1);
-                console.log(`Bridge ${oldBridge.uuid} deleted`);
-                await this.socket.delObject(
-                    `matter.${this.instance}.bridges.${oldBridge.uuid}`,
-                );
-            }
-        }
+        await this.saveBridgesConfig(config);
+        await this.saveDevicesConfig(config);
 
         ConfigHandler.sortAll(config, this.lang);
 
-        if (this.changed) {
-            this.changed = false;
-            window.parent.postMessage('nochange', '*');
-            globalThis.changed = false;
-        }
         this.config = clone(config);
     }
 }

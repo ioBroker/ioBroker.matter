@@ -206,7 +206,6 @@ class App extends GenericApp<GenericAppProps, AppState> {
         this.setState({
             matter,
             commissioning,
-            changed: this.configHandler.isChanged(matter),
             ready: true,
             alive: !!alive?.val,
         });
@@ -265,7 +264,6 @@ class App extends GenericApp<GenericAppProps, AppState> {
         return new Promise<void>(resolve => {
             this.setState({
                 matter: newConfig,
-                changed: !!this.configHandler?.isChanged(newConfig),
             }, resolve);
         });
     };
@@ -356,7 +354,10 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 this.setState({ detectedDevices })}
             productIDs={productIDs}
             matter={this.state.matter}
-            updateConfig={this.onChanged}
+            updateConfig={async config => {
+                await this.configHandler.saveBridgesConfig(config);
+                await this.onChanged(config);
+            }}
             showToast={(text: string) => this.showToast(text)}
             checkLicenseOnAdd={(
                 type: 'addBridge' | 'addDevice' | 'addDeviceToBridge',
@@ -386,7 +387,10 @@ class App extends GenericApp<GenericAppProps, AppState> {
             productIDs={productIDs}
             instance={this.instance}
             matter={this.state.matter}
-            updateConfig={this.onChanged}
+            updateConfig={async config => {
+                await this.configHandler.saveDevicesConfig(config);
+                await this.onChanged(config);
+            }}
             showToast={(text: string) => this.showToast(text)}
             checkLicenseOnAdd={(matter: MatterConfig) =>
                 this.checkLicenseOnAdd('addDevice', matter)}
@@ -451,16 +455,17 @@ class App extends GenericApp<GenericAppProps, AppState> {
         return result; // User may add one bridge or one device
     }
 
-    onSave(isClose?: boolean) {
+    async onSave(isClose?: boolean): Promise<void> {
         super.onSave && super.onSave(isClose);
 
-        this.configHandler
-            ?.saveConfig(this.state.matter)
-            .then(() => {
-                this.setState({ changed: false });
-                isClose && GenericApp.onClose();
-            })
-            .catch(e => window.alert(`Cannot save configuration: ${e}`));
+        try {
+            await this.configHandler
+                ?.saveConfig(this.state.matter);
+            this.setState({ changed: false });
+            isClose && GenericApp.onClose();
+        } catch (e) {
+            window.alert(`Cannot save configuration: ${e.message}`);
+        }
     }
 
     render() {

@@ -8,7 +8,7 @@ import {
     DeviceDetails,
     DeviceRefresh, ErrorResponse,
 } from '@iobroker/dm-utils';
-import { ControlState } from '@iobroker/dm-utils/build/types/base';
+import { ControlState } from '@iobroker/dm-utils';
 import { t, getText } from './i18n';
 
 const demoDevice = {
@@ -28,23 +28,23 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const devices = await this.adapter.getDevicesAsync();
         // const devices = await this.adapter.getObjectView('system', 'device', { startkey: `system.adapter.matter.${this.instance}.`, endkey: 'system.adapter.matter.999' });
         const arrDevices: DeviceInfo[] = [];
-        for (const i in devices) {
+        for (const device of devices) {
             let status: DeviceStatus = 'disconnected';
 
-            const alive = await this.adapter.getStateAsync(`${devices[i]._id}.info.connection`);
+            const alive = await this.adapter.getStateAsync(`${device._id}.info.connection`);
             if (alive !== null && alive !== undefined) {
                 status = alive.val ? 'connected' : 'disconnected';
             }
 
-            const manufacturer = await this.adapter.getStateAsync(`${devices[i]._id}._info.brand`);
-            const product = await this.adapter.getStateAsync(`${devices[i]._id}._info.product`);
-            const arch = await this.adapter.getStateAsync(`${devices[i]._id}._info.arch`);
+            const manufacturer = await this.adapter.getStateAsync(`${device._id}._info.brand`);
+            const product = await this.adapter.getStateAsync(`${device._id}._info.product`);
+            const arch = await this.adapter.getStateAsync(`${device._id}._info.arch`);
             const model = `${product?.val} ${arch?.val}`;
 
             const res: DeviceInfo = {
-                id: devices[i]._id,
-                name: devices[i].common.name,
-                icon: devices[i].common.icon || undefined,
+                id: device._id,
+                name: device.common.name,
+                icon: device.common.icon || undefined,
                 manufacturer: manufacturer?.val as string || undefined,
                 model: model || undefined,
                 status,
@@ -71,7 +71,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 ]
             };
             // if id contains gateway remove res.actions
-            if (devices[i]._id.includes('localhost')) {
+            if (device._id.includes('localhost')) {
                 res.actions = [];
             }
             arrDevices.push(res);

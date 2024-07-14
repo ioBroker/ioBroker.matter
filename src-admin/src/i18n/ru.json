@@ -1,5 +1,6 @@
 {
   "%s of %s devices selected": "Выбрано %s из %s устройств",
+  "Activate BLE to pair devices nearby. You can also use the \"ioBroker Visu\" App to pair other devices.": "Активируйте BLE для сопряжения устройств поблизости. Вы также можете использовать приложение «ioBroker Visu» для сопряжения других устройств.",
   "Add": "Добавлять",
   "Add %s device(s)": "Добавить устройство(а) %s",
   "Add bridge": "Добавить мост",
@@ -66,6 +67,7 @@
   "Options": "Параметры",
   "Please confirm": "Пожалуйста подтвердите",
   "Product ID": "Код товара",
+  "Provide your Thread or BLE information or both!": "Предоставьте информацию о своей теме или BLE, или и то, и другое!",
   "QR Code to connect": "QR-код для подключения",
   "Required": "",
   "Reset": "Перезагрузить",

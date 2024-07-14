@@ -1,5 +1,6 @@
 {
   "%s of %s devices selected": "%s di %s dispositivi selezionati",
+  "Activate BLE to pair devices nearby. You can also use the \"ioBroker Visu\" App to pair other devices.": "Attiva BLE per associare i dispositivi nelle vicinanze. Puoi anche utilizzare l'app \"ioBroker Visu\" per associare altri dispositivi.",
   "Add": "Aggiungere",
   "Add %s device(s)": "Aggiungi %s dispositivo/i",
   "Add bridge": "Aggiungi ponte",
@@ -66,6 +67,7 @@
   "Options": "Opzioni",
   "Please confirm": "Per favore conferma",
   "Product ID": "Codice prodotto",
+  "Provide your Thread or BLE information or both!": "Fornisci le informazioni sul tuo thread o BLE o entrambi!",
   "QR Code to connect": "Codice QR per connettersi",
   "Required": "",
   "Reset": "Ripristina",

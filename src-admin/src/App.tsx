@@ -35,7 +35,6 @@ import type {
     DetectedRoom,
     CommissioningInfo,
 } from './types';
-import configHandler from './components/ConfigHandler';
 
 declare global {
     interface Window {

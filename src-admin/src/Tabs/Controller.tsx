@@ -19,7 +19,7 @@ import {
     LinearProgress,
     Select,
     MenuItem,
-    Backdrop,
+    Backdrop, Typography,
 } from '@mui/material';
 import {
     Add,
@@ -37,6 +37,7 @@ import {
     SearchOff,
     Wifi,
     WifiOff, BluetoothDisabled,
+    Save,
 } from '@mui/icons-material';
 
 import {
@@ -384,7 +385,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
         }
 
         return <Dialog open={!0}>
-            <DialogTitle>{I18n.t('Bluetooth')}</DialogTitle>
+            <DialogTitle>{I18n.t('Commissioning information')}</DialogTitle>
             <DialogContent>
                 <div>
                     <TextField
@@ -408,9 +409,9 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         variant="standard"
                         style={{ maxWidth: 600 }}
                         label={I18n.t('WiFI SSID')}
-                        error={!this.props.matter.controller.wifiSSID}
+                        error={!this.props.matter.controller.wifiSSID && !this.isRequiredBleInformationProvided()}
                         helperText={
-                            this.props.matter.controller.wifiSSID ? '' : I18n.t('Required')
+                            !this.props.matter.controller.wifiSSID && !this.isRequiredBleInformationProvided() ? I18n.t('Provide your Thread or BLE information or both!') : ''
                         }
                         value={this.props.matter.controller.wifiSSID || ''}
                         onChange={e => {
@@ -427,11 +428,9 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         variant="standard"
                         style={{ maxWidth: 600 }}
                         label={I18n.t('WiFI password')}
-                        error={!this.props.matter.controller.wifiPassword}
+                        error={!this.props.matter.controller.wifiPassword && !this.isRequiredBleInformationProvided()}
                         helperText={
-                            this.props.matter.controller.wifiPassword
-                                ? ''
-                                : I18n.t('Required')
+                            !this.props.matter.controller.wifiPassword && !this.isRequiredBleInformationProvided() ? I18n.t('Provide your Thread or BLE information or both!') : ''
                         }
                         value={this.props.matter.controller.wifiPassword || ''}
                         onChange={e => {
@@ -448,6 +447,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         style={{ maxWidth: 600 }}
                         variant="standard"
                         label={I18n.t('Thread network name')}
+                        error={!this.props.matter.controller.threadNetworkName && !this.isRequiredBleInformationProvided()}
+                        helperText={
+                            !this.props.matter.controller.threadNetworkName && !this.isRequiredBleInformationProvided() ? I18n.t('Provide your Thread or BLE information or both!') : ''
+                        }
                         value={this.props.matter.controller.threadNetworkName || ''}
                         onChange={e => {
                             const matter = clone(this.props.matter);
@@ -463,6 +466,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         style={{ maxWidth: 600 }}
                         variant="standard"
                         label={I18n.t('Thread operational dataset')}
+                        error={!this.props.matter.controller.threadOperationalDataSet && !this.isRequiredBleInformationProvided()}
+                        helperText={
+                            !this.props.matter.controller.threadOperationalDataSet && !this.isRequiredBleInformationProvided() ? I18n.t('Provide your Thread or BLE information or both!') : ''
+                        }
                         value={
                             this.props.matter.controller.threadOperationalDataSet || ''
                         }
@@ -474,11 +481,34 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     />
                 </div>
             </DialogContent>
+
             <DialogActions>
                 <Button
                     variant="contained"
                     color="primary"
-                    disabled={this.props.matter.controller.ble && JSON.stringify(this.props.savedConfig) === JSON.stringify(this.props.matter)}
+                    disabled={JSON.stringify(this.props.savedConfig.controller) === JSON.stringify(this.props.matter.controller)}
+                    onClick={async () => {
+                        this.setState({ backendProcessingActive: true, bleDialogOpen: false });
+                        const res = await this.props.socket.sendTo(`matter.${this.props.instance}`, 'updateControllerSettings', JSON.stringify(this.props.matter.controller));
+                        console.log(res);
+                        this.setState({ backendProcessingActive: false });
+                    }}
+                    startIcon={<Save />}
+                >
+                    {I18n.t('Save')}
+                </Button>
+            </DialogActions>
+
+            <DialogTitle>{I18n.t('Bluetooth')}</DialogTitle>
+            <DialogContent>
+                <Typography sx={{ fontSize: 18 }}>{I18n.t('Activate BLE to pair devices nearby. You can also use the "ioBroker Visu" App to pair other devices.')}</Typography>
+            </DialogContent>
+
+            <DialogActions>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    disabled={!this.isRequiredBleInformationProvided() || (this.props.matter.controller.ble && JSON.stringify(this.props.savedConfig) === JSON.stringify(this.props.matter))}
                     onClick={async () => {
                         await this.setBleEnabled(true);
                     }}
@@ -497,6 +527,8 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 >
                     {I18n.t('Disable')}
                 </Button>
+            </DialogActions>
+            <DialogActions>
                 <Button
                     variant="contained"
                     color="primary"
@@ -746,6 +778,15 @@ class Controller extends Component<ComponentProps, ComponentState> {
         ];
     }
 
+    /**
+     * If BLE can be activated
+     */
+    isRequiredBleInformationProvided(): boolean {
+        const controllerConfig = this.props.matter.controller;
+
+        return !!((controllerConfig.wifiSSID && controllerConfig.wifiPassword) || (controllerConfig.threadNetworkName && controllerConfig.threadOperationalDataSet));
+    }
+
     renderDevice(deviceId: string, inBridge?: boolean) {
         const _deviceId = `${deviceId}.`;
         // get channels
@@ -973,7 +1014,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         onClick={() => this.setState({ bleDialogOpen: true })}
                         startIcon={this.props.matter.controller.ble ? <Bluetooth /> : <BluetoothDisabled />}
                     >
-                        {I18n.t('Bluetooth')}
+                        {I18n.t('Commissioning information')}
                     </Button>
                 ) : null}
                 {this.props.matter.controller.enabled && this.props.alive ? (

@@ -47,15 +47,15 @@ for (let i = 0x8000; i <= 0x801f; i++) {
     productIDs.push(`0x${i.toString(16)}`);
 }
 
-const styles: Record<string, React.CSSProperties | ((_theme: IobTheme) => React.CSSProperties)> = {
+const styles = {
     tabContent: {
         padding: 10,
-        height: 'calc(100% - 64px - 48px - 20px)',
         overflow: 'auto',
+        height: 'calc(100% - 64px - 48px - 20px)',
     },
-    tabContentIFrame: {
+    tabContentNoSave: {
         padding: 10,
-        height: 'calc(100% - 64px - 48px - 20px - 38px)',
+        height: 'calc(100% - 48px - 20px)',
         overflow: 'auto',
     },
     selected: (theme: IobTheme) => ({
@@ -65,7 +65,7 @@ const styles: Record<string, React.CSSProperties | ((_theme: IobTheme) => React.
         backgroundColor:
       theme.palette.mode === 'dark' ? theme.palette.secondary.main : '#FFF',
     }),
-};
+} as const satisfies Record<string, React.CSSProperties | ((_theme: IobTheme) => React.CSSProperties)>;
 
 interface AppState extends GenericAppState {
     alive: boolean;
@@ -78,8 +78,6 @@ interface AppState extends GenericAppState {
 }
 
 class App extends GenericApp<GenericAppProps, AppState> {
-    private isIFrame = false;
-
     private configHandler: ConfigHandler | null = null;
 
     private intervalSubscribe: ReturnType<typeof setInterval> | null = null;
@@ -208,7 +206,6 @@ class App extends GenericApp<GenericAppProps, AppState> {
         this.setState({
             matter,
             commissioning,
-            changed: this.configHandler.isChanged(matter),
             ready: true,
             alive: !!alive?.val,
         });
@@ -267,7 +264,6 @@ class App extends GenericApp<GenericAppProps, AppState> {
         return new Promise<void>(resolve => {
             this.setState({
                 matter: newConfig,
-                changed: !!this.configHandler?.isChanged(newConfig),
             }, resolve);
         });
     };
@@ -358,7 +354,10 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 this.setState({ detectedDevices })}
             productIDs={productIDs}
             matter={this.state.matter}
-            updateConfig={this.onChanged}
+            updateConfig={async config => {
+                await this.configHandler.saveBridgesConfig(config);
+                await this.onChanged(config);
+            }}
             showToast={(text: string) => this.showToast(text)}
             checkLicenseOnAdd={(
                 type: 'addBridge' | 'addDevice' | 'addDeviceToBridge',
@@ -388,7 +387,10 @@ class App extends GenericApp<GenericAppProps, AppState> {
             productIDs={productIDs}
             instance={this.instance}
             matter={this.state.matter}
-            updateConfig={this.onChanged}
+            updateConfig={async config => {
+                await this.configHandler.saveDevicesConfig(config);
+                await this.onChanged(config);
+            }}
             showToast={(text: string) => this.showToast(text)}
             checkLicenseOnAdd={(matter: MatterConfig) =>
                 this.checkLicenseOnAdd('addDevice', matter)}
@@ -453,16 +455,17 @@ class App extends GenericApp<GenericAppProps, AppState> {
         return result; // User may add one bridge or one device
     }
 
-    onSave(isClose?: boolean) {
+    async onSave(isClose?: boolean): Promise<void> {
         super.onSave && super.onSave(isClose);
 
-        this.configHandler
-            ?.saveConfig(this.state.matter)
-            .then(() => {
-                this.setState({ changed: false });
-                isClose && GenericApp.onClose();
-            })
-            .catch(e => window.alert(`Cannot save configuration: ${e}`));
+        try {
+            await this.configHandler
+                ?.saveConfig(this.state.matter);
+            this.setState({ changed: false });
+            isClose && GenericApp.onClose();
+        } catch (e) {
+            window.alert(`Cannot save configuration: ${e.message}`);
+        }
     }
 
     render() {
@@ -535,7 +538,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
 
                     <div
                         style={
-                            this.isIFrame ? styles.tabContentIFrame as React.CSSProperties : styles.tabContent as React.CSSProperties
+                            this.state.selectedTab === 'options' ? styles.tabContent : styles.tabContentNoSave
                         }
                     >
                         {this.state.selectedTab === 'options' && this.renderOptions()}
@@ -545,7 +548,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                         {this.state.selectedTab === 'devices' && this.renderDevices()}
                     </div>
                     {this.renderError()}
-                    {this.state.selectedTab !== 'controller' ? this.renderSaveCloseButtons() : null}
+                    {this.state.selectedTab === 'options' ? this.renderSaveCloseButtons() : null}
                 </div>
             </ThemeProvider>
         </StyledEngineProvider>;

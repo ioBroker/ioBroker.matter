@@ -234,7 +234,7 @@ export class MatterAdapter extends utils.Adapter {
                 const newControllerConfig: MatterControllerConfig = JSON.parse(obj.message);
                 this.log.info(JSON.stringify(newControllerConfig));
                 const result = await this.applyControllerConfiguration(newControllerConfig);
-                if (result && 'result' in result) { // was successfull
+                if (result && 'result' in result) { // was successful
                     await this.extendObject(`${this.namespace}.controller`, { native: newControllerConfig });
                 }
                 this.sendTo(obj.from, obj.command, result, obj.callback);

@@ -98,7 +98,7 @@
     "title": "Matter",
     "titleLang": {
       "en": "Matter protocol",
-      "de": "Materielles Protokoll",
+      "de": "Matter Protokoll",
       "ru": "Мэттерный протокол",
       "pt": "Protocolo de matéria",
       "nl": "Matter protocol",
@@ -111,7 +111,7 @@
     },
     "desc": {
       "en": "Controlling and simulation of matter devices",
-      "de": "Steuerung und Simulation von Matter-geräten",
+      "de": "Steuerung und Simulation von Matter-Geräten",
       "ru": "Контроль и моделирование Matter-устройств",
       "pt": "Controle e simulação de Matter-dispositivos",
       "nl": "Controleren en simulatie van Matter-apparaten",

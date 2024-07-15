@@ -39,7 +39,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             const manufacturer = await this.adapter.getStateAsync(`${device._id}._info.brand`);
             const product = await this.adapter.getStateAsync(`${device._id}._info.product`);
             const arch = await this.adapter.getStateAsync(`${device._id}._info.arch`);
-            const model = `${product?.val} ${arch?.val}`;
+            const model = `${product?.val ?? ''} ${arch?.val ?? ''}`.trim();
 
             const res: DeviceInfo = {
                 id: device._id,
@@ -54,19 +54,13 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                         id: 'delete',
                         icon: 'fa-solid fa-trash-can',
                         description: t('Delete this device'),
-                        handler: this.handleDeleteDevice.bind(this),
-                        confirmation: t('Are you sure?'),
+                        handler: this.handleDeleteDevice.bind(this)
                     },
                     {
                         id: 'rename',
                         icon: 'fa-solid fa-pen',
                         description: t('Rename this device'),
-                        handler: this.handleRenameDevice.bind(this),
-                        inputBefore: {
-                            label: t('Name'),
-                            type: 'text',
-                            allowEmptyValue: false,
-                        },
+                        handler: this.handleRenameDevice.bind(this)
                     }
                 ]
             };
@@ -91,18 +85,12 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     icon: '',
                     description: t('Delete this device'),
                     handler: this.handleDeleteDevice.bind(this),
-                    confirmation: t('Are you sure?'),
                 },
                 {
                     id: 'rename',
                     icon: '',
                     description: t('Rename this device'),
                     handler: this.handleRenameDevice.bind(this),
-                    inputBefore: {
-                        label: t('Name'),
-                        type: 'text',
-                        allowEmptyValue: false,
-                    },
                 },
             ],
             controls: [
@@ -190,16 +178,19 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
     async handleDeleteDevice(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
         this.adapter.log.info(`Delete device ${id}`);
-        if (await context.showConfirmation(t('Are you sure?'))) {
-
-            return { refresh: 'instance' };
+        if (!await context.showConfirmation(t('Are you sure?'))) {
+            return { refresh: false };
         }
 
-        return { refresh: false };
+        await this.adapter.delForeignObjectAsync(id);
+        return { refresh: true };
     }
 
     async getDeviceDetails(id: string): Promise<DeviceDetails | null | { error: string }> {
         this.adapter.log.info(`Get device details ${id}`);
+
+        const obj = await this.adapter.getForeignObjectAsync(id);
+
         return {
             id,
             schema: {
@@ -217,7 +208,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 },
             },
             data: {
-                name: 'My Name',
+                name: obj?.common.name,
             },
         };
     }

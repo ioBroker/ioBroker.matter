@@ -617,11 +617,12 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     variant="contained"
                     disabled={!this.state.qrCode && !this.state.manualCode}
                     color="primary"
-                    onClick={() => {
+                    onClick={async () => {
                         const device = this.state.showQrCodeDialog;
                         this.setState({ showQrCodeDialog: null }, () =>
                             this.destroyQrCode());
-                        this.props.socket
+
+                        const result = await this.props.socket
                             .sendTo(
                                 `matter.${this.props.instance}`,
                                 'controllerCommissionDevice',
@@ -630,16 +631,15 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                     qrCode: this.state.qrCode,
                                     manualCode: this.state.manualCode,
                                 },
-                            )
-                            .then(result => {
-                                if (result.error || !result.result) {
-                                    window.alert(
-                                        `Cannot connect: ${result.error || 'Unknown error'}`,
-                                    );
-                                } else {
-                                    window.alert('Connected');
-                                }
-                            });
+                            );
+
+                        if (result.error || !result.result) {
+                            window.alert(
+                                `Cannot connect: ${result.error || 'Unknown error'}`,
+                            );
+                        } else {
+                            window.alert('Connected');
+                        }
                     }}
                     startIcon={<Add />}
                 >
@@ -686,7 +686,13 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                                 manualCode: '',
                                                 qrCode: '',
                                             });
-                                            setTimeout(async () => this.initQrCode(), 500);
+                                            setTimeout(async () => {
+                                                try {
+                                                    await this.initQrCode();
+                                                } catch (e) {
+                                                    console.warn(`Cannot provide QR Code scanning: ${e}`);
+                                                }
+                                            }, 500);
                                         }}
                                     >
                                         <LeakAdd />
@@ -702,6 +708,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     disabled={!this.state.discoveryRunning}
                     variant="contained"
                     onClick={async () => {
+                        console.log('Stop discovery');
                         await this.props.socket
                             .sendTo(
                                 `matter.${this.props.instance}`,
@@ -1029,28 +1036,25 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             )
                         }
                         onClick={() => {
-                            this.setState({ discovered: [] }, () =>
-                                this.props.socket
-                                    .sendTo(
-                                        `matter.${this.props.instance}`,
-                                        'controllerDiscovery',
-                                        {},
-                                    )
-                                    .then(
-                                        (result: {
-                                            error?: string;
-                                            result: CommissionableDevice[];
-                                        }) => {
-                                            if (result.error) {
-                                                window.alert(`Cannot discover: ${result.error}`);
-                                            } else {
-                                                this.setState({
-                                                    discovered: result.result,
-                                                    discoveryDone: true,
-                                                });
-                                            }
-                                        },
-                                    ));
+                            this.setState({ discovered: [] }, async () => {
+                                const result: {
+                                    error?: string;
+                                    result: CommissionableDevice[];
+                                } = await this.props.socket.sendTo(
+                                    `matter.${this.props.instance}`,
+                                    'controllerDiscovery',
+                                    {},
+                                );
+
+                                if (result.error) {
+                                    window.alert(`Cannot discover: ${result.error}`);
+                                } else {
+                                    this.setState({
+                                        discovered: result.result,
+                                        discoveryDone: true,
+                                    });
+                                }
+                            });
                         }}
                     >
                         {I18n.t('Discovery devices')}

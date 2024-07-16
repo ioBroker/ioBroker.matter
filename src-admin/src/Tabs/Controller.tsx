@@ -19,7 +19,7 @@ import {
     LinearProgress,
     Select,
     MenuItem,
-    Backdrop, Typography,
+    Backdrop, Typography, Tooltip,
 } from '@mui/material';
 import {
     Add,
@@ -146,7 +146,11 @@ interface ComponentState {
 }
 
 class Controller extends Component<ComponentProps, ComponentState> {
-    private readonly refQrScanner: React.RefObject<HTMLVideoElement>;
+    /** Reference object to call methods on QR Scanner */
+    private readonly refQrScanner: React.RefObject<HTMLVideoElement> = React.createRef();
+
+    /** Reference object to call methods on DM */
+    private readonly refDeviceManager: React.RefObject<DeviceManager> = React.createRef();
 
     private qrScanner: QrScanner | null | true = null;
 
@@ -180,8 +184,6 @@ class Controller extends Component<ComponentProps, ComponentState> {
             backendProcessingActive: false,
             bleDialogOpen: false,
         };
-
-        this.refQrScanner = React.createRef();
     }
 
     async readStructure() {
@@ -343,9 +345,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
     onMessage = (message: GUIMessage | null) => {
         if (message?.command === 'discoveredDevice') {
             if (message.device) {
-                const discovered: CommissionableDevice[] = JSON.parse(
-                    JSON.stringify(this.state.discovered),
-                );
+                const discovered = clone(this.state.discovered);
                 discovered.push(message.device);
                 this.setState({ discovered });
             } else {
@@ -638,7 +638,13 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                 `Cannot connect: ${result.error || 'Unknown error'}`,
                             );
                         } else {
-                            window.alert('Connected');
+                            window.alert(I18n.t('Connected'));
+                            const deviceId = device.deviceIdentifier;
+                            const discovered = this.state.discovered.filter(commDevice => commDevice.deviceIdentifier !== deviceId);
+
+                            this.setState({ discovered }, () => {
+                                this.refDeviceManager.current.loadData();
+                            });
                         }
                     }}
                     startIcon={<Add />}
@@ -679,24 +685,26 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                 <TableCell>{device.DN}</TableCell>
                                 <TableCell>{device.deviceIdentifier}</TableCell>
                                 <TableCell>
-                                    <IconButton
-                                        onClick={() => {
-                                            this.setState({
-                                                showQrCodeDialog: device,
-                                                manualCode: '',
-                                                qrCode: '',
-                                            });
-                                            setTimeout(async () => {
-                                                try {
-                                                    await this.initQrCode();
-                                                } catch (e) {
-                                                    console.warn(`Cannot provide QR Code scanning: ${e}`);
-                                                }
-                                            }, 500);
-                                        }}
-                                    >
-                                        <LeakAdd />
-                                    </IconButton>
+                                    <Tooltip title={I18n.t('Connect')}>
+                                        <IconButton
+                                            onClick={() => {
+                                                this.setState({
+                                                    showQrCodeDialog: device,
+                                                    manualCode: '',
+                                                    qrCode: '',
+                                                });
+                                                setTimeout(async () => {
+                                                    try {
+                                                        await this.initQrCode();
+                                                    } catch (e) {
+                                                        console.warn(`Cannot provide QR Code scanning: ${e}`);
+                                                    }
+                                                }, 500);
+                                            }}
+                                        >
+                                            <LeakAdd />
+                                        </IconButton>
+                                    </Tooltip>
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -967,8 +975,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
         if (!this.state.nodes) {
             return null;
         }
+
         return <div style={{ width: '100%' }}>
             <DeviceManager
+                ref={this.refDeviceManager}
                 title={I18n.t('Commitment devices')}
                 socket={this.props.socket}
                 selectedInstance={`${this.props.adapterName}.${this.props.instance}`}

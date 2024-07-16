@@ -182,7 +182,15 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             return { refresh: false };
         }
 
-        await this.adapter.delForeignObjectAsync(id);
+        const obj = await this.adapter.getForeignObjectAsync(id);
+
+        if (!obj) {
+            return { refresh: false };
+        }
+
+        obj.native.deleted = true;
+        await this.adapter.setForeignObjectAsync(id, obj);
+
         return { refresh: true };
     }
 

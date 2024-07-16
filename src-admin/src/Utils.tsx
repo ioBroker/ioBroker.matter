@@ -135,7 +135,7 @@ export async function detectDevices(
             }
             const members: string[] = devicesObject[id].common.members;
 
-            if (members && members.length) {
+            if (members?.length) {
                 members.forEach(member => {
                     // if an object really exists
                     if (devicesObject[member]) {

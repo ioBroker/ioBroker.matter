@@ -62,7 +62,8 @@ export const STYLES: Record<string, React.CSSProperties> = {
 export interface BridgesAndDevicesProps {
     alive: boolean;
     commissioning: Record<string, boolean>;
-    detectedDevices: DetectedRoom[];
+    /** Undefined if no detection ran yet */
+    detectedDevices?: DetectedRoom[];
     instance: number;
     matter: MatterConfig;
     nodeStates: { [uuid: string]: NodeStateResponse };

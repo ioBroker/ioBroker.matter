@@ -73,7 +73,8 @@ interface AppState extends GenericAppState {
     matter: MatterConfig;
     commissioning: CommissioningInfo | null;
     nodeStates: { [uuid: string]: NodeStateResponse };
-    detectedDevices: DetectedRoom[] | null;
+    /** Undefined if no detection ran yet */
+    detectedDevices?: DetectedRoom[];
     ready: boolean;
 }
 
@@ -130,7 +131,6 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 devices: {},
             },
             ready: false,
-            detectedDevices: null,
         });
 
         this.alert = window.alert;
@@ -349,8 +349,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
             nodeStates={this.state.nodeStates}
             themeType={this.state.themeType}
             theme={this.state.theme}
-            detectedDevices={this.state.detectedDevices || []}
-            setDetectedDevices={(detectedDevices: DetectedRoom[]) =>
+            detectedDevices={this.state.detectedDevices}
+            setDetectedDevices={detectedDevices =>
                 this.setState({ detectedDevices })}
             productIDs={productIDs}
             matter={this.state.matter}

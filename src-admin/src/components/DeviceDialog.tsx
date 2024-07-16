@@ -172,7 +172,8 @@ const styles: Record<string, any> = {
 };
 
 interface DeviceDialogProps {
-    detectedDevices: DetectedRoom[];
+    /** Undefined if no detection ran yet */
+    detectedDevices?: DetectedRoom[];
     matter: MatterConfig;
     socket: AdminConnection;
     setDetectedDevices: (detectedDevices: DetectedRoom[]) => void;
@@ -225,6 +226,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
 
     async componentDidMount() {
         const detectedDevices = this.props.detectedDevices || (await detectDevices(this.props.socket));
+
         if (!this.props.detectedDevices) {
             setTimeout(() => this.props.setDetectedDevices(detectedDevices), 100);
         }

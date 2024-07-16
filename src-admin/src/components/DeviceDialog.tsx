@@ -48,7 +48,7 @@ import {
 } from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 
-import { detectDevices, getText } from '../Utils';
+import { clone, detectDevices, getText } from '../Utils';
 import type { DetectedRoom, DetectedDevice, MatterConfig } from '../types';
 
 export const DEVICE_ICONS: Record<Types, React.JSX.Element> = {
@@ -231,7 +231,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
             setTimeout(() => this.props.setDetectedDevices(detectedDevices), 100);
         }
 
-        let rooms: DetectedRoom[] = JSON.parse(JSON.stringify(detectedDevices));
+        let rooms = clone(detectedDevices);
 
         // ignore buttons
         rooms.forEach(
@@ -343,9 +343,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                     checked={!!this.state.devicesChecked[device._id]}
                     disabled={!supported}
                     onChange={e => {
-                        const devicesChecked = JSON.parse(
-                            JSON.stringify(this.state.devicesChecked),
-                        );
+                        const devicesChecked = clone(this.state.devicesChecked);
                         devicesChecked[device._id] = e.target.checked;
                         this.setState({ devicesChecked });
                     }}
@@ -366,7 +364,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                     }
                     value={device.common.name}
                     onChange={e => {
-                        const rooms = JSON.parse(JSON.stringify(this.state.rooms));
+                        const rooms = clone(this.state.rooms);
                         rooms[roomIndex].devices[deviceIndex].common.name =
             e.target.value;
                         this.setState({ rooms });
@@ -378,7 +376,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                     style={{ minWidth: 'initial' }}
                     value={device.vendorID}
                     onChange={e => {
-                        const rooms = JSON.parse(JSON.stringify(this.state.rooms));
+                        const rooms = clone(this.state.rooms);
                         rooms[roomIndex].devices[deviceIndex].vendorID = e.target.value;
                         this.setState({ rooms });
                     }}
@@ -396,7 +394,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                     style={{ minWidth: 'initial' }}
                     value={device.productID}
                     onChange={e => {
-                        const rooms = JSON.parse(JSON.stringify(this.state.rooms));
+                        const rooms = clone(this.state.rooms);
                         rooms[roomIndex].devices[deviceIndex].productID = e.target.value;
                         this.setState({ rooms });
                     }}
@@ -448,9 +446,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                             <Switch
                                 checked={this.state.ignoreUsedDevices || false}
                                 onChange={e => {
-                                    const devicesChecked = JSON.parse(
-                                        JSON.stringify(this.state.devicesChecked),
-                                    );
+                                    const devicesChecked = clone(this.state.devicesChecked);
                                     Object.keys(devicesChecked).forEach(deviceId => {
                                         if (e.target.checked && this.state.usedDevices[deviceId]) {
                                             devicesChecked[deviceId] = false;
@@ -482,9 +478,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                                         e.target.checked ? 'true' : 'false',
                                     );
 
-                                    const rooms: DetectedRoom[] = JSON.parse(
-                                        JSON.stringify(this.state.rooms),
-                                    );
+                                    const rooms = clone(this.state.rooms);
                                     if (e.target.checked) {
                                         rooms.forEach(room => {
                                             room.devices.forEach(device => {
@@ -553,9 +547,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                                 <Accordion
                                     expanded={this.state.expanded.includes(room._id)}
                                     onChange={() => {
-                                        const expanded: string[] = JSON.parse(
-                                            JSON.stringify(this.state.expanded),
-                                        );
+                                        const expanded = clone(this.state.expanded);
                                         const pos = expanded.indexOf(room._id);
                                         if (pos === -1) {
                                             expanded.push(room._id);
@@ -596,9 +588,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                                                 onClick={e => {
                                                     e.stopPropagation();
                                                     e.preventDefault();
-                                                    const devicesChecked = JSON.parse(
-                                                        JSON.stringify(this.state.devicesChecked),
-                                                    );
+                                                    const devicesChecked = clone(this.state.devicesChecked);
                                                     if (
                                                         counters[roomIndex] === room.devices.length
                                                     ) {

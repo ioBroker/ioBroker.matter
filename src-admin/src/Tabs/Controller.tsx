@@ -146,7 +146,11 @@ interface ComponentState {
 }
 
 class Controller extends Component<ComponentProps, ComponentState> {
-    private readonly refQrScanner: React.RefObject<HTMLVideoElement>;
+    /** Reference object to call methods on QR Scanner */
+    private readonly refQrScanner: React.RefObject<HTMLVideoElement> = React.createRef();
+
+    /** Reference object to call methods on DM */
+    private readonly refDeviceManager: React.RefObject<DeviceManager> = React.createRef();
 
     private qrScanner: QrScanner | null | true = null;
 
@@ -180,8 +184,6 @@ class Controller extends Component<ComponentProps, ComponentState> {
             backendProcessingActive: false,
             bleDialogOpen: false,
         };
-
-        this.refQrScanner = React.createRef();
     }
 
     async readStructure() {
@@ -640,7 +642,9 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             const deviceId = device.deviceIdentifier;
                             const discovered = this.state.discovered.filter(commDevice => commDevice.deviceIdentifier !== deviceId);
 
-                            this.setState({ discovered });
+                            this.setState({ discovered }, () => {
+                                this.refDeviceManager.current.loadData();
+                            });
                         }
                     }}
                     startIcon={<Add />}
@@ -971,8 +975,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
         if (!this.state.nodes) {
             return null;
         }
+
         return <div style={{ width: '100%' }}>
             <DeviceManager
+                ref={this.refDeviceManager}
                 title={I18n.t('Commitment devices')}
                 socket={this.props.socket}
                 selectedInstance={`${this.props.adapterName}.${this.props.instance}`}

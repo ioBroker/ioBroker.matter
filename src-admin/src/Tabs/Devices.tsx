@@ -720,7 +720,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 matter={this.props.matter}
                 socket={this.props.socket}
                 detectedDevices={this.props.detectedDevices}
-                setDetectedDevices={(detectedDevices: DetectedRoom[]) =>
+                setDetectedDevices={detectedDevices =>
                     this.props.setDetectedDevices(detectedDevices)}
                 type="device"
             />

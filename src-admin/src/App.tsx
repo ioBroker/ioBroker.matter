@@ -381,8 +381,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
             socket={this.socket}
             themeType={this.state.themeType}
             theme={this.state.theme}
-            detectedDevices={this.state.detectedDevices || []}
-            setDetectedDevices={(detectedDevices: DetectedRoom[]) =>
+            detectedDevices={this.state.detectedDevices}
+            setDetectedDevices={detectedDevices =>
                 this.setState({ detectedDevices })}
             productIDs={productIDs}
             instance={this.instance}

@@ -61,6 +61,12 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                         icon: 'fa-solid fa-pen',
                         description: t('Rename this device'),
                         handler: this.handleRenameDevice.bind(this)
+                    },
+                    {
+                        id: 'pairingCode',
+                        icon: 'fa-solid fa-qrcode',
+                        description: t('Generate new pairing code'),
+                        handler: this.handlePairingCode.bind(this)
                     }
                 ]
             };
@@ -134,6 +140,14 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             return this.demoState;
         }
         return { error: { code: 404, message: 'State not found' } };
+    }
+
+    /**
+     * Handle new pairing code request
+     */
+    handlePairingCode(): Promise<{ refresh: DeviceRefresh }> {
+        // TODO: return form as soon as QR code implemented
+        return Promise.resolve({ refresh: false });
     }
 
     async handleRenameDevice(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {

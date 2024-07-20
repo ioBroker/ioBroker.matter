@@ -1,10 +1,10 @@
 import GenericDevice, {
-    PropertyType,
     DetectedDevice,
+    DeviceOptions,
     DeviceStateObject,
+    PropertyType,
     StateAccessType,
     ValueType,
-    DeviceOptions,
 } from './GenericDevice';
 
 class WeatherCurrent extends GenericDevice {
@@ -25,21 +25,101 @@ class WeatherCurrent extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(this.addDeviceStates([
-            { name: 'ACTUAL', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.Value, callback: state => this._getValueState = state },
-            { name: 'ICON', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.Icon, callback: state => this._getIconState = state },
-            { name: 'PRECIPITATION_CHANCE', valueType: ValueType.NumberPercent, accessType: StateAccessType.Read, type: PropertyType.PrecipitationChance, callback: state => this._getPrecipitationChanceState = state },
-            { name: 'PRECIPITATION_TYPE', valueType: ValueType.NumberPercent, accessType: StateAccessType.Read, type: PropertyType.PrecipitationType, callback: state => this._getPrecipitationTypeState = state },
-            { name: 'PRESSURE', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.Pressure, callback: state => this._getPressureState = state },
-            { name: 'PRESSURE_TENDENCY', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.PressureTendency, callback: state => this._getPressureTendencyState = state },
-            { name: 'REAL_FEEL_TEMPERATURE', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.RealFeelTemperature, callback: state => this._getRealFeelTemperatureState = state },
-            { name: 'HUMIDITY', valueType: ValueType.NumberPercent, accessType: StateAccessType.Read, type: PropertyType.Humidity, callback: state => this._getHumidityState = state },
-            { name: 'UV', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.Uv, callback: state => this._getUVState = state },
-            { name: 'WEATHER', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.Weather, callback: state => this._getWeatherState = state },
-            { name: 'WIND_DIRECTION', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.WindDirectionString, callback: state => this._getWindDirectionState = state },
-            { name: 'WIND_GUST', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.WindGust, callback: state => this._getWindGustState = state },
-            { name: 'WIND_SPEED', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.WindSpeed, callback: state => this._getWindSpeedState = state },
-        ]));
+        this._ready.push(
+            this.addDeviceStates([
+                {
+                    name: 'ACTUAL',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Value,
+                    callback: state => (this._getValueState = state),
+                },
+                {
+                    name: 'ICON',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Icon,
+                    callback: state => (this._getIconState = state),
+                },
+                {
+                    name: 'PRECIPITATION_CHANCE',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.PrecipitationChance,
+                    callback: state => (this._getPrecipitationChanceState = state),
+                },
+                {
+                    name: 'PRECIPITATION_TYPE',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.PrecipitationType,
+                    callback: state => (this._getPrecipitationTypeState = state),
+                },
+                {
+                    name: 'PRESSURE',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Pressure,
+                    callback: state => (this._getPressureState = state),
+                },
+                {
+                    name: 'PRESSURE_TENDENCY',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.PressureTendency,
+                    callback: state => (this._getPressureTendencyState = state),
+                },
+                {
+                    name: 'REAL_FEEL_TEMPERATURE',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.RealFeelTemperature,
+                    callback: state => (this._getRealFeelTemperatureState = state),
+                },
+                {
+                    name: 'HUMIDITY',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Humidity,
+                    callback: state => (this._getHumidityState = state),
+                },
+                {
+                    name: 'UV',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Uv,
+                    callback: state => (this._getUVState = state),
+                },
+                {
+                    name: 'WEATHER',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Weather,
+                    callback: state => (this._getWeatherState = state),
+                },
+                {
+                    name: 'WIND_DIRECTION',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.WindDirectionString,
+                    callback: state => (this._getWindDirectionState = state),
+                },
+                {
+                    name: 'WIND_GUST',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.WindGust,
+                    callback: state => (this._getWindGustState = state),
+                },
+                {
+                    name: 'WIND_SPEED',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.WindSpeed,
+                    callback: state => (this._getWindSpeedState = state),
+                },
+            ]),
+        );
     }
 
     getValue(): number | undefined {

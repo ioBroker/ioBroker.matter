@@ -1,10 +1,10 @@
 import GenericDevice, {
-    PropertyType,
     DetectedDevice,
+    DeviceOptions,
     DeviceStateObject,
+    PropertyType,
     StateAccessType,
     ValueType,
-    DeviceOptions,
 } from './GenericDevice';
 
 class Motion extends GenericDevice {
@@ -14,10 +14,24 @@ class Motion extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(this.addDeviceStates([
-            { name: 'ACTUAL', valueType: ValueType.Boolean, accessType: StateAccessType.Read, type: PropertyType.Value, callback: state => this._getValueState = state },
-            { name: 'SECOND', valueType: ValueType.NumberPercent, accessType: StateAccessType.Read, type: PropertyType.Brightness, callback: state => this._getBrightnessState = state },
-        ]));
+        this._ready.push(
+            this.addDeviceStates([
+                {
+                    name: 'ACTUAL',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Value,
+                    callback: state => (this._getValueState = state),
+                },
+                {
+                    name: 'SECOND',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Brightness,
+                    callback: state => (this._getBrightnessState = state),
+                },
+            ]),
+        );
     }
 
     getValue(): boolean | undefined {

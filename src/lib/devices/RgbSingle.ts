@@ -1,11 +1,11 @@
 import Ct from './Ct';
 import {
-    PropertyType,
     DetectedDevice,
+    DeviceOptions,
     DeviceStateObject,
+    PropertyType,
     StateAccessType,
     ValueType,
-    DeviceOptions,
 } from './GenericDevice';
 
 class RgbSingle extends Ct {
@@ -14,9 +14,17 @@ class RgbSingle extends Ct {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(this.addDeviceStates([
-            { name: 'RGB', valueType: ValueType.String, accessType: StateAccessType.ReadWrite, type: PropertyType.Rgb, callback: state => this._rgb = state },
-        ]));
+        this._ready.push(
+            this.addDeviceStates([
+                {
+                    name: 'RGB',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Rgb,
+                    callback: state => (this._rgb = state),
+                },
+            ]),
+        );
     }
 
     getRgb(): string | undefined {

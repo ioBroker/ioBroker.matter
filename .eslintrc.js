@@ -13,20 +13,10 @@ module.exports = {
         'plugin:@typescript-eslint/recommended', // Uses the recommended rules from the @typescript-eslint/eslint-plugin
     ],
     rules: {
-        'indent': 'off',
-        '@typescript-eslint/indent': [
-            'error',
-            4,
-            {
-                'SwitchCase': 1
-            }
-        ],
         'semi': 'off',
         '@typescript-eslint/semi': 'error',
-        'object-curly-spacing': 'off',
-        '@typescript-eslint/object-curly-spacing': ['error', 'always'],
-        'space-before-function-paren': 'off',
-        '@typescript-eslint/space-before-function-paren': ['error', 'never'],
+        '@typescript-eslint/object-curly-spacing': 'off',
+        '@typescript-eslint/space-before-function-paren': 'off',
         'quotes': [
             'error',
             'single',

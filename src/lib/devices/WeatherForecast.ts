@@ -1,10 +1,10 @@
 import GenericDevice, {
-    PropertyType,
     DetectedDevice,
+    DeviceOptions,
     DeviceStateObject,
+    PropertyType,
     StateAccessType,
     ValueType,
-    DeviceOptions,
 } from './GenericDevice';
 
 class WeatherForecast extends GenericDevice {
@@ -33,29 +33,157 @@ class WeatherForecast extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(this.addDeviceStates([
-            { name: 'ICON', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.Icon, callback: state => this._getIconState = state },
-            { name: 'TEMP_MIN', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.TemperatureMin, callback: state => this._getTempMinState = state },
-            { name: 'TEMP_MAX', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.TemperatureMax, callback: state => this._getTempMaxState = state },
-            { name: 'PRECIPITATION_CHANCE', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.PrecipitationChance, callback: state => this._getPrecipitationChanceState = state },
-            { name: 'PRECIPITATION', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.Precipitation, callback: state => this._getPrecipitationState = state },
-            { name: 'DATE', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.Date, callback: state => this._getDateState = state },
-            { name: 'DOW', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.DayOfWeek, callback: state => this._getDowState = state },
-            { name: 'STATE', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.State, callback: state => this._getStateState = state },
-            { name: 'TEMP', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.Temperature, callback: state => this._getTempState = state },
-            { name: 'PRESSURE', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.Pressure, callback: state => this._getPressureState = state },
-            { name: 'HUMIDITY', valueType: ValueType.NumberPercent, accessType: StateAccessType.Read, type: PropertyType.Humidity, callback: state => this._getHumidityState = state },
-            { name: 'TIME_SUNRISE', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.TimeSunrise, callback: state => this._getTimeSunriseState = state },
-            { name: 'TIME_SUNSET', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.TimeSunset, callback: state => this._getTimeSunsetState = state },
-            { name: 'WIND_CHILL', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.WindChill, callback: state => this._getWindChillState = state },
-            { name: 'FEELS_LIKE', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.FeelsLike, callback: state => this._getFeelsLikeState = state },
-            { name: 'WIND_SPEED', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.WindSpeed, callback: state => this._getWindSpeedState = state },
-            { name: 'WIND_DIRECTION', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.WindDirectionNumber, callback: state => this._getWindDirectionState = state },
-            { name: 'WIND_DIRECTION_STR', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.WindDirectionString, callback: state => this._getWindDirectionStrState = state },
-            { name: 'WIND_ICON', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.WindIcon, callback: state => this._getWindIconState = state },
-            { name: 'HISTORY_CHART', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.HistoryChart, callback: state => this._getHistoryChartState = state },
-            { name: 'FORECAST_CHART', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.ForecastChart, callback: state => this._getForecastChartState = state },
-        ]));
+        this._ready.push(
+            this.addDeviceStates([
+                {
+                    name: 'ICON',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Icon,
+                    callback: state => (this._getIconState = state),
+                },
+                {
+                    name: 'TEMP_MIN',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.TemperatureMin,
+                    callback: state => (this._getTempMinState = state),
+                },
+                {
+                    name: 'TEMP_MAX',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.TemperatureMax,
+                    callback: state => (this._getTempMaxState = state),
+                },
+                {
+                    name: 'PRECIPITATION_CHANCE',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.PrecipitationChance,
+                    callback: state => (this._getPrecipitationChanceState = state),
+                },
+                {
+                    name: 'PRECIPITATION',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Precipitation,
+                    callback: state => (this._getPrecipitationState = state),
+                },
+                {
+                    name: 'DATE',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Date,
+                    callback: state => (this._getDateState = state),
+                },
+                {
+                    name: 'DOW',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.DayOfWeek,
+                    callback: state => (this._getDowState = state),
+                },
+                {
+                    name: 'STATE',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.State,
+                    callback: state => (this._getStateState = state),
+                },
+                {
+                    name: 'TEMP',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Temperature,
+                    callback: state => (this._getTempState = state),
+                },
+                {
+                    name: 'PRESSURE',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Pressure,
+                    callback: state => (this._getPressureState = state),
+                },
+                {
+                    name: 'HUMIDITY',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Humidity,
+                    callback: state => (this._getHumidityState = state),
+                },
+                {
+                    name: 'TIME_SUNRISE',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.TimeSunrise,
+                    callback: state => (this._getTimeSunriseState = state),
+                },
+                {
+                    name: 'TIME_SUNSET',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.TimeSunset,
+                    callback: state => (this._getTimeSunsetState = state),
+                },
+                {
+                    name: 'WIND_CHILL',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.WindChill,
+                    callback: state => (this._getWindChillState = state),
+                },
+                {
+                    name: 'FEELS_LIKE',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.FeelsLike,
+                    callback: state => (this._getFeelsLikeState = state),
+                },
+                {
+                    name: 'WIND_SPEED',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.WindSpeed,
+                    callback: state => (this._getWindSpeedState = state),
+                },
+                {
+                    name: 'WIND_DIRECTION',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.WindDirectionNumber,
+                    callback: state => (this._getWindDirectionState = state),
+                },
+                {
+                    name: 'WIND_DIRECTION_STR',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.WindDirectionString,
+                    callback: state => (this._getWindDirectionStrState = state),
+                },
+                {
+                    name: 'WIND_ICON',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.WindIcon,
+                    callback: state => (this._getWindIconState = state),
+                },
+                {
+                    name: 'HISTORY_CHART',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.HistoryChart,
+                    callback: state => (this._getHistoryChartState = state),
+                },
+                {
+                    name: 'FORECAST_CHART',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.ForecastChart,
+                    callback: state => (this._getForecastChartState = state),
+                },
+            ]),
+        );
     }
 
     getIcon(): string | undefined {

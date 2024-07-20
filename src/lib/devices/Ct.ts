@@ -1,10 +1,10 @@
 import GenericDevice, {
     DetectedDevice,
+    DeviceOptions,
     DeviceStateObject,
     PropertyType,
     StateAccessType,
     ValueType,
-    DeviceOptions,
 } from './GenericDevice';
 
 class Ct extends GenericDevice {
@@ -18,15 +18,53 @@ class Ct extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(this.addDeviceStates([
-            { name: 'DIMMER', valueType: ValueType.NumberPercent, accessType: StateAccessType.ReadWrite, type: PropertyType.Dimmer, callback: state => this._dimmer = state },
-            { name: 'BRIGHTNESS', valueType: ValueType.NumberPercent, accessType: StateAccessType.ReadWrite, type: PropertyType.Brightness, callback: state => this._brightness = state },
-            { name: 'SATURATION', valueType: ValueType.NumberPercent, accessType: StateAccessType.ReadWrite, type: PropertyType.Saturation, callback: state => this._saturation = state },
-            { name: 'TEMPERATURE', valueType: ValueType.NumberMinMax, accessType: StateAccessType.ReadWrite, type: PropertyType.Temperature, callback: state => this._temperature = state },
-            // actual value first, as it will be read first
-            { name: 'ON_ACTUAL', valueType: ValueType.Boolean, accessType: StateAccessType.Read, type: PropertyType.Power, callback: state => this._getPower = state },
-            { name: 'ON', valueType: ValueType.Boolean, accessType: StateAccessType.ReadWrite, type: PropertyType.Power, callback: state => this._setPower = state },
-        ]));
+        this._ready.push(
+            this.addDeviceStates([
+                {
+                    name: 'DIMMER',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Dimmer,
+                    callback: state => (this._dimmer = state),
+                },
+                {
+                    name: 'BRIGHTNESS',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Brightness,
+                    callback: state => (this._brightness = state),
+                },
+                {
+                    name: 'SATURATION',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Saturation,
+                    callback: state => (this._saturation = state),
+                },
+                {
+                    name: 'TEMPERATURE',
+                    valueType: ValueType.NumberMinMax,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Temperature,
+                    callback: state => (this._temperature = state),
+                },
+                // actual value first, as it will be read first
+                {
+                    name: 'ON_ACTUAL',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Power,
+                    callback: state => (this._getPower = state),
+                },
+                {
+                    name: 'ON',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Power,
+                    callback: state => (this._setPower = state),
+                },
+            ]),
+        );
     }
 
     getDimmer(): number | undefined {

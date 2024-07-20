@@ -2,18 +2,18 @@ import { VendorId } from '@project-chip/matter.js/datatype';
 import { DeviceTypes } from '@project-chip/matter.js/device';
 import { Logger } from '@project-chip/matter.js/log';
 
-import { GenericDevice } from '../lib';
 import { DeviceDescription } from '../ioBrokerStorageTypes';
+import { GenericDevice } from '../lib';
 
+import { SessionsBehavior } from '@project-chip/matter.js/behavior/system/sessions';
+import { ServerNode } from '@project-chip/matter.js/node';
+import type { MatterAdapter } from '../main';
+import { BaseServerNode, NodeStateResponse, NodeStates } from './BaseServerNode';
 import matterDeviceFactory from './matterFactory';
 import VENDOR_IDS from './vendorIds';
-import { ServerNode } from '@project-chip/matter.js/node';
-import { SessionsBehavior } from '@project-chip/matter.js/behavior/system/sessions';
-import { BaseServerNode, NodeStateResponse, NodeStates } from './BaseServerNode';
-import type { MatterAdapter } from '../main';
 
 export interface DeviceCreateOptions {
-    parameters: DeviceOptions,
+    parameters: DeviceOptions;
     device: GenericDevice;
     deviceOptions: DeviceDescription;
 }
@@ -93,7 +93,7 @@ class Device extends BaseServerNode {
         this.serverNode = await ServerNode.create({
             id: this.parameters.uuid,
             network: {
-                port: this.parameters.port
+                port: this.parameters.port,
             },
             productDescription: {
                 name: deviceName,
@@ -133,23 +133,30 @@ class Device extends BaseServerNode {
             return;
         }
 
-        this.serverNode.events.commissioning.fabricsChanged.on(async(fabricIndex) => {
+        this.serverNode.events.commissioning.fabricsChanged.on(async fabricIndex => {
             this.adapter.log.debug(
-                `commissioningChangedCallback: Commissioning changed on Fabric ${fabricIndex}: ${this.serverNode?.state.operationalCredentials.fabrics.find(fabric => fabric.fabricIndex === fabricIndex)}`);
+                `commissioningChangedCallback: Commissioning changed on Fabric ${fabricIndex}: ${this.serverNode?.state.operationalCredentials.fabrics.find(fabric => fabric.fabricIndex === fabricIndex)}`,
+            );
             // TODO find replacement for ${Logger.toJSON(this.serverNode?.getCommissionedFabricInformation(fabricIndex)[0])}
-            await this.adapter.sendToGui({ command: 'updateStates', states: { [this.parameters.uuid]: await this.getState() } });
+            await this.adapter.sendToGui({
+                command: 'updateStates',
+                states: { [this.parameters.uuid]: await this.getState() },
+            });
         });
 
-        const sessionChange = async(session: SessionsBehavior.Session): Promise<void> => {
+        const sessionChange = async (session: SessionsBehavior.Session): Promise<void> => {
             this.adapter.log.debug(
                 `activeSessionsChangedCallback: Active sessions changed on Fabric ${session.fabric?.fabricIndex}` +
-                Logger.toJSON(session));
-            await this.adapter.sendToGui({ command: 'updateStates', states: { [this.parameters.uuid]: await this.getState() } });
+                    Logger.toJSON(session),
+            );
+            await this.adapter.sendToGui({
+                command: 'updateStates',
+                states: { [this.parameters.uuid]: await this.getState() },
+            });
         };
         this.serverNode.events.sessions.opened.on(sessionChange);
         this.serverNode.events.sessions.closed.on(sessionChange);
         this.serverNode.events.sessions.subscriptionsChanged.on(sessionChange);
-
     }
 
     async applyConfiguration(_options: DeviceCreateOptions): Promise<void> {

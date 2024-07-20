@@ -4,8 +4,8 @@ import { Endpoint } from '@project-chip/matter.js/endpoint';
 import { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/GenericDevice';
 
-import { IdentifyOptions, MappingGenericDevice } from './MappingGenericDevice';
 import Dimmer from '../../lib/devices/Dimmer';
+import { IdentifyOptions, MappingGenericDevice } from './MappingGenericDevice';
 
 export class MappingDimmer extends MappingGenericDevice {
     private readonly ioBrokerDevice: Dimmer;
@@ -46,13 +46,12 @@ export class MappingDimmer extends MappingGenericDevice {
             }
         });
         // here we can react on changes from the matter side for the current lamp level
-        this.matterDevice.events.levelControl.currentLevel$Changed.on(async(level: number | null) => {
+        this.matterDevice.events.levelControl.currentLevel$Changed.on(async (level: number | null) => {
             const currentValue = this.ioBrokerDevice.getLevel();
             if (level !== currentValue && level !== null) {
                 await this.ioBrokerDevice.setLevel(level);
             }
         });
-
 
         let isIdentifying = false;
         const identifyOptions: IdentifyOptions = {};
@@ -83,14 +82,14 @@ export class MappingDimmer extends MappingGenericDevice {
             if (event.property === PropertyType.Power) {
                 await this.matterDevice.set({
                     onOff: {
-                        onOff: !!event.value
-                    }
+                        onOff: !!event.value,
+                    },
                 });
             } else if (event.property === PropertyType.Dimmer) {
                 await this.matterDevice.set({
                     levelControl: {
-                        currentLevel: event.value as number
-                    }
+                        currentLevel: event.value as number,
+                    },
                 });
             }
         });
@@ -98,11 +97,11 @@ export class MappingDimmer extends MappingGenericDevice {
         // init current state from ioBroker side
         await this.matterDevice.set({
             onOff: {
-                onOff: !!this.ioBrokerDevice.getPower()
+                onOff: !!this.ioBrokerDevice.getPower(),
             },
             levelControl: {
-                currentLevel: this.ioBrokerDevice.getLevel() || 0
-            }
+                currentLevel: this.ioBrokerDevice.getLevel() || 0,
+            },
         });
     }
 }

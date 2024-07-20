@@ -1,10 +1,10 @@
 import GenericDevice, {
-    PropertyType,
     DetectedDevice,
+    DeviceOptions,
     DeviceStateObject,
+    PropertyType,
     StateAccessType,
     ValueType,
-    DeviceOptions,
 } from './GenericDevice';
 
 class Temperature extends GenericDevice {
@@ -14,10 +14,24 @@ class Temperature extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(this.addDeviceStates([
-            { name: 'ACTUAL', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.Value, callback: state => this._getValueState = state },
-            { name: 'SECOND', valueType: ValueType.NumberPercent, accessType: StateAccessType.Read, type: PropertyType.Humidity, callback: state => this._getHumidityState = state },
-        ]));
+        this._ready.push(
+            this.addDeviceStates([
+                {
+                    name: 'ACTUAL',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Value,
+                    callback: state => (this._getValueState = state),
+                },
+                {
+                    name: 'SECOND',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Humidity,
+                    callback: state => (this._getHumidityState = state),
+                },
+            ]),
+        );
     }
 
     getValue(): boolean | undefined {

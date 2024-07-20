@@ -1,10 +1,10 @@
 import GenericDevice, {
-    PropertyType,
     DetectedDevice,
+    DeviceOptions,
     DeviceStateObject,
+    PropertyType,
     StateAccessType,
     ValueType,
-    DeviceOptions,
 } from './GenericDevice';
 
 class Slider extends GenericDevice {
@@ -14,11 +14,25 @@ class Slider extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(this.addDeviceStates([
-            // actual value first, as it will be read first
-            { name: 'ACTUAL', valueType: ValueType.NumberPercent, accessType: StateAccessType.Read, type: PropertyType.Level, callback: state => this._getLevelState = state },
-            { name: 'SET', valueType: ValueType.NumberPercent, accessType: StateAccessType.ReadWrite, type: PropertyType.Level, callback: state => this._setLevelState = state },
-        ]));
+        this._ready.push(
+            this.addDeviceStates([
+                // actual value first, as it will be read first
+                {
+                    name: 'ACTUAL',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Level,
+                    callback: state => (this._getLevelState = state),
+                },
+                {
+                    name: 'SET',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Level,
+                    callback: state => (this._setLevelState = state),
+                },
+            ]),
+        );
     }
 
     getLevel(): number | undefined {

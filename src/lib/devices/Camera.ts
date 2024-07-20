@@ -1,10 +1,10 @@
 import GenericDevice, {
     DetectedDevice,
+    DeviceOptions,
     DeviceStateObject,
     PropertyType,
     StateAccessType,
     ValueType,
-    DeviceOptions,
 } from './GenericDevice';
 
 /*
@@ -27,14 +27,52 @@ class Camera extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(this.addDeviceStates([
-            { name: 'FILE', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.File, callback: state => this._getFileState = state },
-            { name: 'AUTOFOCUS', valueType: ValueType.Boolean, accessType: StateAccessType.ReadWrite, type: PropertyType.AutoFocus, callback: state => this._autoFocusState = state },
-            { name: 'AUTOWHITEBALANCE', valueType: ValueType.Boolean, accessType: StateAccessType.ReadWrite, type: PropertyType.AutoWhiteBalance, callback: state => this._autoWhiteBalanceState = state },
-            { name: 'BRIGHTNESS', valueType: ValueType.Boolean, accessType: StateAccessType.ReadWrite, type: PropertyType.Brightness, callback: state => this._brightnessState = state },
-            { name: 'NIGHTMODE', valueType: ValueType.Boolean, accessType: StateAccessType.ReadWrite, type: PropertyType.NightMode, callback: state => this._nightModeState = state },
-            { name: 'PTZ', valueType: ValueType.Number, accessType: StateAccessType.ReadWrite, type: PropertyType.PTZ, callback: state => this._ptzState = state },
-        ]));
+        this._ready.push(
+            this.addDeviceStates([
+                {
+                    name: 'FILE',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.File,
+                    callback: state => (this._getFileState = state),
+                },
+                {
+                    name: 'AUTOFOCUS',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.AutoFocus,
+                    callback: state => (this._autoFocusState = state),
+                },
+                {
+                    name: 'AUTOWHITEBALANCE',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.AutoWhiteBalance,
+                    callback: state => (this._autoWhiteBalanceState = state),
+                },
+                {
+                    name: 'BRIGHTNESS',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Brightness,
+                    callback: state => (this._brightnessState = state),
+                },
+                {
+                    name: 'NIGHTMODE',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.NightMode,
+                    callback: state => (this._nightModeState = state),
+                },
+                {
+                    name: 'PTZ',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.PTZ,
+                    callback: state => (this._ptzState = state),
+                },
+            ]),
+        );
     }
 
     getFile(): string | undefined {

@@ -1,11 +1,11 @@
 import Ct from './Ct';
 import {
     DetectedDevice,
+    DeviceOptions,
     DeviceStateObject,
     PropertyType,
     StateAccessType,
     ValueType,
-    DeviceOptions,
 } from './GenericDevice';
 
 class Cie extends Ct {
@@ -15,9 +15,17 @@ class Cie extends Ct {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(this.addDeviceStates([
-            { name: 'CIE', valueType: ValueType.String, accessType: StateAccessType.ReadWrite, type: PropertyType.Cie, callback: state => this._cie = state },
-        ]));
+        this._ready.push(
+            this.addDeviceStates([
+                {
+                    name: 'CIE',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Cie,
+                    callback: state => (this._cie = state),
+                },
+            ]),
+        );
     }
 
     getCie(): string | undefined {
@@ -33,7 +41,6 @@ class Cie extends Ct {
         }
         return this._cie.setValue(value);
     }
-
 }
 
 export default Cie;

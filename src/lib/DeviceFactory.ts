@@ -1,5 +1,5 @@
-import GenericDevice, { DetectedDevice, DeviceOptions } from './devices/GenericDevice';
 import { Types } from '@iobroker/type-detector';
+import GenericDevice, { DetectedDevice, DeviceOptions } from './devices/GenericDevice';
 
 import AirCondition from './devices/AirCondition';
 import Blind from './devices/Blind';
@@ -7,39 +7,38 @@ import BlindButtons from './devices/BlindButtons';
 import Button from './devices/Button';
 import ButtonSensor from './devices/ButtonSensor';
 import Camera from './devices/Camera';
-import Image from './devices/Image';
 import Chart from './devices/Chart';
+import Cie from './devices/Cie';
+import Ct from './devices/Ct';
 import Dimmer from './devices/Dimmer';
 import Door from './devices/Door';
 import FireAlarm from './devices/FireAlarm';
 import FloodAlarm from './devices/FloodAlarm';
 import Gate from './devices/Gate';
+import Hue from './devices/Hue';
 import Humidity from './devices/Humidity';
+import Image from './devices/Image';
 import Info from './devices/Info';
 import Light from './devices/Light';
-import Lock from './devices/Lock';
 import Location from './devices/Location';
+import Lock from './devices/Lock';
 import Media from './devices/Media';
 import Motion from './devices/Motion';
 import Rgb from './devices/Rgb';
-import Ct from './devices/Ct';
 import RgbSingle from './devices/RgbSingle';
 import RgbwSingle from './devices/RgbwSingle';
-import Hue from './devices/Hue';
-import Cie from './devices/Cie';
 import Slider from './devices/Slider';
 import Socket from './devices/Socket';
 import Temperature from './devices/Temperature';
 import Thermostat from './devices/Thermostat';
-import Volume from './devices/Volume';
 import VacuumCleaner from './devices/VacuumCleaner';
+import Volume from './devices/Volume';
 import VolumeGroup from './devices/VolumeGroup';
-import Window from './devices/Window';
-import WindowTilt from './devices/WindowTilt';
+import Warning from './devices/Warning';
 import WeatherCurrent from './devices/WeatherCurrent';
 import WeatherForecast from './devices/WeatherForecast';
-import Warning from './devices/Warning';
-
+import Window from './devices/Window';
+import WindowTilt from './devices/WindowTilt';
 
 const types: { [key in Types]: any } = {
     [Types.airCondition]: AirCondition,

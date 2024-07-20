@@ -1,10 +1,10 @@
 import GenericDevice, {
     DetectedDevice,
+    DeviceOptions,
     DeviceStateObject,
     PropertyType,
     StateAccessType,
     ValueType,
-    DeviceOptions,
 } from './GenericDevice';
 
 /*
@@ -39,17 +39,67 @@ class BlindButtons extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(this.addDeviceStates([
-            { name: 'STOP', valueType: ValueType.Button, accessType: StateAccessType.Write, type: PropertyType.Stop, callback: state => this._setStopState = state },
-            { name: 'OPEN', valueType: ValueType.Button, accessType: StateAccessType.Write, type: PropertyType.Open, callback: state => this._setOpenState = state },
-            { name: 'CLOSE', valueType: ValueType.Button, accessType: StateAccessType.Write, type: PropertyType.Close, callback: state => this._setCloseState = state },
-            // actual value first, as it will be read first
-            { name: 'TILT_ACTUAL', valueType: ValueType.NumberPercent, accessType: StateAccessType.Read, type: PropertyType.TiltLevel, callback: state => this._getTiltState = state },
-            { name: 'TILT_SET', valueType: ValueType.NumberPercent, accessType: StateAccessType.ReadWrite, type: PropertyType.TiltLevel, callback: state => this._setTiltState = state },
-            { name: 'TILT_STOP', valueType: ValueType.Button, accessType: StateAccessType.Write, type: PropertyType.TiltStop, callback: state => this._setTiltStopState = state },
-            { name: 'TILT_OPEN', valueType: ValueType.Button, accessType: StateAccessType.Write, type: PropertyType.TiltOpen, callback: state => this._setTiltOpenState = state },
-            { name: 'TILT_CLOSE', valueType: ValueType.Button, accessType: StateAccessType.Write, type: PropertyType.TiltClose, callback: state => this._setTiltCloseState = state },
-        ]));
+        this._ready.push(
+            this.addDeviceStates([
+                {
+                    name: 'STOP',
+                    valueType: ValueType.Button,
+                    accessType: StateAccessType.Write,
+                    type: PropertyType.Stop,
+                    callback: state => (this._setStopState = state),
+                },
+                {
+                    name: 'OPEN',
+                    valueType: ValueType.Button,
+                    accessType: StateAccessType.Write,
+                    type: PropertyType.Open,
+                    callback: state => (this._setOpenState = state),
+                },
+                {
+                    name: 'CLOSE',
+                    valueType: ValueType.Button,
+                    accessType: StateAccessType.Write,
+                    type: PropertyType.Close,
+                    callback: state => (this._setCloseState = state),
+                },
+                // actual value first, as it will be read first
+                {
+                    name: 'TILT_ACTUAL',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.TiltLevel,
+                    callback: state => (this._getTiltState = state),
+                },
+                {
+                    name: 'TILT_SET',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.TiltLevel,
+                    callback: state => (this._setTiltState = state),
+                },
+                {
+                    name: 'TILT_STOP',
+                    valueType: ValueType.Button,
+                    accessType: StateAccessType.Write,
+                    type: PropertyType.TiltStop,
+                    callback: state => (this._setTiltStopState = state),
+                },
+                {
+                    name: 'TILT_OPEN',
+                    valueType: ValueType.Button,
+                    accessType: StateAccessType.Write,
+                    type: PropertyType.TiltOpen,
+                    callback: state => (this._setTiltOpenState = state),
+                },
+                {
+                    name: 'TILT_CLOSE',
+                    valueType: ValueType.Button,
+                    accessType: StateAccessType.Write,
+                    type: PropertyType.TiltClose,
+                    callback: state => (this._setTiltCloseState = state),
+                },
+            ]),
+        );
     }
 
     async setStop(): Promise<void> {

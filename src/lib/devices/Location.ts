@@ -1,10 +1,10 @@
 import GenericDevice, {
-    PropertyType,
     DetectedDevice,
+    DeviceOptions,
     DeviceStateObject,
+    PropertyType,
     StateAccessType,
     ValueType,
-    DeviceOptions,
 } from './GenericDevice';
 
 class Location extends GenericDevice {
@@ -17,13 +17,45 @@ class Location extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(this.addDeviceStates([
-            { name: 'LONGITUDE', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.Longitude, callback: state => this._getLongitudeState = state },
-            { name: 'LATITUDE', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.Latitude, callback: state => this._getLatitudeState = state },
-            { name: 'ELEVATION', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.Elevation, callback: state => this._getElevationState = state },
-            { name: 'RADIUS', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.Radius, callback: state => this._getRadiusState = state },
-            { name: 'ACCURACY', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.Accuracy, callback: state => this._getAccuracyState = state },
-        ]));
+        this._ready.push(
+            this.addDeviceStates([
+                {
+                    name: 'LONGITUDE',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Longitude,
+                    callback: state => (this._getLongitudeState = state),
+                },
+                {
+                    name: 'LATITUDE',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Latitude,
+                    callback: state => (this._getLatitudeState = state),
+                },
+                {
+                    name: 'ELEVATION',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Elevation,
+                    callback: state => (this._getElevationState = state),
+                },
+                {
+                    name: 'RADIUS',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Radius,
+                    callback: state => (this._getRadiusState = state),
+                },
+                {
+                    name: 'ACCURACY',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Accuracy,
+                    callback: state => (this._getAccuracyState = state),
+                },
+            ]),
+        );
     }
 
     getLongitude(): number | undefined {

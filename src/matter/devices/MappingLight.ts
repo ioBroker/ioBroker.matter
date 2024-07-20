@@ -4,8 +4,8 @@ import { Endpoint } from '@project-chip/matter.js/endpoint';
 import { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/GenericDevice';
 
-import { IdentifyOptions, MappingGenericDevice } from './MappingGenericDevice';
 import Light from '../../lib/devices/Light';
+import { IdentifyOptions, MappingGenericDevice } from './MappingGenericDevice';
 
 export class MappingLight extends MappingGenericDevice {
     private readonly ioBrokerDevice: Light;
@@ -76,8 +76,8 @@ export class MappingLight extends MappingGenericDevice {
             if (event.property === PropertyType.Power) {
                 await this.matterDevice.set({
                     onOff: {
-                        onOff: !!event.value
-                    }
+                        onOff: !!event.value,
+                    },
                 });
             }
         });
@@ -85,8 +85,8 @@ export class MappingLight extends MappingGenericDevice {
         // init current state from ioBroker side
         await this.matterDevice.set({
             onOff: {
-                onOff: !!this.ioBrokerDevice.getPower()
-            }
+                onOff: !!this.ioBrokerDevice.getPower(),
+            },
         });
     }
 }

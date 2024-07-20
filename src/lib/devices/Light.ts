@@ -1,10 +1,10 @@
 import GenericDevice, {
-    PropertyType,
     DetectedDevice,
+    DeviceOptions,
     DeviceStateObject,
+    PropertyType,
     StateAccessType,
     ValueType,
-    DeviceOptions,
 } from './GenericDevice';
 
 class Light extends GenericDevice {
@@ -20,17 +20,66 @@ class Light extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(this.addDeviceStates([
-            // actual value first, as it will be read first
-            { name: 'ON_ACTUAL', valueType: ValueType.Boolean, accessType: StateAccessType.Read, type: PropertyType.Power, callback: state => this._getPowerState = state },
-            { name: 'SET', valueType: ValueType.Boolean, accessType: StateAccessType.ReadWrite, type: PropertyType.Power, callback: state => this._setPowerState = state },
+        this._ready.push(
+            this.addDeviceStates([
+                // actual value first, as it will be read first
+                {
+                    name: 'ON_ACTUAL',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Power,
+                    callback: state => (this._getPowerState = state),
+                },
+                {
+                    name: 'SET',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Power,
+                    callback: state => (this._setPowerState = state),
+                },
 
-            { name: 'ELECTRIC_POWER', valueType: ValueType.Number, unit: 'W', accessType: StateAccessType.Read, type: PropertyType.ElectricPower, callback: state => this._getElectricPowerState = state },
-            { name: 'CURRENT', valueType: ValueType.Number, unit: 'A', accessType: StateAccessType.Read, type: PropertyType.Current, callback: state => this._getCurrentState = state },
-            { name: 'VOLTAGE', valueType: ValueType.Number, unit: 'V', accessType: StateAccessType.Read, type: PropertyType.Voltage, callback: state => this._getVoltageState = state },
-            { name: 'CONSUMPTION', valueType: ValueType.Number, unit: 'Wh', accessType: StateAccessType.Read, type: PropertyType.Consumption, callback: state => this._getConsumptionState = state },
-            { name: 'FREQUENCY', valueType: ValueType.Number, unit: 'Hz', accessType: StateAccessType.Read, type: PropertyType.Frequency, callback: state => this._getFrequencyState = state },
-        ]));
+                {
+                    name: 'ELECTRIC_POWER',
+                    valueType: ValueType.Number,
+                    unit: 'W',
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.ElectricPower,
+                    callback: state => (this._getElectricPowerState = state),
+                },
+                {
+                    name: 'CURRENT',
+                    valueType: ValueType.Number,
+                    unit: 'A',
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Current,
+                    callback: state => (this._getCurrentState = state),
+                },
+                {
+                    name: 'VOLTAGE',
+                    valueType: ValueType.Number,
+                    unit: 'V',
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Voltage,
+                    callback: state => (this._getVoltageState = state),
+                },
+                {
+                    name: 'CONSUMPTION',
+                    valueType: ValueType.Number,
+                    unit: 'Wh',
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Consumption,
+                    callback: state => (this._getConsumptionState = state),
+                },
+                {
+                    name: 'FREQUENCY',
+                    valueType: ValueType.Number,
+                    unit: 'Hz',
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Frequency,
+                    callback: state => (this._getFrequencyState = state),
+                },
+            ]),
+        );
     }
 
     getPower(): boolean | undefined {

@@ -1,11 +1,9 @@
-import { Logger } from '@project-chip/matter-node.js/log';
-import { MatterAdapter } from '../../main';
 import { NodeId } from '@project-chip/matter-node.js/datatype';
+import { DeviceTypeDefinition, Endpoint } from '@project-chip/matter-node.js/device';
+import { Logger } from '@project-chip/matter-node.js/log';
 import { AtLeastOne } from '@project-chip/matter-node.js/util';
-import {
-    Endpoint, DeviceTypeDefinition,
-} from '@project-chip/matter-node.js/device';
 import { SubscribeManager } from '../../lib';
+import { MatterAdapter } from '../../main';
 
 class Base {
     protected adapter: MatterAdapter;
@@ -25,19 +23,17 @@ class Base {
             this.prefix = `${newPath.join('.')}.`;
             // create folder
             const id = `controller.${this.jsonNodeId.replace(/"/g, '')}.${this.prefix.substring(0, this.prefix.length - 1)}`;
-            this.adapter.getObjectAsync(id)
-                .then(obj => {
-                    if (!obj) {
-                        this.adapter.setObjectAsync(id, {
-                            type: 'device',
-                            common: {
-                                name: `Device ${this.prefix.substring(0, this.prefix.length - 1)}`,
-                            },
-                            native: {
-                            },
-                        });
-                    }
-                });
+            this.adapter.getObjectAsync(id).then(obj => {
+                if (!obj) {
+                    this.adapter.setObjectAsync(id, {
+                        type: 'device',
+                        common: {
+                            name: `Device ${this.prefix.substring(0, this.prefix.length - 1)}`,
+                        },
+                        native: {},
+                    });
+                }
+            });
         } else {
             this.prefix = '';
         }
@@ -79,8 +75,11 @@ class Base {
                 _id: id,
                 type: 'channel',
                 common: {
-                    name: deviceType ? deviceType.name.replace(/^MA-/, '') :
-                        (deviceTypes[0] ? deviceTypes[0].name.replace(/^MA-/, '') :'Unknown'),
+                    name: deviceType
+                        ? deviceType.name.replace(/^MA-/, '')
+                        : deviceTypes[0]
+                          ? deviceTypes[0].name.replace(/^MA-/, '')
+                          : 'Unknown',
                 },
                 native: {
                     nodeId: this.jsonNodeId,

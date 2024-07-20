@@ -1,12 +1,16 @@
+import { Types } from '@iobroker/type-detector';
 import { GenericDevice } from '../lib';
 import { MappingGenericDevice } from './devices/MappingGenericDevice';
-import { Types } from '@iobroker/type-detector';
 
+import { MappingDimmer } from './devices/MappingDimmer';
 import { MappingLight } from './devices/MappingLight';
 import { MappingSocket } from './devices/MappingSocket';
-import { MappingDimmer } from './devices/MappingDimmer';
 
-async function matterDeviceFabric(ioBrokerDevice: GenericDevice, name: string, uuid?: string): Promise<MappingGenericDevice | null> {
+async function matterDeviceFabric(
+    ioBrokerDevice: GenericDevice,
+    name: string,
+    uuid?: string,
+): Promise<MappingGenericDevice | null> {
     const ioBrokerDeviceType = ioBrokerDevice.getDeviceType();
 
     switch (ioBrokerDeviceType) {

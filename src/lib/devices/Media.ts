@@ -1,10 +1,10 @@
 import GenericDevice, {
-    PropertyType,
     DetectedDevice,
+    DeviceOptions,
     DeviceStateObject,
+    PropertyType,
     StateAccessType,
     ValueType,
-    DeviceOptions,
 } from './GenericDevice';
 
 class Media extends GenericDevice {
@@ -34,32 +34,168 @@ class Media extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(this.addDeviceStates([
-            { name: 'STATE', valueType: ValueType.Boolean, accessType: StateAccessType.Read, type: PropertyType.State, callback: state => this._getStateState = state },
-            { name: 'PLAY', valueType: ValueType.Button, accessType: StateAccessType.Write, type: PropertyType.Play, callback: state => this._setPlayState = state },
-            { name: 'PAUSE', valueType: ValueType.Button, accessType: StateAccessType.Write, type: PropertyType.Pause, callback: state => this._setPauseState = state },
-            { name: 'STOP', valueType: ValueType.Button, accessType: StateAccessType.Write, type: PropertyType.Stop, callback: state => this._setStopState = state },
-            { name: 'NEXT', valueType: ValueType.Button, accessType: StateAccessType.Write, type: PropertyType.Next, callback: state => this._setNextState = state },
-            { name: 'PREV', valueType: ValueType.Button, accessType: StateAccessType.Write, type: PropertyType.Previous, callback: state => this._setPrevState = state },
-            { name: 'SHUFFLE', valueType: ValueType.Boolean, accessType: StateAccessType.ReadWrite, type: PropertyType.Shuffle, callback: state => this._shuffleState = state },
-            { name: 'REPEAT', valueType: ValueType.Boolean, accessType: StateAccessType.ReadWrite, type: PropertyType.Repeat, callback: state => this._repeatState = state },
-            { name: 'ARTIST', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.Artist, callback: state => this._getArtistState = state },
-            { name: 'ALBUM', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.Album, callback: state => this._getAlbumState = state },
-            { name: 'TITLE', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.Title, callback: state => this._getTitleState = state },
-            { name: 'COVER', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.Cover, callback: state => this._getCoverState = state },
-            { name: 'DURATION', valueType: ValueType.Number, accessType: StateAccessType.Read, unit: 'seconds', type: PropertyType.Duration, callback: state => this._getDurationState = state },
-            { name: 'ELAPSED', valueType: ValueType.Number, unit: 'seconds', accessType: StateAccessType.Read, type: PropertyType.Elapsed, callback: state => this._getElapsedState = state },
-            { name: 'SEEK', valueType: ValueType.NumberPercent, accessType: StateAccessType.Write, type: PropertyType.Seek, callback: state => this._setSeekState = state },
-            { name: 'TRACK', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.Track, callback: state => this._getTrackState = state },
-            { name: 'EPISODE', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.Episode, callback: state => this._getEpisodeState = state },
-            { name: 'SEASON', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.Season, callback: state => this._getSeasonState = state },
-            // actual value first, as it will be read first
-            { name: 'VOLUME_ACTUAL', valueType: ValueType.NumberPercent, accessType: StateAccessType.Read, type: PropertyType.Volume, callback: state => this._getVolumeState = state || this._setVolumeState },
-            { name: 'VOLUME', valueType: ValueType.NumberPercent, accessType: StateAccessType.ReadWrite, type: PropertyType.Volume, callback: state => this._setVolumeState = state },
-            { name: 'MUTE', valueType: ValueType.Boolean, accessType: StateAccessType.ReadWrite, type: PropertyType.Mute, callback: state => this._muteState = state },
-            // TODO: This must be mapped to reachable
-            { name: 'CONNECTED', valueType: ValueType.Boolean, accessType: StateAccessType.Read, type: PropertyType.Connected, callback: state => this._getConnectedState = state },
-        ]));
+        this._ready.push(
+            this.addDeviceStates([
+                {
+                    name: 'STATE',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.State,
+                    callback: state => (this._getStateState = state),
+                },
+                {
+                    name: 'PLAY',
+                    valueType: ValueType.Button,
+                    accessType: StateAccessType.Write,
+                    type: PropertyType.Play,
+                    callback: state => (this._setPlayState = state),
+                },
+                {
+                    name: 'PAUSE',
+                    valueType: ValueType.Button,
+                    accessType: StateAccessType.Write,
+                    type: PropertyType.Pause,
+                    callback: state => (this._setPauseState = state),
+                },
+                {
+                    name: 'STOP',
+                    valueType: ValueType.Button,
+                    accessType: StateAccessType.Write,
+                    type: PropertyType.Stop,
+                    callback: state => (this._setStopState = state),
+                },
+                {
+                    name: 'NEXT',
+                    valueType: ValueType.Button,
+                    accessType: StateAccessType.Write,
+                    type: PropertyType.Next,
+                    callback: state => (this._setNextState = state),
+                },
+                {
+                    name: 'PREV',
+                    valueType: ValueType.Button,
+                    accessType: StateAccessType.Write,
+                    type: PropertyType.Previous,
+                    callback: state => (this._setPrevState = state),
+                },
+                {
+                    name: 'SHUFFLE',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Shuffle,
+                    callback: state => (this._shuffleState = state),
+                },
+                {
+                    name: 'REPEAT',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Repeat,
+                    callback: state => (this._repeatState = state),
+                },
+                {
+                    name: 'ARTIST',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Artist,
+                    callback: state => (this._getArtistState = state),
+                },
+                {
+                    name: 'ALBUM',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Album,
+                    callback: state => (this._getAlbumState = state),
+                },
+                {
+                    name: 'TITLE',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Title,
+                    callback: state => (this._getTitleState = state),
+                },
+                {
+                    name: 'COVER',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Cover,
+                    callback: state => (this._getCoverState = state),
+                },
+                {
+                    name: 'DURATION',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    unit: 'seconds',
+                    type: PropertyType.Duration,
+                    callback: state => (this._getDurationState = state),
+                },
+                {
+                    name: 'ELAPSED',
+                    valueType: ValueType.Number,
+                    unit: 'seconds',
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Elapsed,
+                    callback: state => (this._getElapsedState = state),
+                },
+                {
+                    name: 'SEEK',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Write,
+                    type: PropertyType.Seek,
+                    callback: state => (this._setSeekState = state),
+                },
+                {
+                    name: 'TRACK',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Track,
+                    callback: state => (this._getTrackState = state),
+                },
+                {
+                    name: 'EPISODE',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Episode,
+                    callback: state => (this._getEpisodeState = state),
+                },
+                {
+                    name: 'SEASON',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Season,
+                    callback: state => (this._getSeasonState = state),
+                },
+                // actual value first, as it will be read first
+                {
+                    name: 'VOLUME_ACTUAL',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Volume,
+                    callback: state => (this._getVolumeState = state || this._setVolumeState),
+                },
+                {
+                    name: 'VOLUME',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Volume,
+                    callback: state => (this._setVolumeState = state),
+                },
+                {
+                    name: 'MUTE',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Mute,
+                    callback: state => (this._muteState = state),
+                },
+                // TODO: This must be mapped to reachable
+                {
+                    name: 'CONNECTED',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Connected,
+                    callback: state => (this._getConnectedState = state),
+                },
+            ]),
+        );
     }
 
     getState(): boolean | number | undefined {

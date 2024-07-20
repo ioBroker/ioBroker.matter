@@ -1,10 +1,10 @@
 import GenericDevice, {
     DetectedDevice,
+    DeviceOptions,
     DeviceStateObject,
     PropertyType,
     StateAccessType,
     ValueType,
-    DeviceOptions,
 } from './GenericDevice';
 
 enum AirConditionerMode {
@@ -46,17 +46,67 @@ class AirCondition extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(this.addDeviceStates([
-            { name: 'SET', valueType: ValueType.NumberMinMax, accessType: StateAccessType.ReadWrite, type: PropertyType.Level, callback: state => this._levelState = state },
+        this._ready.push(
+            this.addDeviceStates([
+                {
+                    name: 'SET',
+                    valueType: ValueType.NumberMinMax,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Level,
+                    callback: state => (this._levelState = state),
+                },
 
-            { name: 'ACTUAL', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.Temperature, callback: state => this._getTemperatureState = state },
-            { name: 'POWER', valueType: ValueType.Boolean, accessType: StateAccessType.ReadWrite, type: PropertyType.Power, callback: state => this._powerState = state },
-            { name: 'HUMIDITY', valueType: ValueType.NumberPercent, accessType: StateAccessType.Read, type: PropertyType.Humidity, callback: state => this._getHumidityState = state },
-            { name: 'SPEED', valueType: ValueType.Enum, accessType: StateAccessType.ReadWrite, type: PropertyType.Speed, callback: state => this._speedState = state },
-            { name: 'BOOST', valueType: ValueType.Boolean, accessType: StateAccessType.ReadWrite, type: PropertyType.Boost, callback: state => this._boostState = state },
-            { name: 'SWING', valueType: ValueType.Boolean, accessType: StateAccessType.ReadWrite, type: PropertyType.Swing, callback: state => this._SwingState = state },
-            { name: 'MODE', valueType: ValueType.Enum, accessType: StateAccessType.ReadWrite, type: PropertyType.Mode, callback: state => this._modeState = state },
-        ]));
+                {
+                    name: 'ACTUAL',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Temperature,
+                    callback: state => (this._getTemperatureState = state),
+                },
+                {
+                    name: 'POWER',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Power,
+                    callback: state => (this._powerState = state),
+                },
+                {
+                    name: 'HUMIDITY',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Humidity,
+                    callback: state => (this._getHumidityState = state),
+                },
+                {
+                    name: 'SPEED',
+                    valueType: ValueType.Enum,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Speed,
+                    callback: state => (this._speedState = state),
+                },
+                {
+                    name: 'BOOST',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Boost,
+                    callback: state => (this._boostState = state),
+                },
+                {
+                    name: 'SWING',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Swing,
+                    callback: state => (this._SwingState = state),
+                },
+                {
+                    name: 'MODE',
+                    valueType: ValueType.Enum,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Mode,
+                    callback: state => (this._modeState = state),
+                },
+            ]),
+        );
     }
 
     getLevel(): number | undefined {
@@ -122,7 +172,7 @@ class AirCondition extends GenericDevice {
         return this._speedState.value;
     }
 
-    async setSpeed(value: AirConditionerSpeed):Promise<void> {
+    async setSpeed(value: AirConditionerSpeed): Promise<void> {
         if (!this._speedState) {
             throw new Error('Speed state not found');
         }

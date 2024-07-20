@@ -1,9 +1,9 @@
-import { Endpoint } from '@project-chip/matter-node.js/device';
 import { BooleanStateCluster } from '@project-chip/matter-node.js/cluster';
 import { NodeId } from '@project-chip/matter-node.js/datatype';
+import { Endpoint } from '@project-chip/matter-node.js/device';
 
-import Base from './Base';
 import { MatterAdapter } from '../../main';
+import Base from './Base';
 
 class BooleanState extends Base {
     private handler: ((value: boolean) => void) | undefined = undefined;
@@ -29,7 +29,7 @@ class BooleanState extends Base {
             await cluster.getStateValueAttribute(),
         );
 
-        this.handler = async(value: boolean) => {
+        this.handler = async (value: boolean) => {
             await this.adapter.setStateAsync(id, value, true);
         };
 
@@ -45,7 +45,12 @@ class BooleanState extends Base {
         }
     }
 
-    static async factory(adapter: MatterAdapter, nodeId: NodeId, endpoint: Endpoint, path: number[]): Promise<Base | undefined> {
+    static async factory(
+        adapter: MatterAdapter,
+        nodeId: NodeId,
+        endpoint: Endpoint,
+        path: number[],
+    ): Promise<Base | undefined> {
         const cluster = endpoint.getClusterClient(BooleanStateCluster);
         if (!cluster) {
             return;

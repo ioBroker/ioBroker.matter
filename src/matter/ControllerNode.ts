@@ -1,40 +1,33 @@
+import { CommissioningController, NodeCommissioningOptions } from '@project-chip/matter.js';
 import {
-    CommissioningController,
-    NodeCommissioningOptions,
-} from '@project-chip/matter.js';
-import { NodeId /* , ClusterId */ } from '@project-chip/matter.js/datatype';
-import {
-    Endpoint, CommissioningControllerNodeOptions,
-    PairedNode,
-} from '@project-chip/matter.js/device';
-import { toHex, singleton } from '@project-chip/matter.js/util';
-import {
+    AnyAttributeServer,
     asClusterServerInternal,
-    ClusterServerObj,
-    GlobalAttributes,
-    AnyAttributeServer, FabricScopeError,
     BasicInformationCluster,
+    ClusterServerObj,
+    FabricScopeError,
+    GlobalAttributes,
 } from '@project-chip/matter.js/cluster';
 import { CommissionableDevice, DiscoveryData } from '@project-chip/matter.js/common';
+import { NodeId /* , ClusterId */ } from '@project-chip/matter.js/datatype';
+import { CommissioningControllerNodeOptions, Endpoint, PairedNode } from '@project-chip/matter.js/device';
+import { singleton, toHex } from '@project-chip/matter.js/util';
 
-import { ManualPairingCodeCodec, QrPairingCodeCodec } from '@project-chip/matter.js/schema';
 import { NodeStateInformation } from '@project-chip/matter.js/device';
 import { Logger } from '@project-chip/matter.js/log';
+import { ManualPairingCodeCodec, QrPairingCodeCodec } from '@project-chip/matter.js/schema';
 
+import { GeneralCommissioning } from '@project-chip/matter.js/cluster';
 import { CommissioningOptions } from '@project-chip/matter.js/protocol';
-import {
-    GeneralCommissioning,
-} from '@project-chip/matter.js/cluster';
 
 import { BleNode } from '@project-chip/matter-node-ble.js/ble';
 import { Ble } from '@project-chip/matter.js/ble';
 
-import type { MatterAdapter } from '../main';
-import Factories from './clusters/factories';
-import Base from './clusters/Base';
 import { Environment } from '@project-chip/matter.js/environment';
-import { GeneralNode, MessageResponse } from './GeneralNode';
 import { MatterControllerConfig } from '../../src-admin/src/types';
+import type { MatterAdapter } from '../main';
+import Base from './clusters/Base';
+import Factories from './clusters/factories';
+import { GeneralNode, MessageResponse } from './GeneralNode';
 
 export interface ControllerCreateOptions {
     adapter: MatterAdapter;
@@ -93,7 +86,7 @@ class Controller implements GeneralNode {
     private readonly adapter: MatterAdapter;
     private readonly matterEnvironment: Environment;
     private commissioningController?: CommissioningController;
-    private devices= new Map<string, Device>();
+    private devices = new Map<string, Device>();
     private delayedStates: { [nodeId: string]: NodeStateInformation } = {};
     private connected: { [nodeId: string]: boolean } = {};
     private discovering = false;
@@ -112,8 +105,8 @@ class Controller implements GeneralNode {
             // TODO add listeningAddressIpv4 and listeningAddressIpv6 to limit controller to one network interface
             environment: {
                 environment: this.matterEnvironment,
-                id: 'controller'
-            }
+                id: 'controller',
+            },
         });
     }
 
@@ -122,10 +115,11 @@ class Controller implements GeneralNode {
 
         this.useBle = false;
         if (config.ble !== currentConfig.ble || config.hciId !== currentConfig.hciId) {
-            if (config.ble && (
-                (config.wifiSSID && config.wifiPassword) ||
-                (config.threadNetworkName !== undefined && config.threadOperationalDataSet !== undefined)
-            )) {
+            if (
+                config.ble &&
+                ((config.wifiSSID && config.wifiPassword) ||
+                    (config.threadNetworkName !== undefined && config.threadOperationalDataSet !== undefined))
+            ) {
                 try {
                     const hciId = config.hciId === undefined ? undefined : parseInt(config.hciId);
                     Ble.get = singleton(() => new BleNode({ hciId }));
@@ -170,7 +164,9 @@ class Controller implements GeneralNode {
                     return { result: this.commissioningController.paseCommissionerData };
                 case 'controllerCompletePaseCommissioning':
                     // Completes a commissioning process that was started by the mobile app in the main controller
-                    return { result: await this.completeCommissioningForNode(message.peerNodeId, message.discoveryData) };
+                    return {
+                        result: await this.completeCommissioningForNode(message.peerNodeId, message.discoveryData),
+                    };
             }
         } catch (error) {
             this.adapter.log.warn(`Error while executing command "${command}": ${error.stack}`);
@@ -182,7 +178,10 @@ class Controller implements GeneralNode {
 
     initEventHandlers(originalNodeId: NodeId | null, options?: any): any {
         return Object.assign(options || {}, {
-            attributeChangedCallback: (peerNodeId: NodeId, { path: { nodeId, clusterId, endpointId, attributeName }, value }: any) => {
+            attributeChangedCallback: (
+                peerNodeId: NodeId,
+                { path: { nodeId, clusterId, endpointId, attributeName }, value }: any,
+            ) => {
                 this.adapter.log.debug(
                     `attributeChangedCallback ${peerNodeId}: Attribute ${nodeId}/${endpointId}/${clusterId}/${attributeName} changed to ${Logger.toJSON(
                         value,
@@ -190,7 +189,10 @@ class Controller implements GeneralNode {
                 );
             },
 
-            eventTriggeredCallback: (peerNodeId: NodeId, { path: { nodeId, clusterId, endpointId, eventName }, events }: any) => {
+            eventTriggeredCallback: (
+                peerNodeId: NodeId,
+                { path: { nodeId, clusterId, endpointId, eventName }, events }: any,
+            ) => {
                 this.adapter.log.debug(
                     `eventTriggeredCallback ${peerNodeId}: Event ${nodeId}/${endpointId}/${clusterId}/${eventName} triggered with ${Logger.toJSON(
                         events,
@@ -198,7 +200,7 @@ class Controller implements GeneralNode {
                 );
             },
 
-            stateInformationCallback: async(peerNodeId: NodeId, info: NodeStateInformation) => {
+            stateInformationCallback: async (peerNodeId: NodeId, info: NodeStateInformation) => {
                 const jsonNodeId = peerNodeId.toString();
                 const node = this.commissioningController?.getConnectedNode(peerNodeId);
                 const device: Device | undefined = this.devices.get(jsonNodeId);
@@ -213,8 +215,14 @@ class Controller implements GeneralNode {
                 }
 
                 if (device) {
-                    device.connectionStateId && (await this.adapter.setStateAsync(device.connectionStateId, info === NodeStateInformation.Connected, true));
-                    device.connectionStatusId && (await this.adapter.setStateAsync(device.connectionStatusId, info, true));
+                    device.connectionStateId &&
+                        (await this.adapter.setStateAsync(
+                            device.connectionStateId,
+                            info === NodeStateInformation.Connected,
+                            true,
+                        ));
+                    device.connectionStatusId &&
+                        (await this.adapter.setStateAsync(device.connectionStatusId, info, true));
                 } else {
                     this.adapter.log.warn(`Device ${jsonNodeId} not found`);
                     // delayed state
@@ -223,13 +231,19 @@ class Controller implements GeneralNode {
 
                 switch (info) {
                     case NodeStateInformation.Connected:
-                        this.adapter.log.debug(`stateInformationCallback ${peerNodeId}: Node ${originalNodeId} connected`);
+                        this.adapter.log.debug(
+                            `stateInformationCallback ${peerNodeId}: Node ${originalNodeId} connected`,
+                        );
                         break;
                     case NodeStateInformation.Disconnected:
-                        this.adapter.log.debug(`stateInformationCallback ${peerNodeId}: Node ${originalNodeId} disconnected`);
+                        this.adapter.log.debug(
+                            `stateInformationCallback ${peerNodeId}: Node ${originalNodeId} disconnected`,
+                        );
                         break;
                     case NodeStateInformation.Reconnecting:
-                        this.adapter.log.debug(`stateInformationCallback ${peerNodeId}: Node ${originalNodeId} reconnecting`);
+                        this.adapter.log.debug(
+                            `stateInformationCallback ${peerNodeId}: Node ${originalNodeId} reconnecting`,
+                        );
                         break;
                     case NodeStateInformation.WaitingForDeviceDiscovery:
                         this.adapter.log.debug(
@@ -237,7 +251,9 @@ class Controller implements GeneralNode {
                         );
                         break;
                     case NodeStateInformation.StructureChanged:
-                        this.adapter.log.debug(`stateInformationCallback ${peerNodeId}: Node ${originalNodeId} structure changed`);
+                        this.adapter.log.debug(
+                            `stateInformationCallback ${peerNodeId}: Node ${originalNodeId} structure changed`,
+                        );
                         break;
                 }
             },
@@ -254,9 +270,7 @@ class Controller implements GeneralNode {
             common: {
                 name: 'Information',
             },
-            native: {
-
-            },
+            native: {},
         });
 
         await this.adapter.extendObject('controller.info.discovering', {
@@ -267,10 +281,9 @@ class Controller implements GeneralNode {
                 type: 'boolean',
                 read: true,
                 write: false,
-                def: false
+                def: false,
             },
-            native: {
-            },
+            native: {},
         });
 
         await this.adapter.setState('controller.info.discovering', false, true);
@@ -284,7 +297,10 @@ class Controller implements GeneralNode {
         // attach all nodes to the controller
         for (const nodeId of nodes) {
             try {
-                const node = await this.commissioningController.connectNode(nodeId, this.initEventHandlers(nodeId) as CommissioningControllerNodeOptions);
+                const node = await this.commissioningController.connectNode(
+                    nodeId,
+                    this.initEventHandlers(nodeId) as CommissioningControllerNodeOptions,
+                );
                 await this.nodeToIoBrokerStructure(node);
             } catch (error) {
                 this.adapter.log.info(`Failed to connect to node ${nodeId}: ${error.stack}`);
@@ -324,7 +340,8 @@ class Controller implements GeneralNode {
         this.adapter.log.debug(
             `${''.padStart(level * 2)}Cluster-Server "${clusterServer.name}" (${toHex(clusterServer.id)}) ${
                 supportedFeatures.length ? `(Features: ${supportedFeatures.join(', ')})` : ''
-            }`);
+            }`,
+        );
         this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Global-Attributes:`);
         for (const attributeName in globalAttributes) {
             const attribute = clusterServer.attributes[attributeName];
@@ -359,7 +376,9 @@ class Controller implements GeneralNode {
         for (const commandName in commands) {
             const command = commands[commandName];
             if (command === undefined) continue;
-            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${command.name}" (${toHex(command.invokeId)}/${command.responseId})`);
+            this.adapter.log.debug(
+                `${''.padStart(level * 2 + 4)}"${command.name}" (${toHex(command.invokeId)}/${command.responseId})`,
+            );
         }
 
         this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Events:`);
@@ -398,7 +417,7 @@ class Controller implements GeneralNode {
         // }
 
         this.adapter.log.debug(
-            `${''.padStart(level * 2)}Cluster-Client "${clusterClient.name}" (${toHex(clusterClient.id)}) ${supportedFeatures.length ? `(Features: ${supportedFeatures.join(', ')})` : ''}`
+            `${''.padStart(level * 2)}Cluster-Client "${clusterClient.name}" (${toHex(clusterClient.id)}) ${supportedFeatures.length ? `(Features: ${supportedFeatures.join(', ')})` : ''}`,
         );
         this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Global-Attributes:`);
         for (const attributeName in globalAttributes) {
@@ -407,7 +426,9 @@ class Controller implements GeneralNode {
                 continue;
             }
 
-            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHex(attribute.id)}) = ${this.getAttributeServerValue(attribute)}`);
+            this.adapter.log.debug(
+                `${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHex(attribute.id)}) = ${this.getAttributeServerValue(attribute)}`,
+            );
         }
 
         this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Attributes:`);
@@ -428,7 +449,9 @@ class Controller implements GeneralNode {
             // if (unknown) {
             //     info += " (Unknown)";
             // }
-            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHex(attribute.id)}) = ${this.getAttributeServerValue(attribute)}`);
+            this.adapter.log.debug(
+                `${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHex(attribute.id)}) = ${this.getAttributeServerValue(attribute)}`,
+            );
         }
 
         this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Commands:`);
@@ -485,11 +508,7 @@ class Controller implements GeneralNode {
         const id = `controller.${nodeIdString}`;
         let deviceObj = await this.adapter.getObjectAsync(id);
         let changed = false;
-        if (
-            !deviceObj ||
-            (deviceObj.type === 'folder' && !bridge) ||
-            (deviceObj.type === 'device' && bridge)
-        ) {
+        if (!deviceObj || (deviceObj.type === 'folder' && !bridge) || (deviceObj.type === 'device' && bridge)) {
             changed = true;
             const oldCommon = deviceObj?.common || undefined;
 
@@ -517,7 +536,7 @@ class Controller implements GeneralNode {
                 deviceObj.common.desc = oldCommon.desc;
             }
 
-            deviceObj && await this.adapter.setObjectAsync(deviceObj._id, deviceObj);
+            deviceObj && (await this.adapter.setObjectAsync(deviceObj._id, deviceObj));
         }
 
         const device: Device = {
@@ -536,7 +555,7 @@ class Controller implements GeneralNode {
         });
 
         device.connectionStateId = `controller.${nodeIdString}.info.connection`;
-        await this.adapter.getObjectAsync(device.connectionStateId,{
+        await this.adapter.getObjectAsync(device.connectionStateId, {
             type: 'state',
             common: {
                 name: 'Connected',
@@ -569,7 +588,11 @@ class Controller implements GeneralNode {
         });
 
         if (this.delayedStates[nodeIdString] !== undefined) {
-            await this.adapter.setState(device.connectionStateId, this.delayedStates[nodeIdString] === NodeStateInformation.Connected, true);
+            await this.adapter.setState(
+                device.connectionStateId,
+                this.delayedStates[nodeIdString] === NodeStateInformation.Connected,
+                true,
+            );
             await this.adapter.setState(device.connectionStatusId, this.delayedStates[nodeIdString], true);
             delete this.delayedStates[nodeIdString];
         }
@@ -635,7 +658,13 @@ class Controller implements GeneralNode {
         }
     }
 
-    async endPointToIoBrokerStructure(nodeId: NodeId, endpoint: Endpoint, level: number, path: number[], device: Device): Promise<void> {
+    async endPointToIoBrokerStructure(
+        nodeId: NodeId,
+        endpoint: Endpoint,
+        level: number,
+        path: number[],
+        device: Device,
+    ): Promise<void> {
         this.adapter.log.info(`${''.padStart(level * 2)}Endpoint ${endpoint.number} (${endpoint.name}):`);
         if (level) {
             for (let f = 0; f < Factories.length; f++) {
@@ -689,8 +718,13 @@ class Controller implements GeneralNode {
                     wifiCredentials: this.parameters.wifiPassword,
                 };
             }
-            if (this.parameters.threadNetworkName !== undefined && this.parameters.threadOperationalDataSet !== undefined) {
-                this.adapter.log.debug(`Registering Commissioning over BLE with Thread: ${this.parameters.threadNetworkName}`);
+            if (
+                this.parameters.threadNetworkName !== undefined &&
+                this.parameters.threadOperationalDataSet !== undefined
+            ) {
+                this.adapter.log.debug(
+                    `Registering Commissioning over BLE with Thread: ${this.parameters.threadNetworkName}`,
+                );
                 commissioningOptions.threadNetwork = {
                     networkName: this.parameters.threadNetworkName,
                     operationalDataset: this.parameters.threadOperationalDataSet,
@@ -722,11 +756,12 @@ class Controller implements GeneralNode {
             commissioning: commissioningOptions,
             discovery: {
                 commissionableDevice: device || undefined,
-                identifierData: longDiscriminator !== undefined
-                    ? { longDiscriminator }
-                    : shortDiscriminator !== undefined
-                        ? { shortDiscriminator }
-                        : undefined,
+                identifierData:
+                    longDiscriminator !== undefined
+                        ? { longDiscriminator }
+                        : shortDiscriminator !== undefined
+                          ? { shortDiscriminator }
+                          : undefined,
             },
             passcode,
         }) as NodeCommissioningOptions;
@@ -776,7 +811,7 @@ class Controller implements GeneralNode {
         if (!this.commissioningController) {
             return null;
         }
-        await this.adapter.setState('controller.info.discovering', true, true );
+        await this.adapter.setState('controller.info.discovering', true, true);
         this.discovering = true;
         this.adapter.log.info(`Start the discovering...`);
         const result = await this.commissioningController.discoverCommissionableDevices(

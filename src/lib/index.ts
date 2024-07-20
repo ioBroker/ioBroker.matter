@@ -1,3 +1,4 @@
+import DeviceFactory from './DeviceFactory';
 import AirCondition from './devices/AirCondition';
 import Blind from './devices/Blind';
 import BlindButtons from './devices/BlindButtons';
@@ -7,7 +8,6 @@ import Camera from './devices/Camera';
 import Chart from './devices/Chart';
 import Cie from './devices/Cie';
 import Ct from './devices/Ct';
-import DeviceFactory from './DeviceFactory';
 import Dimmer from './devices/Dimmer';
 import Door from './devices/Door';
 import FireAlarm from './devices/FireAlarm';
@@ -18,7 +18,6 @@ import Hue from './devices/Hue';
 import Humidity from './devices/Humidity';
 import Image from './devices/Image';
 import Info from './devices/Info';
-import Slider from './devices/Slider';
 import Light from './devices/Light';
 import Location from './devices/Location';
 import LocationOne from './devices/LocationOne';
@@ -28,8 +27,8 @@ import Motion from './devices/Motion';
 import Rgb from './devices/Rgb';
 import RgbSingle from './devices/RgbSingle';
 import RgbwSingle from './devices/RgbwSingle';
+import Slider from './devices/Slider';
 import Socket from './devices/Socket';
-import SubscribeManager from './SubscribeManager';
 import Temperature from './devices/Temperature';
 import Thermostat from './devices/Thermostat';
 import VacuumCleaner from './devices/VacuumCleaner';
@@ -40,6 +39,7 @@ import WeatherCurrent from './devices/WeatherCurrent';
 import WeatherForecast from './devices/WeatherForecast';
 import Window from './devices/Window';
 import WindowTilt from './devices/WindowTilt';
+import SubscribeManager from './SubscribeManager';
 
 export {
     AirCondition,
@@ -62,7 +62,6 @@ export {
     Humidity,
     Image,
     Info,
-    Slider,
     Light,
     Location,
     LocationOne,
@@ -72,6 +71,7 @@ export {
     Rgb,
     RgbSingle,
     RgbwSingle,
+    Slider,
     Socket,
     SubscribeManager,
     Temperature,

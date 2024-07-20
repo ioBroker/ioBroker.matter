@@ -1,8 +1,9 @@
 import {
-    fromJson, MaybeAsyncStorage,
+    fromJson,
+    MaybeAsyncStorage,
     StorageError,
     SupportedStorageTypes,
-    toJson
+    toJson,
 } from '@project-chip/matter.js/storage';
 
 /**
@@ -16,7 +17,7 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
     constructor(
         private readonly adapter: ioBroker.Adapter,
         private namespace: string,
-        private clear = false
+        private clear = false,
     ) {
         this.storageRootOid = `storage.${this.namespace}`;
     }
@@ -30,7 +31,7 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
                 expert: true,
                 name: 'Matter storage',
             },
-            native: {}
+            native: {},
         });
 
         if (this.clear) {
@@ -77,7 +78,9 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
                 return undefined;
             }
             if (typeof valueState.val !== 'string') {
-                this.adapter.log.error(`[STORAGE] Invalid value for key "${key}" in context "${contexts.join('$$')}": ${toJson(valueState.val)}`);
+                this.adapter.log.error(
+                    `[STORAGE] Invalid value for key "${key}" in context "${contexts.join('$$')}": ${toJson(valueState.val)}`,
+                );
                 return undefined;
             }
             return fromJson(valueState.val) as T;
@@ -115,7 +118,7 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
         const values = {} as Record<string, SupportedStorageTypes>;
         const keys = await this.keys(contexts);
         for (const key in keys) {
-            values[key] = await this.get(contexts,key);
+            values[key] = await this.get(contexts, key);
         }
         return values;
     }
@@ -139,7 +142,7 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
                         read: true,
                         write: false,
                     },
-                    native: {}
+                    native: {},
                 });
                 this.existingObjectIds.add(oid);
             }
@@ -149,7 +152,11 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
         }
     }
 
-    async set(contexts: string[], keyOrValue: string | Record<string, SupportedStorageTypes>, value?: SupportedStorageTypes): Promise<void> {
+    async set(
+        contexts: string[],
+        keyOrValue: string | Record<string, SupportedStorageTypes>,
+        value?: SupportedStorageTypes,
+    ): Promise<void> {
         if (typeof keyOrValue === 'string') {
             await this.#setKey(contexts, keyOrValue, value);
         } else {

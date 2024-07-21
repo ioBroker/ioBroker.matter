@@ -9,21 +9,19 @@ module.exports = {
             jsx: true,
         },
     },
-    extends: [
-        'plugin:@typescript-eslint/recommended', // Uses the recommended rules from the @typescript-eslint/eslint-plugin
-    ],
+    extends: ['plugin:@typescript-eslint/recommended', 'plugin:prettier/recommended'],
     rules: {
-        'semi': 'off',
+        semi: 'off',
         '@typescript-eslint/semi': 'error',
         '@typescript-eslint/object-curly-spacing': 'off',
         '@typescript-eslint/space-before-function-paren': 'off',
-        'quotes': [
+        quotes: [
             'error',
             'single',
             {
-                'avoidEscape': true,
-                'allowTemplateLiterals': true
-            }
+                avoidEscape: true,
+                allowTemplateLiterals: true,
+            },
         ],
         '@typescript-eslint/no-parameter-properties': 'off',
         '@typescript-eslint/no-explicit-any': 'off',

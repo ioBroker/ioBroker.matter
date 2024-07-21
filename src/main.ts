@@ -1,12 +1,13 @@
 import '@project-chip/matter-node.js';
-import axios from 'axios';
-import jwt from 'jsonwebtoken';
-import fs from 'node:fs';
 
 import * as utils from '@iobroker/adapter-core';
 import ChannelDetector, { DetectorState, PatternControl, Types } from '@iobroker/type-detector';
+import { Environment, StorageService } from '@project-chip/matter.js/environment';
 import { Level, Logger } from '@project-chip/matter.js/log';
-
+import axios from 'axios';
+import jwt from 'jsonwebtoken';
+import fs from 'node:fs';
+import { MatterControllerConfig } from '../src-admin/src/types';
 import {
     BridgeDescription,
     BridgeDeviceDescription,
@@ -14,17 +15,14 @@ import {
     MatterAdapterConfig,
 } from './ioBrokerStorageTypes';
 import { DeviceFactory, SubscribeManager } from './lib';
+import MatterAdapterDeviceManagement from './lib/DeviceManagement';
 import { DetectedDevice, DeviceOptions } from './lib/devices/GenericDevice';
+import { NodeStateResponse } from './matter/BaseServerNode';
 import BridgedDevice, { BridgeCreateOptions } from './matter/BridgedDevicesNode';
 import MatterController from './matter/ControllerNode';
 import MatterDevice, { DeviceCreateOptions } from './matter/DeviceNode';
-import { IoBrokerNodeStorage } from './matter/IoBrokerNodeStorage';
-
-import { Environment, StorageService } from '@project-chip/matter.js/environment';
-import { MatterControllerConfig } from '../src-admin/src/types';
-import MatterAdapterDeviceManagement from './lib/DeviceManagement';
-import { NodeStateResponse } from './matter/BaseServerNode';
 import { MessageResponse } from './matter/GeneralNode';
+import { IoBrokerNodeStorage } from './matter/IoBrokerNodeStorage';
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
 

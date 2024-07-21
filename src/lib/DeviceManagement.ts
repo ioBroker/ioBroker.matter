@@ -1,15 +1,16 @@
 import { MatterAdapter } from '../main';
 
 import {
-    DeviceManagement,
-    DeviceInfo,
-    DeviceStatus,
     ActionContext,
+    ControlState,
     DeviceDetails,
-    DeviceRefresh, ErrorResponse,
+    DeviceInfo,
+    DeviceManagement,
+    DeviceRefresh,
+    DeviceStatus,
+    ErrorResponse,
 } from '@iobroker/dm-utils';
-import { ControlState } from '@iobroker/dm-utils';
-import { t, getText } from './i18n';
+import { getText, t } from './i18n';
 
 const demoDevice = {
     id: 'my ID',
@@ -45,7 +46,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 id: device._id,
                 name: device.common.name,
                 icon: device.common.icon || undefined,
-                manufacturer: manufacturer?.val as string || undefined,
+                manufacturer: (manufacturer?.val as string) || undefined,
                 model: model || undefined,
                 status,
                 hasDetails: true,
@@ -54,21 +55,21 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                         id: 'delete',
                         icon: 'fa-solid fa-trash-can',
                         description: t('Delete this device'),
-                        handler: this.handleDeleteDevice.bind(this)
+                        handler: this.handleDeleteDevice.bind(this),
                     },
                     {
                         id: 'rename',
                         icon: 'fa-solid fa-pen',
                         description: t('Rename this device'),
-                        handler: this.handleRenameDevice.bind(this)
+                        handler: this.handleRenameDevice.bind(this),
                     },
                     {
                         id: 'pairingCode',
                         icon: 'fa-solid fa-qrcode',
                         description: t('Generate new pairing code'),
-                        handler: this.handlePairingCode.bind(this)
-                    }
-                ]
+                        handler: this.handlePairingCode.bind(this),
+                    },
+                ],
             };
             // if id contains gateway remove res.actions
             if (device._id.includes('localhost')) {
@@ -153,24 +154,29 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     async handleRenameDevice(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
         this.adapter.log.info(`Rename device ${id}`);
         const devices = await this.adapter.getDevicesAsync();
-        const device = devices.find((dev) => dev._id === id);
+        const device = devices.find(dev => dev._id === id);
         if (device || id === demoDevice.id) {
-            const result = await context.showForm({
-                type: 'panel',
-                items: {
-                    name: {
-                        type: 'text',
-                        label: t('Name'),
-                        sm: 12,
+            const result = await context.showForm(
+                {
+                    type: 'panel',
+                    items: {
+                        name: {
+                            type: 'text',
+                            label: t('Name'),
+                            sm: 12,
+                        },
                     },
                 },
-            },
-            {
-                data: {
-                    name: id === demoDevice.id ? 'My Name' : getText(device?.common.name || '', this.adapter.sysLanguage),
+                {
+                    data: {
+                        name:
+                            id === demoDevice.id
+                                ? 'My Name'
+                                : getText(device?.common.name || '', this.adapter.sysLanguage),
+                    },
+                    title: t('Rename device'),
                 },
-                title: t('Rename device')
-            });
+            );
 
             if (result?.name !== undefined) {
                 if (id === demoDevice.id) {
@@ -192,7 +198,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
     async handleDeleteDevice(id: string, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
         this.adapter.log.info(`Delete device ${id}`);
-        if (!await context.showConfirmation(t('Are you sure?'))) {
+        if (!(await context.showConfirmation(t('Are you sure?')))) {
             return { refresh: false };
         }
 

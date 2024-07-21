@@ -1,9 +1,9 @@
-import { Endpoint } from '@project-chip/matter-node.js/device';
 import { LevelControlCluster } from '@project-chip/matter-node.js/cluster';
 import { NodeId } from '@project-chip/matter-node.js/datatype';
+import { Endpoint } from '@project-chip/matter-node.js/device';
 
-import Base from './Base';
 import { MatterAdapter } from '../../main';
+import Base from './Base';
 
 class LevelControl extends Base {
     private handler: ((value: number | null) => void) | undefined = undefined;
@@ -31,17 +31,17 @@ class LevelControl extends Base {
                 max,
             },
             cluster.id,
-            await cluster.getCurrentLevelAttribute()
+            await cluster.getCurrentLevelAttribute(),
         );
 
-        this.handler = async(value: number | null) => {
+        this.handler = async (value: number | null) => {
             await this.adapter.setStateAsync(id, value, true);
         };
 
         // subscribe on matter changes
         cluster.addCurrentLevelAttributeListener(this.handler);
 
-        const levelHandler = async(state: ioBroker.State): Promise<void> => {
+        const levelHandler = async (state: ioBroker.State): Promise<void> => {
             if (!state || state.ack) {
                 return;
             }
@@ -56,7 +56,7 @@ class LevelControl extends Base {
                     optionsOverride: {
                         executeIfOff: false,
                         coupleColorTempToLevel: false,
-                    }
+                    },
                 });
             } catch (e) {
                 this.adapter.log.error(`Cannot set ${id}: ${e.message}, stack: ${e.stack}`);
@@ -73,7 +73,12 @@ class LevelControl extends Base {
         }
     }
 
-    static async factory(adapter: MatterAdapter, nodeId: NodeId, endpoint: Endpoint, path: number[]): Promise<Base | undefined> {
+    static async factory(
+        adapter: MatterAdapter,
+        nodeId: NodeId,
+        endpoint: Endpoint,
+        path: number[],
+    ): Promise<Base | undefined> {
         const cluster = endpoint.getClusterClient(LevelControlCluster);
         if (!cluster) {
             return;

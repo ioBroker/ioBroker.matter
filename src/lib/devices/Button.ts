@@ -1,10 +1,10 @@
 import GenericDevice, {
     DetectedDevice,
+    DeviceOptions,
     DeviceStateObject,
     PropertyType,
     StateAccessType,
     ValueType,
-    DeviceOptions,
 } from './GenericDevice';
 
 class Button extends GenericDevice {
@@ -13,9 +13,17 @@ class Button extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(this.addDeviceStates([
-            { name: 'SET', valueType: ValueType.Button, accessType: StateAccessType.Write, type: PropertyType.Press, callback: state => this._setPressState = state },
-        ]));
+        this._ready.push(
+            this.addDeviceStates([
+                {
+                    name: 'SET',
+                    valueType: ValueType.Button,
+                    accessType: StateAccessType.Write,
+                    type: PropertyType.Press,
+                    callback: state => (this._setPressState = state),
+                },
+            ]),
+        );
     }
 
     async setPress(): Promise<void> {

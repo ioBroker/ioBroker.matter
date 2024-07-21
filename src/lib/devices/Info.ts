@@ -1,10 +1,10 @@
 import GenericDevice, {
-    PropertyType,
     DetectedDevice,
+    DeviceOptions,
     DeviceStateObject,
+    PropertyType,
     StateAccessType,
     ValueType,
-    DeviceOptions,
 } from './GenericDevice';
 
 class Info extends GenericDevice {
@@ -13,9 +13,17 @@ class Info extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(this.addDeviceStates([
-            { name: 'ACTUAL', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.Value, callback: state => this._getValueState = state },
-        ]));
+        this._ready.push(
+            this.addDeviceStates([
+                {
+                    name: 'ACTUAL',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Value,
+                    callback: state => (this._getValueState = state),
+                },
+            ]),
+        );
     }
 
     getValue(): string | undefined {

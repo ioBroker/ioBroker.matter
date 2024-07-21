@@ -1,10 +1,10 @@
 import GenericDevice, {
-    PropertyType,
     DetectedDevice,
+    DeviceOptions,
     DeviceStateObject,
+    PropertyType,
     StateAccessType,
     ValueType,
-    DeviceOptions,
 } from './GenericDevice';
 
 class LocationOne extends GenericDevice {
@@ -16,12 +16,38 @@ class LocationOne extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(this.addDeviceStates([
-            { name: 'GPS', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.GPS, callback: state => this._getGPSState = state },
-            { name: 'ELEVATION', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.Elevation, callback: state => this._getElevationState = state },
-            { name: 'RADIUS', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.Radius, callback: state => this._getRadiusState = state },
-            { name: 'ACCURACY', valueType: ValueType.Number, accessType: StateAccessType.Read, type: PropertyType.Accuracy, callback: state => this._getAccuracyState = state },
-        ]));
+        this._ready.push(
+            this.addDeviceStates([
+                {
+                    name: 'GPS',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.GPS,
+                    callback: state => (this._getGPSState = state),
+                },
+                {
+                    name: 'ELEVATION',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Elevation,
+                    callback: state => (this._getElevationState = state),
+                },
+                {
+                    name: 'RADIUS',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Radius,
+                    callback: state => (this._getRadiusState = state),
+                },
+                {
+                    name: 'ACCURACY',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Accuracy,
+                    callback: state => (this._getAccuracyState = state),
+                },
+            ]),
+        );
     }
 
     getGPS(): string | undefined {

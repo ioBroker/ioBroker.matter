@@ -1,24 +1,22 @@
 import { VendorId } from '@project-chip/matter.js/datatype';
 import { DeviceTypes } from '@project-chip/matter.js/device';
 
-import { GenericDevice } from '../lib';
-import { BridgeDeviceDescription } from '../ioBrokerStorageTypes';
 import { Logger } from '@project-chip/matter.js/log';
+import { BridgeDeviceDescription } from '../ioBrokerStorageTypes';
+import { GenericDevice } from '../lib';
 
-import matterDeviceFactory from './matterFactory';
-import VENDOR_IDS from './vendorIds';
-import type { MatterAdapter } from '../main';
-import { ServerNode } from '@project-chip/matter.js/node';
+import { BridgedDeviceBasicInformationServer } from '@project-chip/matter.js/behavior/definitions/bridged-device-basic-information';
 import { SessionsBehavior } from '@project-chip/matter.js/behavior/system/sessions';
 import { Endpoint } from '@project-chip/matter.js/endpoint';
 import { AggregatorEndpoint } from '@project-chip/matter.js/endpoint/definitions';
-import {
-    BridgedDeviceBasicInformationServer
-} from '@project-chip/matter.js/behavior/definitions/bridged-device-basic-information';
+import { ServerNode } from '@project-chip/matter.js/node';
+import type { MatterAdapter } from '../main';
 import { BaseServerNode, ConnectionInfo, NodeStateResponse, NodeStates } from './BaseServerNode';
+import matterDeviceFactory from './matterFactory';
+import VENDOR_IDS from './vendorIds';
 
 export interface BridgeCreateOptions {
-    parameters: BridgeOptions,
+    parameters: BridgeOptions;
     devices: GenericDevice[];
     devicesOptions: BridgeDeviceDescription[];
 }
@@ -77,7 +75,7 @@ class BridgedDevices extends BaseServerNode {
         const vendorName = 'ioBroker';
 
         // product name / id and vendor id should match what is in the device certificate
-        const vendorId = this.parameters.vendorId;// 0xfff1;
+        const vendorId = this.parameters.vendorId; // 0xfff1;
         const productName = `ioBroker Bridge`;
         const productId = this.parameters.productId; // 0x8000;
 
@@ -98,7 +96,7 @@ class BridgedDevices extends BaseServerNode {
         this.serverNode = await ServerNode.create({
             id: this.parameters.uuid,
             network: {
-                port: this.parameters.port
+                port: this.parameters.port,
             },
             productDescription: {
                 name: deviceName,
@@ -134,7 +132,11 @@ class BridgedDevices extends BaseServerNode {
 
         for (let i = 0; i < this.devices.length; i++) {
             const ioBrokerDevice = this.devices[i];
-            const mappingDevice = await matterDeviceFactory(ioBrokerDevice, this.devicesOptions[i].name, this.devicesOptions[i].uuid);
+            const mappingDevice = await matterDeviceFactory(
+                ioBrokerDevice,
+                this.devicesOptions[i].name,
+                this.devicesOptions[i].uuid,
+            );
             if (mappingDevice) {
                 const name = mappingDevice.getName();
                 const bridgedDevice = mappingDevice.getMatterDevice();
@@ -148,22 +150,32 @@ class BridgedDevices extends BaseServerNode {
                 await aggregator.add(bridgedDevice);
                 await mappingDevice.init();
             } else {
-                this.adapter.log.error(`ioBroker Device in Bridge "${this.devices[i].getDeviceType()}" is not supported`);
+                this.adapter.log.error(
+                    `ioBroker Device in Bridge "${this.devices[i].getDeviceType()}" is not supported`,
+                );
             }
         }
 
-        this.serverNode.events.commissioning.fabricsChanged.on(async(fabricIndex) => {
+        this.serverNode.events.commissioning.fabricsChanged.on(async fabricIndex => {
             this.adapter.log.debug(
-                `commissioningChangedCallback: Commissioning changed on Fabric ${fabricIndex}: ${this.serverNode?.state.operationalCredentials.fabrics.find(fabric => fabric.fabricIndex === fabricIndex)}`);
+                `commissioningChangedCallback: Commissioning changed on Fabric ${fabricIndex}: ${this.serverNode?.state.operationalCredentials.fabrics.find(fabric => fabric.fabricIndex === fabricIndex)}`,
+            );
             // TODO find replacement for ${Logger.toJSON(this.serverNode?.getCommissionedFabricInformation(fabricIndex)[0])}
-            await this.adapter.sendToGui({ command: 'updateStates', states: { [this.parameters.uuid]: await this.getState() } });
+            await this.adapter.sendToGui({
+                command: 'updateStates',
+                states: { [this.parameters.uuid]: await this.getState() },
+            });
         });
 
-        const sessionChange = async(session: SessionsBehavior.Session): Promise<void> => {
+        const sessionChange = async (session: SessionsBehavior.Session): Promise<void> => {
             this.adapter.log.debug(
                 `activeSessionsChangedCallback: Active sessions changed on Fabric ${session.fabric?.fabricIndex}` +
-                Logger.toJSON(session));
-            await this.adapter.sendToGui({ command: 'updateStates', states: { [this.parameters.uuid]: await this.getState() } });
+                    Logger.toJSON(session),
+            );
+            await this.adapter.sendToGui({
+                command: 'updateStates',
+                states: { [this.parameters.uuid]: await this.getState() },
+            });
         };
         this.serverNode.events.sessions.opened.on(sessionChange);
         this.serverNode.events.sessions.closed.on(sessionChange);

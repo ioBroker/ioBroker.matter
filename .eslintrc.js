@@ -9,31 +9,19 @@ module.exports = {
             jsx: true,
         },
     },
-    extends: [
-        'plugin:@typescript-eslint/recommended', // Uses the recommended rules from the @typescript-eslint/eslint-plugin
-    ],
+    extends: ['plugin:@typescript-eslint/recommended', 'plugin:prettier/recommended'],
     rules: {
-        'indent': 'off',
-        '@typescript-eslint/indent': [
-            'error',
-            4,
-            {
-                'SwitchCase': 1
-            }
-        ],
-        'semi': 'off',
+        semi: 'off',
         '@typescript-eslint/semi': 'error',
-        'object-curly-spacing': 'off',
-        '@typescript-eslint/object-curly-spacing': ['error', 'always'],
-        'space-before-function-paren': 'off',
-        '@typescript-eslint/space-before-function-paren': ['error', 'never'],
-        'quotes': [
+        '@typescript-eslint/object-curly-spacing': 'off',
+        '@typescript-eslint/space-before-function-paren': 'off',
+        quotes: [
             'error',
             'single',
             {
-                'avoidEscape': true,
-                'allowTemplateLiterals': true
-            }
+                avoidEscape: true,
+                allowTemplateLiterals: true,
+            },
         ],
         '@typescript-eslint/no-parameter-properties': 'off',
         '@typescript-eslint/no-explicit-any': 'off',

@@ -1,10 +1,10 @@
 import GenericDevice, {
-    PropertyType,
     DetectedDevice,
+    DeviceOptions,
     DeviceStateObject,
+    PropertyType,
     StateAccessType,
     ValueType,
-    DeviceOptions,
 } from './GenericDevice';
 
 enum VacuumCleanerMode {
@@ -50,24 +50,122 @@ class VacuumCleaner extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(this.addDeviceStates([
-            { name: 'POWER', valueType: ValueType.Boolean, accessType: StateAccessType.ReadWrite, type: PropertyType.Power, callback: state => this._powerState = state },
-            { name: 'MODE', valueType: ValueType.Enum, accessType: StateAccessType.ReadWrite, type: PropertyType.Mode, callback: state => this._modeState = state },
-            { name: 'MAP_BASE64', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.MapBase64, callback: state => this._getMapBase64State = state },
-            { name: 'MAP_URL', valueType: ValueType.String, accessType: StateAccessType.Read, type: PropertyType.MapUrl, callback: state => this._getMapUrlState = state },
-            { name: 'WORK_MODE', valueType: ValueType.Enum, accessType: StateAccessType.ReadWrite, type: PropertyType.WorkMode, callback: state => this._workModeState = state },
-            { name: 'WATER', valueType: ValueType.NumberPercent, accessType: StateAccessType.Read, type: PropertyType.Water, callback: state => this._getWaterState = state },
-            { name: 'WASTE', valueType: ValueType.NumberPercent, accessType: StateAccessType.Read, type: PropertyType.Waste, callback: state => this._getWasteState = state },
-            { name: 'BATTERY', valueType: ValueType.NumberPercent, accessType: StateAccessType.Read, type: PropertyType.Battery, callback: state => this._getBatteryState = state },
-            { name: 'STATE', valueType: ValueType.Enum, accessType: StateAccessType.Read, type: PropertyType.State, callback: state => this._getStateState = state },
-            { name: 'PAUSE', valueType: ValueType.Button, accessType: StateAccessType.Write, type: PropertyType.Pause, callback: state => this._pauseState = state },
-            { name: 'WASTE_ALARM', valueType: ValueType.Boolean, accessType: StateAccessType.Read, type: PropertyType.WasteAlarm, callback: state => this._getWasteAlarmState = state },
-            { name: 'WATER_ALARM', valueType: ValueType.Boolean, accessType: StateAccessType.Read, type: PropertyType.WaterAlarm, callback: state => this._getWaterAlarmState = state },
-            { name: 'FILTER', valueType: ValueType.NumberPercent, accessType: StateAccessType.Read, type: PropertyType.Filter, callback: state => this._getFilterState = state },
-            { name: 'BRUSH', valueType: ValueType.NumberPercent, accessType: StateAccessType.Read, type: PropertyType.Brush, callback: state => this._getBrushState = state },
-            { name: 'SENSORS', valueType: ValueType.NumberPercent, accessType: StateAccessType.Read, type: PropertyType.Sensors, callback: state => this._getSensorsState = state },
-            { name: 'SIDE_BRUSH', valueType: ValueType.NumberPercent, accessType: StateAccessType.Read, type: PropertyType.SideBrush, callback: state => this._getSideBrushState = state },
-        ]));
+        this._ready.push(
+            this.addDeviceStates([
+                {
+                    name: 'POWER',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Power,
+                    callback: state => (this._powerState = state),
+                },
+                {
+                    name: 'MODE',
+                    valueType: ValueType.Enum,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Mode,
+                    callback: state => (this._modeState = state),
+                },
+                {
+                    name: 'MAP_BASE64',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.MapBase64,
+                    callback: state => (this._getMapBase64State = state),
+                },
+                {
+                    name: 'MAP_URL',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.MapUrl,
+                    callback: state => (this._getMapUrlState = state),
+                },
+                {
+                    name: 'WORK_MODE',
+                    valueType: ValueType.Enum,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.WorkMode,
+                    callback: state => (this._workModeState = state),
+                },
+                {
+                    name: 'WATER',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Water,
+                    callback: state => (this._getWaterState = state),
+                },
+                {
+                    name: 'WASTE',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Waste,
+                    callback: state => (this._getWasteState = state),
+                },
+                {
+                    name: 'BATTERY',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Battery,
+                    callback: state => (this._getBatteryState = state),
+                },
+                {
+                    name: 'STATE',
+                    valueType: ValueType.Enum,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.State,
+                    callback: state => (this._getStateState = state),
+                },
+                {
+                    name: 'PAUSE',
+                    valueType: ValueType.Button,
+                    accessType: StateAccessType.Write,
+                    type: PropertyType.Pause,
+                    callback: state => (this._pauseState = state),
+                },
+                {
+                    name: 'WASTE_ALARM',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.WasteAlarm,
+                    callback: state => (this._getWasteAlarmState = state),
+                },
+                {
+                    name: 'WATER_ALARM',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.WaterAlarm,
+                    callback: state => (this._getWaterAlarmState = state),
+                },
+                {
+                    name: 'FILTER',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Filter,
+                    callback: state => (this._getFilterState = state),
+                },
+                {
+                    name: 'BRUSH',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Brush,
+                    callback: state => (this._getBrushState = state),
+                },
+                {
+                    name: 'SENSORS',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Sensors,
+                    callback: state => (this._getSensorsState = state),
+                },
+                {
+                    name: 'SIDE_BRUSH',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.SideBrush,
+                    callback: state => (this._getSideBrushState = state),
+                },
+            ]),
+        );
     }
 
     getPower(): boolean | undefined {

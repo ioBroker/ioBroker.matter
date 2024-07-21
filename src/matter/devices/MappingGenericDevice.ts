@@ -1,5 +1,5 @@
-import { GenericDevice } from '../../lib';
 import { Endpoint } from '@project-chip/matter.js/endpoint';
+import { GenericDevice } from '../../lib';
 
 export interface IdentifyOptions {
     currentState?: any;
@@ -10,13 +10,11 @@ export abstract class MappingGenericDevice {
     private identifyTimeout?: NodeJS.Timeout;
     private identifyHighlightState = false;
 
-    constructor(private name: string) {
-
-    }
+    constructor(private name: string) {}
 
     handleIdentify(identifyOptions: IdentifyOptions): void {
         clearTimeout(this.identifyTimeout);
-        this.identifyTimeout = setTimeout(async() => {
+        this.identifyTimeout = setTimeout(async () => {
             this.identifyTimeout = undefined;
             const highlightState = !this.identifyHighlightState;
             if (highlightState) {

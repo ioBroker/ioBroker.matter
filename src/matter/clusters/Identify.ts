@@ -1,9 +1,9 @@
-import { Endpoint } from '@project-chip/matter-node.js/device';
 import { IdentifyCluster } from '@project-chip/matter-node.js/cluster';
 import { NodeId } from '@project-chip/matter-node.js/datatype';
+import { Endpoint } from '@project-chip/matter-node.js/device';
 
-import Base from './Base';
 import { MatterAdapter } from '../../main';
+import Base from './Base';
 
 class Identify extends Base {
     private handlerType: ((value: number) => void) | undefined = undefined;
@@ -70,10 +70,10 @@ class Identify extends Base {
             await cluster.getIdentifyTimeAttribute(),
         );
 
-        this.handlerType = async(value: number) => {
+        this.handlerType = async (value: number) => {
             await this.adapter.setStateAsync(typeId, value, true);
         };
-        this.handlerTime = async(value: number) => {
+        this.handlerTime = async (value: number) => {
             await this.adapter.setStateAsync(timeId, value, true);
         };
 
@@ -94,7 +94,7 @@ class Identify extends Base {
             false,
         );
 
-        const triggerIdentifyHandler = async(state: ioBroker.State): Promise<void> => {
+        const triggerIdentifyHandler = async (state: ioBroker.State): Promise<void> => {
             if (!state || state.ack) {
                 return;
             }
@@ -123,7 +123,12 @@ class Identify extends Base {
         }
     }
 
-    static async factory(adapter: MatterAdapter, nodeId: NodeId, endpoint: Endpoint, path: number[]): Promise<Base | undefined> {
+    static async factory(
+        adapter: MatterAdapter,
+        nodeId: NodeId,
+        endpoint: Endpoint,
+        path: number[],
+    ): Promise<Base | undefined> {
         const cluster = endpoint.getClusterClient(IdentifyCluster);
         if (!cluster) {
             return;

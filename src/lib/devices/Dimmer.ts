@@ -1,10 +1,10 @@
 import GenericDevice, {
-    PropertyType,
     DetectedDevice,
+    DeviceOptions,
     DeviceStateObject,
+    PropertyType,
     StateAccessType,
     ValueType,
-    DeviceOptions,
 } from './GenericDevice';
 
 class Dimmer extends GenericDevice {
@@ -17,14 +17,40 @@ class Dimmer extends GenericDevice {
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(this.addDeviceStates([
-            // actual value first, as it will be read first
-            { name: 'ACTUAL', valueType: ValueType.NumberPercent, accessType: StateAccessType.Read, type: PropertyType.Level, callback: state => this._getLevelState = state },
-            { name: 'SET', valueType: ValueType.NumberPercent, accessType: StateAccessType.ReadWrite, type: PropertyType.Level, callback: state => this._setLevelState = state },
-            // actual value first, as it will be read first
-            { name: 'ON_ACTUAL', valueType: ValueType.Boolean, accessType: StateAccessType.Read, type: PropertyType.Power, callback: state => this._getPowerState = state },
-            { name: 'ON_SET', valueType: ValueType.Boolean, accessType: StateAccessType.ReadWrite, type: PropertyType.Power, callback: state => this._setPowerState = state },
-        ]));
+        this._ready.push(
+            this.addDeviceStates([
+                // actual value first, as it will be read first
+                {
+                    name: 'ACTUAL',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Level,
+                    callback: state => (this._getLevelState = state),
+                },
+                {
+                    name: 'SET',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Level,
+                    callback: state => (this._setLevelState = state),
+                },
+                // actual value first, as it will be read first
+                {
+                    name: 'ON_ACTUAL',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Power,
+                    callback: state => (this._getPowerState = state),
+                },
+                {
+                    name: 'ON_SET',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Power,
+                    callback: state => (this._setPowerState = state),
+                },
+            ]),
+        );
     }
 
     getLevel(): number | undefined {

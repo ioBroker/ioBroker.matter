@@ -215,7 +215,7 @@ export class DeviceStateObject<T> {
         await this.object;
     }
 
-    getMinMax(): { min: number, max: number } | null {
+    getMinMax(): { min: number; max: number } | null {
         if (this.min === undefined || this.max === undefined) {
             return null;
         }
@@ -230,50 +230,48 @@ export class DeviceStateObject<T> {
         if (!this.object) {
             return;
         }
-        this.object
-            .then(obj => {
-                if (percent) {
-                    this.min = 0;
-                    this.max = 100;
-                    this.realMin = obj?.common?.min || 0;
-                    this.realMax = obj?.common?.max === undefined || obj?.common?.max === null ? 100 : obj?.common?.max;
-                    this.unit = '%';
-                    if (obj.common.type !== 'number') {
-                        throw new Error(`State ${this.state.id} is not a number`);
-                    }
-                } else {
-                    this.min = obj?.common?.min;
-                    this.max = obj?.common?.max;
-                    if (this.min !== undefined && this.max === undefined) {
-                        this.max = 100;
-                    } else if (this.min === undefined && this.max !== undefined) {
-                        this.max = 0;
-                    }
-                    this.unit = obj?.common?.unit;
+        this.object.then(obj => {
+            if (percent) {
+                this.min = 0;
+                this.max = 100;
+                this.realMin = obj?.common?.min || 0;
+                this.realMax = obj?.common?.max === undefined || obj?.common?.max === null ? 100 : obj?.common?.max;
+                this.unit = '%';
+                if (obj.common.type !== 'number') {
+                    throw new Error(`State ${this.state.id} is not a number`);
                 }
-            });
+            } else {
+                this.min = obj?.common?.min;
+                this.max = obj?.common?.max;
+                if (this.min !== undefined && this.max === undefined) {
+                    this.max = 100;
+                } else if (this.min === undefined && this.max !== undefined) {
+                    this.max = 0;
+                }
+                this.unit = obj?.common?.unit;
+            }
+        });
     }
 
     protected parseMode(): void {
         if (!this.object) {
             return;
         }
-        this.modes = this.object
-            .then(obj => {
-                // {'MODE_VALUE': 'MODE_TEXT'}
-                let modes: { [key: string]: T } = obj?.common?.states;
-                if (modes) {
-                    // convert ['Auto'] => {'Auto': 'AUTO'}
-                    if (Array.isArray(modes)) {
-                        const _m: { [key: string]: T } = {};
-                        modes.forEach((mode: T) => _m[mode as string] = ((mode as string).toUpperCase()) as T);
-                        modes = _m;
-                    }
-                    return modes;
-                } else {
-                    return {};
+        this.modes = this.object.then(obj => {
+            // {'MODE_VALUE': 'MODE_TEXT'}
+            let modes: { [key: string]: T } = obj?.common?.states;
+            if (modes) {
+                // convert ['Auto'] => {'Auto': 'AUTO'}
+                if (Array.isArray(modes)) {
+                    const _m: { [key: string]: T } = {};
+                    modes.forEach((mode: T) => (_m[mode as string] = (mode as string).toUpperCase() as T));
+                    modes = _m;
                 }
-            });
+                return modes;
+            } else {
+                return {};
+            }
+        });
     }
 
     async getModes(): Promise<T[]> {
@@ -295,7 +293,7 @@ export class DeviceStateObject<T> {
         if (this.realMin !== undefined && this.realMax !== undefined) {
             // convert values
             let realValue: number = parseFloat(value as string);
-            realValue = ((realValue / 100) * (this.realMax - this.realMin) + this.realMin);
+            realValue = (realValue / 100) * (this.realMax - this.realMin) + this.realMin;
 
             if (object.common.min !== undefined && realValue < object.common.min) {
                 throw new Error(`Value ${realValue} is less than min ${object.common.min}`);
@@ -309,7 +307,13 @@ export class DeviceStateObject<T> {
             // convert value
             if (typeof value !== valueType) {
                 if (valueType === 'boolean') {
-                    const realValue: boolean = value === 'true' || value === '1' || value === 1 || value === true || value === 'on' || value === 'ON';
+                    const realValue: boolean =
+                        value === 'true' ||
+                        value === '1' ||
+                        value === 1 ||
+                        value === true ||
+                        value === 'on' ||
+                        value === 'ON';
                     await this.adapter.setForeignStateAsync(this.state.id, realValue as ioBroker.StateValue);
                 } else if (valueType === 'number') {
                     const realValue: number = parseFloat(value as string);
@@ -352,7 +356,7 @@ export class DeviceStateObject<T> {
         if (this.realMin !== undefined && this.realMax !== undefined) {
             // convert values
             const _value = parseFloat(state.val as string);
-            this.value = ((_value - this.realMin) / (this.realMax - this.realMin) * 100) as T;
+            this.value = (((_value - this.realMin) / (this.realMax - this.realMin)) * 100) as T;
         } else {
             this.value = state.val as T;
         }
@@ -394,7 +398,7 @@ export interface DeviceStateDescription {
     type: PropertyType;
     valueType: ValueType;
     unit?: string;
-    callback: (state: DeviceStateObject<any> | undefined) => void,
+    callback: (state: DeviceStateObject<any> | undefined) => void;
     accessType: StateAccessType;
 }
 
@@ -422,11 +426,7 @@ abstract class GenericDevice {
     protected _subscribeObjects: DeviceStateObject<any>[] = [];
     protected _deviceType: Types;
     protected _detectedDevice: DetectedDevice;
-    protected handlers: ((event: {
-        property: PropertyType
-        value: any,
-        device: GenericDevice,
-    }) => void)[] = [];
+    protected handlers: ((event: { property: PropertyType; value: any; device: GenericDevice }) => void)[] = [];
 
     protected _errorState: DeviceStateObject<boolean> | undefined;
     protected _maintenanceState: DeviceStateObject<boolean> | undefined;
@@ -445,14 +445,52 @@ abstract class GenericDevice {
         this._deviceType = detectedDevice.type;
         this._detectedDevice = detectedDevice;
 
-        this._ready.push(this.addDeviceStates([
-            { name: 'ERROR', valueType: ValueType.Boolean, accessType: StateAccessType.Read, type: PropertyType.Error, callback: state => this._errorState = state },
-            { name: 'MAINTAIN', valueType: ValueType.Boolean, accessType: StateAccessType.Read, type: PropertyType.Maintenance, callback: state => this._maintenanceState = state },
-            { name: 'UNREACH', valueType: ValueType.Boolean, accessType: StateAccessType.Read, type: PropertyType.Unreachable, callback: state => this._unreachState = state },
-            { name: 'LOWBAT', valueType: ValueType.Boolean, accessType: StateAccessType.Read, type: PropertyType.LowBattery, callback: state => this._lowbatState = state },
-            { name: 'WORKING', valueType: ValueType.Boolean, accessType: StateAccessType.Read, type: PropertyType.Working, callback: state => this._workingState = state },
-            { name: 'DIRECTION', valueType: ValueType.Boolean, accessType: StateAccessType.Read, type: PropertyType.Direction, callback: state => this._directionState = state },
-        ]));
+        this._ready.push(
+            this.addDeviceStates([
+                {
+                    name: 'ERROR',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Error,
+                    callback: state => (this._errorState = state),
+                },
+                {
+                    name: 'MAINTAIN',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Maintenance,
+                    callback: state => (this._maintenanceState = state),
+                },
+                {
+                    name: 'UNREACH',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Unreachable,
+                    callback: state => (this._unreachState = state),
+                },
+                {
+                    name: 'LOWBAT',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.LowBattery,
+                    callback: state => (this._lowbatState = state),
+                },
+                {
+                    name: 'WORKING',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Working,
+                    callback: state => (this._workingState = state),
+                },
+                {
+                    name: 'DIRECTION',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Direction,
+                    callback: state => (this._directionState = state),
+                },
+            ]),
+        );
     }
 
     isActionAllowedByIdentify(): boolean {
@@ -487,14 +525,22 @@ abstract class GenericDevice {
                 }
             } else {
                 if (this._properties[type].valueType !== valueType) {
-                    throw new Error(`Property ${type} has already a different value type: ${this._properties[type].valueType} !== ${valueType}`);
+                    throw new Error(
+                        `Property ${type} has already a different value type: ${this._properties[type].valueType} !== ${valueType}`,
+                    );
                 }
 
                 if (accessType === StateAccessType.ReadWrite) {
                     this._properties[type].accessType = accessType;
-                } else if (accessType === StateAccessType.Write && this._properties[type].accessType === StateAccessType.Read) {
+                } else if (
+                    accessType === StateAccessType.Write &&
+                    this._properties[type].accessType === StateAccessType.Read
+                ) {
                     this._properties[type].accessType = StateAccessType.ReadWrite;
-                } else if (accessType === StateAccessType.Read && this._properties[type].accessType === StateAccessType.Write) {
+                } else if (
+                    accessType === StateAccessType.Read &&
+                    this._properties[type].accessType === StateAccessType.Write
+                ) {
                     this._properties[type].accessType = StateAccessType.ReadWrite;
                 }
                 if (accessType === StateAccessType.Read) {
@@ -509,7 +555,10 @@ abstract class GenericDevice {
             if (this._possibleProperties[type]) {
                 delete this._possibleProperties[type];
             }
-            if (this._properties[type].accessType === StateAccessType.ReadWrite || this._properties[type].accessType === StateAccessType.Read) {
+            if (
+                this._properties[type].accessType === StateAccessType.ReadWrite ||
+                this._properties[type].accessType === StateAccessType.Read
+            ) {
                 const stateId = object?.getIoBrokerState().id;
                 // subscribe and read only if not already subscribed
                 if (stateId && !this._subscribeObjects.find(obj => obj.state.id === stateId)) {
@@ -532,9 +581,15 @@ abstract class GenericDevice {
             } else {
                 if (accessType === StateAccessType.ReadWrite) {
                     this._possibleProperties[type].accessType = accessType;
-                } else if (accessType === StateAccessType.Write && this._possibleProperties[type].accessType === StateAccessType.Read) {
+                } else if (
+                    accessType === StateAccessType.Write &&
+                    this._possibleProperties[type].accessType === StateAccessType.Read
+                ) {
                     this._possibleProperties[type].accessType = StateAccessType.ReadWrite;
-                } else if (accessType === StateAccessType.Read && this._possibleProperties[type].accessType === StateAccessType.Write) {
+                } else if (
+                    accessType === StateAccessType.Read &&
+                    this._possibleProperties[type].accessType === StateAccessType.Write
+                ) {
                     this._possibleProperties[type].accessType = StateAccessType.ReadWrite;
                 }
             }
@@ -549,7 +604,13 @@ abstract class GenericDevice {
     async addDeviceStates(states: DeviceStateDescription[]): Promise<void> {
         for (let i = 0; i < states.length; i++) {
             // we cannot give the whole object as it must be cast to T
-            await this.addDeviceState(states[i].name, states[i].type, states[i].callback, states[i].accessType, states[i].valueType);
+            await this.addDeviceState(
+                states[i].name,
+                states[i].type,
+                states[i].callback,
+                states[i].accessType,
+                states[i].valueType,
+            );
         }
     }
 
@@ -578,7 +639,9 @@ abstract class GenericDevice {
             // @ts-expect-error How to fix it?
             await this[method](value);
         } else {
-            throw new Error(`Method _setPropertyValue for ${property} and ${value} is not implemented in ${this.constructor.name}`);
+            throw new Error(
+                `Method _setPropertyValue for ${property} and ${value} is not implemented in ${this.constructor.name}`,
+            );
         }
     }
 
@@ -587,11 +650,13 @@ abstract class GenericDevice {
     }
 
     protected updateState = <T>(object: DeviceStateObject<T>): void => {
-        this.handlers.forEach(handler => handler({
-            property: object.propertyType,
-            value: object.value,
-            device: this,
-        }));
+        this.handlers.forEach(handler =>
+            handler({
+                property: object.propertyType,
+                value: object.value,
+                device: this,
+            }),
+        );
     };
 
     protected async _doUnsubscribe(): Promise<void> {
@@ -672,17 +737,11 @@ abstract class GenericDevice {
         return this._directionState.value;
     }
 
-    onChange<T>(handler: (event: {
-        property: PropertyType
-        value: T
-    }) => void): void {
+    onChange<T>(handler: (event: { property: PropertyType; value: T }) => void): void {
         this.handlers.push(handler);
     }
 
-    offChange<T>(handler: (event: {
-        property: PropertyType
-        value: T
-    }) => void): void {
+    offChange<T>(handler: (event: { property: PropertyType; value: T }) => void): void {
         if (!handler) {
             this.handlers = [];
         } else {

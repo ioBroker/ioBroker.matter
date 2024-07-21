@@ -1,6 +1,6 @@
-import { GeneralNode, MessageResponse } from './GeneralNode';
-import type { MatterAdapter } from '../main';
 import { ServerNode } from '@project-chip/matter.js/node';
+import type { MatterAdapter } from '../main';
+import { GeneralNode, MessageResponse } from './GeneralNode';
 
 export enum NodeStates {
     Creating = 'creating',
@@ -27,8 +27,7 @@ export abstract class BaseServerNode implements GeneralNode {
 
     abstract uuid: string;
 
-    protected constructor(protected adapter: MatterAdapter) {
-    }
+    protected constructor(protected adapter: MatterAdapter) {}
 
     async advertise(): Promise<void> {
         await this.serverNode?.advertiseNow();

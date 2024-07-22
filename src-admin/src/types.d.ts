@@ -5,6 +5,8 @@ export interface MatterAdapterConfig extends ioBroker.AdapterConfig {
     debug: boolean;
     login: string;
     pass: string;
+    /** UUID of the default (alexa-compatible - port 5540)bridge */
+    defaultBridge: string;
 }
 
 export interface BridgeDeviceDescription {
@@ -28,7 +30,7 @@ export interface BridgeDescription {
     productID: string;
     vendorID: string;
     passcode?: string;
-    name: ioBroker.StringOrTranslated;
+    name: string;
     deleted?: boolean;
     list: BridgeDeviceDescription[];
 }

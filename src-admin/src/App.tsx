@@ -300,6 +300,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 common={this.common}
                 native={this.state.native as MatterAdapterConfig}
                 instance={this.instance}
+                matter={this.state.matter}
                 showToast={(text: string) => this.showToast(text)}
             />
         );

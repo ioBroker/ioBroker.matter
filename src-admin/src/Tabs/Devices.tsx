@@ -1,7 +1,17 @@
+import { Types } from '@iobroker/type-detector';
 import React from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Types } from '@iobroker/type-detector';
 
+import {
+    Add,
+    Close,
+    Delete,
+    DomainDisabled,
+    Edit,
+    QuestionMark,
+    Save,
+    SettingsInputAntenna,
+} from '@mui/icons-material';
 import {
     Button,
     Checkbox,
@@ -24,35 +34,17 @@ import {
     TextField,
     Tooltip,
 } from '@mui/material';
-import {
-    Add,
-    Close,
-    Delete,
-    DomainDisabled,
-    Edit,
-    QuestionMark,
-    Save,
-    SettingsInputAntenna,
-} from '@mui/icons-material';
 
 import { I18n, SelectID } from '@iobroker/adapter-react-v5';
 
-import type {
-    DeviceDescription,
-    DetectedDevice,
-    MatterConfig,
-    DetectedRoom,
-} from '@/types';
-import DeviceDialog, {
-    DEVICE_ICONS,
-    SUPPORTED_DEVICES,
-} from '../components/DeviceDialog';
+import type { DetectedDevice, DeviceDescription, MatterConfig } from '@/types';
+import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../components/DeviceDialog';
+import { clone, detectDevices, getText } from '../Utils';
 import BridgesAndDevices, {
     type BridgesAndDevicesProps,
     type BridgesAndDevicesState,
     STYLES,
 } from './BridgesAndDevices';
-import { clone, detectDevices, getText } from '../Utils';
 
 const styles: Record<string, React.CSSProperties> = {
     ...STYLES,
@@ -164,8 +156,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                     if (this.state.deleteDialog) {
                         const matter = clone(this.props.matter);
                         matter.devices[this.state.deleteDialog.deviceIndex].deleted = true;
-                        this.setState({ deleteDialog: null }, () =>
-                            this.props.updateConfig(matter));
+                        this.setState({ deleteDialog: null }, () => this.props.updateConfig(matter));
                     }
                 } else {
                     this.setState({ suppressDeleteTime: 0 });
@@ -174,53 +165,51 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
             return null;
         }
 
-        return <Dialog onClose={() => this.setState({ deleteDialog: null })} open={!0}>
-            <DialogTitle>{I18n.t('Delete')}</DialogTitle>
-            <DialogContent>
-                {`${I18n.t('Do you want to delete device')} ${this.state.deleteDialog.name}?`}
-                <FormControlLabel
-                    control={
-                        <Checkbox
-                            checked={!!this.state.suppressDeleteEnabled}
-                            onChange={e =>
-                                this.setState({ suppressDeleteEnabled: e.target.checked })}
-                        />
-                    }
-                    label={I18n.t('Suppress question for 2 minutes')}
-                />
-            </DialogContent>
-            <DialogActions>
-                <Button
-                    onClick={() => {
-                        const matter = clone(this.props.matter);
-                        this.state.deleteDialog &&
-            matter.devices.splice(this.state.deleteDialog.deviceIndex, 1);
-                        this.setState(
-                            {
-                                deleteDialog: null,
-                                suppressDeleteTime: this.state.suppressDeleteEnabled
-                                    ? Date.now() + 120_000
-                                    : 0,
-                            },
-                            () => this.props.updateConfig(matter),
-                        );
-                    }}
-                    startIcon={<Delete />}
-                    color="primary"
-                    variant="contained"
-                >
-                    {I18n.t('Delete')}
-                </Button>
-                <Button
-                    onClick={() => this.setState({ deleteDialog: null })}
-                    startIcon={<Close />}
-                    color="grey"
-                    variant="contained"
-                >
-                    {I18n.t('Cancel')}
-                </Button>
-            </DialogActions>
-        </Dialog>;
+        return (
+            <Dialog onClose={() => this.setState({ deleteDialog: null })} open={!0}>
+                <DialogTitle>{I18n.t('Delete')}</DialogTitle>
+                <DialogContent>
+                    {`${I18n.t('Do you want to delete device')} ${this.state.deleteDialog.name}?`}
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={!!this.state.suppressDeleteEnabled}
+                                onChange={e => this.setState({ suppressDeleteEnabled: e.target.checked })}
+                            />
+                        }
+                        label={I18n.t('Suppress question for 2 minutes')}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        onClick={() => {
+                            const matter = clone(this.props.matter);
+                            this.state.deleteDialog && matter.devices.splice(this.state.deleteDialog.deviceIndex, 1);
+                            this.setState(
+                                {
+                                    deleteDialog: null,
+                                    suppressDeleteTime: this.state.suppressDeleteEnabled ? Date.now() + 120_000 : 0,
+                                },
+                                () => this.props.updateConfig(matter),
+                            );
+                        }}
+                        startIcon={<Delete />}
+                        color="primary"
+                        variant="contained"
+                    >
+                        {I18n.t('Delete')}
+                    </Button>
+                    <Button
+                        onClick={() => this.setState({ deleteDialog: null })}
+                        startIcon={<Close />}
+                        color="grey"
+                        variant="contained"
+                    >
+                        {I18n.t('Cancel')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        );
     }
 
     renderEditDeviceDialog() {
@@ -228,17 +217,15 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
             return null;
         }
 
-        const isCommissioned = !!this.props.commissioning[
-            this.props.matter.devices[this.state.editDeviceDialog.deviceIndex].uuid
-        ];
+        const isCommissioned =
+            !!this.props.commissioning[this.props.matter.devices[this.state.editDeviceDialog.deviceIndex].uuid];
 
         const save = () => {
             if (!this.state.editDeviceDialog) {
                 return;
             }
             const matter = clone(this.props.matter);
-            const device: DeviceDescription =
-        matter.devices[this.state.editDeviceDialog.deviceIndex];
+            const device: DeviceDescription = matter.devices[this.state.editDeviceDialog.deviceIndex];
             device.name = this.state.editDeviceDialog.name;
             device.productID = this.state.editDeviceDialog.productID;
             device.vendorID = this.state.editDeviceDialog.vendorID;
@@ -249,226 +236,215 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
 
             delete device.dimmerUseLastLevelForOn;
             delete device.dimmerOnLevel;
-            device.actionAllowedByIdentify =
-        this.state.editDeviceDialog.actionAllowedByIdentify;
+            device.actionAllowedByIdentify = this.state.editDeviceDialog.actionAllowedByIdentify;
 
             if (device.type === 'dimmer') {
                 if (!device.hasOnState) {
-                    device.dimmerUseLastLevelForOn =
-            this.state.editDeviceDialog.dimmerUseLastLevelForOn;
+                    device.dimmerUseLastLevelForOn = this.state.editDeviceDialog.dimmerUseLastLevelForOn;
                     if (!device.dimmerUseLastLevelForOn) {
                         device.dimmerOnLevel = this.state.editDeviceDialog.dimmerOnLevel;
                     }
                 }
             }
 
-            this.setState({ editDeviceDialog: null }, () =>
-                this.props.updateConfig(matter));
+            this.setState({ editDeviceDialog: null }, () => this.props.updateConfig(matter));
         };
 
         const isDisabled =
-            (
-                this.state.editDeviceDialog.name === this.state.editDeviceDialog.originalName &&
+            (this.state.editDeviceDialog.name === this.state.editDeviceDialog.originalName &&
                 this.state.editDeviceDialog?.vendorID === this.state.editDeviceDialog?.originalVendorID &&
                 this.state.editDeviceDialog?.productID === this.state.editDeviceDialog?.originalProductID &&
                 this.state.editDeviceDialog.deviceType === this.state.editDeviceDialog.originalDeviceType &&
                 this.state.editDeviceDialog.dimmerOnLevel === this.state.editDeviceDialog.originalDimmerOnLevel &&
-                this.state.editDeviceDialog.dimmerUseLastLevelForOn === this.state.editDeviceDialog.originalDimmerUseLastLevelForOn &&
-                this.state.editDeviceDialog.actionAllowedByIdentify === this.state.editDeviceDialog.originalActionAllowedByIdentify &&
-                this.state.editDeviceDialog.noComposed === this.state.editDeviceDialog.originalNoComposed
-            ) ||
+                this.state.editDeviceDialog.dimmerUseLastLevelForOn ===
+                    this.state.editDeviceDialog.originalDimmerUseLastLevelForOn &&
+                this.state.editDeviceDialog.actionAllowedByIdentify ===
+                    this.state.editDeviceDialog.originalActionAllowedByIdentify &&
+                this.state.editDeviceDialog.noComposed === this.state.editDeviceDialog.originalNoComposed) ||
             (!this.state.editDeviceDialog.dimmerUseLastLevelForOn && !this.state.editDeviceDialog.dimmerOnLevel) ||
             !this.state.editDeviceDialog.deviceType;
 
-        return <Dialog
-            onClose={() => this.setState({ editDeviceDialog: null })}
-            open={!0}
-        >
-            <DialogTitle>
-                {`${I18n.t('Edit device')} ${this.state.editDeviceDialog?.originalName}`}
-            </DialogTitle>
-            <DialogContent>
-                <TextField
-                    label={I18n.t('Name')}
-                    disabled={isCommissioned}
-                    value={this.state.editDeviceDialog.name}
-                    onChange={e => {
-                        const editDeviceDialog = clone(this.state.editDeviceDialog);
-                        editDeviceDialog.name = e.target.value;
-                        this.setState({ editDeviceDialog });
-                    }}
-                    onKeyUp={e => e.key === 'Enter' && !isDisabled && save()}
-                    variant="standard"
-                    fullWidth
-                />
-                <TextField
-                    select
-                    disabled={isCommissioned}
-                    style={{ width: 'calc(50% - 8px)', marginRight: 16, marginTop: 16 }}
-                    value={this.state.editDeviceDialog.vendorID}
-                    onChange={e => {
-                        const editDeviceDialog = clone(this.state.editDeviceDialog);
-                        editDeviceDialog.vendorID = e.target.value;
-                        this.setState({ editDeviceDialog });
-                    }}
-                    label={I18n.t('Vendor ID')}
-                    variant="standard"
-                >
-                    {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorID => (
-                        <MenuItem key={vendorID} value={vendorID}>
-                            {vendorID}
-                        </MenuItem>
-                    ))}
-                </TextField>
-                <TextField
-                    select
-                    disabled={isCommissioned}
-                    style={{ width: 'calc(50% - 8px)', marginTop: 16 }}
-                    value={this.state.editDeviceDialog.productID}
-                    onChange={e => {
-                        const editDeviceDialog = clone(this.state.editDeviceDialog);
-                        editDeviceDialog.productID = e.target.value;
-                        this.setState({ editDeviceDialog });
-                    }}
-                    label={I18n.t('Product ID')}
-                    variant="standard"
-                >
-                    {this.props.productIDs.map(productID => (
-                        <MenuItem key={productID} value={productID}>
-                            {productID}
-                        </MenuItem>
-                    ))}
-                </TextField>
-                <FormControlLabel
-                    control={
-                        <Checkbox
-                            checked={this.state.editDeviceDialog.noComposed}
-                            disabled={isCommissioned}
-                            onChange={e => {
-                                const editDeviceDialog = clone(this.state.editDeviceDialog);
-                                editDeviceDialog.noComposed = e.target.checked;
-                                this.setState({ editDeviceDialog });
-                            }}
-                        />
-                    }
-                    label={
-                        <span style={{ fontSize: 'smaller' }}>
-                            {I18n.t(
-                                'Do not compose devices (Alexa does not support composed devices yet)',
-                            )}
-                        </span>
-                    }
-                />
-                <FormControl style={{ width: '100%', marginTop: 30 }}>
-                    <InputLabel>{I18n.t('Device type')}</InputLabel>
-                    <Select
-                        variant="standard"
-                        disabled={isCommissioned || this.state.editDeviceDialog.auto}
-                        value={this.state.editDeviceDialog.deviceType}
+        return (
+            <Dialog onClose={() => this.setState({ editDeviceDialog: null })} open={!0}>
+                <DialogTitle>{`${I18n.t('Edit device')} ${this.state.editDeviceDialog?.originalName}`}</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        label={I18n.t('Name')}
+                        disabled={isCommissioned}
+                        value={this.state.editDeviceDialog.name}
                         onChange={e => {
                             const editDeviceDialog = clone(this.state.editDeviceDialog);
-                            editDeviceDialog.deviceType = e.target.value as Types;
+                            editDeviceDialog.name = e.target.value;
                             this.setState({ editDeviceDialog });
                         }}
-                        renderValue={value => (
-                            <span>
-                                <span>{DEVICE_ICONS[value] || <QuestionMark />}</span>
-                                {I18n.t(value)}
-                            </span>
-                        )}
+                        onKeyUp={e => e.key === 'Enter' && !isDisabled && save()}
+                        variant="standard"
+                        fullWidth
+                    />
+                    <TextField
+                        select
+                        disabled={isCommissioned}
+                        style={{ width: 'calc(50% - 8px)', marginRight: 16, marginTop: 16 }}
+                        value={this.state.editDeviceDialog.vendorID}
+                        onChange={e => {
+                            const editDeviceDialog = clone(this.state.editDeviceDialog);
+                            editDeviceDialog.vendorID = e.target.value;
+                            this.setState({ editDeviceDialog });
+                        }}
+                        label={I18n.t('Vendor ID')}
+                        variant="standard"
                     >
-                        {Object.keys(Types)
-                            .filter(key => SUPPORTED_DEVICES.includes(key as Types))
-                            .map(type => (
-                                <MenuItem key={type} value={type}>
-                                    <span>
-                                        {DEVICE_ICONS[type as Types] || <QuestionMark />}
-                                    </span>
-                                    {I18n.t(type)}
-                                </MenuItem>
-                            ))}
-                    </Select>
-                </FormControl>
-                <FormControlLabel
-                    style={{ width: '100%', marginTop: 30 }}
-                    label={I18n.t('Allow action by identify')}
-                    control={
-                        <Checkbox
-                            checked={!!this.state.editDeviceDialog.actionAllowedByIdentify}
-                            onChange={e => {
-                                const editDeviceDialog = clone(this.state.editDeviceDialog);
-                                editDeviceDialog.actionAllowedByIdentify = e.target.checked;
-                                this.setState({ editDeviceDialog });
-                            }}
-                        />
-                    }
-                />
-                {this.state.editDeviceDialog.deviceType === 'dimmer' && !this.state.editDeviceDialog.hasOnState ? <FormControlLabel
-                    style={{ marginTop: 20 }}
-                    label={I18n.t('Use last value for ON')}
-                    control={
-                        <Checkbox
-                            checked={
-                                !!this.state.editDeviceDialog.dimmerUseLastLevelForOn
-                            }
-                            onChange={e => {
-                                const editDeviceDialog = clone(this.state.editDeviceDialog);
-                                editDeviceDialog.dimmerUseLastLevelForOn = e.target.checked;
-                                this.setState({ editDeviceDialog });
-                            }}
-                        />
-                    }
-                /> : null}
-                {this.state.editDeviceDialog.deviceType === 'dimmer' &&
-                    !this.state.editDeviceDialog.hasOnState &&
-                    !this.state.editDeviceDialog.dimmerUseLastLevelForOn ?
+                        {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorID => (
+                            <MenuItem key={vendorID} value={vendorID}>
+                                {vendorID}
+                            </MenuItem>
+                        ))}
+                    </TextField>
+                    <TextField
+                        select
+                        disabled={isCommissioned}
+                        style={{ width: 'calc(50% - 8px)', marginTop: 16 }}
+                        value={this.state.editDeviceDialog.productID}
+                        onChange={e => {
+                            const editDeviceDialog = clone(this.state.editDeviceDialog);
+                            editDeviceDialog.productID = e.target.value;
+                            this.setState({ editDeviceDialog });
+                        }}
+                        label={I18n.t('Product ID')}
+                        variant="standard"
+                    >
+                        {this.props.productIDs.map(productID => (
+                            <MenuItem key={productID} value={productID}>
+                                {productID}
+                            </MenuItem>
+                        ))}
+                    </TextField>
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={this.state.editDeviceDialog.noComposed}
+                                disabled={isCommissioned}
+                                onChange={e => {
+                                    const editDeviceDialog = clone(this.state.editDeviceDialog);
+                                    editDeviceDialog.noComposed = e.target.checked;
+                                    this.setState({ editDeviceDialog });
+                                }}
+                            />
+                        }
+                        label={
+                            <span style={{ fontSize: 'smaller' }}>
+                                {I18n.t('Do not compose devices (Alexa does not support composed devices yet)')}
+                            </span>
+                        }
+                    />
                     <FormControl style={{ width: '100%', marginTop: 30 }}>
-                        <InputLabel>{I18n.t('Brightness by ON')}</InputLabel>
+                        <InputLabel>{I18n.t('Device type')}</InputLabel>
                         <Select
                             variant="standard"
-                            error={!this.state.editDeviceDialog.dimmerOnLevel}
-                            value={this.state.editDeviceDialog.dimmerOnLevel}
+                            disabled={isCommissioned || this.state.editDeviceDialog.auto}
+                            value={this.state.editDeviceDialog.deviceType}
                             onChange={e => {
                                 const editDeviceDialog = clone(this.state.editDeviceDialog);
-
-                                editDeviceDialog.dimmerOnLevel = e.target.value as number;
+                                editDeviceDialog.deviceType = e.target.value as Types;
                                 this.setState({ editDeviceDialog });
                             }}
-                            renderValue={value => `${value}%`}
+                            renderValue={value => (
+                                <span>
+                                    <span>{DEVICE_ICONS[value] || <QuestionMark />}</span>
+                                    {I18n.t(value)}
+                                </span>
+                            )}
                         >
-                            {[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(type => (
-                                <MenuItem key={type} value={type}>
-                                    {`${type}%`}
-                                </MenuItem>
-                            ))}
+                            {Object.keys(Types)
+                                .filter(key => SUPPORTED_DEVICES.includes(key as Types))
+                                .map(type => (
+                                    <MenuItem key={type} value={type}>
+                                        <span>{DEVICE_ICONS[type as Types] || <QuestionMark />}</span>
+                                        {I18n.t(type)}
+                                    </MenuItem>
+                                ))}
                         </Select>
-                    </FormControl> : null}
-                {isCommissioned
-                    ? I18n.t(
-                        'Device is already commissioned. You cannot change the name or the vendor/product ID.',
-                    )
-                    : null}
-            </DialogContent>
-            <DialogActions>
-                <Button
-                    onClick={() => save()}
-                    startIcon={<Save />}
-                    disabled={isDisabled}
-                    color="primary"
-                    variant="contained"
-                >
-                    {I18n.t('Apply')}
-                </Button>
-                <Button
-                    onClick={() => this.setState({ editDeviceDialog: null })}
-                    startIcon={<Close />}
-                    color="grey"
-                    variant="contained"
-                >
-                    {I18n.t('Cancel')}
-                </Button>
-            </DialogActions>
-        </Dialog>;
+                    </FormControl>
+                    <FormControlLabel
+                        style={{ width: '100%', marginTop: 30 }}
+                        label={I18n.t('Allow action by identify')}
+                        control={
+                            <Checkbox
+                                checked={!!this.state.editDeviceDialog.actionAllowedByIdentify}
+                                onChange={e => {
+                                    const editDeviceDialog = clone(this.state.editDeviceDialog);
+                                    editDeviceDialog.actionAllowedByIdentify = e.target.checked;
+                                    this.setState({ editDeviceDialog });
+                                }}
+                            />
+                        }
+                    />
+                    {this.state.editDeviceDialog.deviceType === 'dimmer' && !this.state.editDeviceDialog.hasOnState ? (
+                        <FormControlLabel
+                            style={{ marginTop: 20 }}
+                            label={I18n.t('Use last value for ON')}
+                            control={
+                                <Checkbox
+                                    checked={!!this.state.editDeviceDialog.dimmerUseLastLevelForOn}
+                                    onChange={e => {
+                                        const editDeviceDialog = clone(this.state.editDeviceDialog);
+                                        editDeviceDialog.dimmerUseLastLevelForOn = e.target.checked;
+                                        this.setState({ editDeviceDialog });
+                                    }}
+                                />
+                            }
+                        />
+                    ) : null}
+                    {this.state.editDeviceDialog.deviceType === 'dimmer' &&
+                    !this.state.editDeviceDialog.hasOnState &&
+                    !this.state.editDeviceDialog.dimmerUseLastLevelForOn ? (
+                        <FormControl style={{ width: '100%', marginTop: 30 }}>
+                            <InputLabel>{I18n.t('Brightness by ON')}</InputLabel>
+                            <Select
+                                variant="standard"
+                                error={!this.state.editDeviceDialog.dimmerOnLevel}
+                                value={this.state.editDeviceDialog.dimmerOnLevel}
+                                onChange={e => {
+                                    const editDeviceDialog = clone(this.state.editDeviceDialog);
+
+                                    editDeviceDialog.dimmerOnLevel = e.target.value as number;
+                                    this.setState({ editDeviceDialog });
+                                }}
+                                renderValue={value => `${value}%`}
+                            >
+                                {[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(type => (
+                                    <MenuItem key={type} value={type}>
+                                        {`${type}%`}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    ) : null}
+                    {isCommissioned
+                        ? I18n.t('Device is already commissioned. You cannot change the name or the vendor/product ID.')
+                        : null}
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        onClick={() => save()}
+                        startIcon={<Save />}
+                        disabled={isDisabled}
+                        color="primary"
+                        variant="contained"
+                    >
+                        {I18n.t('Apply')}
+                    </Button>
+                    <Button
+                        onClick={() => this.setState({ editDeviceDialog: null })}
+                        startIcon={<Close />}
+                        color="grey"
+                        variant="contained"
+                    >
+                        {I18n.t('Cancel')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        );
     }
 
     addDevices = async (devices: DetectedDevice[], isAutoDetected: boolean) => {
@@ -508,10 +484,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
             return null;
         }
         return (
-            <Dialog
-                open={!0}
-                onClose={() => this.setState({ addCustomDeviceDialog: null })}
-            >
+            <Dialog open={!0} onClose={() => this.setState({ addCustomDeviceDialog: null })}>
                 <DialogTitle>{I18n.t('Configure custom device')}</DialogTitle>
                 <DialogContent>
                     <TextField
@@ -602,9 +575,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         }
                         label={
                             <span style={{ fontSize: 'smaller' }}>
-                                {I18n.t(
-                                    'Do not compose devices (Alexa does not support composed devices yet)',
-                                )}
+                                {I18n.t('Do not compose devices (Alexa does not support composed devices yet)')}
                             </span>
                         }
                     />
@@ -613,24 +584,23 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                     <Button
                         onClick={() => {
                             this.state.addCustomDeviceDialog &&
-                this.addDevices(
-                    [
-                        {
-                            _id: this.state.addCustomDeviceDialog.oid,
-                            common: {
-                                name: this.state.addCustomDeviceDialog.name,
-                            },
-                            deviceType: this.state.addCustomDeviceDialog
-                                .deviceType as Types,
-                            hasOnState: !!this.state.addCustomDeviceDialog.hasOnState,
-                            // ignored
-                            type: 'device',
-                            states: [],
-                            roomName: '',
-                        },
-                    ],
-                    false,
-                );
+                                this.addDevices(
+                                    [
+                                        {
+                                            _id: this.state.addCustomDeviceDialog.oid,
+                                            common: {
+                                                name: this.state.addCustomDeviceDialog.name,
+                                            },
+                                            deviceType: this.state.addCustomDeviceDialog.deviceType as Types,
+                                            hasOnState: !!this.state.addCustomDeviceDialog.hasOnState,
+                                            // ignored
+                                            type: 'device',
+                                            states: [],
+                                            roomName: '',
+                                        },
+                                    ],
+                                    false,
+                                );
 
                             this.setState({ addCustomDeviceDialog: null });
                         }}
@@ -668,9 +638,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                     theme={this.props.theme}
                     onClose={() => this.setState({ addDeviceDialog: null })}
                     onOk={async (_oid, name) => {
-                        const oid: string | undefined = Array.isArray(_oid)
-                            ? _oid[0]
-                            : (_oid as string);
+                        const oid: string | undefined = Array.isArray(_oid) ? _oid[0] : (_oid as string);
                         // Try to detect ID
                         const controls = await detectDevices(this.props.socket, [oid]);
                         if (!controls?.length) {
@@ -687,9 +655,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         } else {
                             const deviceType = controls[0].devices[0].deviceType;
                             if (!SUPPORTED_DEVICES.includes(deviceType)) {
-                                this.props.showToast(
-                                    I18n.t('Device type "%s" is not supported yet', deviceType),
-                                );
+                                this.props.showToast(I18n.t('Device type "%s" is not supported yet', deviceType));
                             }
 
                             // try to find ON state for dimmer
@@ -698,9 +664,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 addCustomDeviceDialog: {
                                     oid,
                                     name,
-                                    deviceType: SUPPORTED_DEVICES.includes(deviceType)
-                                        ? deviceType
-                                        : '',
+                                    deviceType: SUPPORTED_DEVICES.includes(deviceType) ? deviceType : '',
                                     hasOnState: controls[0].devices[0].hasOnState,
                                     vendorID: '0xFFF1',
                                     productID: '0x8000',
@@ -715,22 +679,17 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         return (
             <DeviceDialog
                 onClose={() => this.setState({ addDeviceDialog: null })}
-                addDevices={(devices: DetectedDevice[]) =>
-                    this.addDevices(devices, true)}
+                addDevices={(devices: DetectedDevice[]) => this.addDevices(devices, true)}
                 matter={this.props.matter}
                 socket={this.props.socket}
                 detectedDevices={this.props.detectedDevices}
-                setDetectedDevices={detectedDevices =>
-                    this.props.setDetectedDevices(detectedDevices)}
+                setDetectedDevices={detectedDevices => this.props.setDetectedDevices(detectedDevices)}
                 type="device"
             />
         );
     }
 
-    renderDevice(
-        device: DeviceDescription,
-        index: number,
-    ): React.JSX.Element | null {
+    renderDevice(device: DeviceDescription, index: number): React.JSX.Element | null {
         if (device.deleted) {
             return null;
         }
@@ -744,33 +703,14 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         <div style={styles.bridgeDiv}>
                             <div style={styles.deviceName}>
                                 {getText(device.name)}
-                                <span style={styles.deviceOid}>
-(
-                                    {device.oid}
-)
-                                </span>
+                                <span style={styles.deviceOid}>({device.oid})</span>
                             </div>
                             <div>
-                                <span style={styles.deviceTitle}>
-                                    {I18n.t('Vendor ID')}
-:
-                                </span>
-                                <span style={styles.deviceValue}>
-                                    {device.vendorID || ''}
-,
-                                </span>
-                                <span style={styles.deviceTitle}>
-                                    {I18n.t('Product ID')}
-:
-                                </span>
-                                <span style={styles.deviceValue}>
-                                    {device.productID || ''}
-,
-                                </span>
-                                <span style={styles.deviceType}>
-                                    {I18n.t('Device type')}
-:
-                                </span>
+                                <span style={styles.deviceTitle}>{I18n.t('Vendor ID')}:</span>
+                                <span style={styles.deviceValue}>{device.vendorID || ''},</span>
+                                <span style={styles.deviceTitle}>{I18n.t('Product ID')}:</span>
+                                <span style={styles.deviceValue}>{device.productID || ''},</span>
+                                <span style={styles.deviceType}>{I18n.t('Device type')}:</span>
                                 <span style={styles.deviceType}>{I18n.t(device.type)}</span>
                             </div>
                         </div>
@@ -788,10 +728,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                     />
                 </TableCell>
                 <TableCell style={{ width: 0 }}>
-                    <Tooltip
-                        title={I18n.t('Edit device')}
-                        componentsProps={{ popper: { sx: styles.tooltip } }}
-                    >
+                    <Tooltip title={I18n.t('Edit device')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                         <IconButton
                             onClick={() => {
                                 this.setState({
@@ -809,16 +746,12 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                         originalProductID: device.productID || '',
                                         originalNoComposed: !!device.noComposed,
                                         noComposed: !!device.noComposed,
-                                        dimmerOnLevel:
-                      parseFloat(device.dimmerOnLevel as any as string) || 0,
-                                        originalDimmerOnLevel:
-                      parseFloat(device.dimmerOnLevel as any as string) || 0,
+                                        dimmerOnLevel: parseFloat(device.dimmerOnLevel as any as string) || 0,
+                                        originalDimmerOnLevel: parseFloat(device.dimmerOnLevel as any as string) || 0,
                                         dimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
-                                        originalDimmerUseLastLevelForOn:
-                      !!device.dimmerUseLastLevelForOn,
+                                        originalDimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
                                         actionAllowedByIdentify: !!device.actionAllowedByIdentify,
-                                        originalActionAllowedByIdentify:
-                      !!device.actionAllowedByIdentify,
+                                        originalActionAllowedByIdentify: !!device.actionAllowedByIdentify,
                                         hasOnState: !!device.hasOnState,
                                     },
                                 });
@@ -838,7 +771,8 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 onClick={() =>
                                     this.setState({
                                         showResetDialog: { bridgeOrDevice: device, step: 0 },
-                                    })}
+                                    })
+                                }
                             >
                                 <DomainDisabled />
                             </IconButton>
@@ -846,40 +780,32 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                     ) : null}
                 </TableCell>
                 <TableCell style={{ width: 0 }}>
-                    {this.props.alive &&
-          this.props.nodeStates[device.uuid]?.status ===
-            'waitingForCommissioning' ? (
-                            <Tooltip
-                                title={I18n.t('Re-announce')}
-                                componentsProps={{ popper: { sx: styles.tooltip } }}
+                    {this.props.alive && this.props.nodeStates[device.uuid]?.status === 'waitingForCommissioning' ? (
+                        <Tooltip title={I18n.t('Re-announce')} componentsProps={{ popper: { sx: styles.tooltip } }}>
+                            <IconButton
+                                onClick={() => {
+                                    this.props.socket
+                                        .sendTo(`matter.${this.props.instance}`, 'deviceReAnnounce', {
+                                            uuid: device.uuid,
+                                        })
+                                        .then(result => {
+                                            if (result.error) {
+                                                window.alert(`Cannot re-announce: ${result.error}`);
+                                            } else {
+                                                this.props.updateNodeStates({
+                                                    [device.uuid]: result.result,
+                                                });
+                                            }
+                                        });
+                                }}
                             >
-                                <IconButton
-                                    onClick={() => {
-                                        this.props.socket
-                                            .sendTo(`matter.${this.props.instance}`, 'deviceReAnnounce', {
-                                                uuid: device.uuid,
-                                            })
-                                            .then(result => {
-                                                if (result.error) {
-                                                    window.alert(`Cannot re-announce: ${result.error}`);
-                                                } else {
-                                                    this.props.updateNodeStates({
-                                                        [device.uuid]: result.result,
-                                                    });
-                                                }
-                                            });
-                                    }}
-                                >
-                                    <SettingsInputAntenna />
-                                </IconButton>
-                            </Tooltip>
-                        ) : null}
+                                <SettingsInputAntenna />
+                            </IconButton>
+                        </Tooltip>
+                    ) : null}
                 </TableCell>
                 <TableCell style={{ width: 0 }}>
-                    <Tooltip
-                        title={I18n.t('Delete device')}
-                        componentsProps={{ popper: { sx: styles.tooltip } }}
-                    >
+                    <Tooltip title={I18n.t('Delete device')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                         <IconButton
                             onClick={() => {
                                 this.setState({
@@ -921,7 +847,8 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                     devices: this.props.matter.devices,
                                     noAutoDetect: false,
                                 },
-                            })}
+                            })
+                        }
                         style={{
                             position: 'absolute',
                             right: 64,
@@ -943,7 +870,8 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                     devices: this.props.matter.devices,
                                     noAutoDetect: true,
                                 },
-                            })}
+                            })
+                        }
                         style={{
                             opacity: 0.6,
                             position: 'absolute',
@@ -959,14 +887,9 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         'No one device created. Create one, by clicking on the "+" button in the bottom right corner.',
                     )
                 ) : (
-                    <Table
-                        size="small"
-                        style={{ width: '100%', maxWidth: 600 }}
-                        padding="none"
-                    >
+                    <Table size="small" style={{ width: '100%', maxWidth: 600 }} padding="none">
                         <TableBody>
-                            {this.props.matter.devices.map((device, index) =>
-                                this.renderDevice(device, index))}
+                            {this.props.matter.devices.map((device, index) => this.renderDevice(device, index))}
                         </TableBody>
                     </Table>
                 )}

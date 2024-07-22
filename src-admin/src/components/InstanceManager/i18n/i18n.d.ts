@@ -14,6 +14,7 @@
 /**
  * Available words in `i18n/en.json`.
  */
+// eslint-disable-next-line @typescript-eslint/consistent-type-imports
 declare type AdminWord = keyof typeof import('./en.json');
 
 declare module '@iobroker/adapter-react/i18n' {

@@ -14,6 +14,7 @@ module.exports = {
         'airbnb',
         'plugin:eqeqeq-fix/recommended',
         'plugin:@typescript-eslint/recommended',
+        'plugin:prettier/recommended',
     ],
     parserOptions: {
         ecmaFeatures: {
@@ -22,11 +23,7 @@ module.exports = {
         ecmaVersion: 'latest',
         sourceType: 'module',
     },
-    plugins: [
-        'react',
-        'only-warn',
-        'react-hooks',
-    ],
+    plugins: ['react', 'react-hooks'],
     settings: {
         'import/resolver': {
             typescript: {},
@@ -40,6 +37,7 @@ module.exports = {
         'jsx-a11y/click-events-have-key-events': 'off',
         'jsx-a11y/no-static-element-interactions': 'off',
         'no-plusplus': 'off',
+        'no-shadow': 'off',
         'react/react-in-jsx-scope': 'off',
         'react/prop-types': 'off',
         'react/no-render-return-value': 'off',
@@ -81,20 +79,22 @@ module.exports = {
         'implicit-arrow-linebreak': 'off',
         'react/function-component-definition': 'off',
         radix: 'off',
-        indent: ['error', 4, { SwitchCase: 1 }],
         'no-alert': 'off',
         'class-methods-use-this': 'off',
         '@typescript-eslint/no-explicit-any': 'off',
-        '@typescript-eslint/member-delimiter-style': ['error', {
-            multiline: {
-                delimiter: 'semi',
-                requireLast: true,
+        '@typescript-eslint/member-delimiter-style': [
+            'error',
+            {
+                multiline: {
+                    delimiter: 'semi',
+                    requireLast: true,
+                },
+                singleline: {
+                    delimiter: 'semi',
+                    requireLast: false,
+                },
             },
-            singleline: {
-                delimiter: 'semi',
-                requireLast: false,
-            },
-        }],
+        ],
         '@typescript-eslint/type-annotation-spacing': 'error',
         '@typescript-eslint/consistent-type-imports': 'error',
     },

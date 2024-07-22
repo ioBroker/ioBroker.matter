@@ -14,6 +14,7 @@ module.exports = {
         'airbnb',
         'plugin:eqeqeq-fix/recommended',
         'plugin:@typescript-eslint/recommended',
+        'plugin:prettier/recommended',
     ],
     parserOptions: {
         ecmaFeatures: {
@@ -22,16 +23,7 @@ module.exports = {
         ecmaVersion: 'latest',
         sourceType: 'module',
     },
-    plugins: [
-        'react',
-        'only-warn',
-        'react-hooks',
-    ],
-    settings: {
-        'import/resolver': {
-            typescript: {},
-        },
-    },
+    plugins: ['react', 'only-warn', 'react-hooks'],
     rules: {
         'arrow-parens': [1, 'as-needed'],
         'react/jsx-indent': 'off',
@@ -81,20 +73,22 @@ module.exports = {
         'implicit-arrow-linebreak': 'off',
         'react/function-component-definition': 'off',
         radix: 'off',
-        indent: ['error', 4, { SwitchCase: 1 }],
         'no-alert': 'off',
         'class-methods-use-this': 'off',
         '@typescript-eslint/no-explicit-any': 'off',
-        '@typescript-eslint/member-delimiter-style': ['error', {
-            multiline: {
-                delimiter: 'semi',
-                requireLast: true,
+        '@typescript-eslint/member-delimiter-style': [
+            'error',
+            {
+                multiline: {
+                    delimiter: 'semi',
+                    requireLast: true,
+                },
+                singleline: {
+                    delimiter: 'semi',
+                    requireLast: false,
+                },
             },
-            singleline: {
-                delimiter: 'semi',
-                requireLast: false,
-            },
-        }],
+        ],
         '@typescript-eslint/type-annotation-spacing': 'error',
         '@typescript-eslint/consistent-type-imports': 'error',
     },

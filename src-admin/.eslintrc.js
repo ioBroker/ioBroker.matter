@@ -23,7 +23,12 @@ module.exports = {
         ecmaVersion: 'latest',
         sourceType: 'module',
     },
-    plugins: ['react', 'only-warn', 'react-hooks'],
+    plugins: ['react', 'react-hooks'],
+    settings: {
+        'import/resolver': {
+            typescript: {},
+        },
+    },
     rules: {
         'arrow-parens': [1, 'as-needed'],
         'react/jsx-indent': 'off',
@@ -32,6 +37,7 @@ module.exports = {
         'jsx-a11y/click-events-have-key-events': 'off',
         'jsx-a11y/no-static-element-interactions': 'off',
         'no-plusplus': 'off',
+        'no-shadow': 'off',
         'react/react-in-jsx-scope': 'off',
         'react/prop-types': 'off',
         'react/no-render-return-value': 'off',

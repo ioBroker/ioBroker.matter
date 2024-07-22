@@ -161,7 +161,7 @@ class ConfigHandler {
                             changed = true;
                             bridge.enabled = obj.native.enabled;
                         }
-                        if (bridge.name !== obj.common.name) {
+                        if (typeof obj.common.name === 'string' && bridge.name !== obj.common.name) {
                             changed = true;
                             bridge.name = obj.common.name;
                         }
@@ -181,6 +181,13 @@ class ConfigHandler {
                 } else if (obj) {
                     console.log(`Detected new bridge: ${uuid}`);
                     changed = true;
+
+                    if (typeof obj.common.name !== 'string') {
+                        throw new Error(
+                            `Expected bridge name to be a string but got "${JSON.stringify(obj.common.name)}"`,
+                        );
+                    }
+
                     this.config.bridges.push({
                         uuid,
                         name: obj.common.name,

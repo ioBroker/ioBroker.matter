@@ -239,21 +239,20 @@ class Options extends Component<OptionsProps, OptionsState> {
                             style={styles.input}
                             value={this.props.native.interface || '_'}
                             renderValue={val => {
-                                if (item) {
-                                    return (
-                                        <span
-                                            style={{
-                                                fontWeight: item.value === '_' ? 'bold' : undefined,
-                                            }}
-                                        >
-                                            {item.value === '_' ? I18n.t('All interfaces') : item.value}
-                                            {item.value === '_' ? null : (
-                                                <span style={styles.address}>{item.address}</span>
-                                            )}
-                                        </span>
-                                    );
+                                if (!item) {
+                                    return val;
                                 }
-                                return val;
+
+                                return (
+                                    <span
+                                        style={{
+                                            fontWeight: item.value === '_' ? 'bold' : undefined,
+                                        }}
+                                    >
+                                        {item.value === '_' ? I18n.t('All interfaces') : item.value}
+                                        {item.value === '_' ? null : <span style={styles.address}>{item.address}</span>}
+                                    </span>
+                                );
                             }}
                             onChange={e =>
                                 this.props.onChange('interface', e.target.value === '_' ? '' : e.target.value)

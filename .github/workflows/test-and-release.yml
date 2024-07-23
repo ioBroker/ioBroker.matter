@@ -137,8 +137,6 @@ jobs:
 
       - name: Publish npm
         if: steps.automerge.outputs.mergeResult == 'merged'
-        env:
-          PRERELEASE: ${{ contains(steps.version.outputs.result, '-') }}
         run: |
           npm config set //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
           npm whoami

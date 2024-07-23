@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 
 import {
+    Box,
     Button,
     Checkbox,
     Dialog,
@@ -19,7 +20,7 @@ import { Check, Close, LayersClear } from '@mui/icons-material';
 
 import { type AdminConnection, I18n, Logo } from '@iobroker/adapter-react-v5';
 
-import type { MatterAdapterConfig } from '@/types';
+import type { MatterAdapterConfig, MatterConfig } from '@/types';
 
 const styles: Record<string, React.CSSProperties> = {
     address: {
@@ -56,6 +57,8 @@ interface OptionsProps {
     onChange: (attr: string, value: boolean | string) => void;
     showToast: (text: string) => void;
     onLoad: (native: Record<string, any>) => void;
+    /** The current matter config */
+    matter: MatterConfig;
 }
 
 interface OptionsState {
@@ -205,6 +208,11 @@ class Options extends Component<OptionsProps, OptionsState> {
         const item = this.state.interfaces?.find(it => it.value === (this.props.native.interface || '_'));
         const passwordError = Options.checkPassword(this.props.native.pass);
 
+        const bridge = this.props.matter.bridges.find(bridge => bridge.uuid === this.props.native.defaultBridge) || {
+            uuid: '_',
+            name: I18n.t('Unknown'),
+        };
+
         return (
             <div style={styles.panel}>
                 {this.renderConfirmDialog()}
@@ -231,21 +239,20 @@ class Options extends Component<OptionsProps, OptionsState> {
                             style={styles.input}
                             value={this.props.native.interface || '_'}
                             renderValue={val => {
-                                if (item) {
-                                    return (
-                                        <span
-                                            style={{
-                                                fontWeight: item.value === '_' ? 'bold' : undefined,
-                                            }}
-                                        >
-                                            {item.value === '_' ? I18n.t('All interfaces') : item.value}
-                                            {item.value === '_' ? null : (
-                                                <span style={styles.address}>{item.address}</span>
-                                            )}
-                                        </span>
-                                    );
+                                if (!item) {
+                                    return val;
                                 }
-                                return val;
+
+                                return (
+                                    <span
+                                        style={{
+                                            fontWeight: item.value === '_' ? 'bold' : undefined,
+                                        }}
+                                    >
+                                        {item.value === '_' ? I18n.t('All interfaces') : item.value}
+                                        {item.value === '_' ? null : <span style={styles.address}>{item.address}</span>}
+                                    </span>
+                                );
                             }}
                             onChange={e =>
                                 this.props.onChange('interface', e.target.value === '_' ? '' : e.target.value)
@@ -266,6 +273,49 @@ class Options extends Component<OptionsProps, OptionsState> {
                         </Select>
                     </FormControl>
                 )}
+
+                <Box sx={{ marginTop: 2 }}>
+                    <FormControl style={styles.input}>
+                        <InputLabel>{I18n.t('Default bridge (Alexa-compatible)')}</InputLabel>
+                        <Select
+                            variant="standard"
+                            style={styles.input}
+                            value={this.props.native.defaultBridge || '_'}
+                            renderValue={() => {
+                                if (!bridge) {
+                                    return null;
+                                }
+
+                                return (
+                                    <span
+                                        style={{
+                                            fontWeight: bridge.uuid === '_' ? 'bold' : undefined,
+                                        }}
+                                    >
+                                        {bridge.uuid === '_' ? I18n.t('Select default bridge') : bridge.name}
+                                        {bridge.uuid === '_' ? null : <span style={styles.address}>{bridge.uuid}</span>}
+                                    </span>
+                                );
+                            }}
+                            onChange={e => {
+                                this.props.onChange('defaultBridge', e.target.value);
+                            }}
+                        >
+                            {this.props.matter.bridges.map((it, i) => (
+                                <MenuItem key={i} value={it.uuid}>
+                                    <span
+                                        style={{
+                                            fontWeight: it.uuid === '_' ? 'bold' : undefined,
+                                        }}
+                                    >
+                                        {it.uuid}
+                                        <span style={styles.address}>{it.name}</span>
+                                    </span>
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Box>
 
                 <div style={{ marginTop: 50 }}>
                     {I18n.t('Only required if you want to use bridge or device options with more than 5 devices')}
@@ -308,6 +358,7 @@ class Options extends Component<OptionsProps, OptionsState> {
                         </Button>
                     ) : null}
                 </div>
+
                 <div style={{ marginTop: 50 }}>
                     <FormControlLabel
                         control={

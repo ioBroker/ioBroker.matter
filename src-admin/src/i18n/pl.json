@@ -8,6 +8,7 @@
   "Add device from one state": "Dodaj urządzenie z jednego stanu",
   "Add device with auto-detection": "Dodaj urządzenie z funkcją automatycznego wykrywania",
   "Add devices": "Dodaj urządzenia",
+  "Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.": "Oprócz mostów możesz także udostępnić stany ioBroker jako samodzielne urządzenia.\\nWszystkie można sparować indywidualnie.\\nWolisz używać mostów.",
   "All devices": "Wszystkie urządzenia",
   "All interfaces": "Wszystkie interfejsy",
   "All state information of matter controller and devices will be deleted. You cannot undo it.": "Wszystkie informacje o stanie kontrolera materii i urządzeń zostaną usunięte. Nie możesz tego cofnąć.",

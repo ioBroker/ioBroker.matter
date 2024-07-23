@@ -8,6 +8,7 @@
   "Add device from one state": "Добавить устройство из одного штата",
   "Add device with auto-detection": "Добавить устройство с автоопределением",
   "Add devices": "Добавить устройства",
+  "Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.": "В дополнение к мостам вы также можете предоставлять состояния ioBroker как автономные материальные устройства.\\nВсе они могут быть соединены индивидуально.\\nВам следует предпочесть использовать мосты.",
   "All devices": "Все устройства",
   "All interfaces": "Все интерфейсы",
   "All state information of matter controller and devices will be deleted. You cannot undo it.": "Вся информация о состоянии контроллера материи и устройств будет удалена. Вы не можете отменить это.",

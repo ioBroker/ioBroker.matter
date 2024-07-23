@@ -8,6 +8,7 @@
   "Add device from one state": "从一种状态添加设备",
   "Add device with auto-detection": "添加自动检测设备",
   "Add devices": "添加设备",
+  "Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.": "除了桥接器之外，您还可以将 ioBroker 状态公开为独立的物质设备。\\n它们都可以单独配对。\\n您应该更喜欢使用桥接器。",
   "All devices": "所有设备",
   "All interfaces": "所有接口",
   "All state information of matter controller and devices will be deleted. You cannot undo it.": "所有物质控制器和设备的状态信息都将被删除。您无法撤消它。",

@@ -8,6 +8,7 @@
   "Add device from one state": "Voeg apparaat toe vanuit één staat",
   "Add device with auto-detection": "Apparaat toevoegen met automatische detectie",
   "Add devices": "Apparaten toevoegen",
+  "Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.": "Naast bruggen kunt u ioBroker-statussen ook beschikbaar stellen als zelfstandige apparaten.\\nZe kunnen allemaal afzonderlijk worden gekoppeld.\\nU zou de voorkeur moeten geven aan het gebruik van bruggen.",
   "All devices": "Alle apparaten",
   "All interfaces": "Alle interfaces",
   "All state information of matter controller and devices will be deleted. You cannot undo it.": "Alle statusinformatie van de materiecontroller en apparaten wordt verwijderd. Je kunt het niet ongedaan maken.",

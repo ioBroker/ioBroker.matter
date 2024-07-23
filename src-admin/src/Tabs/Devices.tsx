@@ -853,7 +853,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                     <Info />
                     <Typography sx={{ whiteSpace: 'pre' }}>
                         {I18n.t(
-                            'Additionally to bridges you can also expose ioBroker states as stand alone matter devices.\nThey can all be paired individually.\nYou should prefer to use bridges.',
+                            'Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.',
                         )}
                     </Typography>
                 </Box>

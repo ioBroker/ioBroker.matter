@@ -4,10 +4,12 @@ import { v4 as uuidv4 } from 'uuid';
 
 import {
     Add,
+    AutoMode,
     Close,
     Delete,
     DomainDisabled,
     Edit,
+    FormatListBulleted,
     Info,
     QuestionMark,
     Save,
@@ -91,6 +93,8 @@ interface DevicesProps extends BridgesAndDevicesProps {
 }
 
 interface DevicesState extends BridgesAndDevicesState {
+    /** Open Dialog to select further options to add a device */
+    addDevicePreDialog: boolean;
     addDeviceDialog: {
         devices: DeviceDescription[];
         noAutoDetect: boolean;
@@ -627,6 +631,57 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         );
     }
 
+    /**
+     * Render dialog to select if devices should be added from state or detected automatically
+     */
+    renderAddDevicesPreDialog(): React.JSX.Element {
+        if (!this.state.addDevicePreDialog) {
+            return null;
+        }
+
+        return (
+            <Dialog open={!0} onClose={() => this.setState({ addDevicePreDialog: false })}>
+                <DialogTitle>{I18n.t('Add device')}</DialogTitle>
+                <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Button
+                        onClick={() => {
+                            this.setState({
+                                addDevicePreDialog: false,
+                                addDeviceDialog: {
+                                    devices: this.props.matter.devices,
+                                    noAutoDetect: true,
+                                },
+                            });
+                        }}
+                        startIcon={<AutoMode />}
+                        color="primary"
+                        variant="contained"
+                        sx={{ justifyContent: 'flex-start' }}
+                    >
+                        {I18n.t('Add device with auto-detection')}
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            this.setState({
+                                addDevicePreDialog: false,
+                                addDeviceDialog: {
+                                    devices: this.props.matter.devices,
+                                    noAutoDetect: false,
+                                },
+                            });
+                        }}
+                        startIcon={<FormatListBulleted />}
+                        color="primary"
+                        variant="contained"
+                        sx={{ justifyContent: 'flex-start' }}
+                    >
+                        {I18n.t('Add device from one state')}
+                    </Button>
+                </DialogContent>
+            </Dialog>
+        );
+    }
+
     renderAddDevicesDialog() {
         if (!this.state.addDeviceDialog) {
             return null;
@@ -692,10 +747,16 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         );
     }
 
+    /**
+     * Render a single device in a table
+     * @param device the device description
+     * @param index table index
+     */
     renderDevice(device: DeviceDescription, index: number): React.JSX.Element | null {
         if (device.deleted) {
             return null;
         }
+
         return (
             <TableRow key={index} style={{ opacity: device.enabled ? 1 : 0.4 }}>
                 <TableCell>
@@ -749,8 +810,8 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                         originalProductID: device.productID || '',
                                         originalNoComposed: !!device.noComposed,
                                         noComposed: !!device.noComposed,
-                                        dimmerOnLevel: parseFloat(device.dimmerOnLevel as any as string) || 0,
-                                        originalDimmerOnLevel: parseFloat(device.dimmerOnLevel as any as string) || 0,
+                                        dimmerOnLevel: Number(device.dimmerOnLevel) || 0,
+                                        originalDimmerOnLevel: Number(device.dimmerOnLevel) || 0,
                                         dimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
                                         originalDimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
                                         actionAllowedByIdentify: !!device.actionAllowedByIdentify,
@@ -833,6 +894,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
             <div>
                 {this.renderDeleteDialog()}
                 {this.renderEditDeviceDialog()}
+                {this.renderAddDevicesPreDialog()}
                 {this.renderAddDevicesDialog()}
                 {this.renderAddCustomDeviceDialog()}
                 {this.renderDebugDialog()}
@@ -857,45 +919,15 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         )}
                     </Typography>
                 </Box>
-                <Tooltip
-                    title={I18n.t('Add device with auto-detection')}
-                    componentsProps={{ popper: { sx: styles.tooltip } }}
-                >
+                <Tooltip title={I18n.t('Add device')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                     <Fab
                         size="small"
                         onClick={() =>
                             this.setState({
-                                addDeviceDialog: {
-                                    devices: this.props.matter.devices,
-                                    noAutoDetect: false,
-                                },
+                                addDevicePreDialog: true,
                             })
                         }
                         style={{
-                            position: 'absolute',
-                            right: 64,
-                            bottom: 10,
-                        }}
-                    >
-                        <Add />
-                    </Fab>
-                </Tooltip>
-                <Tooltip
-                    title={I18n.t('Add device from one state')}
-                    componentsProps={{ popper: { sx: styles.tooltip } }}
-                >
-                    <Fab
-                        size="small"
-                        onClick={() =>
-                            this.setState({
-                                addDeviceDialog: {
-                                    devices: this.props.matter.devices,
-                                    noAutoDetect: true,
-                                },
-                            })
-                        }
-                        style={{
-                            opacity: 0.6,
                             position: 'absolute',
                             right: 15,
                             bottom: 10,

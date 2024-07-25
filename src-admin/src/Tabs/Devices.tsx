@@ -931,7 +931,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         'No one device created. Create one, by clicking on the "+" button in the bottom right corner.',
                     )
                 ) : (
-                    <Table size="small" style={{ width: '100%', maxWidth: 600 }} padding="none">
+                    <Table size="small" style={{ width: '100%' }} padding="none">
                         <TableBody>
                             {this.props.matter.devices.map((device, index) => this.renderDevice(device, index))}
                         </TableBody>

@@ -1370,7 +1370,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 ) : (
                     I18n.t('No bridges created. Create one, by clicking on the "+" button in the bottom right corner.')
                 )}
-                <Table size="small" style={{ width: '100%', maxWidth: 600 }} padding="none" sx={styles.table}>
+                <Table size="small" style={{ width: '100%' }} padding="none" sx={styles.table}>
                     <TableBody>
                         {this.props.matter.bridges.map((bridge, bridgeIndex) => this.renderBridge(bridge, bridgeIndex))}
                     </TableBody>

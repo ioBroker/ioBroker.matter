@@ -20,7 +20,7 @@ import { Check, Close, LayersClear } from '@mui/icons-material';
 
 import { type AdminConnection, I18n, Logo } from '@iobroker/adapter-react-v5';
 
-import type { MatterAdapterConfig, MatterConfig } from '@/types';
+import type { MatterAdapterConfig, MatterConfig } from '../types';
 
 const styles: Record<string, React.CSSProperties> = {
     address: {

@@ -8,6 +8,7 @@ import {
     Info,
     QrCode,
     QuestionMark,
+    SettingsInputAntenna,
     SignalWifiStatusbarNull,
     Wifi,
     WifiOff,
@@ -324,8 +325,12 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         );
     }
 
-    renderQrCodeDialog() {
-        const nodeState = this.state.showQrCode?.uuid && this.props.nodeStates[this.state.showQrCode.uuid];
+    /**
+     * Render the QR code dialog for pairing
+     */
+    renderQrCodeDialog(): React.JSX.Element {
+        const uuid = this.state.showQrCode?.uuid;
+        const nodeState = uuid && this.props.nodeStates[this.state.showQrCode.uuid];
         if (nodeState && !nodeState.qrPairingCode) {
             // it seems the device was commissioned, so switch to debug view
             setTimeout(
@@ -381,6 +386,30 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                     />
                 </DialogContent>
                 <DialogActions>
+                    <Button
+                        onClick={async () => {
+                            const result = await this.props.socket.sendTo(
+                                `matter.${this.props.instance}`,
+                                'deviceReAnnounce',
+                                {
+                                    uuid,
+                                },
+                            );
+
+                            if (result.error) {
+                                window.alert(`Cannot re-announce: ${result.error}`);
+                            } else {
+                                this.props.updateNodeStates({
+                                    [uuid]: result.result,
+                                });
+                            }
+                        }}
+                        startIcon={<SettingsInputAntenna />}
+                        color="primary"
+                        variant="contained"
+                    >
+                        {I18n.t('Re-announce')}
+                    </Button>
                     <Button
                         onClick={() => this.setState({ showQrCode: null })}
                         startIcon={<Close />}

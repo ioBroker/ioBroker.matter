@@ -14,7 +14,6 @@ import {
     KeyboardArrowUp,
     QuestionMark,
     Save,
-    SettingsInputAntenna,
     UnfoldLess,
     UnfoldMore,
 } from '@mui/icons-material';
@@ -1179,36 +1178,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                     opacity: bridge.enabled ? 1 : 0.5,
                                 }}
                                 sx={styles.devicesHeader}
-                            >
-                                {this.props.alive &&
-                                bridge.enabled &&
-                                this.props.nodeStates[bridge.uuid]?.status === 'waitingForCommissioning' ? (
-                                    <Tooltip
-                                        title={I18n.t('Re-announce')}
-                                        componentsProps={{ popper: { sx: styles.tooltip } }}
-                                    >
-                                        <IconButton
-                                            onClick={() => {
-                                                this.props.socket
-                                                    .sendTo(`matter.${this.props.instance}`, 'deviceReAnnounce', {
-                                                        uuid: bridge.uuid,
-                                                    })
-                                                    .then(result => {
-                                                        if (result.error) {
-                                                            window.alert(`Cannot re-announce: ${result.error}`);
-                                                        } else {
-                                                            this.props.updateNodeStates({
-                                                                [bridge.uuid]: result.result,
-                                                            });
-                                                        }
-                                                    });
-                                            }}
-                                        >
-                                            <SettingsInputAntenna />
-                                        </IconButton>
-                                    </Tooltip>
-                                ) : null}
-                            </TableCell>
+                            />
                             <TableCell
                                 style={{
                                     width: 0,

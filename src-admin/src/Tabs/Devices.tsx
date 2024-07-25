@@ -13,7 +13,6 @@ import {
     Info,
     QuestionMark,
     Save,
-    SettingsInputAntenna,
 } from '@mui/icons-material';
 import {
     Box,
@@ -843,31 +842,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         </Tooltip>
                     ) : null}
                 </TableCell>
-                <TableCell style={{ width: 0 }}>
-                    {this.props.alive && this.props.nodeStates[device.uuid]?.status === 'waitingForCommissioning' ? (
-                        <Tooltip title={I18n.t('Re-announce')} componentsProps={{ popper: { sx: styles.tooltip } }}>
-                            <IconButton
-                                onClick={() => {
-                                    this.props.socket
-                                        .sendTo(`matter.${this.props.instance}`, 'deviceReAnnounce', {
-                                            uuid: device.uuid,
-                                        })
-                                        .then(result => {
-                                            if (result.error) {
-                                                window.alert(`Cannot re-announce: ${result.error}`);
-                                            } else {
-                                                this.props.updateNodeStates({
-                                                    [device.uuid]: result.result,
-                                                });
-                                            }
-                                        });
-                                }}
-                            >
-                                <SettingsInputAntenna />
-                            </IconButton>
-                        </Tooltip>
-                    ) : null}
-                </TableCell>
+                <TableCell style={{ width: 0 }} />
                 <TableCell style={{ width: 0 }}>
                     <Tooltip title={I18n.t('Delete device')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                         <IconButton

@@ -37,7 +37,8 @@ import type {
     MatterConfig,
     NodeStateResponse,
     NodeStates,
-} from '@/types';
+} from '../types';
+import { formatPairingCode } from '../Utils';
 
 export const STYLES: Record<string, React.CSSProperties> = {
     vendorIcon: {
@@ -320,7 +321,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                         showDebugData: this.state.showQrCode,
                         showQrCode: null,
                     }),
-                1000,
+                1_000,
             );
         }
         if (!this.state.showQrCode || !nodeState) {
@@ -334,7 +335,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                         {nodeState.qrPairingCode ? <QRCode value={nodeState.qrPairingCode} /> : null}
                     </div>
                     <TextField
-                        value={nodeState.manualPairingCode || ''}
+                        value={nodeState.manualPairingCode ? formatPairingCode(nodeState.manualPairingCode) : ''}
                         InputProps={{
                             readOnly: true,
                             endAdornment: nodeState.manualPairingCode ? (

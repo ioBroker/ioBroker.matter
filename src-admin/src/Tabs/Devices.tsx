@@ -649,7 +649,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 addDevicePreDialog: false,
                                 addDeviceDialog: {
                                     devices: this.props.matter.devices,
-                                    noAutoDetect: true,
+                                    noAutoDetect: false,
                                 },
                             });
                         }}
@@ -666,7 +666,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 addDevicePreDialog: false,
                                 addDeviceDialog: {
                                     devices: this.props.matter.devices,
-                                    noAutoDetect: false,
+                                    noAutoDetect: true,
                                 },
                             });
                         }}

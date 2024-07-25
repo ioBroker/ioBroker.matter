@@ -921,6 +921,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 </Box>
                 <Tooltip title={I18n.t('Add device')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                     <Fab
+                        color="primary"
                         size="small"
                         onClick={() =>
                             this.setState({

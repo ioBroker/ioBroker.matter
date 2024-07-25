@@ -1237,6 +1237,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 {this.renderResetDialog()}
                 <Tooltip title={I18n.t('Add bridge')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                     <Fab
+                        color="primary"
                         size="small"
                         onClick={async () => {
                             const isLicenseOk = await this.props.checkLicenseOnAdd('addBridge');

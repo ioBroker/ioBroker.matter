@@ -70,6 +70,7 @@
   "Only required if you want to use bridge or device options with more than 5 devices": "仅当您想要对超过 5 个设备使用桥接或设备选项时才需要",
   "Options": "选项",
   "Please confirm": "请确认",
+  "Please scan this QR-Code with the App of the ecosystem you want to pair it to or use the below printed setup code.": "请使用您想要配对的生态系统的应用程序扫描此二维码，或使用下面打印的设置代码。",
   "Product ID": "产品编号",
   "Provide your Thread or BLE information or both!": "提供您的线程或 BLE 信息或两者！",
   "QR Code to connect": "二维码连接",

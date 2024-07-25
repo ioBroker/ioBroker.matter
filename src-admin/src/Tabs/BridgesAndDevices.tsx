@@ -5,6 +5,7 @@ import {
     Close,
     ContentCopy,
     Delete,
+    Info,
     QrCode,
     QuestionMark,
     SignalWifiStatusbarNull,
@@ -12,6 +13,7 @@ import {
     WifiOff,
 } from '@mui/icons-material';
 import {
+    Box,
     Button,
     Dialog,
     DialogActions,
@@ -25,6 +27,7 @@ import {
     TableRow,
     TextField,
     Tooltip,
+    Typography,
 } from '@mui/material';
 import { SiAmazonalexa, SiApple, SiGoogleassistant, SiSmartthings } from 'react-icons/si';
 
@@ -48,7 +51,17 @@ export const STYLES: Record<string, React.CSSProperties> = {
     tooltip: {
         pointerEvents: 'none',
     },
-};
+    infoBox: {
+        display: 'flex',
+        gap: 1,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderStyle: 'solid',
+        padding: 1,
+        borderRadius: 5,
+        marginBottom: 1,
+    },
+} as const;
 
 export interface BridgesAndDevicesProps {
     alive: boolean;
@@ -331,6 +344,14 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
             <Dialog onClose={() => this.setState({ showQrCode: null })} open={!0} maxWidth="md">
                 <DialogTitle>{I18n.t('QR Code to connect')}</DialogTitle>
                 <DialogContent>
+                    <Box sx={STYLES.infoBox}>
+                        <Info />
+                        <Typography>
+                            {I18n.t(
+                                'Please scan this QR-Code with the App of the ecosystem you want to pair it to or use the below printed setup code.',
+                            )}
+                        </Typography>
+                    </Box>
                     <div style={{ background: 'white', padding: 16 }}>
                         {nodeState.qrPairingCode ? <QRCode value={nodeState.qrPairingCode} /> : null}
                     </div>
@@ -356,6 +377,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                         fullWidth
                         label={I18n.t('Manual pairing code')}
                         variant="standard"
+                        sx={{ marginTop: 1 }}
                     />
                 </DialogContent>
                 <DialogActions>

@@ -42,8 +42,8 @@ import {
 
 import { I18n, SelectID } from '@iobroker/adapter-react-v5';
 
-import type { DetectedDevice, DeviceDescription, MatterConfig } from '@/types';
 import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../components/DeviceDialog';
+import type { DetectedDevice, DeviceDescription, MatterConfig } from '../types';
 import { clone, detectDevices, getText } from '../Utils';
 import BridgesAndDevices, {
     type BridgesAndDevicesProps,
@@ -900,18 +900,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 {this.renderDebugDialog()}
                 {this.renderQrCodeDialog()}
                 {this.renderResetDialog()}
-                <Box
-                    sx={{
-                        display: 'flex',
-                        gap: 1,
-                        alignItems: 'center',
-                        borderWidth: 1,
-                        borderStyle: 'solid',
-                        padding: 1,
-                        borderRadius: 5,
-                        marginBottom: 1,
-                    }}
-                >
+                <Box sx={styles.infoBox}>
                     <Info />
                     <Typography sx={{ whiteSpace: 'pre' }}>
                         {I18n.t(

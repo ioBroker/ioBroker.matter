@@ -70,6 +70,7 @@
   "Only required if you want to use bridge or device options with more than 5 devices": "Nur erforderlich, wenn Sie Bridge- oder Geräteoptionen mit mehr als 5 Geräten nutzen möchten",
   "Options": "Optionen",
   "Please confirm": "Bitte bestätigen",
+  "Please scan this QR-Code with the App of the ecosystem you want to pair it to or use the below printed setup code.": "Bitte scannen Sie diesen QR-Code mit der App des Ökosystems, mit dem Sie es koppeln möchten, oder verwenden Sie den unten aufgedruckten Setup-Code.",
   "Product ID": "Produkt ID",
   "Provide your Thread or BLE information or both!": "Geben Sie Ihre Thread- oder BLE-Informationen oder beides an!",
   "QR Code to connect": "QR-Code zum Verbinden",

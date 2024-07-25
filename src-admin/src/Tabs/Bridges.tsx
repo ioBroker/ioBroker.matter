@@ -41,6 +41,7 @@ import {
 
 import { I18n, SelectID, type IobTheme } from '@iobroker/adapter-react-v5';
 
+import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import type {
     BridgeDescription,
     BridgeDeviceDescription,
@@ -48,8 +49,7 @@ import type {
     DetectedRoom,
     DeviceDescription,
     MatterConfig,
-} from '@/types';
-import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../components/DeviceDialog';
+} from '../types';
 import { clone, detectDevices, getText } from '../Utils';
 import BridgesAndDevices, {
     STYLES,

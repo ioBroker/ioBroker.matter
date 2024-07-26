@@ -297,3 +297,12 @@ export function getText(text: ioBroker.StringOrTranslated): string {
 export function clone<TObject extends Record<string, any>>(obj: TObject): TObject {
     return JSON.parse(JSON.stringify(obj));
 }
+
+/**
+ * Format a pairing code like 1234-567-8911
+ *
+ * @param pairingCode the pairing code
+ */
+export function formatPairingCode(pairingCode: string): string {
+    return `${pairingCode.substring(0, 4)}-${pairingCode.substring(4, 7)}-${pairingCode.substring(7)}`;
+}

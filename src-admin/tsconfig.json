@@ -36,11 +36,6 @@
     "types": [
       "@iobroker/types"
     ],
-    "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-    }
   },
   "include": [
     "./src/**/*.ts",

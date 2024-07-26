@@ -5,13 +5,16 @@ import {
     Close,
     ContentCopy,
     Delete,
+    Info,
     QrCode,
     QuestionMark,
+    SettingsInputAntenna,
     SignalWifiStatusbarNull,
     Wifi,
     WifiOff,
 } from '@mui/icons-material';
 import {
+    Box,
     Button,
     Dialog,
     DialogActions,
@@ -25,6 +28,7 @@ import {
     TableRow,
     TextField,
     Tooltip,
+    Typography,
 } from '@mui/material';
 import { SiAmazonalexa, SiApple, SiGoogleassistant, SiSmartthings } from 'react-icons/si';
 
@@ -37,7 +41,8 @@ import type {
     MatterConfig,
     NodeStateResponse,
     NodeStates,
-} from '@/types';
+} from '../types';
+import { formatPairingCode } from '../Utils';
 
 export const STYLES: Record<string, React.CSSProperties> = {
     vendorIcon: {
@@ -47,7 +52,17 @@ export const STYLES: Record<string, React.CSSProperties> = {
     tooltip: {
         pointerEvents: 'none',
     },
-};
+    infoBox: {
+        display: 'flex',
+        gap: 1,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderStyle: 'solid',
+        padding: 1,
+        borderRadius: 5,
+        marginBottom: 1,
+    },
+} as const;
 
 export interface BridgesAndDevicesProps {
     alive: boolean;
@@ -310,8 +325,12 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         );
     }
 
-    renderQrCodeDialog() {
-        const nodeState = this.state.showQrCode?.uuid && this.props.nodeStates[this.state.showQrCode.uuid];
+    /**
+     * Render the QR code dialog for pairing
+     */
+    renderQrCodeDialog(): React.JSX.Element {
+        const uuid = this.state.showQrCode?.uuid;
+        const nodeState = uuid && this.props.nodeStates[this.state.showQrCode.uuid];
         if (nodeState && !nodeState.qrPairingCode) {
             // it seems the device was commissioned, so switch to debug view
             setTimeout(
@@ -320,7 +339,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                         showDebugData: this.state.showQrCode,
                         showQrCode: null,
                     }),
-                1000,
+                1_000,
             );
         }
         if (!this.state.showQrCode || !nodeState) {
@@ -330,11 +349,19 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
             <Dialog onClose={() => this.setState({ showQrCode: null })} open={!0} maxWidth="md">
                 <DialogTitle>{I18n.t('QR Code to connect')}</DialogTitle>
                 <DialogContent>
+                    <Box sx={STYLES.infoBox}>
+                        <Info />
+                        <Typography>
+                            {I18n.t(
+                                'Please scan this QR-Code with the App of the ecosystem you want to pair it to or use the below printed setup code.',
+                            )}
+                        </Typography>
+                    </Box>
                     <div style={{ background: 'white', padding: 16 }}>
                         {nodeState.qrPairingCode ? <QRCode value={nodeState.qrPairingCode} /> : null}
                     </div>
                     <TextField
-                        value={nodeState.manualPairingCode || ''}
+                        value={nodeState.manualPairingCode ? formatPairingCode(nodeState.manualPairingCode) : ''}
                         InputProps={{
                             readOnly: true,
                             endAdornment: nodeState.manualPairingCode ? (
@@ -355,9 +382,34 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                         fullWidth
                         label={I18n.t('Manual pairing code')}
                         variant="standard"
+                        sx={{ marginTop: 1 }}
                     />
                 </DialogContent>
                 <DialogActions>
+                    <Button
+                        onClick={async () => {
+                            const result = await this.props.socket.sendTo(
+                                `matter.${this.props.instance}`,
+                                'deviceReAnnounce',
+                                {
+                                    uuid,
+                                },
+                            );
+
+                            if (result.error) {
+                                window.alert(`Cannot re-announce: ${result.error}`);
+                            } else {
+                                this.props.updateNodeStates({
+                                    [uuid]: result.result,
+                                });
+                            }
+                        }}
+                        startIcon={<SettingsInputAntenna />}
+                        color="primary"
+                        variant="contained"
+                    >
+                        {I18n.t('Re-announce')}
+                    </Button>
                     <Button
                         onClick={() => this.setState({ showQrCode: null })}
                         startIcon={<Close />}

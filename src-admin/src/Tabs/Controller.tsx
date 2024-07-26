@@ -47,7 +47,7 @@ import type { AdminConnection, IobTheme, ThemeName, ThemeType } from '@iobroker/
 import { I18n, IconClosed, IconOpen } from '@iobroker/adapter-react-v5';
 import DeviceManager from '@iobroker/dm-gui-components';
 
-import type { CommissionableDevice, GUIMessage, MatterConfig } from '@/types';
+import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
 import { clone, getText } from '../Utils';
 
 const styles: Record<string, React.CSSProperties> = {

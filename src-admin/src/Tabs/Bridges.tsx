@@ -4,15 +4,16 @@ import { v4 as uuidv4 } from 'uuid';
 
 import {
     Add,
+    AutoMode,
     Close,
     Delete,
     DomainDisabled,
     Edit,
+    FormatListBulleted,
     KeyboardArrowDown,
     KeyboardArrowUp,
     QuestionMark,
     Save,
-    SettingsInputAntenna,
     UnfoldLess,
     UnfoldMore,
 } from '@mui/icons-material';
@@ -41,6 +42,7 @@ import {
 
 import { I18n, SelectID, type IobTheme } from '@iobroker/adapter-react-v5';
 
+import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import type {
     BridgeDescription,
     BridgeDeviceDescription,
@@ -48,8 +50,7 @@ import type {
     DetectedRoom,
     DeviceDescription,
     MatterConfig,
-} from '@/types';
-import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../components/DeviceDialog';
+} from '../types';
 import { clone, detectDevices, getText } from '../Utils';
 import BridgesAndDevices, {
     STYLES,
@@ -129,6 +130,21 @@ interface BridgesProps extends BridgesAndDevicesProps {
 }
 
 interface BridgesState extends BridgesAndDevicesState {
+    /** Open Dialog to select further options to add a device */
+    addDevicePreDialog:
+        | {
+              /** If dialog open */
+              open: true;
+              bridge: {
+                  name: string;
+                  bridgeIndex: number;
+                  devices: BridgeDeviceDescription[];
+              };
+          }
+        | {
+              /** If dialog open */
+              open: false;
+          };
     editBridgeDialog: {
         type: 'bridge';
         name: string;
@@ -199,6 +215,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         }
 
         Object.assign(this.state, {
+            addDevicePreDialog: { open: false },
             addDeviceDialog: null,
             editBridgeDialog: null,
             editDeviceDialog: null,
@@ -729,6 +746,69 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         );
     }
 
+    /**
+     * Render dialog to select if devices should be added from state or detected automatically
+     */
+    renderAddDevicesPreDialog(): React.JSX.Element {
+        if (!this.state.addDevicePreDialog.open) {
+            return null;
+        }
+
+        return (
+            <Dialog open={!0} onClose={() => this.setState({ addDevicePreDialog: { open: false } })}>
+                <DialogTitle>{I18n.t('Add device')}</DialogTitle>
+                <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Button
+                        onClick={() => {
+                            if (!this.state.addDevicePreDialog.open) {
+                                return;
+                            }
+
+                            this.setState({
+                                addDevicePreDialog: { open: false },
+                                addDeviceDialog: {
+                                    noAutoDetect: false,
+                                    name: getText(this.state.addDevicePreDialog.bridge.name),
+                                    bridgeIndex: this.state.addDevicePreDialog.bridge.bridgeIndex,
+                                    devices: this.state.addDevicePreDialog.bridge.devices,
+                                },
+                            });
+                        }}
+                        startIcon={<AutoMode />}
+                        color="primary"
+                        variant="contained"
+                        sx={{ justifyContent: 'flex-start' }}
+                    >
+                        {I18n.t('Add device with auto-detection')}
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            if (!this.state.addDevicePreDialog.open) {
+                                return;
+                            }
+
+                            this.setState({
+                                addDevicePreDialog: { open: false },
+                                addDeviceDialog: {
+                                    noAutoDetect: true,
+                                    name: getText(this.state.addDevicePreDialog.bridge.name),
+                                    bridgeIndex: this.state.addDevicePreDialog.bridge.bridgeIndex,
+                                    devices: this.state.addDevicePreDialog.bridge.devices,
+                                },
+                            });
+                        }}
+                        startIcon={<FormatListBulleted />}
+                        color="primary"
+                        variant="contained"
+                        sx={{ justifyContent: 'flex-start' }}
+                    >
+                        {I18n.t('Add device from one state')}
+                    </Button>
+                </DialogContent>
+            </Dialog>
+        );
+    }
+
     renderAddCustomDeviceDialog() {
         if (!this.state.addCustomDeviceDialog) {
             return null;
@@ -1085,41 +1165,20 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             </TableCell>
                             <TableCell
                                 style={{
+                                    fontWeight: 'bold',
+                                    opacity: bridge.enabled ? 1 : 0.5,
+                                    paddingLeft: 8,
+                                }}
+                                sx={styles.devicesHeader}
+                            />
+                            <TableCell
+                                style={{
                                     width: 0,
                                     textAlign: 'center',
                                     opacity: bridge.enabled ? 1 : 0.5,
                                 }}
                                 sx={styles.devicesHeader}
-                            >
-                                {this.props.alive &&
-                                bridge.enabled &&
-                                this.props.nodeStates[bridge.uuid]?.status === 'waitingForCommissioning' ? (
-                                    <Tooltip
-                                        title={I18n.t('Re-announce')}
-                                        componentsProps={{ popper: { sx: styles.tooltip } }}
-                                    >
-                                        <IconButton
-                                            onClick={() => {
-                                                this.props.socket
-                                                    .sendTo(`matter.${this.props.instance}`, 'deviceReAnnounce', {
-                                                        uuid: bridge.uuid,
-                                                    })
-                                                    .then(result => {
-                                                        if (result.error) {
-                                                            window.alert(`Cannot re-announce: ${result.error}`);
-                                                        } else {
-                                                            this.props.updateNodeStates({
-                                                                [bridge.uuid]: result.result,
-                                                            });
-                                                        }
-                                                    });
-                                            }}
-                                        >
-                                            <SettingsInputAntenna />
-                                        </IconButton>
-                                    </Tooltip>
-                                ) : null}
-                            </TableCell>
+                            />
                             <TableCell
                                 style={{
                                     width: 0,
@@ -1150,7 +1209,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                 sx={styles.devicesHeader}
                             >
                                 <Tooltip
-                                    title={I18n.t('Add device with auto-detection')}
+                                    title={I18n.t('Add device')}
                                     componentsProps={{ popper: { sx: styles.tooltip } }}
                                 >
                                     <IconButton
@@ -1166,46 +1225,9 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                                 return;
                                             }
                                             this.setState({
-                                                addDeviceDialog: {
-                                                    noAutoDetect: false,
-                                                    name: getText(bridge.name),
-                                                    bridgeIndex,
-                                                    devices: bridge.list,
-                                                },
-                                            });
-                                        }}
-                                    >
-                                        <Add />
-                                    </IconButton>
-                                </Tooltip>
-                            </TableCell>
-                            <TableCell
-                                style={{ width: 0, opacity: bridge.enabled ? 1 : 0.5 }}
-                                sx={styles.devicesHeader}
-                            >
-                                <Tooltip
-                                    title={I18n.t('Add device from one state')}
-                                    componentsProps={{ popper: { sx: styles.tooltip } }}
-                                >
-                                    <IconButton
-                                        style={{ color: 'gray' }}
-                                        onClick={async () => {
-                                            const isLicenseOk = await this.props.checkLicenseOnAdd('addDeviceToBridge');
-                                            if (!isLicenseOk) {
-                                                this.props.alive &&
-                                                    this.props.showToast(
-                                                        I18n.t(
-                                                            'You need ioBroker.pro assistant or remote subscription to have more than 5 devices in bridge',
-                                                        ),
-                                                    );
-                                                return;
-                                            }
-                                            this.setState({
-                                                addDeviceDialog: {
-                                                    noAutoDetect: true,
-                                                    name: getText(bridge.name),
-                                                    bridgeIndex,
-                                                    devices: bridge.list,
+                                                addDevicePreDialog: {
+                                                    open: true,
+                                                    bridge: { devices: bridge.list, name: bridge.name, bridgeIndex },
                                                 },
                                             });
                                         }}
@@ -1228,6 +1250,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         return (
             <div>
                 {this.renderAddDeviceDialog()}
+                {this.renderAddDevicesPreDialog()}
                 {this.renderAddCustomDeviceDialog()}
                 {this.renderDeleteDialog()}
                 {this.renderBridgeEditDialog()}
@@ -1237,6 +1260,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 {this.renderResetDialog()}
                 <Tooltip title={I18n.t('Add bridge')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                     <Fab
+                        color="primary"
                         size="small"
                         onClick={async () => {
                             const isLicenseOk = await this.props.checkLicenseOnAdd('addBridge');
@@ -1316,7 +1340,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 ) : (
                     I18n.t('No bridges created. Create one, by clicking on the "+" button in the bottom right corner.')
                 )}
-                <Table size="small" style={{ width: '100%', maxWidth: 600 }} padding="none" sx={styles.table}>
+                <Table size="small" style={{ width: '100%' }} padding="none" sx={styles.table}>
                     <TableBody>
                         {this.props.matter.bridges.map((bridge, bridgeIndex) => this.renderBridge(bridge, bridgeIndex))}
                     </TableBody>

@@ -53,6 +53,7 @@ export const STYLES: Record<string, React.CSSProperties> = {
         pointerEvents: 'none',
     },
     infoBox: {
+        whiteSpace: 'preserve',
         display: 'flex',
         gap: 1,
         alignItems: 'center',

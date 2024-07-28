@@ -10,6 +10,7 @@ import {
     DomainDisabled,
     Edit,
     FormatListBulleted,
+    Info,
     KeyboardArrowDown,
     KeyboardArrowUp,
     QuestionMark,
@@ -18,6 +19,7 @@ import {
     UnfoldMore,
 } from '@mui/icons-material';
 import {
+    Box,
     Button,
     Checkbox,
     Dialog,
@@ -38,6 +40,7 @@ import {
     TableRow,
     TextField,
     Tooltip,
+    Typography,
 } from '@mui/material';
 
 import { I18n, SelectID, type IobTheme } from '@iobroker/adapter-react-v5';
@@ -930,14 +933,19 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 </TableCell>
                 <TableCell />
                 <TableCell style={{ width: 0 }}>
-                    <Switch
-                        checked={device.enabled}
-                        onChange={e => {
-                            const matter = clone(this.props.matter);
-                            matter.bridges[bridgeIndex].list[devIndex].enabled = e.target.checked;
-                            this.props.updateConfig(matter);
-                        }}
-                    />
+                    <Tooltip
+                        title={I18n.t(device.enabled ? 'Disable device' : 'Enable device')}
+                        componentsProps={{ popper: { sx: styles.tooltip } }}
+                    >
+                        <Switch
+                            checked={device.enabled}
+                            onChange={e => {
+                                const matter = clone(this.props.matter);
+                                matter.bridges[bridgeIndex].list[devIndex].enabled = e.target.checked;
+                                this.props.updateConfig(matter);
+                            }}
+                        />
+                    </Tooltip>
                 </TableCell>
                 <TableCell style={{ width: 0 }}>
                     <Tooltip title={I18n.t('Edit device')} componentsProps={{ popper: { sx: styles.tooltip } }}>
@@ -1258,6 +1266,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 {this.renderQrCodeDialog()}
                 {this.renderDebugDialog()}
                 {this.renderResetDialog()}
+                <Box sx={STYLES.infoBox}>
+                    <Info />
+                    <Typography>{I18n.t('Matter Bridges Infotext')}</Typography>
+                </Box>
                 <Tooltip title={I18n.t('Add bridge')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                     <Fab
                         color="primary"

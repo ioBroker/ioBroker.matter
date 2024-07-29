@@ -14,9 +14,10 @@ import {
     MenuItem,
     Select,
     TextField,
+    Typography,
 } from '@mui/material';
 
-import { Check, Close, LayersClear } from '@mui/icons-material';
+import { Check, Close, Info, LayersClear } from '@mui/icons-material';
 
 import { type AdminConnection, I18n, Logo } from '@iobroker/adapter-react-v5';
 
@@ -34,8 +35,26 @@ const styles: Record<string, React.CSSProperties> = {
         flexDirection: 'column',
     },
     input: {
+        marginTop: 1,
+        marginBottom: 1,
         width: '100%',
         maxWidth: 300,
+    },
+    header: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 1,
+    },
+    infoBox: {
+        whiteSpace: 'preserve',
+        display: 'flex',
+        gap: 1,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderStyle: 'solid',
+        padding: 1,
+        borderRadius: 5,
+        marginBottom: 2,
     },
 };
 
@@ -91,11 +110,11 @@ class Options extends Component<OptionsProps, OptionsState> {
             <Dialog open={!0} onClose={() => this.setState({ showDialog: false })} maxWidth="md">
                 <DialogTitle>{I18n.t('Please confirm')}</DialogTitle>
                 <DialogContent>
-                    {I18n.t(
-                        'All state information of matter controller and devices will be deleted. You cannot undo it.',
-                    )}
-                    <br />
-                    {I18n.t('The configuration of controller, bridges and devices will stay unchanged.')}
+                    <Typography sx={{ whiteSpace: 'preserve' }}>
+                        {I18n.t(
+                            'All state information of matter controller and devices will be deleted. You cannot undo it.',
+                        )}
+                    </Typography>
                     <br />
                     {this.state.dialogLevel ? I18n.t('Are you really sure?') : I18n.t('Are you sure?')}
                 </DialogContent>
@@ -223,13 +242,23 @@ class Options extends Component<OptionsProps, OptionsState> {
                     onError={text => this.props.showToast(text)}
                     onLoad={this.props.onLoad}
                 />
+                <Typography sx={styles.header}>{I18n.t('Network configuration')}</Typography>
+                <Box sx={styles.infoBox}>
+                    <Info />
+                    <Typography>
+                        {I18n.t(
+                            'If your device has more then one active network interface and you have issues try limiting it to one interface',
+                        )}
+                    </Typography>
+                </Box>
+
                 {!this.state.interfaces?.length ? (
                     <TextField
                         style={styles.input}
                         variant="standard"
                         value={this.props.native.interface}
                         onChange={e => this.props.onChange('interface', e.target.value === '_' ? '' : e.target.value)}
-                        label={I18n.t('Interface')}
+                        label={I18n.t('Limit network traffic to the selected interfaces')}
                     />
                 ) : (
                     <FormControl style={styles.input}>
@@ -318,7 +347,15 @@ class Options extends Component<OptionsProps, OptionsState> {
                 </Box>
 
                 <div style={{ marginTop: 50 }}>
-                    {I18n.t('Only required if you want to use bridge or device options with more than 5 devices')}
+                    <Typography sx={styles.header}>{I18n.t('Cloud Account')}</Typography>
+                    <Box sx={styles.infoBox}>
+                        <Info />
+                        <Typography>
+                            {I18n.t(
+                                'To use a Matter bridge or device options with more than 5 devices please enter valid ioBroker.pro Cloud credentials with at least an active Assistant license.',
+                            )}
+                        </Typography>
+                    </Box>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline' }}>
                     <TextField
@@ -360,6 +397,7 @@ class Options extends Component<OptionsProps, OptionsState> {
                 </div>
 
                 <div style={{ marginTop: 50 }}>
+                    <Typography sx={styles.header}>{I18n.t('Logging')}</Typography>
                     <FormControlLabel
                         control={
                             <Checkbox
@@ -368,10 +406,12 @@ class Options extends Component<OptionsProps, OptionsState> {
                                 color="primary"
                             />
                         }
-                        label={I18n.t('Show all debug logs')}
+                        label={I18n.t('Enable enhanced debug logging for the Matter protocol')}
                     />
                 </div>
+
                 <div style={{ marginTop: 50 }}>
+                    <Typography sx={styles.header}>{I18n.t('Maintenance Settings')}</Typography>
                     <Button
                         disabled={!this.props.alive}
                         onClick={() => this.setState({ showDialog: true, dialogLevel: 0 })}
@@ -379,7 +419,7 @@ class Options extends Component<OptionsProps, OptionsState> {
                         color="grey"
                         startIcon={<LayersClear />}
                     >
-                        {I18n.t('Reset all matter state information')}
+                        {I18n.t('Controller and Device Factory Reset')}
                     </Button>
                 </div>
             </div>

@@ -794,8 +794,8 @@ export class MatterAdapter extends utils.Adapter {
             }
         }
 
-        // When we just handle one object we do not need to sync with running  devices and bridges
-        if (obj === undefined) {
+        // When we just handle one object we do not need to sync with running devices and bridges
+        if (obj !== undefined) {
             // Objects existing, not deleted, so disable not enabled bridges or devices
             for (const bridgeId of this.#bridges.keys()) {
                 if (!bridges.find(obj => obj._id === bridgeId)) {

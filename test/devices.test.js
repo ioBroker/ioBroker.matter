@@ -1,7 +1,8 @@
 const ChannelDetectorImport = require('@iobroker/type-detector');
 const Types = ChannelDetectorImport.Types;
 const SubscribeManager = require('../build/lib/SubscribeManager');
-const { StateAccessType, ValueType} = require('../build/lib/devices/GenericDevice');
+const { StateAccessType } = require('../build/lib/devices/GenericDevice');
+const { ValueType } = require('../build/lib/devices/DeviceStateObject');
 
 // create a maximal set of states
 const detectedDevices = {
@@ -213,9 +214,9 @@ class Adapter {
         if (!this.states[id]) {
             const entry = detectedDevices.states.find(state => state.id === id);
             if (entry && entry.val !== undefined) {
-                this.states[id] = {ts: Date.now(), val: entry.val, ack: true};
+                this.states[id] = { ts: Date.now(), val: entry.val, ack: true };
             } else {
-                this.states[id] = {ts: Date.now(), val: null, ack: true};
+                this.states[id] = { ts: Date.now(), val: null, ack: true };
             }
         }
         return this.states[id];
@@ -227,7 +228,6 @@ class Adapter {
         if (pos !== -1) {
             this.subscribed.splice(pos, 1);
         }
-
     }
 
     async subscribeForeignStatesAsync(id) {
@@ -268,7 +268,10 @@ describe('Test Devices', function () {
             const subscribed = adapter.getSubscribed();
             const props = Object.keys(properties);
             for (const prop of props) {
-                if (properties[prop].accessType === StateAccessType.Read || properties[prop].accessType === StateAccessType.ReadWrite) {
+                if (
+                    properties[prop].accessType === StateAccessType.Read ||
+                    properties[prop].accessType === StateAccessType.ReadWrite
+                ) {
                     // check that read properties are subscribed
                     if (!subscribed.includes(properties[prop].read)) {
                         throw new Error(`Property "${prop}" of "${type}" was not subscribed, but it is readable`);
@@ -280,7 +283,10 @@ describe('Test Devices', function () {
                     }
                 }
 
-                if (properties[prop].accessType === StateAccessType.Write || properties[prop].accessType === StateAccessType.ReadWrite) {
+                if (
+                    properties[prop].accessType === StateAccessType.Write ||
+                    properties[prop].accessType === StateAccessType.ReadWrite
+                ) {
                     // check setter
                     if (!deviceObj[`set${prop[0].toUpperCase()}${prop.substring(1)}`]) {
                         throw new Error(`Property "${prop}" of "${type}" has no setter`);
@@ -299,15 +305,21 @@ describe('Test Devices', function () {
                         throw new Error(`Property "${prop}" of "${type}" has getter`);
                     }
                 }
-                if (properties[prop].accessType === StateAccessType.Read || properties[prop].accessType === StateAccessType.ReadWrite) {
+                if (
+                    properties[prop].accessType === StateAccessType.Read ||
+                    properties[prop].accessType === StateAccessType.ReadWrite
+                ) {
                     // Try to read value
                     if (deviceObj.getPropertyValue(prop) === undefined) {
                         throw new Error(`Property "${prop}" of "${type}" has no value`);
                     }
                 }
                 if (properties[prop].accessType === StateAccessType.Write) {
-                    let value
-                    if (properties[prop].valueType === ValueType.Boolean || properties[prop].valueType === ValueType.Button) {
+                    let value;
+                    if (
+                        properties[prop].valueType === ValueType.Boolean ||
+                        properties[prop].valueType === ValueType.Button
+                    ) {
                         value = true;
                     } else if (properties[prop].valueType === ValueType.Enum) {
                         value = 1;
@@ -322,8 +334,11 @@ describe('Test Devices', function () {
                 } else if (properties[prop].accessType === StateAccessType.ReadWrite) {
                     // subscribe on changes and try to read value
                     setTimeout(async () => {
-                        let value
-                        if (properties[prop].valueType === ValueType.Boolean || properties[prop].valueType === ValueType.Button) {
+                        let value;
+                        if (
+                            properties[prop].valueType === ValueType.Boolean ||
+                            properties[prop].valueType === ValueType.Button
+                        ) {
                             value = true;
                         } else if (properties[prop].valueType === ValueType.Enum) {
                             value = 1;
@@ -336,7 +351,7 @@ describe('Test Devices', function () {
                         await deviceObj.setPropertyValue(prop, value);
                         if (properties[prop].read !== properties[prop].write) {
                             console.log(`Write read value of ${prop} with ${value}`);
-                            await adapter.setForeignStateAsync(properties[prop].read, value, true)
+                            await adapter.setForeignStateAsync(properties[prop].read, value, true);
                         }
                     }, 0);
 
@@ -351,7 +366,9 @@ describe('Test Devices', function () {
                 }
             }
             if (Object.keys(possibleProperties).length) {
-                throw new Error(`Device "${type}" has not all properties detected: ${Object.keys(possibleProperties).join(', ')}`);
+                throw new Error(
+                    `Device "${type}" has not all properties detected: ${Object.keys(possibleProperties).join(', ')}`,
+                );
             }
 
             await deviceObj.destroy();
@@ -376,13 +393,17 @@ describe('Test Devices', function () {
         // subscribe on changes and try to read value
         await deviceObj.setPropertyValue('level', 30);
         const ioBrokerValue = await adapter.getForeignStateAsync(properties.level.read);
-        await new Promise(resolve => setTimeout(() => {
-            const deviceValue = deviceObj.getPropertyValue('level');
-            if (ioBrokerValue.val !== deviceValue) {
-                throw new Error(`Value of ${properties.level.read} is ${ioBrokerValue.val}, but should be ${deviceValue}`);
-            }
-            resolve();
-        }, 100));
+        await new Promise(resolve =>
+            setTimeout(() => {
+                const deviceValue = deviceObj.getPropertyValue('level');
+                if (ioBrokerValue.val !== deviceValue) {
+                    throw new Error(
+                        `Value of ${properties.level.read} is ${ioBrokerValue.val}, but should be ${deviceValue}`,
+                    );
+                }
+                resolve();
+            }, 100),
+        );
         await deviceObj.destroy();
     }).timeout(2000);
 
@@ -392,11 +413,9 @@ describe('Test Devices', function () {
         SubscribeManager.default.setAdapter(adapter);
         adapter.setSubscribeManager(SubscribeManager.default);
         const _detectedDevices = {
-            states: [
-                {name: 'SET', id: '0_userdata.0.set'},
-            ],
+            states: [{ name: 'SET', id: '0_userdata.0.set' }],
             type: 'slider',
-        }
+        };
 
         const deviceObj = new Device.default(_detectedDevices, adapter);
         await deviceObj.init();
@@ -406,16 +425,18 @@ describe('Test Devices', function () {
         // subscribe on changes and try to read value
         await deviceObj.setPropertyValue('level', 30);
         const ioBrokerValue = await adapter.getForeignStateAsync(properties.level.read);
-        await new Promise(resolve => setTimeout(() => {
-            const deviceValue = deviceObj.getPropertyValue('level');
-            if (deviceValue !== 30) {
-                throw new Error(`Value of ${properties.level.read} is ${ioBrokerValue.val}, but should be 30`);
-            }
-            if (ioBrokerValue.val !== -10) {
-                throw new Error(`Value of ${properties.level.read} is ${ioBrokerValue.val}, but should be -10`);
-            }
-            resolve();
-        }, 100));
+        await new Promise(resolve =>
+            setTimeout(() => {
+                const deviceValue = deviceObj.getPropertyValue('level');
+                if (deviceValue !== 30) {
+                    throw new Error(`Value of ${properties.level.read} is ${ioBrokerValue.val}, but should be 30`);
+                }
+                if (ioBrokerValue.val !== -10) {
+                    throw new Error(`Value of ${properties.level.read} is ${ioBrokerValue.val}, but should be -10`);
+                }
+                resolve();
+            }, 100),
+        );
 
         await deviceObj.destroy();
     }).timeout(2000);
@@ -427,11 +448,11 @@ describe('Test Devices', function () {
         adapter.setSubscribeManager(SubscribeManager.default);
         const _detectedDevices = {
             states: [
-                {name: 'SET', id: '0_userdata.0.set'},
-                {name: 'ACTUAL', id: '0_userdata.0.actual'},
+                { name: 'SET', id: '0_userdata.0.set' },
+                { name: 'ACTUAL', id: '0_userdata.0.actual' },
             ],
             type: 'slider',
-        }
+        };
 
         const deviceObj = new Device.default(_detectedDevices, adapter);
         await deviceObj.init();
@@ -445,16 +466,18 @@ describe('Test Devices', function () {
         const ioBrokerValue = await adapter.getForeignStateAsync(properties.level.write);
         await adapter.setForeignStateAsync(properties.level.read, ioBrokerValue.val, true);
 
-        await new Promise(resolve => setTimeout(() => {
-            const deviceValue = deviceObj.getPropertyValue('level');
-            if (deviceValue !== 75) {
-                throw new Error(`Value of ${properties.level.read} is ${ioBrokerValue.val}, but should be 75`);
-            }
-            if (ioBrokerValue.val !== 125) {
-                throw new Error(`Value of ${properties.level.read} is ${ioBrokerValue.val}, but should be 125`);
-            }
-            resolve();
-        }, 100));
+        await new Promise(resolve =>
+            setTimeout(() => {
+                const deviceValue = deviceObj.getPropertyValue('level');
+                if (deviceValue !== 75) {
+                    throw new Error(`Value of ${properties.level.read} is ${ioBrokerValue.val}, but should be 75`);
+                }
+                if (ioBrokerValue.val !== 125) {
+                    throw new Error(`Value of ${properties.level.read} is ${ioBrokerValue.val}, but should be 125`);
+                }
+                resolve();
+            }, 100),
+        );
 
         await deviceObj.destroy();
     }).timeout(20000);

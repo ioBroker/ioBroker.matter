@@ -690,6 +690,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
             return (
                 <SelectID
                     dialogName="matter"
+                    types={['device', 'channel', 'state']}
                     themeType={this.props.themeType}
                     socket={this.props.socket}
                     theme={this.props.theme}

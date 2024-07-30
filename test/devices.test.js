@@ -171,6 +171,7 @@ class Adapter {
         };
         this.subscribed = [];
         this.states = [];
+        this.namespace = 'matter.0';
     }
 
     setSubscribeManager(subscribeManager) {

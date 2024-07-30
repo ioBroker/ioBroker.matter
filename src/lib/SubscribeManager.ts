@@ -14,13 +14,13 @@ class SubscribeManager {
 
     static observer(id: string, state: ioBroker.State | null | undefined): void {
         const callbacks = SubscribeManager.subscribes.get(id);
-        if (callbacks !== undefined && state && !state.ack) {
+        if (callbacks !== undefined && state) {
             callbacks.forEach(callback => callback(state));
         }
     }
 
     static async subscribe(id: string, callback: SubscribeCallback): Promise<void> {
-        const localSubscribe = id.startsWith(SubscribeManager.adapter.namespace);
+        const localSubscribe = id.startsWith(`${SubscribeManager.adapter.namespace}.`);
         if (localSubscribe && !SubscribeManager.locallySubscribed) {
             SubscribeManager.adapter.subscribeStates('*');
             SubscribeManager.locallySubscribed = true;

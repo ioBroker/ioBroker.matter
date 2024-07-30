@@ -1,11 +1,6 @@
-import GenericDevice, {
-    DetectedDevice,
-    DeviceOptions,
-    DeviceStateObject,
-    PropertyType,
-    StateAccessType,
-    ValueType,
-} from './GenericDevice';
+import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import ElectricityDataDevice from './ElectricityDataDevice';
+import { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 enum AirConditionerMode {
     Auto = 'AUTO',
@@ -33,27 +28,27 @@ enum AirConditionerSwing {
     Vertical = 'VERTICAL',
 }
 
-class AirCondition extends GenericDevice {
-    private _levelState: DeviceStateObject<number> | undefined;
-    private _getTemperatureState: DeviceStateObject<number> | undefined;
-    private _powerState: DeviceStateObject<boolean> | undefined;
-    private _getHumidityState: DeviceStateObject<number> | undefined;
-    private _speedState: DeviceStateObject<AirConditionerSpeed> | undefined;
-    private _boostState: DeviceStateObject<boolean | number> | undefined;
-    private _SwingState: DeviceStateObject<AirConditionerSwing> | undefined;
-    private _modeState: DeviceStateObject<AirConditionerMode> | undefined;
+class AirCondition extends ElectricityDataDevice {
+    #levelState?: DeviceStateObject<number>;
+    #getTemperatureState?: DeviceStateObject<number>;
+    #powerState?: DeviceStateObject<boolean>;
+    #getHumidityState?: DeviceStateObject<number>;
+    #speedState?: DeviceStateObject<AirConditionerSpeed>;
+    #boostState?: DeviceStateObject<boolean | number>;
+    #SwingState?: DeviceStateObject<AirConditionerSwing>;
+    #modeState?: DeviceStateObject<AirConditionerMode>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(
+        this._construction.push(
             this.addDeviceStates([
                 {
                     name: 'SET',
                     valueType: ValueType.NumberMinMax,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Level,
-                    callback: state => (this._levelState = state),
+                    callback: state => (this.#levelState = state),
                 },
 
                 {
@@ -61,171 +56,171 @@ class AirCondition extends GenericDevice {
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Temperature,
-                    callback: state => (this._getTemperatureState = state),
+                    callback: state => (this.#getTemperatureState = state),
                 },
                 {
                     name: 'POWER',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Power,
-                    callback: state => (this._powerState = state),
+                    callback: state => (this.#powerState = state),
                 },
                 {
                     name: 'HUMIDITY',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Humidity,
-                    callback: state => (this._getHumidityState = state),
+                    callback: state => (this.#getHumidityState = state),
                 },
                 {
                     name: 'SPEED',
                     valueType: ValueType.Enum,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Speed,
-                    callback: state => (this._speedState = state),
+                    callback: state => (this.#speedState = state),
                 },
                 {
                     name: 'BOOST',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Boost,
-                    callback: state => (this._boostState = state),
+                    callback: state => (this.#boostState = state),
                 },
                 {
                     name: 'SWING',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Swing,
-                    callback: state => (this._SwingState = state),
+                    callback: state => (this.#SwingState = state),
                 },
                 {
                     name: 'MODE',
                     valueType: ValueType.Enum,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Mode,
-                    callback: state => (this._modeState = state),
+                    callback: state => (this.#modeState = state),
                 },
             ]),
         );
     }
 
     getLevel(): number | undefined {
-        if (!this._levelState) {
+        if (!this.#levelState) {
             throw new Error('Level state not found');
         }
-        return this._levelState.value;
+        return this.#levelState.value;
     }
 
     async setLevel(value: number): Promise<void> {
-        if (!this._levelState) {
+        if (!this.#levelState) {
             throw new Error('Level state not found');
         }
-        return this._levelState.setValue(value);
+        return this.#levelState.setValue(value);
     }
 
     getTemperature(): number | undefined {
-        if (!this._getTemperatureState) {
+        if (!this.#getTemperatureState) {
             throw new Error('Temperature state not found');
         }
-        return this._getTemperatureState.value;
+        return this.#getTemperatureState.value;
     }
 
     getPower(): boolean | undefined {
-        if (!this._powerState) {
+        if (!this.#powerState) {
             throw new Error('Power state not found');
         }
-        return this._powerState.value;
+        return this.#powerState.value;
     }
 
     async setPower(value: boolean): Promise<void> {
-        if (!this._powerState) {
+        if (!this.#powerState) {
             throw new Error('Power state not found');
         }
-        return this._powerState.setValue(value);
+        return this.#powerState.setValue(value);
     }
 
     getHumidity(): number | undefined {
-        if (!this._getHumidityState) {
+        if (!this.#getHumidityState) {
             throw new Error('Humidity state not found');
         }
-        return this._getHumidityState.value;
+        return this.#getHumidityState.value;
     }
 
     getBoost(): boolean | number | undefined {
-        if (!this._boostState) {
+        if (!this.#boostState) {
             throw new Error('Boost state not found');
         }
-        return this._boostState.value;
+        return this.#boostState.value;
     }
 
     async setBoost(value: boolean | number): Promise<void> {
-        if (!this._boostState) {
+        if (!this.#boostState) {
             throw new Error('Boost state not found');
         }
-        return this._boostState.setValue(value);
+        return this.#boostState.setValue(value);
     }
 
     getSpeed(): AirConditionerSpeed | undefined {
-        if (!this._speedState) {
+        if (!this.#speedState) {
             throw new Error('Speed state not found');
         }
-        return this._speedState.value;
+        return this.#speedState.value;
     }
 
     async setSpeed(value: AirConditionerSpeed): Promise<void> {
-        if (!this._speedState) {
+        if (!this.#speedState) {
             throw new Error('Speed state not found');
         }
-        return this._speedState.setValue(value);
+        return this.#speedState.setValue(value);
     }
 
-    getSpeedModes(): Promise<AirConditionerSpeed[]> {
-        if (!this._speedState) {
+    getSpeedModes(): AirConditionerSpeed[] {
+        if (!this.#speedState) {
             throw new Error('Speed state not found');
         }
-        return this._speedState.getModes();
+        return this.#speedState.getModes();
     }
 
     getSwing(): AirConditionerSwing | undefined {
-        if (!this._SwingState) {
+        if (!this.#SwingState) {
             throw new Error('Swing state not found');
         }
-        return this._SwingState.value;
+        return this.#SwingState.value;
     }
 
     async setSwing(value: AirConditionerSwing): Promise<void> {
-        if (!this._SwingState) {
+        if (!this.#SwingState) {
             throw new Error('Swing state not found');
         }
-        return this._SwingState.setValue(value);
+        return this.#SwingState.setValue(value);
     }
 
-    getSwingModes(): Promise<AirConditionerSwing[]> {
-        if (!this._SwingState) {
+    getSwingModes(): AirConditionerSwing[] {
+        if (!this.#SwingState) {
             throw new Error('Swing state not found');
         }
-        return this._SwingState.getModes();
+        return this.#SwingState.getModes();
     }
 
     getMode(): AirConditionerMode | undefined {
-        if (!this._modeState) {
+        if (!this.#modeState) {
             throw new Error('Mode state not found');
         }
-        return this._modeState.value;
+        return this.#modeState.value;
     }
 
     async setMode(mode: AirConditionerMode): Promise<void> {
-        if (!this._modeState) {
+        if (!this.#modeState) {
             throw new Error('Mode state not found');
         }
-        await this._modeState.setValue(mode);
+        await this.#modeState.setValue(mode);
     }
 
-    getModes(): Promise<AirConditionerMode[]> {
-        if (!this._modeState) {
+    getModes(): AirConditionerMode[] {
+        if (!this.#modeState) {
             throw new Error('Mode state not found');
         }
-        return this._modeState.getModes();
+        return this.#modeState.getModes();
     }
 }
 

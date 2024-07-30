@@ -1,51 +1,45 @@
-import GenericDevice, {
-    DetectedDevice,
-    DeviceOptions,
-    DeviceStateObject,
-    PropertyType,
-    StateAccessType,
-    ValueType,
-} from './GenericDevice';
+import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import GenericDevice, { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 class Motion extends GenericDevice {
-    _getValueState: DeviceStateObject<boolean> | undefined;
-    _getBrightnessState: DeviceStateObject<number> | undefined;
+    #getValueState?: DeviceStateObject<boolean>;
+    #getBrightnessState?: DeviceStateObject<number>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(
+        this._construction.push(
             this.addDeviceStates([
                 {
                     name: 'ACTUAL',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Value,
-                    callback: state => (this._getValueState = state),
+                    callback: state => (this.#getValueState = state),
                 },
                 {
                     name: 'SECOND',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Brightness,
-                    callback: state => (this._getBrightnessState = state),
+                    callback: state => (this.#getBrightnessState = state),
                 },
             ]),
         );
     }
 
     getValue(): boolean | undefined {
-        if (!this._getValueState) {
+        if (!this.#getValueState) {
             throw new Error('Value state not found');
         }
-        return this._getValueState.value;
+        return this.#getValueState.value;
     }
 
     getBrightness(): number | undefined {
-        if (!this._getBrightnessState) {
+        if (!this.#getBrightnessState) {
             throw new Error('Brightness state not found');
         }
-        return this._getBrightnessState.value;
+        return this.#getBrightnessState.value;
     }
 }
 

@@ -172,7 +172,8 @@
     "interface": "",
     "debug": false,
     "login": "",
-    "pass": ""
+    "pass": "",
+    "defaultBridge": ""
   },
   "objects": [],
   "instanceObjects": []

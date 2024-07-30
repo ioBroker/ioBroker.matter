@@ -1,110 +1,104 @@
 import Ct from './Ct';
-import {
-    DetectedDevice,
-    DeviceOptions,
-    DeviceStateObject,
-    PropertyType,
-    StateAccessType,
-    ValueType,
-} from './GenericDevice';
+import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 class Rgb extends Ct {
-    protected _red: DeviceStateObject<number> | undefined;
-    protected _green: DeviceStateObject<number> | undefined;
-    protected _blue: DeviceStateObject<number> | undefined;
-    protected _white: DeviceStateObject<number> | undefined;
+    #red?: DeviceStateObject<number>;
+    #green?: DeviceStateObject<number>;
+    #blue?: DeviceStateObject<number>;
+    #white?: DeviceStateObject<number>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(
+        this._construction.push(
             this.addDeviceStates([
                 {
                     name: 'RED',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Red,
-                    callback: state => (this._red = state),
+                    callback: state => (this.#red = state),
                 },
                 {
                     name: 'GREEN',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Green,
-                    callback: state => (this._green = state),
+                    callback: state => (this.#green = state),
                 },
                 {
                     name: 'BLUE',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Blue,
-                    callback: state => (this._blue = state),
+                    callback: state => (this.#blue = state),
                 },
                 {
                     name: 'WHITE',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.White,
-                    callback: state => (this._white = state),
+                    callback: state => (this.#white = state),
                 },
             ]),
         );
     }
 
     getRed(): number | undefined {
-        if (!this._red) {
+        if (!this.#red) {
             throw new Error('Red state not found');
         }
-        return this._red.value;
+        return this.#red.value;
     }
 
     async setRed(value: number): Promise<void> {
-        if (!this._red) {
+        if (!this.#red) {
             throw new Error('Red state not found');
         }
-        await this._red.setValue(value);
+        await this.#red.setValue(value);
     }
 
     getGreen(): number | undefined {
-        if (!this._green) {
+        if (!this.#green) {
             throw new Error('Green state not found');
         }
-        return this._green.value;
+        return this.#green.value;
     }
 
     async setGreen(value: number): Promise<void> {
-        if (!this._green) {
+        if (!this.#green) {
             throw new Error('Red state not found');
         }
-        await this._green.setValue(value);
+        await this.#green.setValue(value);
     }
 
     getBlue(): number | undefined {
-        if (!this._blue) {
+        if (!this.#blue) {
             throw new Error('Blue state not found');
         }
-        return this._blue.value;
+        return this.#blue.value;
     }
 
     async setBlue(value: number): Promise<void> {
-        if (!this._blue) {
+        if (!this.#blue) {
             throw new Error('Red state not found');
         }
-        await this._blue.setValue(value);
+        await this.#blue.setValue(value);
     }
 
     getWhite(): number | undefined {
-        if (!this._white) {
+        if (!this.#white) {
             throw new Error('Blue state not found');
         }
-        return this._white.value;
+        return this.#white.value;
     }
 
     async setWhite(value: number): Promise<void> {
-        if (!this._white) {
+        if (!this.#white) {
             throw new Error('Red state not found');
         }
-        await this._white.setValue(value);
+        await this.#white.setValue(value);
     }
 }
 

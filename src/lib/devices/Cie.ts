@@ -1,45 +1,39 @@
 import Ct from './Ct';
-import {
-    DetectedDevice,
-    DeviceOptions,
-    DeviceStateObject,
-    PropertyType,
-    StateAccessType,
-    ValueType,
-} from './GenericDevice';
+import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 class Cie extends Ct {
-    protected _cie: DeviceStateObject<string> | undefined;
+    #cie?: DeviceStateObject<string>;
 
     // CIE has form lab(29.2345% 39.3825 20.0664);
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(
+        this._construction.push(
             this.addDeviceStates([
                 {
                     name: 'CIE',
                     valueType: ValueType.String,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Cie,
-                    callback: state => (this._cie = state),
+                    callback: state => (this.#cie = state),
                 },
             ]),
         );
     }
 
     getCie(): string | undefined {
-        if (!this._cie) {
+        if (!this.#cie) {
             throw new Error('CIE state not found');
         }
-        return this._cie.value;
+        return this.#cie.value;
     }
 
     async setCie(value: string): Promise<void> {
-        if (!this._cie) {
+        if (!this.#cie) {
             throw new Error('CIE state not found');
         }
-        return this._cie.setValue(value);
+        return this.#cie.setValue(value);
     }
 }
 

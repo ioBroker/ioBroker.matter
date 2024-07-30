@@ -1,2 +1,5 @@
 import Light from './Light';
-export default Light;
+
+class Socket extends Light {}
+
+export default Socket;

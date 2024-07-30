@@ -6,7 +6,7 @@ import { MatterAdapter } from '../../main';
 import Base from './Base';
 
 class OnOff extends Base {
-    private handler: ((value: boolean) => void) | undefined = undefined;
+    #handler: ((value: boolean) => void) | undefined = undefined;
 
     async init(): Promise<void> {
         const cluster = this.endpoint.getClusterClient(OnOffCluster);
@@ -29,12 +29,12 @@ class OnOff extends Base {
             await cluster.getOnOffAttribute(),
         );
 
-        this.handler = async (value: boolean) => {
+        this.#handler = async (value: boolean) => {
             await this.adapter.setStateAsync(id, value, true);
         };
 
         // subscribe on matter changes
-        cluster.addOnOffAttributeListener(this.handler);
+        cluster.addOnOffAttributeListener(this.#handler);
 
         const onOffHandler = async (state: ioBroker.State): Promise<void> => {
             if (!state || state.ack) {

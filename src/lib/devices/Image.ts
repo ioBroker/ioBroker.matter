@@ -1,36 +1,30 @@
-import GenericDevice, {
-    DetectedDevice,
-    DeviceOptions,
-    DeviceStateObject,
-    PropertyType,
-    StateAccessType,
-    ValueType,
-} from './GenericDevice';
+import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import GenericDevice, { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 class Image extends GenericDevice {
-    _getUrlState: DeviceStateObject<string> | undefined;
+    #getUrlState?: DeviceStateObject<string>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(
+        this._construction.push(
             this.addDeviceStates([
                 {
                     name: 'URL',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Url,
-                    callback: state => (this._getUrlState = state),
+                    callback: state => (this.#getUrlState = state),
                 },
             ]),
         );
     }
 
     getUrl(): string | undefined {
-        if (!this._getUrlState) {
+        if (!this.#getUrlState) {
             throw new Error('Url state not found');
         }
-        return this._getUrlState.value;
+        return this.#getUrlState.value;
     }
 }
 

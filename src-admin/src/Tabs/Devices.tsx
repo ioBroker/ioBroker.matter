@@ -689,6 +689,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         if (this.state.addDeviceDialog.noAutoDetect) {
             return (
                 <SelectID
+                    types={['device', 'channel', 'state']}
                     dialogName="matter"
                     themeType={this.props.themeType}
                     socket={this.props.socket}

@@ -466,7 +466,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                             >
                                 <Tab
                                     sx={{ '&.Mui-selected': styles.selected }}
-                                    label={I18n.t('Options')}
+                                    label={I18n.t('General')}
                                     value="options"
                                 />
                                 <Tab

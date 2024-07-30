@@ -73,7 +73,7 @@ export class MappingTemperature extends MappingGenericDevice {
             }
         });
 
-        const value = this.#ioBrokerDevice.getValue();
+        const value = this.#ioBrokerDevice.getTemperature();
         // init current state from ioBroker side
         await this.#matterEndpointTemperature.set({
             temperatureMeasurement: {

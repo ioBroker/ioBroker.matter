@@ -149,7 +149,7 @@ const detectedDevices = {
         { name: 'SATURATION', id: '0_userdata.0.saturation' },
         { name: 'TEMPERATURE', id: '0_userdata.0.temperature' },
 
-        { name: 'LEVEL', id: '0_userdata.0.warning' },
+        { name: 'LEVEL', id: '0_userdata.0.level' },
 
         { name: 'ERROR', id: '0_userdata.0.error' },
         { name: 'MAINTAIN', id: '0_userdata.0.maintain' },
@@ -203,7 +203,7 @@ class Adapter {
         this.states[id] = this.states[id] || {};
         this.states[id].ts = Date.now();
         this.states[id].val = value;
-        this.states[id].ack = false;
+        this.states[id].ack = true; // Just simulate as if the state was acked directly
         if (this.subscribed.includes(id) && this.subscribeManager) {
             setTimeout(() => {
                 this.subscribeManager.observer(id, { ...this.states[id] });
@@ -330,7 +330,7 @@ describe('Test Devices', function () {
                         value = 50;
                     }
                     // Try to write value
-                    console.log(`WWrite ${prop} with ${value}`);
+                    console.log(`Write ${prop} with ${value}`);
                     await deviceObj.setPropertyValue(prop, value);
                 } else if (properties[prop].accessType === StateAccessType.ReadWrite) {
                     // subscribe on changes and try to read value

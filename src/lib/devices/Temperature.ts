@@ -2,7 +2,7 @@ import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject'
 import GenericDevice, { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 class Temperature extends GenericDevice {
-    #getValueState?: DeviceStateObject<number>;
+    #getTemperatureState?: DeviceStateObject<number>;
     #getHumidityState?: DeviceStateObject<number>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
@@ -15,7 +15,7 @@ class Temperature extends GenericDevice {
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Temperature,
-                    callback: state => (this.#getValueState = state),
+                    callback: state => (this.#getTemperatureState = state),
                 },
                 {
                     name: 'SECOND',
@@ -32,11 +32,11 @@ class Temperature extends GenericDevice {
         return this.getPropertyNames().includes(PropertyType.Humidity);
     }
 
-    getValue(): number | undefined {
-        if (!this.#getValueState) {
+    getTemperature(): number | undefined {
+        if (!this.#getTemperatureState) {
             throw new Error('Value state not found');
         }
-        return this.#getValueState.value;
+        return this.#getTemperatureState.value;
     }
 
     getHumidity(): number | undefined {

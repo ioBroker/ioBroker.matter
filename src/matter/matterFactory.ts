@@ -16,7 +16,7 @@ async function matterDeviceFabric(
     name: string,
     uuid: string,
 ): Promise<MappingGenericDevice | null> {
-    const ioBrokerDeviceType = ioBrokerDevice.getDeviceType();
+    const ioBrokerDeviceType = ioBrokerDevice.deviceType;
 
     switch (ioBrokerDeviceType) {
         case Types.light:

@@ -17,6 +17,7 @@ import {
     Save,
     Search,
     SearchOff,
+    Warning,
     Wifi,
     WifiOff,
     ArrowRightAlt as WriteOnlyStateIcon,
@@ -111,6 +112,15 @@ const styles: Record<string, React.CSSProperties> = {
         padding: 1,
         borderRadius: 5,
         marginBottom: 2,
+    },
+    header: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginTop: 1,
+    },
+    inputField: {
+        maxWidth: 600,
+        marginBottom: 1,
     },
 };
 
@@ -383,10 +393,16 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 <DialogTitle>{I18n.t('Commissioning information')}</DialogTitle>
                 <DialogContent>
                     <div>
+                        <Box sx={styles.infoBox}>
+                            <Info />
+                            <Typography>{I18n.t('Matter Controller BLE Dialog Infotext')}</Typography>
+                        </Box>
+
+                        <Typography sx={styles.header}>{I18n.t('Bluetooth configuration')}</Typography>
                         <TextField
                             fullWidth
                             variant="standard"
-                            style={{ maxWidth: 600 }}
+                            sx={styles.inputField}
                             type="number"
                             label={I18n.t('Bluetooth HCI ID')}
                             value={this.props.matter.controller.hciId || ''}
@@ -398,16 +414,17 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         />
                     </div>
 
+                    <Typography sx={styles.header}>{I18n.t('WLAN credentials')}</Typography>
                     <div>
                         <TextField
                             fullWidth
                             variant="standard"
-                            style={{ maxWidth: 600 }}
-                            label={I18n.t('WiFI SSID')}
+                            sx={styles.inputField}
+                            label={I18n.t('WiFi SSID')}
                             error={!this.props.matter.controller.wifiSSID && !this.isRequiredBleInformationProvided()}
                             helperText={
                                 !this.props.matter.controller.wifiSSID && !this.isRequiredBleInformationProvided()
-                                    ? I18n.t('Provide your Thread or BLE information or both!')
+                                    ? I18n.t('Provide your Thread or WiFi information or both!')
                                     : ''
                             }
                             value={this.props.matter.controller.wifiSSID || ''}
@@ -423,14 +440,14 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         <TextField
                             fullWidth
                             variant="standard"
-                            style={{ maxWidth: 600 }}
-                            label={I18n.t('WiFI password')}
+                            sx={styles.inputField}
+                            label={I18n.t('WiFi password')}
                             error={
                                 !this.props.matter.controller.wifiPassword && !this.isRequiredBleInformationProvided()
                             }
                             helperText={
                                 !this.props.matter.controller.wifiPassword && !this.isRequiredBleInformationProvided()
-                                    ? I18n.t('Provide your Thread or BLE information or both!')
+                                    ? I18n.t('Provide your Thread or WiFi information or both!')
                                     : ''
                             }
                             value={this.props.matter.controller.wifiPassword || ''}
@@ -442,10 +459,11 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         />
                     </div>
 
+                    <Typography sx={styles.header}>{I18n.t('Thread credentials')}</Typography>
                     <div>
                         <TextField
                             fullWidth
-                            style={{ maxWidth: 600 }}
+                            sx={styles.inputField}
                             variant="standard"
                             label={I18n.t('Thread network name')}
                             error={
@@ -455,7 +473,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             helperText={
                                 !this.props.matter.controller.threadNetworkName &&
                                 !this.isRequiredBleInformationProvided()
-                                    ? I18n.t('Provide your Thread or BLE information or both!')
+                                    ? I18n.t('Provide your Thread or WiFi information or both!')
                                     : ''
                             }
                             value={this.props.matter.controller.threadNetworkName || ''}
@@ -470,7 +488,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     <div>
                         <TextField
                             fullWidth
-                            style={{ maxWidth: 600 }}
+                            sx={styles.inputField}
                             variant="standard"
                             label={I18n.t('Thread operational dataset')}
                             error={
@@ -480,7 +498,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             helperText={
                                 !this.props.matter.controller.threadOperationalDataSet &&
                                 !this.isRequiredBleInformationProvided()
-                                    ? I18n.t('Provide your Thread or BLE information or both!')
+                                    ? I18n.t('Provide your Thread or WiFi information or both!')
                                     : ''
                             }
                             value={this.props.matter.controller.threadOperationalDataSet || ''}
@@ -491,69 +509,77 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             }}
                         />
                     </div>
+
+                    <DialogActions>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            disabled={
+                                JSON.stringify(this.props.savedConfig.controller) ===
+                                JSON.stringify(this.props.matter.controller)
+                            }
+                            onClick={async () => {
+                                this.setState({ backendProcessingActive: true, bleDialogOpen: false });
+                                const res = await this.props.socket.sendTo(
+                                    `matter.${this.props.instance}`,
+                                    'updateControllerSettings',
+                                    JSON.stringify(this.props.matter.controller),
+                                );
+                                console.log(res);
+                                this.setState({ backendProcessingActive: false });
+                            }}
+                            startIcon={<Save />}
+                        >
+                            {I18n.t('Save')}
+                        </Button>
+                    </DialogActions>
+
+                    <Typography sx={styles.header}>{I18n.t('Bluetooth configuration')}</Typography>
+                    <Box
+                        sx={theme => ({
+                            ...styles.infoBox,
+                            color: !this.isRequiredBleInformationProvided() ? theme.palette.error.main : undefined,
+                        })}
+                    >
+                        {this.isRequiredBleInformationProvided() ? <Info /> : <Warning />}
+                        <Typography>
+                            {I18n.t(
+                                this.isRequiredBleInformationProvided()
+                                    ? 'Activate BLE to pair devices nearby. You can also use the "ioBroker Visu" App to pair other devices.'
+                                    : 'You need to configure WLAN or Thread credentials above to activate BLE',
+                            )}
+                        </Typography>
+                    </Box>
+
+                    <DialogActions>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            disabled={
+                                !this.isRequiredBleInformationProvided() ||
+                                (this.props.matter.controller.ble &&
+                                    JSON.stringify(this.props.savedConfig) === JSON.stringify(this.props.matter))
+                            }
+                            onClick={async () => {
+                                await this.setBleEnabled(true);
+                            }}
+                            startIcon={<Bluetooth />}
+                        >
+                            {I18n.t('Enable')}
+                        </Button>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={async () => {
+                                await this.setBleEnabled(false);
+                            }}
+                            startIcon={<BluetoothDisabled />}
+                            disabled={!this.props.matter.controller.ble}
+                        >
+                            {I18n.t('Disable')}
+                        </Button>
+                    </DialogActions>
                 </DialogContent>
-
-                <DialogActions>
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        disabled={
-                            JSON.stringify(this.props.savedConfig.controller) ===
-                            JSON.stringify(this.props.matter.controller)
-                        }
-                        onClick={async () => {
-                            this.setState({ backendProcessingActive: true, bleDialogOpen: false });
-                            const res = await this.props.socket.sendTo(
-                                `matter.${this.props.instance}`,
-                                'updateControllerSettings',
-                                JSON.stringify(this.props.matter.controller),
-                            );
-                            console.log(res);
-                            this.setState({ backendProcessingActive: false });
-                        }}
-                        startIcon={<Save />}
-                    >
-                        {I18n.t('Save')}
-                    </Button>
-                </DialogActions>
-
-                <DialogTitle>{I18n.t('Bluetooth')}</DialogTitle>
-                <DialogContent>
-                    <Typography sx={{ fontSize: 18 }}>
-                        {I18n.t(
-                            'Activate BLE to pair devices nearby. You can also use the "ioBroker Visu" App to pair other devices.',
-                        )}
-                    </Typography>
-                </DialogContent>
-
-                <DialogActions>
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        disabled={
-                            !this.isRequiredBleInformationProvided() ||
-                            (this.props.matter.controller.ble &&
-                                JSON.stringify(this.props.savedConfig) === JSON.stringify(this.props.matter))
-                        }
-                        onClick={async () => {
-                            await this.setBleEnabled(true);
-                        }}
-                        startIcon={<Bluetooth />}
-                    >
-                        {I18n.t('Enable')}
-                    </Button>
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={async () => {
-                            await this.setBleEnabled(false);
-                        }}
-                        startIcon={<BluetoothDisabled />}
-                        disabled={!this.props.matter.controller.ble}
-                    >
-                        {I18n.t('Disable')}
-                    </Button>
-                </DialogActions>
                 <DialogActions>
                     <Button
                         variant="contained"

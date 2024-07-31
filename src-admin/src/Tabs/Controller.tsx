@@ -8,6 +8,7 @@ import {
     SettingsInputHdmi as ChannelIcon,
     Close,
     TabletAndroid as DeviceIcon,
+    Info,
     KeyboardArrowDown,
     KeyboardArrowUp,
     LeakAdd,
@@ -22,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import {
     Backdrop,
+    Box,
     Button,
     CircularProgress,
     Dialog,
@@ -98,6 +100,17 @@ const styles: Record<string, React.CSSProperties> = {
         right: 3,
         opacity: 0.5,
         fontSize: 10,
+    },
+    infoBox: {
+        whiteSpace: 'preserve',
+        display: 'flex',
+        gap: 1,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderStyle: 'solid',
+        padding: 1,
+        borderRadius: 5,
+        marginBottom: 2,
     },
 };
 
@@ -992,6 +1005,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
         return (
             <div style={styles.panel}>
+                <Box sx={styles.infoBox}>
+                    <Info />
+                    <Typography>{I18n.t('Matter Controller Infotext')}</Typography>
+                </Box>
                 {this.renderLoadingSpinner()}
                 {this.renderShowDiscoveredDevices()}
                 {this.renderQrCodeDialog()}
@@ -1021,17 +1038,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     {this.props.matter.controller.enabled && this.props.alive ? (
                         <Button
                             variant="contained"
-                            color="primary"
                             sx={{ marginRight: 1 }}
-                            onClick={() => this.setState({ bleDialogOpen: true })}
-                            startIcon={this.props.matter.controller.ble ? <Bluetooth /> : <BluetoothDisabled />}
-                        >
-                            {I18n.t('Commissioning information')}
-                        </Button>
-                    ) : null}
-                    {this.props.matter.controller.enabled && this.props.alive ? (
-                        <Button
-                            variant="contained"
                             disabled={this.state.discoveryRunning}
                             startIcon={this.state.discoveryRunning ? <CircularProgress size={20} /> : <Search />}
                             onClick={() => {
@@ -1057,6 +1064,16 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             }}
                         >
                             {I18n.t('Discovery devices')}
+                        </Button>
+                    ) : null}
+                    {this.props.matter.controller.enabled && this.props.alive ? (
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={() => this.setState({ bleDialogOpen: true })}
+                            startIcon={this.props.matter.controller.ble ? <Bluetooth /> : <BluetoothDisabled />}
+                        >
+                            {I18n.t('Commissioning information')}
                         </Button>
                     ) : null}
                 </div>

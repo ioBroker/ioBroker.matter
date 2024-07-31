@@ -795,7 +795,7 @@ export class MatterAdapter extends utils.Adapter {
         }
 
         // When we just handle one object we do not need to sync with running devices and bridges
-        if (obj !== undefined) {
+        if (!obj) {
             // Objects existing, not deleted, so disable not enabled bridges or devices
             for (const bridgeId of this.#bridges.keys()) {
                 if (!bridges.find(obj => obj._id === bridgeId)) {
@@ -807,6 +807,25 @@ export class MatterAdapter extends utils.Adapter {
                 if (!devices.find(obj => obj._id === deviceId)) {
                     this.log.info(`Device "${deviceId}" is not enabled anymore, so stop it.`);
                     await this.stopBridgeOrDevice('device', deviceId);
+                }
+            }
+        } else {
+            // We just handle one object, so we do not need to check for disabled objects
+            if (obj._id.startsWith(`${this.namespace}.devices.`)) {
+                const existingDevice = this.#devices.get(obj._id);
+                if (existingDevice) {
+                    if (obj.native.enabled === false) {
+                        this.log.info(`Device "${obj._id}" is not enabled anymore, so stop it.`);
+                        await this.stopBridgeOrDevice('device', obj._id);
+                    }
+                }
+            } else if (obj._id.startsWith(`${this.namespace}.bridges.`)) {
+                const existingBridge = this.#bridges.get(obj._id);
+                if (existingBridge) {
+                    if (obj.native.enabled === false) {
+                        this.log.info(`Bridge "${obj._id}" is not enabled anymore, so stop it.`);
+                        await this.stopBridgeOrDevice('bridge', obj._id);
+                    }
                 }
             }
         }

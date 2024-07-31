@@ -6,8 +6,8 @@ import { MatterAdapter } from '../../main';
 import Base from './Base';
 
 class Identify extends Base {
-    private handlerType: ((value: number) => void) | undefined = undefined;
-    private handlerTime: ((value: number) => void) | undefined = undefined;
+    #handlerType: ((value: number) => void) | undefined = undefined;
+    #handlerTime: ((value: number) => void) | undefined = undefined;
 
     async init(): Promise<void> {
         const cluster = this.endpoint.getClusterClient(IdentifyCluster);
@@ -70,16 +70,16 @@ class Identify extends Base {
             await cluster.getIdentifyTimeAttribute(),
         );
 
-        this.handlerType = async (value: number) => {
+        this.#handlerType = async (value: number) => {
             await this.adapter.setStateAsync(typeId, value, true);
         };
-        this.handlerTime = async (value: number) => {
+        this.#handlerTime = async (value: number) => {
             await this.adapter.setStateAsync(timeId, value, true);
         };
 
         // subscribe on matter changes
-        cluster.addIdentifyTimeAttributeListener(this.handlerTime);
-        cluster.addIdentifyTypeAttributeListener(this.handlerType);
+        cluster.addIdentifyTimeAttributeListener(this.#handlerTime);
+        cluster.addIdentifyTypeAttributeListener(this.#handlerType);
 
         const triggerId = await this.createState(
             'identify.trigger',

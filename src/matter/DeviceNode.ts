@@ -1,16 +1,14 @@
+import { MatterError } from '@project-chip/matter.js/common';
 import { VendorId } from '@project-chip/matter.js/datatype';
-import { DeviceTypes } from '@project-chip/matter.js/device';
-import { Logger } from '@project-chip/matter.js/log';
-
+import { ServerNode } from '@project-chip/matter.js/node';
+import { inspect } from 'util';
 import { DeviceDescription } from '../ioBrokerStorageTypes';
 import { GenericDevice } from '../lib';
-
-import { SessionsBehavior } from '@project-chip/matter.js/behavior/system/sessions';
-import { ServerNode } from '@project-chip/matter.js/node';
+import { md5 } from '../lib/utils';
 import type { MatterAdapter } from '../main';
-import { BaseServerNode, NodeStateResponse, NodeStates } from './BaseServerNode';
+import { BaseServerNode } from './BaseServerNode';
+import { initializeUnreachableStateHandler } from './devices/SharedStateHandlers';
 import matterDeviceFactory from './matterFactory';
-import VENDOR_IDS from './vendorIds';
 
 export interface DeviceCreateOptions {
     parameters: DeviceOptions;
@@ -27,25 +25,26 @@ export interface DeviceOptions {
     port: number;
 }
 
+/** Class representing a Matter Device. */
 class Device extends BaseServerNode {
-    private parameters: DeviceOptions;
-    private readonly device: GenericDevice;
-    private deviceOptions: DeviceDescription;
-    private commissioned: boolean | null = null;
+    #parameters: DeviceOptions;
+    #device: GenericDevice;
+    #deviceOptions: DeviceDescription;
+    #started = false;
 
     constructor(adapter: MatterAdapter, options: DeviceCreateOptions) {
-        super(adapter);
-        this.parameters = options.parameters;
-        this.device = options.device;
-        this.deviceOptions = options.deviceOptions;
+        super(adapter, 'devices', options.parameters.uuid);
+        this.#parameters = options.parameters;
+        this.#device = options.device;
+        this.#deviceOptions = options.deviceOptions;
     }
 
-    get uuid(): string {
-        return this.parameters.uuid;
+    get port(): number {
+        return this.#parameters.port;
     }
 
     async init(): Promise<void> {
-        await this.adapter.extendObject(`devices.${this.parameters.uuid}.commissioned`, {
+        await this.adapter.extendObject(`devices.${this.#parameters.uuid}.commissioned`, {
             type: 'state',
             common: {
                 name: 'commissioned',
@@ -57,43 +56,41 @@ class Device extends BaseServerNode {
             native: {},
         });
 
-        /**
-         * Collect all needed data
-         *
-         * This block makes sure to collect all needed data from cli or storage. Replace this with where ever your data
-         * come from.
-         *
-         * Note: This example also uses the initialized storage system to store the device parameter data for convenience
-         * and easy reuse. When you also do that, be careful to not overlap with Matter-Server own contexts
-         * (so maybe better not ;-)).
-         */
-        const deviceName = this.parameters.deviceName || 'Matter device';
-        const deviceType = DeviceTypes.AGGREGATOR.code; // TODO we need one Device type here to use!
+        const deviceName = this.#parameters.deviceName || 'Matter device';
         const vendorName = 'ioBroker';
 
         // product name / id and vendor id should match what is in the device certificate
-        const vendorId = this.parameters.vendorId; // 0xfff1;
-        const productName = this.deviceOptions.name || this.parameters.productName;
-        const productId = this.parameters.productId; // 0x8000;
+        const vendorId = this.#parameters.vendorId; // 0xfff1;
+        const productName = this.#deviceOptions.name || this.#parameters.productName;
+        const productId = this.#parameters.productId; // 0x8000;
 
-        const uniqueId = this.parameters.uuid.replace(/-/g, '').split('.').pop() || '0000000000000000';
+        const uniqueId = this.#parameters.uuid.replace(/-/g, '').split('.').pop();
+        if (uniqueId === undefined) {
+            this.adapter.log.warn(`Could not determine device unique id from ${this.#parameters.uuid}`);
+            return;
+        }
 
-        /**
-         * Create Matter Server and CommissioningServer Node
-         *
-         * To allow the device to be announced, found, paired and operated, we need a MatterServer instance and add a
-         * serverNode to it and add the just created device instance to it.
-         * The CommissioningServer node defines the port where the server listens for the UDP packages of the Matter protocol
-         * and initializes deice specific certificates and such.
-         *
-         * The below logic also adds command handlers for commands of clusters that normally are handled internally
-         * like testEventTrigger (General Diagnostic Cluster) that can be implemented with the logic when these commands
-         * are called.
-         */
+        const ioBrokerDevice = this.#device;
+        const mappingDevice = await matterDeviceFactory(
+            ioBrokerDevice,
+            this.#deviceOptions.name,
+            this.#parameters.uuid,
+        );
+
+        if (!mappingDevice) {
+            this.adapter.log.error(`ioBroker Device "${this.#device.deviceType}" is not supported`);
+            return;
+        }
+
+        const endpoints = mappingDevice.getMatterEndpoints();
+
+        // The device type to announce we use from the first returned endpoint of the device
+        const deviceType = endpoints[0].type.deviceType;
+
         this.serverNode = await ServerNode.create({
-            id: this.parameters.uuid,
+            id: this.#parameters.uuid,
             network: {
-                port: this.parameters.port,
+                port: this.#parameters.port,
             },
             productDescription: {
                 name: deviceName,
@@ -107,140 +104,68 @@ class Device extends BaseServerNode {
                 productLabel: productName,
                 productId,
                 serialNumber: uniqueId,
-                uniqueId,
+                uniqueId: md5(uniqueId),
             },
         });
 
-        /**
-         * Create Device instance and add needed Listener
-         *
-         * Create an instance of the matter device class you want to use.
-         * This example uses the OnOffLightDevice or OnOffPluginUnitDevice depending on the value of the type parameter.
-         * To execute the on/off scripts defined as parameters, a listener for the onOff attribute is registered via the
-         * device-specific API.
-         *
-         * The below logic also adds command handlers for commands of clusters that normally are handled device internally
-         * like identify that can be implemented with the logic when these commands are called.
-         */
+        if (this.#deviceOptions?.noComposed) {
+            // No composed means we remove all beside first returned endpoint
+            endpoints.splice(1, endpoints.length - 1);
+        }
+        for (const endpoint of endpoints) {
+            try {
+                await this.serverNode.add(endpoint);
+            } catch (error) {
+                // MatterErrors might contain nested information so make sure we see all of this
+                const errorText = error instanceof MatterError ? inspect(error, { depth: 10 }) : error.stack;
+                this.adapter.log.error(`Error adding endpoint ${endpoint.id} to bridge: ${errorText}`);
+            }
+        }
+        await mappingDevice.init();
+        await initializeUnreachableStateHandler(this.serverNode, ioBrokerDevice);
 
-        const ioBrokerDevice = this.device;
-        const mappingDevice = await matterDeviceFactory(ioBrokerDevice, this.deviceOptions.name, this.parameters.uuid);
-        if (mappingDevice) {
-            await this.serverNode.add(mappingDevice.getMatterDevice());
-            await mappingDevice.init();
-        } else {
-            this.adapter.log.error(`ioBroker Device "${this.device.getDeviceType()}" is not supported`);
+        this.registerServerNodeHandlers();
+    }
+
+    /** Apply new configuration to the device. */
+    async applyConfiguration(options: DeviceCreateOptions): Promise<void> {
+        this.adapter.log.debug('Apply new configuration!!');
+
+        if (!this.serverNode) {
+            this.adapter.log.error('ServerNode not initialized. Should never happen');
+            return;
+        }
+        if (this.serverNode.lifecycle.isCommissioned) {
+            this.adapter.log.error('Device is already commissioned ... what should change? Ignoring changes');
             return;
         }
 
-        this.serverNode.events.commissioning.fabricsChanged.on(async fabricIndex => {
-            this.adapter.log.debug(
-                `commissioningChangedCallback: Commissioning changed on Fabric ${fabricIndex}: ${this.serverNode?.state.operationalCredentials.fabrics.find(fabric => fabric.fabricIndex === fabricIndex)}`,
-            );
-            // TODO find replacement for ${Logger.toJSON(this.serverNode?.getCommissionedFabricInformation(fabricIndex)[0])}
-            await this.adapter.sendToGui({
-                command: 'updateStates',
-                states: { [this.parameters.uuid]: await this.getState() },
-            });
-        });
+        // Shut down the device
+        const wasStarted = this.#started;
+        await this.stop();
 
-        const sessionChange = async (session: SessionsBehavior.Session): Promise<void> => {
-            this.adapter.log.debug(
-                `activeSessionsChangedCallback: Active sessions changed on Fabric ${session.fabric?.fabricIndex}` +
-                    Logger.toJSON(session),
-            );
-            await this.adapter.sendToGui({
-                command: 'updateStates',
-                states: { [this.parameters.uuid]: await this.getState() },
-            });
-        };
-        this.serverNode.events.sessions.opened.on(sessionChange);
-        this.serverNode.events.sessions.closed.on(sessionChange);
-        this.serverNode.events.sessions.subscriptionsChanged.on(sessionChange);
-    }
-
-    async applyConfiguration(_options: DeviceCreateOptions): Promise<void> {
-        // TODO
-    }
-
-    async getState(): Promise<NodeStateResponse> {
-        if (!this.serverNode) {
-            return {
-                status: NodeStates.Creating,
-            };
-        }
-        /**
-         * Print Pairing Information
-         *
-         * If the device is not already commissioned (this info is stored in the storage system) then get and print the
-         * pairing details. This includes the QR code that can be scanned by the Matter app to pair the device.
-         */
-
-        // this.adapter.log.info('Listening');
-
-        if (!this.serverNode?.lifecycle.isCommissioned) {
-            if (this.commissioned !== false) {
-                this.commissioned = false;
-                await this.adapter.setState(`devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
-            }
-            const { qrPairingCode, manualPairingCode } = this.serverNode?.state.commissioning.pairingCodes;
-            return {
-                status: NodeStates.WaitingForCommissioning,
-                qrPairingCode: qrPairingCode,
-                manualPairingCode: manualPairingCode,
-            };
-        } else {
-            if (this.commissioned !== true) {
-                this.commissioned = true;
-                await this.adapter.setState(`devices.${this.parameters.uuid}.commissioned`, this.commissioned, true);
-            }
-
-            const activeSessions = Object.values(this.serverNode.state.sessions.sessions);
-            const fabrics = Object.values(this.serverNode.state.commissioning.fabrics);
-
-            const connectionInfo: any = activeSessions.map(session => {
-                const vendorId = session?.fabric?.rootVendorId;
-                return {
-                    vendor: (vendorId && VENDOR_IDS[vendorId]) || `0x${(vendorId || 0).toString(16)}`,
-                    connected: !!session.numberOfActiveSubscriptions,
-                    label: session?.fabric?.label,
-                };
-            });
-
-            fabrics.forEach(fabric => {
-                if (!activeSessions.find(session => session.fabric?.fabricId === fabric.fabricId)) {
-                    connectionInfo.push({
-                        vendor: VENDOR_IDS[fabric?.rootVendorId] || `0x${(fabric?.rootVendorId || 0).toString(16)}`,
-                        connected: false,
-                        label: fabric?.label,
-                    });
-                }
-            });
-
-            if (connectionInfo.find((info: any) => info.connected)) {
-                console.log('Device is already commissioned and connected with controller');
-                return {
-                    status: NodeStates.ConnectedWithController,
-                    connectionInfo,
-                };
-            } else {
-                console.log('Device is already commissioned. Waiting for controllers to connect ...');
-                return {
-                    status: NodeStates.Commissioned,
-                    connectionInfo,
-                };
-            }
+        // Reinitialize
+        this.#parameters = options.parameters;
+        this.#device = options.device;
+        this.#deviceOptions = options.deviceOptions;
+        await this.init();
+        if (wasStarted) {
+            await this.start();
         }
     }
 
     async start(): Promise<void> {
         if (!this.serverNode) return;
-        await this.serverNode.bringOnline();
+        await this.serverNode.start();
+        this.#started = true;
+        return;
     }
 
     async stop(): Promise<void> {
         await this.serverNode?.close();
-        await this.device.destroy();
+        await this.#device.destroy();
+        this.serverNode = undefined;
+        this.#started = false;
     }
 }
 

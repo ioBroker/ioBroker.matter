@@ -36,6 +36,7 @@
     "sourceMap": true,
     "inlineSourceMap": false,
     "useUnknownInCatchVariables": false,
+    "types": ["@iobroker/types"]
   },
   "include": [
     "src/**/*.ts",

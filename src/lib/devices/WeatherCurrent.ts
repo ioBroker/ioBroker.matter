@@ -1,216 +1,210 @@
-import GenericDevice, {
-    DetectedDevice,
-    DeviceOptions,
-    DeviceStateObject,
-    PropertyType,
-    StateAccessType,
-    ValueType,
-} from './GenericDevice';
+import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import GenericDevice, { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 class WeatherCurrent extends GenericDevice {
-    _getValueState: DeviceStateObject<number> | undefined;
-    _getIconState: DeviceStateObject<string> | undefined;
-    _getPrecipitationChanceState: DeviceStateObject<number> | undefined;
-    _getPrecipitationTypeState: DeviceStateObject<number> | undefined;
-    _getPressureState: DeviceStateObject<number> | undefined;
-    _getPressureTendencyState: DeviceStateObject<string> | undefined;
-    _getRealFeelTemperatureState: DeviceStateObject<number> | undefined;
-    _getHumidityState: DeviceStateObject<number> | undefined;
-    _getUVState: DeviceStateObject<number> | undefined;
-    _getWeatherState: DeviceStateObject<string> | undefined;
-    _getWindDirectionState: DeviceStateObject<string> | undefined;
-    _getWindGustState: DeviceStateObject<number> | undefined;
-    _getWindSpeedState: DeviceStateObject<number> | undefined;
+    #getValueState?: DeviceStateObject<number>;
+    #getIconState?: DeviceStateObject<string>;
+    #getPrecipitationChanceState?: DeviceStateObject<number>;
+    #getPrecipitationTypeState?: DeviceStateObject<number>;
+    #getPressureState?: DeviceStateObject<number>;
+    #getPressureTendencyState?: DeviceStateObject<string>;
+    #getRealFeelTemperatureState?: DeviceStateObject<number>;
+    #getHumidityState?: DeviceStateObject<number>;
+    #getUVState?: DeviceStateObject<number>;
+    #getWeatherState?: DeviceStateObject<string>;
+    #getWindDirectionState?: DeviceStateObject<string>;
+    #getWindGustState?: DeviceStateObject<number>;
+    #getWindSpeedState?: DeviceStateObject<number>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(
+        this._construction.push(
             this.addDeviceStates([
                 {
                     name: 'ACTUAL',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Value,
-                    callback: state => (this._getValueState = state),
+                    callback: state => (this.#getValueState = state),
                 },
                 {
                     name: 'ICON',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Icon,
-                    callback: state => (this._getIconState = state),
+                    callback: state => (this.#getIconState = state),
                 },
                 {
                     name: 'PRECIPITATION_CHANCE',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.Read,
                     type: PropertyType.PrecipitationChance,
-                    callback: state => (this._getPrecipitationChanceState = state),
+                    callback: state => (this.#getPrecipitationChanceState = state),
                 },
                 {
                     name: 'PRECIPITATION_TYPE',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.Read,
                     type: PropertyType.PrecipitationType,
-                    callback: state => (this._getPrecipitationTypeState = state),
+                    callback: state => (this.#getPrecipitationTypeState = state),
                 },
                 {
                     name: 'PRESSURE',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Pressure,
-                    callback: state => (this._getPressureState = state),
+                    callback: state => (this.#getPressureState = state),
                 },
                 {
                     name: 'PRESSURE_TENDENCY',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.PressureTendency,
-                    callback: state => (this._getPressureTendencyState = state),
+                    callback: state => (this.#getPressureTendencyState = state),
                 },
                 {
                     name: 'REAL_FEEL_TEMPERATURE',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.RealFeelTemperature,
-                    callback: state => (this._getRealFeelTemperatureState = state),
+                    callback: state => (this.#getRealFeelTemperatureState = state),
                 },
                 {
                     name: 'HUMIDITY',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Humidity,
-                    callback: state => (this._getHumidityState = state),
+                    callback: state => (this.#getHumidityState = state),
                 },
                 {
                     name: 'UV',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Uv,
-                    callback: state => (this._getUVState = state),
+                    callback: state => (this.#getUVState = state),
                 },
                 {
                     name: 'WEATHER',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Weather,
-                    callback: state => (this._getWeatherState = state),
+                    callback: state => (this.#getWeatherState = state),
                 },
                 {
                     name: 'WIND_DIRECTION',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.WindDirectionString,
-                    callback: state => (this._getWindDirectionState = state),
+                    callback: state => (this.#getWindDirectionState = state),
                 },
                 {
                     name: 'WIND_GUST',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.WindGust,
-                    callback: state => (this._getWindGustState = state),
+                    callback: state => (this.#getWindGustState = state),
                 },
                 {
                     name: 'WIND_SPEED',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.WindSpeed,
-                    callback: state => (this._getWindSpeedState = state),
+                    callback: state => (this.#getWindSpeedState = state),
                 },
             ]),
         );
     }
 
     getValue(): number | undefined {
-        if (!this._getValueState) {
+        if (!this.#getValueState) {
             throw new Error('Value state not found');
         }
-        return this._getValueState.value;
+        return this.#getValueState.value;
     }
 
     getIcon(): string | undefined {
-        if (!this._getIconState) {
+        if (!this.#getIconState) {
             throw new Error('Icon state not found');
         }
-        return this._getIconState.value;
+        return this.#getIconState.value;
     }
 
     getPrecipitationChance(): number | undefined {
-        if (!this._getPrecipitationChanceState) {
+        if (!this.#getPrecipitationChanceState) {
             throw new Error('PrecipitationChance state not found');
         }
-        return this._getPrecipitationChanceState.value;
+        return this.#getPrecipitationChanceState.value;
     }
 
     getPrecipitationType(): number | undefined {
-        if (!this._getPrecipitationTypeState) {
+        if (!this.#getPrecipitationTypeState) {
             throw new Error('PrecipitationType state not found');
         }
-        return this._getPrecipitationTypeState.value;
+        return this.#getPrecipitationTypeState.value;
     }
 
     getPressure(): number | undefined {
-        if (!this._getPressureState) {
+        if (!this.#getPressureState) {
             throw new Error('Pressure state not found');
         }
-        return this._getPressureState.value;
+        return this.#getPressureState.value;
     }
 
     getPressureTendency(): string | undefined {
-        if (!this._getPressureTendencyState) {
+        if (!this.#getPressureTendencyState) {
             throw new Error('PressureTendency state not found');
         }
-        return this._getPressureTendencyState.value;
+        return this.#getPressureTendencyState.value;
     }
 
     getRealFeelTemperature(): number | undefined {
-        if (!this._getRealFeelTemperatureState) {
+        if (!this.#getRealFeelTemperatureState) {
             throw new Error('RealFeelTemperature state not found');
         }
-        return this._getRealFeelTemperatureState.value;
+        return this.#getRealFeelTemperatureState.value;
     }
 
     getHumidity(): number | undefined {
-        if (!this._getHumidityState) {
+        if (!this.#getHumidityState) {
             throw new Error('Humidity state not found');
         }
-        return this._getHumidityState.value;
+        return this.#getHumidityState.value;
     }
 
     getUv(): number | undefined {
-        if (!this._getUVState) {
+        if (!this.#getUVState) {
             throw new Error('UV state not found');
         }
-        return this._getUVState.value;
+        return this.#getUVState.value;
     }
 
     getWeather(): string | undefined {
-        if (!this._getWeatherState) {
+        if (!this.#getWeatherState) {
             throw new Error('Weather state not found');
         }
-        return this._getWeatherState.value;
+        return this.#getWeatherState.value;
     }
 
     getWindDirectionString(): string | undefined {
-        if (!this._getWindDirectionState) {
+        if (!this.#getWindDirectionState) {
             throw new Error('WindDirection state not found');
         }
-        return this._getWindDirectionState.value;
+        return this.#getWindDirectionState.value;
     }
 
     getWindGust(): number | undefined {
-        if (!this._getWindGustState) {
+        if (!this.#getWindGustState) {
             throw new Error('WindGust state not found');
         }
-        return this._getWindGustState.value;
+        return this.#getWindGustState.value;
     }
 
     getWindSpeed(): number | undefined {
-        if (!this._getWindSpeedState) {
+        if (!this.#getWindSpeedState) {
             throw new Error('WindSpeed state not found');
         }
-        return this._getWindSpeedState.value;
+        return this.#getWindSpeedState.value;
     }
 }
 

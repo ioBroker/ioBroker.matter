@@ -1,39 +1,33 @@
-import GenericDevice, {
-    DetectedDevice,
-    DeviceOptions,
-    DeviceStateObject,
-    PropertyType,
-    StateAccessType,
-    ValueType,
-} from './GenericDevice';
+import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import GenericDevice, { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 class Info extends GenericDevice {
-    _getValueState: DeviceStateObject<string> | undefined;
+    #getValueState?: DeviceStateObject<string>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(
+        this._construction.push(
             this.addDeviceStates([
                 {
                     name: 'ACTUAL',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Value,
-                    callback: state => (this._getValueState = state),
+                    callback: state => (this.#getValueState = state),
                 },
             ]),
         );
     }
 
     getValue(): string | undefined {
-        if (!this._getValueState) {
+        if (!this.#getValueState) {
             throw new Error('Level state not found');
         }
-        if (this._getValueState.value === undefined || this._getValueState.value === null) {
+        if (this.#getValueState.value === undefined || this.#getValueState.value === null) {
             return '';
         }
-        return this._getValueState.value.toString();
+        return this.#getValueState.value.toString();
     }
 }
 

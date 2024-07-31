@@ -3,6 +3,7 @@ export interface MatterAdapterConfig extends ioBroker.AdapterConfig {
     debug: boolean;
     login: string;
     pass: string;
+    defaultBridge: string;
 }
 
 export interface BridgeDeviceDescription {
@@ -12,6 +13,7 @@ export interface BridgeDeviceDescription {
     oid: string;
     type: string;
     auto: boolean;
+    noComposed: boolean;
 }
 
 export interface BridgeDescription {

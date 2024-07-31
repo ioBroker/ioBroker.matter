@@ -1,11 +1,5 @@
-import GenericDevice, {
-    DetectedDevice,
-    DeviceOptions,
-    DeviceStateObject,
-    PropertyType,
-    StateAccessType,
-    ValueType,
-} from './GenericDevice';
+import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import GenericDevice, { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 /*
 *	FILE	camera	file				/^camera(\.\w+)?$/
@@ -17,139 +11,139 @@ PTZ	level.camera.position	number	W			/^level(\.camera)?\.position$｜^level(\.ca
 */
 
 class Camera extends GenericDevice {
-    protected _getFileState: DeviceStateObject<string> | undefined;
-    protected _autoFocusState: DeviceStateObject<boolean> | undefined;
-    protected _autoWhiteBalanceState: DeviceStateObject<boolean> | undefined;
-    protected _brightnessState: DeviceStateObject<boolean> | undefined;
-    protected _nightModeState: DeviceStateObject<boolean> | undefined;
-    protected _ptzState: DeviceStateObject<number> | undefined;
+    #getFileState?: DeviceStateObject<string>;
+    #autoFocusState?: DeviceStateObject<boolean>;
+    #autoWhiteBalanceState?: DeviceStateObject<boolean>;
+    #brightnessState?: DeviceStateObject<boolean>;
+    #nightModeState?: DeviceStateObject<boolean>;
+    #ptzState?: DeviceStateObject<number>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(
+        this._construction.push(
             this.addDeviceStates([
                 {
                     name: 'FILE',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.File,
-                    callback: state => (this._getFileState = state),
+                    callback: state => (this.#getFileState = state),
                 },
                 {
                     name: 'AUTOFOCUS',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.AutoFocus,
-                    callback: state => (this._autoFocusState = state),
+                    callback: state => (this.#autoFocusState = state),
                 },
                 {
                     name: 'AUTOWHITEBALANCE',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.AutoWhiteBalance,
-                    callback: state => (this._autoWhiteBalanceState = state),
+                    callback: state => (this.#autoWhiteBalanceState = state),
                 },
                 {
                     name: 'BRIGHTNESS',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Brightness,
-                    callback: state => (this._brightnessState = state),
+                    callback: state => (this.#brightnessState = state),
                 },
                 {
                     name: 'NIGHTMODE',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.NightMode,
-                    callback: state => (this._nightModeState = state),
+                    callback: state => (this.#nightModeState = state),
                 },
                 {
                     name: 'PTZ',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.PTZ,
-                    callback: state => (this._ptzState = state),
+                    callback: state => (this.#ptzState = state),
                 },
             ]),
         );
     }
 
     getFile(): string | undefined {
-        if (!this._getFileState) {
+        if (!this.#getFileState) {
             throw new Error('File state not found');
         }
-        return this._getFileState.value;
+        return this.#getFileState.value;
     }
 
     getAutoFocus(): boolean | undefined {
-        if (!this._autoFocusState) {
+        if (!this.#autoFocusState) {
             throw new Error('AutoFocus state not found');
         }
-        return this._autoFocusState.value;
+        return this.#autoFocusState.value;
     }
 
     async setAutoFocus(value: boolean): Promise<void> {
-        if (!this._autoFocusState) {
+        if (!this.#autoFocusState) {
             throw new Error('AutoFocus state not found');
         }
-        return this._autoFocusState.setValue(value);
+        return this.#autoFocusState.setValue(value);
     }
 
     getAutoWhiteBalance(): boolean | undefined {
-        if (!this._autoWhiteBalanceState) {
+        if (!this.#autoWhiteBalanceState) {
             throw new Error('AutoWhiteBalance state not found');
         }
-        return this._autoWhiteBalanceState.value;
+        return this.#autoWhiteBalanceState.value;
     }
 
     async setAutoWhiteBalance(value: boolean): Promise<void> {
-        if (!this._autoWhiteBalanceState) {
+        if (!this.#autoWhiteBalanceState) {
             throw new Error('AutoWhiteBalance state not found');
         }
-        return this._autoWhiteBalanceState.setValue(value);
+        return this.#autoWhiteBalanceState.setValue(value);
     }
 
     getBrightness(): boolean | undefined {
-        if (!this._brightnessState) {
+        if (!this.#brightnessState) {
             throw new Error('Brightness state not found');
         }
-        return this._brightnessState.value;
+        return this.#brightnessState.value;
     }
 
     async setBrightness(value: boolean): Promise<void> {
-        if (!this._brightnessState) {
+        if (!this.#brightnessState) {
             throw new Error('Brightness state not found');
         }
-        return this._brightnessState.setValue(value);
+        return this.#brightnessState.setValue(value);
     }
 
     getNightMode(): boolean | undefined {
-        if (!this._nightModeState) {
+        if (!this.#nightModeState) {
             throw new Error('NightMode state not found');
         }
-        return this._nightModeState.value;
+        return this.#nightModeState.value;
     }
 
     async setNightMode(value: boolean): Promise<void> {
-        if (!this._nightModeState) {
+        if (!this.#nightModeState) {
             throw new Error('NightMode state not found');
         }
-        return this._nightModeState.setValue(value);
+        return this.#nightModeState.setValue(value);
     }
 
     getPtz(): number | undefined {
-        if (!this._ptzState) {
+        if (!this.#ptzState) {
             throw new Error('PTZ state not found');
         }
-        return this._ptzState.value;
+        return this.#ptzState.value;
     }
 
     async setPtz(value: number): Promise<void> {
-        if (!this._ptzState) {
+        if (!this.#ptzState) {
             throw new Error('PTZ state not found');
         }
-        return this._ptzState.setValue(value);
+        return this.#ptzState.setValue(value);
     }
 }
 

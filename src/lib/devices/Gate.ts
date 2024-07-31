@@ -1,21 +1,15 @@
-import GenericDevice, {
-    DetectedDevice,
-    DeviceOptions,
-    DeviceStateObject,
-    PropertyType,
-    StateAccessType,
-    ValueType,
-} from './GenericDevice';
+import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import GenericDevice, { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 class Gate extends GenericDevice {
-    private _setLevelState: DeviceStateObject<number> | undefined;
-    private _getLevelState: DeviceStateObject<number> | undefined;
-    private _setStopState: DeviceStateObject<boolean> | undefined;
+    #setLevelState?: DeviceStateObject<number>;
+    #getLevelState?: DeviceStateObject<number>;
+    #setStopState?: DeviceStateObject<boolean>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(
+        this._construction.push(
             this.addDeviceStates([
                 // actual value first, as it will be read first
                 {
@@ -23,45 +17,45 @@ class Gate extends GenericDevice {
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Level,
-                    callback: state => (this._getLevelState = state),
+                    callback: state => (this.#getLevelState = state),
                 },
                 {
                     name: 'SET',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Level,
-                    callback: state => (this._setLevelState = state),
+                    callback: state => (this.#setLevelState = state),
                 },
                 {
                     name: 'STOP',
                     valueType: ValueType.Button,
                     accessType: StateAccessType.Write,
                     type: PropertyType.Stop,
-                    callback: state => (this._setStopState = state),
+                    callback: state => (this.#setStopState = state),
                 },
             ]),
         );
     }
 
     getLevel(): number | undefined {
-        if (!this._getLevelState && !this._setLevelState) {
+        if (!this.#getLevelState && !this.#setLevelState) {
             throw new Error('Level state not found');
         }
-        return (this._getLevelState || this._setLevelState)?.value;
+        return (this.#getLevelState || this.#setLevelState)?.value;
     }
 
     async setLevel(value: number): Promise<void> {
-        if (!this._setLevelState) {
+        if (!this.#setLevelState) {
             throw new Error('Level state not found');
         }
-        return this._setLevelState.setValue(value);
+        return this.#setLevelState.setValue(value);
     }
 
     async setStop(): Promise<void> {
-        if (!this._setStopState) {
+        if (!this.#setStopState) {
             throw new Error('Stop state not found');
         }
-        return this._setStopState.setValue(true);
+        return this.#setStopState.setValue(true);
     }
 }
 

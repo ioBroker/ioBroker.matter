@@ -1,51 +1,45 @@
-import GenericDevice, {
-    DetectedDevice,
-    DeviceOptions,
-    DeviceStateObject,
-    PropertyType,
-    StateAccessType,
-    ValueType,
-} from './GenericDevice';
+import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import GenericDevice, { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 class ButtonSensor extends GenericDevice {
-    _setPressState: DeviceStateObject<boolean> | undefined;
-    _setPressLongState: DeviceStateObject<boolean> | undefined;
+    #setPressState?: DeviceStateObject<boolean>;
+    #setPressLongState?: DeviceStateObject<boolean>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(
+        this._construction.push(
             this.addDeviceStates([
                 {
                     name: 'PRESS',
                     valueType: ValueType.Button,
                     accessType: StateAccessType.Write,
                     type: PropertyType.Press,
-                    callback: state => (this._setPressState = state),
+                    callback: state => (this.#setPressState = state),
                 },
                 {
                     name: 'PRESS_LONG',
                     valueType: ValueType.Button,
                     accessType: StateAccessType.Write,
                     type: PropertyType.PressLong,
-                    callback: state => (this._setPressLongState = state),
+                    callback: state => (this.#setPressLongState = state),
                 },
             ]),
         );
     }
 
     async setPress(): Promise<void> {
-        if (!this._setPressState) {
+        if (!this.#setPressState) {
             throw new Error('Press state not found');
         }
-        await this._setPressState.setValue(true);
+        await this.#setPressState.setValue(true);
     }
 
     async setPressLong(): Promise<void> {
-        if (!this._setPressLongState) {
+        if (!this.#setPressLongState) {
             throw new Error('PressLong state not found');
         }
-        await this._setPressLongState.setValue(true);
+        await this.#setPressLongState.setValue(true);
     }
 }
 

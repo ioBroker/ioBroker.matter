@@ -1,36 +1,30 @@
-import GenericDevice, {
-    DetectedDevice,
-    DeviceOptions,
-    DeviceStateObject,
-    PropertyType,
-    StateAccessType,
-    ValueType,
-} from './GenericDevice';
+import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import GenericDevice, { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 class FloodAlarm extends GenericDevice {
-    _getValueState: DeviceStateObject<boolean> | undefined;
+    #getValueState?: DeviceStateObject<boolean>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(
+        this._construction.push(
             this.addDeviceStates([
                 {
                     name: 'ACTUAL',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Value,
-                    callback: state => (this._getValueState = state),
+                    callback: state => (this.#getValueState = state),
                 },
             ]),
         );
     }
 
     getValue(): boolean | undefined {
-        if (!this._getValueState) {
+        if (!this.#getValueState) {
             throw new Error('Value state not found');
         }
-        return this._getValueState.value;
+        return this.#getValueState.value;
     }
 }
 

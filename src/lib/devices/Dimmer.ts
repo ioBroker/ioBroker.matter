@@ -1,23 +1,18 @@
-import GenericDevice, {
-    DetectedDevice,
-    DeviceOptions,
-    DeviceStateObject,
-    PropertyType,
-    StateAccessType,
-    ValueType,
-} from './GenericDevice';
+import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import ElectricityDataDevice from './ElectricityDataDevice';
+import { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Dimmer extends GenericDevice {
-    private _setLevelState: DeviceStateObject<number> | undefined;
-    private _getLevelState: DeviceStateObject<number> | undefined;
-    private _setPowerState: DeviceStateObject<boolean> | undefined;
-    private _getPowerState: DeviceStateObject<boolean> | undefined;
-    private _lastNotZeroLevel: number | undefined;
+class Dimmer extends ElectricityDataDevice {
+    #setLevelState?: DeviceStateObject<number>;
+    #getLevelState?: DeviceStateObject<number>;
+    #setPowerState?: DeviceStateObject<boolean>;
+    #getPowerState?: DeviceStateObject<boolean>;
+    #lastNotZeroLevel?: number;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(
+        this._construction.push(
             this.addDeviceStates([
                 // actual value first, as it will be read first
                 {
@@ -25,14 +20,14 @@ class Dimmer extends GenericDevice {
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Level,
-                    callback: state => (this._getLevelState = state),
+                    callback: state => (this.#getLevelState = state),
                 },
                 {
                     name: 'SET',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Level,
-                    callback: state => (this._setLevelState = state),
+                    callback: state => (this.#setLevelState = state),
                 },
                 // actual value first, as it will be read first
                 {
@@ -40,46 +35,46 @@ class Dimmer extends GenericDevice {
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Power,
-                    callback: state => (this._getPowerState = state),
+                    callback: state => (this.#getPowerState = state),
                 },
                 {
                     name: 'ON_SET',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Power,
-                    callback: state => (this._setPowerState = state),
+                    callback: state => (this.#setPowerState = state),
                 },
             ]),
         );
     }
 
     getLevel(): number | undefined {
-        if (!this._setLevelState && !this._getLevelState) {
+        if (!this.#setLevelState && !this.#getLevelState) {
             throw new Error('Level state not found');
         }
 
-        if (this.options?.dimmerUseLastLevelForOn && (this._getLevelState?.value || 0) > 10) {
-            this._lastNotZeroLevel = this._getLevelState?.value || 100;
+        if (this.options?.dimmerUseLastLevelForOn && (this.#getLevelState?.value || 0) > 10) {
+            this.#lastNotZeroLevel = this.#getLevelState?.value || 100;
         }
 
-        return (this._getLevelState || this._setLevelState)?.value;
+        return (this.#getLevelState || this.#setLevelState)?.value;
     }
 
     async setLevel(value: number): Promise<void> {
-        if (!this._setLevelState) {
+        if (!this.#setLevelState) {
             throw new Error('Level state not found');
         }
-        return this._setLevelState.setValue(value);
+        return this.#setLevelState.setValue(value);
     }
 
     getPower(): boolean | undefined {
-        if (!this._getPowerState && !this._setPowerState && !this._setLevelState && !this._getLevelState) {
+        if (!this.#getPowerState && !this.#setPowerState && !this.#setLevelState && !this.#getLevelState) {
             throw new Error('Power state not found');
         }
-        if (this._getPowerState || this._setPowerState) {
-            return (this._getPowerState || this._setPowerState)?.value;
+        if (this.#getPowerState || this.#setPowerState) {
+            return (this.#getPowerState || this.#setPowerState)?.value;
         }
-        const state = this._getLevelState || this._setLevelState;
+        const state = this.#getLevelState || this.#setLevelState;
         if (state) {
             return (state.value || 0) > 0;
         }
@@ -87,24 +82,24 @@ class Dimmer extends GenericDevice {
     }
 
     async setPower(value: boolean): Promise<void> {
-        if (!this._setPowerState && !this._setLevelState) {
+        if (!this.#setPowerState && !this.#setLevelState) {
             throw new Error('Power state not found');
         }
-        if (this._setPowerState) {
-            return this._setPowerState.setValue(value);
+        if (this.#setPowerState) {
+            return this.#setPowerState.setValue(value);
         }
-        if (this._setLevelState) {
+        if (this.#setLevelState) {
             if (value) {
                 if (this.options?.dimmerUseLastLevelForOn) {
-                    return this._setLevelState.setValue(this._lastNotZeroLevel || 100);
+                    return this.#setLevelState.setValue(this.#lastNotZeroLevel || 100);
                 } else {
-                    return this._setLevelState.setValue(this.options?.dimmerOnLevel || 100);
+                    return this.#setLevelState.setValue(this.options?.dimmerOnLevel || 100);
                 }
             }
             if (this.options?.dimmerUseLastLevelForOn) {
-                this._lastNotZeroLevel = this._getLevelState?.value || this._lastNotZeroLevel || 100;
+                this.#lastNotZeroLevel = this.#getLevelState?.value || this.#lastNotZeroLevel || 100;
             }
-            return this._setLevelState.setValue(0);
+            return this.#setLevelState.setValue(0);
         }
     }
 }

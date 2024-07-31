@@ -8,7 +8,7 @@ import { MatterAdapter } from '../../main';
 class Base {
     protected adapter: MatterAdapter;
     protected endpoint: Endpoint;
-    private subscribes: Record<string, ((state: any) => void)[]> = {};
+    #subscribes: Record<string, ((state: any) => void)[]> = {};
     protected prefix: string;
     protected jsonNodeId: string;
 
@@ -45,15 +45,19 @@ class Base {
 
     async subscribe(id: string, handler: (state: ioBroker.State) => void): Promise<void> {
         const stateId = `${this.adapter.namespace}.${id}`;
-        this.subscribes[stateId] = this.subscribes[id] || [];
-        this.subscribes[stateId].push(handler);
+        this.#subscribes[stateId] = this.#subscribes[id] || [];
+        const subscriptionHandler = (state: ioBroker.State): void => {
+            // For Controller implementations we only care about updates with ack=false
+            if (!state.ack) return handler(state);
+        };
+        this.#subscribes[stateId].push(subscriptionHandler);
 
-        await SubscribeManager.subscribe(stateId, handler);
+        await SubscribeManager.subscribe(stateId, subscriptionHandler);
     }
 
     async destroy(): Promise<void> {
-        for (const id in this.subscribes) {
-            for (const handler of this.subscribes[id]) {
+        for (const id in this.#subscribes) {
+            for (const handler of this.#subscribes[id]) {
                 await SubscribeManager.unsubscribe(id, handler);
             }
         }

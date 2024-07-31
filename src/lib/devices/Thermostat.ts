@@ -1,11 +1,5 @@
-import GenericDevice, {
-    DetectedDevice,
-    DeviceOptions,
-    DeviceStateObject,
-    PropertyType,
-    StateAccessType,
-    ValueType,
-} from './GenericDevice';
+import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import GenericDevice, { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 enum ThermostatMode {
     // MANUAL, VACATION, COOL, DRY, ECO, FAN_ONLY, HEAT, OFF
@@ -21,162 +15,162 @@ enum ThermostatMode {
 }
 
 class Thermostat extends GenericDevice {
-    private _levelState: DeviceStateObject<number> | undefined;
-    private _getTemperatureState: DeviceStateObject<number> | undefined;
+    #levelState?: DeviceStateObject<number>;
+    #getTemperatureState?: DeviceStateObject<number>;
 
-    private _powerState: DeviceStateObject<boolean | number> | undefined;
-    private _getHumidityState: DeviceStateObject<number> | undefined;
-    private _boostState: DeviceStateObject<number> | undefined;
-    private _partyState: DeviceStateObject<boolean | number> | undefined;
-    private _modeState: DeviceStateObject<ThermostatMode> | undefined;
+    #powerState?: DeviceStateObject<boolean | number>;
+    #getHumidityState?: DeviceStateObject<number>;
+    #boostState?: DeviceStateObject<number>;
+    #partyState?: DeviceStateObject<boolean | number>;
+    #modeState?: DeviceStateObject<ThermostatMode>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(
+        this._construction.push(
             this.addDeviceStates([
                 {
                     name: 'SET',
                     valueType: ValueType.NumberMinMax,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Level,
-                    callback: state => (this._levelState = state),
+                    callback: state => (this.#levelState = state),
                 },
                 {
                     name: 'ACTUAL',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Temperature,
-                    callback: state => (this._getTemperatureState = state),
+                    callback: state => (this.#getTemperatureState = state),
                 },
                 {
                     name: 'POWER',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Power,
-                    callback: state => (this._powerState = state),
+                    callback: state => (this.#powerState = state),
                 },
                 {
                     name: 'HUMIDITY',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Humidity,
-                    callback: state => (this._getHumidityState = state),
+                    callback: state => (this.#getHumidityState = state),
                 },
                 {
                     name: 'BOOST',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Boost,
-                    callback: state => (this._boostState = state),
+                    callback: state => (this.#boostState = state),
                 },
                 {
                     name: 'PARTY',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Party,
-                    callback: state => (this._partyState = state),
+                    callback: state => (this.#partyState = state),
                 },
                 {
                     name: 'MODE',
                     valueType: ValueType.Enum,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Mode,
-                    callback: state => (this._modeState = state),
+                    callback: state => (this.#modeState = state),
                 },
             ]),
         );
     }
 
-    getModes(): Promise<ThermostatMode[]> {
-        if (!this._modeState) {
+    getModes(): ThermostatMode[] {
+        if (!this.#modeState) {
             throw new Error('Mode state not found');
         }
-        return this._modeState.getModes();
+        return this.#modeState.getModes();
     }
 
     async setMode(mode: ThermostatMode): Promise<void> {
-        if (!this._modeState) {
+        if (!this.#modeState) {
             throw new Error('Mode state not found');
         }
-        return this._modeState.setValue(mode);
+        return this.#modeState.setValue(mode);
     }
 
     getMode(): ThermostatMode | undefined {
-        if (!this._modeState) {
+        if (!this.#modeState) {
             throw new Error('Mode state not found');
         }
-        return this._modeState.value;
+        return this.#modeState.value;
     }
 
     getLevel(): number | undefined {
-        if (!this._levelState) {
+        if (!this.#levelState) {
             throw new Error('Level state not found');
         }
-        return this._levelState.value;
+        return this.#levelState.value;
     }
 
     async setLevel(value: number): Promise<void> {
-        if (!this._levelState) {
+        if (!this.#levelState) {
             throw new Error('Level state not found');
         }
-        return this._levelState.setValue(value);
+        return this.#levelState.setValue(value);
     }
 
     getTemperature(): number | undefined {
-        if (!this._getTemperatureState) {
+        if (!this.#getTemperatureState) {
             throw new Error('Temperature state not found');
         }
-        return this._getTemperatureState.value;
+        return this.#getTemperatureState.value;
     }
 
     getPower(): boolean | number | undefined {
-        if (!this._powerState) {
+        if (!this.#powerState) {
             throw new Error('Power state not found');
         }
-        return this._powerState.value;
+        return this.#powerState.value;
     }
 
     async setPower(value: boolean): Promise<void> {
-        if (!this._powerState) {
+        if (!this.#powerState) {
             throw new Error('Power state not found');
         }
-        return this._powerState.setValue(value);
+        return this.#powerState.setValue(value);
     }
 
     getHumidity(): number | undefined {
-        if (!this._getHumidityState) {
+        if (!this.#getHumidityState) {
             throw new Error('Humidity state not found');
         }
-        return this._getHumidityState.value;
+        return this.#getHumidityState.value;
     }
 
     getBoost(): number | undefined {
-        if (!this._boostState) {
+        if (!this.#boostState) {
             throw new Error('Boost state not found');
         }
-        return this._boostState.value;
+        return this.#boostState.value;
     }
 
     async setBoost(value: number): Promise<void> {
-        if (!this._boostState) {
+        if (!this.#boostState) {
             throw new Error('Boost state not found');
         }
-        return this._boostState.setValue(value);
+        return this.#boostState.setValue(value);
     }
 
     getParty(): boolean | number | undefined {
-        if (!this._partyState) {
+        if (!this.#partyState) {
             throw new Error('Party state not found');
         }
-        return this._partyState.value;
+        return this.#partyState.value;
     }
 
     async setParty(value: boolean | number): Promise<void> {
-        if (!this._partyState) {
+        if (!this.#partyState) {
             throw new Error('Party state not found');
         }
-        return this._partyState.setValue(value);
+        return this.#partyState.setValue(value);
     }
 }
 

@@ -40,7 +40,10 @@ import WeatherForecast from './devices/WeatherForecast';
 import Window from './devices/Window';
 import WindowTilt from './devices/WindowTilt';
 
-const types: { [key in Types]: any } = {
+/** Type for a class that extends a defined class to make TS understand that also derived classes are allowed. */
+type ClassExtends<C> = { new (...args: any[]): C };
+
+const types: { [key in Types]: ClassExtends<GenericDevice> | null } = {
     [Types.airCondition]: AirCondition,
     [Types.blind]: Blind,
     [Types.blindButtons]: BlindButtons,
@@ -83,18 +86,21 @@ const types: { [key in Types]: any } = {
     [Types.warning]: Warning,
 };
 
+/**
+ * Factory method for an ioBroker Device object that abstracts all states of a Device defined by Type Detector.
+ */
 async function DeviceFactory(
     detectedDevice: DetectedDevice,
     adapter: ioBroker.Adapter,
     options: DeviceOptions,
-): Promise<GenericDevice | undefined> {
-    // @1ts-expect-error how to fix it?
+): Promise<GenericDevice> {
     const DeviceType = types[detectedDevice.type];
-    if (DeviceType) {
-        const deviceObject = new DeviceType(detectedDevice, adapter, options);
-        await deviceObject.init();
-        return deviceObject;
+    if (!DeviceType) {
+        throw new Error(`No class found for device type ${detectedDevice.type}.`);
     }
+    const deviceObject = new DeviceType(detectedDevice, adapter, options);
+    await deviceObject.init();
+    return deviceObject;
 }
 
 export default DeviceFactory;

@@ -1,65 +1,65 @@
 import { DimmableLightDevice } from '@project-chip/matter.js/devices/DimmableLightDevice';
 import { Endpoint } from '@project-chip/matter.js/endpoint';
-
 import { GenericDevice } from '../../lib';
-import { PropertyType } from '../../lib/devices/GenericDevice';
-
+import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import Dimmer from '../../lib/devices/Dimmer';
 import { IdentifyOptions, MappingGenericDevice } from './MappingGenericDevice';
+import { initializeElectricityStateHandlers, initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 
+/** Mapping Logic to map a ioBroker Dimmer device to a Matter DimmableLightDevice. */
 export class MappingDimmer extends MappingGenericDevice {
-    private readonly ioBrokerDevice: Dimmer;
-    private readonly matterDevice: Endpoint<DimmableLightDevice>;
+    readonly #ioBrokerDevice: Dimmer;
+    readonly #matterEndpoint: Endpoint<DimmableLightDevice>;
 
-    constructor(ioBrokerDevice: GenericDevice, name: string, uniqueStorageKey?: string) {
-        super(name);
-        this.matterDevice = new Endpoint(DimmableLightDevice, { id: uniqueStorageKey });
-        this.ioBrokerDevice = ioBrokerDevice as Dimmer;
+    constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
+        super(name, uuid);
+        this.#matterEndpoint = new Endpoint(DimmableLightDevice, { id: uuid });
+        this.#ioBrokerDevice = ioBrokerDevice as Dimmer;
     }
 
     // Just change the power state every second
-    doIdentify(identifyOptions: IdentifyOptions): void {
+    doIdentify(identifyOptions: IdentifyOptions): Promise<void> {
         identifyOptions.currentState = !identifyOptions.currentState;
-        this.ioBrokerDevice.setPower(identifyOptions.currentState as boolean);
+        return this.#ioBrokerDevice.setPower(identifyOptions.currentState as boolean);
     }
 
     // Restore the given initial state after the identity process is over
-    resetIdentify(identifyOptions: IdentifyOptions): void {
-        this.ioBrokerDevice.setPower(identifyOptions.initialState as boolean);
+    resetIdentify(identifyOptions: IdentifyOptions): Promise<void> {
+        return this.#ioBrokerDevice.setPower(identifyOptions.initialState as boolean);
     }
 
-    getMatterDevice(): Endpoint {
-        return this.matterDevice;
+    getMatterEndpoints(): Endpoint[] {
+        return [this.#matterEndpoint];
     }
 
     getIoBrokerDevice(): GenericDevice {
-        return this.ioBrokerDevice;
+        return this.#ioBrokerDevice;
     }
 
     registerMatterHandlers(): void {
         // install matter listeners
         // here we can react on changes from the matter side for onOff
-        this.matterDevice.events.onOff.onOff$Changed.on(async on => {
-            const currentValue = !!this.ioBrokerDevice.getPower();
+        this.#matterEndpoint.events.onOff.onOff$Changed.on(async on => {
+            const currentValue = !!this.#ioBrokerDevice.getPower();
             if (on !== currentValue) {
-                await this.ioBrokerDevice.setPower(on);
+                await this.#ioBrokerDevice.setPower(on);
             }
         });
         // here we can react on changes from the matter side for the current lamp level
-        this.matterDevice.events.levelControl.currentLevel$Changed.on(async (level: number | null) => {
-            const currentValue = this.ioBrokerDevice.getLevel();
+        this.#matterEndpoint.events.levelControl.currentLevel$Changed.on(async (level: number | null) => {
+            const currentValue = this.#ioBrokerDevice.getLevel();
             if (level !== currentValue && level !== null) {
-                await this.ioBrokerDevice.setLevel(level);
+                await this.#ioBrokerDevice.setLevel(level);
             }
         });
 
         let isIdentifying = false;
         const identifyOptions: IdentifyOptions = {};
-        this.matterDevice.events.identify.identifyTime$Changed.on(value => {
+        this.#matterEndpoint.events.identify.identifyTime$Changed.on(async value => {
             // identifyTime is set when an identify command is called and then decreased every second while indentify logic runs.
             if (value > 0 && !isIdentifying) {
                 isIdentifying = true;
-                const identifyInitialState = !!this.ioBrokerDevice.getPower();
+                const identifyInitialState = !!this.#ioBrokerDevice.getPower();
 
                 identifyOptions.currentState = identifyInitialState;
                 identifyOptions.initialState = identifyInitialState;
@@ -67,41 +67,44 @@ export class MappingDimmer extends MappingGenericDevice {
                 this.handleIdentify(identifyOptions);
             } else if (value === 0) {
                 isIdentifying = false;
-                this.stopIdentify(identifyOptions);
+                await this.stopIdentify(identifyOptions);
             }
         });
     }
 
-    async init(): Promise<void> {
-        this.registerMatterHandlers();
-
-        await this.ioBrokerDevice.init();
+    async registerIoBrokerHandlersAndInitialize(): Promise<void> {
         // install ioBroker listeners
         // here we react on changes from the ioBroker side for onOff and current lamp level
-        this.ioBrokerDevice.onChange(async event => {
-            if (event.property === PropertyType.Power) {
-                await this.matterDevice.set({
-                    onOff: {
-                        onOff: !!event.value,
-                    },
-                });
-            } else if (event.property === PropertyType.Dimmer) {
-                await this.matterDevice.set({
-                    levelControl: {
-                        currentLevel: event.value as number,
-                    },
-                });
+        this.#ioBrokerDevice.onChange(async event => {
+            switch (event.property) {
+                case PropertyType.Power:
+                    await this.#matterEndpoint.set({
+                        onOff: {
+                            onOff: !!event.value,
+                        },
+                    });
+                    break;
+                case PropertyType.Dimmer:
+                    await this.#matterEndpoint.set({
+                        levelControl: {
+                            currentLevel: event.value as number,
+                        },
+                    });
+                    break;
             }
         });
 
         // init current state from ioBroker side
-        await this.matterDevice.set({
+        await this.#matterEndpoint.set({
             onOff: {
-                onOff: !!this.ioBrokerDevice.getPower(),
+                onOff: !!this.#ioBrokerDevice.getPower(),
             },
             levelControl: {
-                currentLevel: this.ioBrokerDevice.getLevel() || 0,
+                currentLevel: this.#ioBrokerDevice.getLevel() || 0,
             },
         });
+
+        await initializeMaintenanceStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
+        await initializeElectricityStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
     }
 }

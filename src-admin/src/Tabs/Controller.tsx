@@ -984,7 +984,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
             <div style={{ width: '100%' }}>
                 <DeviceManager
                     ref={this.refDeviceManager}
-                    title={I18n.t('Commitment devices')}
+                    title={I18n.t('Commissioned Devices')}
                     socket={this.props.socket}
                     selectedInstance={`${this.props.adapterName}.${this.props.instance}`}
                     style={{ justifyContent: 'start' }}

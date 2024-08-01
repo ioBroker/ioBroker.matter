@@ -286,7 +286,7 @@ export async function detectDevices(socket: AdminConnection, list?: string[]): P
     return result;
 }
 
-export function getText(text: ioBroker.StringOrTranslated): string {
+export function getText(text?: ioBroker.StringOrTranslated): string {
     return typeof text === 'object' ? text?.[I18n.getLanguage()] || '' : text || '';
 }
 

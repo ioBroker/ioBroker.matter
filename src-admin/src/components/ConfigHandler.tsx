@@ -222,11 +222,11 @@ class ConfigHandler {
         return this.config;
     }
 
-    async loadConfig(): Promise<MatterConfig | undefined> {
+    async loadConfig(): Promise<MatterConfig> {
         let devicesAndBridges: Record<string, ioBroker.ChannelObject>;
         let controllerObj: ioBroker.FolderObject | null = null;
         if (!this.socket) {
-            return undefined;
+            throw new Error('Could not load matter config because socket not connected');
         }
 
         try {

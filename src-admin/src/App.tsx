@@ -151,6 +151,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         this.configHandler && this.configHandler.destroy();
         this.configHandler = new ConfigHandler(this.instance, this.socket, this.onChanged, this.onCommissioningChanged);
         const matter = await this.configHandler.loadConfig();
+
         const commissioning = this.configHandler.getCommissioning();
         matter.controller = matter.controller || { enabled: false };
         matter.devices = matter.devices || [];

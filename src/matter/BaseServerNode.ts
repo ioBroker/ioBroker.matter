@@ -3,7 +3,6 @@ import { Logger } from '@project-chip/matter.js/log';
 import { ServerNode } from '@project-chip/matter.js/node';
 import type { MatterAdapter } from '../main';
 import { GeneralNode, MessageResponse } from './GeneralNode';
-import VENDOR_IDS from './vendorIds';
 
 export enum NodeStates {
     Creating = 'creating',
@@ -13,7 +12,7 @@ export enum NodeStates {
 }
 
 export interface ConnectionInfo {
-    vendor: string;
+    vendorId?: number;
     connected: boolean;
     label?: string;
 }
@@ -87,7 +86,7 @@ export abstract class BaseServerNode implements GeneralNode {
             const connectionInfo: ConnectionInfo[] = activeSessions.map(session => {
                 const vendorId = session?.fabric?.rootVendorId;
                 return {
-                    vendor: (vendorId && VENDOR_IDS[vendorId]) || `0x${(vendorId || 0).toString(16)}`,
+                    vendorId,
                     connected: !!session.numberOfActiveSubscriptions,
                     label: session?.fabric?.label,
                 };
@@ -96,7 +95,7 @@ export abstract class BaseServerNode implements GeneralNode {
             fabrics.forEach(fabric => {
                 if (!activeSessions.find(session => session.fabric?.fabricId === fabric.fabricId)) {
                     connectionInfo.push({
-                        vendor: VENDOR_IDS[fabric?.rootVendorId] || `0x${(fabric?.rootVendorId || 0).toString(16)}`,
+                        vendorId: fabric?.rootVendorId,
                         connected: false,
                         label: fabric?.label,
                     });

@@ -135,10 +135,10 @@ class App extends GenericApp<GenericAppProps, AppState> {
         this.refreshTimer = setTimeout(() => {
             this.refreshTimer = null;
             this.refreshBackendSubscription();
-        }, 60000);
+        }, 60_000);
 
         this.socket.subscribeOnInstance(`matter.${this.instance}`, 'gui', null, this.onBackendUpdates).then(result => {
-            if (typeof result === 'object' && result.accepted === false) {
+            if (result && typeof result === 'object' && result.accepted === false) {
                 console.error('Subscribe is not accepted');
                 this.setState({ backendRunning: !!result.accepted });
             } else if (!this.state.backendRunning) {
@@ -151,6 +151,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         this.configHandler && this.configHandler.destroy();
         this.configHandler = new ConfigHandler(this.instance, this.socket, this.onChanged, this.onCommissioningChanged);
         const matter = await this.configHandler.loadConfig();
+
         const commissioning = this.configHandler.getCommissioning();
         matter.controller = matter.controller || { enabled: false };
         matter.devices = matter.devices || [];
@@ -206,7 +207,11 @@ class App extends GenericApp<GenericAppProps, AppState> {
             if (update.states) {
                 const uuids = update.states ? Object.keys(update.states) : [];
                 for (const uuid of uuids) {
-                    nodeStates[uuid.split('.').pop()] = update.states[uuid];
+                    const nodeId = uuid.split('.').pop();
+
+                    if (nodeId) {
+                        nodeStates[nodeId] = update.states[uuid];
+                    }
                 }
             }
             this.setState({ nodeStates });
@@ -266,7 +271,11 @@ class App extends GenericApp<GenericAppProps, AppState> {
         this.configHandler && this.configHandler.destroy();
     }
 
-    renderController() {
+    renderController(): React.ReactNode {
+        if (!this.configHandler || !this.socket.systemConfig) {
+            return null;
+        }
+
         return (
             <ControllerTab
                 registerMessageHandler={(handler: null | ((_message: GUIMessage | null) => void)) =>
@@ -290,7 +299,11 @@ class App extends GenericApp<GenericAppProps, AppState> {
         );
     }
 
-    renderOptions() {
+    renderOptions(): React.ReactNode {
+        if (!this.common) {
+            return null;
+        }
+
         return (
             <OptionsTab
                 alive={this.state.alive}
@@ -306,7 +319,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         );
     }
 
-    renderBridges() {
+    renderBridges(): React.ReactNode {
         return (
             <BridgesTab
                 alive={this.state.alive}
@@ -326,6 +339,10 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 productIDs={productIDs}
                 matter={this.state.matter}
                 updateConfig={async config => {
+                    if (!this.configHandler) {
+                        return;
+                    }
+
                     await this.configHandler.saveBridgesConfig(config);
                     await this.onChanged(config);
                 }}
@@ -357,6 +374,10 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 instance={this.instance}
                 matter={this.state.matter}
                 updateConfig={async config => {
+                    if (!this.configHandler) {
+                        return;
+                    }
+
                     await this.configHandler.saveDevicesConfig(config);
                     await this.onChanged(config);
                 }}

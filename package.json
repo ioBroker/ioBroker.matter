@@ -38,7 +38,7 @@
     "@iobroker/legacy-testing": "^1.0.12",
     "@iobroker/types": "^6.0.9",
     "@types/jsonwebtoken": "^9.0.6",
-    "@types/node": "^20.14.11",
+    "@types/node": "^22.0.2",
     "@typescript-eslint/eslint-plugin": "^7.16.1",
     "chai": "^4.4.1",
     "colorette": "^2.0.20",

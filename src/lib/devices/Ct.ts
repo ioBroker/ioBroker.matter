@@ -1,52 +1,47 @@
-import GenericDevice, {
-    DetectedDevice,
-    DeviceOptions,
-    DeviceStateObject,
-    PropertyType,
-    StateAccessType,
-    ValueType,
-} from './GenericDevice';
+import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import ElectricityDataDevice from './ElectricityDataDevice';
+import { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Ct extends GenericDevice {
-    protected _dimmer: DeviceStateObject<number> | undefined;
-    protected _brightness: DeviceStateObject<number> | undefined;
-    protected _saturation: DeviceStateObject<number> | undefined;
-    protected _temperature: DeviceStateObject<number> | undefined;
-    protected _setPower: DeviceStateObject<boolean> | undefined;
-    protected _getPower: DeviceStateObject<boolean> | undefined;
+class Ct extends ElectricityDataDevice {
+    #dimmer?: DeviceStateObject<number>;
+    #brightness?: DeviceStateObject<number>;
+    #saturation?: DeviceStateObject<number>;
+    #temperature?: DeviceStateObject<number>;
+    #setPower?: DeviceStateObject<boolean>;
+    #getPower?: DeviceStateObject<boolean>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(
+        this._construction.push(
             this.addDeviceStates([
                 {
                     name: 'DIMMER',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Dimmer,
-                    callback: state => (this._dimmer = state),
+                    callback: state => (this.#dimmer = state),
                 },
                 {
                     name: 'BRIGHTNESS',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Brightness,
-                    callback: state => (this._brightness = state),
+                    callback: state => (this.#brightness = state),
                 },
                 {
                     name: 'SATURATION',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Saturation,
-                    callback: state => (this._saturation = state),
+                    callback: state => (this.#saturation = state),
                 },
                 {
                     name: 'TEMPERATURE',
                     valueType: ValueType.NumberMinMax,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Temperature,
-                    callback: state => (this._temperature = state),
+                    callback: state => (this.#temperature = state),
                 },
                 // actual value first, as it will be read first
                 {
@@ -54,87 +49,87 @@ class Ct extends GenericDevice {
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Power,
-                    callback: state => (this._getPower = state),
+                    callback: state => (this.#getPower = state),
                 },
                 {
                     name: 'ON',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Power,
-                    callback: state => (this._setPower = state),
+                    callback: state => (this.#setPower = state),
                 },
             ]),
         );
     }
 
     getDimmer(): number | undefined {
-        if (!this._dimmer) {
+        if (!this.#dimmer) {
             throw new Error('Dimmer state not found');
         }
-        return this._dimmer.value;
+        return this.#dimmer.value;
     }
 
     async setDimmer(value: number): Promise<void> {
-        if (!this._dimmer) {
+        if (!this.#dimmer) {
             throw new Error('Dimmer state not found');
         }
-        return this._dimmer.setValue(value);
+        return this.#dimmer.setValue(value);
     }
 
     getBrightness(): number | undefined {
-        if (!this._brightness) {
+        if (!this.#brightness) {
             throw new Error('Brightness state not found');
         }
-        return this._brightness.value;
+        return this.#brightness.value;
     }
 
     async setBrightness(value: number): Promise<void> {
-        if (!this._brightness) {
+        if (!this.#brightness) {
             throw new Error('Brightness state not found');
         }
-        return this._brightness.setValue(value);
+        return this.#brightness.setValue(value);
     }
 
     getSaturation(): number | undefined {
-        if (!this._saturation) {
+        if (!this.#saturation) {
             throw new Error('Saturation state not found');
         }
-        return this._saturation.value;
+        return this.#saturation.value;
     }
 
     async setSaturation(value: number): Promise<void> {
-        if (!this._saturation) {
+        if (!this.#saturation) {
             throw new Error('Saturation state not found');
         }
-        return this._saturation.setValue(value);
+        return this.#saturation.setValue(value);
     }
 
     getTemperature(): number | undefined {
-        if (!this._temperature) {
+        if (!this.#temperature) {
             throw new Error('Temperature state not found');
         }
-        return this._temperature.value;
+        return this.#temperature.value;
     }
 
     async setTemperature(value: number): Promise<void> {
-        if (!this._temperature) {
+        if (!this.#temperature) {
             throw new Error('Temperature state not found');
         }
-        return this._temperature.setValue(value);
+        return this.#temperature.setValue(value);
     }
 
     getPower(): boolean | undefined {
-        if (!this._getPower && !this._setPower) {
+        if (!this.#getPower && !this.#setPower) {
             throw new Error('On state not found');
         }
-        return (this._getPower || this._setPower)?.value;
+        return (this.#getPower || this.#setPower)?.value;
     }
 
     async setPower(value: boolean): Promise<void> {
-        if (!this._setPower) {
+        if (!this.#setPower) {
             throw new Error('On state not found');
         }
-        return this._setPower.setValue(value);
+        return this.#setPower.setValue(value);
     }
 }
 

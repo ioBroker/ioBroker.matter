@@ -10,22 +10,24 @@ import {
  * Class that implements the storage for one Node in the Matter ecosystem
  */
 export class IoBrokerNodeStorage implements MaybeAsyncStorage {
-    private existingObjectIds = new Set<string>();
-    private readonly storageRootOid: string;
+    #existingObjectIds = new Set<string>();
+    readonly #storageRootOid: string;
     initialized = false;
+    readonly #adapter: ioBroker.Adapter;
+    #namespace: string;
+    #clear = false;
 
-    constructor(
-        private readonly adapter: ioBroker.Adapter,
-        private namespace: string,
-        private clear = false,
-    ) {
-        this.storageRootOid = `storage.${this.namespace}`;
+    constructor(adapter: ioBroker.Adapter, namespace: string, clear = false) {
+        this.#adapter = adapter;
+        this.#namespace = namespace;
+        this.#clear = clear;
+        this.#storageRootOid = `storage.${this.#namespace}`;
     }
 
     async initialize(): Promise<void> {
-        this.adapter.log.debug(`[STORAGE] Initializing storage for ${this.storageRootOid}`);
+        this.#adapter.log.debug(`[STORAGE] Initializing storage for ${this.#storageRootOid}`);
 
-        await this.adapter.extendObject(this.storageRootOid, {
+        await this.#adapter.extendObject(this.#storageRootOid, {
             type: 'folder',
             common: {
                 expert: true,
@@ -34,17 +36,17 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
             native: {},
         });
 
-        if (this.clear) {
+        if (this.#clear) {
             this.initialized = true;
             await this.clearAll();
             return;
         }
 
         // read all keys, storage entries always have a value, so we can use the states
-        const states = await this.adapter.getStatesAsync(`${this.storageRootOid}.*`);
-        const namespaceLength = this.adapter.namespace.length + 1;
+        const states = await this.#adapter.getStatesAsync(`${this.#storageRootOid}.*`);
+        const namespaceLength = this.#adapter.namespace.length + 1;
         for (const key in states) {
-            this.existingObjectIds.add(key.substring(namespaceLength));
+            this.#existingObjectIds.add(key.substring(namespaceLength));
         }
 
         this.initialized = true;
@@ -52,12 +54,12 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
 
     async clearAll(): Promise<void> {
         try {
-            await this.adapter.delObjectAsync(this.storageRootOid, { recursive: true });
+            await this.#adapter.delObjectAsync(this.#storageRootOid, { recursive: true });
         } catch (error) {
-            this.adapter.log.error(`[STORAGE] Cannot clear all state: ${error.message}`);
+            this.#adapter.log.error(`[STORAGE] Cannot clear all state: ${error.message}`);
         }
-        this.existingObjectIds.clear();
-        this.clear = false;
+        this.#existingObjectIds.clear();
+        this.#clear = false;
     }
 
     async close(): Promise<void> {
@@ -65,7 +67,7 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
     }
 
     buildKey(contexts: string[], key: string): string {
-        return `${this.storageRootOid}.${contexts.join('$$')}$$${key}`;
+        return `${this.#storageRootOid}.${contexts.join('$$')}$$${key}`;
     }
 
     async get<T extends SupportedStorageTypes>(contexts: string[], key: string): Promise<T | undefined> {
@@ -73,19 +75,19 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
             throw new StorageError('[STORAGE] Context and key must not be empty strings!');
         }
         try {
-            const valueState = await this.adapter.getStateAsync(this.buildKey(contexts, key));
+            const valueState = await this.#adapter.getStateAsync(this.buildKey(contexts, key));
             if (valueState === null || valueState === undefined) {
                 return undefined;
             }
             if (typeof valueState.val !== 'string') {
-                this.adapter.log.error(
+                this.#adapter.log.error(
                     `[STORAGE] Invalid value for key "${key}" in context "${contexts.join('$$')}": ${toJson(valueState.val)}`,
                 );
                 return undefined;
             }
             return fromJson(valueState.val) as T;
         } catch (error) {
-            this.adapter.log.error(`[STORAGE] Cannot read state: ${error.message}`);
+            this.#adapter.log.error(`[STORAGE] Cannot read state: ${error.message}`);
         }
     }
 
@@ -94,7 +96,7 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
         const len = contextKeyStart.length;
 
         const foundContexts = new Set<string>();
-        Array.from(this.existingObjectIds.keys())
+        Array.from(this.#existingObjectIds.keys())
             .filter(key => key.startsWith(contextKeyStart) && key.indexOf('$$', len) !== -1)
             .forEach(key => {
                 const context = key.substring(len, key.indexOf('$$', len));
@@ -109,7 +111,7 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
         const contextKeyStart = this.buildKey(contexts, '');
         const len = contextKeyStart.length;
 
-        return Array.from(this.existingObjectIds.keys())
+        return Array.from(this.#existingObjectIds.keys())
             .filter(key => key.startsWith(contextKeyStart) && key.indexOf('$$', len) === -1)
             .map(key => key.substring(len));
     }
@@ -131,8 +133,8 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
         const oid = this.buildKey(contexts, key);
 
         try {
-            if (!this.existingObjectIds.has(oid)) {
-                await this.adapter.setObjectAsync(oid, {
+            if (!this.#existingObjectIds.has(oid)) {
+                await this.#adapter.setObjectAsync(oid, {
                     type: 'state',
                     common: {
                         name: key,
@@ -144,11 +146,11 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
                     },
                     native: {},
                 });
-                this.existingObjectIds.add(oid);
+                this.#existingObjectIds.add(oid);
             }
-            await this.adapter.setState(oid, toJson(value), true);
+            await this.#adapter.setState(oid, toJson(value), true);
         } catch (error) {
-            this.adapter.log.error(`[STORAGE] Cannot save state: ${error.message}`);
+            this.#adapter.log.error(`[STORAGE] Cannot save state: ${error.message}`);
         }
     }
 
@@ -173,10 +175,10 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
         const oid = this.buildKey(contexts, key);
 
         try {
-            await this.adapter.delObjectAsync(oid);
+            await this.#adapter.delObjectAsync(oid);
         } catch (error) {
-            this.adapter.log.error(`[STORAGE] Cannot delete state: ${error.message}`);
+            this.#adapter.log.error(`[STORAGE] Cannot delete state: ${error.message}`);
         }
-        this.existingObjectIds.delete(oid);
+        this.#existingObjectIds.delete(oid);
     }
 }

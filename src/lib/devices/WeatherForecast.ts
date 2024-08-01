@@ -1,336 +1,330 @@
-import GenericDevice, {
-    DetectedDevice,
-    DeviceOptions,
-    DeviceStateObject,
-    PropertyType,
-    StateAccessType,
-    ValueType,
-} from './GenericDevice';
+import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import GenericDevice, { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 class WeatherForecast extends GenericDevice {
-    protected _getIconState: DeviceStateObject<string> | undefined;
-    protected _getTempMinState: DeviceStateObject<number> | undefined;
-    protected _getTempMaxState: DeviceStateObject<number> | undefined;
-    protected _getPrecipitationChanceState: DeviceStateObject<number> | undefined;
-    protected _getPrecipitationState: DeviceStateObject<number> | undefined;
-    protected _getDateState: DeviceStateObject<string> | undefined;
-    protected _getDowState: DeviceStateObject<string> | undefined;
-    protected _getStateState: DeviceStateObject<string> | undefined;
-    protected _getTempState: DeviceStateObject<number> | undefined;
-    protected _getPressureState: DeviceStateObject<number> | undefined;
-    protected _getHumidityState: DeviceStateObject<number> | undefined;
-    protected _getTimeSunriseState: DeviceStateObject<string> | undefined;
-    protected _getTimeSunsetState: DeviceStateObject<string> | undefined;
-    protected _getWindChillState: DeviceStateObject<number> | undefined;
-    protected _getFeelsLikeState: DeviceStateObject<number> | undefined;
-    protected _getWindSpeedState: DeviceStateObject<number> | undefined;
-    protected _getWindDirectionState: DeviceStateObject<number> | undefined;
-    protected _getWindDirectionStrState: DeviceStateObject<string> | undefined;
-    protected _getWindIconState: DeviceStateObject<string> | undefined;
-    protected _getHistoryChartState: DeviceStateObject<string> | undefined;
-    protected _getForecastChartState: DeviceStateObject<string> | undefined;
+    #getIconState?: DeviceStateObject<string>;
+    #getTempMinState?: DeviceStateObject<number>;
+    #getTempMaxState?: DeviceStateObject<number>;
+    #getPrecipitationChanceState?: DeviceStateObject<number>;
+    #getPrecipitationState?: DeviceStateObject<number>;
+    #getDateState?: DeviceStateObject<string>;
+    #getDowState?: DeviceStateObject<string>;
+    #getStateState?: DeviceStateObject<string>;
+    #getTempState?: DeviceStateObject<number>;
+    #getPressureState?: DeviceStateObject<number>;
+    #getHumidityState?: DeviceStateObject<number>;
+    #getTimeSunriseState?: DeviceStateObject<string>;
+    #getTimeSunsetState?: DeviceStateObject<string>;
+    #getWindChillState?: DeviceStateObject<number>;
+    #getFeelsLikeState?: DeviceStateObject<number>;
+    #getWindSpeedState?: DeviceStateObject<number>;
+    #getWindDirectionState?: DeviceStateObject<number>;
+    #getWindDirectionStrState?: DeviceStateObject<string>;
+    #getWindIconState?: DeviceStateObject<string>;
+    #getHistoryChartState?: DeviceStateObject<string>;
+    #getForecastChartState?: DeviceStateObject<string>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(
+        this._construction.push(
             this.addDeviceStates([
                 {
                     name: 'ICON',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Icon,
-                    callback: state => (this._getIconState = state),
+                    callback: state => (this.#getIconState = state),
                 },
                 {
                     name: 'TEMP_MIN',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.TemperatureMin,
-                    callback: state => (this._getTempMinState = state),
+                    callback: state => (this.#getTempMinState = state),
                 },
                 {
                     name: 'TEMP_MAX',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.TemperatureMax,
-                    callback: state => (this._getTempMaxState = state),
+                    callback: state => (this.#getTempMaxState = state),
                 },
                 {
                     name: 'PRECIPITATION_CHANCE',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.PrecipitationChance,
-                    callback: state => (this._getPrecipitationChanceState = state),
+                    callback: state => (this.#getPrecipitationChanceState = state),
                 },
                 {
                     name: 'PRECIPITATION',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Precipitation,
-                    callback: state => (this._getPrecipitationState = state),
+                    callback: state => (this.#getPrecipitationState = state),
                 },
                 {
                     name: 'DATE',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Date,
-                    callback: state => (this._getDateState = state),
+                    callback: state => (this.#getDateState = state),
                 },
                 {
                     name: 'DOW',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.DayOfWeek,
-                    callback: state => (this._getDowState = state),
+                    callback: state => (this.#getDowState = state),
                 },
                 {
                     name: 'STATE',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.State,
-                    callback: state => (this._getStateState = state),
+                    callback: state => (this.#getStateState = state),
                 },
                 {
                     name: 'TEMP',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Temperature,
-                    callback: state => (this._getTempState = state),
+                    callback: state => (this.#getTempState = state),
                 },
                 {
                     name: 'PRESSURE',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Pressure,
-                    callback: state => (this._getPressureState = state),
+                    callback: state => (this.#getPressureState = state),
                 },
                 {
                     name: 'HUMIDITY',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Humidity,
-                    callback: state => (this._getHumidityState = state),
+                    callback: state => (this.#getHumidityState = state),
                 },
                 {
                     name: 'TIME_SUNRISE',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.TimeSunrise,
-                    callback: state => (this._getTimeSunriseState = state),
+                    callback: state => (this.#getTimeSunriseState = state),
                 },
                 {
                     name: 'TIME_SUNSET',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.TimeSunset,
-                    callback: state => (this._getTimeSunsetState = state),
+                    callback: state => (this.#getTimeSunsetState = state),
                 },
                 {
                     name: 'WIND_CHILL',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.WindChill,
-                    callback: state => (this._getWindChillState = state),
+                    callback: state => (this.#getWindChillState = state),
                 },
                 {
                     name: 'FEELS_LIKE',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.FeelsLike,
-                    callback: state => (this._getFeelsLikeState = state),
+                    callback: state => (this.#getFeelsLikeState = state),
                 },
                 {
                     name: 'WIND_SPEED',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.WindSpeed,
-                    callback: state => (this._getWindSpeedState = state),
+                    callback: state => (this.#getWindSpeedState = state),
                 },
                 {
                     name: 'WIND_DIRECTION',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.WindDirectionNumber,
-                    callback: state => (this._getWindDirectionState = state),
+                    callback: state => (this.#getWindDirectionState = state),
                 },
                 {
                     name: 'WIND_DIRECTION_STR',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.WindDirectionString,
-                    callback: state => (this._getWindDirectionStrState = state),
+                    callback: state => (this.#getWindDirectionStrState = state),
                 },
                 {
                     name: 'WIND_ICON',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.WindIcon,
-                    callback: state => (this._getWindIconState = state),
+                    callback: state => (this.#getWindIconState = state),
                 },
                 {
                     name: 'HISTORY_CHART',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.HistoryChart,
-                    callback: state => (this._getHistoryChartState = state),
+                    callback: state => (this.#getHistoryChartState = state),
                 },
                 {
                     name: 'FORECAST_CHART',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.ForecastChart,
-                    callback: state => (this._getForecastChartState = state),
+                    callback: state => (this.#getForecastChartState = state),
                 },
             ]),
         );
     }
 
     getIcon(): string | undefined {
-        if (!this._getIconState) {
+        if (!this.#getIconState) {
             throw new Error('Icon state not found');
         }
-        return this._getIconState.value;
+        return this.#getIconState.value;
     }
 
     getTemperatureMin(): number | undefined {
-        if (!this._getTempMinState) {
+        if (!this.#getTempMinState) {
             throw new Error('TempMin state not found');
         }
-        return this._getTempMinState.value;
+        return this.#getTempMinState.value;
     }
 
     getTemperatureMax(): number | undefined {
-        if (!this._getTempMaxState) {
+        if (!this.#getTempMaxState) {
             throw new Error('TempMax state not found');
         }
-        return this._getTempMaxState.value;
+        return this.#getTempMaxState.value;
     }
 
     getPrecipitationChance(): number | undefined {
-        if (!this._getPrecipitationChanceState) {
+        if (!this.#getPrecipitationChanceState) {
             throw new Error('PrecipitationChance state not found');
         }
-        return this._getPrecipitationChanceState.value;
+        return this.#getPrecipitationChanceState.value;
     }
 
     getPrecipitation(): number | undefined {
-        if (!this._getPrecipitationState) {
+        if (!this.#getPrecipitationState) {
             throw new Error('Precipitation state not found');
         }
-        return this._getPrecipitationState.value;
+        return this.#getPrecipitationState.value;
     }
 
     getDate(): string | undefined {
-        if (!this._getDateState) {
+        if (!this.#getDateState) {
             throw new Error('Date state not found');
         }
-        return this._getDateState.value;
+        return this.#getDateState.value;
     }
 
     getDayOfWeek(): string | undefined {
-        if (!this._getDowState) {
+        if (!this.#getDowState) {
             throw new Error('Dow state not found');
         }
-        return this._getDowState.value;
+        return this.#getDowState.value;
     }
 
     getState(): string | undefined {
-        if (!this._getStateState) {
+        if (!this.#getStateState) {
             throw new Error('State state not found');
         }
-        return this._getStateState.value;
+        return this.#getStateState.value;
     }
 
     getTemperature(): number | undefined {
-        if (!this._getTempState) {
+        if (!this.#getTempState) {
             throw new Error('Temp state not found');
         }
-        return this._getTempState.value;
+        return this.#getTempState.value;
     }
 
     getPressure(): number | undefined {
-        if (!this._getPressureState) {
+        if (!this.#getPressureState) {
             throw new Error('Pressure state not found');
         }
-        return this._getPressureState.value;
+        return this.#getPressureState.value;
     }
 
     getHumidity(): number | undefined {
-        if (!this._getHumidityState) {
+        if (!this.#getHumidityState) {
             throw new Error('Humidity state not found');
         }
-        return this._getHumidityState.value;
+        return this.#getHumidityState.value;
     }
 
     getTimeSunrise(): string | undefined {
-        if (!this._getTimeSunriseState) {
+        if (!this.#getTimeSunriseState) {
             throw new Error('TimeSunrise state not found');
         }
-        return this._getTimeSunriseState.value;
+        return this.#getTimeSunriseState.value;
     }
 
     getTimeSunset(): string | undefined {
-        if (!this._getTimeSunsetState) {
+        if (!this.#getTimeSunsetState) {
             throw new Error('TimeSunset state not found');
         }
-        return this._getTimeSunsetState.value;
+        return this.#getTimeSunsetState.value;
     }
 
     getWindChill(): number | undefined {
-        if (!this._getWindChillState) {
+        if (!this.#getWindChillState) {
             throw new Error('WindChill state not found');
         }
-        return this._getWindChillState.value;
+        return this.#getWindChillState.value;
     }
 
     getFeelsLike(): number | undefined {
-        if (!this._getFeelsLikeState) {
+        if (!this.#getFeelsLikeState) {
             throw new Error('FeelsLike state not found');
         }
-        return this._getFeelsLikeState.value;
+        return this.#getFeelsLikeState.value;
     }
 
     getWindSpeed(): number | undefined {
-        if (!this._getWindSpeedState) {
+        if (!this.#getWindSpeedState) {
             throw new Error('WindSpeed state not found');
         }
-        return this._getWindSpeedState.value;
+        return this.#getWindSpeedState.value;
     }
 
     getWindDirectionNumber(): number | undefined {
-        if (!this._getWindDirectionState) {
+        if (!this.#getWindDirectionState) {
             throw new Error('WindDirection state not found');
         }
-        return this._getWindDirectionState.value;
+        return this.#getWindDirectionState.value;
     }
 
     getWindDirectionString(): string | undefined {
-        if (!this._getWindDirectionStrState) {
+        if (!this.#getWindDirectionStrState) {
             throw new Error('WindDirectionStr state not found');
         }
-        return this._getWindDirectionStrState.value;
+        return this.#getWindDirectionStrState.value;
     }
 
     getWindIcon(): string | undefined {
-        if (!this._getWindIconState) {
+        if (!this.#getWindIconState) {
             throw new Error('WindIcon state not found');
         }
-        return this._getWindIconState.value;
+        return this.#getWindIconState.value;
     }
 
     getHistoryChart(): string | undefined {
-        if (!this._getHistoryChartState) {
+        if (!this.#getHistoryChartState) {
             throw new Error('HistoryChart state not found');
         }
-        return this._getHistoryChartState.value;
+        return this.#getHistoryChartState.value;
     }
 
     getForecastChart(): string | undefined {
-        if (!this._getForecastChartState) {
+        if (!this.#getForecastChartState) {
             throw new Error('ForecastChart state not found');
         }
-        return this._getForecastChartState.value;
+        return this.#getForecastChartState.value;
     }
 }
 

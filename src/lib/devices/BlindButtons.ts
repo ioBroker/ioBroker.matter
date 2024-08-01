@@ -1,11 +1,5 @@
-import GenericDevice, {
-    DetectedDevice,
-    DeviceOptions,
-    DeviceStateObject,
-    PropertyType,
-    StateAccessType,
-    ValueType,
-} from './GenericDevice';
+import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import GenericDevice, { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 /*
 Blinds controlled only by buttons [blindButtons]
@@ -27,40 +21,40 @@ ERROR	indicator.error			X		/^indicator\.error$/
 */
 
 class BlindButtons extends GenericDevice {
-    protected _setStopState: DeviceStateObject<boolean> | undefined;
-    protected _setOpenState: DeviceStateObject<boolean> | undefined;
-    protected _setCloseState: DeviceStateObject<boolean> | undefined;
-    protected _getTiltState: DeviceStateObject<number> | undefined;
-    protected _setTiltState: DeviceStateObject<number> | undefined;
-    protected _setTiltStopState: DeviceStateObject<boolean> | undefined;
-    protected _setTiltOpenState: DeviceStateObject<boolean> | undefined;
-    protected _setTiltCloseState: DeviceStateObject<boolean> | undefined;
+    #setStopState?: DeviceStateObject<boolean>;
+    #setOpenState?: DeviceStateObject<boolean>;
+    #setCloseState?: DeviceStateObject<boolean>;
+    #getTiltState?: DeviceStateObject<number>;
+    #setTiltState?: DeviceStateObject<number>;
+    #setTiltStopState?: DeviceStateObject<boolean>;
+    #setTiltOpenState?: DeviceStateObject<boolean>;
+    #setTiltCloseState?: DeviceStateObject<boolean>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(
+        this._construction.push(
             this.addDeviceStates([
                 {
                     name: 'STOP',
                     valueType: ValueType.Button,
                     accessType: StateAccessType.Write,
                     type: PropertyType.Stop,
-                    callback: state => (this._setStopState = state),
+                    callback: state => (this.#setStopState = state),
                 },
                 {
                     name: 'OPEN',
                     valueType: ValueType.Button,
                     accessType: StateAccessType.Write,
                     type: PropertyType.Open,
-                    callback: state => (this._setOpenState = state),
+                    callback: state => (this.#setOpenState = state),
                 },
                 {
                     name: 'CLOSE',
                     valueType: ValueType.Button,
                     accessType: StateAccessType.Write,
                     type: PropertyType.Close,
-                    callback: state => (this._setCloseState = state),
+                    callback: state => (this.#setCloseState = state),
                 },
                 // actual value first, as it will be read first
                 {
@@ -68,94 +62,94 @@ class BlindButtons extends GenericDevice {
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.Read,
                     type: PropertyType.TiltLevel,
-                    callback: state => (this._getTiltState = state),
+                    callback: state => (this.#getTiltState = state),
                 },
                 {
                     name: 'TILT_SET',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.TiltLevel,
-                    callback: state => (this._setTiltState = state),
+                    callback: state => (this.#setTiltState = state),
                 },
                 {
                     name: 'TILT_STOP',
                     valueType: ValueType.Button,
                     accessType: StateAccessType.Write,
                     type: PropertyType.TiltStop,
-                    callback: state => (this._setTiltStopState = state),
+                    callback: state => (this.#setTiltStopState = state),
                 },
                 {
                     name: 'TILT_OPEN',
                     valueType: ValueType.Button,
                     accessType: StateAccessType.Write,
                     type: PropertyType.TiltOpen,
-                    callback: state => (this._setTiltOpenState = state),
+                    callback: state => (this.#setTiltOpenState = state),
                 },
                 {
                     name: 'TILT_CLOSE',
                     valueType: ValueType.Button,
                     accessType: StateAccessType.Write,
                     type: PropertyType.TiltClose,
-                    callback: state => (this._setTiltCloseState = state),
+                    callback: state => (this.#setTiltCloseState = state),
                 },
             ]),
         );
     }
 
     async setStop(): Promise<void> {
-        if (!this._setStopState) {
+        if (!this.#setStopState) {
             throw new Error('Stop state not found');
         }
-        return this._setStopState.setValue(true);
+        return this.#setStopState.setValue(true);
     }
 
     async setOpen(): Promise<void> {
-        if (!this._setOpenState) {
+        if (!this.#setOpenState) {
             throw new Error('Open state not found');
         }
-        return this._setOpenState.setValue(true);
+        return this.#setOpenState.setValue(true);
     }
 
     async setClose(): Promise<void> {
-        if (!this._setCloseState) {
+        if (!this.#setCloseState) {
             throw new Error('Close state not found');
         }
-        return this._setCloseState.setValue(true);
+        return this.#setCloseState.setValue(true);
     }
 
     getTiltLevel(): number | undefined {
-        if (!this._getTiltState) {
+        if (!this.#getTiltState) {
             throw new Error('Tilt state not found');
         }
-        return this._getTiltState.value;
+        return this.#getTiltState.value;
     }
 
     async setTiltLevel(value: number): Promise<void> {
-        if (!this._setTiltState) {
+        if (!this.#setTiltState) {
             throw new Error('Tilt state not found');
         }
-        return this._setTiltState.setValue(value);
+        return this.#setTiltState.setValue(value);
     }
 
     async setTiltStop(): Promise<void> {
-        if (!this._setTiltStopState) {
+        if (!this.#setTiltStopState) {
             throw new Error('Tilt stop state not found');
         }
-        return this._setTiltStopState.setValue(true);
+        return this.#setTiltStopState.setValue(true);
     }
 
     async setTiltOpen(): Promise<void> {
-        if (!this._setTiltOpenState) {
+        if (!this.#setTiltOpenState) {
             throw new Error('Tilt open state not found');
         }
-        return this._setTiltOpenState.setValue(true);
+        return this.#setTiltOpenState.setValue(true);
     }
 
     async setTiltClose(): Promise<void> {
-        if (!this._setTiltCloseState) {
+        if (!this.#setTiltCloseState) {
             throw new Error('Tilt close state not found');
         }
-        return this._setTiltCloseState.setValue(true);
+        return this.#setTiltCloseState.setValue(true);
     }
 }
 

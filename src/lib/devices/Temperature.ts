@@ -1,51 +1,49 @@
-import GenericDevice, {
-    DetectedDevice,
-    DeviceOptions,
-    DeviceStateObject,
-    PropertyType,
-    StateAccessType,
-    ValueType,
-} from './GenericDevice';
+import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import GenericDevice, { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 class Temperature extends GenericDevice {
-    _getValueState: DeviceStateObject<boolean> | undefined;
-    _getHumidityState: DeviceStateObject<number> | undefined;
+    #getTemperatureState?: DeviceStateObject<number>;
+    #getHumidityState?: DeviceStateObject<number>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(
+        this._construction.push(
             this.addDeviceStates([
                 {
                     name: 'ACTUAL',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
-                    type: PropertyType.Value,
-                    callback: state => (this._getValueState = state),
+                    type: PropertyType.Temperature,
+                    callback: state => (this.#getTemperatureState = state),
                 },
                 {
                     name: 'SECOND',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Humidity,
-                    callback: state => (this._getHumidityState = state),
+                    callback: state => (this.#getHumidityState = state),
                 },
             ]),
         );
     }
 
-    getValue(): boolean | undefined {
-        if (!this._getValueState) {
+    hasHumidity(): boolean {
+        return this.getPropertyNames().includes(PropertyType.Humidity);
+    }
+
+    getTemperature(): number | undefined {
+        if (!this.#getTemperatureState) {
             throw new Error('Value state not found');
         }
-        return this._getValueState.value;
+        return this.#getTemperatureState.value;
     }
 
     getHumidity(): number | undefined {
-        if (!this._getHumidityState) {
+        if (!this.#getHumidityState) {
             throw new Error('Humidity state not found');
         }
-        return this._getHumidityState.value;
+        return this.#getHumidityState.value;
     }
 }
 

@@ -23,7 +23,7 @@ import { BleNode } from '@project-chip/matter-node-ble.js/ble';
 import { Ble } from '@project-chip/matter.js/ble';
 
 import { Environment } from '@project-chip/matter.js/environment';
-import { MatterControllerConfig } from '../../src-admin/src/types';
+import type { MatterControllerConfig } from '../../src-admin/src/types';
 import type { MatterAdapter } from '../main';
 import Base from './clusters/Base';
 import Factories from './clusters/factories';
@@ -82,38 +82,38 @@ interface Device {
 }
 
 class Controller implements GeneralNode {
-    private parameters: MatterControllerConfig;
-    private readonly adapter: MatterAdapter;
-    private readonly matterEnvironment: Environment;
-    private commissioningController?: CommissioningController;
-    private devices = new Map<string, Device>();
-    private delayedStates: { [nodeId: string]: NodeStateInformation } = {};
-    private connected: { [nodeId: string]: boolean } = {};
-    private discovering = false;
-    private useBle = false;
+    #parameters: MatterControllerConfig;
+    readonly #adapter: MatterAdapter;
+    readonly #matterEnvironment: Environment;
+    #commissioningController?: CommissioningController;
+    #devices = new Map<string, Device>();
+    #delayedStates: { [nodeId: string]: NodeStateInformation } = {};
+    #connected: { [nodeId: string]: boolean } = {};
+    #discovering = false;
+    #useBle = false;
 
     constructor(options: ControllerCreateOptions) {
-        this.adapter = options.adapter;
-        this.parameters = options.controllerOptions;
-        this.matterEnvironment = options.matterEnvironment;
+        this.#adapter = options.adapter;
+        this.#parameters = options.controllerOptions;
+        this.#matterEnvironment = options.matterEnvironment;
     }
 
     async init(): Promise<void> {
-        await this.applyConfiguration(this.parameters, true);
-        this.commissioningController = new CommissioningController({
+        await this.applyConfiguration(this.#parameters, true);
+        this.#commissioningController = new CommissioningController({
             autoConnect: false,
             // TODO add listeningAddressIpv4 and listeningAddressIpv6 to limit controller to one network interface
             environment: {
-                environment: this.matterEnvironment,
+                environment: this.#matterEnvironment,
                 id: 'controller',
             },
         });
     }
 
     async applyConfiguration(config: MatterControllerConfig, isInitialization = false): Promise<MessageResponse> {
-        const currentConfig: MatterControllerConfig = isInitialization ? { enabled: true } : this.parameters;
+        const currentConfig: MatterControllerConfig = isInitialization ? { enabled: true } : this.#parameters;
 
-        this.useBle = false;
+        this.#useBle = false;
         if (config.ble !== currentConfig.ble || config.hciId !== currentConfig.hciId) {
             if (
                 config.ble &&
@@ -123,20 +123,20 @@ class Controller implements GeneralNode {
                 try {
                     const hciId = config.hciId === undefined ? undefined : parseInt(config.hciId);
                     Ble.get = singleton(() => new BleNode({ hciId }));
-                    this.useBle = true;
+                    this.#useBle = true;
                 } catch (error) {
-                    this.adapter.log.warn(`Failed to initialize BLE: ${error.message}`);
+                    this.#adapter.log.warn(`Failed to initialize BLE: ${error.message}`);
                     config.ble = false;
                     return { error: `Can not adjust configuration and enable BLE because of error: ${error.message}` };
                 }
             }
         }
-        this.parameters = config;
+        this.#parameters = config;
         return { result: true };
     }
 
     async handleCommand(command: string, message: ioBroker.MessagePayload): Promise<MessageResponse> {
-        if (this.commissioningController === undefined) {
+        if (this.#commissioningController === undefined) {
             return { error: 'Controller is not initialized.' };
         }
         try {
@@ -161,7 +161,7 @@ class Controller implements GeneralNode {
                     return { result: await this.showNewCommissioningCode(message.nodeId) };
                 case 'controllerInitializePaseCommissioner':
                     // Returns the data needed to initialize a PaseCommissioner on the mobile App
-                    return { result: this.commissioningController.paseCommissionerData };
+                    return { result: this.#commissioningController.paseCommissionerData };
                 case 'controllerCompletePaseCommissioning':
                     // Completes a commissioning process that was started by the mobile app in the main controller
                     return {
@@ -169,7 +169,7 @@ class Controller implements GeneralNode {
                     };
             }
         } catch (error) {
-            this.adapter.log.warn(`Error while executing command "${command}": ${error.stack}`);
+            this.#adapter.log.warn(`Error while executing command "${command}": ${error.stack}`);
             return { error: `Error while executing command "${command}": ${error.message}` };
         }
 
@@ -182,7 +182,7 @@ class Controller implements GeneralNode {
                 peerNodeId: NodeId,
                 { path: { nodeId, clusterId, endpointId, attributeName }, value }: any,
             ) => {
-                this.adapter.log.debug(
+                this.#adapter.log.debug(
                     `attributeChangedCallback ${peerNodeId}: Attribute ${nodeId}/${endpointId}/${clusterId}/${attributeName} changed to ${Logger.toJSON(
                         value,
                     )}`,
@@ -193,7 +193,7 @@ class Controller implements GeneralNode {
                 peerNodeId: NodeId,
                 { path: { nodeId, clusterId, endpointId, eventName }, events }: any,
             ) => {
-                this.adapter.log.debug(
+                this.#adapter.log.debug(
                     `eventTriggeredCallback ${peerNodeId}: Event ${nodeId}/${endpointId}/${clusterId}/${eventName} triggered with ${Logger.toJSON(
                         events,
                     )}`,
@@ -202,56 +202,56 @@ class Controller implements GeneralNode {
 
             stateInformationCallback: async (peerNodeId: NodeId, info: NodeStateInformation) => {
                 const jsonNodeId = peerNodeId.toString();
-                const node = this.commissioningController?.getConnectedNode(peerNodeId);
-                const device: Device | undefined = this.devices.get(jsonNodeId);
-                if (this.connected[jsonNodeId] !== undefined) {
-                    if (node?.isConnected && !this.connected[jsonNodeId]) {
-                        this.connected[jsonNodeId] = true;
+                const node = this.#commissioningController?.getConnectedNode(peerNodeId);
+                const device: Device | undefined = this.#devices.get(jsonNodeId);
+                if (this.#connected[jsonNodeId] !== undefined) {
+                    if (node?.isConnected && !this.#connected[jsonNodeId]) {
+                        this.#connected[jsonNodeId] = true;
                         // Rebuild node structure
                         await this.nodeToIoBrokerStructure(node);
-                    } else if (!node?.isConnected && this.connected[jsonNodeId]) {
-                        this.connected[jsonNodeId] = false;
+                    } else if (!node?.isConnected && this.#connected[jsonNodeId]) {
+                        this.#connected[jsonNodeId] = false;
                     }
                 }
 
                 if (device) {
                     device.connectionStateId &&
-                        (await this.adapter.setStateAsync(
+                        (await this.#adapter.setStateAsync(
                             device.connectionStateId,
                             info === NodeStateInformation.Connected,
                             true,
                         ));
                     device.connectionStatusId &&
-                        (await this.adapter.setStateAsync(device.connectionStatusId, info, true));
+                        (await this.#adapter.setStateAsync(device.connectionStatusId, info, true));
                 } else {
-                    this.adapter.log.warn(`Device ${jsonNodeId} not found`);
+                    this.#adapter.log.warn(`Device ${jsonNodeId} not found`);
                     // delayed state
-                    this.delayedStates[jsonNodeId] = info;
+                    this.#delayedStates[jsonNodeId] = info;
                 }
 
                 switch (info) {
                     case NodeStateInformation.Connected:
-                        this.adapter.log.debug(
+                        this.#adapter.log.debug(
                             `stateInformationCallback ${peerNodeId}: Node ${originalNodeId} connected`,
                         );
                         break;
                     case NodeStateInformation.Disconnected:
-                        this.adapter.log.debug(
+                        this.#adapter.log.debug(
                             `stateInformationCallback ${peerNodeId}: Node ${originalNodeId} disconnected`,
                         );
                         break;
                     case NodeStateInformation.Reconnecting:
-                        this.adapter.log.debug(
+                        this.#adapter.log.debug(
                             `stateInformationCallback ${peerNodeId}: Node ${originalNodeId} reconnecting`,
                         );
                         break;
                     case NodeStateInformation.WaitingForDeviceDiscovery:
-                        this.adapter.log.debug(
+                        this.#adapter.log.debug(
                             `stateInformationCallback ${peerNodeId}: Node ${originalNodeId} waiting for device discovery`,
                         );
                         break;
                     case NodeStateInformation.StructureChanged:
-                        this.adapter.log.debug(
+                        this.#adapter.log.debug(
                             `stateInformationCallback ${peerNodeId}: Node ${originalNodeId} structure changed`,
                         );
                         break;
@@ -261,11 +261,11 @@ class Controller implements GeneralNode {
     }
 
     async start(): Promise<void> {
-        if (!this.commissioningController) {
+        if (!this.#commissioningController) {
             throw new Error('CommissioningController not initialized');
         }
 
-        await this.adapter.extendObject('controller.info', {
+        await this.#adapter.extendObject('controller.info', {
             type: 'channel',
             common: {
                 name: 'Information',
@@ -273,7 +273,7 @@ class Controller implements GeneralNode {
             native: {},
         });
 
-        await this.adapter.extendObject('controller.info.discovering', {
+        await this.#adapter.extendObject('controller.info.discovering', {
             type: 'state',
             common: {
                 name: 'Discovering',
@@ -286,24 +286,24 @@ class Controller implements GeneralNode {
             native: {},
         });
 
-        await this.adapter.setState('controller.info.discovering', false, true);
+        await this.#adapter.setState('controller.info.discovering', false, true);
 
-        await this.commissioningController.start();
+        await this.#commissioningController.start();
 
         // get nodes
-        const nodes = this.commissioningController.getCommissionedNodes();
-        this.adapter.log.info(`Found ${nodes.length} nodes: ${Logger.toJSON(nodes)}`);
+        const nodes = this.#commissioningController.getCommissionedNodes();
+        this.#adapter.log.info(`Found ${nodes.length} nodes: ${Logger.toJSON(nodes)}`);
 
         // attach all nodes to the controller
         for (const nodeId of nodes) {
             try {
-                const node = await this.commissioningController.connectNode(
+                const node = await this.#commissioningController.connectNode(
                     nodeId,
                     this.initEventHandlers(nodeId) as CommissioningControllerNodeOptions,
                 );
                 await this.nodeToIoBrokerStructure(node);
             } catch (error) {
-                this.adapter.log.info(`Failed to connect to node ${nodeId}: ${error.stack}`);
+                this.#adapter.log.info(`Failed to connect to node ${nodeId}: ${error.stack}`);
             }
         }
     }
@@ -337,12 +337,12 @@ class Controller implements GeneralNode {
                 supportedFeatures.push(featureName);
             }
         }
-        this.adapter.log.debug(
+        this.#adapter.log.debug(
             `${''.padStart(level * 2)}Cluster-Server "${clusterServer.name}" (${toHex(clusterServer.id)}) ${
                 supportedFeatures.length ? `(Features: ${supportedFeatures.join(', ')})` : ''
             }`,
         );
-        this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Global-Attributes:`);
+        this.#adapter.log.debug(`${''.padStart(level * 2 + 2)}Global-Attributes:`);
         for (const attributeName in globalAttributes) {
             const attribute = clusterServer.attributes[attributeName];
             if (attribute === undefined) {
@@ -350,12 +350,12 @@ class Controller implements GeneralNode {
             }
 
             const value = this.getAttributeServerValue(attribute);
-            this.adapter.log.debug(
+            this.#adapter.log.debug(
                 `${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHex(attribute.id)})${value !== '' ? `: value = ${value}` : ''}`,
             );
         }
 
-        this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Cluster-Attributes:`);
+        this.#adapter.log.debug(`${''.padStart(level * 2 + 2)}Cluster-Attributes:`);
         for (const attributeName in clusterServer.attributes) {
             if (attributeName in globalAttributes) {
                 continue;
@@ -366,27 +366,27 @@ class Controller implements GeneralNode {
             }
 
             const value = this.getAttributeServerValue(attribute);
-            this.adapter.log.debug(
+            this.#adapter.log.debug(
                 `${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHex(attribute.id)})${value !== '' ? `: value = ${value}` : ''}`,
             );
         }
 
-        this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Commands:`);
+        this.#adapter.log.debug(`${''.padStart(level * 2 + 2)}Commands:`);
         const commands = asClusterServerInternal(clusterServer)._commands;
         for (const commandName in commands) {
             const command = commands[commandName];
             if (command === undefined) continue;
-            this.adapter.log.debug(
+            this.#adapter.log.debug(
                 `${''.padStart(level * 2 + 4)}"${command.name}" (${toHex(command.invokeId)}/${command.responseId})`,
             );
         }
 
-        this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Events:`);
+        this.#adapter.log.debug(`${''.padStart(level * 2 + 2)}Events:`);
         const events = asClusterServerInternal(clusterServer)._events;
         for (const eventName in events) {
             const event = events[eventName];
             if (event === undefined) continue;
-            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${event.name}" (${toHex(event.id)})`);
+            this.#adapter.log.debug(`${''.padStart(level * 2 + 4)}"${event.name}" (${toHex(event.id)})`);
         }
     }
 
@@ -400,7 +400,7 @@ class Controller implements GeneralNode {
             }
         }
         // const id = `controller.${Logger.toJSON(nodeId).replace(/"/g, '')}.${clusterClient.name}`;
-        // let channelObj = await this.adapter.getObjectAsync(id);
+        // let channelObj = await this.#adapter.getObjectAsync(id);
         // if (!channelObj) {
         //     channelObj = {
         //         _id: id,
@@ -413,25 +413,25 @@ class Controller implements GeneralNode {
         //             clusterId: clusterClient.id,
         //         },
         //     };
-        //     await this.adapter.setObjectAsync(channelObj._id, channelObj);
+        //     await this.#adapter.setObjectAsync(channelObj._id, channelObj);
         // }
 
-        this.adapter.log.debug(
+        this.#adapter.log.debug(
             `${''.padStart(level * 2)}Cluster-Client "${clusterClient.name}" (${toHex(clusterClient.id)}) ${supportedFeatures.length ? `(Features: ${supportedFeatures.join(', ')})` : ''}`,
         );
-        this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Global-Attributes:`);
+        this.#adapter.log.debug(`${''.padStart(level * 2 + 2)}Global-Attributes:`);
         for (const attributeName in globalAttributes) {
             const attribute = clusterClient.attributes[attributeName];
             if (attribute === void 0) {
                 continue;
             }
 
-            this.adapter.log.debug(
+            this.#adapter.log.debug(
                 `${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHex(attribute.id)}) = ${this.getAttributeServerValue(attribute)}`,
             );
         }
 
-        this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Attributes:`);
+        this.#adapter.log.debug(`${''.padStart(level * 2 + 2)}Attributes:`);
         for (const attributeName in clusterClient.attributes) {
             if (attributeName in globalAttributes) {
                 continue;
@@ -449,17 +449,17 @@ class Controller implements GeneralNode {
             // if (unknown) {
             //     info += " (Unknown)";
             // }
-            this.adapter.log.debug(
+            this.#adapter.log.debug(
                 `${''.padStart(level * 2 + 4)}"${attribute.name}" (${toHex(attribute.id)}) = ${this.getAttributeServerValue(attribute)}`,
             );
         }
 
-        this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Commands:`);
+        this.#adapter.log.debug(`${''.padStart(level * 2 + 2)}Commands:`);
         for (const commandName in clusterClient.commands) {
-            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${commandName}"`);
+            this.#adapter.log.debug(`${''.padStart(level * 2 + 4)}"${commandName}"`);
         }
 
-        this.adapter.log.debug(`${''.padStart(level * 2 + 2)}Events:`);
+        this.#adapter.log.debug(`${''.padStart(level * 2 + 2)}Events:`);
         for (const eventName in clusterClient.events) {
             const event = clusterClient.events[eventName];
             if (event === void 0) {
@@ -474,7 +474,7 @@ class Controller implements GeneralNode {
             // if (unknown) {
             //     info += ' (Unknown)';
             // }
-            this.adapter.log.debug(`${''.padStart(level * 2 + 4)}"${event.name}" (${toHex(event.id)})`);
+            this.#adapter.log.debug(`${''.padStart(level * 2 + 4)}"${event.name}" (${toHex(event.id)})`);
         }
     }
 
@@ -482,7 +482,7 @@ class Controller implements GeneralNode {
         const nodeIdString = nodeObject.nodeId.toString();
 
         // find and destroy the old device
-        const oldDevice = this.devices.get(nodeIdString);
+        const oldDevice = this.#devices.get(nodeIdString);
         if (oldDevice !== undefined) {
             for (const cluster of oldDevice.clusters) {
                 await cluster.destroy();
@@ -491,7 +491,7 @@ class Controller implements GeneralNode {
 
         const rootEndpoint = nodeObject.getDeviceById(0); // later use getRootEndpoint
         if (rootEndpoint === undefined) {
-            this.adapter.log.debug(`Node ${nodeObject.nodeId} has not yet been initialized!`);
+            this.#adapter.log.debug(`Node ${nodeObject.nodeId} has not yet been initialized!`);
             return;
         }
 
@@ -506,7 +506,7 @@ class Controller implements GeneralNode {
 
         // create device
         const id = `controller.${nodeIdString}`;
-        let deviceObj = await this.adapter.getObjectAsync(id);
+        let deviceObj = await this.#adapter.getObjectAsync(id);
         let changed = false;
         if (!deviceObj || (deviceObj.type === 'folder' && !bridge) || (deviceObj.type === 'device' && bridge)) {
             changed = true;
@@ -536,7 +536,7 @@ class Controller implements GeneralNode {
                 deviceObj.common.desc = oldCommon.desc;
             }
 
-            deviceObj && (await this.adapter.setObjectAsync(deviceObj._id, deviceObj));
+            deviceObj && (await this.#adapter.setObjectAsync(deviceObj._id, deviceObj));
         }
 
         const device: Device = {
@@ -544,9 +544,9 @@ class Controller implements GeneralNode {
             clusters: [],
         };
 
-        this.devices.set(nodeIdString, device);
+        this.#devices.set(nodeIdString, device);
 
-        await this.adapter.setObjectNotExists(`controller.${nodeIdString}.info`, {
+        await this.#adapter.setObjectNotExists(`controller.${nodeIdString}.info`, {
             type: 'channel',
             common: {
                 name: 'Connection info',
@@ -555,7 +555,7 @@ class Controller implements GeneralNode {
         });
 
         device.connectionStateId = `controller.${nodeIdString}.info.connection`;
-        await this.adapter.getObjectAsync(device.connectionStateId, {
+        await this.#adapter.getObjectAsync(device.connectionStateId, {
             type: 'state',
             common: {
                 name: 'Connected',
@@ -568,7 +568,7 @@ class Controller implements GeneralNode {
         });
 
         device.connectionStatusId = `controller.${nodeIdString}.info.status`;
-        await this.adapter.getObjectAsync(device.connectionStatusId, {
+        await this.#adapter.getObjectAsync(device.connectionStatusId, {
             type: 'state',
             common: {
                 name: 'Connection status',
@@ -587,14 +587,14 @@ class Controller implements GeneralNode {
             native: {},
         });
 
-        if (this.delayedStates[nodeIdString] !== undefined) {
-            await this.adapter.setState(
+        if (this.#delayedStates[nodeIdString] !== undefined) {
+            await this.#adapter.setState(
                 device.connectionStateId,
-                this.delayedStates[nodeIdString] === NodeStateInformation.Connected,
+                this.#delayedStates[nodeIdString] === NodeStateInformation.Connected,
                 true,
             );
-            await this.adapter.setState(device.connectionStatusId, this.delayedStates[nodeIdString], true);
-            delete this.delayedStates[nodeIdString];
+            await this.#adapter.setState(device.connectionStatusId, this.#delayedStates[nodeIdString], true);
+            delete this.#delayedStates[nodeIdString];
         }
 
         // Example to initialize a ClusterClient and access concrete fields as API methods
@@ -646,7 +646,7 @@ class Controller implements GeneralNode {
         }
 
         if (changed && deviceObj) {
-            await this.adapter.setObjectAsync(deviceObj._id, deviceObj);
+            await this.#adapter.setObjectAsync(deviceObj._id, deviceObj);
         }
 
         await this.endPointToIoBrokerStructure(nodeObject.nodeId, rootEndpoint, 0, [], device);
@@ -665,10 +665,10 @@ class Controller implements GeneralNode {
         path: number[],
         device: Device,
     ): Promise<void> {
-        this.adapter.log.info(`${''.padStart(level * 2)}Endpoint ${endpoint.number} (${endpoint.name}):`);
+        this.#adapter.log.info(`${''.padStart(level * 2)}Endpoint ${endpoint.number} (${endpoint.name}):`);
         if (level) {
             for (let f = 0; f < Factories.length; f++) {
-                this.addCluster(device, await Factories[f](this.adapter, nodeId, endpoint, path));
+                this.addCluster(device, await Factories[f](this.#adapter, nodeId, endpoint, path));
             }
         }
 
@@ -702,7 +702,7 @@ class Controller implements GeneralNode {
         manualCode: string | undefined,
         device: CommissionableDevice,
     ): Promise<AddDeviceResult | null> {
-        if (!this.commissioningController) {
+        if (!this.#commissioningController) {
             return null;
         }
         const commissioningOptions: CommissioningOptions = {
@@ -710,24 +710,24 @@ class Controller implements GeneralNode {
             regulatoryCountryCode: 'XX',
         };
 
-        if (this.useBle) {
-            if (this.parameters.wifiSSID && this.parameters.wifiPassword) {
-                this.adapter.log.debug(`Registering Commissioning over BLE with WiFi: ${this.parameters.wifiSSID}`);
+        if (this.#useBle) {
+            if (this.#parameters.wifiSSID && this.#parameters.wifiPassword) {
+                this.#adapter.log.debug(`Registering Commissioning over BLE with WiFi: ${this.#parameters.wifiSSID}`);
                 commissioningOptions.wifiNetwork = {
-                    wifiSsid: this.parameters.wifiSSID,
-                    wifiCredentials: this.parameters.wifiPassword,
+                    wifiSsid: this.#parameters.wifiSSID,
+                    wifiCredentials: this.#parameters.wifiPassword,
                 };
             }
             if (
-                this.parameters.threadNetworkName !== undefined &&
-                this.parameters.threadOperationalDataSet !== undefined
+                this.#parameters.threadNetworkName !== undefined &&
+                this.#parameters.threadOperationalDataSet !== undefined
             ) {
-                this.adapter.log.debug(
-                    `Registering Commissioning over BLE with Thread: ${this.parameters.threadNetworkName}`,
+                this.#adapter.log.debug(
+                    `Registering Commissioning over BLE with Thread: ${this.#parameters.threadNetworkName}`,
                 );
                 commissioningOptions.threadNetwork = {
-                    networkName: this.parameters.threadNetworkName,
-                    operationalDataset: this.parameters.threadOperationalDataSet,
+                    networkName: this.#parameters.threadNetworkName,
+                    operationalDataset: this.#parameters.threadOperationalDataSet,
                 };
             }
         }
@@ -766,25 +766,25 @@ class Controller implements GeneralNode {
             passcode,
         }) as NodeCommissioningOptions;
 
-        // this.adapter.log.debug(`Commissioning ... ${JSON.stringify(options)}`);
+        // this.#adapter.log.debug(`Commissioning ... ${JSON.stringify(options)}`);
         try {
-            const nodeId = await this.commissioningController.commissionNode(options);
+            const nodeId = await this.#commissioningController.commissionNode(options);
 
             await this.registerCommissionedNode(nodeId);
 
             return { result: true, nodeId: nodeId.toString() };
         } catch (error) {
-            this.adapter.log.info(`Commissioning failed: ${error.stack}`);
+            this.#adapter.log.info(`Commissioning failed: ${error.stack}`);
             return { error, result: false };
         }
     }
 
     async completeCommissioningForNode(nodeId: NodeId, discoveryData?: DiscoveryData): Promise<AddDeviceResult> {
-        if (!this.commissioningController) {
+        if (!this.#commissioningController) {
             throw new Error(`Can not register NodeId ${nodeId} because controller not initialized.`);
         }
 
-        await this.commissioningController.completeCommissioningForNode(nodeId, discoveryData);
+        await this.#commissioningController.completeCommissioningForNode(nodeId, discoveryData);
 
         await this.registerCommissionedNode(nodeId);
 
@@ -792,11 +792,11 @@ class Controller implements GeneralNode {
     }
 
     async registerCommissionedNode(nodeId: NodeId): Promise<void> {
-        if (!this.commissioningController) {
+        if (!this.#commissioningController) {
             throw new Error(`Can not register NodeId ${nodeId} because controller not initialized.`);
         }
 
-        const nodeObject = this.commissioningController.getConnectedNode(nodeId);
+        const nodeObject = this.#commissioningController.getConnectedNode(nodeId);
         if (nodeObject === undefined) {
             // should never happen
             throw new Error(`Node ${nodeId} is not connected but commissioning was successful. Should never happen.`);
@@ -804,49 +804,49 @@ class Controller implements GeneralNode {
 
         await this.nodeToIoBrokerStructure(nodeObject);
 
-        this.adapter.log.debug(`Commissioning successfully done with nodeId ${nodeId}`);
+        this.#adapter.log.debug(`Commissioning successfully done with nodeId ${nodeId}`);
     }
 
     async discovery(): Promise<CommissionableDevice[] | null> {
-        if (!this.commissioningController) {
+        if (!this.#commissioningController) {
             return null;
         }
-        await this.adapter.setState('controller.info.discovering', true, true);
-        this.discovering = true;
-        this.adapter.log.info(`Start the discovering...`);
-        const result = await this.commissioningController.discoverCommissionableDevices(
+        await this.#adapter.setState('controller.info.discovering', true, true);
+        this.#discovering = true;
+        this.#adapter.log.info(`Start the discovering...`);
+        const result = await this.#commissioningController.discoverCommissionableDevices(
             {},
             {
-                ble: this.useBle,
+                ble: this.#useBle,
                 onIpNetwork: true,
             },
             device => {
-                this.adapter.log.debug(`Found: ${Logger.toJSON(device)}`);
-                this.adapter.sendToGui({
+                this.#adapter.log.debug(`Found: ${Logger.toJSON(device)}`);
+                this.#adapter.sendToGui({
                     command: 'discoveredDevice',
                     device,
                 });
             },
             60, // timeoutSeconds
         );
-        this.adapter.log.info(`Discovering stopped. Found ${result.length} devices.`);
-        this.discovering = false;
+        this.#adapter.log.info(`Discovering stopped. Found ${result.length} devices.`);
+        this.#discovering = false;
         return result;
     }
 
     isDiscovering(): boolean {
-        return this.discovering;
+        return this.#discovering;
     }
 
     async discoveryStop(): Promise<void> {
-        if (this.commissioningController && this.discovering) {
-            this.adapter.log.info(`Stop the discovering...`);
-            this.discovering = false;
-            await this.adapter.setState('controller.info.discovering', false, true);
-            this.commissioningController.cancelCommissionableDeviceDiscovery(
+        if (this.#commissioningController && this.#discovering) {
+            this.#adapter.log.info(`Stop the discovering...`);
+            this.#discovering = false;
+            await this.#adapter.setState('controller.info.discovering', false, true);
+            this.#commissioningController.cancelCommissionableDeviceDiscovery(
                 {},
                 {
-                    ble: this.useBle,
+                    ble: this.#useBle,
                     onIpNetwork: true,
                 },
             );
@@ -857,10 +857,10 @@ class Controller implements GeneralNode {
         manualPairingCode: string;
         qrPairingCode: string;
     } | null> {
-        if (!this.commissioningController) {
+        if (!this.#commissioningController) {
             return null;
         }
-        const node = this.commissioningController.getConnectedNode(nodeId);
+        const node = this.#commissioningController.getConnectedNode(nodeId);
         if (node) {
             return await node.openEnhancedCommissioningWindow();
         }
@@ -868,21 +868,21 @@ class Controller implements GeneralNode {
     }
 
     async stop(): Promise<void> {
-        if (this.discovering) {
+        if (this.#discovering) {
             await this.discoveryStop();
         }
 
-        for (const device of this.devices.values()) {
+        for (const device of this.#devices.values()) {
             for (const cluster of device.clusters) {
                 await cluster.destroy();
             }
         }
 
-        this.devices.clear();
+        this.#devices.clear();
 
-        if (this.commissioningController) {
-            await this.commissioningController.close();
-            this.commissioningController = undefined;
+        if (this.#commissioningController) {
+            await this.#commissioningController.close();
+            this.#commissioningController = undefined;
         }
     }
 }

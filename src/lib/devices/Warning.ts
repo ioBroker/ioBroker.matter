@@ -1,126 +1,120 @@
-import GenericDevice, {
-    DetectedDevice,
-    DeviceOptions,
-    DeviceStateObject,
-    PropertyType,
-    StateAccessType,
-    ValueType,
-} from './GenericDevice';
+import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import GenericDevice, { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 class Warning extends GenericDevice {
-    protected _getWarningState: DeviceStateObject<number> | undefined;
-    protected _getTitleState: DeviceStateObject<string> | undefined;
-    protected _getInfoState: DeviceStateObject<string> | undefined;
-    protected _getStartState: DeviceStateObject<string> | undefined;
-    protected _getEndState: DeviceStateObject<string> | undefined;
-    protected _getIconState: DeviceStateObject<string> | undefined;
-    protected _getDescState: DeviceStateObject<string> | undefined;
+    #getWarningState?: DeviceStateObject<number>;
+    #getTitleState?: DeviceStateObject<string>;
+    #getInfoState?: DeviceStateObject<string>;
+    #getStartState?: DeviceStateObject<string>;
+    #getEndState?: DeviceStateObject<string>;
+    #getIconState?: DeviceStateObject<string>;
+    #getDescState?: DeviceStateObject<string>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(
+        this._construction.push(
             this.addDeviceStates([
                 {
                     name: 'LEVEL',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Warning,
-                    callback: state => (this._getWarningState = state),
+                    callback: state => (this.#getWarningState = state),
                 },
                 {
                     name: 'TITLE',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Title,
-                    callback: state => (this._getTitleState = state),
+                    callback: state => (this.#getTitleState = state),
                 },
                 {
                     name: 'INFO',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Info,
-                    callback: state => (this._getInfoState = state),
+                    callback: state => (this.#getInfoState = state),
                 },
                 {
                     name: 'START',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.StartTime,
-                    callback: state => (this._getStartState = state),
+                    callback: state => (this.#getStartState = state),
                 },
                 {
                     name: 'END',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.EndTime,
-                    callback: state => (this._getEndState = state),
+                    callback: state => (this.#getEndState = state),
                 },
                 {
                     name: 'ICON',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Icon,
-                    callback: state => (this._getIconState = state),
+                    callback: state => (this.#getIconState = state),
                 },
                 {
                     name: 'DESC',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Description,
-                    callback: state => (this._getDescState = state),
+                    callback: state => (this.#getDescState = state),
                 },
             ]),
         );
     }
 
     getWarning(): number | undefined {
-        if (!this._getWarningState) {
+        if (!this.#getWarningState) {
             throw new Error('Warning state not found');
         }
-        return this._getWarningState.value;
+        return this.#getWarningState.value;
     }
 
     getTitle(): string | undefined {
-        if (!this._getTitleState) {
+        if (!this.#getTitleState) {
             throw new Error('Title state not found');
         }
-        return this._getTitleState.value;
+        return this.#getTitleState.value;
     }
 
     getInfo(): string | undefined {
-        if (!this._getInfoState) {
+        if (!this.#getInfoState) {
             throw new Error('Info state not found');
         }
-        return this._getInfoState.value;
+        return this.#getInfoState.value;
     }
 
     getStartTime(): string | undefined {
-        if (!this._getStartState) {
+        if (!this.#getStartState) {
             throw new Error('Start state not found');
         }
-        return this._getStartState.value;
+        return this.#getStartState.value;
     }
 
     getEndTime(): string | undefined {
-        if (!this._getEndState) {
+        if (!this.#getEndState) {
             throw new Error('End state not found');
         }
-        return this._getEndState.value;
+        return this.#getEndState.value;
     }
 
     getIcon(): string | undefined {
-        if (!this._getIconState) {
+        if (!this.#getIconState) {
             throw new Error('Icon state not found');
         }
-        return this._getIconState.value;
+        return this.#getIconState.value;
     }
 
     getDescription(): string | undefined {
-        if (!this._getDescState) {
+        if (!this.#getDescState) {
             throw new Error('Desc state not found');
         }
-        return this._getDescState.value;
+        return this.#getDescState.value;
     }
 }
 

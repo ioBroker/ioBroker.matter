@@ -1,21 +1,15 @@
 import BlindButtons from './BlindButtons';
-import {
-    DetectedDevice,
-    DeviceOptions,
-    DeviceStateObject,
-    PropertyType,
-    StateAccessType,
-    ValueType,
-} from './GenericDevice';
+import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 class Blind extends BlindButtons {
-    private _setLevelState: DeviceStateObject<number> | undefined;
-    private _getLevelState: DeviceStateObject<number> | undefined;
+    #setLevelState?: DeviceStateObject<number>;
+    #getLevelState?: DeviceStateObject<number>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
-        this._ready.push(
+        this._construction.push(
             this.addDeviceStates([
                 // actual value first, as it will be read first
                 {
@@ -23,31 +17,31 @@ class Blind extends BlindButtons {
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Level,
-                    callback: state => (this._getLevelState = state),
+                    callback: state => (this.#getLevelState = state),
                 },
                 {
                     name: 'SET',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Level,
-                    callback: state => (this._setLevelState = state),
+                    callback: state => (this.#setLevelState = state),
                 },
             ]),
         );
     }
 
     getLevel(): number | undefined {
-        if (!this._setLevelState && !this._getLevelState) {
+        if (!this.#setLevelState && !this.#getLevelState) {
             throw new Error('Level state not found');
         }
-        return (this._getLevelState || this._setLevelState)?.value;
+        return (this.#getLevelState || this.#setLevelState)?.value;
     }
 
     async setLevel(value: number): Promise<void> {
-        if (!this._setLevelState) {
+        if (!this.#setLevelState) {
             throw new Error('Level state not found');
         }
-        return this._setLevelState.setValue(value);
+        return this.#setLevelState.setValue(value);
     }
 }
 

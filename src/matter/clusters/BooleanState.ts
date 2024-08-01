@@ -6,7 +6,7 @@ import { MatterAdapter } from '../../main';
 import Base from './Base';
 
 class BooleanState extends Base {
-    private handler: ((value: boolean) => void) | undefined = undefined;
+    #handler: ((value: boolean) => void) | undefined = undefined;
 
     async init(): Promise<void> {
         const cluster = this.endpoint.getClusterClient(BooleanStateCluster);
@@ -29,12 +29,12 @@ class BooleanState extends Base {
             await cluster.getStateValueAttribute(),
         );
 
-        this.handler = async (value: boolean) => {
+        this.#handler = async (value: boolean) => {
             await this.adapter.setStateAsync(id, value, true);
         };
 
         // subscribe on matter changes
-        cluster.addStateValueAttributeListener(this.handler);
+        cluster.addStateValueAttributeListener(this.#handler);
     }
 
     async destroy(): Promise<void> {

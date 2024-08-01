@@ -90,7 +90,7 @@ export const DEVICE_ICONS: Record<Types, React.JSX.Element> = {
     instance: <QuestionMark />,
 };
 
-export const SUPPORTED_DEVICES: Types[] = [Types.socket, Types.light, Types.dimmer];
+export const SUPPORTED_DEVICES: Types[] = [Types.socket, Types.light, Types.dimmer, Types.temperature, Types.humidity];
 
 const productIds: string[] = [];
 for (let i = 0x8000; i <= 0x801f; i++) {

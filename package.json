@@ -19,14 +19,14 @@
     "url": "https://github.com/ioBroker/ioBroker.matter"
   },
   "optionalDependencies": {
-    "@project-chip/matter-node-ble.js": "0.10.0-alpha.0-20240720-471dea8c"
+    "@project-chip/matter-node-ble.js": "0.10.0-alpha.0-20240724-23170eb4"
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.1.6",
     "@iobroker/dm-utils": "^0.3.1",
-    "@iobroker/type-detector": "^3.0.5",
-    "@project-chip/matter-node.js": "0.10.0-alpha.0-20240720-471dea8c",
-    "@project-chip/matter.js": "0.10.0-alpha.0-20240720-471dea8c",
+    "@iobroker/type-detector": "^4.0.1",
+    "@project-chip/matter-node.js": "0.10.0-alpha.0-20240724-23170eb4",
+    "@project-chip/matter.js": "0.10.0-alpha.0-20240724-23170eb4",
     "axios": "^1.7.2",
     "jsonwebtoken": "^9.0.2"
   },
@@ -81,7 +81,7 @@
     "update-packages": "ncu --upgrade && cd src-admin && ncu --upgrade",
     "npm": "npm i && cd src-admin && npm i",
     "dev-server": "dev-server",
-    "format": "prettier --write 'src/**/*.ts'"
+    "format": "prettier --write 'src/**/*.ts' 'src-admin/**/*.tsx'"
   },
   "license": "Apache-2.0",
   "readmeFilename": "README.md"

@@ -18,12 +18,12 @@ const demoDevice = {
 };
 
 class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
-    private demoState: ioBroker.State | null | undefined;
+    #demoState: ioBroker.State | null | undefined;
 
     // contents see in the next chapters
     async listDevices(): Promise<DeviceInfo[]> {
-        if (!this.demoState) {
-            this.demoState = await this.adapter.getForeignStateAsync('javascript.0.RGB.on');
+        if (!this.#demoState) {
+            this.#demoState = await this.adapter.getForeignStateAsync('javascript.0.RGB.on');
         }
 
         const devices = await this.adapter.getDevicesAsync();
@@ -103,7 +103,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             controls: [
                 {
                     type: 'icon',
-                    state: this.demoState || undefined,
+                    state: this.#demoState || undefined,
                     stateId: 'javascript.0.RGB.on',
                     id: 'light',
                     handler: this.handleControlDevice.bind(this),
@@ -122,12 +122,12 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         state: ControlState,
         _context: ActionContext,
     ): Promise<ErrorResponse | ioBroker.State> {
-        if (this.demoState) {
-            this.demoState.val = state as boolean;
-            this.demoState.ts = Date.now();
-            await this.adapter.setForeignStateAsync('javascript.0.RGB.on', this.demoState);
+        if (this.#demoState) {
+            this.#demoState.val = state as boolean;
+            this.#demoState.ts = Date.now();
+            await this.adapter.setForeignStateAsync('javascript.0.RGB.on', this.#demoState);
 
-            return this.demoState;
+            return this.#demoState;
         }
         return { error: { code: 404, message: 'State not found' } };
     }
@@ -137,8 +137,8 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         _actionId: string,
         _context: ActionContext,
     ): Promise<ErrorResponse | ioBroker.State> {
-        if (this.demoState) {
-            return this.demoState;
+        if (this.#demoState) {
+            return this.#demoState;
         }
         return { error: { code: 404, message: 'State not found' } };
     }

@@ -150,7 +150,8 @@ class Controller implements GeneralNode {
                         await this.discoveryStop();
                         return { result: 'ok' };
                     } else {
-                        return { error: 'Controller not discovering' };
+                        // lets return ok because in fact it is stopped
+                        return { result: 'ok' };
                     }
                 case 'controllerCommissionDevice':
                     // Commission a new device with Commissioning payloads like a QR Code or pairing code

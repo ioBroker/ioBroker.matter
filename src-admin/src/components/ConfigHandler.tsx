@@ -94,6 +94,7 @@ class ConfigHandler {
             if (id.split('.').length === 4) {
                 let changed = false;
                 const uuid = id.split('.').pop();
+
                 const device = this.config.devices.find(dev => dev.uuid === uuid);
                 if (device) {
                     if (!obj) {
@@ -128,7 +129,7 @@ class ConfigHandler {
                             device.vendorID = obj.native.vendorID;
                         }
                     }
-                } else if (obj) {
+                } else if (obj && uuid) {
                     console.log(`Detected new device: ${uuid}`);
                     changed = true;
                     this.config.devices.push({
@@ -178,7 +179,7 @@ class ConfigHandler {
                             bridge.vendorID = obj.native.vendorID;
                         }
                     }
-                } else if (obj) {
+                } else if (obj && uuid) {
                     console.log(`Detected new bridge: ${uuid}`);
                     changed = true;
 
@@ -225,7 +226,7 @@ class ConfigHandler {
         let devicesAndBridges: Record<string, ioBroker.ChannelObject>;
         let controllerObj: ioBroker.FolderObject | null = null;
         if (!this.socket) {
-            return undefined;
+            throw new Error('Could not load matter config because socket not connected');
         }
 
         try {
@@ -335,7 +336,7 @@ class ConfigHandler {
         if (!name || typeof name === 'string') {
             return (name as string) || '';
         }
-        return name.en || name[lang];
+        return name[lang] || name.en;
     }
 
     static sortAll(config: MatterConfig, lang: ioBroker.Languages) {
@@ -374,6 +375,10 @@ class ConfigHandler {
      * @param config the new MatterConfig
      */
     async saveDevicesConfig(config: MatterConfig): Promise<void> {
+        if (!this.socket) {
+            return;
+        }
+
         // sync devices
         for (const newDev of config.devices) {
             const oldDev = this.config.devices.find(dev => dev.uuid === newDev.uuid);
@@ -424,6 +429,10 @@ class ConfigHandler {
      * @param config the new MatterConfig
      */
     async saveBridgesConfig(config: MatterConfig): Promise<void> {
+        if (!this.socket) {
+            return;
+        }
+
         // sync bridges
         for (const newBridge of config.bridges) {
             const oldBridge = this.config.bridges.find(brd => brd.uuid === newBridge.uuid);
@@ -476,6 +485,10 @@ class ConfigHandler {
      * @param config the new MatterConfig
      */
     async saveControllerConfig(config: MatterConfig): Promise<void> {
+        if (!this.socket) {
+            return;
+        }
+
         // compare config with this.config
         let controller: ioBroker.FolderObject | null = (await this.socket.getObject(
             `matter.${this.instance}.controller`,

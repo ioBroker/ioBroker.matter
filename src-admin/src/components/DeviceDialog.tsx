@@ -332,6 +332,10 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                         }
                         value={device.common.name}
                         onChange={e => {
+                            if (!this.state.rooms) {
+                                return;
+                            }
+
                             const rooms = clone(this.state.rooms);
                             rooms[roomIndex].devices[deviceIndex].common.name = e.target.value;
                             this.setState({ rooms });
@@ -343,6 +347,10 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                         style={{ minWidth: 'initial' }}
                         value={device.vendorID}
                         onChange={e => {
+                            if (!this.state.rooms) {
+                                return;
+                            }
+
                             const rooms = clone(this.state.rooms);
                             rooms[roomIndex].devices[deviceIndex].vendorID = e.target.value;
                             this.setState({ rooms });
@@ -363,6 +371,10 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                         style={{ minWidth: 'initial' }}
                         value={device.productID}
                         onChange={e => {
+                            if (!this.state.rooms) {
+                                return;
+                            }
+
                             const rooms = clone(this.state.rooms);
                             rooms[roomIndex].devices[deviceIndex].productID = e.target.value;
                             this.setState({ rooms });
@@ -451,6 +463,10 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                                                 'matter.useRoomNames',
                                                 e.target.checked ? 'true' : 'false',
                                             );
+
+                                            if (!this.state.rooms) {
+                                                return;
+                                            }
 
                                             const rooms = clone(this.state.rooms);
                                             if (e.target.checked) {

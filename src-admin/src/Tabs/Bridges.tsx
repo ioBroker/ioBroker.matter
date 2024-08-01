@@ -326,6 +326,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         disabled={isCommissioned}
                         value={this.state.editBridgeDialog.name}
                         onChange={e => {
+                            if (!this.state.editBridgeDialog) {
+                                return;
+                            }
+
                             const editBridgeDialog = clone(this.state.editBridgeDialog);
                             editBridgeDialog.name = e.target.value;
                             this.setState({ editBridgeDialog });
@@ -340,6 +344,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         style={{ width: 'calc(50% - 8px)', marginRight: 16, marginTop: 16 }}
                         value={this.state.editBridgeDialog.vendorID}
                         onChange={e => {
+                            if (!this.state.editBridgeDialog) {
+                                return;
+                            }
+
                             const editBridgeDialog = clone(this.state.editBridgeDialog);
                             editBridgeDialog.vendorID = e.target.value;
                             this.setState({ editBridgeDialog });
@@ -360,6 +368,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         style={{ width: 'calc(50% - 8px)', marginTop: 16 }}
                         value={this.state.editBridgeDialog.productID}
                         onChange={e => {
+                            if (!this.state.editBridgeDialog) {
+                                return;
+                            }
+
                             const editBridgeDialog = clone(this.state.editBridgeDialog);
                             editBridgeDialog.productID = e.target.value;
                             this.setState({ editBridgeDialog });
@@ -457,6 +469,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         disabled={isCommissioned}
                         value={this.state.editDeviceDialog.name}
                         onChange={e => {
+                            if (!this.state.editDeviceDialog) {
+                                return;
+                            }
+
                             const editDeviceDialog = clone(this.state.editDeviceDialog);
                             editDeviceDialog.name = e.target.value;
                             this.setState({ editDeviceDialog });
@@ -471,6 +487,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             <Checkbox
                                 checked={this.state.editDeviceDialog.noComposed}
                                 onChange={e => {
+                                    if (!this.state.editDeviceDialog) {
+                                        return;
+                                    }
+
                                     const editDeviceDialog = clone(this.state.editDeviceDialog);
                                     editDeviceDialog.noComposed = e.target.checked;
                                     this.setState({ editDeviceDialog });
@@ -493,6 +513,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             disabled={isCommissioned || this.state.editDeviceDialog.auto}
                             value={this.state.editDeviceDialog.deviceType}
                             onChange={e => {
+                                if (!this.state.editDeviceDialog) {
+                                    return;
+                                }
+
                                 const editDeviceDialog = clone(this.state.editDeviceDialog);
                                 editDeviceDialog.deviceType = e.target.value as Types;
                                 this.setState({ editDeviceDialog });
@@ -521,6 +545,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             <Checkbox
                                 checked={this.state.editDeviceDialog.actionAllowedByIdentify}
                                 onChange={e => {
+                                    if (!this.state.editDeviceDialog) {
+                                        return;
+                                    }
+
                                     const editDeviceDialog = clone(this.state.editDeviceDialog);
                                     editDeviceDialog.actionAllowedByIdentify = e.target.checked;
                                     this.setState({ editDeviceDialog });
@@ -536,6 +564,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                 <Checkbox
                                     checked={this.state.editDeviceDialog.dimmerUseLastLevelForOn}
                                     onChange={e => {
+                                        if (!this.state.editDeviceDialog) {
+                                            return;
+                                        }
+
                                         const editDeviceDialog = clone(this.state.editDeviceDialog);
                                         editDeviceDialog.dimmerUseLastLevelForOn = e.target.checked;
                                         this.setState({ editDeviceDialog });
@@ -554,6 +586,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                 variant="standard"
                                 value={this.state.editDeviceDialog.dimmerOnLevel}
                                 onChange={e => {
+                                    if (!this.state.editDeviceDialog) {
+                                        return;
+                                    }
+
                                     const editDeviceDialog = clone(this.state.editDeviceDialog);
                                     editDeviceDialog.dimmerOnLevel = e.target.value as number;
                                     this.setState({ editDeviceDialog });
@@ -753,7 +789,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
     /**
      * Render dialog to select if devices should be added from state or detected automatically
      */
-    renderAddDevicesPreDialog(): React.JSX.Element {
+    renderAddDevicesPreDialog(): React.ReactNode {
         if (!this.state.addDevicePreDialog.open) {
             return null;
         }
@@ -825,6 +861,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         label={I18n.t('Name')}
                         value={this.state.addCustomDeviceDialog.name}
                         onChange={e => {
+                            if (!this.state.addCustomDeviceDialog) {
+                                return;
+                            }
+
                             const addCustomDeviceDialog = clone(this.state.addCustomDeviceDialog);
                             addCustomDeviceDialog.name = e.target.value;
                             this.setState({ addCustomDeviceDialog });
@@ -846,6 +886,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             variant="standard"
                             value={this.state.addCustomDeviceDialog.deviceType}
                             onChange={e => {
+                                if (!this.state.addCustomDeviceDialog) {
+                                    return;
+                                }
+
                                 const addCustomDeviceDialog = clone(this.state.addCustomDeviceDialog);
                                 addCustomDeviceDialog.deviceType = e.target.value as Types;
                                 this.setState({ addCustomDeviceDialog });

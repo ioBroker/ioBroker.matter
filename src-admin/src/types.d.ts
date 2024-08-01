@@ -98,6 +98,8 @@ export interface CommissionableDevice {
     CM: number;
     /** The device's addresses IP/ port pairs */
     addresses: ServerAddress[];
+    /** Vendor ID */
+    V?: number;
     /** VendorId + ProductId */
     VP?: string;
     /** Device type */
@@ -130,7 +132,7 @@ export enum NodeStates {
 }
 
 export interface ConnectionInfo {
-    vendor: string;
+    vendorId: number;
     connected: boolean;
     label?: string;
 }

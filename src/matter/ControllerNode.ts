@@ -146,8 +146,8 @@ class Controller implements GeneralNode {
                     return { result: await this.discovery() };
                 case 'controllerDiscoveryStop':
                     // Stop Discovery
-                    if (this.isDiscovering()) {
-                        await this.discoveryStop();
+                    if (this.#discovering) {
+                        await this.#discoveryStop();
                         return { result: 'ok' };
                     } else {
                         // lets return ok because in fact it is stopped
@@ -832,19 +832,16 @@ class Controller implements GeneralNode {
             60, // timeoutSeconds
         );
         this.#adapter.log.info(`Discovering stopped. Found ${result.length} devices.`);
+        await this.#adapter.setState('controller.info.discovering', false, true);
         this.#discovering = false;
         return result;
     }
 
-    isDiscovering(): boolean {
-        return this.#discovering;
-    }
-
-    async discoveryStop(): Promise<void> {
+    async #discoveryStop(): Promise<void> {
+        this.#discovering = false;
+        await this.#adapter.setState('controller.info.discovering', false, true);
         if (this.#commissioningController && this.#discovering) {
             this.#adapter.log.info(`Stop the discovering...`);
-            this.#discovering = false;
-            await this.#adapter.setState('controller.info.discovering', false, true);
             this.#commissioningController.cancelCommissionableDeviceDiscovery(
                 {},
                 {
@@ -871,7 +868,7 @@ class Controller implements GeneralNode {
 
     async stop(): Promise<void> {
         if (this.#discovering) {
-            await this.discoveryStop();
+            await this.#discoveryStop();
         }
 
         for (const device of this.#devices.values()) {

@@ -155,7 +155,7 @@ class Controller implements GeneralNode {
                 case 'controllerCommissionDevice':
                     // Commission a new device with Commissioning payloads like a QR Code or pairing code
                     const options = message as EndUserCommissioningOptions;
-                    return { result: await this.commissionDevice(options.qrCode, options.manualCode, options.device) };
+                    return await this.commissionDevice(options.qrCode, options.manualCode, options.device);
                 case 'controllerDeviceQrCode':
                     // Opens a new commissioning window for a paired node and returns the QRCode and pairing code for display
                     return { result: await this.showNewCommissioningCode(message.nodeId) };
@@ -164,9 +164,7 @@ class Controller implements GeneralNode {
                     return { result: this.#commissioningController.paseCommissionerData };
                 case 'controllerCompletePaseCommissioning':
                     // Completes a commissioning process that was started by the mobile app in the main controller
-                    return {
-                        result: await this.completeCommissioningForNode(message.peerNodeId, message.discoveryData),
-                    };
+                    return await this.completeCommissioningForNode(message.peerNodeId, message.discoveryData);
             }
         } catch (error) {
             this.#adapter.log.warn(`Error while executing command "${command}": ${error.stack}`);
@@ -701,9 +699,9 @@ class Controller implements GeneralNode {
         qrCode: string | undefined,
         manualCode: string | undefined,
         device: CommissionableDevice,
-    ): Promise<AddDeviceResult | null> {
+    ): Promise<AddDeviceResult> {
         if (!this.#commissioningController) {
-            return null;
+            return { error: new Error('Controller is not activated.'), result: false };
         }
         const commissioningOptions: CommissioningOptions = {
             regulatoryLocation: GeneralCommissioning.RegulatoryLocationType.IndoorOutdoor,
@@ -781,7 +779,10 @@ class Controller implements GeneralNode {
 
     async completeCommissioningForNode(nodeId: NodeId, discoveryData?: DiscoveryData): Promise<AddDeviceResult> {
         if (!this.#commissioningController) {
-            throw new Error(`Can not register NodeId ${nodeId} because controller not initialized.`);
+            return {
+                result: false,
+                error: new Error(`Can not register NodeId ${nodeId} because controller not initialized.`),
+            };
         }
 
         await this.#commissioningController.completeCommissioningForNode(nodeId, discoveryData);

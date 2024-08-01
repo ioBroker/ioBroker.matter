@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import QRCode from 'react-qr-code';
 
+import { type AdminConnection, I18n, type IobTheme, type ThemeType, Utils } from '@iobroker/adapter-react-v5';
 import {
     Close,
     ContentCopy,
@@ -31,8 +32,7 @@ import {
     Typography,
 } from '@mui/material';
 import { SiAmazonalexa, SiApple, SiGoogleassistant, SiSmartthings } from 'react-icons/si';
-
-import { type AdminConnection, I18n, type IobTheme, type ThemeType, Utils } from '@iobroker/adapter-react-v5';
+import VENDOR_IDS from '../utils/vendorIDs';
 
 import type {
     BridgeDescription,
@@ -121,7 +121,9 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         }
     }
 
-    static getVendorIcon(vendor: string, themeType: ThemeType) {
+    static getVendorIcon(vendorId: number, themeType: ThemeType) {
+        const vendor = VENDOR_IDS[vendorId];
+
         if (vendor === 'Amazon Lab126') {
             return (
                 <SiAmazonalexa
@@ -279,8 +281,8 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                                 {data.connectionInfo?.map((info, i) => (
                                     <TableRow key={i}>
                                         <TableCell>
-                                            {BridgesAndDevices.getVendorIcon(info.vendor, this.props.themeType) ||
-                                                info.vendor}
+                                            {BridgesAndDevices.getVendorIcon(info.vendorId, this.props.themeType) ||
+                                                info.vendorId}
                                             {info.label ? (
                                                 <span
                                                     style={{
@@ -329,7 +331,11 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
     /**
      * Render the QR code dialog for pairing
      */
-    renderQrCodeDialog(): React.JSX.Element {
+    renderQrCodeDialog(): React.ReactNode {
+        if (!this.state.showQrCode) {
+            return null;
+        }
+
         const uuid = this.state.showQrCode?.uuid;
         const nodeState = uuid && this.props.nodeStates[this.state.showQrCode.uuid];
         if (nodeState && !nodeState.qrPairingCode) {
@@ -343,9 +349,11 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 1_000,
             );
         }
-        if (!this.state.showQrCode || !nodeState) {
+
+        if (!nodeState) {
             return null;
         }
+
         return (
             <Dialog onClose={() => this.setState({ showQrCode: null })} open={!0} maxWidth="md">
                 <DialogTitle>{I18n.t('QR Code to connect')}</DialogTitle>

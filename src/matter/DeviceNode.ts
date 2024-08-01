@@ -10,7 +10,6 @@ import { ServerNode } from '@project-chip/matter.js/node';
 import type { MatterAdapter } from '../main';
 import { BaseServerNode, NodeStateResponse, NodeStates } from './BaseServerNode';
 import matterDeviceFactory from './matterFactory';
-import VENDOR_IDS from './vendorIds';
 
 export interface DeviceCreateOptions {
     parameters: DeviceOptions;
@@ -201,7 +200,7 @@ class Device extends BaseServerNode {
             const connectionInfo: any = activeSessions.map(session => {
                 const vendorId = session?.fabric?.rootVendorId;
                 return {
-                    vendor: (vendorId && VENDOR_IDS[vendorId]) || `0x${(vendorId || 0).toString(16)}`,
+                    vendorId,
                     connected: !!session.numberOfActiveSubscriptions,
                     label: session?.fabric?.label,
                 };
@@ -210,7 +209,7 @@ class Device extends BaseServerNode {
             fabrics.forEach(fabric => {
                 if (!activeSessions.find(session => session.fabric?.fabricId === fabric.fabricId)) {
                     connectionInfo.push({
-                        vendor: VENDOR_IDS[fabric?.rootVendorId] || `0x${(fabric?.rootVendorId || 0).toString(16)}`,
+                        vendorId: fabric?.rootVendorId,
                         connected: false,
                         label: fabric?.label,
                     });

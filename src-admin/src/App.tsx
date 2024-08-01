@@ -135,10 +135,10 @@ class App extends GenericApp<GenericAppProps, AppState> {
         this.refreshTimer = setTimeout(() => {
             this.refreshTimer = null;
             this.refreshBackendSubscription();
-        }, 60000);
+        }, 60_000);
 
         this.socket.subscribeOnInstance(`matter.${this.instance}`, 'gui', null, this.onBackendUpdates).then(result => {
-            if (typeof result === 'object' && result.accepted === false) {
+            if (result && typeof result === 'object' && result.accepted === false) {
                 console.error('Subscribe is not accepted');
                 this.setState({ backendRunning: !!result.accepted });
             } else if (!this.state.backendRunning) {

@@ -51,7 +51,7 @@ import { I18n, IconClosed, IconOpen } from '@iobroker/adapter-react-v5';
 import DeviceManager from '@iobroker/dm-gui-components';
 
 import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
-import { clone, getText } from '../Utils';
+import { clone, getText, getVendorName } from '../Utils';
 
 const styles: Record<string, React.CSSProperties> = {
     panel: {
@@ -368,7 +368,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
     /**
      * Render the loading spinner if backend processing is active
      */
-    renderLoadingSpinner(): React.JSX.Element {
+    renderLoadingSpinner(): React.ReactNode {
         if (!this.state.backendProcessingActive) {
             return null;
         }
@@ -383,7 +383,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
     /**
      * Render the BLE dialog
      */
-    renderBleDialog(): React.JSX.Element {
+    renderBleDialog(): React.ReactNode {
         if (!this.state.bleDialogOpen) {
             return null;
         }
@@ -689,13 +689,13 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                 window.alert(`Cannot connect: ${result.error || 'Unknown error'}`);
                             } else {
                                 window.alert(I18n.t('Connected'));
-                                const deviceId = device.deviceIdentifier;
+                                const deviceId = device?.deviceIdentifier;
                                 const discovered = this.state.discovered.filter(
                                     commDevice => commDevice.deviceIdentifier !== deviceId,
                                 );
 
                                 this.setState({ discovered }, () => {
-                                    this.refDeviceManager.current.loadData();
+                                    this.refDeviceManager.current?.loadData();
                                 });
                             }
                         }}
@@ -721,14 +721,21 @@ class Controller extends Component<ComponentProps, ComponentState> {
             return null;
         }
         return (
-            <Dialog open={!0} onClose={() => this.setState({ discoveryDone: false })}>
-                <DialogTitle>{I18n.t('Discovered devices')}</DialogTitle>
+            <Dialog sx={{ maxWidth: 800 }} open={!0} onClose={() => this.setState({ discoveryDone: false })}>
+                <DialogTitle>{I18n.t('Discovered devices to pair')}</DialogTitle>
                 <DialogContent>
+                    <Box sx={styles.infoBox}>
+                        <Info />
+                        <Typography>
+                            {I18n.t(this.props.matter.controller.ble ? 'Pairing Info Text BLE' : 'Pairing Info Text')}
+                        </Typography>
+                    </Box>
                     {this.state.discoveryRunning ? <LinearProgress /> : null}
                     <Table style={{ width: '100%' }}>
                         <TableHead>
                             <TableCell>{I18n.t('Name')}</TableCell>
                             <TableCell>{I18n.t('Identifier')}</TableCell>
+                            <TableCell>{I18n.t('Vendor ID')}</TableCell>
                             <TableCell />
                         </TableHead>
                         <TableBody>
@@ -736,9 +743,15 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                 <TableRow>
                                     <TableCell>{device.DN}</TableCell>
                                     <TableCell>{device.deviceIdentifier}</TableCell>
+                                    <TableCell>{getVendorName(device.V)}</TableCell>
                                     <TableCell>
                                         <Tooltip title={I18n.t('Connect')}>
                                             <IconButton
+                                                sx={theme => ({
+                                                    color: '#fff',
+                                                    backgroundColor: theme.palette.primary.main,
+                                                    '&:hover': { backgroundColor: theme.palette.secondary.main },
+                                                })}
                                                 onClick={() => {
                                                     this.setState({
                                                         showQrCodeDialog: device,

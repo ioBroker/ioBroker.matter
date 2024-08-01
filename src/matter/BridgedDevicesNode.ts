@@ -13,7 +13,6 @@ import { ServerNode } from '@project-chip/matter.js/node';
 import type { MatterAdapter } from '../main';
 import { BaseServerNode, ConnectionInfo, NodeStateResponse, NodeStates } from './BaseServerNode';
 import matterDeviceFactory from './matterFactory';
-import VENDOR_IDS from './vendorIds';
 
 export interface BridgeCreateOptions {
     parameters: BridgeOptions;
@@ -224,7 +223,7 @@ class BridgedDevices extends BaseServerNode {
             const connectionInfo: ConnectionInfo[] = activeSessions.map(session => {
                 const vendorId = session?.fabric?.rootVendorId;
                 return {
-                    vendor: (vendorId && VENDOR_IDS[vendorId]) || `0x${(vendorId || 0).toString(16)}`,
+                    vendorId,
                     connected: !!session.numberOfActiveSubscriptions,
                     label: session?.fabric?.label,
                 };
@@ -233,7 +232,7 @@ class BridgedDevices extends BaseServerNode {
             fabrics.forEach(fabric => {
                 if (!activeSessions.find(session => session.fabric?.fabricId === fabric.fabricId)) {
                     connectionInfo.push({
-                        vendor: VENDOR_IDS[fabric?.rootVendorId] || `0x${(fabric?.rootVendorId || 0).toString(16)}`,
+                        vendorId: fabric?.rootVendorId,
                         connected: false,
                         label: fabric?.label,
                     });

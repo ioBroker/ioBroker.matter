@@ -3,6 +3,7 @@ import { I18n } from '@iobroker/adapter-react-v5';
 import type { DetectOptions } from '@iobroker/type-detector';
 import ChannelDetector, { Types } from '@iobroker/type-detector';
 import type { DetectedDevice, DetectedRoom } from './types';
+import VENDOR_IDS from './utils/vendorIDs';
 
 function getObjectIcon(obj: ioBroker.Object | DetectedDevice, id: string, imagePrefix?: string): string | undefined {
     imagePrefix = imagePrefix || '.'; // http://localhost:8081';
@@ -305,4 +306,17 @@ export function clone<TObject extends Record<string, any>>(obj: TObject): TObjec
  */
 export function formatPairingCode(pairingCode: string): string {
     return `${pairingCode.substring(0, 4)}-${pairingCode.substring(4, 7)}-${pairingCode.substring(7)}`;
+}
+
+/**
+ * Get the vendor name by ID
+ *
+ * @param vendorId the vendor ID
+ */
+export function getVendorName(vendorId?: number): string {
+    if (vendorId === undefined) {
+        return '-';
+    }
+
+    return VENDOR_IDS[vendorId] || `0x${vendorId.toString(16)}`;
 }

@@ -10,7 +10,7 @@ export enum NodeStates {
 }
 
 export interface ConnectionInfo {
-    vendor: string;
+    vendorId?: number;
     connected: boolean;
     label?: string;
 }

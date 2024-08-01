@@ -721,7 +721,11 @@ class Controller extends Component<ComponentProps, ComponentState> {
             return null;
         }
         return (
-            <Dialog sx={{ maxWidth: 800 }} open={!0} onClose={() => this.setState({ discoveryDone: false })}>
+            <Dialog
+                sx={{ '.MuiDialog-paper': { maxWidth: 800 } }}
+                open={!0}
+                onClose={() => this.setState({ discoveryDone: false })}
+            >
                 <DialogTitle>{I18n.t('Discovered devices to pair')}</DialogTitle>
                 <DialogContent>
                     <Box sx={styles.infoBox}>

@@ -366,9 +366,9 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                             )}
                         </Typography>
                     </Box>
-                    <div style={{ background: 'white', padding: 16 }}>
+                    <Box sx={{ background: 'white', padding: 2, width: 256, height: 256 }}>
                         {nodeState.qrPairingCode ? <QRCode value={nodeState.qrPairingCode} /> : null}
-                    </div>
+                    </Box>
                     <TextField
                         value={nodeState.manualPairingCode ? formatPairingCode(nodeState.manualPairingCode) : ''}
                         InputProps={{

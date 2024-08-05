@@ -125,7 +125,7 @@ export abstract class BaseServerNode implements GeneralNode {
         switch (command) {
             case 'deviceReAnnounce':
                 await this.advertise();
-                break;
+                return { result: await this.getState() };
             case 'deviceFactoryReset':
                 await this.factoryReset();
                 return { result: await this.getState() };

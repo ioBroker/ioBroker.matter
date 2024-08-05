@@ -204,10 +204,11 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         return <QuestionMark style={{ color }} />;
     }
 
-    renderStatus(deviceOrBridge: DeviceDescription | BridgeDescription) {
-        if (!this.props.nodeStates[deviceOrBridge.uuid]) {
+    renderStatus(deviceOrBridge: DeviceDescription | BridgeDescription): React.ReactNode {
+        if (!this.props.nodeStates[deviceOrBridge.uuid] || !deviceOrBridge.enabled) {
             return null;
         }
+
         if (this.props.nodeStates[deviceOrBridge.uuid].status === 'waitingForCommissioning') {
             return (
                 <Tooltip

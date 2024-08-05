@@ -390,7 +390,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
         return (
             <Dialog open={!0}>
-                <DialogTitle>{I18n.t('Commissioning information')}</DialogTitle>
+                <DialogTitle>{I18n.t('BLE Commissioning information')}</DialogTitle>
                 <DialogContent>
                     <div>
                         <Box sx={styles.infoBox}>
@@ -1116,7 +1116,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             onClick={() => this.setState({ bleDialogOpen: true })}
                             startIcon={this.props.matter.controller.ble ? <Bluetooth /> : <BluetoothDisabled />}
                         >
-                            {I18n.t('Commissioning information')}
+                            {I18n.t('BLE Commissioning information')}
                         </Button>
                     ) : null}
                 </div>

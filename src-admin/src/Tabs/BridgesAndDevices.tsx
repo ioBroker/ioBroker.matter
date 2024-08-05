@@ -366,9 +366,9 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                             )}
                         </Typography>
                     </Box>
-                    <div style={{ background: 'white', padding: 16 }}>
+                    <Box sx={{ background: 'white', padding: 2, width: 256, height: 256 }}>
                         {nodeState.qrPairingCode ? <QRCode value={nodeState.qrPairingCode} /> : null}
-                    </div>
+                    </Box>
                     <TextField
                         value={nodeState.manualPairingCode ? formatPairingCode(nodeState.manualPairingCode) : ''}
                         InputProps={{
@@ -408,6 +408,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                             if (result.error) {
                                 window.alert(`Cannot re-announce: ${result.error}`);
                             } else {
+                                this.props.showToast(I18n.t('Successfully re-announced'));
                                 this.props.updateNodeStates({
                                     [uuid]: result.result,
                                 });
@@ -462,6 +463,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                                         if (result.error) {
                                             window.alert(`Cannot reset: ${result.error}`);
                                         } else {
+                                            this.props.showToast(I18n.t('Reset successful'));
                                             this.props.updateNodeStates({ [uuid]: result.result });
                                         }
                                     });

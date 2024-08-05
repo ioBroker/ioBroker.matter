@@ -73,7 +73,7 @@ interface OptionsProps {
     native: MatterAdapterConfig;
     common: ioBroker.InstanceCommon;
     instance: number;
-    onChange: (attr: string, value: boolean | string) => void;
+    onChange: (attr: string, value: boolean | string) => Promise<void>;
     showToast: (text: string) => void;
     onLoad: (native: Record<string, any>) => void;
     /** The current matter config */
@@ -386,9 +386,9 @@ class Options extends Component<OptionsProps, OptionsState> {
                             style={{ marginLeft: 16 }}
                             variant="contained"
                             color="primary"
-                            onClick={() => {
-                                this.props.onChange('login', this.state.iotLogin);
-                                this.props.onChange('pass', this.state.iotPassword);
+                            onClick={async () => {
+                                await this.props.onChange('login', this.state.iotLogin);
+                                await this.props.onChange('pass', this.state.iotPassword);
                             }}
                         >
                             {I18n.t('Sync credentials with %s', this.state.iotInstance.replace('system.adapter.', ''))}

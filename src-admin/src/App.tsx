@@ -307,7 +307,11 @@ class App extends GenericApp<GenericAppProps, AppState> {
         return (
             <OptionsTab
                 alive={this.state.alive}
-                onChange={(id: string, value: any) => this.updateNativeValue(id, value)}
+                onChange={(id: string, value: any) => {
+                    return new Promise<void>(resolve => {
+                        this.updateNativeValue(id, value, resolve);
+                    });
+                }}
                 onLoad={(native: Record<string, any>) => this.onLoadConfig(native)}
                 socket={this.socket}
                 common={this.common}

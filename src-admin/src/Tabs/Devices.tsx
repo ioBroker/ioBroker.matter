@@ -844,41 +844,43 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                     />
                 </TableCell>
                 <TableCell style={{ width: 0 }}>
-                    <Tooltip title={I18n.t('Edit device')} componentsProps={{ popper: { sx: styles.tooltip } }}>
-                        <IconButton
-                            onClick={() => {
-                                this.setState({
-                                    editDeviceDialog: {
-                                        type: 'device',
-                                        name: getText(device.name),
-                                        originalName: getText(device.name),
-                                        deviceIndex: index,
-                                        auto: !!device.auto,
-                                        deviceType: device.type,
-                                        originalDeviceType: device.type,
-                                        vendorID: device.vendorID || '',
-                                        productID: device.productID || '',
-                                        originalVendorID: device.vendorID || '',
-                                        originalProductID: device.productID || '',
-                                        originalNoComposed: !!device.noComposed,
-                                        noComposed: !!device.noComposed,
-                                        dimmerOnLevel: Number(device.dimmerOnLevel) || 0,
-                                        originalDimmerOnLevel: Number(device.dimmerOnLevel) || 0,
-                                        dimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
-                                        originalDimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
-                                        actionAllowedByIdentify: !!device.actionAllowedByIdentify,
-                                        originalActionAllowedByIdentify: !!device.actionAllowedByIdentify,
-                                        hasOnState: !!device.hasOnState,
-                                    },
-                                });
-                            }}
-                        >
-                            <Edit />
-                        </IconButton>
-                    </Tooltip>
+                    {device.enabled ? (
+                        <Tooltip title={I18n.t('Edit device')} componentsProps={{ popper: { sx: styles.tooltip } }}>
+                            <IconButton
+                                onClick={() => {
+                                    this.setState({
+                                        editDeviceDialog: {
+                                            type: 'device',
+                                            name: getText(device.name),
+                                            originalName: getText(device.name),
+                                            deviceIndex: index,
+                                            auto: !!device.auto,
+                                            deviceType: device.type,
+                                            originalDeviceType: device.type,
+                                            vendorID: device.vendorID || '',
+                                            productID: device.productID || '',
+                                            originalVendorID: device.vendorID || '',
+                                            originalProductID: device.productID || '',
+                                            originalNoComposed: !!device.noComposed,
+                                            noComposed: !!device.noComposed,
+                                            dimmerOnLevel: Number(device.dimmerOnLevel) || 0,
+                                            originalDimmerOnLevel: Number(device.dimmerOnLevel) || 0,
+                                            dimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
+                                            originalDimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
+                                            actionAllowedByIdentify: !!device.actionAllowedByIdentify,
+                                            originalActionAllowedByIdentify: !!device.actionAllowedByIdentify,
+                                            hasOnState: !!device.hasOnState,
+                                        },
+                                    });
+                                }}
+                            >
+                                <Edit />
+                            </IconButton>
+                        </Tooltip>
+                    ) : null}
                 </TableCell>
                 <TableCell style={{ width: 0 }}>
-                    {this.props.alive ? (
+                    {this.props.alive && device.enabled ? (
                         <Tooltip
                             title={I18n.t('Reset to factory defaults')}
                             componentsProps={{ popper: { sx: styles.tooltip } }}

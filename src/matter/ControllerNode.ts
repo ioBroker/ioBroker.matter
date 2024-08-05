@@ -327,7 +327,7 @@ class Controller implements GeneralNode {
         return value;
     }
 
-    logClusterServer(nodeId: NodeId, clusterServer: ClusterServerObj<any, any>, level: number): void {
+    logClusterServer(nodeId: NodeId, clusterServer: ClusterServerObj<any>, level: number): void {
         const featureMap = clusterServer.attributes.featureMap?.getLocal() ?? {};
         const globalAttributes = GlobalAttributes<any>(featureMap);
         const supportedFeatures = new Array<string>();
@@ -371,7 +371,7 @@ class Controller implements GeneralNode {
         }
 
         this.#adapter.log.debug(`${''.padStart(level * 2 + 2)}Commands:`);
-        const commands = asClusterServerInternal(clusterServer)._commands;
+        const commands = asClusterServerInternal(clusterServer).commands;
         for (const commandName in commands) {
             const command = commands[commandName];
             if (command === undefined) continue;
@@ -381,7 +381,7 @@ class Controller implements GeneralNode {
         }
 
         this.#adapter.log.debug(`${''.padStart(level * 2 + 2)}Events:`);
-        const events = asClusterServerInternal(clusterServer)._events;
+        const events = asClusterServerInternal(clusterServer).events;
         for (const eventName in events) {
             const event = events[eventName];
             if (event === undefined) continue;

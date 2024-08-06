@@ -10,7 +10,6 @@ import {
     DomainDisabled,
     Edit,
     FormatListBulleted,
-    Info,
     KeyboardArrowDown,
     KeyboardArrowUp,
     QuestionMark,
@@ -19,7 +18,6 @@ import {
     UnfoldMore,
 } from '@mui/icons-material';
 import {
-    Box,
     Button,
     Checkbox,
     Dialog,
@@ -40,11 +38,11 @@ import {
     TableRow,
     TextField,
     Tooltip,
-    Typography,
 } from '@mui/material';
 
 import { I18n, SelectID, type IobTheme } from '@iobroker/adapter-react-v5';
 
+import { InfoBox } from '@foxriver76/iob-component-lib';
 import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import type {
     BridgeDescription,
@@ -1311,10 +1309,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 {this.renderQrCodeDialog()}
                 {this.renderDebugDialog()}
                 {this.renderResetDialog()}
-                <Box sx={STYLES.infoBox}>
-                    <Info />
-                    <Typography>{I18n.t('Matter Bridges Infotext')}</Typography>
-                </Box>
+                <InfoBox type="info">{I18n.t('Matter Bridges Infotext')}</InfoBox>
                 <Tooltip title={I18n.t('Add bridge')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                     <Fab
                         color="primary"

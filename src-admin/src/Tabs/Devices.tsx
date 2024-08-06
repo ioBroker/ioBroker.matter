@@ -10,12 +10,10 @@ import {
     DomainDisabled,
     Edit,
     FormatListBulleted,
-    Info,
     QuestionMark,
     Save,
 } from '@mui/icons-material';
 import {
-    Box,
     Button,
     Checkbox,
     Dialog,
@@ -36,11 +34,11 @@ import {
     TableRow,
     TextField,
     Tooltip,
-    Typography,
 } from '@mui/material';
 
 import { I18n, SelectID } from '@iobroker/adapter-react-v5';
 
+import { InfoBox } from '@foxriver76/iob-component-lib';
 import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import type { DetectedDevice, DeviceDescription, MatterConfig } from '../types';
 import { clone, detectDevices, getText } from '../Utils';
@@ -928,14 +926,11 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 {this.renderDebugDialog()}
                 {this.renderQrCodeDialog()}
                 {this.renderResetDialog()}
-                <Box sx={styles.infoBox}>
-                    <Info />
-                    <Typography sx={{ whiteSpace: 'pre' }}>
-                        {I18n.t(
-                            'Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.',
-                        )}
-                    </Typography>
-                </Box>
+                <InfoBox type="info">
+                    {I18n.t(
+                        'Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.',
+                    )}
+                </InfoBox>
                 <Tooltip title={I18n.t('Add device')} componentsProps={{ popper: { sx: styles.tooltip } }}>
                     <Fab
                         color="primary"

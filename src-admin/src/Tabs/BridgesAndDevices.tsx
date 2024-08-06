@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
 import QRCode from 'react-qr-code';
 
+import { InfoBox } from '@foxriver76/iob-component-lib';
 import { type AdminConnection, I18n, type IobTheme, type ThemeType, Utils } from '@iobroker/adapter-react-v5';
 import {
     Close,
     ContentCopy,
     Delete,
-    Info,
     QrCode,
     QuestionMark,
     SettingsInputAntenna,
@@ -29,7 +29,6 @@ import {
     TableRow,
     TextField,
     Tooltip,
-    Typography,
 } from '@mui/material';
 import { SiAmazonalexa, SiApple, SiGoogleassistant, SiSmartthings } from 'react-icons/si';
 import VENDOR_IDS from '../utils/vendorIDs';
@@ -51,17 +50,6 @@ export const STYLES: Record<string, React.CSSProperties> = {
     },
     tooltip: {
         pointerEvents: 'none',
-    },
-    infoBox: {
-        whiteSpace: 'preserve',
-        display: 'flex',
-        gap: 1,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderStyle: 'solid',
-        padding: 1,
-        borderRadius: 5,
-        marginBottom: 1,
     },
 } as const;
 
@@ -358,14 +346,11 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
             <Dialog onClose={() => this.setState({ showQrCode: null })} open={!0} maxWidth="md">
                 <DialogTitle>{I18n.t('QR Code to connect')}</DialogTitle>
                 <DialogContent>
-                    <Box sx={STYLES.infoBox}>
-                        <Info />
-                        <Typography>
-                            {I18n.t(
-                                'Please scan this QR-Code with the App of the ecosystem you want to pair it to or use the below printed setup code.',
-                            )}
-                        </Typography>
-                    </Box>
+                    <InfoBox type="info">
+                        {I18n.t(
+                            'Please scan this QR-Code with the App of the ecosystem you want to pair it to or use the below printed setup code.',
+                        )}
+                    </InfoBox>
                     <Box sx={{ background: 'white', padding: 2, width: 256, height: 256 }}>
                         {nodeState.qrPairingCode ? <QRCode value={nodeState.qrPairingCode} /> : null}
                     </Box>

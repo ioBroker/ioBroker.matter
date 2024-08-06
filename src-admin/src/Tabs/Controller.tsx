@@ -1,3 +1,4 @@
+import { InfoBox } from '@foxriver76/iob-component-lib';
 import QrScanner from 'qr-scanner';
 import React, { Component } from 'react';
 
@@ -8,7 +9,6 @@ import {
     SettingsInputHdmi as ChannelIcon,
     Close,
     TabletAndroid as DeviceIcon,
-    Info,
     KeyboardArrowDown,
     KeyboardArrowUp,
     LeakAdd,
@@ -17,14 +17,12 @@ import {
     Save,
     Search,
     SearchOff,
-    Warning,
     Wifi,
     WifiOff,
     ArrowRightAlt as WriteOnlyStateIcon,
 } from '@mui/icons-material';
 import {
     Backdrop,
-    Box,
     Button,
     CircularProgress,
     Dialog,
@@ -101,17 +99,6 @@ const styles: Record<string, React.CSSProperties> = {
         right: 3,
         opacity: 0.5,
         fontSize: 10,
-    },
-    infoBox: {
-        whiteSpace: 'preserve',
-        display: 'flex',
-        gap: 1,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderStyle: 'solid',
-        padding: 1,
-        borderRadius: 5,
-        marginBottom: 2,
     },
     header: {
         fontSize: 20,
@@ -393,10 +380,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 <DialogTitle>{I18n.t('BLE Commissioning information')}</DialogTitle>
                 <DialogContent>
                     <div>
-                        <Box sx={styles.infoBox}>
-                            <Info />
-                            <Typography>{I18n.t('Matter Controller BLE Dialog Infotext')}</Typography>
-                        </Box>
+                        <InfoBox type="info">{I18n.t('Matter Controller BLE Dialog Infotext')}</InfoBox>
 
                         <Typography sx={styles.header}>{I18n.t('Bluetooth configuration')}</Typography>
                         <TextField
@@ -535,22 +519,13 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     </DialogActions>
 
                     <Typography sx={styles.header}>{I18n.t('Bluetooth configuration')}</Typography>
-                    <Box
-                        sx={theme => ({
-                            ...styles.infoBox,
-                            color: !this.isRequiredBleInformationProvided() ? theme.palette.error.main : undefined,
-                        })}
-                    >
-                        {this.isRequiredBleInformationProvided() ? <Info /> : <Warning />}
-                        <Typography>
-                            {I18n.t(
-                                this.isRequiredBleInformationProvided()
-                                    ? 'Activate BLE to pair devices nearby. You can also use the "ioBroker Visu" App to pair other devices.'
-                                    : 'You need to configure WLAN or Thread credentials above to activate BLE',
-                            )}
-                        </Typography>
-                    </Box>
-
+                    <InfoBox type={!this.isRequiredBleInformationProvided() ? 'error' : 'info'}>
+                        {I18n.t(
+                            this.isRequiredBleInformationProvided()
+                                ? 'Activate BLE to pair devices nearby. You can also use the "ioBroker Visu" App to pair other devices.'
+                                : 'You need to configure WLAN or Thread credentials above to activate BLE',
+                        )}
+                    </InfoBox>
                     <DialogActions>
                         <Button
                             variant="contained"
@@ -728,12 +703,9 @@ class Controller extends Component<ComponentProps, ComponentState> {
             >
                 <DialogTitle>{I18n.t('Discovered devices to pair')}</DialogTitle>
                 <DialogContent>
-                    <Box sx={styles.infoBox}>
-                        <Info />
-                        <Typography>
-                            {I18n.t(this.props.matter.controller.ble ? 'Pairing Info Text BLE' : 'Pairing Info Text')}
-                        </Typography>
-                    </Box>
+                    <InfoBox type="info">
+                        {I18n.t(this.props.matter.controller.ble ? 'Pairing Info Text BLE' : 'Pairing Info Text')}
+                    </InfoBox>
                     {this.state.discoveryRunning ? <LinearProgress /> : null}
                     <Table style={{ width: '100%' }}>
                         <TableHead>
@@ -1048,10 +1020,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
         return (
             <div style={styles.panel}>
-                <Box sx={styles.infoBox}>
-                    <Info />
-                    <Typography>{I18n.t('Matter Controller Infotext')}</Typography>
-                </Box>
+                <InfoBox type="info">{I18n.t('Matter Controller Infotext')}</InfoBox>
                 {this.renderLoadingSpinner()}
                 {this.renderShowDiscoveredDevices()}
                 {this.renderQrCodeDialog()}

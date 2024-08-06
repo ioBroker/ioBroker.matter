@@ -17,10 +17,11 @@ import {
     Typography,
 } from '@mui/material';
 
-import { Check, Close, Info, LayersClear } from '@mui/icons-material';
+import { Check, Close, LayersClear } from '@mui/icons-material';
 
 import { type AdminConnection, I18n, Logo } from '@iobroker/adapter-react-v5';
 
+import { InfoBox } from '@foxriver76/iob-component-lib';
 import type { MatterAdapterConfig, MatterConfig } from '../types';
 
 const styles: Record<string, React.CSSProperties> = {
@@ -44,17 +45,6 @@ const styles: Record<string, React.CSSProperties> = {
         fontSize: 18,
         fontWeight: 'bold',
         marginBottom: 1,
-    },
-    infoBox: {
-        whiteSpace: 'preserve',
-        display: 'flex',
-        gap: 1,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderStyle: 'solid',
-        padding: 1,
-        borderRadius: 5,
-        marginBottom: 2,
     },
 };
 
@@ -243,14 +233,11 @@ class Options extends Component<OptionsProps, OptionsState> {
                     onLoad={this.props.onLoad}
                 />
                 <Typography sx={styles.header}>{I18n.t('Network configuration')}</Typography>
-                <Box sx={styles.infoBox}>
-                    <Info />
-                    <Typography>
-                        {I18n.t(
-                            'If your device has more then one active network interface and you have issues try limiting it to one interface',
-                        )}
-                    </Typography>
-                </Box>
+                <InfoBox type="info">
+                    {I18n.t(
+                        'If your device has more then one active network interface and you have issues try limiting it to one interface',
+                    )}
+                </InfoBox>
 
                 {!this.state.interfaces?.length ? (
                     <TextField
@@ -348,14 +335,11 @@ class Options extends Component<OptionsProps, OptionsState> {
 
                 <div style={{ marginTop: 50 }}>
                     <Typography sx={styles.header}>{I18n.t('Cloud Account')}</Typography>
-                    <Box sx={styles.infoBox}>
-                        <Info />
-                        <Typography>
-                            {I18n.t(
-                                'To use a Matter bridge or device options with more than 5 devices please enter valid ioBroker.pro Cloud credentials with at least an active Assistant license.',
-                            )}
-                        </Typography>
-                    </Box>
+                    <InfoBox type="info">
+                        {I18n.t(
+                            'To use a Matter bridge or device options with more than 5 devices please enter valid ioBroker.pro Cloud credentials with at least an active Assistant license.',
+                        )}
+                    </InfoBox>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline' }}>
                     <TextField

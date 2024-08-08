@@ -131,6 +131,28 @@ interface BridgesProps extends BridgesAndDevicesProps {
     ) => Promise<boolean>;
 }
 
+interface EditBridgeDialogBase {
+    type: 'bridge';
+    name: string;
+    originalName: string;
+    bridgeIndex?: number;
+    vendorID: string;
+    originalVendorID: string;
+    productID: string;
+    originalProductID: string;
+    add?: boolean;
+}
+
+interface AddBridgeDialog extends EditBridgeDialogBase {
+    add: true;
+    bridgeIndex?: undefined;
+}
+
+interface EditBridgeDialog extends EditBridgeDialogBase {
+    add?: undefined;
+    bridgeIndex: number;
+}
+
 interface BridgesState extends BridgesAndDevicesState {
     /** Open Dialog to select further options to add a device */
     addDevicePreDialog:
@@ -147,17 +169,7 @@ interface BridgesState extends BridgesAndDevicesState {
               /** If dialog open */
               open: false;
           };
-    editBridgeDialog: {
-        type: 'bridge';
-        name: string;
-        originalName: string;
-        bridgeIndex?: number;
-        vendorID: string;
-        originalVendorID: string;
-        productID: string;
-        originalProductID: string;
-        add?: boolean;
-    } | null;
+    editBridgeDialog: AddBridgeDialog | EditBridgeDialog | null;
     editDeviceDialog: {
         type: 'device';
         name: string;
@@ -280,8 +292,11 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         if (!this.state.editBridgeDialog) {
             return null;
         }
+
+        const editDialog = this.state.editBridgeDialog;
+
         const isCommissioned =
-            !!this.props.commissioning[this.props.matter.bridges[this.state.editBridgeDialog.bridgeIndex || 0].uuid];
+            !editDialog.add && !!this.props.commissioning[this.props.matter.bridges[editDialog.bridgeIndex].uuid];
 
         const save = () => {
             if (!this.state.editBridgeDialog) {

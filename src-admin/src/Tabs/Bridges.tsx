@@ -7,6 +7,7 @@ import {
     AutoMode,
     Close,
     Delete,
+    DeviceHub,
     DomainDisabled,
     Edit,
     FormatListBulleted,
@@ -178,7 +179,7 @@ interface BridgesState extends BridgesAndDevicesState {
     } | null;
     addDeviceDialog: {
         bridgeIndex: number;
-        noAutoDetect: boolean;
+        detectionType: 'state' | 'device' | 'auto';
         name: string;
         devices: BridgeDeviceDescription[];
     } | null;
@@ -719,12 +720,14 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
             return null;
         }
 
-        if (this.state.addDeviceDialog.noAutoDetect) {
+        const { addDeviceDialog } = this.state;
+
+        if (addDeviceDialog.detectionType !== 'auto') {
             this.bridgeIndex = this.state.addDeviceDialog.bridgeIndex;
             return (
                 <SelectID
                     dialogName="matter"
-                    types={['device', 'channel', 'state']}
+                    types={addDeviceDialog.detectionType === 'device' ? ['device', 'channel'] : ['state']}
                     themeType={this.props.themeType}
                     socket={this.props.socket}
                     theme={this.props.theme}
@@ -805,7 +808,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             this.setState({
                                 addDevicePreDialog: { open: false },
                                 addDeviceDialog: {
-                                    noAutoDetect: false,
+                                    detectionType: 'auto',
                                     name: getText(this.state.addDevicePreDialog.bridge.name),
                                     bridgeIndex: this.state.addDevicePreDialog.bridge.bridgeIndex,
                                     devices: this.state.addDevicePreDialog.bridge.devices,
@@ -828,7 +831,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             this.setState({
                                 addDevicePreDialog: { open: false },
                                 addDeviceDialog: {
-                                    noAutoDetect: true,
+                                    detectionType: 'state',
                                     name: getText(this.state.addDevicePreDialog.bridge.name),
                                     bridgeIndex: this.state.addDevicePreDialog.bridge.bridgeIndex,
                                     devices: this.state.addDevicePreDialog.bridge.devices,
@@ -841,6 +844,29 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         sx={{ justifyContent: 'flex-start' }}
                     >
                         {I18n.t('Add device from one state')}
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            if (!this.state.addDevicePreDialog.open) {
+                                return;
+                            }
+
+                            this.setState({
+                                addDevicePreDialog: { open: false },
+                                addDeviceDialog: {
+                                    detectionType: 'device',
+                                    name: getText(this.state.addDevicePreDialog.bridge.name),
+                                    bridgeIndex: this.state.addDevicePreDialog.bridge.bridgeIndex,
+                                    devices: this.state.addDevicePreDialog.bridge.devices,
+                                },
+                            });
+                        }}
+                        startIcon={<DeviceHub />}
+                        color="primary"
+                        variant="contained"
+                        sx={{ justifyContent: 'flex-start' }}
+                    >
+                        {I18n.t('Add device from channel or device')}
                     </Button>
                 </DialogContent>
             </Dialog>

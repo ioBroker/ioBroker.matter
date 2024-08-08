@@ -5,6 +5,7 @@
   "Add %s device(s)": "添加 %s 台设备",
   "Add bridge": "添加桥接",
   "Add device": "添加设备",
+  "Add device from channel or device": "从频道或设备添加设备",
   "Add device from one state": "从一种状态添加设备",
   "Add device with auto-detection": "添加自动检测设备",
   "Add devices": "添加设备",

@@ -130,21 +130,26 @@ class App extends GenericApp<GenericAppProps, AppState> {
         window.alert = text => this.showToast(text);
     }
 
-    refreshBackendSubscription() {
+    async refreshBackendSubscription(): Promise<void> {
         this.refreshTimer && clearTimeout(this.refreshTimer);
         this.refreshTimer = setTimeout(() => {
             this.refreshTimer = null;
             this.refreshBackendSubscription();
         }, 60_000);
 
-        this.socket.subscribeOnInstance(`matter.${this.instance}`, 'gui', null, this.onBackendUpdates).then(result => {
-            if (result && typeof result === 'object' && result.accepted === false) {
-                console.error('Subscribe is not accepted');
-                this.setState({ backendRunning: !!result.accepted });
-            } else if (!this.state.backendRunning) {
-                this.setState({ backendRunning: true });
-            }
-        });
+        const result = await this.socket.subscribeOnInstance(
+            `matter.${this.instance}`,
+            'gui',
+            null,
+            this.onBackendUpdates,
+        );
+
+        if (result && typeof result === 'object' && result.accepted === false) {
+            console.error('Subscribe is not accepted');
+            this.setState({ backendRunning: !!result.accepted });
+        } else if (!this.state.backendRunning) {
+            this.setState({ backendRunning: true });
+        }
     }
 
     async onConnectionReady() {
@@ -227,7 +232,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             this.setState({ nodeStates });
         } else if (update.command === 'stopped') {
             // indication, that backend stopped
-            setTimeout(() => this.refreshBackendSubscription(), 5000);
+            setTimeout(() => this.refreshBackendSubscription(), 5_000);
         } else {
             this.controllerMessageHandler && this.controllerMessageHandler(update);
         }

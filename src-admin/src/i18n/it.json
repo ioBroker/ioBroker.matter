@@ -5,6 +5,7 @@
   "Add %s device(s)": "Aggiungi %s dispositivo/i",
   "Add bridge": "Aggiungi ponte",
   "Add device": "Aggiungi dispositivo",
+  "Add device from channel or device": "Aggiungi dispositivo dal canale o dal dispositivo",
   "Add device from one state": "Aggiungi dispositivo da uno stato",
   "Add device with auto-detection": "Aggiungi dispositivo con rilevamento automatico",
   "Add devices": "Aggiungi dispositivi",

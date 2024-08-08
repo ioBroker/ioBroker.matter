@@ -7,6 +7,7 @@ import {
     AutoMode,
     Close,
     Delete,
+    DeviceHub,
     DomainDisabled,
     Edit,
     FormatListBulleted,
@@ -94,7 +95,7 @@ interface DevicesState extends BridgesAndDevicesState {
     addDevicePreDialog: boolean;
     addDeviceDialog: {
         devices: DeviceDescription[];
-        noAutoDetect: boolean;
+        detectionType: 'state' | 'device' | 'auto';
     } | null;
     addCustomDeviceDialog: {
         oid: string;
@@ -698,7 +699,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 addDevicePreDialog: false,
                                 addDeviceDialog: {
                                     devices: this.props.matter.devices,
-                                    noAutoDetect: false,
+                                    detectionType: 'auto',
                                 },
                             });
                         }}
@@ -715,7 +716,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 addDevicePreDialog: false,
                                 addDeviceDialog: {
                                     devices: this.props.matter.devices,
-                                    noAutoDetect: true,
+                                    detectionType: 'state',
                                 },
                             });
                         }}
@@ -725,6 +726,23 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         sx={{ justifyContent: 'flex-start' }}
                     >
                         {I18n.t('Add device from one state')}
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            this.setState({
+                                addDevicePreDialog: false,
+                                addDeviceDialog: {
+                                    devices: this.props.matter.devices,
+                                    detectionType: 'device',
+                                },
+                            });
+                        }}
+                        startIcon={<DeviceHub />}
+                        color="primary"
+                        variant="contained"
+                        sx={{ justifyContent: 'flex-start' }}
+                    >
+                        {I18n.t('Add device from channel or device')}
                     </Button>
                 </DialogContent>
             </Dialog>
@@ -736,10 +754,12 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
             return null;
         }
 
-        if (this.state.addDeviceDialog.noAutoDetect) {
+        const { addDeviceDialog } = this.state;
+
+        if (addDeviceDialog.detectionType !== 'auto') {
             return (
                 <SelectID
-                    types={['device', 'channel', 'state']}
+                    types={addDeviceDialog.detectionType === 'device' ? ['device', 'channel'] : ['state']}
                     dialogName="matter"
                     themeType={this.props.themeType}
                     socket={this.props.socket}

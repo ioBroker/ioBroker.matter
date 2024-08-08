@@ -5,6 +5,7 @@
   "Add %s device(s)": "Добавить устройство(а) %s",
   "Add bridge": "Добавить мост",
   "Add device": "Добавить устройство",
+  "Add device from channel or device": "Добавить устройство из канала или устройства",
   "Add device from one state": "Добавить устройство из одного штата",
   "Add device with auto-detection": "Добавить устройство с автоопределением",
   "Add devices": "Добавить устройства",

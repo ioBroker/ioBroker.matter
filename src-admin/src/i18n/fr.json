@@ -44,6 +44,7 @@
   "Delete device": "Supprimer l'appareil",
   "Device is already commissioned. You cannot change the name or the vendor/product ID.": "L'appareil est déjà mis en service. Vous ne pouvez pas modifier le nom ou l'ID du fournisseur/produit.",
   "Device is already commissioning. Show status information": "L'appareil est déjà en cours de mise en service. Afficher les informations d'état",
+  "Device is not commissioned. Show QR Code for commissioning": "L'appareil n'est pas mis en service. Afficher le code QR pour la mise en service",
   "Device names": "Noms des appareils",
   "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "L'appareil ou le pont perdra toutes les informations de mise en service et vous devrez vous reconnecter (avec code PIN ou QR code).",
   "Device type": "Type d'appareil",

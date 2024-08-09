@@ -44,6 +44,7 @@
   "Delete device": "Apparaat verwijderen",
   "Device is already commissioned. You cannot change the name or the vendor/product ID.": "Apparaat is al in gebruik genomen. U kunt de naam of de leverancier/product-ID niet wijzigen.",
   "Device is already commissioning. Show status information": "Apparaat is al in bedrijf. Statusinformatie weergeven",
+  "Device is not commissioned. Show QR Code for commissioning": "Apparaat is niet in bedrijf gesteld. QR-code voor commissioninn weergeven",
   "Device names": "Apparaatnamen",
   "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "Apparaat of bridge verliest alle inbedrijfstellingsinformatie en u moet opnieuw verbinding maken (met pincode of QR-code).",
   "Device type": "Soort apparaat",

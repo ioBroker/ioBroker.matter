@@ -44,6 +44,7 @@
   "Delete device": "删除设备",
   "Device is already commissioned. You cannot change the name or the vendor/product ID.": "设备已投入使用。您无法更改名称或供应商/产品 ID。",
   "Device is already commissioning. Show status information": "设备已经投入调试。显示状态信息",
+  "Device is not commissioned. Show QR Code for commissioning": "设备未调试。显示 commissioninn 的二维码",
   "Device names": "设备名称",
   "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "设备或网桥将丢失所有调试信息，您必须再次重新连接（使用 PIN 或 QR 码）。",
   "Device type": "设备类型",

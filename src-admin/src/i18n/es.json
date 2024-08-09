@@ -44,6 +44,7 @@
   "Delete device": "Eliminar dispositivo",
   "Device is already commissioned. You cannot change the name or the vendor/product ID.": "El dispositivo ya está en funcionamiento. No puede cambiar el nombre ni el ID del proveedor/producto.",
   "Device is already commissioning. Show status information": "El dispositivo ya se está poniendo en marcha. Mostrar información de estado",
+  "Device is not commissioned. Show QR Code for commissioning": "El dispositivo no está en servicio. Mostrar código QR para commissioninn",
   "Device names": "Nombres de dispositivos",
   "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "El dispositivo o puente perderá toda la información de puesta en servicio y deberá volver a conectarse (con PIN o código QR).",
   "Device type": "Tipo de dispositivo",

@@ -851,6 +851,9 @@ export class MatterAdapter extends utils.Adapter {
                     }
 
                     this.#bridges.set(bridge._id, matterBridge);
+                    if (obj !== undefined) {
+                        await matterBridge.start();
+                    }
                 }
             } else {
                 const config = await this.prepareMatterBridgeConfiguration(
@@ -893,6 +896,9 @@ export class MatterAdapter extends utils.Adapter {
                         }
                     }
                     this.#devices.set(device._id, matterDevice);
+                    if (obj !== undefined) {
+                        await matterDevice.start();
+                    }
                 }
             } else {
                 const config = await this.prepareMatterDeviceConfiguration(

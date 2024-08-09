@@ -27,7 +27,6 @@ import {
 } from '@mui/material';
 
 import { I18n, SelectID } from '@iobroker/adapter-react-v5';
-
 import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import type { DetectedDevice, DeviceDescription, MatterConfig } from '../types';
 import { clone, detectDevices, getText } from '../Utils';
@@ -850,40 +849,42 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                     />
                 </TableCell>
                 <TableCell style={{ width: 0 }}>
-                    <IconButton
-                        icon="edit"
-                        tooltipText={I18n.t('Edit device')}
-                        noBackground
-                        onClick={() => {
-                            this.setState({
-                                editDeviceDialog: {
-                                    type: 'device',
-                                    name: getText(device.name),
-                                    originalName: getText(device.name),
-                                    deviceIndex: index,
-                                    auto: !!device.auto,
-                                    deviceType: device.type,
-                                    originalDeviceType: device.type,
-                                    vendorID: device.vendorID || '',
-                                    productID: device.productID || '',
-                                    originalVendorID: device.vendorID || '',
-                                    originalProductID: device.productID || '',
-                                    originalNoComposed: !!device.noComposed,
-                                    noComposed: !!device.noComposed,
-                                    dimmerOnLevel: Number(device.dimmerOnLevel) || 0,
-                                    originalDimmerOnLevel: Number(device.dimmerOnLevel) || 0,
-                                    dimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
-                                    originalDimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
-                                    actionAllowedByIdentify: !!device.actionAllowedByIdentify,
-                                    originalActionAllowedByIdentify: !!device.actionAllowedByIdentify,
-                                    hasOnState: !!device.hasOnState,
-                                },
-                            });
-                        }}
-                    />
+                    {device.enabled ? (
+                        <IconButton
+                            icon="edit"
+                            tooltipText={I18n.t('Edit device')}
+                            noBackground
+                            onClick={() => {
+                                this.setState({
+                                    editDeviceDialog: {
+                                        type: 'device',
+                                        name: getText(device.name),
+                                        originalName: getText(device.name),
+                                        deviceIndex: index,
+                                        auto: !!device.auto,
+                                        deviceType: device.type,
+                                        originalDeviceType: device.type,
+                                        vendorID: device.vendorID || '',
+                                        productID: device.productID || '',
+                                        originalVendorID: device.vendorID || '',
+                                        originalProductID: device.productID || '',
+                                        originalNoComposed: !!device.noComposed,
+                                        noComposed: !!device.noComposed,
+                                        dimmerOnLevel: Number(device.dimmerOnLevel) || 0,
+                                        originalDimmerOnLevel: Number(device.dimmerOnLevel) || 0,
+                                        dimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
+                                        originalDimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
+                                        actionAllowedByIdentify: !!device.actionAllowedByIdentify,
+                                        originalActionAllowedByIdentify: !!device.actionAllowedByIdentify,
+                                        hasOnState: !!device.hasOnState,
+                                    },
+                                });
+                            }}
+                        />
+                    ) : null}
                 </TableCell>
                 <TableCell style={{ width: 0 }}>
-                    {this.props.alive ? (
+                    {this.props.alive && device.enabled ? (
                         <IconButton
                             tooltipText={I18n.t('Reset to factory defaults')}
                             icon="factoryReset"

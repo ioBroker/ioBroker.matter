@@ -3,6 +3,7 @@ import QrScanner from 'qr-scanner';
 import React, { Component } from 'react';
 
 import { Add, Bluetooth, BluetoothDisabled, Close, Save, Search, SearchOff } from '@mui/icons-material';
+
 import {
     Backdrop,
     Button,

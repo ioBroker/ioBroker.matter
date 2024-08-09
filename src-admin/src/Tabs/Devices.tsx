@@ -2,18 +2,8 @@ import { Types } from '@iobroker/type-detector';
 import React from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import {
-    Add,
-    AutoMode,
-    Close,
-    Delete,
-    DeviceHub,
-    DomainDisabled,
-    Edit,
-    FormatListBulleted,
-    QuestionMark,
-    Save,
-} from '@mui/icons-material';
+import { IconButton, InfoBox } from '@foxriver76/iob-component-lib';
+import { Add, AutoMode, Close, Delete, DeviceHub, FormatListBulleted, QuestionMark, Save } from '@mui/icons-material';
 import {
     Button,
     Checkbox,
@@ -24,7 +14,6 @@ import {
     Fab,
     FormControl,
     FormControlLabel,
-    IconButton,
     InputLabel,
     MenuItem,
     Select,
@@ -39,7 +28,6 @@ import {
 
 import { I18n, SelectID } from '@iobroker/adapter-react-v5';
 
-import { InfoBox } from '@foxriver76/iob-component-lib';
 import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import type { DetectedDevice, DeviceDescription, MatterConfig } from '../types';
 import { clone, detectDevices, getText } from '../Utils';
@@ -862,74 +850,68 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                     />
                 </TableCell>
                 <TableCell style={{ width: 0 }}>
-                    <Tooltip title={I18n.t('Edit device')} componentsProps={{ popper: { sx: styles.tooltip } }}>
-                        <IconButton
-                            onClick={() => {
-                                this.setState({
-                                    editDeviceDialog: {
-                                        type: 'device',
-                                        name: getText(device.name),
-                                        originalName: getText(device.name),
-                                        deviceIndex: index,
-                                        auto: !!device.auto,
-                                        deviceType: device.type,
-                                        originalDeviceType: device.type,
-                                        vendorID: device.vendorID || '',
-                                        productID: device.productID || '',
-                                        originalVendorID: device.vendorID || '',
-                                        originalProductID: device.productID || '',
-                                        originalNoComposed: !!device.noComposed,
-                                        noComposed: !!device.noComposed,
-                                        dimmerOnLevel: Number(device.dimmerOnLevel) || 0,
-                                        originalDimmerOnLevel: Number(device.dimmerOnLevel) || 0,
-                                        dimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
-                                        originalDimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
-                                        actionAllowedByIdentify: !!device.actionAllowedByIdentify,
-                                        originalActionAllowedByIdentify: !!device.actionAllowedByIdentify,
-                                        hasOnState: !!device.hasOnState,
-                                    },
-                                });
-                            }}
-                        >
-                            <Edit />
-                        </IconButton>
-                    </Tooltip>
+                    <IconButton
+                        icon="edit"
+                        tooltipText={I18n.t('Edit device')}
+                        noBackground
+                        onClick={() => {
+                            this.setState({
+                                editDeviceDialog: {
+                                    type: 'device',
+                                    name: getText(device.name),
+                                    originalName: getText(device.name),
+                                    deviceIndex: index,
+                                    auto: !!device.auto,
+                                    deviceType: device.type,
+                                    originalDeviceType: device.type,
+                                    vendorID: device.vendorID || '',
+                                    productID: device.productID || '',
+                                    originalVendorID: device.vendorID || '',
+                                    originalProductID: device.productID || '',
+                                    originalNoComposed: !!device.noComposed,
+                                    noComposed: !!device.noComposed,
+                                    dimmerOnLevel: Number(device.dimmerOnLevel) || 0,
+                                    originalDimmerOnLevel: Number(device.dimmerOnLevel) || 0,
+                                    dimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
+                                    originalDimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
+                                    actionAllowedByIdentify: !!device.actionAllowedByIdentify,
+                                    originalActionAllowedByIdentify: !!device.actionAllowedByIdentify,
+                                    hasOnState: !!device.hasOnState,
+                                },
+                            });
+                        }}
+                    />
                 </TableCell>
                 <TableCell style={{ width: 0 }}>
                     {this.props.alive ? (
-                        <Tooltip
-                            title={I18n.t('Reset to factory defaults')}
-                            componentsProps={{ popper: { sx: styles.tooltip } }}
-                        >
-                            <IconButton
-                                onClick={() =>
-                                    this.setState({
-                                        showResetDialog: { bridgeOrDevice: device, step: 0 },
-                                    })
-                                }
-                            >
-                                <DomainDisabled />
-                            </IconButton>
-                        </Tooltip>
+                        <IconButton
+                            tooltipText={I18n.t('Reset to factory defaults')}
+                            icon="factoryReset"
+                            noBackground
+                            onClick={() =>
+                                this.setState({
+                                    showResetDialog: { bridgeOrDevice: device, step: 0 },
+                                })
+                            }
+                        />
                     ) : null}
                 </TableCell>
                 <TableCell style={{ width: 0 }} />
                 <TableCell style={{ width: 0 }}>
-                    <Tooltip title={I18n.t('Delete device')} componentsProps={{ popper: { sx: styles.tooltip } }}>
-                        <IconButton
-                            onClick={() => {
-                                this.setState({
-                                    deleteDialog: {
-                                        type: 'device',
-                                        name: getText(device.name),
-                                        deviceIndex: index,
-                                    },
-                                });
-                            }}
-                        >
-                            <Delete />
-                        </IconButton>
-                    </Tooltip>
+                    <IconButton
+                        icon="delete"
+                        noBackground
+                        tooltipText={I18n.t('Delete device')}
+                        onClick={() => {
+                            this.setState({
+                                deleteDialog: {
+                                    type: 'device',
+                                    name: getText(device.name),
+                                    deviceIndex: index,
+                                },
+                            });
+                        }}
+                    />
                 </TableCell>
             </TableRow>
         );

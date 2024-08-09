@@ -44,6 +44,7 @@
   "Delete device": "Delete device",
   "Device is already commissioned. You cannot change the name or the vendor/product ID.": "Device is already commissioned. You cannot change the name or the vendor/product ID.",
   "Device is already commissioning. Show status information": "Device is already commissioning. Show status information",
+  "Device is not commissioned. Show QR Code for commissioning": "Device is not commissioned. Show QR Code for commissioninn",
   "Device names": "Device names",
   "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.",
   "Device type": "Device type",

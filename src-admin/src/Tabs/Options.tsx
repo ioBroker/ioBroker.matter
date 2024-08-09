@@ -36,7 +36,7 @@ const styles: Record<string, React.CSSProperties> = {
         flexDirection: 'column',
     },
     input: {
-        marginTop: 1,
+        marginTop: 2,
         marginBottom: 1,
         width: '100%',
         maxWidth: 300,

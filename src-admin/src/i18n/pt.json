@@ -44,6 +44,7 @@
   "Delete device": "Excluir dispositivo",
   "Device is already commissioned. You cannot change the name or the vendor/product ID.": "O dispositivo já está comissionado. Você não pode alterar o nome ou o ID do fornecedor/produto.",
   "Device is already commissioning. Show status information": "O dispositivo já está em comissionamento. Mostrar informações de status",
+  "Device is not commissioned. Show QR Code for commissioning": "O dispositivo não está comissionado. Mostrar QR Code para comissioninn",
   "Device names": "Nomes de dispositivos",
   "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "O dispositivo ou ponte perderá todas as informações de comissionamento e você deverá reconectar (com PIN ou código QR) novamente.",
   "Device type": "Tipo de dispositivo",

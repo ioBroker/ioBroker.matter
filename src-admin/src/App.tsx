@@ -1,12 +1,10 @@
 import { StyledEngineProvider, ThemeProvider } from '@mui/material/styles';
 import React from 'react';
 
-import { AppBar, IconButton, Tab, Tabs } from '@mui/material';
+import { IconButton } from '@foxriver76/iob-component-lib';
+import { AppBar, Tab, Tabs } from '@mui/material';
 
-import {
-    SignalWifiConnectedNoInternet4 as IconNoConnection,
-    SignalCellularOff as IconNotAlive,
-} from '@mui/icons-material';
+import { SignalCellularOff as IconNotAlive } from '@mui/icons-material';
 
 import {
     AdminConnection,
@@ -518,12 +516,13 @@ class App extends GenericApp<GenericAppProps, AppState> {
                                 {this.state.alive ? null : <IconNotAlive style={{ color: 'orange', padding: 12 }} />}
                                 {this.state.backendRunning ? null : (
                                     <IconButton
+                                        iconColor="warning"
+                                        noBackground
+                                        icon="noConnection"
                                         onClick={() => {
                                             this.refreshBackendSubscription();
                                         }}
-                                    >
-                                        <IconNoConnection style={{ color: 'orange' }} />
-                                    </IconButton>
+                                    />
                                 )}
                             </Tabs>
                         </AppBar>

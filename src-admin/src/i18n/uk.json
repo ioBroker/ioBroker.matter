@@ -44,6 +44,7 @@
   "Delete device": "Видалити пристрій",
   "Device is already commissioned. You cannot change the name or the vendor/product ID.": "Апарат вже зданий в експлуатацію. Ви не можете змінити назву чи ідентифікатор постачальника/продукту.",
   "Device is already commissioning. Show status information": "Пристрій вже введено в експлуатацію. Показати інформацію про стан",
+  "Device is not commissioned. Show QR Code for commissioning": "Апарат не зданий в експлуатацію. Показати QR-код для комісії",
   "Device names": "Назви пристроїв",
   "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "Пристрій або міст втратить всю інформацію про введення в експлуатацію, і ви повинні знову підключитися (за допомогою PIN-коду або QR-коду).",
   "Device type": "Тип пристрою",

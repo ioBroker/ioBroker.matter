@@ -1,26 +1,8 @@
-import { InfoBox } from '@foxriver76/iob-component-lib';
+import { IconButton, InfoBox } from '@foxriver76/iob-component-lib';
 import QrScanner from 'qr-scanner';
 import React, { Component } from 'react';
 
-import {
-    Add,
-    Bluetooth,
-    BluetoothDisabled,
-    SettingsInputHdmi as ChannelIcon,
-    Close,
-    TabletAndroid as DeviceIcon,
-    KeyboardArrowDown,
-    KeyboardArrowUp,
-    LeakAdd,
-    KeyboardBackspace as ReadOnlyStateIcon,
-    CompareArrows as ReadWriteStateIcon,
-    Save,
-    Search,
-    SearchOff,
-    Wifi,
-    WifiOff,
-    ArrowRightAlt as WriteOnlyStateIcon,
-} from '@mui/icons-material';
+import { Add, Bluetooth, BluetoothDisabled, Close, Save, Search, SearchOff } from '@mui/icons-material';
 import {
     Backdrop,
     Button,
@@ -29,7 +11,6 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
-    IconButton,
     LinearProgress,
     MenuItem,
     Select,
@@ -40,16 +21,15 @@ import {
     TableHead,
     TableRow,
     TextField,
-    Tooltip,
     Typography,
 } from '@mui/material';
 
 import type { AdminConnection, IobTheme, ThemeName, ThemeType } from '@iobroker/adapter-react-v5';
-import { I18n, IconClosed, IconOpen } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/adapter-react-v5';
 import DeviceManager from '@iobroker/dm-gui-components';
 
 import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
-import { clone, getText, getVendorName } from '../Utils';
+import { clone, getVendorName } from '../Utils';
 
 const styles: Record<string, React.CSSProperties> = {
     panel: {
@@ -143,7 +123,6 @@ interface ComponentState {
     hideVideo: boolean;
     nodes: Record<string, ioBroker.Object>;
     states: Record<string, ioBroker.State>;
-    openedNodes: string[];
     showQrCodeDialog: CommissionableDevice | null;
 }
 
@@ -158,17 +137,6 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
     constructor(props: ComponentProps) {
         super(props);
-        const openedNodesStr = window.localStorage.getItem('openedNodes');
-        let openedNodes: string[];
-        if (openedNodesStr) {
-            try {
-                openedNodes = JSON.parse(openedNodesStr);
-            } catch {
-                openedNodes = [];
-            }
-        } else {
-            openedNodes = [];
-        }
 
         this.state = {
             discovered: [],
@@ -181,7 +149,6 @@ class Controller extends Component<ComponentProps, ComponentState> {
             hideVideo: false,
             nodes: {},
             states: {},
-            openedNodes,
             showQrCodeDialog: null,
             backendProcessingActive: false,
             bleDialogOpen: false,
@@ -721,31 +688,24 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                     <TableCell>{device.deviceIdentifier}</TableCell>
                                     <TableCell>{getVendorName(device.V)}</TableCell>
                                     <TableCell>
-                                        <Tooltip title={I18n.t('Connect')}>
-                                            <IconButton
-                                                sx={theme => ({
-                                                    color: '#fff',
-                                                    backgroundColor: theme.palette.primary.main,
-                                                    '&:hover': { backgroundColor: theme.palette.secondary.main },
-                                                })}
-                                                onClick={() => {
-                                                    this.setState({
-                                                        showQrCodeDialog: device,
-                                                        manualCode: '',
-                                                        qrCode: '',
-                                                    });
-                                                    setTimeout(async () => {
-                                                        try {
-                                                            await this.initQrCode();
-                                                        } catch (e) {
-                                                            console.warn(`Cannot provide QR Code scanning: ${e}`);
-                                                        }
-                                                    }, 500);
-                                                }}
-                                            >
-                                                <LeakAdd />
-                                            </IconButton>
-                                        </Tooltip>
+                                        <IconButton
+                                            icon="leakAdd"
+                                            tooltipText={I18n.t('Connect')}
+                                            onClick={() => {
+                                                this.setState({
+                                                    showQrCodeDialog: device,
+                                                    manualCode: '',
+                                                    qrCode: '',
+                                                });
+                                                setTimeout(async () => {
+                                                    try {
+                                                        await this.initQrCode();
+                                                    } catch (e) {
+                                                        console.warn(`Cannot provide QR Code scanning: ${e}`);
+                                                    }
+                                                }, 500);
+                                            }}
+                                        />
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -783,61 +743,6 @@ class Controller extends Component<ComponentProps, ComponentState> {
         );
     }
 
-    renderState(stateId: string) {
-        let icon: React.JSX.Element;
-        if (this.state.nodes[stateId].common.write === false && this.state.nodes[stateId].common.read !== false) {
-            icon = <ReadOnlyStateIcon />;
-        } else if (
-            this.state.nodes[stateId].common.write !== false &&
-            this.state.nodes[stateId].common.read === false
-        ) {
-            icon = <WriteOnlyStateIcon />;
-        } else {
-            icon = <ReadWriteStateIcon />;
-        }
-
-        let state: string;
-        if (this.state.states[stateId]) {
-            if (this.state.states[stateId].val === null || this.state.states[stateId].val === undefined) {
-                state = '--';
-            } else {
-                state = this.state.states[stateId].val?.toString() || '--';
-            }
-        } else {
-            state = '--';
-        }
-
-        return (
-            <TableRow key={stateId}>
-                <TableCell></TableCell>
-                <TableCell style={styles.state}>
-                    {icon}
-                    {stateId.split('.').pop()}
-                </TableCell>
-                <TableCell>{state}</TableCell>
-            </TableRow>
-        );
-    }
-
-    renderCluster(clusterId: string) {
-        const _clusterId = `${clusterId}.`;
-        const states = Object.keys(this.state.nodes).filter(
-            id => id.startsWith(_clusterId) && this.state.nodes[id].type === 'state',
-        );
-        return [
-            <TableRow key={clusterId}>
-                <TableCell></TableCell>
-                <TableCell style={styles.cluster}>
-                    <ChannelIcon />
-                    {clusterId.split('.').pop()}
-                    <div style={styles.number}>{states.length}</div>
-                </TableCell>
-                <TableCell></TableCell>
-            </TableRow>,
-            states.map(id => this.renderState(id)),
-        ];
-    }
-
     /**
      * If BLE can be activated
      */
@@ -848,146 +753,6 @@ class Controller extends Component<ComponentProps, ComponentState> {
             (controllerConfig.wifiSSID && controllerConfig.wifiPassword) ||
             (controllerConfig.threadNetworkName && controllerConfig.threadOperationalDataSet)
         );
-    }
-
-    renderDevice(deviceId: string, inBridge?: boolean) {
-        const _deviceId = `${deviceId}.`;
-        // get channels
-        const channels = Object.keys(this.state.nodes).filter(
-            id => id.startsWith(_deviceId) && this.state.nodes[id].type === 'channel',
-        );
-        let connected: boolean | null = null;
-        let status: string | null = null;
-        if (!inBridge) {
-            connected = this.state.states[`${_deviceId}info.connection`]
-                ? !!this.state.states[`${_deviceId}info.connection`].val
-                : null;
-            const statusVal = this.state.states[`${_deviceId}info.status`]?.val;
-            if (statusVal !== null && statusVal !== undefined && statusVal !== '') {
-                status = statusVal.toString();
-                const statusObj = this.state.nodes[`${_deviceId}info.status`];
-                if (statusObj?.common?.states[status]) {
-                    status = I18n.t(`status_${statusObj.common.states[status]}`).replace(/^status_/, '');
-                }
-            }
-        }
-
-        return [
-            <TableRow key={deviceId}>
-                <TableCell style={{ width: 0, padding: inBridge ? '0 0 0 40px' : 0, height: 32 }}>
-                    <IconButton
-                        size="small"
-                        style={styles.bridgeButtonsAndTitleColor}
-                        onClick={() => {
-                            const openedNodes = [...this.state.openedNodes];
-                            const index = openedNodes.indexOf(deviceId);
-                            if (index === -1) {
-                                openedNodes.push(deviceId);
-                                openedNodes.sort();
-                            } else {
-                                openedNodes.splice(index, 1);
-                            }
-                            window.localStorage.setItem('openedNodes', JSON.stringify(openedNodes));
-                            this.setState({ openedNodes });
-                        }}
-                    >
-                        {this.state.openedNodes.includes(deviceId) ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-                    </IconButton>
-                </TableCell>
-                <TableCell style={styles.device}>
-                    <div>
-                        <DeviceIcon />
-                    </div>
-                    <div>
-                        <div style={styles.deviceName}>{getText(this.state.nodes[deviceId].common.name)}</div>
-                        <div style={styles.nodeId}>{deviceId.split('.').pop()}</div>
-                    </div>
-                    <div style={styles.number}>{channels.length}</div>
-                </TableCell>
-                <TableCell>
-                    {connected !== null ? (
-                        <div style={{ display: 'flex', gap: 6, alignItems: '' }}>
-                            {connected ? <Wifi style={{ color: 'green' }} /> : <WifiOff style={{ color: 'red' }} />}
-                            <div>{status || ''}</div>
-                        </div>
-                    ) : null}
-                </TableCell>
-            </TableRow>,
-            this.state.openedNodes.includes(deviceId) ? channels.map(id => this.renderCluster(id)) : null,
-        ];
-    }
-
-    renderBridge(bridgeId: string) {
-        // find all devices in this bridge
-        const _bridgeId = `${bridgeId}.`;
-        const deviceIds = Object.keys(this.state.nodes).filter(
-            id => id.startsWith(_bridgeId) && this.state.nodes[id].type === 'device',
-        );
-
-        // get status
-        const connected = this.state.states[`${_bridgeId}info.connection`]?.val;
-        let status = this.state.states[`${_bridgeId}info.status`]?.val;
-        if (status !== null && status !== undefined && status !== '') {
-            status = status.toString();
-            const statusObj = this.state.nodes[`${_bridgeId}info.status`];
-            if (statusObj?.common?.states[status]) {
-                status = I18n.t(`status_${statusObj.common.states[status]}`).replace(/^status_/, '');
-            }
-        }
-
-        return [
-            <TableRow key={bridgeId}>
-                <TableCell style={{ width: 0, padding: 0, height: 32 }}>
-                    <IconButton
-                        size="small"
-                        style={styles.bridgeButtonsAndTitleColor}
-                        onClick={() => {
-                            const openedNodes = [...this.state.openedNodes];
-                            const index = openedNodes.indexOf(bridgeId);
-                            if (index === -1) {
-                                openedNodes.push(bridgeId);
-                                openedNodes.sort();
-                            } else {
-                                openedNodes.splice(index, 1);
-                            }
-                            window.localStorage.setItem('openedNodes', JSON.stringify(openedNodes));
-                            this.setState({ openedNodes });
-                        }}
-                    >
-                        {this.state.openedNodes.includes(bridgeId) ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-                    </IconButton>
-                </TableCell>
-                <TableCell style={styles.device}>
-                    <div>{this.state.openedNodes.includes(bridgeId) ? <IconOpen /> : <IconClosed />}</div>
-                    <div>
-                        <div style={styles.deviceName}>{getText(this.state.nodes[bridgeId].common.name)}</div>
-                        <div style={styles.nodeId}>{bridgeId.split('.').pop()}</div>
-                    </div>
-                    <div style={styles.number}>{deviceIds.length}</div>
-                </TableCell>
-                <TableCell>
-                    <div style={{ display: 'flex', gap: 6, alignItems: '' }}>
-                        {connected ? <Wifi style={{ color: 'green' }} /> : <WifiOff style={{ color: 'red' }} />}
-                        <div>{status || ''}</div>
-                    </div>
-                </TableCell>
-            </TableRow>,
-            this.state.openedNodes.includes(bridgeId) ? deviceIds.map(id => this.renderDevice(id, true)) : null,
-        ];
-    }
-
-    renderDeviceOrBridge(deviceOrBridgeId: string) {
-        if (this.state.nodes[deviceOrBridgeId].type === 'device') {
-            return this.renderDevice(deviceOrBridgeId);
-        }
-        return this.renderBridge(deviceOrBridgeId);
-    }
-
-    // eslint-disable-next-line react/no-unused-class-component-methods
-    renderDevicesAndBridges() {
-        // matter.0.controller.2808191892917842060
-        const deviceOrBridgeIds = Object.keys(this.state.nodes).filter(id => id.split('.').length === 4);
-        return deviceOrBridgeIds.map(id => this.renderDeviceOrBridge(id));
     }
 
     renderDeviceManager() {

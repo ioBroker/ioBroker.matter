@@ -44,6 +44,7 @@
   "Delete device": "Удалить устройство",
   "Device is already commissioned. You cannot change the name or the vendor/product ID.": "Устройство уже введено в эксплуатацию. Вы не можете изменить имя или идентификатор поставщика/продукта.",
   "Device is already commissioning. Show status information": "Устройство уже вводится в эксплуатацию. Показать информацию о статусе",
+  "Device is not commissioned. Show QR Code for commissioning": "Устройство не введено в эксплуатацию. Показать QR-код для commissioninn",
   "Device names": "Имена устройств",
   "Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.": "Устройство или мост потеряют всю информацию о вводе в эксплуатацию, и вам придется повторно подключиться (с помощью PIN-кода или QR-кода).",
   "Device type": "Тип устройства",

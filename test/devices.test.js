@@ -261,7 +261,7 @@ describe('Test Devices', function () {
             adapter.setSubscribeManager(SubscribeManager.default);
             detectedDevices.type = type;
 
-            const deviceObj = new Device.default(detectedDevices, adapter);
+            const deviceObj = new Device.default(detectedDevices, adapter, { enabled: true });
             await deviceObj.init();
 
             const properties = deviceObj.getProperties();
@@ -386,7 +386,7 @@ describe('Test Devices', function () {
         adapter.setSubscribeManager(SubscribeManager.default);
         detectedDevices.type = 'thermostat';
 
-        const deviceObj = new Device.default(detectedDevices, adapter);
+        const deviceObj = new Device.default(detectedDevices, adapter, { enabled: true });
         await deviceObj.init();
 
         const properties = deviceObj.getProperties();
@@ -418,7 +418,7 @@ describe('Test Devices', function () {
             type: 'slider',
         };
 
-        const deviceObj = new Device.default(_detectedDevices, adapter);
+        const deviceObj = new Device.default(_detectedDevices, adapter, { enabled: true });
         await deviceObj.init();
 
         const properties = deviceObj.getProperties();
@@ -455,7 +455,7 @@ describe('Test Devices', function () {
             type: 'slider',
         };
 
-        const deviceObj = new Device.default(_detectedDevices, adapter);
+        const deviceObj = new Device.default(_detectedDevices, adapter, { enabled: true });
         await deviceObj.init();
 
         const properties = deviceObj.getProperties();

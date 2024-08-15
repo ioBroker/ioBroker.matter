@@ -194,7 +194,13 @@ class BridgedDevices extends BaseServerNode {
                 newDeviceList.push(deviceOptions.uuid);
                 if (existingDevicesInBridge.includes(deviceOptions.uuid)) {
                     existingDevicesInBridge.splice(existingDevicesInBridge.indexOf(deviceOptions.uuid), 1);
-                    this.adapter.log.debug(`Device ${deviceOptions.uuid} already in bridge. Skip`);
+                    this.adapter.log.debug(`Device ${deviceOptions.uuid} already in bridge. Sync Configuration`);
+                    const existingDevice = this.#devices.find(d => d.uuid === deviceOptions.uuid);
+                    if (existingDevice === undefined) {
+                        this.adapter.log.info(`Device ${deviceOptions.uuid} not found in bridge. Should never happen`);
+                        continue;
+                    }
+                    existingDevice.applyConfiguration(deviceOptions);
                     continue;
                 }
                 await this.addBridgedIoBrokerDevice(device, deviceOptions);
@@ -230,6 +236,8 @@ class BridgedDevices extends BaseServerNode {
         await this.init();
         if (wasStarted) {
             await this.start();
+        } else {
+            await this.updateUiState();
         }
     }
 
@@ -239,6 +247,7 @@ class BridgedDevices extends BaseServerNode {
         }
         await this.serverNode.start();
         this.#started = true;
+        await this.updateUiState();
     }
 
     async stop(): Promise<void> {
@@ -248,6 +257,7 @@ class BridgedDevices extends BaseServerNode {
         await this.serverNode?.close();
         this.serverNode = undefined;
         this.#started = false;
+        await this.updateUiState();
     }
 }
 

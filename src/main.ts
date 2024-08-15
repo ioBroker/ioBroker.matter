@@ -633,9 +633,9 @@ export class MatterAdapter extends utils.Adapter {
         if (options.enabled === false) {
             return null; // Not startup
         }
+        options.list = options.list ?? [];
         const devices = [];
-        const optionsList = (options.list || []).filter(item => item.enabled !== false);
-        for (const device of optionsList) {
+        for (const device of options.list) {
             const detectedDevice = await this.determineDevice(device.oid, device.type, device.auto);
             try {
                 const deviceObject = await DeviceFactory(detectedDevice, this, device as DeviceOptions);
@@ -669,7 +669,7 @@ export class MatterAdapter extends utils.Adapter {
                     productName: `Product ${options.name}`,
                 },
                 devices,
-                devicesOptions: optionsList,
+                devicesOptions: options.list,
             };
         }
         return null;
@@ -924,20 +924,24 @@ export class MatterAdapter extends utils.Adapter {
             // Sync controller
             const controllerObj = await this.getObjectAsync('controller');
             const controllerConfig = (controllerObj?.native ?? { enabled: false }) as MatterControllerConfig;
-            await this.applyControllerConfiguration(controllerConfig);
+            await this.applyControllerConfiguration(controllerConfig, false);
         }
 
         // TODO Anything to do for controller sub object changes?
         this.log.debug('Sync done');
     }
 
-    async applyControllerConfiguration(config: MatterControllerConfig): Promise<MessageResponse> {
+    async applyControllerConfiguration(config: MatterControllerConfig, handleStart = true): Promise<MessageResponse> {
         if (config.enabled) {
             if (this.#controller) {
                 return this.#controller.applyConfiguration(config);
             }
 
             this.#controller = await this.createMatterController(config);
+
+            if (handleStart) {
+                await this.#controller.start();
+            }
         } else if (this.#controller) {
             // Controller should be disabled but is not
             await this.#controller.stop();

@@ -120,6 +120,13 @@ export abstract class BaseServerNode implements GeneralNode {
         }
     }
 
+    async updateUiState(): Promise<void> {
+        await this.adapter.sendToGui({
+            command: 'updateStates',
+            states: { [this.uuid]: await this.getState() },
+        });
+    }
+
     /** Handles device specific Messages from the UI. */
     async handleCommand(command: string, _message: ioBroker.MessagePayload): Promise<MessageResponse> {
         switch (command) {
@@ -143,10 +150,7 @@ export abstract class BaseServerNode implements GeneralNode {
             this.adapter.log.debug(
                 `commissioningChangedCallback: Commissioning changed on Fabric ${fabricIndex}: ${this.serverNode?.state.operationalCredentials.fabrics.find(fabric => fabric.fabricIndex === fabricIndex)}`,
             );
-            await this.adapter.sendToGui({
-                command: 'updateStates',
-                states: { [this.uuid]: await this.getState() },
-            });
+            await this.updateUiState();
         });
 
         const sessionChange = async (session: SessionsBehavior.Session): Promise<void> => {
@@ -154,10 +158,7 @@ export abstract class BaseServerNode implements GeneralNode {
                 `activeSessionsChangedCallback: Active sessions changed on Fabric ${session.fabric?.fabricIndex}` +
                     Logger.toJSON(session),
             );
-            await this.adapter.sendToGui({
-                command: 'updateStates',
-                states: { [this.uuid]: await this.getState() },
-            });
+            await this.updateUiState();
         };
         this.serverNode.events.sessions.opened.on(sessionChange);
         this.serverNode.events.sessions.closed.on(sessionChange);

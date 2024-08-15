@@ -1,28 +1,28 @@
+import { BleNode } from '@project-chip/matter-node-ble.js/ble';
 import { CommissioningController, NodeCommissioningOptions } from '@project-chip/matter.js';
+import { Ble } from '@project-chip/matter.js/ble';
 import {
     AnyAttributeServer,
     asClusterServerInternal,
     BasicInformationCluster,
     ClusterServerObj,
     FabricScopeError,
+    GeneralCommissioning,
     GlobalAttributes,
 } from '@project-chip/matter.js/cluster';
 import { CommissionableDevice, DiscoveryData } from '@project-chip/matter.js/common';
 import { NodeId /* , ClusterId */ } from '@project-chip/matter.js/datatype';
-import { CommissioningControllerNodeOptions, Endpoint, PairedNode } from '@project-chip/matter.js/device';
-import { singleton, toHex } from '@project-chip/matter.js/util';
-
-import { NodeStateInformation } from '@project-chip/matter.js/device';
-import { Logger } from '@project-chip/matter.js/log';
-import { ManualPairingCodeCodec, QrPairingCodeCodec } from '@project-chip/matter.js/schema';
-
-import { GeneralCommissioning } from '@project-chip/matter.js/cluster';
-import { CommissioningOptions } from '@project-chip/matter.js/protocol';
-
-import { BleNode } from '@project-chip/matter-node-ble.js/ble';
-import { Ble } from '@project-chip/matter.js/ble';
-
+import {
+    CommissioningControllerNodeOptions,
+    Endpoint,
+    NodeStateInformation,
+    PairedNode,
+} from '@project-chip/matter.js/device';
 import { Environment } from '@project-chip/matter.js/environment';
+import { Logger } from '@project-chip/matter.js/log';
+import { CommissioningOptions } from '@project-chip/matter.js/protocol';
+import { ManualPairingCodeCodec, QrPairingCodeCodec } from '@project-chip/matter.js/schema';
+import { singleton, toHex } from '@project-chip/matter.js/util';
 import type { MatterControllerConfig } from '../../src-admin/src/types';
 import type { MatterAdapter } from '../main';
 import Base from './clusters/Base';
@@ -102,7 +102,6 @@ class Controller implements GeneralNode {
         await this.applyConfiguration(this.#parameters, true);
         this.#commissioningController = new CommissioningController({
             autoConnect: false,
-            // TODO add listeningAddressIpv4 and listeningAddressIpv6 to limit controller to one network interface
             environment: {
                 environment: this.#matterEnvironment,
                 id: 'controller',
@@ -150,7 +149,7 @@ class Controller implements GeneralNode {
                         await this.#discoveryStop();
                         return { result: 'ok' };
                     } else {
-                        // lets return ok because in fact it is stopped
+                        // let's return ok because in fact it is stopped
                         return { result: 'ok' };
                     }
                 case 'controllerCommissionDevice':
@@ -172,7 +171,7 @@ class Controller implements GeneralNode {
             return { error: `Error while executing command "${command}": ${error.message}` };
         }
 
-        return { error: `Unknown command ${command}` };
+        return { error: `Unknown command "${command}"` };
     }
 
     initEventHandlers(originalNodeId: NodeId | null, options?: any): any {
@@ -182,7 +181,7 @@ class Controller implements GeneralNode {
                 { path: { nodeId, clusterId, endpointId, attributeName }, value }: any,
             ) => {
                 this.#adapter.log.debug(
-                    `attributeChangedCallback ${peerNodeId}: Attribute ${nodeId}/${endpointId}/${clusterId}/${attributeName} changed to ${Logger.toJSON(
+                    `attributeChangedCallback "${peerNodeId}": Attribute ${nodeId}/${endpointId}/${clusterId}/${attributeName} changed to ${Logger.toJSON(
                         value,
                     )}`,
                 );
@@ -193,7 +192,7 @@ class Controller implements GeneralNode {
                 { path: { nodeId, clusterId, endpointId, eventName }, events }: any,
             ) => {
                 this.#adapter.log.debug(
-                    `eventTriggeredCallback ${peerNodeId}: Event ${nodeId}/${endpointId}/${clusterId}/${eventName} triggered with ${Logger.toJSON(
+                    `eventTriggeredCallback "${peerNodeId}": Event ${nodeId}/${endpointId}/${clusterId}/${eventName} triggered with ${Logger.toJSON(
                         events,
                     )}`,
                 );
@@ -223,7 +222,7 @@ class Controller implements GeneralNode {
                     device.connectionStatusId &&
                         (await this.#adapter.setStateAsync(device.connectionStatusId, info, true));
                 } else {
-                    this.#adapter.log.warn(`Device ${jsonNodeId} not found`);
+                    this.#adapter.log.warn(`Device "${jsonNodeId}" not found`);
                     // delayed state
                     this.#delayedStates[jsonNodeId] = info;
                 }
@@ -231,27 +230,27 @@ class Controller implements GeneralNode {
                 switch (info) {
                     case NodeStateInformation.Connected:
                         this.#adapter.log.debug(
-                            `stateInformationCallback ${peerNodeId}: Node ${originalNodeId} connected`,
+                            `stateInformationCallback "${peerNodeId}": Node "${originalNodeId}" connected`,
                         );
                         break;
                     case NodeStateInformation.Disconnected:
                         this.#adapter.log.debug(
-                            `stateInformationCallback ${peerNodeId}: Node ${originalNodeId} disconnected`,
+                            `stateInformationCallback "${peerNodeId}": Node "${originalNodeId}" disconnected`,
                         );
                         break;
                     case NodeStateInformation.Reconnecting:
                         this.#adapter.log.debug(
-                            `stateInformationCallback ${peerNodeId}: Node ${originalNodeId} reconnecting`,
+                            `stateInformationCallback "${peerNodeId}": Node "${originalNodeId}" reconnecting`,
                         );
                         break;
                     case NodeStateInformation.WaitingForDeviceDiscovery:
                         this.#adapter.log.debug(
-                            `stateInformationCallback ${peerNodeId}: Node ${originalNodeId} waiting for device discovery`,
+                            `stateInformationCallback "${peerNodeId}": Node 2${originalNodeId}" waiting for device discovery`,
                         );
                         break;
                     case NodeStateInformation.StructureChanged:
                         this.#adapter.log.debug(
-                            `stateInformationCallback ${peerNodeId}: Node ${originalNodeId} structure changed`,
+                            `stateInformationCallback "${peerNodeId}": Node 2${originalNodeId}" structure changed`,
                         );
                         break;
                 }
@@ -302,7 +301,7 @@ class Controller implements GeneralNode {
                 );
                 await this.nodeToIoBrokerStructure(node);
             } catch (error) {
-                this.#adapter.log.info(`Failed to connect to node ${nodeId}: ${error.stack}`);
+                this.#adapter.log.info(`Failed to connect to node "${nodeId}": ${error.stack}`);
             }
         }
     }
@@ -490,7 +489,7 @@ class Controller implements GeneralNode {
 
         const rootEndpoint = nodeObject.getDeviceById(0); // later use getRootEndpoint
         if (rootEndpoint === undefined) {
-            this.#adapter.log.debug(`Node ${nodeObject.nodeId} has not yet been initialized!`);
+            this.#adapter.log.debug(`Node "${nodeObject.nodeId}" has not yet been initialized!`);
             return;
         }
 
@@ -782,7 +781,7 @@ class Controller implements GeneralNode {
         if (!this.#commissioningController) {
             return {
                 result: false,
-                error: new Error(`Can not register NodeId ${nodeId} because controller not initialized.`),
+                error: new Error(`Can not register NodeId "${nodeId}" because controller not initialized.`),
             };
         }
 
@@ -795,7 +794,7 @@ class Controller implements GeneralNode {
 
     async registerCommissionedNode(nodeId: NodeId): Promise<void> {
         if (!this.#commissioningController) {
-            throw new Error(`Can not register NodeId ${nodeId} because controller not initialized.`);
+            throw new Error(`Can not register NodeId "${nodeId}" because controller not initialized.`);
         }
 
         const nodeObject = this.#commissioningController.getConnectedNode(nodeId);
@@ -806,7 +805,7 @@ class Controller implements GeneralNode {
 
         await this.nodeToIoBrokerStructure(nodeObject);
 
-        this.#adapter.log.debug(`Commissioning successfully done with nodeId ${nodeId}`);
+        this.#adapter.log.debug(`Commissioning successfully done with nodeId "${nodeId}"`);
     }
 
     async discovery(): Promise<CommissionableDevice[] | null> {

@@ -1,6 +1,7 @@
 // @iobroker/device-types
 
 import { DetectorState, Types } from '@iobroker/type-detector';
+import { BridgeDeviceDescription } from '../../ioBrokerStorageTypes';
 import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 
 // take here https://github.com/ioBroker/ioBroker.type-detector/blob/master/DEVICES.md#temperature-temperature
@@ -46,7 +47,7 @@ import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject'
 //     Warning = 'warning',
 // }
 
-export interface DeviceOptions {
+export interface DeviceOptions extends BridgeDeviceDescription {
     dimmerOnLevel?: number;
     dimmerUseLastLevelForOn?: boolean;
     actionAllowedByIdentify?: boolean;
@@ -130,7 +131,12 @@ abstract class GenericDevice {
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Unreachable,
-                    callback: state => (this.#unreachState = state),
+                    callback: state => {
+                        if (state !== undefined && !this.enabled) {
+                            state.value = true;
+                        }
+                        this.#unreachState = state;
+                    },
                 },
                 {
                     name: 'LOWBAT',
@@ -157,6 +163,14 @@ abstract class GenericDevice {
         );
     }
 
+    get uuid(): string | undefined {
+        return this.options?.uuid;
+    }
+
+    get enabled(): boolean {
+        return !!this.options?.enabled;
+    }
+
     isActionAllowedByIdentify(): boolean {
         return !!this.options?.actionAllowedByIdentify;
     }
@@ -176,7 +190,7 @@ abstract class GenericDevice {
         if (state) {
             let object: DeviceStateObject<T>;
             try {
-                object = await DeviceStateObject.create(this.#adapter, state, type, valueType);
+                object = await DeviceStateObject.create(this.#adapter, state, type, valueType, () => this.enabled);
             } catch (error) {
                 this.#adapter.log.error(`Cannot create state ${name}: ${error}`);
                 return;
@@ -313,6 +327,10 @@ abstract class GenericDevice {
     }
 
     protected updateState = <T>(object: DeviceStateObject<T>): void => {
+        if (!this.enabled && object.propertyType !== PropertyType.Unreachable) {
+            // When disabled, only report unreachable ioBroker changes to Matter
+            return;
+        }
         this.#handlers.forEach(handler =>
             handler({
                 property: object.propertyType,
@@ -376,6 +394,9 @@ abstract class GenericDevice {
         if (!this.#unreachState) {
             throw new Error('Unreachable state not found');
         }
+        if (!this.enabled) {
+            return false;
+        }
         return this.#unreachState.value;
     }
 
@@ -416,8 +437,32 @@ abstract class GenericDevice {
             }
         }
     }
+
     clearChangeHandlers(): void {
         this.#handlers = [];
+    }
+
+    applyConfiguration(options?: DeviceOptions): void {
+        this.#adapter.log.debug(
+            `Applying configuration to device ${this.constructor.name}: ${JSON.stringify(options)}`,
+        );
+        const newEnabled = !!options?.enabled;
+        if (newEnabled !== this.enabled) {
+            // Simulate we would have got an unreach update to inform Matter about the change
+            this.#adapter.log.info(`${newEnabled ? 'Enabling' : 'Disabling'} device ${this.constructor.name}`);
+            const now = Date.now();
+            this.#unreachState?.updateState(
+                {
+                    val: !newEnabled,
+                    ack: true,
+                    from: 'simulated',
+                    lc: now,
+                    ts: now,
+                },
+                true,
+            );
+        }
+        this.options = options;
     }
 }
 

@@ -151,6 +151,8 @@ class Device extends BaseServerNode {
         await this.init();
         if (wasStarted) {
             await this.start();
+        } else {
+            await this.updateUiState();
         }
     }
 
@@ -158,7 +160,7 @@ class Device extends BaseServerNode {
         if (!this.serverNode) return;
         await this.serverNode.start();
         this.#started = true;
-        return;
+        await this.updateUiState();
     }
 
     async stop(): Promise<void> {
@@ -166,6 +168,7 @@ class Device extends BaseServerNode {
         await this.#device.destroy();
         this.serverNode = undefined;
         this.#started = false;
+        await this.updateUiState();
     }
 }
 

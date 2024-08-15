@@ -146,8 +146,9 @@ export class DeviceStateObject<T> {
         state: DetectorState,
         propertyType: PropertyType,
         valueType: ValueType,
+        isEnabled: () => boolean,
     ): Promise<DeviceStateObject<T>> {
-        const obj = new DeviceStateObject<T>(adapter, state, propertyType, valueType);
+        const obj = new DeviceStateObject<T>(adapter, state, propertyType, valueType, isEnabled);
         await obj.init(valueType);
         return obj;
     }
@@ -157,6 +158,7 @@ export class DeviceStateObject<T> {
         public state: DetectorState,
         public propertyType: PropertyType,
         valueType: ValueType,
+        protected isEnabled: () => boolean,
     ) {
         this.isEnum = valueType === ValueType.Enum;
     }
@@ -248,6 +250,10 @@ export class DeviceStateObject<T> {
         if (!this.object) {
             throw new Error(`Object not initialized`);
         }
+        if (!this.isEnabled()) {
+            return;
+        }
+
         const object = this.object;
         const valueType = object?.common?.type;
 
@@ -313,8 +319,8 @@ export class DeviceStateObject<T> {
         }
     }
 
-    protected updateState = (state: ioBroker.State): void => {
-        if (!state.ack) {
+    updateState = (state: ioBroker.State, ignoreEnabledStatus = false): void => {
+        if (!state.ack || (!this.isEnabled() && !ignoreEnabledStatus)) {
             // For Device implementation only acked values are considered to be forwarded to the controllers
             return;
         }

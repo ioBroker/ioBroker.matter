@@ -37,7 +37,8 @@ export interface ControllerCreateOptions {
 
 interface AddDeviceResult {
     result: boolean;
-    error?: Error;
+    /** The error message */
+    error?: string;
     nodeId?: string;
 }
 
@@ -625,7 +626,7 @@ class Controller implements GeneralNode {
         device: CommissionableDevice,
     ): Promise<AddDeviceResult> {
         if (!this.#commissioningController) {
-            return { error: new Error('Controller is not activated.'), result: false };
+            return { error: 'Controller is not activated.', result: false };
         }
         const commissioningOptions: CommissioningOptions = {
             regulatoryLocation: GeneralCommissioning.RegulatoryLocationType.IndoorOutdoor,
@@ -710,7 +711,7 @@ class Controller implements GeneralNode {
         if (!this.#commissioningController) {
             return {
                 result: false,
-                error: new Error(`Can not register NodeId "${nodeId}" because controller not initialized.`),
+                error: `Can not register NodeId "${nodeId}" because controller not initialized.`,
             };
         }
 

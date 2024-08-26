@@ -701,9 +701,9 @@ class Controller implements GeneralNode {
             await this.registerCommissionedNode(nodeId);
 
             return { result: true, nodeId: nodeId.toString() };
-        } catch (error) {
-            this.#adapter.log.info(`Commissioning failed: ${error.stack}`);
-            return { error, result: false };
+        } catch (e) {
+            this.#adapter.log.info(`Commissioning failed: ${e.stack}`);
+            return { error: e.message, result: false };
         }
     }
 

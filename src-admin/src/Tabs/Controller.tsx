@@ -784,6 +784,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     style={{ justifyContent: 'start' }}
                     themeName={this.props.themeName}
                     themeType={this.props.themeType}
+                    // @ts-expect-error should be fixed in DM
                     theme={this.props.theme}
                     isFloatComma={this.props.isFloatComma}
                     dateFormat={this.props.dateFormat}

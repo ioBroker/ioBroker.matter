@@ -124,7 +124,8 @@ interface ComponentState {
     hideVideo: boolean;
     nodes: Record<string, ioBroker.Object>;
     states: Record<string, ioBroker.State>;
-    showQrCodeDialog: CommissionableDevice | null;
+    /** If qr code dialog should be shown (optional a device can be provided) */
+    showQrCodeDialog: { device?: CommissionableDevice; open: boolean };
 }
 
 class Controller extends Component<ComponentProps, ComponentState> {
@@ -150,7 +151,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
             hideVideo: false,
             nodes: {},
             states: {},
-            showQrCodeDialog: null,
+            showQrCodeDialog: { open: false },
             backendProcessingActive: false,
             bleDialogOpen: false,
         };
@@ -556,11 +557,15 @@ class Controller extends Component<ComponentProps, ComponentState> {
     }
 
     renderQrCodeDialog() {
-        if (!this.state.showQrCodeDialog) {
+        if (!this.state.showQrCodeDialog.open) {
             return null;
         }
+
         return (
-            <Dialog open={!0} onClose={() => this.setState({ showQrCodeDialog: null }, () => this.destroyQrCode())}>
+            <Dialog
+                open={!0}
+                onClose={() => this.setState({ showQrCodeDialog: { open: false } }, () => this.destroyQrCode())}
+            >
                 <DialogTitle>{I18n.t('QR Code')}</DialogTitle>
                 <DialogContent>
                     <TextField
@@ -615,8 +620,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         disabled={!this.state.qrCode && !this.state.manualCode}
                         color="primary"
                         onClick={async () => {
-                            const device = this.state.showQrCodeDialog;
-                            this.setState({ showQrCodeDialog: null }, () => this.destroyQrCode());
+                            const device = this.state.showQrCodeDialog.device;
+                            this.setState({ showQrCodeDialog: { open: false }, backendProcessingActive: true }, () =>
+                                this.destroyQrCode(),
+                            );
 
                             const result = await this.props.socket.sendTo(
                                 `matter.${this.props.instance}`,
@@ -627,6 +634,8 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                     manualCode: this.state.manualCode,
                                 },
                             );
+
+                            this.setState({ backendProcessingActive: false });
 
                             if (result.error || !result.result) {
                                 window.alert(`Cannot connect: ${result.error || 'Unknown error'}`);
@@ -649,7 +658,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     <Button
                         variant="contained"
                         color="grey"
-                        onClick={() => this.setState({ showQrCodeDialog: null }, () => this.destroyQrCode())}
+                        onClick={() => this.setState({ showQrCodeDialog: { open: false } }, () => this.destroyQrCode())}
                         startIcon={<Close />}
                     >
                         {I18n.t('Close')}
@@ -692,9 +701,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                         <IconButton
                                             icon="leakAdd"
                                             tooltipText={I18n.t('Connect')}
-                                            onClick={() => {
+                                            onClick={async () => {
+                                                await this.stopDiscovery();
                                                 this.setState({
-                                                    showQrCodeDialog: device,
+                                                    showQrCodeDialog: { device, open: true },
                                                     manualCode: '',
                                                     qrCode: '',
                                                 });
@@ -718,13 +728,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         disabled={!this.state.discoveryRunning}
                         variant="contained"
                         onClick={async () => {
-                            console.log('Stop discovery');
-                            await this.props.socket.sendTo(
-                                `matter.${this.props.instance}`,
-                                'controllerDiscoveryStop',
-                                {},
-                            );
-                            this.setState({ discoveryDone: false });
+                            await this.stopDiscovery();
                         }}
                         startIcon={<SearchOff />}
                     >
@@ -742,6 +746,15 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 </DialogActions>
             </Dialog>
         );
+    }
+
+    /**
+     * Stop discovering devices
+     */
+    async stopDiscovery(): Promise<void> {
+        console.log('Stop discovery');
+        await this.props.socket.sendTo(`matter.${this.props.instance}`, 'controllerDiscoveryStop', {});
+        this.setState({ discoveryDone: false });
     }
 
     /**
@@ -816,7 +829,6 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     {this.props.matter.controller.enabled && this.props.alive ? (
                         <Button
                             variant="contained"
-                            sx={{ marginRight: 1 }}
                             disabled={this.state.discoveryRunning}
                             startIcon={this.state.discoveryRunning ? <CircularProgress size={20} /> : <Search />}
                             onClick={() => {
@@ -846,6 +858,17 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     ) : null}
                     {this.props.matter.controller.enabled && this.props.alive ? (
                         <Button
+                            sx={{ marginX: 1 }}
+                            variant="contained"
+                            color="primary"
+                            onClick={() => this.setState({ showQrCodeDialog: { open: true } })}
+                            startIcon={<Add />}
+                        >
+                            {I18n.t('Add device by pairing code or QR Code')}
+                        </Button>
+                    ) : null}
+                    {this.props.matter.controller.enabled && this.props.alive ? (
+                        <Button
                             variant="contained"
                             color="primary"
                             onClick={() => this.setState({ bleDialogOpen: true })}
@@ -856,18 +879,6 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     ) : null}
                 </div>
                 {this.props.matter.controller.enabled ? this.renderDeviceManager() : null}
-                {/* this.props.matter.controller.enabled ? <Table style={{ maxWidth: 600 }} size="small">
-            <TableHead>
-                <TableRow>
-                    <TableCell style={{ width: 0, padding: 0 }} />
-                    <TableCell>{I18n.t('Name')}</TableCell>
-                    <TableCell>{I18n.t('Value')}</TableCell>
-                </TableRow>
-            </TableHead>
-            <TableBody>
-                {this.renderDevicesAndBridges()}
-            </TableBody>
-        </Table> : null */}
             </div>
         );
     }

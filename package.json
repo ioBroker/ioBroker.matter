@@ -27,7 +27,7 @@
     "@iobroker/type-detector": "^4.0.1",
     "@project-chip/matter-node.js": "0.10.0-alpha.0-20240817-923902e8",
     "@project-chip/matter.js": "0.10.0-alpha.0-20240817-923902e8",
-    "axios": "^1.7.2",
+    "axios": "^1.7.7",
     "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {

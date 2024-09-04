@@ -5,6 +5,7 @@
   "Add %s device(s)": "Додати %s пристроїв",
   "Add bridge": "Додайте міст",
   "Add device": "Додайте пристрій",
+  "Add device by pairing code or QR Code": "Додайте пристрій за допомогою коду сполучення або QR-коду",
   "Add device from channel or device": "Додати пристрій із каналу або пристрою",
   "Add device from one state": "Додати пристрій з одного стану",
   "Add device with auto-detection": "Додати пристрій з автовизначенням",

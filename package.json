@@ -79,7 +79,6 @@
     "build:ts": "tsc -p tsconfig.build.json",
     "release": "release-script -y --noPush",
     "update-packages": "ncu --upgrade && cd src-admin && ncu --upgrade",
-    "npm": "npm i && cd src-admin && npm i",
     "dev-server": "dev-server",
     "format": "prettier --write 'src/**/*.ts' 'src-admin/**/*.tsx'"
   },

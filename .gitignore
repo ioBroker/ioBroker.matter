@@ -13,8 +13,6 @@ admin/static/css/*
 admin/manifest.json
 admin/asset-manifest.json
 nbproject
-/src-admin/package-lock.json
-package-lock.json
 build
 *.map
 main.js

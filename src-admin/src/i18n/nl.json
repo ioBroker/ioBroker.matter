@@ -5,6 +5,7 @@
   "Add %s device(s)": "%s apparaat(en) toevoegen",
   "Add bridge": "Brug toevoegen",
   "Add device": "Voeg toestel toe",
+  "Add device by pairing code or QR Code": "Apparaat toevoegen via koppelingscode of QR-code",
   "Add device from channel or device": "Apparaat toevoegen vanaf kanaal of apparaat",
   "Add device from one state": "Voeg apparaat toe vanuit één staat",
   "Add device with auto-detection": "Apparaat toevoegen met automatische detectie",

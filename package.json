@@ -52,7 +52,7 @@
     "eslint-plugin-prettier": "^5.2.1",
     "eslint-plugin-promise": "^7.1.0",
     "gulp": "^4.0.2",
-    "mocha": "^10.7.0",
+    "mocha": "^10.7.3",
     "prettier": "^3.3.3",
     "prettier-plugin-organize-imports": "^4.0.0",
     "puppeteer": "^22.15.0",

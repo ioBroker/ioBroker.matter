@@ -45,7 +45,7 @@ interface AddDeviceResult {
 type EndUserCommissioningOptions = (
     | { qrCode: string }
     | { manualCode: string }
-    | { passCode: number; vendorId: number; productId: number; ip: string; port: number }
+    | { passcode: number; vendorId: number; productId: number; ip: string; port: number }
 ) & { device: CommissionableDevice };
 
 // const IGNORE_CLUSTERS: ClusterId[] = [
@@ -668,7 +668,7 @@ class Controller implements GeneralNode {
             shortDiscriminator = undefined;
             passcode = pairingCodeCodec[0].passcode;
         } else if ('passcode' in data) {
-            passcode = data.passCode;
+            passcode = data.passcode;
             // TODO also use vendor Id once matter.js can discover for both together
             // TODO also try ip/port once matter.js can use this without a full discoverableDevice
             //vendorId = data.vendorId;

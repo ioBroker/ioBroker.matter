@@ -160,6 +160,7 @@ class Controller implements GeneralNode {
                     if (message.pollResponse) {
                         const pollingId = Date.now(); // should be good enough
                         this.#commissiningStatus.set(pollingId, { status: 'inprogress' });
+                        // We return the pollingId and execute the commissioning async
                         this.commissionDevice(options)
                             .then(result => this.#commissiningStatus.set(pollingId, { status: 'finished', result }))
                             .catch(error =>

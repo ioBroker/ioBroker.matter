@@ -45,7 +45,7 @@ interface AddDeviceResult {
 type EndUserCommissioningOptions = (
     | { qrCode: string }
     | { manualCode: string }
-    | { passCode: number; vendorId: number; productId: number; ip: string; port: string }
+    | { passCode: number; vendorId: number; productId: number; ip: string; port: number }
 ) & { device: CommissionableDevice };
 
 // const IGNORE_CLUSTERS: ClusterId[] = [

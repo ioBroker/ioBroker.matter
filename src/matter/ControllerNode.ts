@@ -92,6 +92,7 @@ class Controller implements GeneralNode {
     #connected: { [nodeId: string]: boolean } = {};
     #discovering = false;
     #useBle = false;
+    #commissiningStatus = new Map<number, { status: 'finished' | 'error' | 'inprogress'; result?: MessageResponse }>();
 
     constructor(options: ControllerCreateOptions) {
         this.#adapter = options.adapter;
@@ -156,7 +157,36 @@ class Controller implements GeneralNode {
                 case 'controllerCommissionDevice':
                     // Commission a new device with Commissioning payloads like a QR Code or pairing code
                     const options = message as EndUserCommissioningOptions;
-                    return await this.commissionDevice(options);
+                    if (message.pollResponse) {
+                        const pollingId = Date.now(); // should be good enough
+                        this.#commissiningStatus.set(pollingId, { status: 'inprogress' });
+                        this.commissionDevice(options)
+                            .then(result => this.#commissiningStatus.set(pollingId, { status: 'finished', result }))
+                            .catch(error =>
+                                this.#commissiningStatus.set(pollingId, {
+                                    status: 'error',
+                                    result: { error: error.message },
+                                }),
+                            )
+                            .finally(() =>
+                                this.#adapter.setTimeout(() => this.#commissiningStatus.delete(pollingId), 60 * 60_000),
+                            );
+                        return { result: { pollingId } };
+                    } else {
+                        return await this.commissionDevice(options);
+                    }
+                case 'controllerCommissionDeviceStatus':
+                    // Get the status of a commissioning process
+                    const pollingId = message.pollingId as number;
+                    const status = this.#commissiningStatus.get(pollingId);
+                    if (status === undefined) {
+                        return { error: `No commissioning process with pollingId ${pollingId} found` };
+                    }
+                    const { status: statusText, result } = status;
+                    if (statusText === 'inprogress') {
+                        return { result: { status: statusText } };
+                    }
+                    return result;
                 case 'controllerDeviceQrCode':
                     // Opens a new commissioning window for a paired node and returns the QRCode and pairing code for display
                     return { result: await this.showNewCommissioningCode(message.nodeId) };

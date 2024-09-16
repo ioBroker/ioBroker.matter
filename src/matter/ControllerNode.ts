@@ -42,11 +42,11 @@ interface AddDeviceResult {
     nodeId?: string;
 }
 
-interface EndUserCommissioningOptions {
-    qrCode?: string;
-    manualCode?: string;
-    device: CommissionableDevice;
-}
+type EndUserCommissioningOptions = (
+    | { qrCode: string }
+    | { manualCode: string }
+    | { passcode: number; vendorId: number; productId: number; ip: string; port: number }
+) & { device: CommissionableDevice };
 
 // const IGNORE_CLUSTERS: ClusterId[] = [
 //     ClusterId(0x0004), // Groups
@@ -156,7 +156,7 @@ class Controller implements GeneralNode {
                 case 'controllerCommissionDevice':
                     // Commission a new device with Commissioning payloads like a QR Code or pairing code
                     const options = message as EndUserCommissioningOptions;
-                    return await this.commissionDevice(options.qrCode, options.manualCode, options.device);
+                    return await this.commissionDevice(options);
                 case 'controllerDeviceQrCode':
                     // Opens a new commissioning window for a paired node and returns the QRCode and pairing code for display
                     return { result: await this.showNewCommissioningCode(message.nodeId) };
@@ -620,11 +620,7 @@ class Controller implements GeneralNode {
         // nothing to do
     }
 
-    async commissionDevice(
-        qrCode: string | undefined,
-        manualCode: string | undefined,
-        device: CommissionableDevice,
-    ): Promise<AddDeviceResult> {
+    async commissionDevice(data: EndUserCommissioningOptions): Promise<AddDeviceResult> {
         if (!this.#commissioningController) {
             return { error: 'Controller is not activated.', result: false };
         }
@@ -655,21 +651,30 @@ class Controller implements GeneralNode {
             }
         }
 
-        let passcode: number | undefined;
-        let shortDiscriminator: number | undefined;
-        let longDiscriminator: number | undefined;
-        if (manualCode) {
-            const pairingCodeCodec = ManualPairingCodeCodec.decode(manualCode);
+        let passcode: number | undefined = undefined;
+        let shortDiscriminator: number | undefined = undefined;
+        let longDiscriminator: number | undefined = undefined;
+        let productId: number | undefined = undefined;
+        //let vendorId: number | undefined = undefined;
+        if ('manualCode' in data) {
+            const pairingCodeCodec = ManualPairingCodeCodec.decode(data.manualCode);
             shortDiscriminator = pairingCodeCodec.shortDiscriminator;
             longDiscriminator = undefined;
             passcode = pairingCodeCodec.passcode;
-        } else if (qrCode) {
-            const pairingCodeCodec = QrPairingCodeCodec.decode(qrCode);
+        } else if ('qrCode' in data) {
+            const pairingCodeCodec = QrPairingCodeCodec.decode(data.qrCode);
             // TODO handle the case where multiple devices are included
             longDiscriminator = pairingCodeCodec[0].discriminator;
             shortDiscriminator = undefined;
             passcode = pairingCodeCodec[0].passcode;
+        } else if ('passcode' in data) {
+            passcode = data.passcode;
+            // TODO also use vendor Id once matter.js can discover for both together
+            // TODO also try ip/port once matter.js can use this without a full discoverableDevice
+            //vendorId = data.vendorId;
+            productId = data.productId;
         }
+        const { device } = data;
         if (device) {
             longDiscriminator = undefined;
             shortDiscriminator = undefined;
@@ -691,7 +696,9 @@ class Controller implements GeneralNode {
                             ? { longDiscriminator }
                             : shortDiscriminator !== undefined
                               ? { shortDiscriminator }
-                              : undefined,
+                              : productId !== undefined
+                                ? { productId }
+                                : undefined,
                 },
                 passcode,
             };

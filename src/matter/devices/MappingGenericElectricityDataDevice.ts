@@ -12,6 +12,15 @@ import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import ElectricityDataDevice from '../../lib/devices/ElectricityDataDevice';
 import { MappingGenericDevice } from './MappingGenericDevice';
 
+type EnergyValues = { energy: number };
+
+type PowerValues = {
+    activePower: number | null;
+    activeCurrent: number | null;
+    voltage: number | null;
+    frequency: number | null;
+};
+
 export abstract class MappingGenericElectricityDataDevice extends MappingGenericDevice {
     #powerClusterAdded = false;
     #energyClusterAdded = false;
@@ -124,19 +133,14 @@ export abstract class MappingGenericElectricityDataDevice extends MappingGeneric
         }
     }
 
-    #getEnergyValues(ioBrokerDevice: ElectricityDataDevice): { energy: number } {
+    #getEnergyValues(ioBrokerDevice: ElectricityDataDevice): EnergyValues {
         const energy = ioBrokerDevice.getConsumption() ?? 0;
         return {
             energy: energy * 1000, // mWh
         };
     }
 
-    #getPowerValues(ioBrokerDevice: ElectricityDataDevice): {
-        activePower: number | null;
-        activeCurrent: number | null;
-        voltage: number | null;
-        frequency: number | null;
-    } {
+    #getPowerValues(ioBrokerDevice: ElectricityDataDevice): PowerValues {
         const electricalPower = ioBrokerDevice.getElectricPower();
         const current = ioBrokerDevice.getCurrent();
         const voltage = ioBrokerDevice.getVoltage();

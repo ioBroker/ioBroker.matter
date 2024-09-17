@@ -75,14 +75,3 @@ export async function initializeMaintenanceStateHandlers(
 ): Promise<void> {
     // TODO Add more
 }
-
-/**
- * Initialize Electricity states for the device and Map it to Matter.
- * TODO: Implement and add to Energy cluster
- */
-export async function initializeElectricityStateHandlers(
-    _endpoint: Endpoint<any>,
-    _ioBrokerDevice: GenericDevice,
-): Promise<void> {
-    // TODO ADD extra Energy cluster for energy states later
-}

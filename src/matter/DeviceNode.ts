@@ -1,4 +1,3 @@
-import { MatterError } from '@project-chip/matter.js/common';
 import { VendorId } from '@project-chip/matter.js/datatype';
 import { ServerNode } from '@project-chip/matter.js/node';
 import { inspect } from 'util';
@@ -117,7 +116,7 @@ class Device extends BaseServerNode {
                 await this.serverNode.add(endpoint);
             } catch (error) {
                 // MatterErrors might contain nested information so make sure we see all of this
-                const errorText = error instanceof MatterError ? inspect(error, { depth: 10 }) : error.stack;
+                const errorText = inspect(error, { depth: 10 });
                 this.adapter.log.error(`Error adding endpoint ${endpoint.id} to bridge: ${errorText}`);
             }
         }

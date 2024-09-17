@@ -1,5 +1,4 @@
 import { BridgedDeviceBasicInformationServer } from '@project-chip/matter.js/behavior/definitions/bridged-device-basic-information';
-import { MatterError } from '@project-chip/matter.js/common';
 import { VendorId } from '@project-chip/matter.js/datatype';
 import { DeviceTypes } from '@project-chip/matter.js/device';
 import { Endpoint } from '@project-chip/matter.js/endpoint';
@@ -34,7 +33,6 @@ class BridgedDevices extends BaseServerNode {
     #parameters: BridgeOptions;
     #devices: GenericDevice[];
     #devicesOptions: BridgeDeviceDescription[];
-    #commissioned: boolean | null = null;
     #started = false;
     #aggregator?: Endpoint<AggregatorEndpoint>;
     #deviceEndpoints = new Map<string, Endpoint[]>();
@@ -74,7 +72,7 @@ class BridgedDevices extends BaseServerNode {
                         await this.#aggregator.add(endpoint);
                     } catch (error) {
                         // MatterErrors might contain nested information so make sure we see all of this
-                        const errorText = error instanceof MatterError ? inspect(error, { depth: 10 }) : error.stack;
+                        const errorText = inspect(error, { depth: 10 });
                         this.adapter.log.error(`Error adding endpoint ${endpoint.id} to bridge: ${errorText}`);
                     }
                 }
@@ -97,7 +95,7 @@ class BridgedDevices extends BaseServerNode {
                         await composedEndpoint.add(endpoint);
                     } catch (error) {
                         // MatterErrors might contain nested information so make sure we see all of this
-                        const errorText = error instanceof MatterError ? inspect(error, { depth: 10 }) : error.stack;
+                        const errorText = inspect(error, { depth: 10 });
                         this.adapter.log.error(`Error adding endpoint ${endpoint.id} to bridge: ${errorText}`);
                     }
                 }

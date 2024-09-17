@@ -3,11 +3,12 @@ import { Endpoint } from '@project-chip/matter.js/endpoint';
 import { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import Socket from '../../lib/devices/Socket';
-import { IdentifyOptions, MappingGenericDevice } from './MappingGenericDevice';
-import { initializeElectricityStateHandlers, initializeMaintenanceStateHandlers } from './SharedStateHandlers';
+import { IdentifyOptions } from './MappingGenericDevice';
+import { MappingGenericElectricityDataDevice } from './MappingGenericElectricityDataDevice';
+import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 
 /** Mapping Logic to map a ioBroker Socket device to a Matter OnOffPlugInUnitDevice. */
-export class MappingSocket extends MappingGenericDevice {
+export class MappingSocket extends MappingGenericElectricityDataDevice {
     readonly #ioBrokerDevice: Socket;
     readonly #matterEndpoint: Endpoint<OnOffPlugInUnitDevice>;
 
@@ -15,6 +16,7 @@ export class MappingSocket extends MappingGenericDevice {
         super(name, uuid);
         this.#matterEndpoint = new Endpoint(OnOffPlugInUnitDevice, { id: uuid });
         this.#ioBrokerDevice = ioBrokerDevice as Socket;
+        this.addElectricityDataClusters(this.#matterEndpoint, this.#ioBrokerDevice);
     }
 
     // Just change the power state every second
@@ -88,6 +90,6 @@ export class MappingSocket extends MappingGenericDevice {
         });
 
         await initializeMaintenanceStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
-        await initializeElectricityStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
+        await this.initializeElectricityStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
     }
 }

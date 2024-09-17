@@ -118,7 +118,6 @@ export abstract class MappingGenericElectricityDataDevice extends MappingGeneric
             this.#energyClusterAdded = true;
         }
 
-        console.log('addElectricityDataClusters', this.#powerClusterAdded, this.#energyClusterAdded);
         if (this.#powerClusterAdded || this.#energyClusterAdded) {
             // Adds PowerTopology cluster to the endpoint
             endpoint.behaviors.require(PowerTopologyServer.with(PowerTopology.Feature.TreeTopology));

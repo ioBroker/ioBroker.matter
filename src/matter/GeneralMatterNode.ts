@@ -13,7 +13,6 @@ import { Endpoint, NodeStates, PairedNode } from '@project-chip/matter.js/device
 import { SubscribeManager } from '../lib';
 import { SubscribeCallback } from '../lib/SubscribeManager';
 import type { MatterAdapter } from '../main';
-import ioBrokerDeviceFabric from './from-matter/ioBrokerFactory';
 
 const SystemClusters: ClusterId[] = [
     ClusterId(0x0004), // Groups
@@ -194,7 +193,7 @@ export class GeneralMatterNode {
             }
         } else {
             // TODO
-            const ioBrokerDevice = await ioBrokerDeviceFabric(endpoint, endpointDeviceBaseId);
+            //const ioBrokerDevice = await ioBrokerDeviceFabric(endpoint, endpointDeviceBaseId);
         }
 
         await this.#processEndpointRawDataStructure(endpoint, endpointDeviceBaseId);

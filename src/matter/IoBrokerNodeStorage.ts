@@ -1,10 +1,4 @@
-import {
-    fromJson,
-    MaybeAsyncStorage,
-    StorageError,
-    SupportedStorageTypes,
-    toJson,
-} from '@project-chip/matter.js/storage';
+import { fromJson, MaybeAsyncStorage, StorageError, SupportedStorageTypes, toJson } from '@matter/main';
 
 /**
  * Class that implements the storage for one Node in the Matter ecosystem
@@ -119,7 +113,7 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
     async values(contexts: string[]): Promise<Record<string, SupportedStorageTypes>> {
         const values = {} as Record<string, SupportedStorageTypes>;
         const keys = await this.keys(contexts);
-        for (const key in keys) {
+        for (const key of keys) {
             values[key] = await this.get(contexts, key);
         }
         return values;

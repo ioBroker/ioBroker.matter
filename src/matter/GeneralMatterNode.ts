@@ -193,6 +193,7 @@ export class GeneralMatterNode {
                 await this.#endpointToIoBrokerDevices(childEndpoint, endpointDeviceBaseId);
             }
         } else {
+            // TODO
             const ioBrokerDevice = await ioBrokerDeviceFabric(endpoint, endpointDeviceBaseId);
         }
 

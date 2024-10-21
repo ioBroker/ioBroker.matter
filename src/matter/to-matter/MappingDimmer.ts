@@ -1,5 +1,5 @@
-import { DimmableLightDevice } from '@project-chip/matter.js/devices/DimmableLightDevice';
-import { Endpoint } from '@project-chip/matter.js/endpoint';
+import { Endpoint } from '@matter/main';
+import { DimmableLightDevice } from '@matter/main/devices';
 import { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import Dimmer from '../../lib/devices/Dimmer';

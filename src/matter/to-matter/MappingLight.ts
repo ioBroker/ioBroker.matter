@@ -1,5 +1,5 @@
-import { OnOffLightDevice } from '@project-chip/matter.js/devices/OnOffLightDevice';
-import { Endpoint } from '@project-chip/matter.js/endpoint';
+import { Endpoint } from '@matter/main';
+import { OnOffLightDevice } from '@matter/main/devices';
 import { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import Light from '../../lib/devices/Light';

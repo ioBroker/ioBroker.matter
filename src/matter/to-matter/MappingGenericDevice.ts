@@ -1,4 +1,4 @@
-import { Endpoint } from '@project-chip/matter.js/endpoint';
+import { Endpoint } from '@matter/main';
 import { GenericDevice } from '../../lib';
 
 export interface IdentifyOptions {

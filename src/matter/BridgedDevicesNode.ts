@@ -1,17 +1,14 @@
-import { BridgedDeviceBasicInformationServer } from '@project-chip/matter.js/behavior/definitions/bridged-device-basic-information';
-import { VendorId } from '@project-chip/matter.js/datatype';
-import { DeviceTypes } from '@project-chip/matter.js/device';
-import { Endpoint } from '@project-chip/matter.js/endpoint';
-import { AggregatorEndpoint, BridgedNodeEndpoint } from '@project-chip/matter.js/endpoint/definitions';
-import { ServerNode } from '@project-chip/matter.js/node';
+import { Endpoint, ServerNode, VendorId } from '@matter/main';
+import { BridgedDeviceBasicInformationServer } from '@matter/main/behaviors';
+import { AggregatorEndpoint, BridgedNodeEndpoint } from '@matter/main/endpoints';
 import { inspect } from 'util';
 import { BridgeDeviceDescription } from '../ioBrokerStorageTypes';
 import { GenericDevice } from '../lib';
 import { md5 } from '../lib/utils';
 import type { MatterAdapter } from '../main';
 import { BaseServerNode } from './BaseServerNode';
-import { initializeBridgedUnreachableStateHandler } from './devices/SharedStateHandlers';
-import matterDeviceFactory from './matterFactory';
+import matterDeviceFactory from './to-matter/matterFactory';
+import { initializeBridgedUnreachableStateHandler } from './to-matter/SharedStateHandlers';
 
 export interface BridgeCreateOptions {
     parameters: BridgeOptions;
@@ -126,7 +123,7 @@ class BridgedDevices extends BaseServerNode {
         });
 
         const deviceName = this.#parameters.deviceName || 'Matter Bridge device';
-        const deviceType = DeviceTypes.AGGREGATOR.code;
+        const deviceType = AggregatorEndpoint.deviceType;
         const vendorName = 'ioBroker';
 
         // product name / id and vendor id should match what is in the device certificate

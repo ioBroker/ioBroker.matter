@@ -1,13 +1,11 @@
-import { ElectricalEnergyMeasurementServer } from '@project-chip/matter.js/behavior/definitions/electrical-energy-measurement';
-import { ElectricalPowerMeasurementServer } from '@project-chip/matter.js/behavior/definitions/electrical-power-measurement';
-import { PowerTopologyServer } from '@project-chip/matter.js/behavior/definitions/power-topology';
+import { Endpoint } from '@matter/main';
 import {
-    ElectricalEnergyMeasurement,
-    ElectricalPowerMeasurement,
-    MeasurementType,
-    PowerTopology,
-} from '@project-chip/matter.js/cluster';
-import { Endpoint } from '@project-chip/matter.js/endpoint';
+    ElectricalEnergyMeasurementServer,
+    ElectricalPowerMeasurementServer,
+    PowerTopologyServer,
+} from '@matter/main/behaviors';
+import { ElectricalEnergyMeasurement, ElectricalPowerMeasurement, PowerTopology } from '@matter/main/clusters';
+import { MeasurementType } from '@matter/main/types';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import ElectricityDataDevice from '../../lib/devices/ElectricityDataDevice';
 import { MappingGenericDevice } from './MappingGenericDevice';
@@ -21,6 +19,19 @@ type PowerValues = {
     frequency: number | null;
 };
 
+const fakedAccuracyDetails = {
+    measured: true,
+    minMeasuredValue: Number.MIN_SAFE_INTEGER,
+    maxMeasuredValue: Number.MAX_SAFE_INTEGER,
+    accuracyRanges: [
+        {
+            rangeMin: Number.MIN_SAFE_INTEGER,
+            rangeMax: Number.MAX_SAFE_INTEGER,
+            fixedMax: 1,
+        },
+    ],
+};
+
 export abstract class MappingGenericElectricityDataDevice extends MappingGenericDevice {
     #powerClusterAdded = false;
     #energyClusterAdded = false;
@@ -30,61 +41,25 @@ export abstract class MappingGenericElectricityDataDevice extends MappingGeneric
         if (ioBrokerDevice.getPropertyNames().includes(PropertyType.ElectricPower)) {
             measuredAccuracies.push({
                 measurementType: MeasurementType.ActivePower,
-                measured: true,
-                minMeasuredValue: Number.MIN_SAFE_INTEGER,
-                maxMeasuredValue: Number.MAX_SAFE_INTEGER,
-                accuracyRanges: [
-                    {
-                        rangeMin: Number.MIN_SAFE_INTEGER,
-                        rangeMax: Number.MAX_SAFE_INTEGER,
-                        fixedMax: 1,
-                    },
-                ],
+                ...fakedAccuracyDetails,
             });
         }
         if (ioBrokerDevice.getPropertyNames().includes(PropertyType.Current)) {
             measuredAccuracies.push({
                 measurementType: MeasurementType.ActiveCurrent,
-                measured: true,
-                minMeasuredValue: Number.MIN_SAFE_INTEGER,
-                maxMeasuredValue: Number.MAX_SAFE_INTEGER,
-                accuracyRanges: [
-                    {
-                        rangeMin: Number.MIN_SAFE_INTEGER,
-                        rangeMax: Number.MAX_SAFE_INTEGER,
-                        fixedMax: 1,
-                    },
-                ],
+                ...fakedAccuracyDetails,
             });
         }
         if (ioBrokerDevice.getPropertyNames().includes(PropertyType.Voltage)) {
             measuredAccuracies.push({
                 measurementType: MeasurementType.Voltage,
-                measured: true,
-                minMeasuredValue: Number.MIN_SAFE_INTEGER,
-                maxMeasuredValue: Number.MAX_SAFE_INTEGER,
-                accuracyRanges: [
-                    {
-                        rangeMin: Number.MIN_SAFE_INTEGER,
-                        rangeMax: Number.MAX_SAFE_INTEGER,
-                        fixedMax: 1,
-                    },
-                ],
+                ...fakedAccuracyDetails,
             });
         }
         if (ioBrokerDevice.getPropertyNames().includes(PropertyType.Frequency)) {
             measuredAccuracies.push({
                 measurementType: MeasurementType.Frequency,
-                measured: true,
-                minMeasuredValue: Number.MIN_SAFE_INTEGER,
-                maxMeasuredValue: Number.MAX_SAFE_INTEGER,
-                accuracyRanges: [
-                    {
-                        rangeMin: Number.MIN_SAFE_INTEGER,
-                        rangeMax: Number.MAX_SAFE_INTEGER,
-                        fixedMax: 1,
-                    },
-                ],
+                ...fakedAccuracyDetails,
             });
         }
 
@@ -111,16 +86,7 @@ export abstract class MappingGenericElectricityDataDevice extends MappingGeneric
                 {
                     accuracy: {
                         measurementType: MeasurementType.ElectricalEnergy,
-                        measured: true,
-                        minMeasuredValue: Number.MIN_SAFE_INTEGER,
-                        maxMeasuredValue: Number.MAX_SAFE_INTEGER,
-                        accuracyRanges: [
-                            {
-                                rangeMin: Number.MIN_SAFE_INTEGER,
-                                rangeMax: Number.MAX_SAFE_INTEGER,
-                                fixedMax: 1,
-                            },
-                        ],
+                        ...fakedAccuracyDetails,
                     },
                 },
             );
@@ -205,23 +171,27 @@ export abstract class MappingGenericElectricityDataDevice extends MappingGeneric
             ioBrokerDevice.onChange(async event => {
                 switch (event.property) {
                     case PropertyType.Consumption:
-                        await endpoint.set({
-                            electricalEnergyMeasurement: {
-                                cumulativeEnergyImported: {
-                                    energy: typeof event.value === 'number' ? event.value * 1000 : 0,
+                        await endpoint.act(agent =>
+                            agent.get(ElectricalEnergyMeasurementServer).setMeasurement({
+                                cumulativeEnergy: {
+                                    imported: {
+                                        energy: typeof event.value === 'number' ? event.value * 1000 : 0,
+                                    },
                                 },
-                            },
-                        });
+                            }),
+                        );
                         break;
                 }
             });
 
             // init current state from ioBroker side
-            await endpoint.set({
-                electricalEnergyMeasurement: {
-                    cumulativeEnergyImported: this.#getEnergyValues(ioBrokerDevice),
-                },
-            });
+            await endpoint.act(agent =>
+                agent.get(ElectricalEnergyMeasurementServer).setMeasurement({
+                    cumulativeEnergy: {
+                        imported: this.#getEnergyValues(ioBrokerDevice),
+                    },
+                }),
+            );
         }
     }
 }

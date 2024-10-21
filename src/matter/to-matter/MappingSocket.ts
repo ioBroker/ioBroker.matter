@@ -1,5 +1,5 @@
-import { OnOffPlugInUnitDevice } from '@project-chip/matter.js/devices/OnOffPlugInUnitDevice';
-import { Endpoint } from '@project-chip/matter.js/endpoint';
+import { Endpoint } from '@matter/main';
+import { OnOffPlugInUnitDevice } from '@matter/main/devices';
 import { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import Socket from '../../lib/devices/Socket';

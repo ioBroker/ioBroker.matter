@@ -1,13 +1,12 @@
-import { VendorId } from '@project-chip/matter.js/datatype';
-import { ServerNode } from '@project-chip/matter.js/node';
+import { ServerNode, VendorId } from '@matter/main';
 import { inspect } from 'util';
 import { DeviceDescription } from '../ioBrokerStorageTypes';
 import { GenericDevice } from '../lib';
 import { md5 } from '../lib/utils';
 import type { MatterAdapter } from '../main';
 import { BaseServerNode } from './BaseServerNode';
-import { initializeUnreachableStateHandler } from './devices/SharedStateHandlers';
-import matterDeviceFactory from './matterFactory';
+import matterDeviceFactory from './to-matter/matterFactory';
+import { initializeUnreachableStateHandler } from './to-matter/SharedStateHandlers';
 
 export interface DeviceCreateOptions {
     parameters: DeviceOptions;

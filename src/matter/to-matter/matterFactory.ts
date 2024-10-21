@@ -1,12 +1,11 @@
 import { Types } from '@iobroker/type-detector';
-import { GenericDevice } from '../lib';
-import { MappingGenericDevice } from './devices/MappingGenericDevice';
-
-import { MappingDimmer } from './devices/MappingDimmer';
-import { MappingHumidity } from './devices/MappingHumidity';
-import { MappingLight } from './devices/MappingLight';
-import { MappingSocket } from './devices/MappingSocket';
-import { MappingTemperature } from './devices/MappingTemperature';
+import { GenericDevice } from '../../lib';
+import { MappingDimmer } from './MappingDimmer';
+import { MappingGenericDevice } from './MappingGenericDevice';
+import { MappingHumidity } from './MappingHumidity';
+import { MappingLight } from './MappingLight';
+import { MappingSocket } from './MappingSocket';
+import { MappingTemperature } from './MappingTemperature';
 
 /**
  * Factory function to create a Matter device from an ioBroker device.

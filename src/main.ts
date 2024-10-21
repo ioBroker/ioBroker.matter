@@ -1,9 +1,6 @@
-import '@project-chip/matter-node.js';
-
 import * as utils from '@iobroker/adapter-core';
 import ChannelDetector, { DetectorState, PatternControl, Types } from '@iobroker/type-detector';
-import { Environment, StorageService } from '@project-chip/matter.js/environment';
-import { Level, Logger } from '@project-chip/matter.js/log';
+import { Environment, LogLevel, Logger, StorageService } from '@matter/main';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import fs from 'node:fs';
@@ -306,23 +303,23 @@ export class MatterAdapter extends utils.Adapter {
 
     async prepareMatterEnvironment(): Promise<void> {
         const config: MatterAdapterConfig = this.config as MatterAdapterConfig;
-        Logger.defaultLogLevel = Level.DEBUG;
-        Logger.log = (level: Level, formattedLog: string) => {
+        Logger.defaultLogLevel = LogLevel.DEBUG;
+        Logger.log = (level: LogLevel, formattedLog: string) => {
             switch (level) {
-                case Level.DEBUG:
+                case LogLevel.DEBUG:
                     config.debug ? this.log.debug(formattedLog) : this.log.silly(formattedLog);
                     break;
 
-                case Level.INFO:
+                case LogLevel.INFO:
                     this.log.debug(formattedLog);
                     break;
-                case Level.WARN:
+                case LogLevel.WARN:
                     this.log.info(formattedLog);
                     break;
-                case Level.ERROR:
+                case LogLevel.ERROR:
                     this.log.warn(formattedLog);
                     break;
-                case Level.FATAL:
+                case LogLevel.FATAL:
                     this.log.error(formattedLog);
                     break;
             }

@@ -135,11 +135,11 @@ export class DeviceStateObject<T> {
     object?: ioBroker.Object;
     modes?: { [key: string]: T };
 
-    protected min: number | undefined;
-    protected max: number | undefined;
-    protected realMin: number | undefined;
-    protected realMax: number | undefined;
-    protected unit: string | undefined;
+    protected min?: number;
+    protected max?: number;
+    protected realMin?: number;
+    protected realMax?: number;
+    protected unit?: string;
 
     static async create<T>(
         adapter: ioBroker.Adapter,
@@ -186,7 +186,7 @@ export class DeviceStateObject<T> {
         return this.unit;
     }
 
-    protected parseMinMax(percent: boolean = false): void {
+    protected parseMinMax(percent = false): void {
         if (!this.object) {
             throw new Error(`Object not initialized`);
         }
@@ -206,7 +206,7 @@ export class DeviceStateObject<T> {
             if (this.min !== undefined && this.max === undefined) {
                 this.max = 100;
             } else if (this.min === undefined && this.max !== undefined) {
-                this.max = 0;
+                this.min = 0;
             }
             this.unit = obj?.common?.unit;
         }
@@ -295,7 +295,7 @@ export class DeviceStateObject<T> {
 
                     await this.adapter.setForeignStateAsync(this.state.id, realValue as ioBroker.StateValue);
                 } else if (valueType === 'string') {
-                    const realValue: string = value.toString();
+                    const realValue: string = String(value);
                     await this.adapter.setForeignStateAsync(this.state.id, realValue as ioBroker.StateValue);
                 } else if (valueType === 'json') {
                     const realValue: string = JSON.stringify(value);
@@ -312,6 +312,10 @@ export class DeviceStateObject<T> {
                 }
                 if (object.common.max !== undefined && value > object.common.max) {
                     throw new Error(`Value ${value} is greater than max ${object.common.max}`);
+                }
+
+                if (typeof value === 'number') {
+                    value = parseFloat(value.toFixed(4)) as T;
                 }
             }
 

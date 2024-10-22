@@ -1,6 +1,5 @@
-import { HumiditySensorDevice } from '@project-chip/matter.js/devices/HumiditySensorDevice';
-import { TemperatureSensorDevice } from '@project-chip/matter.js/devices/TemperatureSensorDevice';
-import { Endpoint } from '@project-chip/matter.js/endpoint';
+import { Endpoint } from '@matter/main';
+import { HumiditySensorDevice, TemperatureSensorDevice } from '@matter/main/devices';
 import { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import Temperature from '../../lib/devices/Temperature';

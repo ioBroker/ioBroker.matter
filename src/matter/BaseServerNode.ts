@@ -1,6 +1,4 @@
-import { SessionsBehavior } from '@project-chip/matter.js/behavior/system/sessions';
-import { Logger } from '@project-chip/matter.js/log';
-import { ServerNode } from '@project-chip/matter.js/node';
+import { Logger, ServerNode, SessionsBehavior } from '@matter/main';
 import type { MatterAdapter } from '../main';
 import { GeneralNode, MessageResponse } from './GeneralNode';
 

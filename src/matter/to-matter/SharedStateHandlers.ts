@@ -1,5 +1,5 @@
-import { Endpoint } from '@project-chip/matter.js/endpoint';
-import { BridgedNodeEndpoint, RootEndpoint } from '@project-chip/matter.js/endpoint/definitions';
+import { Endpoint } from '@matter/main';
+import { BridgedNodeEndpoint, RootEndpoint } from '@matter/main/endpoints';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import GenericDevice from '../../lib/devices/GenericDevice';
 

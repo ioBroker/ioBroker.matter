@@ -1,7 +1,5 @@
-import { NodeId } from '@project-chip/matter-node.js/datatype';
-import { DeviceTypeDefinition, Endpoint } from '@project-chip/matter-node.js/device';
-import { Logger } from '@project-chip/matter-node.js/log';
-import { AtLeastOne } from '@project-chip/matter-node.js/util';
+import { AtLeastOne, Logger, NodeId } from '@matter/main';
+import { DeviceTypeDefinition, Endpoint } from '@project-chip/matter.js/device';
 import { SubscribeManager } from '../../lib';
 import { MatterAdapter } from '../../main';
 

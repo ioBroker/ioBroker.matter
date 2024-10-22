@@ -1,4 +1,4 @@
-type SubscribeCallback = (state: ioBroker.State) => void;
+export type SubscribeCallback = (state: ioBroker.State) => void;
 
 class SubscribeManager {
     /** List of all registered subscribed state ids. */

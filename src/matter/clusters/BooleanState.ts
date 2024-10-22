@@ -1,6 +1,6 @@
-import { BooleanStateCluster } from '@project-chip/matter-node.js/cluster';
-import { NodeId } from '@project-chip/matter-node.js/datatype';
-import { Endpoint } from '@project-chip/matter-node.js/device';
+import { NodeId } from '@matter/main';
+import { BooleanStateCluster } from '@matter/main/clusters';
+import { Endpoint } from '@project-chip/matter.js/device';
 
 import { MatterAdapter } from '../../main';
 import Base from './Base';

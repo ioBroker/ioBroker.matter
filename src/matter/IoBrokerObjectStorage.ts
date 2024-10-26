@@ -1,25 +1,49 @@
 import { fromJson, MaybeAsyncStorage, StorageError, SupportedStorageTypes, toJson } from '@matter/main';
+import { StorageBackendDiskAsync } from '@matter/nodejs';
 
 /**
  * Class that implements the storage for one Node in the Matter ecosystem
  */
-export class IoBrokerNodeStorage implements MaybeAsyncStorage {
+export class IoBrokerObjectStorage implements MaybeAsyncStorage {
     #existingObjectIds = new Set<string>();
     readonly #storageRootOid: string;
+    readonly #nodeDataStorageDirectory?: string;
     initialized = false;
     readonly #adapter: ioBroker.Adapter;
     #namespace: string;
     #clear = false;
+    #localStorageManager?: StorageBackendDiskAsync;
+    #localStorageForPrefix?: string;
 
-    constructor(adapter: ioBroker.Adapter, namespace: string, clear = false) {
+    constructor(
+        adapter: ioBroker.Adapter,
+        namespace: string,
+        clear = false,
+        nodeDataStorageDirectory?: string,
+        localPrefix?: string,
+    ) {
         this.#adapter = adapter;
         this.#namespace = namespace;
         this.#clear = clear;
         this.#storageRootOid = `storage.${this.#namespace}`;
+        this.#nodeDataStorageDirectory = nodeDataStorageDirectory;
+        this.#localStorageForPrefix = localPrefix;
+    }
+
+    #isLocallyStored(contexts: string[]): boolean {
+        return (
+            this.#nodeDataStorageDirectory !== undefined &&
+            this.#localStorageForPrefix !== undefined &&
+            contexts[0].startsWith(this.#localStorageForPrefix)
+        );
     }
 
     async initialize(): Promise<void> {
         this.#adapter.log.debug(`[STORAGE] Initializing storage for ${this.#storageRootOid}`);
+
+        if (this.#nodeDataStorageDirectory !== undefined) {
+            this.#localStorageManager = new StorageBackendDiskAsync(this.#nodeDataStorageDirectory, this.#clear);
+        }
 
         await this.#adapter.extendObject(this.#storageRootOid, {
             type: 'folder',
@@ -53,6 +77,9 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
             this.#adapter.log.error(`[STORAGE] Cannot clear all state: ${error.message}`);
         }
         this.#existingObjectIds.clear();
+        if (this.#nodeDataStorageDirectory !== undefined && this.#localStorageManager !== undefined) {
+            await this.#localStorageManager.clear();
+        }
         this.#clear = false;
     }
 
@@ -67,6 +94,9 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
     async get<T extends SupportedStorageTypes>(contexts: string[], key: string): Promise<T | undefined> {
         if (!key.length) {
             throw new StorageError('[STORAGE] Context and key must not be empty strings!');
+        }
+        if (this.#isLocallyStored(contexts)) {
+            return this.#localStorageManager?.get<T>(contexts, key);
         }
         try {
             const valueState = await this.#adapter.getStateAsync(this.buildKey(contexts, key));
@@ -86,6 +116,11 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
     }
 
     async contexts(contexts: string[]): Promise<string[]> {
+        const result = new Array<string>();
+        if (this.#localStorageManager) {
+            result.push(...(await this.#localStorageManager.contexts(contexts)));
+        }
+
         const contextKeyStart = this.buildKey(contexts, '');
         const len = contextKeyStart.length;
 
@@ -98,20 +133,30 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
                     foundContexts.add(context);
                 }
             });
-        return Array.from(foundContexts.keys());
+        result.push(...Array.from(foundContexts.keys()));
+        return result;
     }
 
     async keys(contexts: string[]): Promise<string[]> {
+        const results = new Array<string>();
+        if (this.#localStorageManager) {
+            results.push(...(await this.#localStorageManager.keys(contexts)));
+        }
+
         const contextKeyStart = this.buildKey(contexts, '');
         const len = contextKeyStart.length;
 
-        return Array.from(this.#existingObjectIds.keys())
-            .filter(key => key.startsWith(contextKeyStart) && key.indexOf('$$', len) === -1)
-            .map(key => key.substring(len));
+        results.push(
+            ...Array.from(this.#existingObjectIds.keys())
+                .filter(key => key.startsWith(contextKeyStart) && key.indexOf('$$', len) === -1)
+                .map(key => key.substring(len)),
+        );
+        return results;
     }
 
     async values(contexts: string[]): Promise<Record<string, SupportedStorageTypes>> {
-        const values = {} as Record<string, SupportedStorageTypes>;
+        const values = this.#localStorageManager ? await this.#localStorageManager.values(contexts) : {};
+
         const keys = await this.keys(contexts);
         for (const key of keys) {
             values[key] = await this.get(contexts, key);
@@ -153,8 +198,13 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
         keyOrValue: string | Record<string, SupportedStorageTypes>,
         value?: SupportedStorageTypes,
     ): Promise<void> {
+        if (this.#isLocallyStored(contexts) && this.#localStorageManager) {
+            // @ts-expect-error we have multi type parameters here
+            return this.#localStorageManager.set(contexts, keyOrValue, value);
+        }
+
         if (typeof keyOrValue === 'string') {
-            await this.#setKey(contexts, keyOrValue, value);
+            return this.#setKey(contexts, keyOrValue, value);
         } else {
             for (const key in keyOrValue) {
                 await this.#setKey(contexts, key, keyOrValue[key]);
@@ -166,6 +216,10 @@ export class IoBrokerNodeStorage implements MaybeAsyncStorage {
         if (!key.length) {
             throw new StorageError('[STORAGE] Context and key must not be empty strings!');
         }
+        if (this.#isLocallyStored(contexts) && this.#localStorageManager) {
+            return this.#localStorageManager.delete(contexts, key);
+        }
+
         const oid = this.buildKey(contexts, key);
 
         try {

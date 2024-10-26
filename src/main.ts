@@ -3,7 +3,7 @@ import ChannelDetector, { DetectorState, PatternControl, Types } from '@iobroker
 import { Environment, LogLevel, Logger, StorageService } from '@matter/main';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
-import fs from 'node:fs';
+import fs from 'node:fs/promises';
 import type { MatterControllerConfig } from '../src-admin/src/types';
 import {
     BridgeDescription,
@@ -19,7 +19,7 @@ import BridgedDevice, { BridgeCreateOptions } from './matter/BridgedDevicesNode'
 import MatterController from './matter/ControllerNode';
 import MatterDevice, { DeviceCreateOptions } from './matter/DeviceNode';
 import { MessageResponse } from './matter/GeneralNode';
-import { IoBrokerNodeStorage } from './matter/IoBrokerNodeStorage';
+import { IoBrokerObjectStorage } from './matter/IoBrokerObjectStorage';
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
 
@@ -81,6 +81,7 @@ export class MatterAdapter extends utils.Adapter {
     sysLanguage: ioBroker.Languages = 'en';
     readonly #deviceManagement: MatterAdapterDeviceManagement;
     #nextPortNumber: number = 5541;
+    #instanceDataDir?: string;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -341,7 +342,14 @@ export class MatterAdapter extends utils.Adapter {
         });
 
         const storageService = this.#matterEnvironment.get(StorageService);
-        storageService.factory = (namespace: string) => new IoBrokerNodeStorage(this, namespace);
+        storageService.factory = (namespace: string) =>
+            new IoBrokerObjectStorage(
+                this,
+                namespace,
+                false,
+                namespace === 'controller' ? this.#instanceDataDir : undefined,
+                namespace === 'controller' ? 'node-' : undefined,
+            );
         storageService.location = `${this.namespace}.storage`; // For logging
 
         if (config.interface) {
@@ -350,6 +358,20 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async onReady(): Promise<void> {
+        const dataDir = utils.getAbsoluteInstanceDataDir(this);
+        try {
+            await fs.mkdir(dataDir);
+            this.#instanceDataDir = dataDir;
+        } catch (err) {
+            if (err.code === 'EEXIST') {
+                this.#instanceDataDir = dataDir;
+            } else {
+                this.log.info(
+                    `Can not create pairing data storage directory ${this.#instanceDataDir}. Pairing data can not be persisted!`,
+                );
+            }
+        }
+
         this.#_guiSubscribes = this.#_guiSubscribes || [];
         SubscribeManager.setAdapter(this);
         await this.prepareMatterEnvironment();
@@ -555,7 +577,7 @@ export class MatterAdapter extends utils.Adapter {
             return !!this.#license[key];
         }
         const subscriptions = response.data;
-        const cert = fs.readFileSync(`${__dirname}/../data/cloudCert.crt`);
+        const cert = await fs.readFile(`${__dirname}/../data/cloudCert.crt`, 'utf8');
         if (
             subscriptions.find((it: any) => {
                 try {
@@ -959,7 +981,7 @@ export class MatterAdapter extends utils.Adapter {
 
     async deleteBridgeOrDevice(type: 'bridge' | 'device', id: string, uuid: string): Promise<void> {
         await this.stopBridgeOrDevice(type, id);
-        const storage = new IoBrokerNodeStorage(this, uuid);
+        const storage = new IoBrokerObjectStorage(this, uuid);
         await storage.clearAll();
     }
 }

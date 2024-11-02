@@ -7,7 +7,7 @@ import { CommissioningController, NodeCommissioningOptions } from '@project-chip
 import { CommissioningControllerNodeOptions, PairedNode } from '@project-chip/matter.js/device';
 import type { MatterControllerConfig } from '../../src-admin/src/types';
 import type { MatterAdapter } from '../main';
-import { GeneralMatterNode } from './GeneralMatterNode';
+import { GeneralMatterNode, PairedNodeConfig } from './GeneralMatterNode';
 import { GeneralNode, MessageResponse } from './GeneralNode';
 
 export interface ControllerCreateOptions {
@@ -46,8 +46,12 @@ class Controller implements GeneralNode {
         this.#matterEnvironment = options.matterEnvironment;
     }
 
+    get nodes(): Map<string, GeneralMatterNode> {
+        return this.#nodes;
+    }
+
     async init(): Promise<void> {
-        await this.applyConfiguration(this.#parameters, true);
+        await this.applyConfiguration(this.#parameters);
         this.#commissioningController = new CommissioningController({
             autoConnect: false,
             environment: {
@@ -57,8 +61,13 @@ class Controller implements GeneralNode {
         });
     }
 
-    async applyConfiguration(config: MatterControllerConfig, isInitialization = false): Promise<MessageResponse> {
-        const currentConfig: MatterControllerConfig = isInitialization ? { enabled: true } : this.#parameters;
+    async applyConfiguration(config: MatterControllerConfig): Promise<MessageResponse> {
+        const currentConfig: MatterControllerConfig = {
+            enabled: true,
+            defaultExposeMatterApplicationClusterData: false,
+            defaultExposeMatterSystemClusterData: false,
+            ...(this.#parameters as Partial<MatterControllerConfig>),
+        };
 
         this.#useBle = false;
         if (config.ble !== currentConfig.ble || config.hciId !== currentConfig.hciId) {
@@ -80,6 +89,15 @@ class Controller implements GeneralNode {
         }
         this.#parameters = config;
         return { result: true };
+    }
+
+    async applyPairedNodeConfiguration(nodeId: string, config: PairedNodeConfig): Promise<void> {
+        const node = this.#nodes.get(nodeId);
+        if (node === undefined) {
+            this.#adapter.log.warn(`Node ${nodeId} not found`);
+            return;
+        }
+        return node.applyConfiguration(config);
     }
 
     async handleCommand(command: string, message: ioBroker.MessagePayload): Promise<MessageResponse> {
@@ -130,9 +148,13 @@ class Controller implements GeneralNode {
                     const pollingId = message.pollingId as number;
                     const status = this.#commissioningStatus.get(pollingId);
                     if (status === undefined) {
+                        this.#adapter.log.warn(`No commissioning process with pollingId ${pollingId} found`);
                         return { error: `No commissioning process with pollingId ${pollingId} found` };
                     }
                     const { status: statusText, result } = status;
+                    this.#adapter.log.debug(
+                        `Commissioning process with pollingId ${pollingId} is in status ${statusText}`,
+                    );
                     if (statusText === 'inprogress') {
                         return { result: { status: statusText } };
                     }
@@ -166,23 +188,26 @@ class Controller implements GeneralNode {
             this.#nodes.get(node.nodeId.toString())?.handleChangedAttribute(data);
         });
         node.events.eventTriggered.on(data => {
-            this.#nodes.get(node.nodeId.toString())?.handleChangedEvent(data);
+            this.#nodes.get(node.nodeId.toString())?.handleTriggeredEvent(data);
         });
         node.events.stateChanged.on(async info => {
+            const nodeDetails = (this.#commissioningController?.getCommissionedNodesDetails() ?? []).find(
+                n => n.nodeId === node.nodeId,
+            );
             const nodeIdStr = node.nodeId.toString();
             if (this.#connected[nodeIdStr] !== undefined) {
                 if (node.isConnected && !this.#connected[nodeIdStr]) {
                     this.#connected[nodeIdStr] = true;
                     // Rebuild node structure
-                    await this.nodeToIoBrokerStructure(node);
+                    await this.nodeToIoBrokerStructure(node, nodeDetails);
                 } else if (!node.isConnected && this.#connected[nodeIdStr]) {
                     this.#connected[nodeIdStr] = false;
                 }
             }
 
-            const device = this.#nodes.get(nodeIdStr);
-            if (device) {
-                await device.handleStateChange(info);
+            const deviceNode = this.#nodes.get(nodeIdStr);
+            if (deviceNode) {
+                await deviceNode.handleStateChange(info, nodeDetails);
             } else {
                 this.#adapter.log.info(`Matter node "${nodeIdStr}" not yet initialized ...`);
             }
@@ -238,20 +263,24 @@ class Controller implements GeneralNode {
         const nodes = this.#commissioningController.getCommissionedNodes();
         this.#adapter.log.info(`Found ${nodes.length} nodes: ${Logger.toJSON(nodes)}`);
 
+        const nodesDetails = this.#commissioningController.getCommissionedNodesDetails();
         // attach all nodes to the controller
         for (const nodeId of nodes) {
             try {
                 this.#adapter.log.info(`Connecting to node "${nodeId}" ...`);
                 const node = await this.#commissioningController.connectNode(nodeId, this.nodeConnectSettings);
                 this.#registerNodeHandlers(node);
-                await this.nodeToIoBrokerStructure(node);
+                await this.nodeToIoBrokerStructure(
+                    node,
+                    nodesDetails.find(n => n.nodeId === nodeId),
+                );
             } catch (error) {
                 this.#adapter.log.info(`Failed to connect to node "${nodeId}": ${error.stack}`);
             }
         }
     }
 
-    async nodeToIoBrokerStructure(node: PairedNode): Promise<void> {
+    async nodeToIoBrokerStructure(node: PairedNode, nodeDetails?: { operationalAddress?: string }): Promise<void> {
         if (!node.initialized) {
             await node.events.initialized; // eslint is wrong, can be awaited
         }
@@ -262,9 +291,9 @@ class Controller implements GeneralNode {
         const oldDevice = this.#nodes.get(nodeIdStr);
         await oldDevice?.destroy();
 
-        const device = new GeneralMatterNode(this.#adapter, node);
+        const device = new GeneralMatterNode(this.#adapter, node, this.#parameters);
         this.#nodes.set(nodeIdStr, device);
-        await device.initialize();
+        await device.initialize(nodeDetails);
     }
 
     async getState(): Promise<void> {
@@ -392,7 +421,10 @@ class Controller implements GeneralNode {
         }
 
         this.#registerNodeHandlers(node);
-        await this.nodeToIoBrokerStructure(node);
+        await this.nodeToIoBrokerStructure(
+            node,
+            this.#commissioningController.getCommissionedNodesDetails().find(n => n.nodeId === nodeId),
+        );
 
         this.#adapter.log.debug(`Commissioning successfully completed with nodeId "${nodeId}"`);
     }

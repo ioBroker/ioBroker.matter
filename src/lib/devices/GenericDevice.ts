@@ -48,6 +48,7 @@ import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject'
 // }
 
 export interface DeviceOptions extends BridgeDeviceDescription {
+    additionalStateData?: { [key: string]: Partial<DetectorState> };
     dimmerOnLevel?: number;
     dimmerUseLastLevelForOn?: boolean;
     actionAllowedByIdentify?: boolean;
@@ -56,6 +57,7 @@ export interface DeviceOptions extends BridgeDeviceDescription {
 export interface DetectedDevice {
     type: Types;
     states: DetectorState[];
+    isIoBrokerDevice: boolean;
 }
 
 export interface DeviceStateDescription {
@@ -65,6 +67,7 @@ export interface DeviceStateDescription {
     unit?: string;
     callback: (state: DeviceStateObject<any> | undefined) => void;
     accessType: StateAccessType;
+    unitConversionMap?: { [key: string]: (value: number, toDefaultUnit: boolean) => number };
 }
 
 export enum StateAccessType {
@@ -91,7 +94,8 @@ abstract class GenericDevice {
     #subscribeObjects: DeviceStateObject<any>[] = [];
     #deviceType: Types;
     #detectedDevice: DetectedDevice;
-    #handlers: ((event: { property: PropertyType; value: any; device: GenericDevice }) => void)[] = [];
+    #isIoBrokerDevice: boolean;
+    #handlers: ((event: { property: PropertyType; value: any; device: GenericDevice }) => Promise<void>)[] = [];
     protected _construction = new Array<Promise<void>>();
 
     #errorState?: DeviceStateObject<boolean>;
@@ -109,6 +113,7 @@ abstract class GenericDevice {
         this.#adapter = adapter;
         this.#deviceType = detectedDevice.type;
         this.#detectedDevice = detectedDevice;
+        this.#isIoBrokerDevice = detectedDevice.isIoBrokerDevice;
 
         this._construction.push(
             this.addDeviceStates([
@@ -176,7 +181,9 @@ abstract class GenericDevice {
     }
 
     async init(): Promise<void> {
-        await Promise.all(this._construction);
+        for (const promise of this._construction) {
+            await promise;
+        }
     }
 
     async addDeviceState<T>(
@@ -185,17 +192,40 @@ abstract class GenericDevice {
         callback: (state: DeviceStateObject<T> | undefined) => void,
         accessType: StateAccessType,
         valueType: ValueType,
+        unitConversionMap: { [key: string]: (value: number, toDefaultUnit: boolean) => number } = {},
     ): Promise<void> {
-        const state = this.getDeviceState(name);
+        let state = this.getDeviceState(name);
+        if (state) {
+            if (this.options?.additionalStateData?.[type]) {
+                Object.assign(state, this.options.additionalStateData[type]);
+            }
+            if (!state.id) {
+                state = undefined;
+            } else if (!this.#isIoBrokerDevice && state.id.endsWith('.')) {
+                // We need to extend the state ID with the name
+                state.id = state.id + name;
+            }
+        }
+
         if (state) {
             let object: DeviceStateObject<T>;
             try {
-                object = await DeviceStateObject.create(this.#adapter, state, type, valueType, () => this.enabled);
+                object = await DeviceStateObject.create(
+                    this.#adapter,
+                    {
+                        ...state,
+                        isIoBrokerState: this.#isIoBrokerDevice,
+                    },
+                    type,
+                    valueType,
+                    () => this.enabled,
+                    unitConversionMap,
+                );
             } catch (error) {
                 this.#adapter.log.error(`Cannot create state ${name}: ${error}`);
                 return;
             }
-            const data = object.getIoBrokerState();
+            const data = object.ioBrokerState;
             if (!this.#properties[type]) {
                 this.#properties[type] = { name, accessType, valueType };
                 if (accessType === StateAccessType.ReadWrite) {
@@ -242,19 +272,11 @@ abstract class GenericDevice {
                 this.#properties[type].accessType === StateAccessType.ReadWrite ||
                 this.#properties[type].accessType === StateAccessType.Read
             ) {
-                const stateId = object?.getIoBrokerState().id;
+                const stateId = object?.ioBrokerState.id;
                 // subscribe and read only if not already subscribed
                 if (stateId && !this.#subscribeObjects.find(obj => obj.state.id === stateId)) {
-                    if (this.#properties[type].accessType === StateAccessType.ReadWrite) {
-                        // subscribe only if read and write are the same, else we have already subscribed on read
-                        if (this.#properties[type].read === this.#properties[type].write) {
-                            await object.subscribe(this.updateState);
-                            this.#subscribeObjects.push(object);
-                        }
-                    } else {
-                        await object.subscribe(this.updateState);
-                        this.#subscribeObjects.push(object);
-                    }
+                    await object.subscribe(this.updateState);
+                    this.#subscribeObjects.push(object);
                 }
             }
             callback(object);
@@ -281,20 +303,27 @@ abstract class GenericDevice {
     }
 
     getDeviceState(name: string): DetectorState | undefined {
-        return this.#detectedDevice.states.find(state => state.name === name && state.id);
+        return this.#detectedDevice.states.find(state => state.name === name);
     }
 
     async addDeviceStates(states: DeviceStateDescription[]): Promise<void> {
         for (const state of states) {
             // we cannot give the whole object as it must be cast to T
-            await this.addDeviceState(state.name, state.type, state.callback, state.accessType, state.valueType);
+            await this.addDeviceState(
+                state.name,
+                state.type,
+                state.callback,
+                state.accessType,
+                state.valueType,
+                state.unitConversionMap,
+            );
         }
     }
 
     getPropertyValue(property: PropertyType): boolean | number | string | null | undefined {
         if (this.#properties[property] === undefined) {
             throw new Error(`Property ${property} not found`);
-        } else if (this.#properties[property].accessType === StateAccessType.Write) {
+        } else if (this.#isIoBrokerDevice && this.#properties[property].accessType === StateAccessType.Write) {
             throw new Error(`Property ${property} is write only`);
         }
         const method: string = `get${property[0].toUpperCase()}${property.substring(1)}`;
@@ -302,7 +331,7 @@ abstract class GenericDevice {
             // @ts-expect-error How to fix it?
             return this[method]();
         }
-        throw new Error(`Method _getPropertyValue for ${property} is not implemented in ${this.constructor.name}`);
+        throw new Error(`Method ${method} for ${property} is not implemented in ${this.constructor.name}`);
     }
 
     async setPropertyValue(property: PropertyType, value: boolean | number | string): Promise<void> {
@@ -317,7 +346,24 @@ abstract class GenericDevice {
             await this[method](value);
         } else {
             throw new Error(
-                `Method _setPropertyValue for ${property} and ${value} is not implemented in ${this.constructor.name}`,
+                `Method ${method} for ${property} and ${value} is not implemented in ${this.constructor.name}`,
+            );
+        }
+    }
+
+    async updatePropertyValue(property: PropertyType, value: boolean | number | string): Promise<void> {
+        if (this.#properties[property] === undefined) {
+            throw new Error(`Property ${property} not found`);
+        } else if (this.#isIoBrokerDevice) {
+            throw new Error(`Updating ${property} only allowed for Matter devices`);
+        }
+        const method = `update${property[0].toUpperCase()}${property.substring(1)}`;
+        if (method in this) {
+            // @ts-expect-error How to fix it?
+            await this[method](value);
+        } else {
+            throw new Error(
+                `Method ${method} for ${property} and ${value} is not implemented in ${this.constructor.name}`,
             );
         }
     }
@@ -326,28 +372,30 @@ abstract class GenericDevice {
         return this.#deviceType;
     }
 
-    protected updateState = <T>(object: DeviceStateObject<T>): void => {
+    protected updateState = async <T>(object: DeviceStateObject<T>): Promise<void> => {
         if (!this.enabled && object.propertyType !== PropertyType.Unreachable) {
             // When disabled, only report unreachable ioBroker changes to Matter
             return;
         }
-        this.#handlers.forEach(handler =>
-            handler({
+        if (!this.#isIoBrokerDevice && this.#properties[object.propertyType].accessType === StateAccessType.Read) {
+            this.#adapter.log.info(`updateState not allowed for type ${object.propertyType} and value ${object.value}`);
+            return;
+        }
+        for (const handler of this.#handlers) {
+            await handler({
                 property: object.propertyType,
                 value: object.value,
                 device: this,
-            }),
-        );
+            });
+        }
     };
 
-    protected async _doUnsubscribe(): Promise<void> {
-        for (let i = 0; i < this.#subscribeObjects.length; i++) {
-            await this.#subscribeObjects[i].unsubscribe();
-        }
-    }
-
     async destroy(): Promise<void> {
-        await this._doUnsubscribe();
+        for (const object of this.#subscribeObjects) {
+            await object.unsubscribe();
+        }
+        this.#subscribeObjects.length = 0;
+        this.offChange();
     }
 
     getProperties(): { [key: string]: any } {
@@ -358,7 +406,7 @@ abstract class GenericDevice {
         return this.#possibleProperties;
     }
 
-    getPropertyNames(): PropertyType[] {
+    get propertyNames(): PropertyType[] {
         const properties: PropertyType[] = [];
         const keys = Object.keys(this.#properties);
         for (let i = 0; i < keys.length; i++) {
@@ -390,6 +438,13 @@ abstract class GenericDevice {
         return this.#maintenanceState.value;
     }
 
+    updateMaintenance(value: boolean): Promise<void> {
+        if (!this.#maintenanceState) {
+            throw new Error('Maintenance state not found');
+        }
+        return this.#maintenanceState.updateValue(value);
+    }
+
     getUnreachable(): boolean | number | undefined {
         if (!this.#unreachState) {
             throw new Error('Unreachable state not found');
@@ -400,11 +455,25 @@ abstract class GenericDevice {
         return this.#unreachState.value;
     }
 
+    updateUnreachable(value: boolean): Promise<void> {
+        if (!this.#unreachState) {
+            throw new Error('Unreachable state not found');
+        }
+        return this.#unreachState.updateValue(value);
+    }
+
     getLowBattery(): boolean | number | undefined {
         if (!this.#lowbatState) {
             throw new Error('Low battery state not found');
         }
         return this.#lowbatState.value;
+    }
+
+    updateLowBattery(value: boolean): Promise<void> {
+        if (!this.#lowbatState) {
+            throw new Error('Low battery state not found');
+        }
+        return this.#lowbatState.updateValue(value);
     }
 
     getWorking(): string | undefined {
@@ -414,6 +483,13 @@ abstract class GenericDevice {
         return this.#workingState.value;
     }
 
+    updateWorking(value: string): Promise<void> {
+        if (!this.#workingState) {
+            throw new Error('Working state not found');
+        }
+        return this.#workingState.updateValue(value);
+    }
+
     getDirection(): string | undefined {
         if (!this.#directionState) {
             throw new Error('Direction state not found');
@@ -421,11 +497,18 @@ abstract class GenericDevice {
         return this.#directionState.value;
     }
 
-    onChange<T>(handler: (event: { property: PropertyType; value: T }) => void): void {
+    updateDirection(value: string): Promise<void> {
+        if (!this.#directionState) {
+            throw new Error('Direction state not found');
+        }
+        return this.#directionState.updateValue(value);
+    }
+
+    onChange<T>(handler: (event: { property: PropertyType; value: T }) => Promise<void>): void {
         this.#handlers.push(handler);
     }
 
-    offChange<T>(handler: (event: { property: PropertyType; value: T }) => void): void {
+    offChange<T>(handler?: (event: { property: PropertyType; value: T }) => Promise<void>): void {
         if (!handler) {
             this.#handlers = [];
         } else {
@@ -443,6 +526,7 @@ abstract class GenericDevice {
     }
 
     applyConfiguration(options?: DeviceOptions): void {
+        if (!this.#isIoBrokerDevice) return;
         this.#adapter.log.debug(
             `Applying configuration to device ${this.constructor.name}: ${JSON.stringify(options)}`,
         );

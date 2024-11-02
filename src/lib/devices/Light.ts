@@ -16,7 +16,7 @@ class Light extends ElectricityDataDevice {
                     name: 'ON_ACTUAL',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.Read,
-                    type: PropertyType.Power,
+                    type: PropertyType.PowerActual,
                     callback: state => (this.#getPowerState = state),
                 },
                 {
@@ -35,6 +35,32 @@ class Light extends ElectricityDataDevice {
             throw new Error('Level state not found');
         }
         return (this.#getPowerState || this.#setPowerState)?.value;
+    }
+
+    async updatePower(value: boolean): Promise<void> {
+        if (!this.#getPowerState && !this.#setPowerState) {
+            throw new Error('Level state not found');
+        }
+        if (this.#getPowerState) {
+            await this.#getPowerState.setValue(value);
+        }
+        if (this.#setPowerState) {
+            await this.#setPowerState.setValue(value);
+        }
+    }
+
+    getPowerActual(): boolean | undefined {
+        if (!this.#getPowerState) {
+            throw new Error('Level state not found');
+        }
+        return this.#getPowerState.value;
+    }
+
+    async updatePowerActual(value: boolean): Promise<void> {
+        if (!this.#getPowerState) {
+            throw new Error('Level state not found');
+        }
+        await this.#getPowerState.setValue(value);
     }
 
     async setPower(value: boolean): Promise<void> {

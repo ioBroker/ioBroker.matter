@@ -3,12 +3,12 @@ import { OnOffPlugInUnitDevice } from '@matter/main/devices';
 import { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import Socket from '../../lib/devices/Socket';
-import { IdentifyOptions } from './MappingGenericDevice';
-import { MappingGenericElectricityDataDevice } from './MappingGenericElectricityDataDevice';
+import { IdentifyOptions } from './GenericDeviceToMatter';
+import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
 import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 
 /** Mapping Logic to map a ioBroker Socket device to a Matter OnOffPlugInUnitDevice. */
-export class MappingSocket extends MappingGenericElectricityDataDevice {
+export class SocketToMatter extends GenericElectricityDataDeviceToMatter {
     readonly #ioBrokerDevice: Socket;
     readonly #matterEndpoint: Endpoint<OnOffPlugInUnitDevice>;
 
@@ -34,7 +34,7 @@ export class MappingSocket extends MappingGenericElectricityDataDevice {
         return [this.#matterEndpoint];
     }
 
-    getIoBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): GenericDevice {
         return this.#ioBrokerDevice;
     }
 

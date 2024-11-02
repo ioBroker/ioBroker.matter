@@ -8,7 +8,7 @@ import { ElectricalEnergyMeasurement, ElectricalPowerMeasurement, PowerTopology 
 import { MeasurementType } from '@matter/main/types';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import ElectricityDataDevice from '../../lib/devices/ElectricityDataDevice';
-import { MappingGenericDevice } from './MappingGenericDevice';
+import { GenericDeviceToMatter } from './GenericDeviceToMatter';
 
 type EnergyValues = { energy: number };
 
@@ -32,35 +32,40 @@ const fakedAccuracyDetails = {
     ],
 };
 
-export abstract class MappingGenericElectricityDataDevice extends MappingGenericDevice {
+export abstract class GenericElectricityDataDeviceToMatter extends GenericDeviceToMatter {
     #powerClusterAdded = false;
     #energyClusterAdded = false;
 
     protected addElectricityDataClusters(endpoint: Endpoint<any>, ioBrokerDevice: ElectricityDataDevice): void {
         const measuredAccuracies = [];
-        if (ioBrokerDevice.getPropertyNames().includes(PropertyType.ElectricPower)) {
+        const initialValues: any = {};
+        if (ioBrokerDevice.propertyNames.includes(PropertyType.ElectricPower)) {
             measuredAccuracies.push({
                 measurementType: MeasurementType.ActivePower,
                 ...fakedAccuracyDetails,
             });
+            initialValues.activePower = null;
         }
-        if (ioBrokerDevice.getPropertyNames().includes(PropertyType.Current)) {
+        if (ioBrokerDevice.propertyNames.includes(PropertyType.Current)) {
             measuredAccuracies.push({
                 measurementType: MeasurementType.ActiveCurrent,
                 ...fakedAccuracyDetails,
             });
+            initialValues.activeCurrent = null;
         }
-        if (ioBrokerDevice.getPropertyNames().includes(PropertyType.Voltage)) {
+        if (ioBrokerDevice.propertyNames.includes(PropertyType.Voltage)) {
             measuredAccuracies.push({
                 measurementType: MeasurementType.Voltage,
                 ...fakedAccuracyDetails,
             });
+            initialValues.voltage = null;
         }
-        if (ioBrokerDevice.getPropertyNames().includes(PropertyType.Frequency)) {
+        if (ioBrokerDevice.propertyNames.includes(PropertyType.Frequency)) {
             measuredAccuracies.push({
                 measurementType: MeasurementType.Frequency,
                 ...fakedAccuracyDetails,
             });
+            initialValues.frequency = null;
         }
 
         if (measuredAccuracies.length) {
@@ -68,6 +73,7 @@ export abstract class MappingGenericElectricityDataDevice extends MappingGeneric
             endpoint.behaviors.require(
                 ElectricalPowerMeasurementServer.with(ElectricalPowerMeasurement.Feature.AlternatingCurrent),
                 {
+                    ...initialValues,
                     powerMode: ElectricalPowerMeasurement.PowerMode.Ac,
                     numberOfMeasurementTypes: measuredAccuracies.length,
                     accuracy: measuredAccuracies,
@@ -76,7 +82,7 @@ export abstract class MappingGenericElectricityDataDevice extends MappingGeneric
             this.#powerClusterAdded = true;
         }
 
-        if (ioBrokerDevice.getPropertyNames().includes(PropertyType.Consumption)) {
+        if (ioBrokerDevice.propertyNames.includes(PropertyType.Consumption)) {
             // Adds the ElectricalEnergyMeasurement cluster to the endpoint
             endpoint.behaviors.require(
                 ElectricalEnergyMeasurementServer.with(

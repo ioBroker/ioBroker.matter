@@ -2,11 +2,11 @@ import { Endpoint } from '@matter/main';
 import { HumiditySensorDevice } from '@matter/main/devices';
 import { GenericDevice, Humidity } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import { IdentifyOptions, MappingGenericDevice } from './MappingGenericDevice';
+import { GenericDeviceToMatter, IdentifyOptions } from './GenericDeviceToMatter';
 import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 
 /** Mapping Logic to map a ioBroker Humidity device to a Matter HumiditySensorDevice. */
-export class MappingHumidity extends MappingGenericDevice {
+export class HumidityToMatter extends GenericDeviceToMatter {
     readonly #ioBrokerDevice: Humidity;
     readonly #matterEndpoint: Endpoint<HumiditySensorDevice>;
 
@@ -23,7 +23,7 @@ export class MappingHumidity extends MappingGenericDevice {
         return [this.#matterEndpoint];
     }
 
-    getIoBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): GenericDevice {
         return this.#ioBrokerDevice;
     }
 
@@ -48,7 +48,7 @@ export class MappingHumidity extends MappingGenericDevice {
             }
         });
 
-        const value = this.#ioBrokerDevice.getValue();
+        const value = this.#ioBrokerDevice.getHumidity();
         // init current state from ioBroker side
         await this.#matterEndpoint.set({
             relativeHumidityMeasurement: {

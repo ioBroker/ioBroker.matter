@@ -1,11 +1,11 @@
 import { Types } from '@iobroker/type-detector';
 import { GenericDevice } from '../../lib';
-import { MappingDimmer } from './MappingDimmer';
-import { MappingGenericDevice } from './MappingGenericDevice';
-import { MappingHumidity } from './MappingHumidity';
-import { MappingLight } from './MappingLight';
-import { MappingSocket } from './MappingSocket';
-import { MappingTemperature } from './MappingTemperature';
+import { DimmerToMatter } from './DimmerToMatter';
+import { GenericDeviceToMatter } from './GenericDeviceToMatter';
+import { HumidityToMatter } from './HumidityToMatter';
+import { LightToMatter } from './LightToMatter';
+import { SocketToMatter } from './SocketToMatter';
+import { TemperatureToMatter } from './TemperatureToMatter';
 
 /**
  * Factory function to create a Matter device from an ioBroker device.
@@ -14,20 +14,20 @@ async function matterDeviceFabric(
     ioBrokerDevice: GenericDevice,
     name: string,
     uuid: string,
-): Promise<MappingGenericDevice | null> {
+): Promise<GenericDeviceToMatter | null> {
     const ioBrokerDeviceType = ioBrokerDevice.deviceType;
 
     switch (ioBrokerDeviceType) {
         case Types.light:
-            return new MappingLight(ioBrokerDevice, name, uuid);
+            return new LightToMatter(ioBrokerDevice, name, uuid);
         case Types.socket:
-            return new MappingSocket(ioBrokerDevice, name, uuid);
+            return new SocketToMatter(ioBrokerDevice, name, uuid);
         case Types.dimmer:
-            return new MappingDimmer(ioBrokerDevice, name, uuid);
+            return new DimmerToMatter(ioBrokerDevice, name, uuid);
         case Types.temperature:
-            return new MappingTemperature(ioBrokerDevice, name, uuid);
+            return new TemperatureToMatter(ioBrokerDevice, name, uuid);
         case Types.humidity:
-            return new MappingHumidity(ioBrokerDevice, name, uuid);
+            return new HumidityToMatter(ioBrokerDevice, name, uuid);
     }
 
     return null;

@@ -1,21 +1,21 @@
 import { Endpoint } from '@matter/main';
-import { OnOffLightDevice } from '@matter/main/devices';
+import { DimmableLightDevice } from '@matter/main/devices';
 import { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import Light from '../../lib/devices/Light';
-import { IdentifyOptions } from './MappingGenericDevice';
-import { MappingGenericElectricityDataDevice } from './MappingGenericElectricityDataDevice';
+import Dimmer from '../../lib/devices/Dimmer';
+import { IdentifyOptions } from './GenericDeviceToMatter';
+import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
 import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 
-/** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
-export class MappingLight extends MappingGenericElectricityDataDevice {
-    readonly #ioBrokerDevice: Light;
-    readonly #matterEndpoint: Endpoint<OnOffLightDevice>;
+/** Mapping Logic to map a ioBroker Dimmer device to a Matter DimmableLightDevice. */
+export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
+    readonly #ioBrokerDevice: Dimmer;
+    readonly #matterEndpoint: Endpoint<DimmableLightDevice>;
 
     constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
         super(name, uuid);
-        this.#matterEndpoint = new Endpoint(OnOffLightDevice, { id: uuid });
-        this.#ioBrokerDevice = ioBrokerDevice as Light;
+        this.#matterEndpoint = new Endpoint(DimmableLightDevice, { id: uuid });
+        this.#ioBrokerDevice = ioBrokerDevice as Dimmer;
         this.addElectricityDataClusters(this.#matterEndpoint, this.#ioBrokerDevice);
     }
 
@@ -34,7 +34,7 @@ export class MappingLight extends MappingGenericElectricityDataDevice {
         return [this.#matterEndpoint];
     }
 
-    getIoBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): GenericDevice {
         return this.#ioBrokerDevice;
     }
 
@@ -47,11 +47,18 @@ export class MappingLight extends MappingGenericElectricityDataDevice {
                 await this.#ioBrokerDevice.setPower(on);
             }
         });
+        // here we can react on changes from the matter side for the current lamp level
+        this.#matterEndpoint.events.levelControl.currentLevel$Changed.on(async (level: number | null) => {
+            const currentValue = this.#ioBrokerDevice.getLevel();
+            if (level !== currentValue && level !== null) {
+                await this.#ioBrokerDevice.setLevel(level);
+            }
+        });
 
         let isIdentifying = false;
         const identifyOptions: IdentifyOptions = {};
         this.#matterEndpoint.events.identify.identifyTime$Changed.on(async value => {
-            // identifyTime is set when an identify command is called and then decreased every second while identify logic runs.
+            // identifyTime is set when an identify command is called and then decreased every second while indentify logic runs.
             if (value > 0 && !isIdentifying) {
                 isIdentifying = true;
                 const identifyInitialState = !!this.#ioBrokerDevice.getPower();
@@ -79,6 +86,13 @@ export class MappingLight extends MappingGenericElectricityDataDevice {
                         },
                     });
                     break;
+                case PropertyType.Dimmer:
+                    await this.#matterEndpoint.set({
+                        levelControl: {
+                            currentLevel: event.value as number,
+                        },
+                    });
+                    break;
             }
         });
 
@@ -86,6 +100,9 @@ export class MappingLight extends MappingGenericElectricityDataDevice {
         await this.#matterEndpoint.set({
             onOff: {
                 onOff: !!this.#ioBrokerDevice.getPower(),
+            },
+            levelControl: {
+                currentLevel: this.#ioBrokerDevice.getLevel() || 0,
             },
         });
 

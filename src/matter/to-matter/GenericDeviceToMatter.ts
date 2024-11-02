@@ -7,7 +7,7 @@ export interface IdentifyOptions {
 }
 
 /** Base class to map an ioBroker device to a matter device. */
-export abstract class MappingGenericDevice {
+export abstract class GenericDeviceToMatter {
     #identifyTimeout?: NodeJS.Timeout;
     #identifyHighlightState = false;
     #name: string;
@@ -28,11 +28,11 @@ export abstract class MappingGenericDevice {
             this.#identifyTimeout = undefined;
             const highlightState = !this.#identifyHighlightState;
             if (highlightState) {
-                if (this.getIoBrokerDevice().isActionAllowedByIdentify()) {
+                if (this.ioBrokerDevice.isActionAllowedByIdentify()) {
                     await this.doIdentify(identifyOptions);
                 }
             } else {
-                if (this.getIoBrokerDevice().isActionAllowedByIdentify()) {
+                if (this.ioBrokerDevice.isActionAllowedByIdentify()) {
                     await this.resetIdentify(identifyOptions);
                 }
             }
@@ -47,7 +47,7 @@ export abstract class MappingGenericDevice {
         clearTimeout(this.#identifyTimeout);
         this.#identifyTimeout = undefined;
         // set to initial state
-        if (this.getIoBrokerDevice().isActionAllowedByIdentify()) {
+        if (this.ioBrokerDevice.isActionAllowedByIdentify()) {
             await this.resetIdentify(identifyOptions);
         }
     }
@@ -67,7 +67,7 @@ export abstract class MappingGenericDevice {
     abstract getMatterEndpoints(): Endpoint[];
 
     /** Return the ioBroker device this mapping is for. */
-    abstract getIoBrokerDevice(): GenericDevice;
+    abstract ioBrokerDevice: GenericDevice;
 
     get name(): string {
         return this.#name;

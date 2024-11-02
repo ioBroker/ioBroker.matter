@@ -180,12 +180,14 @@ class Adapter {
 
     async getForeignObjectAsync(id) {
         const entry = detectedDevices.states.find(state => state.id === id);
+        console.log('Get object', id, entry);
         if (entry && (entry.type === 'boolean' || entry.type === 'string')) {
             return {
                 _id: id,
                 common: {
                     type: entry.type,
                 },
+                type: 'state',
             };
         }
         return {
@@ -196,6 +198,7 @@ class Adapter {
                 unit: '°C',
                 type: 'number',
             },
+            type: 'state',
         };
     }
 
@@ -239,6 +242,10 @@ class Adapter {
     getSubscribed() {
         return this.subscribed;
     }
+
+    extendObject() {
+        // Nothing to do
+    }
 }
 
 describe('Test Devices', function () {
@@ -260,6 +267,7 @@ describe('Test Devices', function () {
             SubscribeManager.default.setAdapter(adapter);
             adapter.setSubscribeManager(SubscribeManager.default);
             detectedDevices.type = type;
+            detectedDevices.isIoBrokerDevice = true;
 
             const deviceObj = new Device.default(detectedDevices, adapter, { enabled: true });
             await deviceObj.init();
@@ -416,6 +424,7 @@ describe('Test Devices', function () {
         const _detectedDevices = {
             states: [{ name: 'SET', id: '0_userdata.0.set' }],
             type: 'slider',
+            isIoBrokerDevice: true,
         };
 
         const deviceObj = new Device.default(_detectedDevices, adapter, { enabled: true });
@@ -453,6 +462,7 @@ describe('Test Devices', function () {
                 { name: 'ACTUAL', id: '0_userdata.0.actual' },
             ],
             type: 'slider',
+            isIoBrokerDevice: true,
         };
 
         const deviceObj = new Device.default(_detectedDevices, adapter, { enabled: true });

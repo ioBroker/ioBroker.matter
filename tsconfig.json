@@ -31,7 +31,7 @@
     // "noUnusedParameters": true,
 
     // Consider targeting es2019 or higher if you only support Node.js 12+
-    "target": "es2019",
+    "target": "es2022",
 
     "sourceMap": true,
     "inlineSourceMap": false,

@@ -49,7 +49,7 @@ export abstract class BaseServerNode implements GeneralNode {
 
     /** Factory reset the device. */
     async factoryReset(): Promise<void> {
-        await this.serverNode?.factoryReset();
+        await this.serverNode?.erase();
     }
 
     /** Returns the state of the Node for the UI. */
@@ -101,13 +101,15 @@ export abstract class BaseServerNode implements GeneralNode {
             });
 
             if (connectionInfo.find(info => info.connected)) {
-                console.log(`${this.type} ${this.uuid} is already commissioned and connected with controller`);
+                this.adapter.log.debug(
+                    `${this.type} ${this.uuid} is already commissioned and connected with controller`,
+                );
                 return {
                     status: NodeStates.ConnectedWithController,
                     connectionInfo,
                 };
             } else {
-                console.log(
+                this.adapter.log.debug(
                     `${this.type} ${this.uuid} is already commissioned. Waiting for controllers to connect ...`,
                 );
                 return {

@@ -180,7 +180,6 @@ class Adapter {
 
     async getForeignObjectAsync(id) {
         const entry = detectedDevices.states.find(state => state.id === id);
-        console.log('Get object', id, entry);
         if (entry && (entry.type === 'boolean' || entry.type === 'string')) {
             return {
                 _id: id,

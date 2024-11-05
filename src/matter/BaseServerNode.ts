@@ -67,6 +67,7 @@ export abstract class BaseServerNode implements GeneralNode {
                 await this.adapter.setState(`${this.type}.${this.uuid}.commissioned`, this.commissioned, true);
             }
             const { qrPairingCode, manualPairingCode } = this.serverNode.state.commissioning.pairingCodes;
+
             return {
                 status: NodeStates.WaitingForCommissioning,
                 qrPairingCode: qrPairingCode,

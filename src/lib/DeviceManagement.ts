@@ -84,6 +84,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         return arrDevices;
     }
 
+    /**
+     * Create the "Node" device entry and also add all Endpoint-"Devices" for Device-Manager
+     */
     #getNodeEntry(ioNode: GeneralMatterNode): DeviceInfo[] {
         const status: DeviceStatus = ioNode.node.isConnected ? 'connected' : 'disconnected';
 
@@ -126,6 +129,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         return res;
     }
 
+    /**
+     * Create one Endpoint-"Device" for Device-Manager
+     */
     #getNodeDeviceEntries(device: GenericDeviceToIoBroker, status: DeviceStatus): DeviceInfo {
         return {
             id: device.baseId,

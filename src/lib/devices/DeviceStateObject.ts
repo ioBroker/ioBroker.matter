@@ -134,6 +134,7 @@ interface StateDefinition extends DetectorState {
     isIoBrokerState: boolean;
 }
 
+/** Convert a StateType into an ioBroker common type value */
 function asCommonType(type: StateType | undefined): ioBroker.CommonType {
     if (type === 'number' || type === 'string' || type === 'boolean') {
         return type;

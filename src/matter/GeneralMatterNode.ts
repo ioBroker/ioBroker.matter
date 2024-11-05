@@ -1,4 +1,4 @@
-import { capitalize, ClusterId, Logger, serialize } from '@matter/main';
+import { capitalize, ClusterId, Logger, NodeId, serialize } from '@matter/main';
 import { BasicInformationCluster } from '@matter/main/clusters';
 import { AttributeModel, ClusterModel, CommandModel, DeviceTypeModel, MatterModel } from '@matter/main/model';
 import {
@@ -10,9 +10,18 @@ import {
 } from '@matter/main/protocol';
 import { GlobalAttributes } from '@matter/main/types';
 import { Endpoint, NodeStates, PairedNode } from '@project-chip/matter.js/device';
+import type { MatterControllerConfig } from '../../src-admin/src/types';
 import { SubscribeManager } from '../lib';
 import { SubscribeCallback } from '../lib/SubscribeManager';
 import type { MatterAdapter } from '../main';
+import { GenericDeviceToIoBroker } from './to-iobroker/GenericDeviceToIoBroker';
+import ioBrokerDeviceFabric from './to-iobroker/ioBrokerFactory';
+
+export type PairedNodeConfig = {
+    nodeId: NodeId;
+    exposeMatterApplicationClusterData: boolean;
+    exposeMatterSystemClusterData: boolean;
+};
 
 const SystemClusters: ClusterId[] = [
     ClusterId(0x0004), // Groups
@@ -34,6 +43,8 @@ const SystemClusters: ClusterId[] = [
     ClusterId(0x0037), // Ethernet Network Diagnostics
     ClusterId(0x0038), // Time Synchronization
     ClusterId(0x0039), // Bridged Device Basic Information
+    ClusterId(0x0040), // Fixed Label
+    ClusterId(0x0041), // User Label
     ClusterId(0x003c), // Administrator Commissioning
     ClusterId(0x003e), // Node Operational Credentials
     ClusterId(0x003f), // Group Key Management
@@ -46,32 +57,72 @@ function toHex(value: number, minimumLength = 4): string {
 }
 
 export class GeneralMatterNode {
-    nodeId: string;
-    nodeBaseId: string;
-    connectionStateId: string;
-    connectionStatusId: string;
-    endpointMap = new Map<number, { baseId: string; endpoint: Endpoint }>();
-    attributeTypeMap = new Map<string, ioBroker.CommonType>();
-    eventMap = new Set<string>();
-    subscriptions = new Map<string, SubscribeCallback>();
+    readonly nodeId: string;
+    readonly nodeBaseId: string;
+    readonly connectionStateId: string;
+    readonly connectionStatusId: string;
+    readonly connectedAddressStateId: string;
+    exposeMatterApplicationClusterData: boolean;
+    exposeMatterSystemClusterData: boolean;
+    #endpointMap = new Map<number, { baseId: string; endpoint: Endpoint }>();
+    #deviceMap = new Map<number, GenericDeviceToIoBroker>();
+    #attributeTypeMap = new Map<string, ioBroker.CommonType>();
+    #eventMap = new Set<string>();
+    #subscriptions = new Map<string, SubscribeCallback>();
 
     constructor(
         protected readonly adapter: MatterAdapter,
         readonly node: PairedNode,
+        controllerConfig: MatterControllerConfig,
     ) {
         this.nodeId = node.nodeId.toString();
         this.nodeBaseId = `controller.${this.nodeId}`;
         this.connectionStateId = `${this.nodeBaseId}.info.connection`;
         this.connectionStatusId = `${this.nodeBaseId}.info.status`;
+        this.connectedAddressStateId = `${this.nodeBaseId}.info.connectedAddress`;
+        this.exposeMatterApplicationClusterData = controllerConfig.defaultExposeMatterApplicationClusterData ?? false;
+        this.exposeMatterSystemClusterData = controllerConfig.defaultExposeMatterSystemClusterData ?? false;
     }
 
-    async initialize(): Promise<void> {
+    async clear(): Promise<void> {
+        // Clear out all things from before
+        for (const [id, handler] of this.#subscriptions) {
+            await SubscribeManager.unsubscribe(`${this.adapter.namespace}.${id}`, handler);
+        }
+        this.#subscriptions.clear();
+
+        for (const device of this.#deviceMap.values()) {
+            await device.destroy();
+        }
+        this.#deviceMap.clear();
+
+        this.#endpointMap.clear();
+        this.#attributeTypeMap.clear();
+        this.#eventMap.clear();
+    }
+
+    get devices(): Map<number, GenericDeviceToIoBroker> {
+        return this.#deviceMap;
+    }
+
+    async initialize(nodeDetails?: { operationalAddress?: string }): Promise<void> {
+        await this.clear();
+
         const rootEndpoint = this.node.getRootEndpoint();
         if (rootEndpoint === undefined) {
             this.adapter.log.warn(`Node "${this.node.nodeId}" has not yet been initialized! Should not not happen`);
             return;
         }
 
+        const existingObject = await this.adapter.getObjectAsync(this.nodeBaseId);
+        if (existingObject) {
+            if (existingObject.native?.exposeMatterApplicationClusterData !== undefined) {
+                this.exposeMatterApplicationClusterData = existingObject.native.exposeMatterApplicationClusterData;
+            }
+            if (existingObject.native?.exposeMatterSystemClusterData !== undefined) {
+                this.exposeMatterSystemClusterData = existingObject.native.exposeMatterSystemClusterData;
+            }
+        }
         // create device
         const deviceObj: ioBroker.Object = {
             _id: this.nodeBaseId,
@@ -79,17 +130,23 @@ export class GeneralMatterNode {
             common: {
                 name: this.nodeId,
                 statusStates: {
-                    onlineId: this.connectionStateId,
+                    onlineId: `${this.adapter.namespace}.${this.connectionStateId}`,
                 },
             },
             native: {
                 nodeId: this.nodeId,
+                exposeMatterApplicationClusterData: this.exposeMatterApplicationClusterData,
+                exposeMatterSystemClusterData: this.exposeMatterSystemClusterData,
             },
         };
 
         const info = this.node.getRootClusterClient(BasicInformationCluster);
         if (info !== undefined) {
-            deviceObj.common.name = await info.getProductNameAttribute();
+            if (existingObject && existingObject.common.name) {
+                deviceObj.common.name = existingObject.common.name;
+            } else {
+                deviceObj.common.name = await info.getProductNameAttribute();
+            }
             deviceObj.native.vendorId = toHex(await info.getVendorIdAttribute());
             deviceObj.native.vendorName = await info.getVendorNameAttribute();
             deviceObj.native.productId = toHex(await info.getProductIdAttribute());
@@ -142,90 +199,201 @@ export class GeneralMatterNode {
             native: {},
         });
 
+        await this.adapter.setObjectNotExists(this.connectedAddressStateId, {
+            type: 'state',
+            common: {
+                name: 'Connected Address',
+                role: 'info.ip',
+                type: 'string',
+                read: true,
+                write: false,
+            },
+            native: {},
+        });
+
         await this.adapter.setState(this.connectionStateId, this.node.isConnected, true);
         await this.adapter.setState(this.connectionStatusId, this.node.state, true);
+        await this.adapter.setState(
+            this.connectedAddressStateId,
+            nodeDetails?.operationalAddress?.substring(6) ?? null,
+            true,
+        );
 
         await this.#processRootEndpointStructure(rootEndpoint);
     }
 
+    async applyConfiguration(config: PairedNodeConfig): Promise<void> {
+        if (
+            config.exposeMatterApplicationClusterData === this.exposeMatterApplicationClusterData &&
+            config.exposeMatterSystemClusterData === this.exposeMatterSystemClusterData
+        ) {
+            return;
+        }
+        this.exposeMatterApplicationClusterData = config.exposeMatterApplicationClusterData;
+        this.exposeMatterSystemClusterData = config.exposeMatterSystemClusterData;
+
+        const rootEndpoint = this.node.getRootEndpoint();
+        if (rootEndpoint === undefined) {
+            this.adapter.log.warn(`Node "${this.node.nodeId}" has not yet been initialized! Should not not happen`);
+            return;
+        }
+
+        await this.clear();
+        return this.#processRootEndpointStructure(rootEndpoint);
+    }
+
     // On Root level we create devices for all endpoints because these are devices
     async #processRootEndpointStructure(rootEndpoint: Endpoint): Promise<void> {
-        // TODO make configurable if included or not
-        //await this.#endpointToIoBrokerDevices(rootEndpoint);
+        await this.#endpointToIoBrokerDevices(rootEndpoint, rootEndpoint, this.nodeBaseId);
 
         for (const childEndpoint of rootEndpoint.getChildEndpoints()) {
-            await this.#endpointToIoBrokerDevices(childEndpoint, this.nodeBaseId);
+            await this.#endpointToIoBrokerDevices(childEndpoint, rootEndpoint, this.nodeBaseId);
         }
     }
 
-    async #endpointToIoBrokerDevices(endpoint: Endpoint, baseId: string): Promise<void> {
+    async #endpointToIoBrokerDevices(
+        endpoint: Endpoint,
+        rootEndpoint: Endpoint,
+        baseId: string,
+        options?: {
+            exposeMatterSystemClusterData?: boolean;
+            exposeMatterApplicationClusterData?: boolean;
+        },
+    ): Promise<void> {
         const id = endpoint.number;
         if (id === undefined) {
-            this.adapter.log.warn(`Endpoint ${endpoint.name} has no number!`);
+            this.adapter.log.warn(`Node ${this.node.nodeId}: Endpoint ${endpoint.name} has no number!`);
             return;
         }
 
         const deviceTypeModel = MatterModel.standard.get(DeviceTypeModel, endpoint.deviceType);
         const deviceTypeName = deviceTypeModel?.name ?? endpoint.name ?? 'Unknown';
 
-        this.adapter.log.info(`Endpoint to ioBroker Devices ${endpoint.name} / ${deviceTypeName}`);
+        this.adapter.log.info(
+            `Node ${this.node.nodeId}: Endpoint to ioBroker Devices ${endpoint.name} / ${deviceTypeName}`,
+        );
 
         const endpointDeviceBaseId = `${baseId}.${deviceTypeName}-${id}`;
-        await this.adapter.setObjectNotExists(endpointDeviceBaseId, {
-            type: 'device',
+
+        // Only the global setting is relevant for the root endpoint
+        if (id === 0 && !this.exposeMatterSystemClusterData) {
+            await this.adapter.delObjectAsync(endpointDeviceBaseId, { recursive: true });
+            return;
+        }
+
+        const existingObject = await this.adapter.getObjectAsync(endpointDeviceBaseId);
+        const customExposeMatterSystemClusterData =
+            existingObject?.native?.exposeMatterSystemClusterData ?? options?.exposeMatterSystemClusterData;
+        let customExposeMatterApplicationClusterData =
+            existingObject?.native?.exposeMatterApplicationClusterData ?? options?.exposeMatterApplicationClusterData;
+        let exposeMatterApplicationClusterData =
+            customExposeMatterApplicationClusterData ?? this.exposeMatterApplicationClusterData;
+
+        await this.adapter.extendObject(endpointDeviceBaseId, {
             common: {
-                name: endpoint.name,
+                name: existingObject ? undefined : endpoint.name,
+                statusStates: {
+                    onlineId: `${this.adapter.namespace}.${this.connectionStateId}`,
+                },
             },
             native: {
                 nodeId: this.nodeId,
-                endpointId: endpoint.number,
+                endpointId: id,
             },
         });
 
         if (deviceTypeModel === undefined) {
-            this.adapter.log.warn(`Unknown device type: ${serialize(endpoint.deviceType)}. Please report this issue.`);
+            this.adapter.log.warn(
+                `Node ${this.node.nodeId}: Unknown device type: ${serialize(endpoint.deviceType)}. Please report this issue.`,
+            );
         }
         // An Aggregator device type has a slightly different structure
         else if (deviceTypeModel.name === 'Aggregator') {
             for (const childEndpoint of endpoint.getChildEndpoints()) {
                 // Recursive call to process all sub endpoints for raw states
-                await this.#endpointToIoBrokerDevices(childEndpoint, endpointDeviceBaseId);
+                await this.#endpointToIoBrokerDevices(childEndpoint, rootEndpoint, endpointDeviceBaseId);
             }
-        } else {
-            // TODO
-            //const ioBrokerDevice = await ioBrokerDeviceFabric(endpoint, endpointDeviceBaseId);
+        } else if (id !== 0) {
+            // Ignore the root endpoint
+            const ioBrokerDevice = await ioBrokerDeviceFabric(
+                this.node.nodeId,
+                endpoint,
+                rootEndpoint,
+                this.adapter,
+                endpointDeviceBaseId,
+            );
+            if (ioBrokerDevice !== null) {
+                this.#deviceMap.set(id, ioBrokerDevice);
+            } else {
+                // We expose the matter application data on the endpoint level
+                if (!exposeMatterApplicationClusterData) {
+                    exposeMatterApplicationClusterData = true;
+                    customExposeMatterApplicationClusterData = true;
+
+                    await this.adapter.extendObject(endpointDeviceBaseId, {
+                        native: {
+                            exposeMatterApplicationClusterData,
+                        },
+                    });
+                }
+            }
         }
 
-        await this.#processEndpointRawDataStructure(endpoint, endpointDeviceBaseId);
+        await this.#processEndpointRawDataStructure(endpoint, endpointDeviceBaseId, {
+            exposeMatterSystemClusterData: customExposeMatterSystemClusterData,
+            exposeMatterApplicationClusterData: customExposeMatterApplicationClusterData,
+        });
     }
 
     async #processEndpointRawDataStructure(
         endpoint: Endpoint,
         endpointDeviceBaseId: string,
+        options?: {
+            exposeMatterSystemClusterData?: boolean;
+            exposeMatterApplicationClusterData?: boolean;
+        },
         path?: number[],
     ): Promise<void> {
         this.adapter.log.info(`${''.padStart((path?.length ?? 0) * 2)}Endpoint ${endpoint.number} (${endpoint.name}):`);
 
+        const exposeMatterSystemClusterData =
+            options?.exposeMatterSystemClusterData ?? this.exposeMatterSystemClusterData;
+        const exposeMatterApplicationClusterData =
+            options?.exposeMatterApplicationClusterData ?? this.exposeMatterApplicationClusterData;
+
         const id = endpoint.number;
         if (id === undefined) {
-            this.adapter.log.warn(`Endpoint ${endpoint.name} has no number!`);
+            this.adapter.log.warn(`Node ${this.node.nodeId}: Endpoint ${endpoint.name} has no number!`);
             return;
         }
         const endpointPath = path === undefined ? [id] : [...path, id];
 
-        await this.adapter.setObjectNotExists(`${endpointDeviceBaseId}.data`, {
+        const endpointDeviceBaseDataId = `${endpointDeviceBaseId}.data`;
+        if ((id === 0 && !exposeMatterSystemClusterData) || (id !== 0 && !exposeMatterApplicationClusterData)) {
+            await this.adapter.delObjectAsync(endpointDeviceBaseDataId, { recursive: true });
+            return;
+        }
+
+        await this.adapter.setObjectNotExists(endpointDeviceBaseDataId, {
             type: 'folder',
             common: {
-                name: 'Raw endpoint data',
+                name: `Raw endpoint ${id} data`,
             },
             native: {},
         });
 
-        await this.initializeEndpointRawDataStates(endpoint, endpointDeviceBaseId, endpointPath.join('-'));
+        await this.initializeEndpointRawDataStates(endpoint, endpointDeviceBaseDataId, options, endpointPath.join('-'));
 
-        for (const childEndpoint of endpoint.getChildEndpoints()) {
-            // Recursive call to process all sub endpoints for raw states
-            await this.#processEndpointRawDataStructure(childEndpoint, endpointDeviceBaseId, endpointPath);
+        if (id !== 0) {
+            for (const childEndpoint of endpoint.getChildEndpoints()) {
+                // Recursive call to process all sub endpoints for raw states
+                await this.#processEndpointRawDataStructure(
+                    childEndpoint,
+                    endpointDeviceBaseDataId,
+                    options,
+                    endpointPath,
+                );
+            }
         }
     }
 
@@ -243,7 +411,7 @@ export class GeneralMatterNode {
         attributeId: number,
         isUnknown: boolean,
     ): ioBroker.CommonType {
-        const knownType = this.attributeTypeMap.get(this.#getAttributeMapId(endpointId, clusterId, attributeId));
+        const knownType = this.#attributeTypeMap.get(this.#getAttributeMapId(endpointId, clusterId, attributeId));
         if (knownType !== undefined) return knownType;
 
         let type: ioBroker.CommonType;
@@ -265,22 +433,31 @@ export class GeneralMatterNode {
                 type = 'object';
             }
         }
-        this.attributeTypeMap.set(this.#getAttributeMapId(endpointId, clusterId, attributeId), type);
+        this.#attributeTypeMap.set(this.#getAttributeMapId(endpointId, clusterId, attributeId), type);
         return type;
     }
 
     async initializeEndpointRawDataStates(
         endpoint: Endpoint,
-        endpointDeviceBaseId: string,
+        endpointDeviceBaseDataId: string,
+        options:
+            | {
+                  exposeMatterSystemClusterData?: boolean;
+                  exposeMatterApplicationClusterData?: boolean;
+              }
+            | undefined,
         path: string,
     ): Promise<void> {
         if (endpoint.number === undefined) {
-            this.adapter.log.warn(`Endpoint ${endpoint.name} has no number!`);
+            this.adapter.log.warn(`Node ${this.node.nodeId}: Endpoint ${endpoint.name} has no number!`);
             return;
         }
-        const endpointBaseId = `${endpointDeviceBaseId}.data.${path}`;
+        const endpointBaseId = `${endpointDeviceBaseDataId}.${path}`;
 
-        this.endpointMap.set(endpoint.number, { baseId: endpointBaseId, endpoint });
+        const exposeMatterSystemClusterData =
+            options?.exposeMatterSystemClusterData ?? this.exposeMatterSystemClusterData;
+
+        this.#endpointMap.set(endpoint.number, { baseId: endpointBaseId, endpoint });
 
         await this.adapter.setObjectNotExists(endpointBaseId, {
             type: 'folder',
@@ -296,8 +473,11 @@ export class GeneralMatterNode {
         for (const clusterClient of clusters) {
             const clusterId = clusterClient.id;
             // TODO make Configurable
-            if (SystemClusters.includes(clusterId)) continue;
             const clusterBaseId = `${endpointBaseId}.${toHex(clusterId)}`;
+            if (!exposeMatterSystemClusterData && SystemClusters.includes(clusterId)) {
+                await this.adapter.delObjectAsync(clusterBaseId, { recursive: true });
+                continue;
+            }
 
             await this.adapter.setObjectNotExists(clusterBaseId, {
                 type: 'folder',
@@ -379,13 +559,15 @@ export class GeneralMatterNode {
                 }
 
                 if (attribute.attribute.writable) {
-                    const handler: SubscribeCallback = state => {
+                    const handler: SubscribeCallback = async state => {
                         if (state.ack) return; // Only controls are processed
-                        attribute
-                            .set(state.val)
-                            .catch(error => this.adapter.log.warn(`Error: ${(error as any).message}`));
+                        try {
+                            await attribute.set(state.val);
+                        } catch (e) {
+                            this.adapter.log.warn(`Error: ${(e as any).message}`);
+                        }
                     };
-                    this.subscriptions.set(attributeBaseId, handler);
+                    this.#subscriptions.set(attributeBaseId, handler);
                     await SubscribeManager.subscribe(`${this.adapter.namespace}.${attributeBaseId}`, handler);
                 }
             }
@@ -406,7 +588,7 @@ export class GeneralMatterNode {
                 if (event === undefined) continue;
                 const eventBaseId = `${clusterBaseId}.events.${event.name}`;
 
-                this.eventMap.add(this.#getEventMapId(endpoint.number, event.clusterId, event.id));
+                this.#eventMap.add(this.#getEventMapId(endpoint.number, event.clusterId, event.id));
                 await this.adapter.extendObject(eventBaseId, {
                     type: 'state',
                     common: {
@@ -457,7 +639,7 @@ export class GeneralMatterNode {
                     native: {},
                 });
 
-                const handler: SubscribeCallback = state => {
+                const handler: SubscribeCallback = async state => {
                     if (state.ack) return; // Only controls are processed
 
                     let parsedValue: any;
@@ -468,7 +650,9 @@ export class GeneralMatterNode {
                             try {
                                 parsedValue = JSON.parse(`"${state.val}"`);
                             } catch (innerError) {
-                                console.log(`ERROR: Could not parse value ${state.val} as JSON.`);
+                                this.adapter.log.info(
+                                    `Node ${this.node.nodeId}: ERROR: Could not parse value ${state.val} as JSON.`,
+                                );
                                 return;
                             }
                         }
@@ -476,11 +660,15 @@ export class GeneralMatterNode {
                         parsedValue = undefined;
                     }
 
-                    command(parsedValue, {
-                        asTimedRequest: commandModel.effectiveAccess.timed,
-                    }).catch(error => this.adapter.log.warn(`Error: ${(error as any).message}`));
+                    try {
+                        await command(parsedValue, {
+                            asTimedRequest: commandModel.effectiveAccess.timed,
+                        });
+                    } catch (e) {
+                        this.adapter.log.warn(`Node ${this.node.nodeId}: Error: ${(e as any).message}`);
+                    }
                 };
-                this.subscriptions.set(commandBaseId, handler);
+                this.#subscriptions.set(commandBaseId, handler);
                 await SubscribeManager.subscribe(`${this.adapter.namespace}.${commandBaseId}`, handler);
                 addedCommands++;
             }
@@ -506,8 +694,28 @@ export class GeneralMatterNode {
                 value,
             )}`,
         );
-        const targetType = this.attributeTypeMap.get(this.#getAttributeMapId(endpointId, clusterId, attributeId));
-        const endpointBaseId = this.endpointMap.get(endpointId)?.baseId;
+
+        if (endpointId === 0) {
+            for (const device of this.#deviceMap.values()) {
+                try {
+                    await device.handleChangedAttribute({ clusterId, endpointId, attributeId, attributeName, value });
+                } catch (error) {
+                    this.adapter.log.warn(`Failed to set changed attribute: ${error.message}`);
+                }
+            }
+        } else {
+            const device = this.#deviceMap.get(endpointId);
+            if (device !== undefined) {
+                try {
+                    await device.handleChangedAttribute({ clusterId, endpointId, attributeId, attributeName, value });
+                } catch (error) {
+                    this.adapter.log.warn(`Failed to set changed attribute: ${error.message}`);
+                }
+            }
+        }
+
+        const targetType = this.#attributeTypeMap.get(this.#getAttributeMapId(endpointId, clusterId, attributeId));
+        const endpointBaseId = this.#endpointMap.get(endpointId)?.baseId;
         if (targetType === undefined || endpointBaseId === undefined) {
             return;
         }
@@ -518,7 +726,7 @@ export class GeneralMatterNode {
         );
     }
 
-    async handleChangedEvent(data: DecodedEventReportValue<any>): Promise<void> {
+    async handleTriggeredEvent(data: DecodedEventReportValue<any>): Promise<void> {
         const {
             path: { nodeId, clusterId, endpointId, eventId, eventName },
             events,
@@ -528,10 +736,22 @@ export class GeneralMatterNode {
                 events,
             )}`,
         );
-        if (!this.eventMap.has(this.#getEventMapId(endpointId, clusterId, eventId))) {
+
+        if (endpointId === 0) {
+            for (const device of this.#deviceMap.values()) {
+                await device.handleTriggeredEvent({ clusterId, endpointId, eventId, eventName, events });
+            }
+        } else {
+            const device = this.#deviceMap.get(endpointId);
+            if (device !== undefined) {
+                await device.handleTriggeredEvent({ clusterId, endpointId, eventId, eventName, events });
+            }
+        }
+
+        if (!this.#eventMap.has(this.#getEventMapId(endpointId, clusterId, eventId))) {
             return;
         }
-        const endpointBaseId = this.endpointMap.get(endpointId)?.baseId;
+        const endpointBaseId = this.#endpointMap.get(endpointId)?.baseId;
         if (endpointBaseId === undefined) {
             return;
         }
@@ -542,9 +762,17 @@ export class GeneralMatterNode {
         );
     }
 
-    async handleStateChange(state: NodeStates): Promise<void> {
-        await this.adapter.setState(this.connectionStateId, state === NodeStates.Connected, true);
+    async handleStateChange(state: NodeStates, nodeDetails?: { operationalAddress?: string }): Promise<void> {
+        const connected = state === NodeStates.Connected;
+        await this.adapter.setState(this.connectionStateId, connected, true);
         await this.adapter.setState(this.connectionStatusId, state, true);
+        if (connected && nodeDetails) {
+            await this.adapter.setState(
+                `${this.nodeBaseId}.info.operationalAddress`,
+                nodeDetails.operationalAddress?.substring(6) ?? null,
+                true,
+            );
+        }
 
         switch (state) {
             case NodeStates.Connected:
@@ -588,10 +816,7 @@ export class GeneralMatterNode {
         return value;
     }
 
-    async destroy(): Promise<void> {
-        for (const [id, handler] of this.subscriptions) {
-            await SubscribeManager.unsubscribe(`${this.adapter.namespace}.${id}`, handler);
-        }
-        this.subscriptions.clear();
+    destroy(): Promise<void> {
+        return this.clear();
     }
 }

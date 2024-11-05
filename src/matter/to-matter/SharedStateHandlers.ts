@@ -11,7 +11,7 @@ export async function initializeUnreachableStateHandler(
     endpoint: Endpoint<RootEndpoint>,
     ioBrokerDevice: GenericDevice,
 ): Promise<void> {
-    if (!ioBrokerDevice.getPropertyNames().includes(PropertyType.Unreachable)) {
+    if (!ioBrokerDevice.propertyNames.includes(PropertyType.Unreachable)) {
         return;
     }
 
@@ -42,7 +42,7 @@ export async function initializeBridgedUnreachableStateHandler(
     endpoint: Endpoint<BridgedNodeEndpoint>,
     ioBrokerDevice: GenericDevice,
 ): Promise<void> {
-    if (!ioBrokerDevice.getPropertyNames().includes(PropertyType.Unreachable)) {
+    if (!ioBrokerDevice.propertyNames.includes(PropertyType.Unreachable)) {
         return;
     }
 

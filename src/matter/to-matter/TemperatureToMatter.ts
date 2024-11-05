@@ -3,11 +3,11 @@ import { HumiditySensorDevice, TemperatureSensorDevice } from '@matter/main/devi
 import { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import Temperature from '../../lib/devices/Temperature';
-import { IdentifyOptions, MappingGenericDevice } from './MappingGenericDevice';
+import { GenericDeviceToMatter, IdentifyOptions } from './GenericDeviceToMatter';
 import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 
 /** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */
-export class MappingTemperature extends MappingGenericDevice {
+export class TemperatureToMatter extends GenericDeviceToMatter {
     readonly #ioBrokerDevice: Temperature;
     readonly #matterEndpointTemperature: Endpoint<TemperatureSensorDevice>;
     readonly #matterEndpointHumidity?: Endpoint<HumiditySensorDevice>;
@@ -34,7 +34,7 @@ export class MappingTemperature extends MappingGenericDevice {
         return endpoints;
     }
 
-    getIoBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): GenericDevice {
         return this.#ioBrokerDevice;
     }
 

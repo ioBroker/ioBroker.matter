@@ -14,12 +14,11 @@ class Dimmer extends ElectricityDataDevice {
 
         this._construction.push(
             this.addDeviceStates([
-                // actual value first, as it will be read first
                 {
                     name: 'ACTUAL',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.Read,
-                    type: PropertyType.Level,
+                    type: PropertyType.LevelActual,
                     callback: state => (this.#getLevelState = state),
                 },
                 {
@@ -29,12 +28,11 @@ class Dimmer extends ElectricityDataDevice {
                     type: PropertyType.Level,
                     callback: state => (this.#setLevelState = state),
                 },
-                // actual value first, as it will be read first
                 {
                     name: 'ON_ACTUAL',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.Read,
-                    type: PropertyType.Power,
+                    type: PropertyType.PowerActual,
                     callback: state => (this.#getPowerState = state),
                 },
                 {
@@ -67,6 +65,32 @@ class Dimmer extends ElectricityDataDevice {
         return this.#setLevelState.setValue(value);
     }
 
+    getLevelActual(): number | undefined {
+        if (!this.#getLevelState) {
+            throw new Error('Level state not found');
+        }
+        return this.#getLevelState.value;
+    }
+
+    async updateLevel(value: number): Promise<void> {
+        if (!this.#setLevelState && !this.#getLevelState) {
+            throw new Error('Level state not found');
+        }
+        if (this.#setLevelState) {
+            await this.#setLevelState.updateValue(value);
+        }
+        if (this.#getLevelState) {
+            await this.#getLevelState.updateValue(value);
+        }
+    }
+
+    async updateLevelActual(value: number): Promise<void> {
+        if (!this.#getLevelState) {
+            throw new Error('Level state not found');
+        }
+        await this.#getLevelState.updateValue(value);
+    }
+
     getPower(): boolean | undefined {
         if (!this.#getPowerState && !this.#setPowerState && !this.#setLevelState && !this.#getLevelState) {
             throw new Error('Power state not found');
@@ -79,6 +103,13 @@ class Dimmer extends ElectricityDataDevice {
             return (state.value || 0) > 0;
         }
         return undefined;
+    }
+
+    getPowerActual(): boolean | undefined {
+        if (!this.#getPowerState) {
+            throw new Error('Power state not found');
+        }
+        return this.#getPowerState.value;
     }
 
     async setPower(value: boolean): Promise<void> {
@@ -101,6 +132,25 @@ class Dimmer extends ElectricityDataDevice {
             }
             return this.#setLevelState.setValue(0);
         }
+    }
+
+    async updatePower(value: boolean): Promise<void> {
+        if (!this.#setPowerState && !this.#getPowerState) {
+            throw new Error('Power state not found');
+        }
+        if (this.#setPowerState) {
+            await this.#setPowerState.updateValue(value);
+        }
+        if (this.#getPowerState) {
+            await this.#getPowerState.updateValue(value);
+        }
+    }
+
+    async updatePowerActual(value: boolean): Promise<void> {
+        if (!this.#getPowerState) {
+            throw new Error('Power state not found');
+        }
+        await this.#getPowerState.updateValue(value);
     }
 }
 

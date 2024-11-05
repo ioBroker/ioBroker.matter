@@ -10,6 +10,8 @@ import {
     DeviceStatus,
     ErrorResponse,
 } from '@iobroker/dm-utils';
+import { GeneralMatterNode } from '../matter/GeneralMatterNode';
+import { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIoBroker';
 import { getText, t } from './i18n';
 
 const demoDevice = {
@@ -18,7 +20,13 @@ const demoDevice = {
 };
 
 class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
+    #adapter: MatterAdapter;
     #demoState: ioBroker.State | null | undefined;
+
+    constructor(adapter: MatterAdapter) {
+        super(adapter);
+        this.#adapter = adapter;
+    }
 
     // contents see in the next chapters
     async listDevices(): Promise<DeviceInfo[]> {
@@ -26,56 +34,16 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             this.#demoState = await this.adapter.getForeignStateAsync('javascript.0.RGB.on');
         }
 
-        const devices = await this.adapter.getDevicesAsync();
-        // const devices = await this.adapter.getObjectView('system', 'device', { startkey: `system.adapter.matter.${this.instance}.`, endkey: 'system.adapter.matter.999' });
+        if (!this.#adapter.controllerNode) {
+            return []; // TODO How to return that no controller is started?
+        }
+
+        const nodes = this.#adapter.controllerNode.nodes;
+
         const arrDevices: DeviceInfo[] = [];
-        for (const device of devices) {
-            let status: DeviceStatus = 'disconnected';
-
-            const alive = await this.adapter.getStateAsync(`${device._id}.info.connection`);
-            if (alive !== null && alive !== undefined) {
-                status = alive.val ? 'connected' : 'disconnected';
-            }
-
-            const manufacturer = await this.adapter.getStateAsync(`${device._id}._info.brand`);
-            const product = await this.adapter.getStateAsync(`${device._id}._info.product`);
-            const arch = await this.adapter.getStateAsync(`${device._id}._info.arch`);
-            const model = `${product?.val ?? ''} ${arch?.val ?? ''}`.trim();
-
-            const res: DeviceInfo = {
-                id: device._id,
-                name: device.common.name,
-                icon: device.common.icon || undefined,
-                manufacturer: (manufacturer?.val as string) || undefined,
-                model: model || undefined,
-                status,
-                hasDetails: true,
-                actions: [
-                    {
-                        id: 'delete',
-                        icon: 'fa-solid fa-trash-can',
-                        description: t('Delete this device'),
-                        handler: this.handleDeleteDevice.bind(this),
-                    },
-                    {
-                        id: 'rename',
-                        icon: 'fa-solid fa-pen',
-                        description: t('Rename this device'),
-                        handler: this.handleRenameDevice.bind(this),
-                    },
-                    {
-                        id: 'pairingCode',
-                        icon: 'fa-solid fa-qrcode',
-                        description: t('Generate new pairing code'),
-                        handler: this.handlePairingCode.bind(this),
-                    },
-                ],
-            };
-            // if id contains gateway remove res.actions
-            if (device._id.includes('localhost')) {
-                res.actions = [];
-            }
-            arrDevices.push(res);
+        for (const ioNode of nodes.values()) {
+            const devices = this.#getNodeEntry(ioNode);
+            arrDevices.push(...devices);
         }
 
         arrDevices.push({
@@ -114,6 +82,74 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         });
 
         return arrDevices;
+    }
+
+    /**
+     * Create the "Node" device entry and also add all Endpoint-"Devices" for Device-Manager
+     */
+    #getNodeEntry(ioNode: GeneralMatterNode): DeviceInfo[] {
+        const status: DeviceStatus = ioNode.node.isConnected ? 'connected' : 'disconnected';
+
+        const res = new Array<DeviceInfo>();
+        res.push({
+            id: ioNode.nodeBaseId,
+            name: `Node ${ioNode.nodeId}`,
+            icon: undefined, // TODO
+            manufacturer: undefined, // TODO
+            model: undefined, // TODO
+            status,
+            hasDetails: true,
+            actions: [
+                {
+                    id: 'delete',
+                    icon: 'fa-solid fa-trash-can',
+                    description: t('Delete this device'),
+                    handler: this.handleDeleteDevice.bind(this),
+                },
+                {
+                    id: 'rename',
+                    icon: 'fa-solid fa-pen',
+                    description: t('Rename this device'),
+                    handler: this.handleRenameDevice.bind(this),
+                },
+                {
+                    id: 'pairingCode',
+                    icon: 'fa-solid fa-qrcode',
+                    description: t('Generate new pairing code'),
+                    handler: this.handlePairingCode.bind(this),
+                },
+            ],
+        });
+
+        for (const device of ioNode.devices.values()) {
+            const deviceInfo = this.#getNodeDeviceEntries(device, status);
+            res.push(deviceInfo);
+        }
+
+        return res;
+    }
+
+    /**
+     * Create one Endpoint-"Device" for Device-Manager
+     */
+    #getNodeDeviceEntries(device: GenericDeviceToIoBroker, status: DeviceStatus): DeviceInfo {
+        return {
+            id: device.baseId,
+            name: `Device ${device.name}`,
+            icon: undefined, // TODO
+            manufacturer: undefined, // TODO
+            model: undefined, // TODO
+            status, // TODO
+            hasDetails: true,
+            actions: [
+                {
+                    id: 'rename',
+                    icon: 'fa-solid fa-pen',
+                    description: t('Rename this device'),
+                    handler: this.handleRenameDevice.bind(this),
+                },
+            ],
+        };
     }
 
     async handleControlDevice(

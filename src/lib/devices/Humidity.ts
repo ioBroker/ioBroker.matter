@@ -13,18 +13,25 @@ class Humidity extends GenericDevice {
                     name: 'ACTUAL',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.Read,
-                    type: PropertyType.Value,
+                    type: PropertyType.Humidity,
                     callback: state => (this.#getValueState = state),
                 },
             ]),
         );
     }
 
-    getValue(): number | undefined {
+    getHumidity(): number | undefined {
         if (!this.#getValueState) {
             throw new Error('Value state not found');
         }
         return this.#getValueState.value;
+    }
+
+    async updateHumidity(value: number): Promise<void> {
+        if (!this.#getValueState) {
+            throw new Error('Value state not found');
+        }
+        await this.#getValueState.updateValue(value);
     }
 }
 

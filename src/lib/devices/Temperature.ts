@@ -16,6 +16,9 @@ class Temperature extends GenericDevice {
                     accessType: StateAccessType.Read,
                     type: PropertyType.Temperature,
                     callback: state => (this.#getTemperatureState = state),
+                    unitConversionMap: {
+                        '°F': (value, toDefaultUnit) => (toDefaultUnit ? (value - 32) / 1.8 : value * 1.8 + 32),
+                    },
                 },
                 {
                     name: 'SECOND',
@@ -29,7 +32,7 @@ class Temperature extends GenericDevice {
     }
 
     hasHumidity(): boolean {
-        return this.getPropertyNames().includes(PropertyType.Humidity);
+        return this.propertyNames.includes(PropertyType.Humidity);
     }
 
     getTemperature(): number | undefined {
@@ -37,6 +40,13 @@ class Temperature extends GenericDevice {
             throw new Error('Value state not found');
         }
         return this.#getTemperatureState.value;
+    }
+
+    async updateTemperature(value: number): Promise<void> {
+        if (!this.#getTemperatureState) {
+            throw new Error('Value state not found');
+        }
+        await this.#getTemperatureState.updateValue(value);
     }
 
     getHumidity(): number | undefined {

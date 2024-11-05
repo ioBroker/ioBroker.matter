@@ -6,7 +6,7 @@ import { MatterAdapter } from '../../main';
 class Base {
     protected adapter: MatterAdapter;
     protected endpoint: Endpoint;
-    #subscribes: Record<string, ((state: any) => void)[]> = {};
+    #subscribes: Record<string, ((state: any) => Promise<void>)[]> = {};
     protected prefix: string;
     protected jsonNodeId: string;
 
@@ -44,7 +44,7 @@ class Base {
     async subscribe(id: string, handler: (state: ioBroker.State) => void): Promise<void> {
         const stateId = `${this.adapter.namespace}.${id}`;
         this.#subscribes[stateId] = this.#subscribes[id] || [];
-        const subscriptionHandler = (state: ioBroker.State): void => {
+        const subscriptionHandler = async (state: ioBroker.State): Promise<void> => {
             // For Controller implementations we only care about updates with ack=false
             if (!state.ack) return handler(state);
         };

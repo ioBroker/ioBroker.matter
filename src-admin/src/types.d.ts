@@ -69,6 +69,8 @@ export interface MatterControllerConfig {
     wifiPassword?: string;
     threadNetworkName?: string;
     threadOperationalDataSet?: string;
+    defaultExposeMatterApplicationClusterData?: boolean;
+    defaultExposeMatterSystemClusterData?: boolean;
 }
 
 export interface MatterConfig {

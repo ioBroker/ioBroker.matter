@@ -1,9 +1,9 @@
 import * as utils from '@iobroker/adapter-core';
-import ChannelDetector, { DetectorState, PatternControl, Types } from '@iobroker/type-detector';
+import ChannelDetector, { DetectorState, Types } from '@iobroker/type-detector';
 import { Environment, LogLevel, Logger, StorageService } from '@matter/main';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
-import fs from 'node:fs';
+import fs from 'node:fs/promises';
 import type { MatterControllerConfig } from '../src-admin/src/types';
 import {
     BridgeDescription,
@@ -18,8 +18,9 @@ import { NodeStateResponse } from './matter/BaseServerNode';
 import BridgedDevice, { BridgeCreateOptions } from './matter/BridgedDevicesNode';
 import MatterController from './matter/ControllerNode';
 import MatterDevice, { DeviceCreateOptions } from './matter/DeviceNode';
+import { PairedNodeConfig } from './matter/GeneralMatterNode';
 import { MessageResponse } from './matter/GeneralNode';
-import { IoBrokerNodeStorage } from './matter/IoBrokerNodeStorage';
+import { IoBrokerObjectStorage } from './matter/IoBrokerObjectStorage';
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
 
@@ -81,6 +82,7 @@ export class MatterAdapter extends utils.Adapter {
     sysLanguage: ioBroker.Languages = 'en';
     readonly #deviceManagement: MatterAdapterDeviceManagement;
     #nextPortNumber: number = 5541;
+    #instanceDataDir?: string;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -106,6 +108,10 @@ export class MatterAdapter extends utils.Adapter {
         this.#matterEnvironment = Environment.default;
 
         this.#detector = new ChannelDetector();
+    }
+
+    get controllerNode(): MatterController | undefined {
+        return this.#controller;
     }
 
     async shutDownMatterNodes(): Promise<void> {
@@ -341,7 +347,14 @@ export class MatterAdapter extends utils.Adapter {
         });
 
         const storageService = this.#matterEnvironment.get(StorageService);
-        storageService.factory = (namespace: string) => new IoBrokerNodeStorage(this, namespace);
+        storageService.factory = (namespace: string) =>
+            new IoBrokerObjectStorage(
+                this,
+                namespace,
+                false,
+                namespace === 'controller' ? this.#instanceDataDir : undefined,
+                namespace === 'controller' ? 'node-' : undefined,
+            );
         storageService.location = `${this.namespace}.storage`; // For logging
 
         if (config.interface) {
@@ -350,6 +363,20 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async onReady(): Promise<void> {
+        const dataDir = utils.getAbsoluteInstanceDataDir(this);
+        try {
+            await fs.mkdir(dataDir);
+            this.#instanceDataDir = dataDir;
+        } catch (err) {
+            if (err.code === 'EEXIST') {
+                this.#instanceDataDir = dataDir;
+            } else {
+                this.log.info(
+                    `Can not create pairing data storage directory ${this.#instanceDataDir}. Pairing data can not be persisted!`,
+                );
+            }
+        }
+
         this.#_guiSubscribes = this.#_guiSubscribes || [];
         SubscribeManager.setAdapter(this);
         await this.prepareMatterEnvironment();
@@ -420,14 +447,30 @@ export class MatterAdapter extends utils.Adapter {
 
     async onObjectChange(id: string, obj: ioBroker.Object | null | undefined): Promise<void> {
         this.log.debug(`Object changed ${id}, type = ${obj?.type}`);
+        const controllerStateId = `${this.namespace}.controller.`;
+        const devicesStateId = `${this.namespace}.devices.`;
+        const bridgesStateId = `${this.namespace}.bridges.`;
+        const lastPoint = id.lastIndexOf('.');
         // matter.0.bridges.a6e61de9-e450-47bb-8f27-ee360350bdd8
-        if (id.startsWith(`${this.namespace}.`) && obj?.type === 'channel') {
+        if (
+            ((id.startsWith(devicesStateId) && lastPoint === devicesStateId.length - 1) ||
+                (id.startsWith(bridgesStateId) && lastPoint === bridgesStateId.length - 1)) &&
+            obj?.type === 'channel'
+        ) {
             await this.syncDevices(obj as ioBroker.ChannelObject);
+        } else if (
+            id.startsWith(controllerStateId) &&
+            lastPoint === controllerStateId.length - 1 &&
+            obj?.type === 'folder'
+        ) {
+            // controller sub node changed
+            const nodeId = id.substring(controllerStateId.length);
+            await this.syncControllerNode(nodeId, obj as ioBroker.FolderObject);
         }
     }
 
     onStateChange(id: string, state: ioBroker.State | null | undefined): void {
-        SubscribeManager.observer(id, state);
+        SubscribeManager.observer(id, state).catch(e => this.log.error(`Error while observing state ${id}: ${e}`));
     }
 
     async findDeviceFromId(id: string, searchDeviceComingFromLevel?: number): Promise<string | null> {
@@ -471,7 +514,7 @@ export class MatterAdapter extends utils.Adapter {
         return foundDevice;
     }
 
-    async getDeviceStates(id: string): Promise<PatternControl | null> {
+    async getIoBrokerDeviceStates(id: string): Promise<DetectedDevice | null> {
         const deviceId = await this.findDeviceFromId(id);
         this.log.debug(`Found device for ${id}: ${deviceId}`);
         if (!deviceId) {
@@ -514,11 +557,14 @@ export class MatterAdapter extends utils.Adapter {
                     // console.log(`In ${options.id} was detected "${controls[0].type}" with following states:`);
                     controls[0].states = controls[0].states.filter((state: DetectorState) => state.id);
 
-                    return controls[0];
+                    return {
+                        ...controls[0],
+                        isIoBrokerDevice: true,
+                    } as DetectedDevice;
                 }
             }
         } else {
-            console.log(`Nothing found for ${options.id}`);
+            this.log.info(`No IoBroker device type found for ${options.id}`);
         }
 
         return null;
@@ -555,7 +601,7 @@ export class MatterAdapter extends utils.Adapter {
             return !!this.#license[key];
         }
         const subscriptions = response.data;
-        const cert = fs.readFileSync(`${__dirname}/../data/cloudCert.crt`);
+        const cert = await fs.readFile(`${__dirname}/../data/cloudCert.crt`, 'utf8');
         if (
             subscriptions.find((it: any) => {
                 try {
@@ -597,8 +643,8 @@ export class MatterAdapter extends utils.Adapter {
         return this.#license[key];
     }
 
-    async determineDevice(oid: string, type: string, auto: boolean): Promise<DetectedDevice> {
-        const detectedDevice: DetectedDevice | null = await this.getDeviceStates(oid);
+    async determineIoBrokerDevice(oid: string, type: string, auto: boolean): Promise<DetectedDevice> {
+        const detectedDevice = await this.getIoBrokerDeviceStates(oid);
         if (detectedDevice && detectedDevice.type === type && auto) {
             return detectedDevice;
         }
@@ -620,6 +666,7 @@ export class MatterAdapter extends utils.Adapter {
                     required: true, // ignored
                 },
             ],
+            isIoBrokerDevice: true,
         };
     }
 
@@ -633,7 +680,7 @@ export class MatterAdapter extends utils.Adapter {
         options.list = options.list ?? [];
         const devices = [];
         for (const device of options.list) {
-            const detectedDevice = await this.determineDevice(device.oid, device.type, device.auto);
+            const detectedDevice = await this.determineIoBrokerDevice(device.oid, device.type, device.auto);
             try {
                 const deviceObject = await DeviceFactory(detectedDevice, this, device as DeviceOptions);
                 devices.push(deviceObject);
@@ -694,7 +741,7 @@ export class MatterAdapter extends utils.Adapter {
         if (options.enabled === false) {
             return null; // Not startup
         }
-        const detectedDevice = await this.determineDevice(options.oid, options.type, options.auto);
+        const detectedDevice = await this.determineIoBrokerDevice(options.oid, options.type, options.auto);
         try {
             const device = await DeviceFactory(detectedDevice, this, options as DeviceOptions);
             return {
@@ -928,6 +975,11 @@ export class MatterAdapter extends utils.Adapter {
         this.log.debug('Sync done');
     }
 
+    async syncControllerNode(nodeId: string, obj: ioBroker.FolderObject): Promise<void> {
+        if (!this.#controller) return; // not active
+        return this.#controller.applyPairedNodeConfiguration(nodeId, obj.native as PairedNodeConfig);
+    }
+
     async applyControllerConfiguration(config: MatterControllerConfig, handleStart = true): Promise<MessageResponse> {
         if (config.enabled) {
             if (this.#controller) {
@@ -959,7 +1011,7 @@ export class MatterAdapter extends utils.Adapter {
 
     async deleteBridgeOrDevice(type: 'bridge' | 'device', id: string, uuid: string): Promise<void> {
         await this.stopBridgeOrDevice(type, id);
-        const storage = new IoBrokerNodeStorage(this, uuid);
+        const storage = new IoBrokerObjectStorage(this, uuid);
         await storage.clearAll();
     }
 }

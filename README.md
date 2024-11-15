@@ -11,23 +11,64 @@
 
 **This adapter uses Sentry libraries to automatically report exceptions and code errors to the developers.** For more details and for information how to disable the error reporting see [Sentry-Plugin Documentation](https://github.com/ioBroker/plugin-sentry#plugin-sentry)! Sentry reporting is used starting with js-controller 3.0.
 
+
+## Description
+TODO
+
+## Troubleshooting
+* On Linux especially see https://github.com/project-chip/matter.js/blob/main/docs/TROUBLESHOOTING.md
+
+## Supported devices
+
+### Supported ioBroker device types
+
+| ioBroker Device Type | Mapped to Matter Device Type |
+|----------------------|------------------------------|
+| Dimmer               | Dimmable Light               |
+| Door                 | Contact Sensor               |
+| Flood Alarm          | Water Leak Sensor            |
+| Humidity             | Humidity Sensor              |
+| Light                | OnOff Light                  |
+| Lock                 | Door Lock                    |
+| Motion               | Occupancy Sensor             |
+| Socket               | OnOff PlugIn                 |
+| Temperature          | Temperature Sensor           |
+| Window               | Contact Sensor               |
+
+... more to come
+
+### Supported Matter device types
+
+| Matter Device Type  | Mapped to ioBroker Device Type |
+|---------------------|--------------------------------|
+| Dimmable Light      | Dimmer                         |
+| Dimmable PlugInUnit | Dimmer                         |
+| Contact Sensor      | Window                         |
+| Energy Sensor       | Light with only energy states  |
+| Humidity Sensor     | Humidity                       |
+| OnOff Light         | Light                          |
+| Door Lock           | Lock                           |
+| Occupancy Sensor    | Motion                         |
+| OnOff PlugIn Unit   | Socket                         |
+| Temperature Sensor  | Temperature                    |
+| Water Leak Sensor   | Flood Alarm                    |
+
+... more to come
+
+## ToDo
+
+
+
 <!--
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**
 -->
-## ToDo
-- Controller
-- Get login & pass from iot (new js-controller version) may be
-- passcode editable
-- discriminator editable ?
-- ble
-- fake delete (so the real deletion will be done in backend with factory reset of device)
-- Check bridge in controller
 
 ## Changelog
 ### **WORK IN PROGRESS**
 * IMPORTANT: Breaking change!! Please decommission ALL devices and do a full factory reset of the adapter Matter storage before installing this version. Pair the devices new afterwards. 
-* (Apollon77) Upgrade to new Matter.js version and API (breaks storage structure)
+* (Apollon77) Finalizes Devices, Bridges and Controller functionality
+* (Apollon77) Upgrades to new Matter.js version and API (breaks storage structure)
 
 ### 0.1.13 (2023-12-01)
 * (bluefox) Working on the controller

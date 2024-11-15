@@ -502,6 +502,13 @@ class Controller implements GeneralNode {
             this.#commissioningController = undefined;
         }
     }
+
+    async decommissionNode(nodeId: string): Promise<void> {
+        if (!this.#commissioningController) {
+            throw new Error(`Can not decommission NodeId "${nodeId}" because controller not initialized.`);
+        }
+        await this.#commissioningController.removeNode(NodeId(BigInt(nodeId)), this.#connected[nodeId]);
+    }
 }
 
 export default Controller;

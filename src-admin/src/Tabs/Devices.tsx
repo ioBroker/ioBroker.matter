@@ -137,7 +137,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         });
     }
 
-    renderDeleteDialog() {
+    renderDeleteDialog(): React.JSX.Element | null {
         if (!this.state.deleteDialog) {
             return null;
         }
@@ -207,7 +207,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         );
     }
 
-    renderEditDeviceDialog() {
+    renderEditDeviceDialog(): React.JSX.Element | null {
         if (!this.state.editDeviceDialog) {
             return null;
         }
@@ -215,7 +215,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         const isCommissioned =
             !!this.props.commissioning[this.props.matter.devices[this.state.editDeviceDialog.deviceIndex].uuid];
 
-        const save = () => {
+        const save = (): void => {
             if (!this.state.editDeviceDialog) {
                 return;
             }
@@ -489,7 +489,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         );
     }
 
-    addDevices = async (devices: DetectedDevice[], isAutoDetected: boolean) => {
+    addDevices = async (devices: DetectedDevice[], isAutoDetected: boolean): Promise<void> => {
         const matter = clone(this.props.matter);
 
         for (const device of devices) {
@@ -521,7 +521,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         this.props.updateConfig(matter);
     };
 
-    renderAddCustomDeviceDialog() {
+    renderAddCustomDeviceDialog(): React.JSX.Element | null {
         if (!this.state.addCustomDeviceDialog) {
             return null;
         }
@@ -658,7 +658,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                     <Button
                         onClick={() => {
                             this.state.addCustomDeviceDialog &&
-                                this.addDevices(
+                                void this.addDevices(
                                     [
                                         {
                                             _id: this.state.addCustomDeviceDialog.oid,
@@ -769,7 +769,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         );
     }
 
-    renderAddDevicesDialog() {
+    renderAddDevicesDialog(): React.JSX.Element | null {
         if (!this.state.addDeviceDialog) {
             return null;
         }
@@ -839,6 +839,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
 
     /**
      * Render a single device in a table
+     *
      * @param device the device description
      * @param index table index
      */
@@ -957,7 +958,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         );
     }
 
-    render() {
+    render(): React.JSX.Element {
         return (
             <div>
                 {this.renderDeleteDialog()}
@@ -975,7 +976,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 </InfoBox>
                 <Tooltip
                     title={I18n.t('Add device')}
-                    componentsProps={{ popper: { sx: styles.tooltip } }}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
                     <Fab
                         color="primary"

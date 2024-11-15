@@ -144,7 +144,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         this.refreshTimer && clearTimeout(this.refreshTimer);
         this.refreshTimer = setTimeout(() => {
             this.refreshTimer = null;
-            this.refreshBackendSubscription();
+            void this.refreshBackendSubscription();
         }, 60_000);
 
         const result = await this.socket.subscribeOnInstance(
@@ -162,7 +162,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         }
     }
 
-    async onConnectionReady() {
+    async onConnectionReady(): Promise<void> {
         this.configHandler && this.configHandler.destroy();
         this.configHandler = new ConfigHandler(this.instance, this.socket, this.onChanged, this.onCommissioningChanged);
         const matter = await this.configHandler.loadConfig();
@@ -189,7 +189,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         const alive = await this.socket.getState(`system.adapter.matter.${this.instance}.alive`);
 
         if (alive?.val) {
-            this.refreshBackendSubscription();
+            void this.refreshBackendSubscription();
         }
 
         this.setState({
@@ -200,10 +200,10 @@ class App extends GenericApp<GenericAppProps, AppState> {
         });
     }
 
-    onAlive = (_id: string, state: ioBroker.State | null | undefined) => {
+    onAlive = (_id: string, state: ioBroker.State | null | undefined): void => {
         if (state?.val && !this.state.alive) {
             this.setState({ alive: true });
-            this.refreshBackendSubscription();
+            void this.refreshBackendSubscription();
         } else if (!state?.val && this.state.alive) {
             this.refreshTimer && clearTimeout(this.refreshTimer);
             this.refreshTimer = null;
@@ -211,7 +211,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         }
     };
 
-    onBackendUpdates = (update: GUIMessage | null) => {
+    onBackendUpdates = (update: GUIMessage | null): void => {
         if (!update) {
             return;
         }
@@ -248,7 +248,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         }
     };
 
-    onChanged = (newConfig: MatterConfig) => {
+    onChanged = (newConfig: MatterConfig): Promise<void> => {
         if (!this.state.ready) {
             return Promise.resolve();
         }
@@ -263,13 +263,13 @@ class App extends GenericApp<GenericAppProps, AppState> {
         });
     };
 
-    onCommissioningChanged = (newCommissioning: CommissioningInfo) => {
+    onCommissioningChanged = (newCommissioning: CommissioningInfo): void => {
         if (this.state.ready) {
             this.setState({ commissioning: newCommissioning });
         }
     };
 
-    async componentWillUnmount() {
+    async componentWillUnmount(): Promise<void> {
         window.alert = this.alert as (_message?: any) => void;
         this.alert = null;
         this.intervalSubscribe && clearInterval(this.intervalSubscribe);
@@ -278,7 +278,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         try {
             this.socket.unsubscribeState(`system.adapter.matter.${this.instance}.alive`, this.onAlive);
             await this.socket.unsubscribeFromInstance(`matter.${this.instance}`, 'gui', this.onBackendUpdates);
-        } catch (e) {
+        } catch {
             // ignore
         }
 
@@ -373,7 +373,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         );
     }
 
-    renderDevices() {
+    renderDevices(): React.JSX.Element {
         return (
             <DevicesTab
                 alive={this.state.alive}
@@ -406,7 +406,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         );
     }
 
-    async getLicense() {
+    async getLicense(): Promise<string | false> {
         if (this.state.native.login && this.state.native.pass) {
             if (this.state.alive) {
                 // ask the instance
@@ -430,7 +430,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         type: 'addBridge' | 'addDevice' | 'addDeviceToBridge',
         matter?: MatterConfig,
     ): Promise<boolean> {
-        let result = true;
+        let result: boolean | string = true;
         matter = matter || this.state.matter;
         if (matter) {
             if (type === 'addBridge') {
@@ -454,7 +454,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             return false;
         }
 
-        return result; // User may add one bridge or one device
+        return !!result; // User may add one bridge or one device
     }
 
     async onSave(isClose?: boolean): Promise<void> {
@@ -469,7 +469,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         }
     }
 
-    render() {
+    render(): React.JSX.Element {
         if (!this.state.ready) {
             return (
                 <StyledEngineProvider injectFirst>
@@ -532,7 +532,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                                         noBackground
                                         icon="noConnection"
                                         onClick={() => {
-                                            this.refreshBackendSubscription();
+                                            void this.refreshBackendSubscription();
                                         }}
                                     />
                                 )}

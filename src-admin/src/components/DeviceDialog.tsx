@@ -194,7 +194,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
         let expanded: string[];
         try {
             expanded = JSON.parse(expandedStr);
-        } catch (e) {
+        } catch {
             expanded = [];
         }
 
@@ -212,7 +212,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
         };
     }
 
-    async componentDidMount() {
+    async componentDidMount(): Promise<void> {
         const detectedDevices = this.props.detectedDevices || (await detectDevices(this.props.socket));
 
         if (!this.props.detectedDevices) {
@@ -274,7 +274,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
         });
     }
 
-    handleSubmit = () => {
+    handleSubmit = (): void => {
         const devices: DetectedDevice[] = [];
         this.state.rooms?.forEach(room => {
             room.devices.forEach(device => {
@@ -287,7 +287,12 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
         this.props.onClose();
     };
 
-    renderDevice(roomIndex: number, room: DetectedRoom, deviceIndex: number, device: DetectedDevice) {
+    renderDevice(
+        roomIndex: number,
+        room: DetectedRoom,
+        deviceIndex: number,
+        device: DetectedDevice,
+    ): React.JSX.Element | null {
         const supported = SUPPORTED_DEVICES.includes(device.deviceType);
 
         if (!supported && !this.state.showUnsupported) {
@@ -312,7 +317,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                     <Checkbox
                         checked={!!this.state.devicesChecked[device._id]}
                         disabled={!supported}
-                        onChange={e => {
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                             const devicesChecked = clone(this.state.devicesChecked);
                             devicesChecked[device._id] = e.target.checked;
                             this.setState({ devicesChecked });
@@ -400,7 +405,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
         );
     }
 
-    render() {
+    render(): React.JSX.Element {
         const counters =
             this.state.rooms?.map(room =>
                 room.devices.reduce((a, b) => a + (this.state.devicesChecked[b._id] ? 1 : 0), 0),

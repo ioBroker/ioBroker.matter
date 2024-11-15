@@ -18,8 +18,6 @@ class ConfigHandler {
 
     private commissioning: CommissioningInfo;
 
-    private changed = false;
-
     private readonly lang = I18n.getLanguage();
 
     constructor(
@@ -52,22 +50,22 @@ class ConfigHandler {
             return word[this.lang] || word.en;
         }
 
-        return word as string;
+        return word;
     }
 
-    destroy() {
+    destroy(): void {
         this.onChanged = null;
         if (this.socket?.isConnected()) {
-            this.socket.unsubscribeObject(`matter.${this.instance}.bridges.*`, this.onObjectChange);
-            this.socket.unsubscribeObject(`matter.${this.instance}.devices.*`, this.onObjectChange);
-            this.socket.unsubscribeObject(`matter.${this.instance}.controller`, this.onObjectChange);
+            void this.socket.unsubscribeObject(`matter.${this.instance}.bridges.*`, this.onObjectChange);
+            void this.socket.unsubscribeObject(`matter.${this.instance}.devices.*`, this.onObjectChange);
+            void this.socket.unsubscribeObject(`matter.${this.instance}.controller`, this.onObjectChange);
             this.socket.unsubscribeState(`matter.${this.instance}.bridges.*`, this.onStateChange);
             this.socket.unsubscribeState(`matter.${this.instance}.devices.*`, this.onStateChange);
         }
         this.socket = null;
     }
 
-    onStateChange = (id: string, state: ioBroker.State | null | undefined) => {
+    onStateChange = (id: string, state: ioBroker.State | null | undefined): void => {
         if (id.endsWith('.commissioning')) {
             const parts = id.split('.');
             let changed = false;
@@ -86,7 +84,7 @@ class ConfigHandler {
         }
     };
 
-    onObjectChange = (id: string, obj: ioBroker.Object | null | undefined) => {
+    onObjectChange = (id: string, obj: ioBroker.Object | null | undefined): void => {
         if (!this.onChanged) {
             return;
         }
@@ -323,23 +321,23 @@ class ConfigHandler {
         ConfigHandler.sortAll(this.config, this.lang);
         window.parent.postMessage('nochange', '*');
 
-        this.socket.subscribeObject(`matter.${this.instance}.bridges.*`, this.onObjectChange);
-        this.socket.subscribeObject(`matter.${this.instance}.devices.*`, this.onObjectChange);
-        this.socket.subscribeObject(`matter.${this.instance}.controller`, this.onObjectChange);
-        this.socket.subscribeState(`matter.${this.instance}.bridges.*`, this.onStateChange);
-        this.socket.subscribeState(`matter.${this.instance}.devices.*`, this.onStateChange);
+        void this.socket.subscribeObject(`matter.${this.instance}.bridges.*`, this.onObjectChange);
+        void this.socket.subscribeObject(`matter.${this.instance}.devices.*`, this.onObjectChange);
+        void this.socket.subscribeObject(`matter.${this.instance}.controller`, this.onObjectChange);
+        void this.socket.subscribeState(`matter.${this.instance}.bridges.*`, this.onStateChange);
+        void this.socket.subscribeState(`matter.${this.instance}.devices.*`, this.onStateChange);
 
         return clone(this.config);
     }
 
     static getSortName(name: ioBroker.StringOrTranslated, lang: ioBroker.Languages): string {
         if (!name || typeof name === 'string') {
-            return (name as string) || '';
+            return name || '';
         }
         return name[lang] || name.en;
     }
 
-    static sortAll(config: MatterConfig, lang: ioBroker.Languages) {
+    static sortAll(config: MatterConfig, lang: ioBroker.Languages): void {
         config.devices.sort((a, b) => {
             const aName = ConfigHandler.getSortName(a.name, lang);
             const bName = ConfigHandler.getSortName(b.name, lang);
@@ -535,7 +533,7 @@ class ConfigHandler {
         ConfigHandler.sortAll(config, this.lang);
     }
 
-    async saveConfig(config: MatterConfig) {
+    async saveConfig(config: MatterConfig): Promise<void> {
         if (!this.socket) {
             return;
         }

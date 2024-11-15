@@ -91,7 +91,7 @@ class Options extends Component<OptionsProps, OptionsState> {
         };
     }
 
-    renderConfirmDialog() {
+    renderConfirmDialog(): React.JSX.Element | null {
         if (!this.state.showDialog) {
             return null;
         }
@@ -151,7 +151,7 @@ class Options extends Component<OptionsProps, OptionsState> {
         );
     }
 
-    async componentDidMount() {
+    async componentDidMount(): Promise<void> {
         // detect if any iot or cloud with pro-account are available
         const instancesIot = await this.props.socket.getAdapterInstances('iot');
         let instance: ioBroker.InstanceObject | null = null;
@@ -217,7 +217,7 @@ class Options extends Component<OptionsProps, OptionsState> {
         return false;
     }
 
-    render() {
+    render(): React.JSX.Element {
         const item = this.state.interfaces?.find(it => it.value === (this.props.native.interface || '_'));
         const passwordError = Options.checkPassword(this.props.native.pass);
 
@@ -321,7 +321,7 @@ class Options extends Component<OptionsProps, OptionsState> {
                                 );
                             }}
                             onChange={e => {
-                                this.props.onChange('defaultBridge', e.target.value);
+                                void this.props.onChange('defaultBridge', e.target.value);
                             }}
                         >
                             {this.props.matter.bridges.map((it, i) => (

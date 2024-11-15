@@ -9,6 +9,7 @@ import {
     Delete,
     QrCode,
     QuestionMark,
+    Settings,
     SettingsInputAntenna,
     SignalWifiStatusbarNull,
     Wifi,
@@ -94,9 +95,9 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         } as TState;
     }
 
-    componentDidMount() {
+    componentDidMount(): void {
         if (this.props.alive) {
-            this.props.socket
+            void this.props.socket
                 .sendTo(`matter.${this.props.instance}`, 'nodeStates', {
                     bridges: true,
                     devices: true,
@@ -109,7 +110,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         }
     }
 
-    static getVendorIcon(vendorId: number, themeType: ThemeType) {
+    static getVendorIcon(vendorId: number, themeType: ThemeType): React.JSX.Element | null {
         const vendor = VENDOR_IDS[vendorId];
 
         if (vendor === 'Amazon Lab126') {
@@ -159,7 +160,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         return null;
     }
 
-    static getStatusColor(status: NodeStates, themeType: ThemeType) {
+    static getStatusColor(status: NodeStates, themeType: ThemeType): string {
         if (status === 'creating') {
             return themeType === 'dark' ? '#a4a4a4' : '#1c1c1c';
         }
@@ -175,7 +176,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         return 'grey';
     }
 
-    static getStatusIcon(status: NodeStates, themeType: ThemeType) {
+    static getStatusIcon(status: NodeStates, themeType: ThemeType): React.JSX.Element {
         const color = BridgesAndDevices.getStatusColor(status, themeType);
         if (status === 'creating') {
             return <SignalWifiStatusbarNull style={{ color }} />;
@@ -189,6 +190,9 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         if (status === 'connected') {
             return <Wifi style={{ color }} />;
         }
+        if (status === 'gear') {
+            return <Settings style={{ color }} />;
+        }
         return <QuestionMark style={{ color }} />;
     }
 
@@ -201,7 +205,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
             return (
                 <Tooltip
                     title={I18n.t('Device is not commissioned. Show QR Code for commissioning')}
-                    componentsProps={{ popper: { sx: STYLES.tooltip } }}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
                     <IconButton
                         style={{ height: 40 }}
@@ -216,7 +220,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
             return (
                 <Tooltip
                     title={I18n.t('Device is already commissioning. Show status information')}
-                    componentsProps={{ popper: { sx: STYLES.tooltip } }}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
                     <IconButton
                         style={{ height: 40 }}
@@ -236,7 +240,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         return null;
     }
 
-    renderDebugDialog() {
+    renderDebugDialog(): React.JSX.Element | null {
         if (!this.state.showDebugData) {
             return null;
         }
@@ -430,7 +434,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         );
     }
 
-    renderResetDialog() {
+    renderResetDialog(): React.JSX.Element | null {
         if (!this.state.showResetDialog) {
             return null;
         }
@@ -455,7 +459,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                             if (this.state.showResetDialog?.step === 1) {
                                 const uuid = this.state.showResetDialog.bridgeOrDevice.uuid;
                                 this.setState({ showResetDialog: null });
-                                this.props.socket
+                                void this.props.socket
                                     .sendTo(`matter.${this.props.instance}`, 'deviceFactoryReset', {
                                         uuid,
                                     })
@@ -500,7 +504,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         );
     }
 
-    render() {
+    render(): React.JSX.Element | null {
         // this method is only to shut up the linter. It will be overloaded
         if (!this.state.showQrCode) {
             return null;

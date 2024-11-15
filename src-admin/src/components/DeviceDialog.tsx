@@ -40,7 +40,7 @@ import {
     Window,
 } from '@mui/icons-material';
 
-import { type AdminConnection, type IobTheme, I18n, Icon } from '@iobroker/adapter-react-v5';
+import { type AdminConnection, I18n, Icon, type IobTheme } from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 
 import { clone, detectDevices, getText } from '../Utils';
@@ -90,7 +90,19 @@ export const DEVICE_ICONS: Record<Types, React.JSX.Element> = {
     instance: <QuestionMark />,
 };
 
-export const SUPPORTED_DEVICES: Types[] = [Types.socket, Types.light, Types.dimmer, Types.temperature, Types.humidity];
+export const SUPPORTED_DEVICES: Types[] = [
+    Types.socket,
+    Types.light,
+    Types.dimmer,
+    Types.temperature,
+    Types.humidity,
+    Types.door,
+    Types.floodAlarm,
+    Types.humidity,
+    Types.lock,
+    Types.motion,
+    Types.window,
+];
 
 const productIds: string[] = [];
 for (let i = 0x8000; i <= 0x801f; i++) {
@@ -213,7 +225,8 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
     }
 
     async componentDidMount(): Promise<void> {
-        const detectedDevices = this.props.detectedDevices || (await detectDevices(this.props.socket));
+        const detectedDevices =
+            this.props.detectedDevices || (await detectDevices(this.props.socket, I18n.getLanguage()));
 
         if (!this.props.detectedDevices) {
             setTimeout(() => this.props.setDetectedDevices(detectedDevices), 100);

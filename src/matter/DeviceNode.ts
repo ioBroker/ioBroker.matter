@@ -42,7 +42,7 @@ class Device extends BaseServerNode {
     }
 
     async init(): Promise<void> {
-        await this.adapter.extendObject(`devices.${this.#parameters.uuid}.commissioned`, {
+        await this.adapter.extendObjectAsync(`devices.${this.#parameters.uuid}.commissioned`, {
             type: 'state',
             common: {
                 name: 'commissioned',

@@ -19,15 +19,15 @@
         "url": "https://github.com/ioBroker/ioBroker.matter"
     },
     "optionalDependencies": {
-        "@matter/nodejs-ble": "0.11.4"
+        "@matter/nodejs-ble": "0.11.5-alpha.0-20241114-6af665cdd"
     },
     "dependencies": {
         "@iobroker/adapter-core": "^3.2.2",
         "@iobroker/dm-utils": "^0.5.0",
         "@iobroker/type-detector": "^4.0.1",
-        "@matter/main": "0.11.4",
-        "@matter/nodejs": "0.11.4",
-        "@project-chip/matter.js": "0.11.4",
+        "@matter/main": "0.11.5-alpha.0-20241114-6af665cdd",
+        "@matter/nodejs": "0.11.5-alpha.0-20241114-6af665cdd",
+        "@project-chip/matter.js": "0.11.5-alpha.0-20241114-6af665cdd",
         "axios": "^1.7.7",
         "jsonwebtoken": "^9.0.2"
     },

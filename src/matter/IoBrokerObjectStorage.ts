@@ -45,7 +45,7 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
             this.#localStorageManager = new StorageBackendDiskAsync(this.#nodeDataStorageDirectory, this.#clear);
         }
 
-        await this.#adapter.extendObject(this.#storageRootOid, {
+        await this.#adapter.extendObjectAsync(this.#storageRootOid, {
             type: 'folder',
             common: {
                 expert: true,

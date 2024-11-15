@@ -1,6 +1,6 @@
 import { capitalize, ClusterId, Logger, NodeId, serialize } from '@matter/main';
-import { BasicInformationCluster } from '@matter/main/clusters';
-import { AttributeModel, ClusterModel, CommandModel, DeviceTypeModel, MatterModel } from '@matter/main/model';
+import { BasicInformationCluster, GeneralDiagnosticsCluster } from '@matter/main/clusters';
+import { AttributeModel, ClusterModel, CommandModel, MatterModel } from '@matter/main/model';
 import {
     DecodedAttributeReportValue,
     DecodedEventReportValue,
@@ -13,9 +13,10 @@ import { Endpoint, NodeStates, PairedNode } from '@project-chip/matter.js/device
 import type { MatterControllerConfig } from '../../src-admin/src/types';
 import { SubscribeManager } from '../lib';
 import { SubscribeCallback } from '../lib/SubscribeManager';
+import { bytesToIpV4, bytesToIpV6, bytesToMac, decamelize, toHex } from '../lib/utils';
 import type { MatterAdapter } from '../main';
 import { GenericDeviceToIoBroker } from './to-iobroker/GenericDeviceToIoBroker';
-import ioBrokerDeviceFabric from './to-iobroker/ioBrokerFactory';
+import ioBrokerDeviceFabric, { identifyDeviceTypes } from './to-iobroker/ioBrokerFactory';
 
 export type PairedNodeConfig = {
     nodeId: NodeId;
@@ -52,9 +53,12 @@ const SystemClusters: ClusterId[] = [
     ClusterId(0x0062), // Scenes Management
 ];
 
-function toHex(value: number, minimumLength = 4): string {
-    return `0x${value.toString(16).padStart(minimumLength, '0')}`;
-}
+export type NodeDetails = {
+    manufacturer?: string;
+    model?: string;
+    color?: string;
+    backgroundColor?: string;
+};
 
 export class GeneralMatterNode {
     readonly nodeId: string;
@@ -69,6 +73,9 @@ export class GeneralMatterNode {
     #attributeTypeMap = new Map<string, ioBroker.CommonType>();
     #eventMap = new Set<string>();
     #subscriptions = new Map<string, SubscribeCallback>();
+    #name?: string;
+    #details: NodeDetails = {};
+    #connectedAddress?: string;
 
     constructor(
         protected readonly adapter: MatterAdapter,
@@ -142,14 +149,19 @@ export class GeneralMatterNode {
 
         const info = this.node.getRootClusterClient(BasicInformationCluster);
         if (info !== undefined) {
+            this.#details = {
+                manufacturer: await info.getVendorNameAttribute(),
+                model: toHex(await info.getProductIdAttribute()),
+            };
+
             if (existingObject && existingObject.common.name) {
                 deviceObj.common.name = existingObject.common.name;
             } else {
                 deviceObj.common.name = await info.getProductNameAttribute();
             }
             deviceObj.native.vendorId = toHex(await info.getVendorIdAttribute());
-            deviceObj.native.vendorName = await info.getVendorNameAttribute();
-            deviceObj.native.productId = toHex(await info.getProductIdAttribute());
+            deviceObj.native.vendorName = this.#details.manufacturer;
+            deviceObj.native.productId = this.#details.model;
             deviceObj.native.nodeLabel = await info.getNodeLabelAttribute();
             deviceObj.native.productLabel = info.isAttributeSupportedByName('productLabel')
                 ? await info.getProductLabelAttribute()
@@ -158,8 +170,9 @@ export class GeneralMatterNode {
                 ? await info.getSerialNumberAttribute()
                 : undefined;
         }
+        this.#name = deviceObj.common.name as string;
 
-        await this.adapter.extendObject(deviceObj._id, deviceObj);
+        await this.adapter.extendObjectAsync(deviceObj._id, deviceObj);
 
         await this.adapter.setObjectNotExists(`${this.nodeBaseId}.info`, {
             type: 'channel',
@@ -213,13 +226,19 @@ export class GeneralMatterNode {
 
         await this.adapter.setState(this.connectionStateId, this.node.isConnected, true);
         await this.adapter.setState(this.connectionStatusId, this.node.state, true);
-        await this.adapter.setState(
-            this.connectedAddressStateId,
-            nodeDetails?.operationalAddress?.substring(6) ?? null,
-            true,
-        );
+
+        this.#connectedAddress = nodeDetails?.operationalAddress?.substring(6);
+        await this.adapter.setState(this.connectedAddressStateId, this.#connectedAddress ?? null, true);
 
         await this.#processRootEndpointStructure(rootEndpoint);
+    }
+
+    get name(): string {
+        return this.#name ?? this.nodeId;
+    }
+
+    get details(): NodeDetails {
+        return this.#details;
     }
 
     async applyConfiguration(config: PairedNodeConfig): Promise<void> {
@@ -266,8 +285,14 @@ export class GeneralMatterNode {
             return;
         }
 
-        const deviceTypeModel = MatterModel.standard.get(DeviceTypeModel, endpoint.deviceType);
-        const deviceTypeName = deviceTypeModel?.name ?? endpoint.name ?? 'Unknown';
+        const { appTypes, primaryDeviceType } = identifyDeviceTypes(endpoint);
+        if (appTypes.length > 1) {
+            this.adapter.log.info(
+                `Node ${this.node.nodeId}: Multiple device types detected: ${appTypes.map(t => t.deviceType.name).join(', ')}`,
+            );
+        }
+
+        const deviceTypeName = primaryDeviceType?.deviceType.name ?? endpoint.name ?? 'Unknown';
 
         this.adapter.log.info(
             `Node ${this.node.nodeId}: Endpoint to ioBroker Devices ${endpoint.name} / ${deviceTypeName}`,
@@ -289,52 +314,71 @@ export class GeneralMatterNode {
         let exposeMatterApplicationClusterData =
             customExposeMatterApplicationClusterData ?? this.exposeMatterApplicationClusterData;
 
-        await this.adapter.extendObject(endpointDeviceBaseId, {
-            common: {
-                name: existingObject ? undefined : endpoint.name,
-                statusStates: {
-                    onlineId: `${this.adapter.namespace}.${this.connectionStateId}`,
-                },
-            },
-            native: {
-                nodeId: this.nodeId,
-                endpointId: id,
-            },
-        });
-
-        if (deviceTypeModel === undefined) {
+        if (primaryDeviceType === undefined) {
             this.adapter.log.warn(
                 `Node ${this.node.nodeId}: Unknown device type: ${serialize(endpoint.deviceType)}. Please report this issue.`,
             );
         }
         // An Aggregator device type has a slightly different structure
-        else if (deviceTypeModel.name === 'Aggregator') {
+        else if (
+            primaryDeviceType.deviceType.name === 'Aggregator' ||
+            primaryDeviceType.deviceType.name === 'BridgedNode'
+        ) {
+            this.adapter.log.info(
+                `Node ${this.node.nodeId}: ${primaryDeviceType.deviceType.name} device type detected`,
+            );
+            await this.adapter.extendObjectAsync(endpointDeviceBaseId, {
+                type: 'folder',
+                common: {
+                    name: existingObject ? undefined : endpoint.name,
+                },
+                native: {
+                    nodeId: this.nodeId,
+                    endpointId: id,
+                },
+            });
             for (const childEndpoint of endpoint.getChildEndpoints()) {
                 // Recursive call to process all sub endpoints for raw states
                 await this.#endpointToIoBrokerDevices(childEndpoint, rootEndpoint, endpointDeviceBaseId);
             }
-        } else if (id !== 0) {
-            // Ignore the root endpoint
-            const ioBrokerDevice = await ioBrokerDeviceFabric(
-                this.node.nodeId,
-                endpoint,
-                rootEndpoint,
-                this.adapter,
-                endpointDeviceBaseId,
-            );
-            if (ioBrokerDevice !== null) {
-                this.#deviceMap.set(id, ioBrokerDevice);
-            } else {
-                // We expose the matter application data on the endpoint level
-                if (!exposeMatterApplicationClusterData) {
-                    exposeMatterApplicationClusterData = true;
-                    customExposeMatterApplicationClusterData = true;
+        } else {
+            await this.adapter.extendObjectAsync(endpointDeviceBaseId, {
+                type: 'device',
+                common: {
+                    name: existingObject ? undefined : deviceTypeName,
+                    statusStates: {
+                        onlineId: `${this.adapter.namespace}.${this.connectionStateId}`,
+                    },
+                },
+                native: {
+                    nodeId: this.nodeId,
+                    endpointId: id,
+                },
+            });
 
-                    await this.adapter.extendObject(endpointDeviceBaseId, {
-                        native: {
-                            exposeMatterApplicationClusterData,
-                        },
-                    });
+            if (id !== 0) {
+                // Ignore the root endpoint
+                const ioBrokerDevice = await ioBrokerDeviceFabric(
+                    this.node.nodeId,
+                    endpoint,
+                    rootEndpoint,
+                    this.adapter,
+                    endpointDeviceBaseId,
+                );
+                if (ioBrokerDevice !== null) {
+                    this.#deviceMap.set(id, ioBrokerDevice);
+                } else {
+                    // We expose the matter application data on the endpoint level
+                    if (!exposeMatterApplicationClusterData) {
+                        exposeMatterApplicationClusterData = true;
+                        customExposeMatterApplicationClusterData = true;
+
+                        await this.adapter.extendObject(endpointDeviceBaseId, {
+                            native: {
+                                exposeMatterApplicationClusterData,
+                            },
+                        });
+                    }
                 }
             }
         }
@@ -527,7 +571,7 @@ export class GeneralMatterNode {
                     attribute.id,
                     unknown,
                 );
-                await this.adapter.extendObject(attributeBaseId, {
+                await this.adapter.extendObjectAsync(attributeBaseId, {
                     type: 'state',
                     common: {
                         name: attribute.name,
@@ -589,7 +633,7 @@ export class GeneralMatterNode {
                 const eventBaseId = `${clusterBaseId}.events.${event.name}`;
 
                 this.#eventMap.add(this.#getEventMapId(endpoint.number, event.clusterId, event.id));
-                await this.adapter.extendObject(eventBaseId, {
+                await this.adapter.extendObjectAsync(eventBaseId, {
                     type: 'state',
                     common: {
                         name: event.name,
@@ -627,7 +671,7 @@ export class GeneralMatterNode {
 
                 const hasArguments = commandModel.children?.length > 0;
 
-                await this.adapter.extendObject(commandBaseId, {
+                await this.adapter.extendObjectAsync(commandBaseId, {
                     type: 'state',
                     common: {
                         name: command.name,
@@ -767,11 +811,8 @@ export class GeneralMatterNode {
         await this.adapter.setState(this.connectionStateId, connected, true);
         await this.adapter.setState(this.connectionStatusId, state, true);
         if (connected && nodeDetails) {
-            await this.adapter.setState(
-                `${this.nodeBaseId}.info.operationalAddress`,
-                nodeDetails.operationalAddress?.substring(6) ?? null,
-                true,
-            );
+            this.#connectedAddress = nodeDetails.operationalAddress?.substring(6);
+            await this.adapter.setState(this.connectedAddressStateId, this.#connectedAddress ?? null, true);
         }
 
         switch (state) {
@@ -818,5 +859,99 @@ export class GeneralMatterNode {
 
     destroy(): Promise<void> {
         return this.clear();
+    }
+
+    async rename(newName: string): Promise<void> {
+        this.#name = newName;
+        await this.adapter.extendObjectAsync(this.nodeBaseId, { common: { name: newName } });
+    }
+
+    async getNodeDetails(): Promise<Record<string, Record<string, unknown>>> {
+        const result: Record<string, Record<string, unknown>> = {};
+
+        const details = this.node.basicInformation;
+
+        if (details) {
+            result.nodeDetails = {};
+
+            result.nodeDetails.vendorName = details.vendorName;
+            result.nodeDetails.vendorId = toHex(details.vendorId as number);
+            result.nodeDetails.productName = details.productName;
+            result.nodeDetails.productId = toHex(details.productId as number);
+            result.nodeDetails.nodeLabel = details.nodeLabel;
+            result.nodeDetails.location = details.location;
+            result.nodeDetails.hardwareVersion = details.hardwareVersionString;
+            result.nodeDetails.softwareVersion = details.softwareVersionString;
+            if (details.productUrl) {
+                result.nodeDetails.productUrl = details.productUrl;
+            }
+            if (details.serialNumber) {
+                result.nodeDetails.serialNumber = details.serialNumber;
+            }
+            if (details.uniqueId) {
+                result.nodeDetails.uniqueId = details.uniqueId;
+            }
+
+            if (this.node.isConnected) {
+                result.networkInformation = {
+                    connectedAddress: this.#connectedAddress,
+                };
+                const generalDiag = this.node.getRootClusterClient(GeneralDiagnosticsCluster);
+                if (generalDiag) {
+                    try {
+                        const networkInterfaces = await generalDiag.getNetworkInterfacesAttribute();
+                        if (networkInterfaces) {
+                            const interfaces = networkInterfaces.filter(({ isOperational }) => isOperational);
+                            if (interfaces.length) {
+                                interfaces.forEach(({ name, hardwareAddress, iPv4Addresses, iPv6Addresses }, index) => {
+                                    result.networkInformation[`__header__${index}_${name}`] =
+                                        `Interface ${index} "${name}"`;
+                                    result.networkInformation[`${index}_${name}__HardwareAddress`] =
+                                        bytesToMac(hardwareAddress);
+                                    result.networkInformation[`${index}_${name}__IPv4Addresses`] = iPv4Addresses
+                                        .map(ip => bytesToIpV4(ip))
+                                        .join(', ');
+                                    result.networkInformation[`${index}_${name}__IPv6Addresses`] = iPv6Addresses
+                                        .map(ip => bytesToIpV6(ip))
+                                        .join(', ');
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        this.adapter.log.info(`Failed to get network interfaces: ${e}`);
+                    }
+                }
+            }
+
+            result.specificationDetails = {};
+            if (details.dataModelVersion) {
+                result.specificationDetails.dataModelVersion = details.dataModelVersion;
+            }
+            if (details.specificationVersion) {
+                result.specificationDetails.specificationVersion = details.specificationVersion;
+            }
+            if (details.maxPathsPerInvoke) {
+                result.specificationDetails.maxPathsPerInvoke = details.maxPathsPerInvoke;
+            }
+            result.specificationDetails.capabilityMinima = JSON.stringify(details.capabilityMinima);
+        }
+
+        const rootEndpoint = this.node.getRootEndpoint();
+        if (rootEndpoint) {
+            result.matterRootEndpointClusters = {} as Record<string, unknown>;
+            for (const client of rootEndpoint.getAllClusterClients()) {
+                const activeFeatures = new Array<string>();
+                Object.keys(client.supportedFeatures).forEach(
+                    f => client.supportedFeatures[f] && activeFeatures.push(f),
+                );
+                result.matterRootEndpointClusters[`__header__${client.name}`] = decamelize(client.name);
+                result.matterRootEndpointClusters[`${client.name}__Features`] = activeFeatures.length
+                    ? activeFeatures.map(name => decamelize(name)).join(', ')
+                    : 'Basic Featureset';
+                result.matterRootEndpointClusters[`${client.name}__Revision`] = client.revision;
+            }
+        }
+
+        return result;
     }
 }

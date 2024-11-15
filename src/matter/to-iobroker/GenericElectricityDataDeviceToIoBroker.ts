@@ -25,7 +25,7 @@ export abstract class GenericElectricityDataDeviceToIoBroker extends GenericDevi
 
         const powerSource = this.appEndpoint.getClusterClient(PowerSource.Complete);
         if (powerSource !== undefined && powerSource.supportedFeatures.battery) {
-            this.enableDeviceTypeState(PropertyType.ElectricPower, {
+            this.enableDeviceTypeState(PropertyType.LowBattery, {
                 endpointId,
                 clusterId: PowerSource.Cluster.id,
                 attributeName: 'batChargeLevel',

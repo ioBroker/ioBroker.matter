@@ -8,11 +8,17 @@ import Humidity from '../../lib/devices/Humidity';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 
 /** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
-export class HumidityToIoBroker extends GenericElectricityDataDeviceToIoBroker {
+export class HumiditySensorToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Humidity;
 
-    constructor(endpoint: Endpoint, rootEndpoint: Endpoint, adapter: ioBroker.Adapter, endpointDeviceBaseId: string) {
-        super(endpoint, rootEndpoint, endpointDeviceBaseId);
+    constructor(
+        endpoint: Endpoint,
+        rootEndpoint: Endpoint,
+        adapter: ioBroker.Adapter,
+        endpointDeviceBaseId: string,
+        deviceTypeName: string,
+    ) {
+        super(adapter, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName);
 
         this.#ioBrokerDevice = new Humidity(
             { ...ChannelDetector.getPatterns().humidity, isIoBrokerDevice: false } as DetectedDevice,

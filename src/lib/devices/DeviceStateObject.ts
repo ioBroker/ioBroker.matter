@@ -57,10 +57,13 @@ export enum PropertyType {
     LevelActual = 'levelActual', // read/write
     Longitude = 'longitude',
     LowBattery = 'lowBattery',
+    LockState = 'lockState',
+    LockStateActual = 'lockStateActual',
     Maintenance = 'maintenance',
     MapBase64 = 'mapBase64',
     MapUrl = 'mapUrl',
     Mode = 'mode',
+    Motion = 'motion',
     Mute = 'mute',
     Next = 'next',
     NightMode = 'nightMode',
@@ -232,7 +235,7 @@ export class DeviceStateObject<T> {
             }
         }
 
-        await this.adapter.extendObject(this.#id, {
+        await this.adapter.extendObjectAsync(this.#id, {
             ...obj,
             common: { ...obj.common, name: undefined } as Partial<ioBroker.StateCommon>,
         } as ioBroker.PartialObject);

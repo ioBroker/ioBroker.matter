@@ -240,7 +240,7 @@ export class MatterAdapter extends utils.Adapter {
                 const result = await this.applyControllerConfiguration(newControllerConfig);
                 if (result && 'result' in result) {
                     // was successful
-                    await this.extendObject(`${this.namespace}.controller`, { native: newControllerConfig });
+                    await this.extendObjectAsync(`${this.namespace}.controller`, { native: newControllerConfig });
                 }
                 this.sendTo(obj.from, obj.command, result, obj.callback);
                 break;
@@ -337,7 +337,7 @@ export class MatterAdapter extends utils.Adapter {
          * The storage manager is then also used by the Matter server, so this code block in general is required,
          * but you can choose a different storage backend as long as it implements the required API.
          */
-        await this.extendObject('storage', {
+        await this.extendObjectAsync('storage', {
             type: 'folder',
             common: {
                 expert: true,
@@ -447,25 +447,29 @@ export class MatterAdapter extends utils.Adapter {
 
     async onObjectChange(id: string, obj: ioBroker.Object | null | undefined): Promise<void> {
         this.log.debug(`Object changed ${id}, type = ${obj?.type}`);
-        const controllerStateId = `${this.namespace}.controller.`;
-        const devicesStateId = `${this.namespace}.devices.`;
-        const bridgesStateId = `${this.namespace}.bridges.`;
-        const lastPoint = id.lastIndexOf('.');
+        const objParts = id.split('.').slice(2); // remove namespace and instance
+        const objPartsLength = objParts.length;
+
         // matter.0.bridges.a6e61de9-e450-47bb-8f27-ee360350bdd8
         if (
-            ((id.startsWith(devicesStateId) && lastPoint === devicesStateId.length - 1) ||
-                (id.startsWith(bridgesStateId) && lastPoint === bridgesStateId.length - 1)) &&
+            ((objParts[0] === 'devices' && objPartsLength === 2) ||
+                (objParts[0] === 'bridges' && objPartsLength === 2)) &&
             obj?.type === 'channel'
         ) {
             await this.syncDevices(obj as ioBroker.ChannelObject);
-        } else if (
-            id.startsWith(controllerStateId) &&
-            lastPoint === controllerStateId.length - 1 &&
-            obj?.type === 'folder'
-        ) {
+        } else if (objParts[0] === 'controller' && objPartsLength === 2 && obj?.type === 'folder') {
             // controller sub node changed
-            const nodeId = id.substring(controllerStateId.length);
+            const nodeId = objParts[1];
             await this.syncControllerNode(nodeId, obj as ioBroker.FolderObject);
+        } else if (objParts[0] === 'controller' && objPartsLength === 3 && obj?.type === 'device') {
+            // controller node device sub node changed
+            const nodeId = objParts[1];
+            const nodeObj = await this.getObjectAsync(`controller.${nodeId}`);
+            if (!nodeObj) {
+                this.log.warn('Controller node not found');
+                return;
+            }
+            await this.syncControllerNode(nodeId, nodeObj as ioBroker.FolderObject);
         }
     }
 
@@ -1017,7 +1021,7 @@ export class MatterAdapter extends utils.Adapter {
 }
 
 if (require.main !== module) {
-    // Export the7 constructor in compact mode
+    // Export the constructor in compact mode
     module.exports = (options: Partial<utils.AdapterOptions> | undefined) => new MatterAdapter(options);
 } else {
     // otherwise start the instance directly

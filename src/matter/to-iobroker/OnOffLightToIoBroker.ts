@@ -4,18 +4,24 @@ import { Endpoint } from '@project-chip/matter.js/device';
 import { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
-import Socket from '../../lib/devices/Socket';
+import Light from '../../lib/devices/Light';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 
-/** Mapping Logic to map a ioBroker Socket device to a Matter OnOffPlugInUnitDevice. */
-export class SocketToIoBroker extends GenericElectricityDataDeviceToIoBroker {
-    readonly #ioBrokerDevice: Socket;
+/** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
+export class OnOffLightToIoBroker extends GenericElectricityDataDeviceToIoBroker {
+    readonly #ioBrokerDevice: Light;
 
-    constructor(endpoint: Endpoint, rootEndpoint: Endpoint, adapter: ioBroker.Adapter, endpointDeviceBaseId: string) {
-        super(endpoint, rootEndpoint, endpointDeviceBaseId);
+    constructor(
+        endpoint: Endpoint,
+        rootEndpoint: Endpoint,
+        adapter: ioBroker.Adapter,
+        endpointDeviceBaseId: string,
+        deviceTypeName: string,
+    ) {
+        super(adapter, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName);
 
-        this.#ioBrokerDevice = new Socket(
-            { ...ChannelDetector.getPatterns().socket, isIoBrokerDevice: false } as DetectedDevice,
+        this.#ioBrokerDevice = new Light(
+            { ...ChannelDetector.getPatterns().light, isIoBrokerDevice: false } as DetectedDevice,
             adapter,
             this.enableDeviceTypeStates(),
         );

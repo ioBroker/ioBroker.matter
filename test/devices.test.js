@@ -2,7 +2,7 @@ const ChannelDetectorImport = require('@iobroker/type-detector');
 const Types = ChannelDetectorImport.Types;
 const SubscribeManager = require('../build/lib/SubscribeManager');
 const { StateAccessType } = require('../build/lib/devices/GenericDevice');
-const { ValueType } = require('../build/lib/devices/DeviceStateObject');
+const { ValueType } = require('../build/lib/devices/GenericDevice');
 
 // create a maximal set of states
 const detectedDevices = {

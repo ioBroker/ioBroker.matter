@@ -8,8 +8,8 @@ describe('test-admin-gui', () => {
     before(async function () {
         this.timeout(240_000);
 
-        // install js-controller, web and vis-2-beta
-        await engineHelper.startIoBrokerAdmin();
+        // install js-controller, admin and matter
+        await engineHelper.startIoBrokerAdapters();
         const { page } = await guiHelper.startBrowser(adapterName, rootDir, process.env.CI === 'true');
         gPage = page;
     });
@@ -28,7 +28,7 @@ describe('test-admin-gui', () => {
         this.timeout(5000);
         await guiHelper.stopBrowser();
         console.log('BROWSER stopped');
-        await engineHelper.stopIoBrokerAdmin();
+        await engineHelper.startIoBrokerAdapters();
         console.log('ioBroker stopped');
     });
 });

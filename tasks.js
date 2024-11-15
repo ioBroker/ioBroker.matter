@@ -1,11 +1,5 @@
 const { existsSync, copyFileSync } = require('node:fs');
-const {
-    deleteFoldersRecursive,
-    copyFiles,
-    npmInstall,
-    buildReact,
-    patchHtmlFile,
-} = require('@iobroker/build-tools');
+const { deleteFoldersRecursive, copyFiles, npmInstall, buildReact, patchHtmlFile } = require('@iobroker/build-tools');
 
 function clean() {
     deleteFoldersRecursive(`${__dirname}/admin`, ['matter.png']);
@@ -18,6 +12,10 @@ function copyAllFiles() {
 
 async function patch() {
     await patchHtmlFile(`${__dirname}/src-admin/build/index.html`);
+    if (!existsSync(`${__dirname}/src-admin/build/index.html`)) {
+        console.error('Index.html not found!');
+        process.exit(2);
+    }
     copyFileSync(`${__dirname}/src-admin/build/index.html`, `${__dirname}/admin/index_m.html`);
 }
 

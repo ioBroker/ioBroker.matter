@@ -3,24 +3,16 @@ node_modules
 tmp
 .DS_store
 iob_npm.done
-admin/i18n/flat.txt
-admin/static/media/*
-admin/static/js/*
-admin/i18n/*/flat.txt
-admin/index_m.html
-admin/favicon.ico
-admin/static/css/*
-admin/manifest.json
-admin/asset-manifest.json
-nbproject
+bproject
 build
 *.map
-main.js
 *.tgz
 
 .dev-server
 .vscode
 /lib/devices/dist
+/src-admin/node_modules/
+/src-admin/build/
 /src-admin/src/components/InstanceManager/
 /src-admin/src/components/InstanceManager/i18n/
 /src-admin/src/components/InstanceManager/i18n/*

@@ -8,16 +8,22 @@ import Lock from '../../lib/devices/Lock';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 
 /** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
-export class LockToIoBroker extends GenericElectricityDataDeviceToIoBroker {
+export class DoorLockToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Lock;
     readonly #unboltingSupported: boolean;
 
-    constructor(endpoint: Endpoint, rootEndpoint: Endpoint, adapter: ioBroker.Adapter, endpointDeviceBaseId: string) {
-        super(endpoint, rootEndpoint, endpointDeviceBaseId);
+    constructor(
+        endpoint: Endpoint,
+        rootEndpoint: Endpoint,
+        adapter: ioBroker.Adapter,
+        endpointDeviceBaseId: string,
+        deviceTypeName: string,
+    ) {
+        super(adapter, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName);
 
         this.#unboltingSupported =
             this.appEndpoint.getClusterClient(DoorLock.Complete)?.supportedFeatures.unbolting ?? false;
-        // TODO: support more featuresets
+        // TODO: support more featuresets?
         this.#ioBrokerDevice = new Lock(
             { ...ChannelDetector.getPatterns().lock, isIoBrokerDevice: false } as DetectedDevice,
             adapter,
@@ -32,20 +38,24 @@ export class LockToIoBroker extends GenericElectricityDataDeviceToIoBroker {
             attributeName: 'lockState',
             changeHandler: async value => {
                 if (value) {
+                    // Unlock
                     if (this.#unboltingSupported) {
                         await this.appEndpoint.getClusterClient(DoorLock.Complete)?.unboltDoor({});
                     } else {
                         await this.appEndpoint.getClusterClient(DoorLock.Complete)?.unlockDoor({});
                     }
                 } else {
+                    // Lock
                     await this.appEndpoint.getClusterClient(DoorLock.Complete)?.lockDoor({});
                 }
             },
+            convertValue: value => value === DoorLock.LockState.Unlocked,
         });
         this.enableDeviceTypeState(PropertyType.PowerActual, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: DoorLock.Cluster.id,
-            attributeName: 'doorState',
+            attributeName: 'lockState',
+            convertValue: value => value === DoorLock.LockState.Unlocked,
         });
         if (this.#unboltingSupported) {
             this.enableDeviceTypeState(PropertyType.Open, {

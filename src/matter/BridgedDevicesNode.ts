@@ -110,7 +110,7 @@ class BridgedDevices extends BaseServerNode {
     }
 
     async init(): Promise<void> {
-        await this.adapter.extendObject(`bridges.${this.#parameters.uuid}.commissioned`, {
+        await this.adapter.extendObjectAsync(`bridges.${this.#parameters.uuid}.commissioned`, {
             type: 'state',
             common: {
                 name: 'commissioned',

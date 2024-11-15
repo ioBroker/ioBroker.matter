@@ -234,7 +234,7 @@ class Controller implements GeneralNode {
             throw new Error('CommissioningController not initialized');
         }
 
-        await this.#adapter.extendObject('controller.info', {
+        await this.#adapter.extendObjectAsync('controller.info', {
             type: 'channel',
             common: {
                 name: 'Information',
@@ -242,7 +242,7 @@ class Controller implements GeneralNode {
             native: {},
         });
 
-        await this.#adapter.extendObject('controller.info.discovering', {
+        await this.#adapter.extendObjectAsync('controller.info.discovering', {
             type: 'state',
             common: {
                 name: 'Discovering',
@@ -501,6 +501,13 @@ class Controller implements GeneralNode {
             await this.#commissioningController.close();
             this.#commissioningController = undefined;
         }
+    }
+
+    async decommissionNode(nodeId: string): Promise<void> {
+        if (!this.#commissioningController) {
+            throw new Error(`Can not decommission NodeId "${nodeId}" because controller not initialized.`);
+        }
+        await this.#commissioningController.removeNode(NodeId(BigInt(nodeId)), this.#connected[nodeId]);
     }
 }
 

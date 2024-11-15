@@ -10,8 +10,14 @@ import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityData
 export class UtilityOnlyToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: ElectricityDataDevice;
 
-    constructor(endpoint: Endpoint, rootEndpoint: Endpoint, adapter: ioBroker.Adapter, endpointDeviceBaseId: string) {
-        super(endpoint, rootEndpoint, endpointDeviceBaseId);
+    constructor(
+        endpoint: Endpoint,
+        rootEndpoint: Endpoint,
+        adapter: ioBroker.Adapter,
+        endpointDeviceBaseId: string,
+        deviceTypeName: string,
+    ) {
+        super(adapter, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName);
 
         this.#ioBrokerDevice = new Socket(
             // TODO: Change to something generic like ElectricityDataDevice that we need to define first

@@ -8,11 +8,17 @@ import Temperature from '../../lib/devices/Temperature';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 
 /** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
-export class TemperatureToIoBroker extends GenericElectricityDataDeviceToIoBroker {
+export class TemperatureSensorToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Temperature;
 
-    constructor(endpoint: Endpoint, rootEndpoint: Endpoint, adapter: ioBroker.Adapter, endpointDeviceBaseId: string) {
-        super(endpoint, rootEndpoint, endpointDeviceBaseId);
+    constructor(
+        endpoint: Endpoint,
+        rootEndpoint: Endpoint,
+        adapter: ioBroker.Adapter,
+        endpointDeviceBaseId: string,
+        deviceTypeName: string,
+    ) {
+        super(adapter, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName);
 
         this.#ioBrokerDevice = new Temperature(
             { ...ChannelDetector.getPatterns().temperature, isIoBrokerDevice: false } as DetectedDevice,

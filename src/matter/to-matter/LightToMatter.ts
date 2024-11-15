@@ -1,9 +1,9 @@
 import { Endpoint } from '@matter/main';
 import { OnOffLightDevice } from '@matter/main/devices';
-import { GenericDevice } from '../../lib';
+import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import Light from '../../lib/devices/Light';
-import { IdentifyOptions } from './GenericDeviceToMatter';
+import type Light from '../../lib/devices/Light';
+import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
 import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 

@@ -137,7 +137,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         });
     }
 
-    renderDeleteDialog() {
+    renderDeleteDialog(): React.JSX.Element | null {
         if (!this.state.deleteDialog) {
             return null;
         }
@@ -158,7 +158,10 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         }
 
         return (
-            <Dialog onClose={() => this.setState({ deleteDialog: null })} open={!0}>
+            <Dialog
+                onClose={() => this.setState({ deleteDialog: null })}
+                open={!0}
+            >
                 <DialogTitle>{I18n.t('Delete')}</DialogTitle>
                 <DialogContent>
                     {`${I18n.t('Do you want to delete device')} ${this.state.deleteDialog.name}?`}
@@ -204,7 +207,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         );
     }
 
-    renderEditDeviceDialog() {
+    renderEditDeviceDialog(): React.JSX.Element | null {
         if (!this.state.editDeviceDialog) {
             return null;
         }
@@ -212,7 +215,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         const isCommissioned =
             !!this.props.commissioning[this.props.matter.devices[this.state.editDeviceDialog.deviceIndex].uuid];
 
-        const save = () => {
+        const save = (): void => {
             if (!this.state.editDeviceDialog) {
                 return;
             }
@@ -257,7 +260,10 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
             !this.state.editDeviceDialog.deviceType;
 
         return (
-            <Dialog onClose={() => this.setState({ editDeviceDialog: null })} open={!0}>
+            <Dialog
+                onClose={() => this.setState({ editDeviceDialog: null })}
+                open={!0}
+            >
                 <DialogTitle>{`${I18n.t('Edit device')} ${this.state.editDeviceDialog?.originalName}`}</DialogTitle>
                 <DialogContent>
                     <TextField
@@ -295,7 +301,10 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         variant="standard"
                     >
                         {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorID => (
-                            <MenuItem key={vendorID} value={vendorID}>
+                            <MenuItem
+                                key={vendorID}
+                                value={vendorID}
+                            >
                                 {vendorID}
                             </MenuItem>
                         ))}
@@ -318,7 +327,10 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         variant="standard"
                     >
                         {this.props.productIDs.map(productID => (
-                            <MenuItem key={productID} value={productID}>
+                            <MenuItem
+                                key={productID}
+                                value={productID}
+                            >
                                 {productID}
                             </MenuItem>
                         ))}
@@ -370,7 +382,10 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                             {Object.keys(Types)
                                 .filter(key => SUPPORTED_DEVICES.includes(key as Types))
                                 .map(type => (
-                                    <MenuItem key={type} value={type}>
+                                    <MenuItem
+                                        key={type}
+                                        value={type}
+                                    >
                                         <span>{DEVICE_ICONS[type as Types] || <QuestionMark />}</span>
                                         {I18n.t(type)}
                                     </MenuItem>
@@ -437,7 +452,10 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 renderValue={value => `${value}%`}
                             >
                                 {[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(type => (
-                                    <MenuItem key={type} value={type}>
+                                    <MenuItem
+                                        key={type}
+                                        value={type}
+                                    >
                                         {`${type}%`}
                                     </MenuItem>
                                 ))}
@@ -471,7 +489,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         );
     }
 
-    addDevices = async (devices: DetectedDevice[], isAutoDetected: boolean) => {
+    addDevices = async (devices: DetectedDevice[], isAutoDetected: boolean): Promise<void> => {
         const matter = clone(this.props.matter);
 
         for (const device of devices) {
@@ -503,12 +521,15 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         this.props.updateConfig(matter);
     };
 
-    renderAddCustomDeviceDialog() {
+    renderAddCustomDeviceDialog(): React.JSX.Element | null {
         if (!this.state.addCustomDeviceDialog) {
             return null;
         }
         return (
-            <Dialog open={!0} onClose={() => this.setState({ addCustomDeviceDialog: null })}>
+            <Dialog
+                open={!0}
+                onClose={() => this.setState({ addCustomDeviceDialog: null })}
+            >
                 <DialogTitle>{I18n.t('Configure custom device')}</DialogTitle>
                 <DialogContent>
                     <TextField
@@ -552,7 +573,10 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                             {Object.keys(Types)
                                 .filter(key => SUPPORTED_DEVICES.includes(key as Types))
                                 .map(type => (
-                                    <MenuItem key={type} value={type}>
+                                    <MenuItem
+                                        key={type}
+                                        value={type}
+                                    >
                                         {I18n.t(type)}
                                     </MenuItem>
                                 ))}
@@ -575,7 +599,10 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         variant="standard"
                     >
                         {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorID => (
-                            <MenuItem key={vendorID} value={vendorID}>
+                            <MenuItem
+                                key={vendorID}
+                                value={vendorID}
+                            >
                                 {vendorID}
                             </MenuItem>
                         ))}
@@ -597,7 +624,10 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         variant="standard"
                     >
                         {this.props.productIDs.map(productID => (
-                            <MenuItem key={productID} value={productID}>
+                            <MenuItem
+                                key={productID}
+                                value={productID}
+                            >
                                 {productID}
                             </MenuItem>
                         ))}
@@ -628,7 +658,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                     <Button
                         onClick={() => {
                             this.state.addCustomDeviceDialog &&
-                                this.addDevices(
+                                void this.addDevices(
                                     [
                                         {
                                             _id: this.state.addCustomDeviceDialog.oid,
@@ -677,7 +707,10 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         }
 
         return (
-            <Dialog open={!0} onClose={() => this.setState({ addDevicePreDialog: false })}>
+            <Dialog
+                open={!0}
+                onClose={() => this.setState({ addDevicePreDialog: false })}
+            >
                 <DialogTitle>{I18n.t('Add device')}</DialogTitle>
                 <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                     <Button
@@ -736,7 +769,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         );
     }
 
-    renderAddDevicesDialog() {
+    renderAddDevicesDialog(): React.JSX.Element | null {
         if (!this.state.addDeviceDialog) {
             return null;
         }
@@ -806,6 +839,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
 
     /**
      * Render a single device in a table
+     *
      * @param device the device description
      * @param index table index
      */
@@ -815,10 +849,16 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         }
 
         return (
-            <TableRow key={index} style={{ opacity: device.enabled ? 1 : 0.4 }}>
+            <TableRow
+                key={index}
+                style={{ opacity: device.enabled ? 1 : 0.4 }}
+            >
                 <TableCell>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <span style={{ marginRight: 8 }} title={device.type}>
+                        <span
+                            style={{ marginRight: 8 }}
+                            title={device.type}
+                        >
                             {DEVICE_ICONS[device.type] || <QuestionMark />}
                         </span>
                         <div style={styles.bridgeDiv}>
@@ -918,7 +958,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         );
     }
 
-    render() {
+    render(): React.JSX.Element {
         return (
             <div>
                 {this.renderDeleteDialog()}
@@ -934,7 +974,10 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         'Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.',
                     )}
                 </InfoBox>
-                <Tooltip title={I18n.t('Add device')} componentsProps={{ popper: { sx: styles.tooltip } }}>
+                <Tooltip
+                    title={I18n.t('Add device')}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                >
                     <Fab
                         color="primary"
                         size="small"
@@ -957,7 +1000,11 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         'No one device created. Create one, by clicking on the "+" button in the bottom right corner.',
                     )
                 ) : (
-                    <Table size="small" style={{ width: '100%' }} padding="none">
+                    <Table
+                        size="small"
+                        style={{ width: '100%' }}
+                        padding="none"
+                    >
                         <TableBody>
                             {this.props.matter.devices.map((device, index) => this.renderDevice(device, index))}
                         </TableBody>

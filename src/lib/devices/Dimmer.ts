@@ -1,6 +1,6 @@
-import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import ElectricityDataDevice from './ElectricityDataDevice';
-import { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
+import { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
 class Dimmer extends ElectricityDataDevice {
     #setLevelState?: DeviceStateObject<number>;
@@ -123,9 +123,8 @@ class Dimmer extends ElectricityDataDevice {
             if (value) {
                 if (this.options?.dimmerUseLastLevelForOn) {
                     return this.#setLevelState.setValue(this.#lastNotZeroLevel || 100);
-                } else {
-                    return this.#setLevelState.setValue(this.options?.dimmerOnLevel || 100);
                 }
+                return this.#setLevelState.setValue(this.options?.dimmerOnLevel || 100);
             }
             if (this.options?.dimmerUseLastLevelForOn) {
                 this.#lastNotZeroLevel = this.#getLevelState?.value || this.#lastNotZeroLevel || 100;

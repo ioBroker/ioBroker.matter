@@ -1,8 +1,8 @@
 import { Endpoint } from '@matter/main';
 import { HumiditySensorDevice } from '@matter/main/devices';
-import { GenericDevice, Humidity } from '../../lib';
+import type { GenericDevice, Humidity } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import { GenericDeviceToMatter, IdentifyOptions } from './GenericDeviceToMatter';
+import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
 import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 
 /** Mapping Logic to map a ioBroker Humidity device to a Matter HumiditySensorDevice. */

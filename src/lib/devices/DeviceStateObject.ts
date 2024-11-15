@@ -1,4 +1,4 @@
-import { DetectorState, StateType } from '@iobroker/type-detector';
+import type { DetectorState, StateType } from '@iobroker/type-detector';
 import SubscribeManager from '../SubscribeManager';
 
 export enum ValueType {
@@ -332,7 +332,7 @@ export class DeviceStateObject<T> {
     /** Used for ioBroker states to update the value */
     async setValue(value: T, isUpdate = false): Promise<void> {
         if (value === null || value === undefined) {
-            throw new Error(`Value ${value} is not valid`);
+            throw new Error(`Value ${JSON.stringify(value)} is not valid`);
         }
         if (!this.object) {
             throw new Error(`Object not initialized`);
@@ -386,10 +386,10 @@ export class DeviceStateObject<T> {
                     const realValue: number = parseFloat(value as string);
 
                     if (object.common.min !== undefined && realValue < object.common.min) {
-                        throw new Error(`Value ${value} is less than min ${object.common.min}`);
+                        throw new Error(`Value ${JSON.stringify(value)} is less than min ${object.common.min}`);
                     }
                     if (object.common.max !== undefined && realValue > object.common.max) {
-                        throw new Error(`Value ${value} is greater than max ${object.common.max}`);
+                        throw new Error(`Value ${JSON.stringify(value)} is greater than max ${object.common.max}`);
                     }
 
                     await this.adapter.setForeignStateAsync(
@@ -398,7 +398,7 @@ export class DeviceStateObject<T> {
                         !this.#isIoBrokerState,
                     );
                 } else if (valueType === 'string') {
-                    const realValue: string = String(value);
+                    const realValue = String(value);
                     await this.adapter.setForeignStateAsync(
                         this.#id,
                         realValue as ioBroker.StateValue,
@@ -423,10 +423,10 @@ export class DeviceStateObject<T> {
 
             if (valueType === 'number') {
                 if (object.common.min !== undefined && value < object.common.min) {
-                    throw new Error(`Value ${value} is less than min ${object.common.min}`);
+                    throw new Error(`Value ${JSON.stringify(value)} is less than min ${object.common.min}`);
                 }
                 if (object.common.max !== undefined && value > object.common.max) {
-                    throw new Error(`Value ${value} is greater than max ${object.common.max}`);
+                    throw new Error(`Value ${JSON.stringify(value)} is greater than max ${object.common.max}`);
                 }
 
                 if (typeof value === 'number') {

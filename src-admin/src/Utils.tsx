@@ -1,14 +1,18 @@
-import type { AdminConnection } from '@iobroker/adapter-react-v5';
-import { I18n } from '@iobroker/adapter-react-v5';
-import type { DetectOptions } from '@iobroker/type-detector';
-import ChannelDetector, { Types } from '@iobroker/type-detector';
+import { I18n, type AdminConnection } from '@iobroker/adapter-react-v5';
+import ChannelDetector, { Types, type DetectOptions } from '@iobroker/type-detector';
+
 import type { DetectedDevice, DetectedRoom } from './types';
 import VENDOR_IDS from './utils/vendorIDs';
 
-function getObjectIcon(obj: ioBroker.Object | DetectedDevice, id: string, imagePrefix?: string): string | undefined {
+function getObjectIcon(
+    obj: ioBroker.Object | DetectedDevice,
+    id: string,
+    imagePrefix: string,
+    lang: ioBroker.Languages,
+): string | undefined {
     imagePrefix = imagePrefix || '.'; // http://localhost:8081';
     let src = '';
-    const common: ioBroker.ObjectCommon = obj?.common;
+    const common: ioBroker.ObjectCommon | undefined = obj?.common;
 
     if (common) {
         const cIcon = common.icon;
@@ -17,7 +21,14 @@ function getObjectIcon(obj: ioBroker.Object | DetectedDevice, id: string, imageP
                 if (cIcon.includes('.')) {
                     let instance: string[];
                     if (obj.type === 'instance' || obj.type === 'adapter') {
-                        src = `${imagePrefix}/adapter/${common.name}/${cIcon}`;
+                        let name: string;
+                        if (typeof common.name === 'object') {
+                            name = common.name[lang] || common.name.en;
+                        } else {
+                            name = common.name;
+                        }
+
+                        src = `${imagePrefix}/adapter/${name}/${cIcon}`;
                     } else if (id && id.startsWith('system.adapter.')) {
                         instance = id.split('.', 3);
                         if (cIcon[0] === '/') {
@@ -100,7 +111,11 @@ async function allObjects(socket: AdminConnection): Promise<Record<string, ioBro
     return cachedObjects;
 }
 
-export async function detectDevices(socket: AdminConnection, list?: string[]): Promise<DetectedRoom[]> {
+export async function detectDevices(
+    socket: AdminConnection,
+    lang: ioBroker.Languages,
+    list?: string[],
+): Promise<DetectedRoom[]> {
     const devicesObject = await allObjects(socket);
     const keys: string[] = Object.keys(devicesObject).sort();
     const detector = new ChannelDetector();
@@ -245,9 +260,9 @@ export async function detectDevices(socket: AdminConnection, list?: string[]): P
     });
 
     // find names and icons for devices
-    for (const k in result) {
-        for (const k2 in result[k].devices) {
-            const deviceObj = result[k].devices[k2];
+    result.forEach(control => {
+        control.devices.forEach(dev => {
+            const deviceObj = dev;
             if (deviceObj.type === 'state' || deviceObj.type === 'channel') {
                 const idArray = deviceObj._id.split('.');
                 idArray.pop();
@@ -262,26 +277,26 @@ export async function detectDevices(socket: AdminConnection, list?: string[]): P
                 ) {
                     deviceObj.common.name = parentObject.common?.name || deviceObj.common.name;
                     if (parentObject.common.icon) {
-                        deviceObj.common.icon = getObjectIcon(parentObject, parentObject._id, '../..');
+                        deviceObj.common.icon = getObjectIcon(parentObject, parentObject._id, '../..', lang);
                     }
                     idArray.pop();
                     // read device
                     const grandParentObject = devicesObject[idArray.join('.')];
                     if (grandParentObject?.type === 'device' && grandParentObject.common?.icon) {
                         deviceObj.common.name = grandParentObject.common.name || deviceObj.common.name;
-                        deviceObj.common.icon = getObjectIcon(grandParentObject, grandParentObject._id, '../..');
+                        deviceObj.common.icon = getObjectIcon(grandParentObject, grandParentObject._id, '../..', lang);
                     }
                 } else {
                     deviceObj.common.name = parentObject?.common?.name || deviceObj.common.name;
                     if (parentObject?.common?.icon) {
-                        deviceObj.common.icon = getObjectIcon(parentObject, parentObject._id, '../..');
+                        deviceObj.common.icon = getObjectIcon(parentObject, parentObject._id, '../..', lang);
                     }
                 }
             } else {
-                deviceObj.common.icon = getObjectIcon(deviceObj, deviceObj._id, '../..');
+                deviceObj.common.icon = getObjectIcon(deviceObj, deviceObj._id, '../..', lang);
             }
-        }
-    }
+        });
+    });
 
     return result;
 }

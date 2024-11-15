@@ -17,12 +17,17 @@ import {
 } from '@mui/material';
 
 import {
+    AcUnit,
     Add,
+    Air,
     Blinds,
     Close,
     DirectionsRun,
     ExpandMore,
+    Gradient,
+    Image,
     Lightbulb,
+    LocationOn,
     Lock,
     Palette,
     PlayArrowRounded,
@@ -30,8 +35,10 @@ import {
     QuestionMark,
     SensorDoor,
     Thermostat,
+    Timeline,
     TipsAndUpdates,
     Tune,
+    Videocam,
     VolumeUp,
     Water,
     WaterDrop,
@@ -40,57 +47,69 @@ import {
     Window,
 } from '@mui/icons-material';
 
-import { type AdminConnection, type IobTheme, I18n, Icon } from '@iobroker/adapter-react-v5';
+import { type AdminConnection, I18n, Icon, type IobTheme } from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 
 import { clone, detectDevices, getText } from '../Utils';
 import type { DetectedDevice, DetectedRoom, MatterConfig } from '../types';
 
 export const DEVICE_ICONS: Record<Types, React.JSX.Element> = {
+    airCondition: <AcUnit />,
     blind: <Blinds />,
+    camera: <Videocam />,
+    chart: <Timeline />,
+    ct: <Gradient />,
     dimmer: <TipsAndUpdates />,
     door: <SensorDoor />,
     fireAlarm: <Whatshot />,
     floodAlarm: <Water />,
     humidity: <WaterDrop />,
-    slider: <Tune />,
+    image: <Image />,
     light: <Lightbulb />,
     lock: <Lock />,
+    location: <LocationOn />,
     media: <PlayArrowRounded />,
     motion: <DirectionsRun />,
     rgb: <Palette />,
     rgbSingle: <Palette />,
     rgbwSingle: <Palette />,
+    slider: <Tune />,
     socket: <Power />,
     temperature: <Thermostat />,
     thermostat: <Thermostat />,
     volume: <VolumeUp />,
     volumeGroup: <VolumeUp />,
+    weatherCurrent: <Air />,
     weatherForecast: <WbSunny />,
     window: <Window />,
     windowTilt: <Window />,
 
-    unknown: <QuestionMark />,
-    airCondition: <QuestionMark />,
     blindButtons: <QuestionMark />,
     button: <QuestionMark />,
     buttonSensor: <QuestionMark />,
-    camera: <QuestionMark />,
-    chart: <QuestionMark />,
     cie: <QuestionMark />,
-    ct: <QuestionMark />,
     gate: <QuestionMark />,
     hue: <QuestionMark />,
-    image: <QuestionMark />,
     info: <QuestionMark />,
-    location: <QuestionMark />,
-    warning: <QuestionMark />,
-    weatherCurrent: <QuestionMark />,
-    vacuumCleaner: <QuestionMark />,
     instance: <QuestionMark />,
+    unknown: <QuestionMark />,
+    vacuumCleaner: <QuestionMark />,
+    warning: <QuestionMark />,
 };
 
-export const SUPPORTED_DEVICES: Types[] = [Types.socket, Types.light, Types.dimmer, Types.temperature, Types.humidity];
+export const SUPPORTED_DEVICES: Types[] = [
+    Types.socket,
+    Types.light,
+    Types.dimmer,
+    Types.temperature,
+    Types.humidity,
+    Types.door,
+    Types.floodAlarm,
+    Types.humidity,
+    Types.lock,
+    Types.motion,
+    Types.window,
+];
 
 const productIds: string[] = [];
 for (let i = 0x8000; i <= 0x801f; i++) {
@@ -194,7 +213,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
         let expanded: string[];
         try {
             expanded = JSON.parse(expandedStr);
-        } catch (e) {
+        } catch {
             expanded = [];
         }
 
@@ -212,8 +231,9 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
         };
     }
 
-    async componentDidMount() {
-        const detectedDevices = this.props.detectedDevices || (await detectDevices(this.props.socket));
+    async componentDidMount(): Promise<void> {
+        const detectedDevices =
+            this.props.detectedDevices || (await detectDevices(this.props.socket, I18n.getLanguage()));
 
         if (!this.props.detectedDevices) {
             setTimeout(() => this.props.setDetectedDevices(detectedDevices), 100);
@@ -274,7 +294,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
         });
     }
 
-    handleSubmit = () => {
+    handleSubmit = (): void => {
         const devices: DetectedDevice[] = [];
         this.state.rooms?.forEach(room => {
             room.devices.forEach(device => {
@@ -287,7 +307,12 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
         this.props.onClose();
     };
 
-    renderDevice(roomIndex: number, room: DetectedRoom, deviceIndex: number, device: DetectedDevice) {
+    renderDevice(
+        roomIndex: number,
+        room: DetectedRoom,
+        deviceIndex: number,
+        device: DetectedDevice,
+    ): React.JSX.Element | null {
         const supported = SUPPORTED_DEVICES.includes(device.deviceType);
 
         if (!supported && !this.state.showUnsupported) {
@@ -312,7 +337,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                     <Checkbox
                         checked={!!this.state.devicesChecked[device._id]}
                         disabled={!supported}
-                        onChange={e => {
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                             const devicesChecked = clone(this.state.devicesChecked);
                             devicesChecked[device._id] = e.target.checked;
                             this.setState({ devicesChecked });
@@ -360,7 +385,10 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                         variant="standard"
                     >
                         {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorId => (
-                            <MenuItem key={vendorId} value={vendorId}>
+                            <MenuItem
+                                key={vendorId}
+                                value={vendorId}
+                            >
                                 {vendorId}
                             </MenuItem>
                         ))}
@@ -384,7 +412,10 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                         variant="standard"
                     >
                         {productIds.map(productId => (
-                            <MenuItem key={productId} value={productId}>
+                            <MenuItem
+                                key={productId}
+                                value={productId}
+                            >
                                 {productId}
                             </MenuItem>
                         ))}
@@ -394,7 +425,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
         );
     }
 
-    render() {
+    render(): React.JSX.Element {
         const counters =
             this.state.rooms?.map(room =>
                 room.devices.reduce((a, b) => a + (this.state.devicesChecked[b._id] ? 1 : 0), 0),
@@ -421,7 +452,11 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
             }) || [];
 
         return (
-            <Dialog open={!0} onClose={this.props.onClose} fullWidth>
+            <Dialog
+                open={!0}
+                onClose={this.props.onClose}
+                fullWidth
+            >
                 <DialogTitle>
                     {`${I18n.t('Add devices')}${this.props.type === 'bridge' ? ` ${I18n.t('to bridge')} ${getText(this.props.name)}` : ''}`}
                 </DialogTitle>
@@ -553,7 +588,11 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                                                 <AccordionSummary expandIcon={<ExpandMore />}>
                                                     <div style={styles.summaryDiv}>
                                                         {room.common.icon ? (
-                                                            <Icon src={room.common.icon} style={styles.icon} alt="" />
+                                                            <Icon
+                                                                src={room.common.icon}
+                                                                style={styles.icon}
+                                                                alt=""
+                                                            />
                                                         ) : null}
 
                                                         <div style={styles.flexGrow}>{getText(room.common.name)}</div>
@@ -635,7 +674,12 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                             counters?.reduce((a, b) => a + b, 0),
                         )}
                     </Button>
-                    <Button variant="contained" onClick={() => this.props.onClose()} startIcon={<Close />} color="grey">
+                    <Button
+                        variant="contained"
+                        onClick={() => this.props.onClose()}
+                        startIcon={<Close />}
+                        color="grey"
+                    >
                         {I18n.t('Cancel')}
                     </Button>
                 </DialogActions>

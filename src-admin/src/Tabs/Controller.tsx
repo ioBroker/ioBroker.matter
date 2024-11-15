@@ -1,6 +1,7 @@
-import { IconButton, InfoBox } from '@foxriver76/iob-component-lib';
-import QrScanner from 'qr-scanner';
 import React, { Component } from 'react';
+import QrScanner from 'qr-scanner';
+
+import { IconButton, InfoBox } from '@foxriver76/iob-component-lib';
 
 import { Add, Bluetooth, BluetoothDisabled, Close, Save, Search, SearchOff } from '@mui/icons-material';
 
@@ -25,8 +26,7 @@ import {
     Typography,
 } from '@mui/material';
 
-import type { AdminConnection, IobTheme, ThemeName, ThemeType } from '@iobroker/adapter-react-v5';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { type AdminConnection, type IobTheme, type ThemeName, type ThemeType, I18n } from '@iobroker/adapter-react-v5';
 import DeviceManager from '@iobroker/dm-gui-components';
 
 import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
@@ -157,7 +157,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
         };
     }
 
-    async readStructure() {
+    async readStructure(): Promise<void> {
         let nodes: Record<string, ioBroker.Object>;
         try {
             nodes = await this.props.socket.getObjectViewSystem(
@@ -165,7 +165,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 `matter.${this.props.instance}.controller.`,
                 `matter.${this.props.instance}.controller.\u9999`,
             );
-        } catch (e) {
+        } catch {
             nodes = {};
         }
         // ignore 'matter.0.controller.info' channel
@@ -178,7 +178,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 `matter.${this.props.instance}.controller.\u9999`,
             );
             Object.keys(_states).forEach(id => (nodes[id] = _states[id]));
-        } catch (e) {
+        } catch {
             // ignore
         }
         try {
@@ -188,7 +188,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 `matter.${this.props.instance}.controller.\u9999`,
             );
             Object.keys(devices).forEach(id => (nodes[id] = devices[id]));
-        } catch (e) {
+        } catch {
             // ignore
         }
         try {
@@ -198,7 +198,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 `matter.${this.props.instance}.controller.\u9999`,
             );
             Object.keys(bridges).forEach(id => (nodes[id] = bridges[id]));
-        } catch (e) {
+        } catch {
             // ignore
         }
 
@@ -209,9 +209,9 @@ class Controller extends Component<ComponentProps, ComponentState> {
         this.setState({ nodes, states });
     }
 
-    async componentDidMount() {
+    async componentDidMount(): Promise<void> {
         this.props.registerMessageHandler(this.onMessage);
-        this.readStructure()
+        return this.readStructure()
             .catch(e => window.alert(`Cannot read structure: ${e}`))
             .then(() =>
                 this.props.socket
@@ -225,7 +225,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
             );
     }
 
-    onObjectChange = (id: string, obj: ioBroker.Object | null | undefined) => {
+    onObjectChange = (id: string, obj: ioBroker.Object | null | undefined): void => {
         if (!this.state.nodes) {
             return;
         }
@@ -238,7 +238,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
         this.setState({ nodes });
     };
 
-    onStateChange = (id: string, state: ioBroker.State | null | undefined) => {
+    onStateChange = (id: string, state: ioBroker.State | null | undefined): void => {
         if (id === `matter.${this.props.instance}.controller.info.discovering`) {
             if (state?.val) {
                 this.setState({ discoveryRunning: true });
@@ -260,14 +260,14 @@ class Controller extends Component<ComponentProps, ComponentState> {
         this.setState({ states });
     };
 
-    async componentWillUnmount() {
+    async componentWillUnmount(): Promise<void> {
         this.props.registerMessageHandler(null);
         this.destroyQrCode();
         await this.props.socket.unsubscribeObject(`matter.${this.props.instance}.controller.*`, this.onObjectChange);
         this.props.socket.unsubscribeState(`matter.${this.props.instance}.controller.*`, this.onStateChange);
     }
 
-    async initQrCode() {
+    async initQrCode(): Promise<void> {
         if (!this.qrScanner && this.refQrScanner.current) {
             this.qrScanner = true;
 
@@ -300,7 +300,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
         }
     }
 
-    onMessage = (message: GUIMessage | null) => {
+    onMessage = (message: GUIMessage | null): void => {
         if (message?.command === 'discoveredDevice') {
             if (message.device) {
                 const discovered = clone(this.state.discovered);
@@ -314,7 +314,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
         }
     };
 
-    destroyQrCode() {
+    destroyQrCode(): void {
         if (this.qrScanner && this.qrScanner !== true) {
             this.qrScanner.destroy();
         }
@@ -324,13 +324,16 @@ class Controller extends Component<ComponentProps, ComponentState> {
     /**
      * Render the loading spinner if backend processing is active
      */
-    renderLoadingSpinner(): React.ReactNode {
+    renderLoadingSpinner(): React.JSX.Element | null {
         if (!this.state.backendProcessingActive) {
             return null;
         }
 
         return (
-            <Backdrop sx={{ zIndex: theme => theme.zIndex.drawer + 1 }} open>
+            <Backdrop
+                sx={{ zIndex: theme => theme.zIndex.drawer + 1 }}
+                open
+            >
                 <CircularProgress />
             </Backdrop>
         );
@@ -339,7 +342,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
     /**
      * Render the BLE dialog
      */
-    renderBleDialog(): React.ReactNode {
+    renderBleDialog(): React.JSX.Element | null {
         if (!this.state.bleDialogOpen) {
             return null;
         }
@@ -556,7 +559,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
         this.setState({ backendProcessingActive: false });
     }
 
-    renderQrCodeDialog() {
+    renderQrCodeDialog(): React.JSX.Element | null {
         if (!this.state.showQrCodeDialog.open) {
             return null;
         }
@@ -585,7 +588,6 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         value={this.state.qrCode}
                     />
                     {this.state.camera ? <br /> : null}
-                    {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                     <video
                         ref={this.refQrScanner}
                         style={{
@@ -607,7 +609,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             }}
                         >
                             {this.state.cameras.map((camera, i) => (
-                                <MenuItem key={i} value={camera.id}>
+                                <MenuItem
+                                    key={i}
+                                    value={camera.id}
+                                >
                                     {camera.label}
                                 </MenuItem>
                             ))}
@@ -668,7 +673,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
         );
     }
 
-    renderShowDiscoveredDevices() {
+    renderShowDiscoveredDevices(): React.JSX.Element | null {
         if (!this.state.discoveryRunning && !this.state.discoveryDone) {
             return null;
         }
@@ -693,7 +698,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         </TableHead>
                         <TableBody>
                             {this.state.discovered.map(device => (
-                                <TableRow>
+                                <TableRow key={device.deviceIdentifier}>
                                     <TableCell>{device.DN}</TableCell>
                                     <TableCell>{device.deviceIdentifier}</TableCell>
                                     <TableCell>{getVendorName(device.V)}</TableCell>
@@ -769,7 +774,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
         );
     }
 
-    renderDeviceManager() {
+    renderDeviceManager(): React.JSX.Element | null {
         if (!this.state.nodes) {
             return null;
         }
@@ -784,7 +789,6 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     style={{ justifyContent: 'start' }}
                     themeName={this.props.themeName}
                     themeType={this.props.themeType}
-                    // @ts-expect-error should be fixed in DM
                     theme={this.props.theme}
                     isFloatComma={this.props.isFloatComma}
                     dateFormat={this.props.dateFormat}
@@ -793,7 +797,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
         );
     }
 
-    render() {
+    render(): React.JSX.Element {
         if (!this.props.alive && (this.state.discoveryRunning || this.state.discoveryDone)) {
             setTimeout(() => this.setState({ discoveryRunning: false, discoveryDone: false }), 100);
         }

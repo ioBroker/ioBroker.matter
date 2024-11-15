@@ -153,6 +153,14 @@ interface EditBridgeDialog extends EditBridgeDialogBase {
     bridgeIndex: number;
 }
 
+interface AddCustomDeviceDialog {
+    oid: string;
+    name: string;
+    deviceType: Types | '';
+    bridgeIndex: number;
+    hasOnState?: boolean;
+}
+
 interface BridgesState extends BridgesAndDevicesState {
     /** Open Dialog to select further options to add a device */
     addDevicePreDialog:
@@ -195,13 +203,7 @@ interface BridgesState extends BridgesAndDevicesState {
         name: string;
         devices: BridgeDeviceDescription[];
     } | null;
-    addCustomDeviceDialog: {
-        oid: string;
-        name: string;
-        deviceType: Types | '';
-        bridgeIndex: number;
-        hasOnState?: boolean;
-    } | null;
+    addCustomDeviceDialog: AddCustomDeviceDialog | null;
     bridgesOpened: Record<string, boolean>;
     deleteDialog: {
         deviceIndex?: number;
@@ -237,7 +239,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         });
     }
 
-    componentDidMount() {
+    componentDidMount(): void {
         super.componentDidMount();
 
         if (!this.props.matter.bridges.length) {
@@ -256,7 +258,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         }
     }
 
-    async addDevicesToBridge(devices: DetectedDevice[], bridgeIndex: number, isAutoDetected: boolean) {
+    async addDevicesToBridge(devices: DetectedDevice[], bridgeIndex: number, isAutoDetected: boolean): Promise<void> {
         const matter = clone(this.props.matter);
         const bridge = matter.bridges[bridgeIndex];
         for (let d = 0; d < devices.length; d++) {
@@ -288,7 +290,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         this.props.updateConfig(matter);
     }
 
-    renderBridgeEditDialog() {
+    renderBridgeEditDialog(): React.JSX.Element | null {
         if (!this.state.editBridgeDialog) {
             return null;
         }
@@ -298,7 +300,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         const isCommissioned =
             !editDialog.add && !!this.props.commissioning[this.props.matter.bridges[editDialog.bridgeIndex].uuid];
 
-        const save = () => {
+        const save = (): void => {
             if (!this.state.editBridgeDialog) {
                 return;
             }
@@ -328,7 +330,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
             this.state.editBridgeDialog.productID === this.state.editBridgeDialog.originalProductID;
 
         return (
-            <Dialog onClose={() => this.setState({ editBridgeDialog: null })} open={!0}>
+            <Dialog
+                onClose={() => this.setState({ editBridgeDialog: null })}
+                open={!0}
+            >
                 <DialogTitle>
                     {this.state.editBridgeDialog.add
                         ? I18n.t('Add bridge')
@@ -371,7 +376,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         variant="standard"
                     >
                         {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorID => (
-                            <MenuItem key={vendorID} value={vendorID}>
+                            <MenuItem
+                                key={vendorID}
+                                value={vendorID}
+                            >
                                 {vendorID}
                             </MenuItem>
                         ))}
@@ -395,7 +403,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         variant="standard"
                     >
                         {this.props.productIDs.map(productID => (
-                            <MenuItem key={productID} value={productID}>
+                            <MenuItem
+                                key={productID}
+                                value={productID}
+                            >
                                 {productID}
                             </MenuItem>
                         ))}
@@ -429,14 +440,14 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         );
     }
 
-    renderDeviceEditDialog() {
+    renderDeviceEditDialog(): React.JSX.Element | null {
         if (!this.state.editDeviceDialog) {
             return null;
         }
         const isCommissioned =
             !!this.props.commissioning[this.props.matter.bridges[this.state.editDeviceDialog.bridgeIndex].uuid];
 
-        const save = () => {
+        const save = (): void => {
             if (!this.state.editDeviceDialog) {
                 return;
             }
@@ -475,7 +486,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
             !this.state.editDeviceDialog.deviceType;
 
         return (
-            <Dialog onClose={() => this.setState({ editDeviceDialog: null })} open={!0}>
+            <Dialog
+                onClose={() => this.setState({ editDeviceDialog: null })}
+                open={!0}
+            >
                 <DialogTitle>{`${I18n.t('Edit device')} "${this.state.editDeviceDialog?.originalName}"`}</DialogTitle>
                 <DialogContent>
                     <TextField
@@ -545,7 +559,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             {Object.keys(Types)
                                 .filter(key => SUPPORTED_DEVICES.includes(key as Types))
                                 .map(type => (
-                                    <MenuItem key={type} value={type}>
+                                    <MenuItem
+                                        key={type}
+                                        value={type}
+                                    >
                                         <span>{DEVICE_ICONS[type as Types] || <QuestionMark />}</span>
                                         {I18n.t(type)}
                                     </MenuItem>
@@ -611,7 +628,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                 renderValue={value => `${value}%`}
                             >
                                 {[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(type => (
-                                    <MenuItem key={type} value={type}>
+                                    <MenuItem
+                                        key={type}
+                                        value={type}
+                                    >
                                         {`${type}%`}
                                     </MenuItem>
                                 ))}
@@ -645,7 +665,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         );
     }
 
-    renderDeleteDialog() {
+    renderDeleteDialog(): React.JSX.Element | null {
         if (!this.state.deleteDialog) {
             return null;
         }
@@ -671,7 +691,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         }
 
         return (
-            <Dialog onClose={() => this.setState({ deleteDialog: null })} open={!0}>
+            <Dialog
+                onClose={() => this.setState({ deleteDialog: null })}
+                open={!0}
+            >
                 <DialogTitle>{I18n.t('Delete')}</DialogTitle>
                 <DialogContent>
                     {`${
@@ -730,7 +753,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         );
     }
 
-    renderAddDeviceDialog() {
+    renderAddDeviceDialog(): React.JSX.Element | null {
         if (!this.state.addDeviceDialog) {
             return null;
         }
@@ -811,7 +834,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         }
 
         return (
-            <Dialog open={!0} onClose={() => this.setState({ addDevicePreDialog: { open: false } })}>
+            <Dialog
+                open={!0}
+                onClose={() => this.setState({ addDevicePreDialog: { open: false } })}
+            >
                 <DialogTitle>{I18n.t('Add device')}</DialogTitle>
                 <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                     <Button
@@ -888,12 +914,15 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         );
     }
 
-    renderAddCustomDeviceDialog() {
+    renderAddCustomDeviceDialog(): React.JSX.Element | null {
         if (!this.state.addCustomDeviceDialog) {
             return null;
         }
         return (
-            <Dialog open={!0} onClose={() => this.setState({ addCustomDeviceDialog: null })}>
+            <Dialog
+                open={!0}
+                onClose={() => this.setState({ addCustomDeviceDialog: null })}
+            >
                 <DialogTitle>{I18n.t('Configure custom device')}</DialogTitle>
                 <DialogContent>
                     <TextField
@@ -904,7 +933,9 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                 return;
                             }
 
-                            const addCustomDeviceDialog = clone(this.state.addCustomDeviceDialog);
+                            const addCustomDeviceDialog: AddCustomDeviceDialog = clone(
+                                this.state.addCustomDeviceDialog,
+                            );
                             addCustomDeviceDialog.name = e.target.value;
                             this.setState({ addCustomDeviceDialog });
                         }}
@@ -929,7 +960,9 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                     return;
                                 }
 
-                                const addCustomDeviceDialog = clone(this.state.addCustomDeviceDialog);
+                                const addCustomDeviceDialog: AddCustomDeviceDialog = clone(
+                                    this.state.addCustomDeviceDialog,
+                                );
                                 addCustomDeviceDialog.deviceType = e.target.value as Types;
                                 this.setState({ addCustomDeviceDialog });
                             }}
@@ -943,7 +976,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             {Object.keys(Types)
                                 .filter(key => SUPPORTED_DEVICES.includes(key as Types))
                                 .map(type => (
-                                    <MenuItem key={type} value={type}>
+                                    <MenuItem
+                                        key={type}
+                                        value={type}
+                                    >
                                         <span>{DEVICE_ICONS[type as Types] || <QuestionMark />}</span>
                                         {I18n.t(type)}
                                     </MenuItem>
@@ -954,25 +990,27 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 <DialogActions>
                     <Button
                         onClick={() => {
-                            this.state.addCustomDeviceDialog &&
-                                this.addDevicesToBridge(
+                            const addCustomDeviceDialog = this.state.addCustomDeviceDialog;
+                            if (addCustomDeviceDialog) {
+                                void this.addDevicesToBridge(
                                     [
                                         {
-                                            _id: this.state.addCustomDeviceDialog.oid,
+                                            _id: addCustomDeviceDialog.oid,
                                             common: {
-                                                name: this.state.addCustomDeviceDialog.name,
+                                                name: addCustomDeviceDialog.name,
                                             },
-                                            deviceType: this.state.addCustomDeviceDialog.deviceType as Types,
-                                            hasOnState: this.state.addCustomDeviceDialog.hasOnState,
+                                            deviceType: addCustomDeviceDialog.deviceType as Types,
+                                            hasOnState: addCustomDeviceDialog.hasOnState,
                                             // ignored
                                             type: 'device',
                                             states: [],
                                             roomName: '',
                                         },
                                     ],
-                                    this.state.addCustomDeviceDialog.bridgeIndex,
+                                    addCustomDeviceDialog.bridgeIndex,
                                     false,
                                 );
+                            }
 
                             this.setState({ addCustomDeviceDialog: null });
                         }}
@@ -996,14 +1034,25 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         );
     }
 
-    renderDevice(bridge: BridgeDescription, bridgeIndex: number, device: DeviceDescription, devIndex: number) {
+    renderDevice(
+        bridge: BridgeDescription,
+        bridgeIndex: number,
+        device: DeviceDescription,
+        devIndex: number,
+    ): React.JSX.Element {
         const isLast = devIndex === bridge.list.length - 1;
         return (
-            <TableRow key={devIndex} style={{ opacity: device.enabled && bridge.enabled ? 1 : 0.4 }}>
+            <TableRow
+                key={devIndex}
+                style={{ opacity: device.enabled && bridge.enabled ? 1 : 0.4 }}
+            >
                 <TableCell style={{ border: 0, borderBottomLeftRadius: isLast ? 4 : 0 }} />
                 <TableCell>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <div style={{ marginRight: 8 }} title={device.type}>
+                        <div
+                            style={{ marginRight: 8 }}
+                            title={device.type}
+                        >
                             {DEVICE_ICONS[device.type] || <QuestionMark />}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -1019,7 +1068,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 <TableCell style={{ width: 0 }}>
                     <Tooltip
                         title={I18n.t(device.enabled ? 'Disable device' : 'Enable device')}
-                        componentsProps={{ popper: { sx: styles.tooltip } }}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                     >
                         <Switch
                             checked={device.enabled}
@@ -1032,7 +1081,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     </Tooltip>
                 </TableCell>
                 <TableCell style={{ width: 0 }}>
-                    <Tooltip title={I18n.t('Edit device')} componentsProps={{ popper: { sx: styles.tooltip } }}>
+                    <Tooltip
+                        title={I18n.t('Edit device')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                    >
                         <IconButton
                             onClick={() => {
                                 this.setState({
@@ -1063,7 +1115,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     </Tooltip>
                 </TableCell>
                 <TableCell style={{ width: 0, borderBottomRightRadius: isLast ? 4 : 0 }}>
-                    <Tooltip title={I18n.t('Delete device')} componentsProps={{ popper: { sx: styles.tooltip } }}>
+                    <Tooltip
+                        title={I18n.t('Delete device')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                    >
                         <IconButton
                             onClick={() => {
                                 this.setState({
@@ -1084,7 +1139,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         );
     }
 
-    renderBridge(bridge: BridgeDescription, bridgeIndex: number) {
+    renderBridge(bridge: BridgeDescription, bridgeIndex: number): React.JSX.Element | null {
         if (bridge.deleted) {
             return null;
         }
@@ -1103,7 +1158,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
 
         return (
             <React.Fragment key={bridgeIndex}>
-                <TableRow style={{ opacity: bridge.enabled ? 1 : 0.4 }} sx={styles.bridgeButtonsAndTitle}>
+                <TableRow
+                    style={{ opacity: bridge.enabled ? 1 : 0.4 }}
+                    sx={styles.bridgeButtonsAndTitle}
+                >
                     <TableCell
                         style={{
                             width: 0,
@@ -1156,15 +1214,21 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         <div style={styles.flexGrow} />
                         {this.renderStatus(bridge)}
                     </TableCell>
-                    <TableCell style={{ width: 0 }} sx={styles.bridgeButtonsAndTitle} />
-                    <TableCell style={{ width: 0 }} sx={styles.bridgeButtonsAndTitle}>
+                    <TableCell
+                        style={{ width: 0 }}
+                        sx={styles.bridgeButtonsAndTitle}
+                    />
+                    <TableCell
+                        style={{ width: 0 }}
+                        sx={styles.bridgeButtonsAndTitle}
+                    >
                         <Tooltip
                             title={
                                 bridge.enabled && !allowDisable
                                     ? I18n.t('At least one bridge must be enabled')
                                     : I18n.t('Enable/disable bridge')
                             }
-                            componentsProps={{ popper: { sx: styles.tooltip } }}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                         >
                             <span>
                                 <Switch
@@ -1180,8 +1244,14 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             </span>
                         </Tooltip>
                     </TableCell>
-                    <TableCell style={{ width: 0 }} sx={styles.bridgeButtonsAndTitle}>
-                        <Tooltip title={I18n.t('Edit bridge')} componentsProps={{ popper: { sx: styles.tooltip } }}>
+                    <TableCell
+                        style={{ width: 0 }}
+                        sx={styles.bridgeButtonsAndTitle}
+                    >
+                        <Tooltip
+                            title={I18n.t('Edit bridge')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        >
                             <IconButton
                                 sx={styles.bridgeButtonsAndTitleColor}
                                 onClick={e => {
@@ -1213,7 +1283,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         sx={styles.bridgeButtonsAndTitle}
                     >
                         <Tooltip
-                            componentsProps={{ popper: { sx: styles.tooltip } }}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                             title={
                                 bridge.enabled && !allowDisable
                                     ? I18n.t('At least one enabled bridge must exist')
@@ -1282,7 +1352,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                 {this.props.alive && bridge.enabled ? (
                                     <Tooltip
                                         title={I18n.t('Reset to factory defaults')}
-                                        componentsProps={{ popper: { sx: styles.tooltip } }}
+                                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                     >
                                         <IconButton
                                             onClick={() =>
@@ -1302,7 +1372,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             >
                                 <Tooltip
                                     title={I18n.t('Add device')}
-                                    componentsProps={{ popper: { sx: styles.tooltip } }}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 >
                                     <IconButton
                                         onClick={async () => {
@@ -1338,7 +1408,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         );
     }
 
-    render() {
+    render(): React.JSX.Element {
         return (
             <div>
                 {this.renderAddDeviceDialog()}
@@ -1351,7 +1421,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 {this.renderDebugDialog()}
                 {this.renderResetDialog()}
                 <InfoBox type="info">{I18n.t('Matter Bridges Infotext')}</InfoBox>
-                <Tooltip title={I18n.t('Add bridge')} componentsProps={{ popper: { sx: styles.tooltip } }}>
+                <Tooltip
+                    title={I18n.t('Add bridge')}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                >
                     <Fab
                         color="primary"
                         size="small"
@@ -1393,7 +1466,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 </Tooltip>
                 {this.props.matter.bridges.length ? (
                     <div>
-                        <Tooltip title={I18n.t('Expand all')} componentsProps={{ popper: { sx: styles.tooltip } }}>
+                        <Tooltip
+                            title={I18n.t('Expand all')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        >
                             <span>
                                 <IconButton
                                     onClick={() => {
@@ -1411,7 +1487,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                 </IconButton>
                             </span>
                         </Tooltip>
-                        <Tooltip title={I18n.t('Collapse all')} componentsProps={{ popper: { sx: styles.tooltip } }}>
+                        <Tooltip
+                            title={I18n.t('Collapse all')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        >
                             <span>
                                 <IconButton
                                     onClick={() => {
@@ -1433,7 +1512,12 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 ) : (
                     I18n.t('No bridges created. Create one, by clicking on the "+" button in the bottom right corner.')
                 )}
-                <Table size="small" style={{ width: '100%' }} padding="none" sx={styles.table}>
+                <Table
+                    size="small"
+                    style={{ width: '100%' }}
+                    padding="none"
+                    sx={styles.table}
+                >
                     <TableBody>
                         {this.props.matter.bridges.map((bridge, bridgeIndex) => this.renderBridge(bridge, bridgeIndex))}
                     </TableBody>

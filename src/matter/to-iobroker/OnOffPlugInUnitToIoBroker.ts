@@ -1,9 +1,9 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { OnOff } from '@matter/main/clusters';
-import { Endpoint } from '@project-chip/matter.js/device';
-import { GenericDevice } from '../../lib';
+import type { Endpoint } from '@project-chip/matter.js/device';
+import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
+import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import Socket from '../../lib/devices/Socket';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 

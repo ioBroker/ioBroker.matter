@@ -1,10 +1,10 @@
 import { Endpoint } from '@matter/main';
 import { DoorLock } from '@matter/main/clusters';
 import { DoorLockDevice } from '@matter/main/devices';
-import { GenericDevice } from '../../lib';
+import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import Lock from '../../lib/devices/Lock';
-import { IdentifyOptions } from './GenericDeviceToMatter';
+import type Lock from '../../lib/devices/Lock';
+import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
 import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 
@@ -42,7 +42,7 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
         // install matter listeners
         // here we can react on changes from the matter side for onOff
         this.#matterEndpoint.events.doorLock.lockState$Changed.on(async state => {
-            const currentState = !!this.#ioBrokerDevice.getLockState()
+            const currentState = this.#ioBrokerDevice.getLockState()
                 ? DoorLock.LockState.Locked
                 : DoorLock.LockState.Unlocked;
             switch (state) {
@@ -54,15 +54,19 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
                 case DoorLock.LockState.Unlatched:
                     if (this.ioBrokerDevice.propertyNames.includes(PropertyType.Open)) {
                         await this.#ioBrokerDevice.setOpen();
-                        break;
                     } else {
                         // Adjust state to get it handled by default logic
                         state = DoorLock.LockState.Unlocked;
+                        if (state !== currentState) {
+                            await this.#ioBrokerDevice.setLockState(state === DoorLock.LockState.Unlocked);
+                        }
                     }
+                    break;
                 default:
                     if (state !== currentState) {
                         await this.#ioBrokerDevice.setLockState(state === DoorLock.LockState.Unlocked);
                     }
+                    break;
             }
         });
     }
@@ -76,7 +80,7 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
                 case PropertyType.LockStateActual:
                     await this.#matterEndpoint.set({
                         doorLock: {
-                            lockState: !!event.value ? DoorLock.LockState.Unlocked : DoorLock.LockState.Locked,
+                            lockState: event.value ? DoorLock.LockState.Unlocked : DoorLock.LockState.Locked,
                         },
                     });
                     break;
@@ -86,7 +90,7 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
         // init current state from ioBroker side
         await this.#matterEndpoint.set({
             doorLock: {
-                lockState: !!this.#ioBrokerDevice.getLockState()
+                lockState: this.#ioBrokerDevice.getLockState()
                     ? DoorLock.LockState.Unlocked
                     : DoorLock.LockState.Locked,
             },

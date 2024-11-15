@@ -8,6 +8,7 @@ import * as serviceWorker from './serviceWorker';
 declare global {
     interface Window {
         sentryDSN: string;
+        adapterName: string | undefined;
     }
 }
 

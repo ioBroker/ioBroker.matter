@@ -41,7 +41,9 @@ class SubscribeManager {
 
     static async unsubscribe(id: string, callback: SubscribeCallback): Promise<void> {
         const subscribes = SubscribeManager.subscribes.get(id);
-        if (subscribes === undefined) return;
+        if (subscribes === undefined) {
+            return;
+        }
         const pos = subscribes.indexOf(callback);
         if (pos !== -1) {
             subscribes.splice(pos, 1);

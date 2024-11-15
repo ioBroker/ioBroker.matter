@@ -32,6 +32,18 @@ import type {
     NodeStateResponse,
 } from './types';
 
+import enLang from './i18n/en.json';
+import deLang from './i18n/de.json';
+import ruLang from './i18n/ru.json';
+import ptLang from './i18n/pt.json';
+import nlLang from './i18n/nl.json';
+import frLang from './i18n/fr.json';
+import itLang from './i18n/it.json';
+import esLang from './i18n/es.json';
+import plLang from './i18n/pl.json';
+import ukLang from './i18n/uk.json';
+import zhCnLang from './i18n/zh-cn.json';
+
 declare global {
     interface Window {
         sentryDSN: string;
@@ -89,17 +101,17 @@ class App extends GenericApp<GenericAppProps, AppState> {
         // @ts-expect-error no idea how to fix it
         extendedProps.Connection = AdminConnection;
         extendedProps.translations = {
-            en: require('./i18n/en'),
-            de: require('./i18n/de'),
-            ru: require('./i18n/ru'),
-            pt: require('./i18n/pt'),
-            nl: require('./i18n/nl'),
-            fr: require('./i18n/fr'),
-            it: require('./i18n/it'),
-            es: require('./i18n/es'),
-            pl: require('./i18n/pl'),
-            uk: require('./i18n/uk'),
-            'zh-cn': require('./i18n/zh-cn'),
+            en: enLang,
+            de: deLang,
+            ru: ruLang,
+            pt: ptLang,
+            nl: nlLang,
+            fr: frLang,
+            it: itLang,
+            es: esLang,
+            pl: plLang,
+            uk: ukLang,
+            'zh-cn': zhCnLang,
         };
 
         extendedProps.sentryDSN = window.sentryDSN;
@@ -132,7 +144,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         this.refreshTimer && clearTimeout(this.refreshTimer);
         this.refreshTimer = setTimeout(() => {
             this.refreshTimer = null;
-            this.refreshBackendSubscription();
+            void this.refreshBackendSubscription();
         }, 60_000);
 
         const result = await this.socket.subscribeOnInstance(
@@ -150,7 +162,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         }
     }
 
-    async onConnectionReady() {
+    async onConnectionReady(): Promise<void> {
         this.configHandler && this.configHandler.destroy();
         this.configHandler = new ConfigHandler(this.instance, this.socket, this.onChanged, this.onCommissioningChanged);
         const matter = await this.configHandler.loadConfig();
@@ -177,7 +189,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         const alive = await this.socket.getState(`system.adapter.matter.${this.instance}.alive`);
 
         if (alive?.val) {
-            this.refreshBackendSubscription();
+            void this.refreshBackendSubscription();
         }
 
         this.setState({
@@ -188,10 +200,10 @@ class App extends GenericApp<GenericAppProps, AppState> {
         });
     }
 
-    onAlive = (_id: string, state: ioBroker.State | null | undefined) => {
+    onAlive = (_id: string, state: ioBroker.State | null | undefined): void => {
         if (state?.val && !this.state.alive) {
             this.setState({ alive: true });
-            this.refreshBackendSubscription();
+            void this.refreshBackendSubscription();
         } else if (!state?.val && this.state.alive) {
             this.refreshTimer && clearTimeout(this.refreshTimer);
             this.refreshTimer = null;
@@ -199,7 +211,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         }
     };
 
-    onBackendUpdates = (update: GUIMessage | null) => {
+    onBackendUpdates = (update: GUIMessage | null): void => {
         if (!update) {
             return;
         }
@@ -236,7 +248,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         }
     };
 
-    onChanged = (newConfig: MatterConfig) => {
+    onChanged = (newConfig: MatterConfig): Promise<void> => {
         if (!this.state.ready) {
             return Promise.resolve();
         }
@@ -251,13 +263,13 @@ class App extends GenericApp<GenericAppProps, AppState> {
         });
     };
 
-    onCommissioningChanged = (newCommissioning: CommissioningInfo) => {
+    onCommissioningChanged = (newCommissioning: CommissioningInfo): void => {
         if (this.state.ready) {
             this.setState({ commissioning: newCommissioning });
         }
     };
 
-    async componentWillUnmount() {
+    async componentWillUnmount(): Promise<void> {
         window.alert = this.alert as (_message?: any) => void;
         this.alert = null;
         this.intervalSubscribe && clearInterval(this.intervalSubscribe);
@@ -266,7 +278,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         try {
             this.socket.unsubscribeState(`system.adapter.matter.${this.instance}.alive`, this.onAlive);
             await this.socket.unsubscribeFromInstance(`matter.${this.instance}`, 'gui', this.onBackendUpdates);
-        } catch (e) {
+        } catch {
             // ignore
         }
 
@@ -361,7 +373,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         );
     }
 
-    renderDevices() {
+    renderDevices(): React.JSX.Element {
         return (
             <DevicesTab
                 alive={this.state.alive}
@@ -394,7 +406,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         );
     }
 
-    async getLicense() {
+    async getLicense(): Promise<string | false> {
         if (this.state.native.login && this.state.native.pass) {
             if (this.state.alive) {
                 // ask the instance
@@ -418,7 +430,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         type: 'addBridge' | 'addDevice' | 'addDeviceToBridge',
         matter?: MatterConfig,
     ): Promise<boolean> {
-        let result = true;
+        let result: boolean | string = true;
         matter = matter || this.state.matter;
         if (matter) {
             if (type === 'addBridge') {
@@ -442,7 +454,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             return false;
         }
 
-        return result; // User may add one bridge or one device
+        return !!result; // User may add one bridge or one device
     }
 
     async onSave(isClose?: boolean): Promise<void> {
@@ -457,7 +469,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         }
     }
 
-    render() {
+    render(): React.JSX.Element {
         if (!this.state.ready) {
             return (
                 <StyledEngineProvider injectFirst>
@@ -520,7 +532,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                                         noBackground
                                         icon="noConnection"
                                         onClick={() => {
-                                            this.refreshBackendSubscription();
+                                            void this.refreshBackendSubscription();
                                         }}
                                     />
                                 )}

@@ -1,5 +1,5 @@
-import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
+import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
 class Button extends GenericDevice {
     #setPressState?: DeviceStateObject<boolean>;

@@ -1,7 +1,7 @@
-import { Endpoint } from '@matter/main';
-import { BridgedNodeEndpoint, RootEndpoint } from '@matter/main/endpoints';
+import type { Endpoint } from '@matter/main';
+import type { BridgedNodeEndpoint, RootEndpoint } from '@matter/main/endpoints';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import GenericDevice from '../../lib/devices/GenericDevice';
+import type GenericDevice from '../../lib/devices/GenericDevice';
 
 /**
  * Initializes the reachable state handler for a device and map it to the Basic Information Cluster of the Matter +

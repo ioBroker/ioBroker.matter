@@ -1,10 +1,10 @@
-import { AttributeId, ClusterId, Diagnostic, EndpointNumber, EventId } from '@matter/main';
+import { type AttributeId, type ClusterId, Diagnostic, EndpointNumber, type EventId } from '@matter/main';
 import { BasicInformation, Identify } from '@matter/main/clusters';
-import { DecodedEventData } from '@matter/main/protocol';
-import { Endpoint } from '@project-chip/matter.js/device';
-import { GenericDevice } from '../../lib';
+import type { DecodedEventData } from '@matter/main/protocol';
+import type { Endpoint } from '@project-chip/matter.js/device';
+import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import { DeviceOptions } from '../../lib/devices/GenericDevice';
+import type { DeviceOptions } from '../../lib/devices/GenericDevice';
 import { decamelize, toHex } from '../../lib/utils';
 
 export type EnabledProperty = {
@@ -109,7 +109,9 @@ export abstract class GenericDeviceToIoBroker {
                 endpointId === 0
                     ? this.#rootEndpoint.getClusterClientById(clusterId)
                     : this.appEndpoint.getClusterClientById(clusterId);
-            if (!cluster || !cluster.isAttributeSupportedByName(attributeName)) return;
+            if (!cluster || !cluster.isAttributeSupportedByName(attributeName)) {
+                return;
+            }
 
             attributeId = cluster.attributes[attributeName].id;
         }
@@ -128,9 +130,13 @@ export abstract class GenericDeviceToIoBroker {
 
     async getMatterState(property: PropertyType): Promise<any> {
         const matterLocation = this.#enabledProperties.get(property);
-        if (matterLocation === undefined) return;
+        if (matterLocation === undefined) {
+            return;
+        }
         const { endpointId, clusterId, attributeName } = matterLocation;
-        if (endpointId === undefined || clusterId === undefined || attributeName === undefined) return;
+        if (endpointId === undefined || clusterId === undefined || attributeName === undefined) {
+            return;
+        }
 
         const cluster =
             endpointId === 0
@@ -138,13 +144,17 @@ export abstract class GenericDeviceToIoBroker {
                 : endpointId === this.appEndpoint.number
                   ? this.appEndpoint.getClusterClientById(clusterId)
                   : undefined;
-        if (!cluster) return;
+        if (!cluster) {
+            return;
+        }
         return cluster.attributes[attributeName].get(false);
     }
 
     async updateIoBrokerState(property: PropertyType, value: any): Promise<void> {
         const properties = this.#enabledProperties.get(property);
-        if (properties === undefined) return;
+        if (properties === undefined) {
+            return;
+        }
         const { convertValue } = properties;
         if (convertValue !== undefined) {
             value = convertValue(value);
@@ -199,9 +209,13 @@ export abstract class GenericDeviceToIoBroker {
         // here we react on changes from the ioBroker side for onOff and current lamp level
         this.ioBrokerDevice.onChange(async (event: { property: PropertyType; value: unknown }) => {
             const matterLocation = this.#enabledProperties.get(event.property);
-            if (matterLocation === undefined) return;
+            if (matterLocation === undefined) {
+                return;
+            }
             const { changeHandler } = matterLocation;
-            if (changeHandler === undefined) return;
+            if (changeHandler === undefined) {
+                return;
+            }
             //console.log(`handle change event for ${event.property} with value ${event.value}`);
             await changeHandler(event.value);
         });
@@ -234,7 +248,7 @@ export abstract class GenericDeviceToIoBroker {
         await this.#adapter.extendObjectAsync(this.baseId, { common: { name } });
     }
 
-    async getDeviceDetails(): Promise<Record<string, Record<string, unknown>>> {
+    getDeviceDetails(): Promise<Record<string, Record<string, unknown>>> {
         const result: Record<string, Record<string, unknown>> = {};
 
         result.details = {
@@ -258,6 +272,6 @@ export abstract class GenericDeviceToIoBroker {
             result.matterClusters[`${client.name}__Revision`] = client.revision;
         }
 
-        return result;
+        return Promise.resolve(result);
     }
 }

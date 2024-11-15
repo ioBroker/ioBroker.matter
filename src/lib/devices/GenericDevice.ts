@@ -1,7 +1,7 @@
 // @iobroker/device-types
 
-import { DetectorState, Types } from '@iobroker/type-detector';
-import { BridgeDeviceDescription } from '../../ioBrokerStorageTypes';
+import type { DetectorState, Types } from '@iobroker/type-detector';
+import type { BridgeDeviceDescription } from '../../ioBrokerStorageTypes';
 import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 
 // take here https://github.com/ioBroker/ioBroker.type-detector/blob/master/DEVICES.md#temperature-temperature
@@ -326,7 +326,7 @@ abstract class GenericDevice {
         } else if (this.#isIoBrokerDevice && this.#properties[property].accessType === StateAccessType.Write) {
             throw new Error(`Property ${property} is write only`);
         }
-        const method: string = `get${property[0].toUpperCase()}${property.substring(1)}`;
+        const method = `get${property[0].toUpperCase()}${property.substring(1)}`;
         if (method in this) {
             // @ts-expect-error How to fix it?
             return this[method]();
@@ -378,7 +378,9 @@ abstract class GenericDevice {
             return;
         }
         if (!this.#isIoBrokerDevice && this.#properties[object.propertyType].accessType === StateAccessType.Read) {
-            this.#adapter.log.info(`updateState not allowed for type ${object.propertyType} and value ${object.value}`);
+            this.#adapter.log.info(
+                `updateState not allowed for type ${object.propertyType} and value ${object.value as string}`,
+            );
             return;
         }
         for (const handler of this.#handlers) {
@@ -526,7 +528,9 @@ abstract class GenericDevice {
     }
 
     applyConfiguration(options?: DeviceOptions): void {
-        if (!this.#isIoBrokerDevice) return;
+        if (!this.#isIoBrokerDevice) {
+            return;
+        }
         this.#adapter.log.debug(
             `Applying configuration to device ${this.constructor.name}: ${JSON.stringify(options)}`,
         );
@@ -535,7 +539,7 @@ abstract class GenericDevice {
             // Simulate we would have got an unreach update to inform Matter about the change
             this.#adapter.log.info(`${newEnabled ? 'Enabling' : 'Disabling'} device ${this.constructor.name}`);
             const now = Date.now();
-            this.#unreachState?.updateState(
+            void this.#unreachState?.updateState(
                 {
                     val: !newEnabled,
                     ack: true,

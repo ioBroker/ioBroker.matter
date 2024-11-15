@@ -91,13 +91,17 @@ class Options extends Component<OptionsProps, OptionsState> {
         };
     }
 
-    renderConfirmDialog() {
+    renderConfirmDialog(): React.JSX.Element | null {
         if (!this.state.showDialog) {
             return null;
         }
 
         return (
-            <Dialog open={!0} onClose={() => this.setState({ showDialog: false })} maxWidth="md">
+            <Dialog
+                open={!0}
+                onClose={() => this.setState({ showDialog: false })}
+                maxWidth="md"
+            >
                 <DialogTitle>{I18n.t('Please confirm')}</DialogTitle>
                 <DialogContent>
                     <Typography sx={{ whiteSpace: 'preserve' }}>
@@ -147,7 +151,7 @@ class Options extends Component<OptionsProps, OptionsState> {
         );
     }
 
-    async componentDidMount() {
+    async componentDidMount(): Promise<void> {
         // detect if any iot or cloud with pro-account are available
         const instancesIot = await this.props.socket.getAdapterInstances('iot');
         let instance: ioBroker.InstanceObject | null = null;
@@ -213,7 +217,7 @@ class Options extends Component<OptionsProps, OptionsState> {
         return false;
     }
 
-    render() {
+    render(): React.JSX.Element {
         const item = this.state.interfaces?.find(it => it.value === (this.props.native.interface || '_'));
         const passwordError = Options.checkPassword(this.props.native.pass);
 
@@ -275,7 +279,10 @@ class Options extends Component<OptionsProps, OptionsState> {
                             }
                         >
                             {this.state.interfaces.map((it, i) => (
-                                <MenuItem key={i} value={it.value}>
+                                <MenuItem
+                                    key={i}
+                                    value={it.value}
+                                >
                                     <span
                                         style={{
                                             fontWeight: it.value === '_' ? 'bold' : undefined,
@@ -314,11 +321,14 @@ class Options extends Component<OptionsProps, OptionsState> {
                                 );
                             }}
                             onChange={e => {
-                                this.props.onChange('defaultBridge', e.target.value);
+                                void this.props.onChange('defaultBridge', e.target.value);
                             }}
                         >
                             {this.props.matter.bridges.map((it, i) => (
-                                <MenuItem key={i} value={it.uuid}>
+                                <MenuItem
+                                    key={i}
+                                    value={it.uuid}
+                                >
                                     <span
                                         style={{
                                             fontWeight: it.uuid === '_' ? 'bold' : undefined,

@@ -1,88 +1,83 @@
 {
-  "name": "iobroker.matter",
-  "version": "0.1.13",
-  "description": "Controlling and simulation of matter devices",
-  "author": {
-    "name": "Denis Haev",
-    "email": "dogafox@gmail.com"
-  },
-  "homepage": "https://github.com/ioBroker/ioBroker.matter",
-  "keywords": [
-    "ioBroker",
-    "matter"
-  ],
-  "engines": {
-    "node": ">=16"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ioBroker/ioBroker.matter"
-  },
-  "optionalDependencies": {
-    "@matter/nodejs-ble": "0.11.5-alpha.0-20241114-6af665cdd"
-  },
-  "dependencies": {
-    "@iobroker/adapter-core": "^3.2.2",
-    "@iobroker/dm-utils": "^0.5.0",
-    "@iobroker/type-detector": "^4.0.1",
-    "@matter/main": "0.11.5-alpha.0-20241114-6af665cdd",
-    "@matter/nodejs": "0.11.5-alpha.0-20241114-6af665cdd",
-    "@project-chip/matter.js": "0.11.5-alpha.0-20241114-6af665cdd",
-    "axios": "^1.7.7",
-    "jsonwebtoken": "^9.0.2"
-  },
-  "devDependencies": {
-    "@alcalzone/release-script": "^3.8.0",
-    "@alcalzone/release-script-plugin-iobroker": "^3.7.2",
-    "@alcalzone/release-script-plugin-license": "^3.7.0",
-    "@iobroker/dev-server": "^0.7.3",
-    "@iobroker/legacy-testing": "^1.0.13",
-    "@iobroker/types": "^6.0.11",
-    "@types/jsonwebtoken": "^9.0.7",
-    "@types/node": "^22.8.0",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "chai": "^4.5.0",
-    "colorette": "^2.0.20",
-    "eslint": "^8.57.1",
-    "eslint-config-airbnb": "^19.0.4",
-    "eslint-config-prettier": "^9.1.0",
-    "eslint-import-resolver-typescript": "^3.6.3",
-    "eslint-plugin-eqeqeq-fix": "^1.0.3",
-    "eslint-plugin-import": "^2.31.0",
-    "eslint-plugin-n": "^17.11.1",
-    "eslint-plugin-prettier": "^5.2.1",
-    "eslint-plugin-promise": "^7.1.0",
-    "gulp": "^4.0.2",
-    "mocha": "^10.7.3",
-    "prettier": "^3.3.3",
-    "prettier-plugin-organize-imports": "^4.1.0",
-    "puppeteer": "^22.15.0",
-    "typescript": "~5.6.3"
-  },
-  "bugs": {
-    "url": "https://github.com/ioBroker/ioBroker.matter/issues"
-  },
-  "main": "build/main.js",
-  "files": [
-    "admin/",
-    "io-package.json",
-    "LICENSE",
-    "build/",
-    "data/"
-  ],
-  "scripts": {
-    "test": "mocha --exit",
-    "prepublishOnly": "npm run build",
-    "lint": "eslint --ext .ts src/",
-    "lint-frontend": "eslint src-admin/",
-    "build": "npm run build:ts && npm run build:gui",
-    "build:gui": "gulp",
-    "build:ts": "tsc -p tsconfig.build.json",
-    "release": "release-script -y --noPush",
-    "update-packages": "ncu --upgrade && cd src-admin && ncu --upgrade",
-    "dev-server": "dev-server",
-    "format": "prettier --write 'src/**/*.ts' 'src-admin/**/*.tsx'"
-  },
-  "license": "Apache-2.0",
-  "readmeFilename": "README.md"
+    "name": "iobroker.matter",
+    "version": "0.1.13",
+    "description": "Controlling and simulation of matter devices",
+    "author": {
+        "name": "Denis Haev",
+        "email": "dogafox@gmail.com"
+    },
+    "homepage": "https://github.com/ioBroker/ioBroker.matter",
+    "keywords": [
+        "ioBroker",
+        "matter"
+    ],
+    "engines": {
+        "node": ">=16"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ioBroker/ioBroker.matter"
+    },
+    "optionalDependencies": {
+        "@matter/nodejs-ble": "0.11.5-alpha.0-20241114-6af665cdd"
+    },
+    "dependencies": {
+        "@iobroker/adapter-core": "^3.2.2",
+        "@iobroker/dm-utils": "^0.5.0",
+        "@iobroker/type-detector": "^4.0.1",
+        "@matter/main": "0.11.5-alpha.0-20241114-6af665cdd",
+        "@matter/nodejs": "0.11.5-alpha.0-20241114-6af665cdd",
+        "@project-chip/matter.js": "0.11.5-alpha.0-20241114-6af665cdd",
+        "axios": "^1.7.7",
+        "jsonwebtoken": "^9.0.2"
+    },
+    "devDependencies": {
+        "@alcalzone/release-script": "^3.8.0",
+        "@alcalzone/release-script-plugin-iobroker": "^3.7.2",
+        "@alcalzone/release-script-plugin-license": "^3.7.0",
+        "@iobroker/build-tools": "^2.0.6",
+        "@iobroker/dev-server": "^0.7.3",
+        "@iobroker/eslint-config": "^0.1.7",
+        "@iobroker/legacy-testing": "^2.0.1",
+        "@iobroker/types": "^6.0.11",
+        "@types/jsonwebtoken": "^9.0.7",
+        "@types/node": "^22.9.0",
+        "chai": "^4.5.0",
+        "colorette": "^2.0.20",
+        "mocha": "^10.8.2",
+        "puppeteer": "^23.8.0",
+        "typescript": "~5.6.3"
+    },
+    "bugs": {
+        "url": "https://github.com/ioBroker/ioBroker.matter/issues"
+    },
+    "main": "build/main.js",
+    "files": [
+        "admin/",
+        "io-package.json",
+        "LICENSE",
+        "build/",
+        "data/"
+    ],
+    "scripts": {
+        "test": "mocha --exit",
+        "prepublishOnly": "npm run build",
+        "npm": "npm i && cd src-admin && npm i",
+        "lint": "eslint -c eslint.config.mjs",
+        "lint-frontend": "cd src-admin && eslint -c eslint.config.mjs",
+        "build": "npm run build:ts && npm run build:gui",
+        "build:gui": "node tasks.js --build",
+        "build:ts": "tsc -p tsconfig.build.json",
+        "release": "release-script -y --noPush",
+        "update-packages": "ncu --upgrade && cd src-admin && ncu --upgrade",
+        "dev-server": "dev-server",
+        "format": "prettier --write 'src/**/*.ts' 'src-admin/**/*.tsx'",
+        "0-clean": "node tasks.js --0-clean",
+        "1-npm": "node tasks.js --1-npm",
+        "2-build": "node tasks.js --2-build",
+        "3-copy": "node tasks.js --3-copy",
+        "4-patch": "node tasks.js --4-patch"
+    },
+    "license": "Apache-2.0",
+    "readmeFilename": "README.md"
 }

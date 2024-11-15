@@ -1,9 +1,9 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { RelativeHumidityMeasurement } from '@matter/main/clusters';
-import { Endpoint } from '@project-chip/matter.js/device';
-import { GenericDevice } from '../../lib';
+import type { Endpoint } from '@project-chip/matter.js/device';
+import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
+import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import Humidity from '../../lib/devices/Humidity';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 

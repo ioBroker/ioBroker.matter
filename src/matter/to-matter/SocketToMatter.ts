@@ -1,9 +1,9 @@
 import { Endpoint } from '@matter/main';
 import { OnOffPlugInUnitDevice } from '@matter/main/devices';
-import { GenericDevice } from '../../lib';
+import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import Socket from '../../lib/devices/Socket';
-import { IdentifyOptions } from './GenericDeviceToMatter';
+import type Socket from '../../lib/devices/Socket';
+import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
 import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 

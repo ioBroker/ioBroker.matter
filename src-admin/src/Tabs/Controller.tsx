@@ -1,6 +1,7 @@
-import { IconButton, InfoBox } from '@foxriver76/iob-component-lib';
-import QrScanner from 'qr-scanner';
 import React, { Component } from 'react';
+import QrScanner from 'qr-scanner';
+
+import { IconButton, InfoBox } from '@foxriver76/iob-component-lib';
 
 import { Add, Bluetooth, BluetoothDisabled, Close, Save, Search, SearchOff } from '@mui/icons-material';
 
@@ -25,8 +26,7 @@ import {
     Typography,
 } from '@mui/material';
 
-import type { AdminConnection, IobTheme, ThemeName, ThemeType } from '@iobroker/adapter-react-v5';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { type AdminConnection, type IobTheme, type ThemeName, type ThemeType, I18n } from '@iobroker/adapter-react-v5';
 import DeviceManager from '@iobroker/dm-gui-components';
 
 import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';

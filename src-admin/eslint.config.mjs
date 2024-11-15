@@ -25,6 +25,7 @@ export default [
         rules: {
             'jsdoc/require-jsdoc': 'off',
             'jsdoc/require-param': 'off',
+            '@/no-duplicate-imports': 'error',
         },
     },
     {

@@ -1,9 +1,9 @@
 import { Endpoint } from '@matter/main';
 import { DimmableLightDevice } from '@matter/main/devices';
-import { GenericDevice } from '../../lib';
+import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import Dimmer from '../../lib/devices/Dimmer';
-import { IdentifyOptions } from './GenericDeviceToMatter';
+import type Dimmer from '../../lib/devices/Dimmer';
+import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
 import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 

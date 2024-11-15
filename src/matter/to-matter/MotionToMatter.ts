@@ -1,11 +1,11 @@
 import { Endpoint } from '@matter/main';
 import { OccupancySensing } from '@matter/main/clusters';
 import { LightSensorDevice, OccupancySensorDevice } from '@matter/main/devices';
-import { TypeFromBitSchema } from '@matter/main/types';
-import { GenericDevice } from '../../lib';
+import type { TypeFromBitSchema } from '@matter/main/types';
+import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import Motion from '../../lib/devices/Motion';
-import { GenericDeviceToMatter, IdentifyOptions } from './GenericDeviceToMatter';
+import type Motion from '../../lib/devices/Motion';
+import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
 import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 
 /** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */

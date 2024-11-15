@@ -27,8 +27,8 @@ function init(): void {
         'zh-cn': zhCN,
     };
 
-    Object.keys(langs).forEach(lang => {
-        const lWords: Record<string, string> = langs[lang as ioBroker.Languages] as Record<string, string>;
+    Object.keys(langs).forEach((lang: string) => {
+        const lWords: Record<string, string> = langs[lang as ioBroker.Languages];
         Object.keys(lWords).forEach(word => {
             if (!words[word]) {
                 words[word] = {} as Record<ioBroker.Languages, string>;

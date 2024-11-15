@@ -1,5 +1,5 @@
-import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
+import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
 const milliConversion = (value: number, toDefaultUnit: boolean): number =>
     toDefaultUnit ? value * 0.001 : value * 1000;

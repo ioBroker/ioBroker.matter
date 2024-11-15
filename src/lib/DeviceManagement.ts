@@ -1,18 +1,18 @@
-import { MatterAdapter } from '../main';
+import type { MatterAdapter } from '../main';
 
 import {
-    ActionContext,
-    ApiVersion,
-    ConfigItemAny,
-    DeviceDetails,
-    DeviceInfo,
+    type ActionContext,
+    type ApiVersion,
+    type ConfigItemAny,
+    type DeviceDetails,
+    type DeviceInfo,
     DeviceManagement,
-    DeviceRefresh,
-    DeviceStatus,
-    InstanceDetails,
+    type DeviceRefresh,
+    type DeviceStatus,
+    type InstanceDetails,
 } from '@iobroker/dm-utils';
-import { GeneralMatterNode, NodeDetails } from '../matter/GeneralMatterNode';
-import { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIoBroker';
+import type { GeneralMatterNode, NodeDetails } from '../matter/GeneralMatterNode';
+import type { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIoBroker';
 import { getText, t } from './i18n';
 import { decamelize } from './utils';
 
@@ -36,7 +36,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
     async getInstanceInfo(): Promise<InstanceDetails> {
         return {
-            ...super.getInstanceInfo(),
+            ...(await super.getInstanceInfo()),
             apiVersion: 'v1' as ApiVersion,
             actions: [
                 /*{
@@ -63,9 +63,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     // contents see in the next chapters
-    async listDevices(): Promise<DeviceInfo[]> {
+    listDevices(): Promise<DeviceInfo[]> {
         if (!this.#adapter.controllerNode) {
-            return []; // TODO How to return that no controller is started?
+            return Promise.resolve([]); // TODO How to return that no controller is started?
         }
 
         const nodes = this.#adapter.controllerNode.nodes;
@@ -111,7 +111,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             ],
         });*/
 
-        return arrDevices;
+        return Promise.resolve(arrDevices);
     }
 
     /**
@@ -272,7 +272,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         this.adapter.log.info(`New pairing code for node ${node.nodeId}: ${JSON.stringify(result)}`);
 
         // TODO Display it in the UI, ideally as QRCode ... How to return??
-        context.showMessage(`Use the following pairing code to commission the device: ${result?.manualPairingCode}`);
+        void context.showMessage(
+            `Use the following pairing code to commission the device: ${result?.manualPairingCode}`,
+        );
 
         return Promise.resolve({ refresh: false });
     }
@@ -471,11 +473,11 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
     /**
      * Convert a generic object data model into JSON Config data forms
-     * * Keys are expected to be camelized strings and will be used as field name too  in de-camelized form
-     * * If needed for uniqueness "__" can be used as splitter and anything after this is used as field name
-     * * "__header__*" entries are converted into a headline with the value as text
-     * * "__divider__*" entries are converted into a divider
-     * * The logic expects a two level object structure. By default it returns a tabs structure. If only one key is used on first level only one panel is returned
+     * Keys are expected to be camelized strings and will be used as field name too  in de-camelized form
+     * If needed for uniqueness "__" can be used as splitter and anything after this is used as field name
+     * "__header__*" entries are converted into a headline with the value as text
+     * "__divider__*" entries are converted into a divider
+     * The logic expects a two level object structure. By default, it returns a tabs structure. If only one key is used on first level only one panel is returned
      */
     #convertDataToJsonConfig(data: Record<string, Record<string, unknown>>): {
         schema: ConfigItemAny;

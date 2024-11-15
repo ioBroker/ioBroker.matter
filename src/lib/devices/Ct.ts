@@ -1,6 +1,6 @@
-import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import ElectricityDataDevice from './ElectricityDataDevice';
-import { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
+import { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
 class Ct extends ElectricityDataDevice {
     #dimmer?: DeviceStateObject<number>;

@@ -1,6 +1,6 @@
 import Ct from './Ct';
-import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
+import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
 class RgbSingle extends Ct {
     #rgb?: DeviceStateObject<string>;

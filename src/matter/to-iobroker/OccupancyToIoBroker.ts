@@ -1,10 +1,10 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { OccupancySensing } from '@matter/main/clusters';
-import { TypeFromBitSchema } from '@matter/main/types';
-import { Endpoint } from '@project-chip/matter.js/device';
-import { GenericDevice } from '../../lib';
+import type { TypeFromBitSchema } from '@matter/main/types';
+import type { Endpoint } from '@project-chip/matter.js/device';
+import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
+import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import Motion from '../../lib/devices/Motion';
 import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
 

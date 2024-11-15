@@ -1,4 +1,4 @@
-import { fromJson, MaybeAsyncStorage, StorageError, SupportedStorageTypes, toJson } from '@matter/main';
+import { fromJson, type MaybeAsyncStorage, StorageError, type SupportedStorageTypes, toJson } from '@matter/main';
 import { StorageBackendDiskAsync } from '@matter/nodejs';
 
 /**
@@ -205,10 +205,9 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
 
         if (typeof keyOrValue === 'string') {
             return this.#setKey(contexts, keyOrValue, value);
-        } else {
-            for (const key in keyOrValue) {
-                await this.#setKey(contexts, key, keyOrValue[key]);
-            }
+        }
+        for (const key in keyOrValue) {
+            await this.#setKey(contexts, key, keyOrValue[key]);
         }
     }
 

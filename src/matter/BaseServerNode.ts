@@ -1,6 +1,6 @@
-import { Logger, ServerNode, SessionsBehavior } from '@matter/main';
+import { Logger, type ServerNode, type SessionsBehavior } from '@matter/main';
 import type { MatterAdapter } from '../main';
-import { GeneralNode, MessageResponse } from './GeneralNode';
+import type { GeneralNode, MessageResponse } from './GeneralNode';
 
 export enum NodeStates {
     Creating = 'creating',
@@ -73,52 +73,48 @@ export abstract class BaseServerNode implements GeneralNode {
                 qrPairingCode: qrPairingCode,
                 manualPairingCode: manualPairingCode,
             };
-        } else {
-            if (this.commissioned !== true) {
-                this.commissioned = true;
-                await this.adapter.setState(`${this.type}.${this.uuid}.commissioned`, this.commissioned, true);
-            }
-
-            const activeSessions = Object.values(this.serverNode.state.sessions.sessions);
-            const fabrics = Object.values(this.serverNode.state.commissioning.fabrics);
-
-            const connectionInfo: ConnectionInfo[] = activeSessions.map(session => {
-                const vendorId = session?.fabric?.rootVendorId;
-                return {
-                    vendorId,
-                    connected: !!session.numberOfActiveSubscriptions,
-                    label: session?.fabric?.label,
-                };
-            });
-
-            fabrics.forEach(fabric => {
-                if (!activeSessions.find(session => session.fabric?.fabricId === fabric.fabricId)) {
-                    connectionInfo.push({
-                        vendorId: fabric?.rootVendorId,
-                        connected: false,
-                        label: fabric?.label,
-                    });
-                }
-            });
-
-            if (connectionInfo.find(info => info.connected)) {
-                this.adapter.log.debug(
-                    `${this.type} ${this.uuid} is already commissioned and connected with controller`,
-                );
-                return {
-                    status: NodeStates.ConnectedWithController,
-                    connectionInfo,
-                };
-            } else {
-                this.adapter.log.debug(
-                    `${this.type} ${this.uuid} is already commissioned. Waiting for controllers to connect ...`,
-                );
-                return {
-                    status: NodeStates.Commissioned,
-                    connectionInfo,
-                };
-            }
         }
+        if (this.commissioned !== true) {
+            this.commissioned = true;
+            await this.adapter.setState(`${this.type}.${this.uuid}.commissioned`, this.commissioned, true);
+        }
+
+        const activeSessions = Object.values(this.serverNode.state.sessions.sessions);
+        const fabrics = Object.values(this.serverNode.state.commissioning.fabrics);
+
+        const connectionInfo: ConnectionInfo[] = activeSessions.map(session => {
+            const vendorId = session?.fabric?.rootVendorId;
+            return {
+                vendorId,
+                connected: !!session.numberOfActiveSubscriptions,
+                label: session?.fabric?.label,
+            };
+        });
+
+        fabrics.forEach(fabric => {
+            if (!activeSessions.find(session => session.fabric?.fabricId === fabric.fabricId)) {
+                connectionInfo.push({
+                    vendorId: fabric?.rootVendorId,
+                    connected: false,
+                    label: fabric?.label,
+                });
+            }
+        });
+
+        if (connectionInfo.find(info => info.connected)) {
+            this.adapter.log.debug(`${this.type} ${this.uuid} is already commissioned and connected with controller`);
+            return {
+                status: NodeStates.ConnectedWithController,
+                connectionInfo,
+            };
+        }
+        this.adapter.log.debug(
+            `${this.type} ${this.uuid} is already commissioned. Waiting for controllers to connect ...`,
+        );
+        return {
+            status: NodeStates.Commissioned,
+            connectionInfo,
+        };
     }
 
     async updateUiState(): Promise<void> {
@@ -149,15 +145,14 @@ export abstract class BaseServerNode implements GeneralNode {
         }
         this.serverNode.events.commissioning.fabricsChanged.on(async fabricIndex => {
             this.adapter.log.debug(
-                `commissioningChangedCallback: Commissioning changed on Fabric ${fabricIndex}: ${this.serverNode?.state.operationalCredentials.fabrics.find(fabric => fabric.fabricIndex === fabricIndex)}`,
+                `commissioningChangedCallback: Commissioning changed on Fabric ${fabricIndex}: ${JSON.stringify(this.serverNode?.state.operationalCredentials.fabrics.find(fabric => fabric.fabricIndex === fabricIndex))}`,
             );
             await this.updateUiState();
         });
 
         const sessionChange = async (session: SessionsBehavior.Session): Promise<void> => {
             this.adapter.log.debug(
-                `activeSessionsChangedCallback: Active sessions changed on Fabric ${session.fabric?.fabricIndex}` +
-                    Logger.toJSON(session),
+                `activeSessionsChangedCallback: Active sessions changed on Fabric ${session.fabric?.fabricIndex}${Logger.toJSON(session)}`,
             );
             await this.updateUiState();
         };

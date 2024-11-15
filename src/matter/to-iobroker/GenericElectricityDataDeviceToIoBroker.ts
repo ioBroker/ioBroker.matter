@@ -1,7 +1,7 @@
 import { AttributeId, ClusterId } from '@matter/main';
 import { ElectricalEnergyMeasurement, ElectricalPowerMeasurement, PowerSource } from '@matter/main/clusters';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import { DeviceOptions } from '../../lib/devices/GenericDevice';
+import type { DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
 
 export abstract class GenericElectricityDataDeviceToIoBroker extends GenericDeviceToIoBroker {

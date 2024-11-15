@@ -1,14 +1,19 @@
-import { Environment, Logger, NodeId, singleton, VendorId } from '@matter/main';
+import { type Environment, Logger, NodeId, singleton, VendorId } from '@matter/main';
 import { GeneralCommissioning } from '@matter/main/clusters';
-import { Ble, CommissionableDevice, ControllerCommissioningFlowOptions, DiscoveryData } from '@matter/main/protocol';
+import {
+    Ble,
+    type CommissionableDevice,
+    type ControllerCommissioningFlowOptions,
+    type DiscoveryData,
+} from '@matter/main/protocol';
 import { ManualPairingCodeCodec, QrPairingCodeCodec } from '@matter/main/types';
 import { NodeJsBle } from '@matter/nodejs-ble';
-import { CommissioningController, NodeCommissioningOptions } from '@project-chip/matter.js';
-import { CommissioningControllerNodeOptions, PairedNode } from '@project-chip/matter.js/device';
+import { CommissioningController, type NodeCommissioningOptions } from '@project-chip/matter.js';
+import type { CommissioningControllerNodeOptions, PairedNode } from '@project-chip/matter.js/device';
 import type { MatterControllerConfig } from '../../src-admin/src/types';
 import type { MatterAdapter } from '../main';
-import { GeneralMatterNode, PairedNodeConfig } from './GeneralMatterNode';
-import { GeneralNode, MessageResponse } from './GeneralNode';
+import { GeneralMatterNode, type PairedNodeConfig } from './GeneralMatterNode';
+import type { GeneralNode, MessageResponse } from './GeneralNode';
 
 export interface ControllerCreateOptions {
     adapter: MatterAdapter;
@@ -61,7 +66,7 @@ class Controller implements GeneralNode {
         });
     }
 
-    async applyConfiguration(config: MatterControllerConfig): Promise<MessageResponse> {
+    applyConfiguration(config: MatterControllerConfig): Promise<MessageResponse> {
         const currentConfig: MatterControllerConfig = {
             enabled: true,
             defaultExposeMatterApplicationClusterData: false,
@@ -83,12 +88,14 @@ class Controller implements GeneralNode {
                 } catch (error) {
                     this.#adapter.log.warn(`Failed to initialize BLE: ${error.message}`);
                     config.ble = false;
-                    return { error: `Can not adjust configuration and enable BLE because of error: ${error.message}` };
+                    return Promise.resolve({
+                        error: `Can not adjust configuration and enable BLE because of error: ${error.message}`,
+                    });
                 }
             }
         }
         this.#parameters = config;
-        return { result: true };
+        return Promise.resolve({ result: true });
     }
 
     async applyPairedNodeConfiguration(nodeId: string, config: PairedNodeConfig): Promise<void> {
@@ -114,11 +121,10 @@ class Controller implements GeneralNode {
                     if (this.#discovering) {
                         await this.#discoveryStop();
                         return { result: 'ok' };
-                    } else {
-                        // let's return ok because in fact it is stopped
-                        return { result: 'ok' };
                     }
-                case 'controllerCommissionDevice':
+                    // let's return ok because in fact it is stopped
+                    return { result: 'ok' };
+                case 'controllerCommissionDevice': {
                     // Commission a new device with Commissioning payloads like a QR Code or pairing code
                     const options = message as EndUserCommissioningOptions;
                     if (message.pollResponse) {
@@ -140,10 +146,10 @@ class Controller implements GeneralNode {
                                 ),
                             );
                         return { result: { pollingId } };
-                    } else {
-                        return await this.commissionDevice(options);
                     }
-                case 'controllerCommissionDeviceStatus':
+                    return await this.commissionDevice(options);
+                }
+                case 'controllerCommissionDeviceStatus': {
                     // Get the status of a commissioning process
                     const pollingId = message.pollingId as number;
                     const status = this.#commissioningStatus.get(pollingId);
@@ -159,10 +165,11 @@ class Controller implements GeneralNode {
                         return { result: { status: statusText } };
                     }
                     return result;
+                }
                 case 'controllerDeviceQrCode':
                     // Opens a new commissioning window for a paired node and returns the QRCode and pairing code for display
                     return { result: await this.showNewCommissioningCode(message.nodeId) };
-                case 'controllerInitializePaseCommissioner':
+                case 'controllerInitializePaseCommissioner': {
                     // Returns the data needed to initialize a PaseCommissioner on the mobile App
                     const { caConfig, fabricData } = this.#commissioningController.paseCommissionerConfig;
                     return {
@@ -171,6 +178,7 @@ class Controller implements GeneralNode {
                             fabricData,
                         },
                     };
+                }
                 case 'controllerCompletePaseCommissioning':
                     // Completes a commissioning process that was started by the mobile app in the main controller
                     return await this.completeCommissioningForNode(message.peerNodeId, message.discoveryData);
@@ -185,10 +193,10 @@ class Controller implements GeneralNode {
 
     #registerNodeHandlers(node: PairedNode): void {
         node.events.attributeChanged.on(data => {
-            this.#nodes.get(node.nodeId.toString())?.handleChangedAttribute(data);
+            void this.#nodes.get(node.nodeId.toString())?.handleChangedAttribute(data);
         });
         node.events.eventTriggered.on(data => {
-            this.#nodes.get(node.nodeId.toString())?.handleTriggeredEvent(data);
+            void this.#nodes.get(node.nodeId.toString())?.handleTriggeredEvent(data);
         });
         node.events.stateChanged.on(async info => {
             const nodeDetails = (this.#commissioningController?.getCommissionedNodesDetails() ?? []).find(
@@ -444,7 +452,7 @@ class Controller implements GeneralNode {
             },
             device => {
                 this.#adapter.log.debug(`Found: ${Logger.toJSON(device)}`);
-                this.#adapter.sendToGui({
+                void this.#adapter.sendToGui({
                     command: 'discoveredDevice',
                     device,
                 });

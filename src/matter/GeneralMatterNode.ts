@@ -1,21 +1,21 @@
-import { capitalize, ClusterId, Logger, NodeId, serialize } from '@matter/main';
+import { capitalize, ClusterId, Logger, type NodeId, serialize } from '@matter/main';
 import { BasicInformationCluster, GeneralDiagnosticsCluster } from '@matter/main/clusters';
 import { AttributeModel, ClusterModel, CommandModel, MatterModel } from '@matter/main/model';
 import {
-    DecodedAttributeReportValue,
-    DecodedEventReportValue,
+    type DecodedAttributeReportValue,
+    type DecodedEventReportValue,
     FabricScopeError,
     SupportedAttributeClient,
     UnknownSupportedAttributeClient,
 } from '@matter/main/protocol';
 import { GlobalAttributes } from '@matter/main/types';
-import { Endpoint, NodeStates, PairedNode } from '@project-chip/matter.js/device';
+import { type Endpoint, NodeStates, type PairedNode } from '@project-chip/matter.js/device';
 import type { MatterControllerConfig } from '../../src-admin/src/types';
 import { SubscribeManager } from '../lib';
-import { SubscribeCallback } from '../lib/SubscribeManager';
+import type { SubscribeCallback } from '../lib/SubscribeManager';
 import { bytesToIpV4, bytesToIpV6, bytesToMac, decamelize, toHex } from '../lib/utils';
 import type { MatterAdapter } from '../main';
-import { GenericDeviceToIoBroker } from './to-iobroker/GenericDeviceToIoBroker';
+import type { GenericDeviceToIoBroker } from './to-iobroker/GenericDeviceToIoBroker';
 import ioBrokerDeviceFabric, { identifyDeviceTypes } from './to-iobroker/ioBrokerFactory';
 
 export type PairedNodeConfig = {
@@ -318,12 +318,11 @@ export class GeneralMatterNode {
             this.adapter.log.warn(
                 `Node ${this.node.nodeId}: Unknown device type: ${serialize(endpoint.deviceType)}. Please report this issue.`,
             );
-        }
-        // An Aggregator device type has a slightly different structure
-        else if (
+        } else if (
             primaryDeviceType.deviceType.name === 'Aggregator' ||
             primaryDeviceType.deviceType.name === 'BridgedNode'
         ) {
+            // An Aggregator device type has a slightly different structure
             this.adapter.log.info(
                 `Node ${this.node.nodeId}: ${primaryDeviceType.deviceType.name} device type detected`,
             );
@@ -456,7 +455,9 @@ export class GeneralMatterNode {
         isUnknown: boolean,
     ): ioBroker.CommonType {
         const knownType = this.#attributeTypeMap.get(this.#getAttributeMapId(endpointId, clusterId, attributeId));
-        if (knownType !== undefined) return knownType;
+        if (knownType !== undefined) {
+            return knownType;
+        }
 
         let type: ioBroker.CommonType;
         if (isUnknown) {
@@ -467,7 +468,9 @@ export class GeneralMatterNode {
             if (effectiveType === undefined) {
                 type = 'mixed';
             } else if (effectiveType.startsWith('int') || effectiveType.startsWith('uint')) {
-                if (effectiveType.endsWith('64')) return 'string';
+                if (effectiveType.endsWith('64')) {
+                    return 'string';
+                }
                 type = 'number';
             } else if (effectiveType === 'bool') {
                 type = 'boolean';
@@ -539,7 +542,9 @@ export class GeneralMatterNode {
             const globalAttributes = GlobalAttributes<any>(features);
             const supportedFeatures = new Array<string>();
             for (const featureName in features) {
-                if (features[featureName] === true) supportedFeatures.push(featureName);
+                if (features[featureName] === true) {
+                    supportedFeatures.push(featureName);
+                }
             }
             await this.adapter.setObjectNotExists(`${clusterBaseId}.supportedFeatures`, {
                 type: 'state',
@@ -558,10 +563,16 @@ export class GeneralMatterNode {
             let addedAttributes = 0;
             for (const attributeName in attributes) {
                 const attribute = attributes[attributeName];
-                if (attribute === undefined) continue;
-                if (!(attribute instanceof SupportedAttributeClient)) continue;
+                if (attribute === undefined) {
+                    continue;
+                }
+                if (!(attribute instanceof SupportedAttributeClient)) {
+                    continue;
+                }
                 // TODO make Configurable
-                if (attributeName in globalAttributes) continue;
+                if (attributeName in globalAttributes) {
+                    continue;
+                }
                 const unknown = attribute instanceof UnknownSupportedAttributeClient;
                 const attributeBaseId = `${clusterBaseId}.attributes.${attribute.name.replace('unknownAttribute_', '')}`;
 
@@ -593,22 +604,24 @@ export class GeneralMatterNode {
                             this.#formatAttributeServerValue(endpoint.number, attributeValue, targetType),
                             true,
                         );
-                    } catch (error) {
+                    } catch (error: unknown) {
                         if (error instanceof FabricScopeError) {
                             this.adapter.log.warn('Fabric-Scoped');
                         } else {
-                            this.adapter.log.warn(`Error: ${(error as any).message}`);
+                            this.adapter.log.warn(`Error: ${(error as Error).message}`);
                         }
                     }
                 }
 
                 if (attribute.attribute.writable) {
                     const handler: SubscribeCallback = async state => {
-                        if (state.ack) return; // Only controls are processed
+                        if (state.ack) {
+                            return;
+                        } // Only controls are processed
                         try {
                             await attribute.set(state.val);
-                        } catch (e) {
-                            this.adapter.log.warn(`Error: ${(e as any).message}`);
+                        } catch (e: unknown) {
+                            this.adapter.log.warn(`Error: ${(e as Error).message}`);
                         }
                     };
                     this.#subscriptions.set(attributeBaseId, handler);
@@ -629,7 +642,9 @@ export class GeneralMatterNode {
             const events = clusterClient.events;
             for (const eventName in events) {
                 const event = events[eventName];
-                if (event === undefined) continue;
+                if (event === undefined) {
+                    continue;
+                }
                 const eventBaseId = `${clusterBaseId}.events.${event.name}`;
 
                 this.#eventMap.add(this.#getEventMapId(endpoint.number, event.clusterId, event.id));
@@ -659,15 +674,21 @@ export class GeneralMatterNode {
             let addedCommands = 0;
             const commands = clusterClient.commands;
             for (const commandName in commands) {
-                if (!clusterClient.isCommandSupportedByName(commandName)) continue;
+                if (!clusterClient.isCommandSupportedByName(commandName)) {
+                    continue;
+                }
                 const command = commands[commandName];
-                if (command === undefined) continue;
+                if (command === undefined) {
+                    continue;
+                }
                 const commandBaseId = `${clusterBaseId}.commands.${commandName}`;
 
                 const commandModel = MatterModel.standard
                     .get(ClusterModel, clusterId)
                     ?.get(CommandModel, capitalize(commandName));
-                if (!commandModel) continue;
+                if (!commandModel) {
+                    continue;
+                }
 
                 const hasArguments = commandModel.children?.length > 0;
 
@@ -684,16 +705,19 @@ export class GeneralMatterNode {
                 });
 
                 const handler: SubscribeCallback = async state => {
-                    if (state.ack) return; // Only controls are processed
+                    // Only controls are processed
+                    if (state.ack) {
+                        return;
+                    }
 
                     let parsedValue: any;
                     if (hasArguments) {
                         try {
                             parsedValue = JSON.parse(state.val as string);
-                        } catch (error) {
+                        } catch {
                             try {
                                 parsedValue = JSON.parse(`"${state.val}"`);
-                            } catch (innerError) {
+                            } catch {
                                 this.adapter.log.info(
                                     `Node ${this.node.nodeId}: ERROR: Could not parse value ${state.val} as JSON.`,
                                 );
@@ -708,8 +732,8 @@ export class GeneralMatterNode {
                         await command(parsedValue, {
                             asTimedRequest: commandModel.effectiveAccess.timed,
                         });
-                    } catch (e) {
-                        this.adapter.log.warn(`Node ${this.node.nodeId}: Error: ${(e as any).message}`);
+                    } catch (e: unknown) {
+                        this.adapter.log.warn(`Node ${this.node.nodeId}: Error: ${(e as Error).message}`);
                     }
                 };
                 this.#subscriptions.set(commandBaseId, handler);

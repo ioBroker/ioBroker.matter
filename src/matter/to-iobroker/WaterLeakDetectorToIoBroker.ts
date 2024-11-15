@@ -1,10 +1,10 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { BooleanState } from '@matter/main/clusters';
-import { Endpoint } from '@project-chip/matter.js/device';
-import { GenericDevice } from '../../lib';
+import type { Endpoint } from '@project-chip/matter.js/device';
+import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import FloodAlarm from '../../lib/devices/FloodAlarm';
-import { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
+import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
 
 /** Mapping Logic to map a ioBroker Contact Sensor device to a Matter OnOffLightDevice. */

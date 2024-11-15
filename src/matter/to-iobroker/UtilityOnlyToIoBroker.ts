@@ -1,8 +1,8 @@
 import ChannelDetector from '@iobroker/type-detector';
-import { Endpoint } from '@project-chip/matter.js/device';
-import { GenericDevice } from '../../lib';
-import ElectricityDataDevice from '../../lib/devices/ElectricityDataDevice';
-import { DetectedDevice } from '../../lib/devices/GenericDevice';
+import type { Endpoint } from '@project-chip/matter.js/device';
+import type { GenericDevice } from '../../lib';
+import type ElectricityDataDevice from '../../lib/devices/ElectricityDataDevice';
+import type { DetectedDevice } from '../../lib/devices/GenericDevice';
 import Socket from '../../lib/devices/Socket';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 

@@ -1,5 +1,5 @@
-import { Endpoint } from '@matter/main';
-import { GenericDevice } from '../../lib';
+import type { Endpoint } from '@matter/main';
+import type { GenericDevice } from '../../lib';
 
 export interface IdentifyOptions {
     currentState?: any;

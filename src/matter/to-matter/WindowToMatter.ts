@@ -1,9 +1,9 @@
 import { Endpoint } from '@matter/main';
 import { ContactSensorDevice } from '@matter/main/devices';
-import { GenericDevice } from '../../lib';
+import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import Window from '../../lib/devices/Window';
-import { GenericDeviceToMatter, IdentifyOptions } from './GenericDeviceToMatter';
+import type Window from '../../lib/devices/Window';
+import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
 import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 
 /** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */

@@ -1,5 +1,6 @@
 import { Types } from '@iobroker/type-detector';
-import GenericDevice, { DetectedDevice, DeviceOptions } from './devices/GenericDevice';
+import type GenericDevice from './devices/GenericDevice';
+import type { DetectedDevice, DeviceOptions } from './devices/GenericDevice';
 
 import AirCondition from './devices/AirCondition';
 import Blind from './devices/Blind';

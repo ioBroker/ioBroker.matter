@@ -1,4 +1,4 @@
-import { Endpoint } from '@matter/main';
+import type { Endpoint } from '@matter/main';
 import {
     ElectricalEnergyMeasurementServer,
     ElectricalPowerMeasurementServer,
@@ -7,7 +7,7 @@ import {
 import { ElectricalEnergyMeasurement, ElectricalPowerMeasurement, PowerTopology } from '@matter/main/clusters';
 import { MeasurementType } from '@matter/main/types';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import ElectricityDataDevice from '../../lib/devices/ElectricityDataDevice';
+import type ElectricityDataDevice from '../../lib/devices/ElectricityDataDevice';
 import { GenericDeviceToMatter } from './GenericDeviceToMatter';
 
 type EnergyValues = { energy: number };

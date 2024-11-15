@@ -1,10 +1,10 @@
-import { NodeId } from '@matter/main';
+import type { NodeId } from '@matter/main';
 import { DeviceClassification, DeviceTypeModel, MatterModel } from '@matter/main/model';
-import { Endpoint } from '@project-chip/matter.js/device';
+import type { Endpoint } from '@project-chip/matter.js/device';
 import { ContactSensorToIoBroker } from './ContactSensorToIoBroker';
 import { DimmableToIobroker } from './DimmableToIobroker';
 import { DoorLockToIoBroker } from './DoorLockToIoBroker';
-import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
+import type { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
 import { HumiditySensorToIoBroker } from './HumiditySensorToIoBroker';
 import { OccupancyToIoBroker } from './OccupancyToIoBroker';
 import { OnOffLightToIoBroker } from './OnOffLightToIoBroker';
@@ -48,7 +48,7 @@ async function ioBrokerDeviceFabric(
     rootEndpoint: Endpoint,
     adapter: ioBroker.Adapter,
     endpointDeviceBaseId: string,
-): Promise<any | null> {
+): Promise<any> {
     const { primaryDeviceType } = identifyDeviceTypes(endpoint);
 
     const fullEndpointDeviceBaseId = `${adapter.namespace}.${endpointDeviceBaseId}`;

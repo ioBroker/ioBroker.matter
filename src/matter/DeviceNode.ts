@@ -1,7 +1,7 @@
 import { ServerNode, VendorId } from '@matter/main';
 import { inspect } from 'util';
-import { DeviceDescription } from '../ioBrokerStorageTypes';
-import { GenericDevice } from '../lib';
+import type { DeviceDescription } from '../ioBrokerStorageTypes';
+import type { GenericDevice } from '../lib';
 import { md5 } from '../lib/utils';
 import type { MatterAdapter } from '../main';
 import { BaseServerNode } from './BaseServerNode';
@@ -155,7 +155,9 @@ class Device extends BaseServerNode {
     }
 
     async start(): Promise<void> {
-        if (!this.serverNode) return;
+        if (!this.serverNode) {
+            return;
+        }
         await this.serverNode.start();
         this.#started = true;
         await this.updateUiState();

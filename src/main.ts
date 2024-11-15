@@ -1,11 +1,11 @@
 import * as utils from '@iobroker/adapter-core';
-import ChannelDetector, { DetectorState, Types } from '@iobroker/type-detector';
+import ChannelDetector, { type DetectorState, Types } from '@iobroker/type-detector';
 import { Environment, LogLevel, Logger, StorageService } from '@matter/main';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import fs from 'node:fs/promises';
 import type { MatterControllerConfig } from '../src-admin/src/types';
-import {
+import type {
     BridgeDescription,
     BridgeDeviceDescription,
     DeviceDescription,
@@ -13,13 +13,13 @@ import {
 } from './ioBrokerStorageTypes';
 import { DeviceFactory, SubscribeManager } from './lib';
 import MatterAdapterDeviceManagement from './lib/DeviceManagement';
-import { DetectedDevice, DeviceOptions } from './lib/devices/GenericDevice';
-import { NodeStateResponse } from './matter/BaseServerNode';
-import BridgedDevice, { BridgeCreateOptions } from './matter/BridgedDevicesNode';
+import type { DetectedDevice, DeviceOptions } from './lib/devices/GenericDevice';
+import type { NodeStateResponse } from './matter/BaseServerNode';
+import BridgedDevice, { type BridgeCreateOptions } from './matter/BridgedDevicesNode';
 import MatterController from './matter/ControllerNode';
-import MatterDevice, { DeviceCreateOptions } from './matter/DeviceNode';
-import { PairedNodeConfig } from './matter/GeneralMatterNode';
-import { MessageResponse } from './matter/GeneralNode';
+import MatterDevice, { type DeviceCreateOptions } from './matter/DeviceNode';
+import type { PairedNodeConfig } from './matter/GeneralMatterNode';
+import type { MessageResponse } from './matter/GeneralNode';
 import { IoBrokerObjectStorage } from './matter/IoBrokerObjectStorage';
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
@@ -77,7 +77,6 @@ export class MatterAdapter extends utils.Adapter {
     #_guiSubscribes: { clientId: string; ts: number }[] | null = null;
     readonly #matterEnvironment: Environment;
     #stateTimeout: NodeJS.Timeout | null = null;
-    #subscribed: boolean = false;
     #license: { [key: string]: boolean | undefined } = {};
     sysLanguage: ioBroker.Languages = 'en';
     readonly #deviceManagement: MatterAdapterDeviceManagement;
@@ -222,18 +221,20 @@ export class MatterAdapter extends utils.Adapter {
             case 'reset':
                 await this.onTotalReset();
                 break;
-            case 'nodeStates':
+            case 'nodeStates': {
                 const states = await this.requestNodeStates(obj.message as NodeStatesOptions);
                 if (obj.callback) {
                     this.sendTo(obj.from, obj.command, { states }, obj.callback);
                 }
                 break;
-            case 'getLicense':
+            }
+            case 'getLicense': {
                 const license = await this.checkLicense(obj.message.login, obj.message.pass);
                 if (obj.callback) {
                     this.sendTo(obj.from, obj.command, { result: license }, obj.callback);
                 }
                 break;
+            }
             case 'updateControllerSettings': {
                 const newControllerConfig: MatterControllerConfig = JSON.parse(obj.message);
                 this.log.debug(`Applying updated controller configuration: ${JSON.stringify(newControllerConfig)}`);
@@ -252,10 +253,10 @@ export class MatterAdapter extends utils.Adapter {
         }
     }
 
-    async onClientSubscribe(clientId: string): Promise<{ error?: string; accepted: boolean; heartbeat?: number }> {
+    onClientSubscribe(clientId: string): Promise<{ error?: string; accepted: boolean; heartbeat?: number }> {
         this.log.debug(`Subscribe from ${clientId}`);
         if (!this.#_guiSubscribes) {
-            return { error: `Adapter is still initializing`, accepted: false };
+            return Promise.resolve({ error: `Adapter is still initializing`, accepted: false });
         }
         // start camera with obj.message.data
         if (!this.#_guiSubscribes.find(s => s.clientId === clientId)) {
@@ -277,7 +278,7 @@ export class MatterAdapter extends utils.Adapter {
             sub.ts = Date.now();
         }
 
-        return { accepted: true, heartbeat: 120000 };
+        return Promise.resolve({ accepted: true, heartbeat: 120000 });
     }
 
     onClientUnsubscribe(clientId: string): void {
@@ -439,10 +440,10 @@ export class MatterAdapter extends utils.Adapter {
 
             await this.shutDownMatterNodes();
             // close Environment/MDNS?
-            callback();
-        } catch (e) {
-            callback();
+        } catch {
+            // ignore
         }
+        callback();
     }
 
     async onObjectChange(id: string, obj: ioBroker.Object | null | undefined): Promise<void> {
@@ -791,9 +792,10 @@ export class MatterAdapter extends utils.Adapter {
 
     /**
      * Synchronize Devices, Bridges and the controller with the configuration
-     * @param obj Hand over one object to just handle updates for this and no complete resync.
+     *
+     * @param obj Hand over one object to just handle updates for this and no complete re-sync.
      */
-    async syncDevices(obj?: ioBroker.ChannelObject | null | undefined): Promise<void> {
+    async syncDevices(obj?: ioBroker.ChannelObject | null): Promise<void> {
         const devices: ioBroker.Object[] = [];
         const bridges: ioBroker.Object[] = [];
 
@@ -815,7 +817,9 @@ export class MatterAdapter extends utils.Adapter {
 
         for (const object of objects) {
             // No valid object or a sub-channel
-            if (!object || !object.native || object._id.split('.').length !== 4) continue;
+            if (!object || !object.native || object._id.split('.').length !== 4) {
+                continue;
+            }
 
             if (object._id.startsWith(`${this.namespace}.devices.`)) {
                 if (object.native.deleted) {
@@ -980,7 +984,9 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async syncControllerNode(nodeId: string, obj: ioBroker.FolderObject): Promise<void> {
-        if (!this.#controller) return; // not active
+        if (!this.#controller) {
+            return;
+        } // not active
         return this.#controller.applyPairedNodeConfiguration(nodeId, obj.native as PairedNodeConfig);
     }
 

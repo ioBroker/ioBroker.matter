@@ -1,9 +1,9 @@
 import { Endpoint } from '@matter/main';
 import { WaterLeakDetectorDevice } from '@matter/main/devices';
-import { GenericDevice } from '../../lib';
+import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import FloodAlarm from '../../lib/devices/FloodAlarm';
-import { GenericDeviceToMatter, IdentifyOptions } from './GenericDeviceToMatter';
+import type FloodAlarm from '../../lib/devices/FloodAlarm';
+import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
 import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 
 /** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */

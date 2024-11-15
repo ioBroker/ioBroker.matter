@@ -28,7 +28,7 @@ describe('test-admin-gui', () => {
         this.timeout(5000);
         await guiHelper.stopBrowser();
         console.log('BROWSER stopped');
-        await engineHelper.startIoBrokerAdapters();
+        await engineHelper.stopIoBrokerAdapters();
         console.log('ioBroker stopped');
     });
 });

@@ -2,8 +2,8 @@ import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject'
 import GenericDevice, { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 class Lock extends GenericDevice {
-    #setPowerState?: DeviceStateObject<boolean>;
-    #getPowerState?: DeviceStateObject<boolean>;
+    #setLockState?: DeviceStateObject<boolean>;
+    #getLockState?: DeviceStateObject<boolean>;
     #setOpenState?: DeviceStateObject<boolean>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
@@ -16,15 +16,15 @@ class Lock extends GenericDevice {
                     name: 'ACTUAL',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.Read,
-                    type: PropertyType.PowerActual,
-                    callback: state => (this.#getPowerState = state),
+                    type: PropertyType.LockStateActual,
+                    callback: state => (this.#getLockState = state),
                 },
                 {
                     name: 'SET',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.ReadWrite,
-                    type: PropertyType.Power,
-                    callback: state => (this.#setPowerState = state),
+                    type: PropertyType.LockState,
+                    callback: state => (this.#setLockState = state),
                 },
                 {
                     name: 'OPEN',
@@ -37,44 +37,44 @@ class Lock extends GenericDevice {
         );
     }
 
-    getPower(): boolean | undefined {
-        if (!this.#getPowerState && !this.#setPowerState) {
+    getLockState(): boolean | undefined {
+        if (!this.#getLockState && !this.#setLockState) {
             throw new Error('Level state not found');
         }
-        return (this.#getPowerState || this.#setPowerState)?.value;
+        return (this.#getLockState || this.#setLockState)?.value;
     }
 
-    async setPower(value: boolean): Promise<void> {
-        if (!this.#setPowerState) {
+    async setLockState(value: boolean): Promise<void> {
+        if (!this.#setLockState) {
             throw new Error('Level state not found');
         }
-        return this.#setPowerState.setValue(value);
+        return this.#setLockState.setValue(value);
     }
 
-    async updatePower(value: boolean): Promise<void> {
-        if (!this.#getPowerState && !this.#setPowerState) {
+    async updateLockState(value: boolean): Promise<void> {
+        if (!this.#getLockState && !this.#setLockState) {
             throw new Error('Level state not found');
         }
-        if (this.#getPowerState) {
-            await this.#getPowerState.setValue(value);
+        if (this.#getLockState) {
+            await this.#getLockState.setValue(value);
         }
-        if (this.#setPowerState) {
-            await this.#setPowerState.setValue(value);
+        if (this.#setLockState) {
+            await this.#setLockState.setValue(value);
         }
     }
 
-    getPowerActual(): boolean | undefined {
-        if (!this.#getPowerState) {
+    getLockStateActual(): boolean | undefined {
+        if (!this.#getLockState) {
             throw new Error('Level state not found');
         }
-        return this.#getPowerState.value;
+        return this.#getLockState.value;
     }
 
-    async updatePowerActual(value: boolean): Promise<void> {
-        if (!this.#getPowerState) {
+    async updateLockStateActual(value: boolean): Promise<void> {
+        if (!this.#getLockState) {
             throw new Error('Level state not found');
         }
-        await this.#getPowerState.setValue(value);
+        await this.#getLockState.setValue(value);
     }
 
     async setOpen(): Promise<void> {

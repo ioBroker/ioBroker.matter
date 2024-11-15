@@ -2,7 +2,7 @@ import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject'
 import GenericDevice, { DetectedDevice, DeviceOptions, StateAccessType } from './GenericDevice';
 
 class Motion extends GenericDevice {
-    #getValueState?: DeviceStateObject<boolean>;
+    #getMotionState?: DeviceStateObject<boolean>;
     #getBrightnessState?: DeviceStateObject<number>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
@@ -14,8 +14,8 @@ class Motion extends GenericDevice {
                     name: 'ACTUAL',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.Read,
-                    type: PropertyType.Value,
-                    callback: state => (this.#getValueState = state),
+                    type: PropertyType.Motion,
+                    callback: state => (this.#getMotionState = state),
                 },
                 {
                     name: 'SECOND',
@@ -28,11 +28,15 @@ class Motion extends GenericDevice {
         );
     }
 
-    getValue(): boolean | undefined {
-        if (!this.#getValueState) {
+    getMotion(): boolean | undefined {
+        if (!this.#getMotionState) {
             throw new Error('Value state not found');
         }
-        return this.#getValueState.value;
+        return this.#getMotionState.value;
+    }
+
+    hasBrightness(): boolean {
+        return this.propertyNames.includes(PropertyType.Brightness);
     }
 
     getBrightness(): number | undefined {

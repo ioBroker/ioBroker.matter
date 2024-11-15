@@ -240,7 +240,7 @@ export class MatterAdapter extends utils.Adapter {
                 const result = await this.applyControllerConfiguration(newControllerConfig);
                 if (result && 'result' in result) {
                     // was successful
-                    await this.extendObject(`${this.namespace}.controller`, { native: newControllerConfig });
+                    await this.extendObjectAsync(`${this.namespace}.controller`, { native: newControllerConfig });
                 }
                 this.sendTo(obj.from, obj.command, result, obj.callback);
                 break;
@@ -337,7 +337,7 @@ export class MatterAdapter extends utils.Adapter {
          * The storage manager is then also used by the Matter server, so this code block in general is required,
          * but you can choose a different storage backend as long as it implements the required API.
          */
-        await this.extendObject('storage', {
+        await this.extendObjectAsync('storage', {
             type: 'folder',
             common: {
                 expert: true,

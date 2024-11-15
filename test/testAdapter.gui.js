@@ -5,7 +5,7 @@ let gPage;
 const rootDir = `${__dirname}/../`;
 
 describe('test-admin-gui', () => {
-    before(async function (){
+    before(async function () {
         this.timeout(240_000);
 
         // install js-controller, web and vis-2-beta
@@ -14,12 +14,14 @@ describe('test-admin-gui', () => {
         gPage = page;
     });
 
-    it('Check admin server', async function (){
+    it('Check admin server', async function () {
         this.timeout(15_000);
-        return new Promise(resolve => setTimeout(async () => {
-            await gPage.waitForSelector('.MuiTabs-root', { timeout: 15_000 });
-            resolve();
-        }, 5000));
+        return new Promise(resolve =>
+            setTimeout(async () => {
+                await gPage.waitForSelector('.MuiTabs-root', { timeout: 15_000 });
+                resolve();
+            }, 5000),
+        );
     });
 
     after(async function () {

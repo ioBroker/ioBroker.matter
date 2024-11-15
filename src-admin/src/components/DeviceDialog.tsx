@@ -360,7 +360,10 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                         variant="standard"
                     >
                         {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorId => (
-                            <MenuItem key={vendorId} value={vendorId}>
+                            <MenuItem
+                                key={vendorId}
+                                value={vendorId}
+                            >
                                 {vendorId}
                             </MenuItem>
                         ))}
@@ -384,7 +387,10 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                         variant="standard"
                     >
                         {productIds.map(productId => (
-                            <MenuItem key={productId} value={productId}>
+                            <MenuItem
+                                key={productId}
+                                value={productId}
+                            >
                                 {productId}
                             </MenuItem>
                         ))}
@@ -421,7 +427,11 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
             }) || [];
 
         return (
-            <Dialog open={!0} onClose={this.props.onClose} fullWidth>
+            <Dialog
+                open={!0}
+                onClose={this.props.onClose}
+                fullWidth
+            >
                 <DialogTitle>
                     {`${I18n.t('Add devices')}${this.props.type === 'bridge' ? ` ${I18n.t('to bridge')} ${getText(this.props.name)}` : ''}`}
                 </DialogTitle>
@@ -553,7 +563,11 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                                                 <AccordionSummary expandIcon={<ExpandMore />}>
                                                     <div style={styles.summaryDiv}>
                                                         {room.common.icon ? (
-                                                            <Icon src={room.common.icon} style={styles.icon} alt="" />
+                                                            <Icon
+                                                                src={room.common.icon}
+                                                                style={styles.icon}
+                                                                alt=""
+                                                            />
                                                         ) : null}
 
                                                         <div style={styles.flexGrow}>{getText(room.common.name)}</div>
@@ -635,7 +649,12 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                             counters?.reduce((a, b) => a + b, 0),
                         )}
                     </Button>
-                    <Button variant="contained" onClick={() => this.props.onClose()} startIcon={<Close />} color="grey">
+                    <Button
+                        variant="contained"
+                        onClick={() => this.props.onClose()}
+                        startIcon={<Close />}
+                        color="grey"
+                    >
                         {I18n.t('Cancel')}
                     </Button>
                 </DialogActions>

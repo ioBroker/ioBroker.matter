@@ -203,7 +203,10 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                     title={I18n.t('Device is not commissioned. Show QR Code for commissioning')}
                     componentsProps={{ popper: { sx: STYLES.tooltip } }}
                 >
-                    <IconButton style={{ height: 40 }} onClick={() => this.setState({ showQrCode: deviceOrBridge })}>
+                    <IconButton
+                        style={{ height: 40 }}
+                        onClick={() => this.setState({ showQrCode: deviceOrBridge })}
+                    >
                         <QrCode />
                     </IconButton>
                 </Tooltip>
@@ -254,7 +257,11 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         const data = this.props.nodeStates[this.state.showDebugData.uuid];
 
         return (
-            <Dialog onClose={() => this.setState({ showDebugData: null })} open={!0} maxWidth="md">
+            <Dialog
+                onClose={() => this.setState({ showDebugData: null })}
+                open={!0}
+                maxWidth="md"
+            >
                 <DialogTitle>{I18n.t('Commissioning information')}</DialogTitle>
                 <DialogContent>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -344,7 +351,11 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         }
 
         return (
-            <Dialog onClose={() => this.setState({ showQrCode: null })} open={!0} maxWidth="md">
+            <Dialog
+                onClose={() => this.setState({ showQrCode: null })}
+                open={!0}
+                maxWidth="md"
+            >
                 <DialogTitle>{I18n.t('QR Code to connect')}</DialogTitle>
                 <DialogContent>
                     <InfoBox type="info">
@@ -424,7 +435,10 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
             return null;
         }
         return (
-            <Dialog open={!0} onClose={() => this.setState({ showResetDialog: null })}>
+            <Dialog
+                open={!0}
+                onClose={() => this.setState({ showResetDialog: null })}
+            >
                 <DialogTitle>{I18n.t('Reset device or bridge')}</DialogTitle>
                 <DialogContent>
                     <p>

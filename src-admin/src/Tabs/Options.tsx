@@ -97,7 +97,11 @@ class Options extends Component<OptionsProps, OptionsState> {
         }
 
         return (
-            <Dialog open={!0} onClose={() => this.setState({ showDialog: false })} maxWidth="md">
+            <Dialog
+                open={!0}
+                onClose={() => this.setState({ showDialog: false })}
+                maxWidth="md"
+            >
                 <DialogTitle>{I18n.t('Please confirm')}</DialogTitle>
                 <DialogContent>
                     <Typography sx={{ whiteSpace: 'preserve' }}>
@@ -275,7 +279,10 @@ class Options extends Component<OptionsProps, OptionsState> {
                             }
                         >
                             {this.state.interfaces.map((it, i) => (
-                                <MenuItem key={i} value={it.value}>
+                                <MenuItem
+                                    key={i}
+                                    value={it.value}
+                                >
                                     <span
                                         style={{
                                             fontWeight: it.value === '_' ? 'bold' : undefined,
@@ -318,7 +325,10 @@ class Options extends Component<OptionsProps, OptionsState> {
                             }}
                         >
                             {this.props.matter.bridges.map((it, i) => (
-                                <MenuItem key={i} value={it.uuid}>
+                                <MenuItem
+                                    key={i}
+                                    value={it.uuid}
+                                >
                                     <span
                                         style={{
                                             fontWeight: it.uuid === '_' ? 'bold' : undefined,

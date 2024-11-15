@@ -330,7 +330,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
         }
 
         return (
-            <Backdrop sx={{ zIndex: theme => theme.zIndex.drawer + 1 }} open>
+            <Backdrop
+                sx={{ zIndex: theme => theme.zIndex.drawer + 1 }}
+                open
+            >
                 <CircularProgress />
             </Backdrop>
         );
@@ -607,7 +610,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             }}
                         >
                             {this.state.cameras.map((camera, i) => (
-                                <MenuItem key={i} value={camera.id}>
+                                <MenuItem
+                                    key={i}
+                                    value={camera.id}
+                                >
                                     {camera.label}
                                 </MenuItem>
                             ))}

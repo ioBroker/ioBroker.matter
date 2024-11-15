@@ -1,10 +1,11 @@
 import { AttributeId, ClusterId, Diagnostic, EndpointNumber, EventId } from '@matter/main';
-import { BasicInformation } from '@matter/main/clusters';
+import { BasicInformation, Identify } from '@matter/main/clusters';
 import { DecodedEventData } from '@matter/main/protocol';
 import { Endpoint } from '@project-chip/matter.js/device';
 import { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { DeviceOptions } from '../../lib/devices/GenericDevice';
+import { decamelize, toHex } from '../../lib/utils';
 
 export type EnabledProperty = {
     common?: Partial<ioBroker.StateCommon>;
@@ -18,18 +19,28 @@ export type EnabledProperty = {
 
 /** Base class to map an ioBroker device to a matter device. */
 export abstract class GenericDeviceToIoBroker {
+    readonly #adapter: ioBroker.Adapter;
     readonly baseId: string;
     protected readonly appEndpoint: Endpoint;
     readonly #rootEndpoint: Endpoint;
-    readonly #name: string;
+    #name: string;
+    readonly deviceType: string;
     readonly #deviceOptions: DeviceOptions;
     #enabledProperties = new Map<PropertyType, EnabledProperty>();
 
-    protected constructor(endpoint: Endpoint, rootEndpoint: Endpoint, endpointDeviceBaseId: string) {
+    protected constructor(
+        adapter: ioBroker.Adapter,
+        endpoint: Endpoint,
+        rootEndpoint: Endpoint,
+        endpointDeviceBaseId: string,
+        deviceTypeName: string,
+    ) {
+        this.#adapter = adapter;
         this.appEndpoint = endpoint;
         this.#rootEndpoint = rootEndpoint;
         this.baseId = endpointDeviceBaseId;
-        this.#name = endpoint.getDeviceTypes()[0].name;
+        this.#name = deviceTypeName;
+        this.deviceType = deviceTypeName;
 
         this.#deviceOptions = {
             additionalStateData: {},
@@ -48,6 +59,10 @@ export abstract class GenericDeviceToIoBroker {
 
     get name(): string {
         return this.#name;
+    }
+
+    get number(): EndpointNumber {
+        return this.appEndpoint.number!;
     }
 
     /**
@@ -169,6 +184,11 @@ export abstract class GenericDeviceToIoBroker {
 
     /** Initialization Logic for the device. makes sure all handlers are registered for both sides. */
     async init(): Promise<void> {
+        const obj = await this.#adapter.getObjectAsync(this.baseId);
+        if (obj && obj.common.name) {
+            this.#name = typeof obj.common.name === 'string' ? obj.common.name : obj.common.name.en;
+        }
+
         await this.ioBrokerDevice.init();
         this.#registerIoBrokerHandlersAndInitialize();
         await this.#initializeStates();
@@ -199,5 +219,45 @@ export abstract class GenericDeviceToIoBroker {
 
     destroy(): Promise<void> {
         return this.ioBrokerDevice.destroy();
+    }
+
+    hasIdentify(): boolean {
+        return this.appEndpoint.hasClusterClient(Identify.Cluster);
+    }
+
+    async identify(identifyTime = 30): Promise<void> {
+        await this.appEndpoint.getClusterClient(Identify.Cluster)?.identify({ identifyTime });
+    }
+
+    async rename(name: string): Promise<void> {
+        this.#name = name;
+        await this.#adapter.extendObjectAsync(this.baseId, { common: { name } });
+    }
+
+    async getDeviceDetails(): Promise<Record<string, Record<string, unknown>>> {
+        const result: Record<string, Record<string, unknown>> = {};
+
+        result.details = {
+            name: this.#name,
+            primaryDeviceType: this.deviceType,
+            deviceTypes: this.appEndpoint
+                .getDeviceTypes()
+                .map(({ name, code }) => `${name} (${toHex(code)})`)
+                .join(', '),
+            endpoint: this.appEndpoint.number,
+        } as Record<string, unknown>;
+
+        result.matterClusters = {} as Record<string, unknown>;
+        for (const client of this.appEndpoint.getAllClusterClients()) {
+            const activeFeatures = new Array<string>();
+            Object.keys(client.supportedFeatures).forEach(f => client.supportedFeatures[f] && activeFeatures.push(f));
+            result.matterClusters[`__header__${client.name}`] = decamelize(client.name);
+            result.matterClusters[`${client.name}__Features`] = activeFeatures.length
+                ? activeFeatures.map(name => decamelize(name)).join(', ')
+                : 'no explicit feature set';
+            result.matterClusters[`${client.name}__Revision`] = client.revision;
+        }
+
+        return result;
     }
 }

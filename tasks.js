@@ -11,7 +11,7 @@ function copyAllFiles() {
 }
 
 async function patch() {
-    await patchHtmlFile(`${__dirname}/src-admin/build/index.html`);
+    await patchHtmlFile(`${__dirname}/src-admin/build/index.html`, '../..');
     if (!existsSync(`${__dirname}/src-admin/build/index.html`)) {
         console.error('Index.html not found!');
         process.exit(2);

@@ -1,4 +1,3 @@
-import type { NodeId } from '@matter/main';
 import { DeviceClassification, DeviceTypeModel, MatterModel } from '@matter/main/model';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
 import { ContactSensorToIoBroker } from './ContactSensorToIoBroker';

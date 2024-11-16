@@ -776,7 +776,7 @@ export class GeneralMatterNode {
             value,
         } = data;
         this.adapter.log.debug(
-            `attributeChangedCallback "${this.nodeId}": Attribute ${nodeId}/${endpointId}/${toHex(clusterId)}/${attributeName} changed to ${Logger.toJSON(
+            `handleChangedAttribute "${this.nodeId}": Attribute ${nodeId}/${endpointId}/${toHex(clusterId)}/${attributeName} changed to ${Logger.toJSON(
                 value,
             )}`,
         );
@@ -818,7 +818,7 @@ export class GeneralMatterNode {
             events,
         } = data;
         this.adapter.log.debug(
-            `eventTriggeredCallback "${this.nodeId}": Event ${nodeId}/${endpointId}/${toHex(clusterId)}/${eventName} triggered with ${Logger.toJSON(
+            `handleTriggeredEvent "${this.nodeId}": Event ${nodeId}/${endpointId}/${toHex(clusterId)}/${eventName} triggered with ${Logger.toJSON(
                 events,
             )}`,
         );

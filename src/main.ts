@@ -473,7 +473,7 @@ export class MatterAdapter extends utils.Adapter {
             // controller sub node changed
             const nodeId = objParts[1];
             await this.syncControllerNode(nodeId, obj as ioBroker.FolderObject);
-        } else if (objParts[0] === 'controller' && objPartsLength === 3 && obj?.type === 'device') {
+        } else if (objParts[0] === 'controller' && objPartsLength > 2 && obj?.type === 'device') {
             // controller node device sub node changed
             const nodeId = objParts[1];
             const nodeObj = await this.getObjectAsync(`controller.${nodeId}`);

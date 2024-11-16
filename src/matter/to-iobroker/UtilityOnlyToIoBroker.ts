@@ -1,5 +1,5 @@
 import ChannelDetector from '@iobroker/type-detector';
-import type { Endpoint } from '@project-chip/matter.js/device';
+import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
 import type { GenericDevice } from '../../lib';
 import type ElectricityDataDevice from '../../lib/devices/ElectricityDataDevice';
 import type { DetectedDevice } from '../../lib/devices/GenericDevice';
@@ -11,13 +11,15 @@ export class UtilityOnlyToIoBroker extends GenericElectricityDataDeviceToIoBroke
     readonly #ioBrokerDevice: ElectricityDataDevice;
 
     constructor(
+        node: PairedNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         adapter: ioBroker.Adapter,
         endpointDeviceBaseId: string,
         deviceTypeName: string,
+        defaultConnectionStateId: string,
     ) {
-        super(adapter, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName);
+        super(adapter, node, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName, defaultConnectionStateId);
 
         this.#ioBrokerDevice = new Socket(
             // TODO: Change to something generic like ElectricityDataDevice that we need to define first

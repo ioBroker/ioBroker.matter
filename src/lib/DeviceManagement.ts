@@ -11,9 +11,11 @@ import {
     type DeviceStatus,
     type InstanceDetails,
     type JsonFormSchema,
+    type JsonFormData,
 } from '@iobroker/dm-utils';
 import type { GeneralMatterNode, NodeDetails } from '../matter/GeneralMatterNode';
-import type { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIoBroker';
+import { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIoBroker';
+
 import { decamelize } from './utils';
 
 function strToBool(str: string): boolean | null {
@@ -154,6 +156,12 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     icon: 'settings',
                     description: this.#adapter.t('Configure this node'),
                     handler: (id, context) => this.#handleConfigureNode(ioNode, context),
+                },
+                {
+                    id: 'logNodeDebug',
+                    icon: 'fa-solid fa-file-lines', // Why icon does not work??
+                    description: t('Output Debug details this node'),
+                    handler: (id, context) => this.#handleLogDebugNode(ioNode, context),
                 },
             ],
         };
@@ -313,60 +321,113 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         return Promise.resolve({ refresh: false });
     }
 
+    async #handleLogDebugNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
+        const debugInfos = 'TODO';
+
+        await context.showForm(
+            {
+                type: 'panel',
+                items: {
+                    debugInfos: {
+                        type: 'text',
+                        label: t('Debug Infos'),
+                        minRows: 30,
+                        sm: 12,
+                        disabled: true,
+                    },
+                },
+                style: {
+                    minWidth: 200,
+                },
+            },
+            {
+                data: { debugInfos },
+                title: t('Debug Infos'),
+            },
+        );
+
+        return { refresh: false };
+    }
+
     async #handleConfigureNodeOrDevice(
         title: string,
         baseId: string,
         context: ActionContext,
+        nodeOrDevice: GeneralMatterNode | GenericDeviceToIoBroker,
     ): Promise<{ refresh: DeviceRefresh }> {
         const obj = await this.adapter.getObjectAsync(baseId);
+
+        //const node = nodeOrDevice instanceof GeneralMatterNode ? nodeOrDevice : undefined;
+        const device = nodeOrDevice instanceof GenericDeviceToIoBroker ? nodeOrDevice : undefined;
+
+        const items: Record<string, ConfigItemAny> = {
+            exposeMatterApplicationClusterData: {
+                type: 'select',
+                label: this.#adapter.t('Expose Matter Application Cluster Data'),
+                options: [
+                    { label: 'Yes', value: 'true' },
+                    { label: 'No', value: 'false' },
+                    { label: 'Default', value: '' },
+                ],
+                sm: 12,
+            },
+            exposeMatterSystemClusterData: {
+                type: 'select',
+                label: this.#adapter.t('Expose Matter System Cluster Data'),
+                options: [
+                    { label: 'Yes', value: 'true' },
+                    { label: 'No', value: 'false' },
+                    { label: 'Default', value: '' },
+                ],
+                sm: 12,
+            },
+        };
+        const data: JsonFormData = {
+            exposeMatterApplicationClusterData:
+                typeof obj?.native.exposeMatterApplicationClusterData !== 'boolean'
+                    ? ''
+                    : obj?.native.exposeMatterApplicationClusterData
+                      ? 'true'
+                      : 'false',
+            exposeMatterSystemClusterData:
+                typeof obj?.native.exposeMatterSystemClusterData !== 'boolean'
+                    ? ''
+                    : obj?.native.exposeMatterSystemClusterData
+                      ? 'true'
+                      : 'false',
+        };
+
+        if (device !== undefined) {
+            const deviceConfig = device.deviceConfiguration;
+            if (deviceConfig.pollInterval !== undefined) {
+                items.pollInterval = {
+                    type: 'number',
+                    label: this.#adapter.t('Energy Attribute Polling Interval (s)'),
+                    min: 30,
+                    max: 2147482,
+                    sm: 12,
+                };
+                data.pollInterval = deviceConfig.pollInterval;
+            }
+        }
 
         const result = await context.showForm(
             {
                 type: 'panel',
-                items: {
-                    exposeMatterApplicationClusterData: {
-                        type: 'select',
-                        label: this.#adapter.t('Expose Matter Application Cluster Data'),
-                        options: [
-                            { label: 'Yes', value: 'true' },
-                            { label: 'No', value: 'false' },
-                            { label: 'Default', value: '' },
-                        ],
-                        sm: 12,
-                    },
-                    exposeMatterSystemClusterData: {
-                        type: 'select',
-                        label: this.#adapter.t('Expose Matter System Cluster Data'),
-                        options: [
-                            { label: 'Yes', value: 'true' },
-                            { label: 'No', value: 'false' },
-                            { label: 'Default', value: '' },
-                        ],
-                        sm: 12,
-                    },
-                },
+                items,
                 style: {
                     minWidth: 300,
                 },
             },
             {
-                data: {
-                    exposeMatterApplicationClusterData:
-                        typeof obj?.native.exposeMatterApplicationClusterData !== 'boolean'
-                            ? ''
-                            : obj?.native.exposeMatterApplicationClusterData
-                              ? 'true'
-                              : 'false',
-                    exposeMatterSystemClusterData:
-                        typeof obj?.native.exposeMatterSystemClusterData !== 'boolean'
-                            ? ''
-                            : obj?.native.exposeMatterSystemClusterData
-                              ? 'true'
-                              : 'false',
-                },
-                title: this.#adapter.t(title),
+                data,
+                title: t(title),
             },
         );
+
+        if (result?.pollInterval !== undefined && device !== undefined) {
+            device.setDeviceConfiguration({ pollInterval: result.pollInterval });
+        }
 
         if (
             result?.exposeMatterApplicationClusterData !== undefined &&
@@ -376,6 +437,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 native: {
                     exposeMatterApplicationClusterData: strToBool(result.exposeMatterApplicationClusterData),
                     exposeMatterSystemClusterData: strToBool(result.exposeMatterSystemClusterData),
+                    ...(device !== undefined ? device.deviceConfiguration : {}),
                 },
             });
         }
@@ -385,7 +447,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     async #handleConfigureNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
         this.adapter.log.info(`Configure node ${node.nodeId}`);
 
-        return await this.#handleConfigureNodeOrDevice('Configure node', node.nodeBaseId, context);
+        return await this.#handleConfigureNodeOrDevice('Configure node', node.nodeBaseId, context, node);
     }
 
     async #handleConfigureDevice(
@@ -394,7 +456,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     ): Promise<{ refresh: DeviceRefresh }> {
         this.adapter.log.info(`Configure device ${device.name}`);
 
-        return await this.#handleConfigureNodeOrDevice('Configure device', device.baseId, context);
+        return await this.#handleConfigureNodeOrDevice('Configure device', device.baseId, context, device);
     }
 
     async #handleIdentifyDevice(

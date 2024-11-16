@@ -1,6 +1,6 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { BooleanState } from '@matter/main/clusters';
-import type { Endpoint } from '@project-chip/matter.js/device';
+import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
 import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import FloodAlarm from '../../lib/devices/FloodAlarm';
@@ -12,13 +12,15 @@ export class WaterLeakDetectorToIoBroker extends GenericDeviceToIoBroker {
     readonly #ioBrokerDevice: FloodAlarm;
 
     constructor(
+        node: PairedNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         adapter: ioBroker.Adapter,
         endpointDeviceBaseId: string,
         deviceTypeName: string,
+        defaultConnectionStateId: string,
     ) {
-        super(adapter, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName);
+        super(adapter, node, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName, defaultConnectionStateId);
 
         this.#ioBrokerDevice = new FloodAlarm(
             { ...ChannelDetector.getPatterns().floodAlarm, isIoBrokerDevice: false } as DetectedDevice,

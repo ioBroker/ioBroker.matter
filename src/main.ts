@@ -389,7 +389,6 @@ export class MatterAdapter extends utils.Adapter {
         this.t = i18n.translate;
         this.getText = i18n.getTranslatedObject;
 
-        this.#_guiSubscribes = this.#_guiSubscribes || [];
         SubscribeManager.setAdapter(this);
         await this.prepareMatterEnvironment();
 
@@ -413,6 +412,9 @@ export class MatterAdapter extends utils.Adapter {
          * Start the nodes. This also announces them in the network
          */
         await this.startUpMatterNodes();
+
+        // this allows to GUI to read the devices. So make it after all devices are loaded
+        this.#_guiSubscribes = this.#_guiSubscribes || [];
     }
 
     async requestNodeStates(options?: NodeStatesOptions): Promise<{ [uuid: string]: NodeStateResponse }> {

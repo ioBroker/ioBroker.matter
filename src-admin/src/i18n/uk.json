@@ -95,7 +95,7 @@
   "Product ID": "ID продукту",
   "Provide your Thread or WiFi information or both!": "Надайте інформацію про свій ланцюжок або Wi-Fi або те й інше!",
   "QR Code to connect": "QR-код для підключення",
-  "Required": "",
+  "Required": "Обов'язковий",
   "Reset": "Скинути",
   "Reset device or bridge": "Скинути пристрій або міст",
   "Reset it at least to defaults": "Нарешті скинути налаштування за замовчуванням",
@@ -156,5 +156,6 @@
   "volumeGroup": "Обсяг групи",
   "weatherForecast": "Прогноз погоди",
   "window": "Вікно",
-  "windowTilt": "Похиле вікно"
+  "windowTilt": "Похиле вікно",
+  "no IPv6": "немає IPv6"
 }

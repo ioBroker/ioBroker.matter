@@ -95,7 +95,7 @@
   "Product ID": "Product-ID",
   "Provide your Thread or WiFi information or both!": "Geef uw Thread- of WiFi-informatie op, of beide!",
   "QR Code to connect": "QR-code om verbinding te maken",
-  "Required": "",
+  "Required": "Vereist",
   "Reset": "Opnieuw instellen",
   "Reset device or bridge": "Apparaat of brug resetten",
   "Reset it at least to defaults": "Eindelijk teruggezet naar de standaardinstellingen",
@@ -156,5 +156,6 @@
   "volumeGroup": "Groepsvolume",
   "weatherForecast": "Weervoorspelling",
   "window": "Raam",
-  "windowTilt": "Gekanteld raam"
+  "windowTilt": "Gekanteld raam",
+  "no IPv6": "geen IPv6"
 }

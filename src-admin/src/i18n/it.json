@@ -95,7 +95,7 @@
   "Product ID": "Codice prodotto",
   "Provide your Thread or WiFi information or both!": "Fornisci le tue informazioni sulla discussione o sul WiFi o entrambi!",
   "QR Code to connect": "Codice QR per connettersi",
-  "Required": "",
+  "Required": "Necessario",
   "Reset": "Ripristina",
   "Reset device or bridge": "Ripristina il dispositivo o il bridge",
   "Reset it at least to defaults": "Infine ripristina le impostazioni predefinite",
@@ -156,5 +156,6 @@
   "volumeGroup": "Volume del gruppo",
   "weatherForecast": "Previsioni del tempo",
   "window": "Finestra",
-  "windowTilt": "Finestra inclinata"
+  "windowTilt": "Finestra inclinata",
+  "no IPv6": "nessun IPv6"
 }

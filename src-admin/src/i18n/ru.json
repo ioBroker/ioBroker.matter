@@ -95,7 +95,7 @@
   "Product ID": "Код товара",
   "Provide your Thread or WiFi information or both!": "Предоставьте информацию о своей теме или Wi-Fi, или и то, и другое!",
   "QR Code to connect": "QR-код для подключения",
-  "Required": "",
+  "Required": "Необходимый",
   "Reset": "Перезагрузить",
   "Reset device or bridge": "Сброс устройства или моста",
   "Reset it at least to defaults": "Наконец сброс к настройкам по умолчанию",
@@ -156,5 +156,6 @@
   "volumeGroup": "Групповой объем",
   "weatherForecast": "Прогноз погоды",
   "window": "Окно",
-  "windowTilt": "Наклонное окно"
+  "windowTilt": "Наклонное окно",
+  "no IPv6": "нет IPv6"
 }

@@ -20,7 +20,7 @@
   "At least one enabled bridge must exist": "必须存在至少一个启用的网桥",
   "BLE Commissioning information": "BLE 调试设置",
   "Bluetooth": "蓝牙",
-  "Bluetooth HCI ID": "",
+  "Bluetooth HCI ID": "蓝牙 HCI 标识",
   "Bluetooth configuration": "蓝牙配置",
   "Bridge is already commissioned. You cannot change the name or the vendor/product ID.": "大桥已经投入使用。您无法更改名称或供应商/产品 ID。",
   "Bridge is not commissioned. Show QR Code got commissioning": "桥梁尚未投入使用。显示二维码 已调试",
@@ -95,7 +95,7 @@
   "Product ID": "产品编号",
   "Provide your Thread or WiFi information or both!": "提供您的 Thread 或 WiFi 信息或两者！",
   "QR Code to connect": "二维码连接",
-  "Required": "",
+  "Required": "必需的",
   "Reset": "重置",
   "Reset device or bridge": "重置设备或桥接器",
   "Reset it at least to defaults": "最后恢复默认设置",
@@ -156,5 +156,6 @@
   "volumeGroup": "组卷",
   "weatherForecast": "天气预报",
   "window": "窗户",
-  "windowTilt": "倾斜窗户"
+  "windowTilt": "倾斜窗户",
+  "no IPv6": "没有 IPv6"
 }

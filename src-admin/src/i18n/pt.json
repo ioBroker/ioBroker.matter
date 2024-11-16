@@ -95,7 +95,7 @@
   "Product ID": "ID do produto",
   "Provide your Thread or WiFi information or both!": "Forneça suas informações de Thread ou WiFi ou ambos!",
   "QR Code to connect": "QR Code para conectar",
-  "Required": "",
+  "Required": "Obrigatório",
   "Reset": "Reiniciar",
   "Reset device or bridge": "Redefinir dispositivo ou ponte",
   "Reset it at least to defaults": "Finalmente redefinir para as configurações padrão",
@@ -156,5 +156,6 @@
   "volumeGroup": "Volume do grupo",
   "weatherForecast": "Previsão do tempo",
   "window": "Janela",
-  "windowTilt": "Janela inclinada"
+  "windowTilt": "Janela inclinada",
+  "no IPv6": "sem IPv6"
 }

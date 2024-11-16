@@ -67,26 +67,27 @@ TODO
 ## Changelog
 ### **WORK IN PROGRESS**
 * IMPORTANT: Breaking change!! Please decommission ALL devices and do a full factory reset of the adapter Matter storage before installing this version. Pair the devices new afterwards. 
-* (Apollon77) Finalizes Devices, Bridges and Controller functionality
-* (Apollon77) Upgrades to new Matter.js version and API (breaks storage structure)
+* (@Apollon77) Finalizes Devices, Bridges and Controller functionality
+* (@Apollon77) Upgrades to new Matter.js version and API (breaks storage structure)
+* (@GermanBluefox) Moved build process of GUI to vite
 
 ### 0.1.13 (2023-12-01)
-* (bluefox) Working on the controller
+* (@GermanBluefox) Working on the controller
 
 ### 0.1.10 (2023-11-13)
-* (bluefox) Implemented the factory reset and re-announcing
+* (@GermanBluefox) Implemented the factory reset and re-announcing
 
 ### 0.1.2 (2023-10-25)
-* (bluefox) Devices were implemented
+* (@GermanBluefox) Devices were implemented
 
 ### 0.0.5 (2023-10-24)
-* (bluefox) Fixed names under linux
+* (@GermanBluefox) Fixed names under linux
 
 ### 0.0.4 (2023-10-24)
-* (bluefox) used library `@iobroker/type-detector`
+* (@GermanBluefox) used library `@iobroker/type-detector`
 
 ### 0.0.2 (2023-10-23)
-* (bluefox) Initial commit
+* (@GermanBluefox) Initial commit
 
 ## License
 Apache-2.0

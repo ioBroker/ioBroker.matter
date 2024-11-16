@@ -14,6 +14,7 @@ import type { MatterControllerConfig } from '../../src-admin/src/types';
 import type { MatterAdapter } from '../main';
 import { GeneralMatterNode, type PairedNodeConfig } from './GeneralMatterNode';
 import type { GeneralNode, MessageResponse } from './GeneralNode';
+import { inspect } from 'util';
 
 export interface ControllerCreateOptions {
     adapter: MatterAdapter;
@@ -184,8 +185,9 @@ class Controller implements GeneralNode {
                     return await this.completeCommissioningForNode(message.peerNodeId, message.discoveryData);
             }
         } catch (error) {
-            this.#adapter.log.warn(`Error while executing command "${command}": ${error.stack}`);
-            return { error: `Error while executing command "${command}": ${error.message}` };
+            const errorText = inspect(error, { depth: 10 });
+            this.#adapter.log.warn(`Error while executing command "${command}": ${errorText}`);
+            return { error: `Error while executing command "${command}": ${error.message}`, result: false };
         }
 
         return { error: `Unknown command "${command}"` };
@@ -265,7 +267,13 @@ class Controller implements GeneralNode {
 
         await this.#adapter.setState('controller.info.discovering', false, true);
 
-        await this.#commissioningController.start();
+        try {
+            await this.#commissioningController.start();
+        } catch (error) {
+            const errorText = inspect(error, { depth: 10 });
+            this.#adapter.log.error(`Failed to start the controller: ${errorText}`);
+            return;
+        }
 
         // get nodes
         const nodes = this.#commissioningController.getCommissionedNodes();
@@ -369,37 +377,32 @@ class Controller implements GeneralNode {
         }
 
         // this.#adapter.log.debug(`Commissioning ... ${JSON.stringify(options)}`);
-        try {
-            if (passcode === undefined) {
-                throw new Error('Passcode is missing');
-            }
-
-            const options: NodeCommissioningOptions = {
-                ...this.nodeConnectSettings,
-                commissioning: commissioningOptions,
-                discovery: {
-                    commissionableDevice: device || undefined,
-                    identifierData:
-                        longDiscriminator !== undefined
-                            ? { longDiscriminator }
-                            : shortDiscriminator !== undefined
-                              ? { shortDiscriminator }
-                              : vendorId !== undefined
-                                ? { vendorId, productId }
-                                : undefined,
-                },
-                passcode,
-            };
-
-            const nodeId = await this.#commissioningController.commissionNode(options);
-
-            await this.registerCommissionedNode(nodeId);
-
-            return { result: true, nodeId: nodeId.toString() };
-        } catch (e) {
-            this.#adapter.log.info(`Commissioning failed: ${e.stack}`);
-            return { error: e.message, result: false };
+        if (passcode === undefined) {
+            throw new Error('Passcode is missing');
         }
+
+        const options: NodeCommissioningOptions = {
+            ...this.nodeConnectSettings,
+            commissioning: commissioningOptions,
+            discovery: {
+                commissionableDevice: device || undefined,
+                identifierData:
+                    longDiscriminator !== undefined
+                        ? { longDiscriminator }
+                        : shortDiscriminator !== undefined
+                          ? { shortDiscriminator }
+                          : vendorId !== undefined
+                            ? { vendorId, productId }
+                            : undefined,
+            },
+            passcode,
+        };
+
+        const nodeId = await this.#commissioningController.commissionNode(options);
+
+        await this.registerCommissionedNode(nodeId);
+
+        return { result: true, nodeId: nodeId.toString() };
     }
 
     async completeCommissioningForNode(nodeId: NodeId, discoveryData?: DiscoveryData): Promise<AddDeviceResult> {

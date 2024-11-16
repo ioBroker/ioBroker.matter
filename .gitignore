@@ -23,6 +23,8 @@ build
 /lib/devices/dist
 /src-admin/node_modules/
 /src-admin/build/
+/src-admin/src/components/InstanceManager
 /src-admin/src/components/InstanceManager/
+/src-admin/src/components/InstanceManager/*
 /src-admin/src/components/InstanceManager/i18n/
 /src-admin/src/components/InstanceManager/i18n/*

@@ -4,8 +4,10 @@
     "Configure node": "Knooppunt configureren",
     "Configure this device": "Dit apparaat configureren",
     "Configure this node": "Configureer dit knooppunt",
+    "Debug Infos": "Debug-info",
     "Delete this device": "Verwijder dit apparaat",
     "Device not found": "Apparaat niet gevonden",
+    "Energy Attribute Polling Interval (s)": "Energie-attribuut pollinginterval (s)",
     "Expose Matter Application Cluster Data": "Matterapplicatieclustergegevens weergeven",
     "Expose Matter System Cluster Data": "Clustergegevens van materiesysteem weergeven",
     "Generate new pairing code": "Nieuwe koppelingscode genereren",
@@ -16,6 +18,7 @@
     "Rename node": "Node hernoemen",
     "Rename this device": "Hernoem dit apparaat",
     "Rename this node": "Hernoem dit knooppunt",
+    "The device should now identify itself for 30 seconds.": "Het apparaat zou zichzelf nu 30 seconden lang moeten identificeren.",
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "De node is momenteel niet verbonden. Als je hem nu ontkoppelt, moet je de node een fabrieksreset geven om hem weer in gebruik te kunnen nemen. Weet je het zeker?",
     "Unpair this node": "Ontkoppel dit knooppunt",
     "Use the following pairing code to commission the device: %s": "Gebruik de volgende koppelcode om het apparaat in gebruik te nemen: %s"

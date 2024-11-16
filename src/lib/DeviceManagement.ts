@@ -160,7 +160,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 {
                     id: 'logNodeDebug',
                     icon: 'fa-solid fa-file-lines', // Why icon does not work??
-                    description: t('Output Debug details this node'),
+                    description: this.#adapter.t('Output Debug details this node'),
                     handler: (id, context) => this.#handleLogDebugNode(ioNode, context),
                 },
             ],
@@ -330,7 +330,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 items: {
                     debugInfos: {
                         type: 'text',
-                        label: t('Debug Infos'),
+                        label: this.#adapter.t('Debug Infos'),
                         minRows: 30,
                         sm: 12,
                         disabled: true,
@@ -342,7 +342,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
             {
                 data: { debugInfos },
-                title: t('Debug Infos'),
+                title: this.#adapter.t('Debug Infos'),
             },
         );
 
@@ -421,7 +421,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
             {
                 data,
-                title: t(title),
+                title: this.#adapter.t(title),
             },
         );
 
@@ -465,7 +465,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     ): Promise<{ refresh: DeviceRefresh }> {
         await device.identify();
 
-        await context.showMessage(`The device should now identify itself for 30 seconds.`);
+        await context.showMessage(this.#adapter.t(`The device should now identify itself for 30 seconds.`));
 
         return { refresh: false };
     }

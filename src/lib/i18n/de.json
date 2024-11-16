@@ -4,8 +4,10 @@
     "Configure node": "Knoten konfigurieren",
     "Configure this device": "Konfigurieren Sie dieses Gerät",
     "Configure this node": "Konfigurieren Sie diesen Knoten",
+    "Debug Infos": "Debug Informationen",
     "Delete this device": "Dieses Gerät löschen",
     "Device not found": "Gerät nicht gefunden",
+    "Energy Attribute Polling Interval (s)": "Abfrageintervall für Energieattribute (s)",
     "Expose Matter Application Cluster Data": "Matter-Anwendungscluster-Daten freigeben",
     "Expose Matter System Cluster Data": "Matter-System-Cluster-Daten freigeben",
     "Generate new pairing code": "Neuen Paarungscode generieren",
@@ -16,6 +18,7 @@
     "Rename node": "Knoten umbenennen",
     "Rename this device": "Dieses Gerät umbenennen",
     "Rename this node": "Diesen Knoten umbenennen",
+    "The device should now identify itself for 30 seconds.": "Das Gerät sollte sich nun 30 Sekunden lang identifizieren.",
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "Der Knoten ist derzeit nicht verbunden. Wenn Sie das Pairing jetzt aufheben, müssen Sie den Knoten auf die Werkseinstellungen zurücksetzen, um ihn wieder in Betrieb zu nehmen. Sind Sie sicher?",
     "Unpair this node": "Diesen Knoten entkoppeln",
     "Use the following pairing code to commission the device: %s": "Verwenden Sie den folgenden Pairing-Code, um das Gerät in Betrieb zu nehmen: %s"

@@ -4,8 +4,10 @@
     "Configure node": "配置节点",
     "Configure this device": "配置此设备",
     "Configure this node": "配置此节点",
+    "Debug Infos": "调试信息",
     "Delete this device": "删除此设备",
     "Device not found": "找不到设备",
+    "Energy Attribute Polling Interval (s)": "能源属性轮询间隔（秒）",
     "Expose Matter Application Cluster Data": "揭露物质应用集群数据",
     "Expose Matter System Cluster Data": "揭露物质系统集群数据",
     "Generate new pairing code": "生成新的配对码",
@@ -16,6 +18,7 @@
     "Rename node": "重命名节点",
     "Rename this device": "重命名此设备",
     "Rename this node": "重命名该节点",
+    "The device should now identify itself for 30 seconds.": "该设备现在应该能够在 30 秒内识别自己。",
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "该节点当前未连接。现在取消配对时，您需要将节点恢复出厂设置才能再次投入使用。您确定吗？",
     "Unpair this node": "取消此节点的配对",
     "Use the following pairing code to commission the device: %s": "使用以下配对代码来调试设备：％s"

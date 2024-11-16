@@ -4,8 +4,10 @@
     "Configure node": "Configurar nó",
     "Configure this device": "Configurar este dispositivo",
     "Configure this node": "Configurar este nó",
+    "Debug Infos": "Informações de depuração",
     "Delete this device": "Excluir este dispositivo",
     "Device not found": "Dispositivo não encontrado",
+    "Energy Attribute Polling Interval (s)": "Intervalo de sondagem de atributo de energia (s)",
     "Expose Matter Application Cluster Data": "Expor dados do cluster de aplicações Matter",
     "Expose Matter System Cluster Data": "Expor dados do cluster do sistema de matéria",
     "Generate new pairing code": "Gerar novo código de emparelhamento",
@@ -16,6 +18,7 @@
     "Rename node": "Mudar o nome do nó",
     "Rename this device": "Renomear este dispositivo",
     "Rename this node": "Mudar o nome deste nó",
+    "The device should now identify itself for 30 seconds.": "O dispositivo agora deve se identificar por 30 segundos.",
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "O nó não está atualmente ligado. Quando o desemparelhar, terá de repor as predefinições do nó para o colocar novamente em funcionamento. Tem a certeza?",
     "Unpair this node": "Desemparelhar este nó",
     "Use the following pairing code to commission the device: %s": "Utilize o seguinte código de emparelhamento para ativar o dispositivo: %s"

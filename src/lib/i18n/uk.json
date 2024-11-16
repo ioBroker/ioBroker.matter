@@ -4,8 +4,10 @@
     "Configure node": "Налаштувати вузол",
     "Configure this device": "Налаштуйте цей пристрій",
     "Configure this node": "Налаштуйте цей вузол",
+    "Debug Infos": "Інформація про налагодження",
     "Delete this device": "Видалити цей пристрій",
     "Device not found": "Пристрій не знайдено",
+    "Energy Attribute Polling Interval (s)": "Інтервал опитування атрибута енергії (с)",
     "Expose Matter Application Cluster Data": "Дані кластеру додатків Expose Matter",
     "Expose Matter System Cluster Data": "Expose Matter System Cluster Data",
     "Generate new pairing code": "Згенеруйте новий код сполучення",
@@ -16,6 +18,7 @@
     "Rename node": "Перейменувати вузол",
     "Rename this device": "Перейменуйте цей пристрій",
     "Rename this node": "Перейменуйте цей вузол",
+    "The device should now identify itself for 30 seconds.": "Тепер пристрій має ідентифікувати себе протягом 30 секунд.",
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "Наразі вузол не підключено. Коли ви від'єднаєте його зараз, вам потрібно буде скинути до заводських налаштувань, щоб знову ввести вузол в експлуатацію. Ви впевнені?",
     "Unpair this node": "Від'єднайте цей вузол від пари",
     "Use the following pairing code to commission the device: %s": "Для введення пристрою в експлуатацію використовуйте такий код сполучення: %s"

@@ -84,7 +84,8 @@ export abstract class GenericElectricityDataDeviceToIoBroker extends GenericDevi
 
     #enableCustomEveMeasurementStates(): boolean {
         const endpointId = this.appEndpoint.getNumber();
-        // TODO Add polling when this is present nd with the Eve vendor id 4874 (0x130a)
+        // TODO Add polling when this is present and with the Eve vendor id 4874 (0x130a)
+        const isEveDevice = this.nodeBasicInformation.vendorId === 0x130a; // Only poll real Eve devices
         const clusterId = ClusterId(0x130afc01);
         const eveCluster = this.appEndpoint.getClusterClientById(clusterId);
         if (eveCluster !== undefined) {
@@ -99,22 +100,26 @@ export abstract class GenericElectricityDataDeviceToIoBroker extends GenericDevi
                 endpointId,
                 clusterId,
                 vendorSpecificAttributeId: AttributeId(0x130a000a),
+                pollAttribute: isEveDevice,
             });
             this.enableDeviceTypeState(PropertyType.Consumption, {
                 endpointId,
                 clusterId,
                 vendorSpecificAttributeId: AttributeId(0x130a000b),
+                pollAttribute: isEveDevice,
             });
             this.enableDeviceTypeState(PropertyType.Current, {
                 endpointId,
                 clusterId,
                 vendorSpecificAttributeId: AttributeId(0x130a0009),
                 convertValue: value => value * 1000, // let's assume we have A?
+                pollAttribute: isEveDevice,
             });
             this.enableDeviceTypeState(PropertyType.Voltage, {
                 endpointId,
                 clusterId,
                 vendorSpecificAttributeId: AttributeId(0x130a0008),
+                pollAttribute: isEveDevice,
             });
             return true;
         }
@@ -131,22 +136,26 @@ export abstract class GenericElectricityDataDeviceToIoBroker extends GenericDevi
                 endpointId,
                 clusterId,
                 vendorSpecificAttributeId: AttributeId(0x00125d0023),
+                pollAttribute: true,
             }); // Watt as Float
             this.enableDeviceTypeState(PropertyType.Consumption, {
                 endpointId,
                 clusterId,
                 vendorSpecificAttributeId: AttributeId(0x00125d0021),
+                pollAttribute: true,
             }); // Accumulated Watt as Float
             this.enableDeviceTypeState(PropertyType.Current, {
                 endpointId,
                 clusterId,
                 vendorSpecificAttributeId: AttributeId(0x00125d0022),
                 convertValue: value => value * 1000, // let's assume we have A?
+                pollAttribute: true,
             }); // Current as float 32
             this.enableDeviceTypeState(PropertyType.Voltage, {
                 endpointId,
                 clusterId,
                 vendorSpecificAttributeId: AttributeId(0x00125d0024),
+                pollAttribute: true,
             }); // Voltage as float 32
             return true;
         }

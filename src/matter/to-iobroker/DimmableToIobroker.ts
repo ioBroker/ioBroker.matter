@@ -1,6 +1,6 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { LevelControl, OnOff } from '@matter/main/clusters';
-import type { Endpoint } from '@project-chip/matter.js/device';
+import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
 import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import Dimmer from '../../lib/devices/Dimmer';
@@ -15,13 +15,15 @@ export class DimmableToIobroker extends GenericElectricityDataDeviceToIoBroker {
     #maxLevel = 254;
 
     constructor(
+        node: PairedNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         adapter: ioBroker.Adapter,
         endpointDeviceBaseId: string,
         deviceTypeName: string,
+        defaultConnectionStateId: string,
     ) {
-        super(adapter, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName);
+        super(adapter, node, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName, defaultConnectionStateId);
 
         this.#ioBrokerDevice = new Dimmer(
             { ...ChannelDetector.getPatterns().dimmer, isIoBrokerDevice: false } as DetectedDevice,

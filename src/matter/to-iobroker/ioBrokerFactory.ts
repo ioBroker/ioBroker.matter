@@ -1,6 +1,6 @@
 import type { NodeId } from '@matter/main';
 import { DeviceClassification, DeviceTypeModel, MatterModel } from '@matter/main/model';
-import type { Endpoint } from '@project-chip/matter.js/device';
+import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
 import { ContactSensorToIoBroker } from './ContactSensorToIoBroker';
 import { DimmableToIobroker } from './DimmableToIobroker';
 import { DoorLockToIoBroker } from './DoorLockToIoBroker';
@@ -43,116 +43,148 @@ export function identifyDeviceTypes(endpoint: Endpoint): {
  * Factory function to create an ioBroker device from a Matter device type.
  */
 async function ioBrokerDeviceFabric(
-    nodeId: NodeId,
+    node: PairedNode,
     endpoint: Endpoint,
     rootEndpoint: Endpoint,
     adapter: ioBroker.Adapter,
     endpointDeviceBaseId: string,
+    defaultConnectionStateId: string,
 ): Promise<any> {
-    const { primaryDeviceType } = identifyDeviceTypes(endpoint);
+    const { primaryDeviceType, utilityTypes } = identifyDeviceTypes(endpoint);
 
     const fullEndpointDeviceBaseId = `${adapter.namespace}.${endpointDeviceBaseId}`;
     const mainDeviceTypeName = primaryDeviceType?.deviceType.name ?? 'Unknown';
-    adapter.log.info(`Node ${nodeId}: Creating device for ${mainDeviceTypeName}`);
+    adapter.log.info(`Node ${node.nodeId}: Creating device for ${mainDeviceTypeName}`);
     let device: GenericDeviceToIoBroker;
     switch (mainDeviceTypeName) {
         case 'DimmablePlugInUnit':
         case 'DimmableLight':
             device = new DimmableToIobroker(
+                node,
                 endpoint,
                 rootEndpoint,
                 adapter,
                 fullEndpointDeviceBaseId,
                 mainDeviceTypeName,
+                defaultConnectionStateId,
             );
             break;
         case 'ContactSensor':
             device = new ContactSensorToIoBroker(
+                node,
                 endpoint,
                 rootEndpoint,
                 adapter,
                 fullEndpointDeviceBaseId,
                 mainDeviceTypeName,
+                defaultConnectionStateId,
             );
             break;
         case 'DoorLock':
             device = new DoorLockToIoBroker(
+                node,
                 endpoint,
                 rootEndpoint,
                 adapter,
                 fullEndpointDeviceBaseId,
                 mainDeviceTypeName,
+                defaultConnectionStateId,
             );
             break;
         case 'ElectricalSensor':
         case 'PowerSource':
             device = new UtilityOnlyToIoBroker(
+                node,
                 endpoint,
                 rootEndpoint,
                 adapter,
                 fullEndpointDeviceBaseId,
                 mainDeviceTypeName,
+                defaultConnectionStateId,
             );
             break;
         case 'HumiditySensor':
             device = new HumiditySensorToIoBroker(
+                node,
                 endpoint,
                 rootEndpoint,
                 adapter,
                 fullEndpointDeviceBaseId,
                 mainDeviceTypeName,
+                defaultConnectionStateId,
             );
             break;
         case 'OccupancySensor':
             device = new OccupancyToIoBroker(
+                node,
                 endpoint,
                 rootEndpoint,
                 adapter,
                 fullEndpointDeviceBaseId,
                 mainDeviceTypeName,
+                defaultConnectionStateId,
             );
             break;
         case 'OnOffLight':
             device = new OnOffLightToIoBroker(
+                node,
                 endpoint,
                 rootEndpoint,
                 adapter,
                 fullEndpointDeviceBaseId,
                 mainDeviceTypeName,
+                defaultConnectionStateId,
             );
             break;
         case 'OnOffPlugInUnit':
             device = new OnOffPlugInUnitToIoBroker(
+                node,
                 endpoint,
                 rootEndpoint,
                 adapter,
                 fullEndpointDeviceBaseId,
                 mainDeviceTypeName,
+                defaultConnectionStateId,
             );
             break;
         case 'TemperatureSensor':
             device = new TemperatureSensorToIoBroker(
+                node,
                 endpoint,
                 rootEndpoint,
                 adapter,
                 fullEndpointDeviceBaseId,
                 mainDeviceTypeName,
+                defaultConnectionStateId,
             );
             break;
         case 'WaterLeakDetector':
             device = new WaterLeakDetectorToIoBroker(
+                node,
                 endpoint,
                 rootEndpoint,
                 adapter,
                 fullEndpointDeviceBaseId,
                 mainDeviceTypeName,
+                defaultConnectionStateId,
             );
             break;
         default:
-            adapter.log.info(
-                `Node ${nodeId}: Unknown device type: ${mainDeviceTypeName}. We enabled exposing of the application clusters for this node if you need this device type.`,
+            if (utilityTypes.length === 0) {
+                adapter.log.info(
+                    `Node ${node.nodeId}: Unknown device type: ${mainDeviceTypeName}. We enabled exposing of the application clusters for this node if you need this device type.`,
+                );
+            }
+            // ... but device has a utility type, so we can expose it
+            device = new UtilityOnlyToIoBroker(
+                node,
+                endpoint,
+                rootEndpoint,
+                adapter,
+                fullEndpointDeviceBaseId,
+                mainDeviceTypeName,
+                defaultConnectionStateId,
             );
-            return null;
     }
     await device.init();
     return device;

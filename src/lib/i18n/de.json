@@ -1,7 +1,22 @@
 {
-  "Name": "Name",
-  "Device not found": "Gerät nicht gefunden",
-  "Delete this device": "Dieses Gerät löschen",
-  "Rename this device": "Dieses Gerät umbenennen",
-  "Rename device": "Gerät umbenennen"
+    "Are you sure?": "Sind Sie sicher?",
+    "Configure device": "Gerät konfigurieren",
+    "Configure node": "Knoten konfigurieren",
+    "Configure this device": "Konfigurieren Sie dieses Gerät",
+    "Configure this node": "Konfigurieren Sie diesen Knoten",
+    "Delete this device": "Dieses Gerät löschen",
+    "Device not found": "Gerät nicht gefunden",
+    "Expose Matter Application Cluster Data": "Matter-Anwendungscluster-Daten freigeben",
+    "Expose Matter System Cluster Data": "Matter-System-Cluster-Daten freigeben",
+    "Generate new pairing code": "Neuen Paarungscode generieren",
+    "Identify this device": "Identifizieren Sie dieses Gerät",
+    "Name": "Name",
+    "No paring code received": "Kein Paring-Code erhalten",
+    "Rename device": "Gerät umbenennen",
+    "Rename node": "Knoten umbenennen",
+    "Rename this device": "Dieses Gerät umbenennen",
+    "Rename this node": "Diesen Knoten umbenennen",
+    "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "Der Knoten ist derzeit nicht verbunden. Wenn Sie das Pairing jetzt aufheben, müssen Sie den Knoten auf die Werkseinstellungen zurücksetzen, um ihn wieder in Betrieb zu nehmen. Sind Sie sicher?",
+    "Unpair this node": "Diesen Knoten entkoppeln",
+    "Use the following pairing code to commission the device: %s": "Verwenden Sie den folgenden Pairing-Code, um das Gerät in Betrieb zu nehmen: %s"
 }

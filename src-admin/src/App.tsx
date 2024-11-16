@@ -2,7 +2,7 @@ import { StyledEngineProvider, ThemeProvider } from '@mui/material/styles';
 import React from 'react';
 
 import { IconButton } from '@foxriver76/iob-component-lib';
-import { AppBar, Tab, Tabs } from '@mui/material';
+import { AppBar, Tab, Tabs, Tooltip } from '@mui/material';
 
 import { SignalCellularOff as IconNotAlive } from '@mui/icons-material';
 
@@ -92,6 +92,10 @@ class App extends GenericApp<GenericAppProps, AppState> {
 
     private refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
+    private connectToBackEndInterval: ReturnType<typeof setInterval> | null = null;
+
+    private connectToBackEndCounter = 0;
+
     private alert: null | ((_message?: string) => void);
 
     private controllerMessageHandler: ((_message: GUIMessage | null) => void) | null = null;
@@ -140,26 +144,60 @@ class App extends GenericApp<GenericAppProps, AppState> {
         window.alert = text => this.showToast(text);
     }
 
-    async refreshBackendSubscription(): Promise<void> {
-        this.refreshTimer && clearTimeout(this.refreshTimer);
+    onSubscribeToBackEndSubmitted = (
+        result: {
+            error?: string;
+            accepted?: boolean;
+            heartbeat?: number;
+        } | null,
+    ): void => {
+        // backend is alive, so stop connection interval
+        if (this.connectToBackEndInterval) {
+            console.log(`Connected after ${this.connectToBackEndCounter} attempts`);
+            this.connectToBackEndCounter = 0;
+            clearInterval(this.connectToBackEndInterval);
+            this.connectToBackEndInterval = null;
+        }
+
+        if (result && typeof result === 'object' && result.accepted === false) {
+            console.error('Subscribe is not accepted');
+            this.setState({ backendRunning: false });
+        } else if (!this.state.backendRunning) {
+            this.setState({ backendRunning: true });
+        }
+    };
+
+    refreshBackendSubscription(afterAlive?: boolean): void {
+        if (this.refreshTimer) {
+            clearTimeout(this.refreshTimer);
+        }
         this.refreshTimer = setTimeout(() => {
             this.refreshTimer = null;
             void this.refreshBackendSubscription();
         }, 60_000);
 
-        const result = await this.socket.subscribeOnInstance(
-            `matter.${this.instance}`,
-            'gui',
-            null,
-            this.onBackendUpdates,
-        );
-
-        if (result && typeof result === 'object' && result.accepted === false) {
-            console.error('Subscribe is not accepted');
-            this.setState({ backendRunning: !!result.accepted });
-        } else if (!this.state.backendRunning) {
-            this.setState({ backendRunning: true });
+        if (afterAlive && !this.connectToBackEndInterval) {
+            this.connectToBackEndCounter = 0;
+            console.log('Start faster connection attempts');
+            // try to connect in smaller intervals 20 seconds long
+            this.connectToBackEndInterval = setInterval(() => {
+                this.connectToBackEndCounter++;
+                if (this.connectToBackEndCounter > 6) {
+                    console.log('Stopped faster connection attempts. Seems the backend is dead');
+                    // back-end is still dead, so reduce attempts
+                    if (this.connectToBackEndInterval) {
+                        clearInterval(this.connectToBackEndInterval);
+                        this.connectToBackEndInterval = null;
+                    }
+                } else {
+                    this.refreshBackendSubscription();
+                }
+            }, 3_000);
         }
+
+        void this.socket
+            .subscribeOnInstance(`matter.${this.instance}`, 'gui', null, this.onBackendUpdates)
+            .then(this.onSubscribeToBackEndSubmitted);
     }
 
     async onConnectionReady(): Promise<void> {
@@ -189,7 +227,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
         const alive = await this.socket.getState(`system.adapter.matter.${this.instance}.alive`);
 
         if (alive?.val) {
-            void this.refreshBackendSubscription();
+            this.refreshBackendSubscription(true);
         }
 
         this.setState({
@@ -203,7 +241,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
     onAlive = (_id: string, state: ioBroker.State | null | undefined): void => {
         if (state?.val && !this.state.alive) {
             this.setState({ alive: true });
-            void this.refreshBackendSubscription();
+            this.refreshBackendSubscription(true);
         } else if (!state?.val && this.state.alive) {
             this.refreshTimer && clearTimeout(this.refreshTimer);
             this.refreshTimer = null;
@@ -242,7 +280,13 @@ class App extends GenericApp<GenericAppProps, AppState> {
             this.setState({ nodeStates });
         } else if (update.command === 'stopped') {
             // indication, that backend stopped
-            setTimeout(() => this.refreshBackendSubscription(), 5_000);
+            if (this.refreshTimer) {
+                clearTimeout(this.refreshTimer);
+            }
+            this.refreshTimer = setTimeout(() => {
+                this.refreshTimer = null;
+                this.refreshBackendSubscription();
+            }, 5_000);
         } else {
             this.controllerMessageHandler && this.controllerMessageHandler(update);
         }
@@ -272,8 +316,20 @@ class App extends GenericApp<GenericAppProps, AppState> {
     async componentWillUnmount(): Promise<void> {
         window.alert = this.alert as (_message?: any) => void;
         this.alert = null;
-        this.intervalSubscribe && clearInterval(this.intervalSubscribe);
-        this.intervalSubscribe = null;
+        if (this.intervalSubscribe) {
+            clearInterval(this.intervalSubscribe);
+            this.intervalSubscribe = null;
+        }
+
+        if (this.connectToBackEndInterval) {
+            clearInterval(this.connectToBackEndInterval);
+            this.connectToBackEndInterval = null;
+        }
+
+        if (this.refreshTimer) {
+            clearInterval(this.refreshTimer);
+            this.refreshTimer = null;
+        }
 
         try {
             this.socket.unsubscribeState(`system.adapter.matter.${this.instance}.alive`, this.onAlive);
@@ -283,7 +339,10 @@ class App extends GenericApp<GenericAppProps, AppState> {
         }
 
         super.componentWillUnmount();
-        this.configHandler && this.configHandler.destroy();
+        if (this.configHandler) {
+            this.configHandler.destroy();
+            this.configHandler = null;
+        }
     }
 
     renderController(): React.ReactNode {
@@ -525,16 +584,36 @@ class App extends GenericApp<GenericAppProps, AppState> {
                                     value="devices"
                                 />
                                 <div style={{ flexGrow: 1 }} />
-                                {this.state.alive ? null : <IconNotAlive style={{ color: 'orange', padding: 12 }} />}
+                                {this.state.alive ? null : (
+                                    <Tooltip
+                                        title={I18n.t('Instance is not alive')}
+                                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                                    >
+                                        <IconNotAlive style={{ color: 'orange', padding: 12 }} />
+                                    </Tooltip>
+                                )}
                                 {this.state.backendRunning ? null : (
-                                    <IconButton
-                                        iconColor="warning"
-                                        noBackground
-                                        icon="noConnection"
-                                        onClick={() => {
-                                            void this.refreshBackendSubscription();
-                                        }}
-                                    />
+                                    <Tooltip
+                                        title={I18n.t('Reconnect to backend')}
+                                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                                    >
+                                        <div
+                                            style={{
+                                                width: 48,
+                                                height: 48,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                            }}
+                                        >
+                                            <IconButton
+                                                iconColor="warning"
+                                                noBackground
+                                                icon="noConnection"
+                                                onClick={() => this.refreshBackendSubscription()}
+                                            />
+                                        </div>
+                                    </Tooltip>
                                 )}
                             </Tabs>
                         </AppBar>

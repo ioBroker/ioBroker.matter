@@ -1,7 +1,22 @@
 {
-  "Device not found": "Urządzenie nie zostało znalezione",
-  "Name": "Nazwa",
-  "Delete this device": "Usuń to urządzenie",
-  "Rename this device": "Zmień nazwę tego urządzenia",
-  "Rename device": "Zmień nazwę urządzenia"
+    "Are you sure?": "Jesteś pewien?",
+    "Configure device": "Konfiguruj urządzenie",
+    "Configure node": "Konfiguruj węzeł",
+    "Configure this device": "Konfiguracja tego urządzenia",
+    "Configure this node": "Konfiguracja tego węzła",
+    "Delete this device": "Usuń to urządzenie",
+    "Device not found": "Urządzenie nie zostało znalezione",
+    "Expose Matter Application Cluster Data": "Ujawnianie danych klastra aplikacji Matter",
+    "Expose Matter System Cluster Data": "Ujawnianie danych klastra systemu Matter",
+    "Generate new pairing code": "Generowanie nowego kodu parowania",
+    "Identify this device": "Zidentyfikuj to urządzenie",
+    "Name": "Nazwa",
+    "No paring code received": "Nie otrzymano kodu parowania",
+    "Rename device": "Zmień nazwę urządzenia",
+    "Rename node": "Zmiana nazwy węzła",
+    "Rename this device": "Zmień nazwę tego urządzenia",
+    "Rename this node": "Zmień nazwę tego węzła",
+    "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "Węzeł nie jest obecnie podłączony. Po rozparowaniu należy przywrócić ustawienia fabryczne, aby ponownie uruchomić węzeł. Czy na pewno?",
+    "Unpair this node": "Rozparuj ten węzeł",
+    "Use the following pairing code to commission the device: %s": "Użyj następującego kodu parowania, aby uruchomić urządzenie: %s"
 }

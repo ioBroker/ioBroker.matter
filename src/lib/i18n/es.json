@@ -1,7 +1,22 @@
 {
-  "Device not found": "Dispositivo no encontrado",
-  "Name": "Nombre",
-  "Delete this device": "Eliminar este dispositivo",
-  "Rename this device": "Cambiar el nombre de este dispositivo",
-  "Rename device": "Cambiar nombre del dispositivo"
+    "Are you sure?": "¿Seguro?",
+    "Configure device": "Configurar dispositivo",
+    "Configure node": "Configurar nodo",
+    "Configure this device": "Configurar este dispositivo",
+    "Configure this node": "Configurar este nodo",
+    "Delete this device": "Eliminar este dispositivo",
+    "Device not found": "Dispositivo no encontrado",
+    "Expose Matter Application Cluster Data": "Exponer los datos del clúster de aplicaciones Matter",
+    "Expose Matter System Cluster Data": "Exponer los datos del clúster Matter System",
+    "Generate new pairing code": "Generar nuevo código de emparejamiento",
+    "Identify this device": "Identificar este dispositivo",
+    "Name": "Nombre",
+    "No paring code received": "No se ha recibido el código de emparejamiento",
+    "Rename device": "Cambiar nombre del dispositivo",
+    "Rename node": "Renombrar nodo",
+    "Rename this device": "Cambiar el nombre de este dispositivo",
+    "Rename this node": "Cambiar el nombre de este nodo",
+    "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "El nodo no está conectado actualmente. Cuando lo desemparejes ahora tendrás que restablecer de fábrica el nodo para volver a ponerlo en funcionamiento. ¿Está seguro?",
+    "Unpair this node": "Desemparejar este nodo",
+    "Use the following pairing code to commission the device: %s": "Utilice el siguiente código de emparejamiento para poner en marcha el dispositivo: %s"
 }

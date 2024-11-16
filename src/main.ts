@@ -21,6 +21,7 @@ import MatterDevice, { type DeviceCreateOptions } from './matter/DeviceNode';
 import type { PairedNodeConfig } from './matter/GeneralMatterNode';
 import type { MessageResponse } from './matter/GeneralNode';
 import { IoBrokerObjectStorage } from './matter/IoBrokerObjectStorage';
+const I18n = import('@iobroker/i18n');
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
 
@@ -82,6 +83,8 @@ export class MatterAdapter extends utils.Adapter {
     readonly #deviceManagement: MatterAdapterDeviceManagement;
     #nextPortNumber: number = 5541;
     #instanceDataDir?: string;
+    t: (word: string, ...args: (string | number | boolean | null)[]) => string;
+    getText: (word: string, ...args: (string | number | boolean | null)[]) => ioBroker.Translated;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -107,6 +110,9 @@ export class MatterAdapter extends utils.Adapter {
         this.#matterEnvironment = Environment.default;
 
         this.#detector = new ChannelDetector();
+        this.t = (word: string, ..._args: (string | number | boolean | null)[]): string => word;
+        this.getText = (_word: string, ..._args: (string | number | boolean | null)[]): ioBroker.Translated =>
+            ({}) as ioBroker.Translated;
     }
 
     get controllerNode(): MatterController | undefined {
@@ -377,6 +383,11 @@ export class MatterAdapter extends utils.Adapter {
                 );
             }
         }
+        // init i18n
+        const i18n = await I18n;
+        await i18n.init(`${__dirname}/lib`, this);
+        this.t = i18n.translate;
+        this.getText = i18n.getTranslatedObject;
 
         this.#_guiSubscribes = this.#_guiSubscribes || [];
         SubscribeManager.setAdapter(this);

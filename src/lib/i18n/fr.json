@@ -1,7 +1,22 @@
 {
-  "Device not found": "Appareil non trouvé",
-  "Name": "Nom",
-  "Delete this device": "Supprimer cet appareil",
-  "Rename this device": "Renommer cet appareil",
-  "Rename device": "Renommer l'appareil"
+    "Are you sure?": "Êtes-vous sûr ?",
+    "Configure device": "Configurer l'appareil",
+    "Configure node": "Configurer le nœud",
+    "Configure this device": "Configurer cet appareil",
+    "Configure this node": "Configurer ce nœud",
+    "Delete this device": "Supprimer cet appareil",
+    "Device not found": "Appareil non trouvé",
+    "Expose Matter Application Cluster Data": "Exposer les données du cluster d'applications Matter",
+    "Expose Matter System Cluster Data": "Exposer les données du cluster du système Matter",
+    "Generate new pairing code": "Générer un nouveau code d'appariement",
+    "Identify this device": "Identifier ce dispositif",
+    "Name": "Nom",
+    "No paring code received": "Pas de code de parage reçu",
+    "Rename device": "Renommer l'appareil",
+    "Rename node": "Renommer un nœud",
+    "Rename this device": "Renommer cet appareil",
+    "Rename this node": "Renommer ce nœud",
+    "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "Le nœud n'est actuellement pas connecté. Lorsque vous le désassemblez, vous devez réinitialiser le nœud pour qu'il soit à nouveau opérationnel. Êtes-vous sûr ?",
+    "Unpair this node": "Désappariement de ce nœud",
+    "Use the following pairing code to commission the device: %s": "Utilisez le code d'appairage suivant pour mettre l'appareil en service : %s"
 }

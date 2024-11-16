@@ -28,6 +28,7 @@ import {
 
 import { type AdminConnection, type IobTheme, type ThemeName, type ThemeType, I18n } from '@iobroker/adapter-react-v5';
 import DeviceManager from '@iobroker/dm-gui-components';
+// import DeviceManager from '../components/DeviceManagerDev';
 
 import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
 import { clone, getVendorName } from '../Utils';

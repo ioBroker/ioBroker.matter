@@ -277,6 +277,7 @@ export class GeneralMatterNode {
         options?: {
             exposeMatterSystemClusterData?: boolean;
             exposeMatterApplicationClusterData?: boolean;
+            connectionStateId?: string;
         },
     ): Promise<void> {
         const id = endpoint.number;
@@ -314,6 +315,7 @@ export class GeneralMatterNode {
         let exposeMatterApplicationClusterData =
             customExposeMatterApplicationClusterData ?? this.exposeMatterApplicationClusterData;
 
+        let connectionStateId = options?.connectionStateId ?? `${this.adapter.namespace}.${this.connectionStateId}`;
         if (primaryDeviceType === undefined) {
             this.adapter.log.warn(
                 `Node ${this.node.nodeId}: Unknown device type: ${serialize(endpoint.deviceType)}. Please report this issue.`,
@@ -336,18 +338,33 @@ export class GeneralMatterNode {
                     endpointId: id,
                 },
             });
+
+            if (primaryDeviceType.deviceType.name === 'BridgedNode') {
+                const ioBrokerDevice = await ioBrokerDeviceFabric(
+                    this.node,
+                    endpoint,
+                    rootEndpoint,
+                    this.adapter,
+                    endpointDeviceBaseId,
+                    connectionStateId,
+                );
+                if (ioBrokerDevice !== null) {
+                    connectionStateId = ioBrokerDevice.connectionStateId;
+                    this.#deviceMap.set(id, ioBrokerDevice);
+                }
+            }
+
             for (const childEndpoint of endpoint.getChildEndpoints()) {
                 // Recursive call to process all sub endpoints for raw states
-                await this.#endpointToIoBrokerDevices(childEndpoint, rootEndpoint, endpointDeviceBaseId);
+                await this.#endpointToIoBrokerDevices(childEndpoint, rootEndpoint, endpointDeviceBaseId, {
+                    connectionStateId,
+                });
             }
         } else {
             await this.adapter.extendObjectAsync(endpointDeviceBaseId, {
                 type: 'device',
                 common: {
                     name: existingObject ? undefined : deviceTypeName,
-                    statusStates: {
-                        onlineId: `${this.adapter.namespace}.${this.connectionStateId}`,
-                    },
                 },
                 native: {
                     nodeId: this.nodeId,
@@ -358,11 +375,12 @@ export class GeneralMatterNode {
             if (id !== 0) {
                 // Ignore the root endpoint
                 const ioBrokerDevice = await ioBrokerDeviceFabric(
-                    this.node.nodeId,
+                    this.node,
                     endpoint,
                     rootEndpoint,
                     this.adapter,
                     endpointDeviceBaseId,
+                    connectionStateId,
                 );
                 if (ioBrokerDevice !== null) {
                     this.#deviceMap.set(id, ioBrokerDevice);
@@ -758,7 +776,7 @@ export class GeneralMatterNode {
             value,
         } = data;
         this.adapter.log.debug(
-            `attributeChangedCallback "${this.nodeId}": Attribute ${nodeId}/${endpointId}/${toHex(clusterId)}/${attributeName} changed to ${Logger.toJSON(
+            `handleChangedAttribute "${this.nodeId}": Attribute ${nodeId}/${endpointId}/${toHex(clusterId)}/${attributeName} changed to ${Logger.toJSON(
                 value,
             )}`,
         );
@@ -800,7 +818,7 @@ export class GeneralMatterNode {
             events,
         } = data;
         this.adapter.log.debug(
-            `eventTriggeredCallback "${this.nodeId}": Event ${nodeId}/${endpointId}/${toHex(clusterId)}/${eventName} triggered with ${Logger.toJSON(
+            `handleTriggeredEvent "${this.nodeId}": Event ${nodeId}/${endpointId}/${toHex(clusterId)}/${eventName} triggered with ${Logger.toJSON(
                 events,
             )}`,
         );

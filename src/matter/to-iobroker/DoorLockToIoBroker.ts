@@ -1,6 +1,6 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { DoorLock } from '@matter/main/clusters';
-import type { Endpoint } from '@project-chip/matter.js/device';
+import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
 import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
@@ -13,13 +13,15 @@ export class DoorLockToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #unboltingSupported: boolean;
 
     constructor(
+        node: PairedNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         adapter: ioBroker.Adapter,
         endpointDeviceBaseId: string,
         deviceTypeName: string,
+        defaultConnectionStateId: string,
     ) {
-        super(adapter, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName);
+        super(adapter, node, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName, defaultConnectionStateId);
 
         this.#unboltingSupported =
             this.appEndpoint.getClusterClient(DoorLock.Complete)?.supportedFeatures.unbolting ?? false;

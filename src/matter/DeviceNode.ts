@@ -85,26 +85,32 @@ class Device extends BaseServerNode {
         // The device type to announce we use from the first returned endpoint of the device
         const deviceType = endpoints[0].type.deviceType;
 
-        this.serverNode = await ServerNode.create({
-            id: this.#parameters.uuid,
-            network: {
-                port: this.#parameters.port,
-            },
-            productDescription: {
-                name: deviceName,
-                deviceType,
-            },
-            basicInformation: {
-                vendorName,
-                vendorId: VendorId(vendorId),
-                nodeLabel: productName,
-                productName,
-                productLabel: productName,
-                productId,
-                serialNumber: uniqueId,
-                uniqueId: md5(uniqueId),
-            },
-        });
+        try {
+            this.serverNode = await ServerNode.create({
+                id: this.#parameters.uuid,
+                network: {
+                    port: this.#parameters.port,
+                },
+                productDescription: {
+                    name: deviceName,
+                    deviceType,
+                },
+                basicInformation: {
+                    vendorName,
+                    vendorId: VendorId(vendorId),
+                    nodeLabel: productName,
+                    productName,
+                    productLabel: productName,
+                    productId,
+                    serialNumber: uniqueId,
+                    uniqueId: md5(uniqueId),
+                },
+            });
+        } catch (error) {
+            const errorText = inspect(error, { depth: 10 });
+            this.adapter.log.error(`Error creating device ${this.#parameters.uuid}: ${errorText}`);
+            return;
+        }
 
         if (this.#deviceOptions?.noComposed) {
             // No composed means we remove all beside first returned endpoint
@@ -158,13 +164,24 @@ class Device extends BaseServerNode {
         if (!this.serverNode) {
             return;
         }
-        await this.serverNode.start();
-        this.#started = true;
+        try {
+            await this.serverNode.start();
+            this.#started = true;
+        } catch (error) {
+            const errorText = inspect(error, { depth: 10 });
+            this.adapter.log.error(`Error starting device ${this.#parameters.uuid}: ${errorText}`);
+            return;
+        }
         await this.updateUiState();
     }
 
     async stop(): Promise<void> {
-        await this.serverNode?.close();
+        try {
+            await this.serverNode?.close();
+        } catch (error) {
+            const errorText = inspect(error, { depth: 10 });
+            this.adapter.log.error(`Error stopping device ${this.#parameters.uuid}: ${errorText}`);
+        }
         await this.#device.destroy();
         this.serverNode = undefined;
         this.#started = false;

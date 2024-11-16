@@ -278,6 +278,9 @@ class Options extends Component<OptionsProps, OptionsState> {
                                     <span
                                         style={{
                                             fontWeight: item.value === '_' ? 'bold' : undefined,
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            width: '100%',
                                         }}
                                     >
                                         {item.value === '_' ? I18n.t('All interfaces') : item.value}

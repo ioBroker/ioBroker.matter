@@ -1,7 +1,7 @@
 import { type AttributeId, type ClusterId, Diagnostic, EndpointNumber, type EventId } from '@matter/main';
-import { BasicInformation, Identify } from '@matter/main/clusters';
+import { BasicInformation, BridgedDeviceBasicInformation, Identify } from '@matter/main/clusters';
 import type { DecodedEventData } from '@matter/main/protocol';
-import type { Endpoint } from '@project-chip/matter.js/device';
+import type { Endpoint, PairedNode, DeviceBasicInformation } from '@project-chip/matter.js/device';
 import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DeviceOptions } from '../../lib/devices/GenericDevice';
@@ -15,32 +15,49 @@ export type EnabledProperty = {
     attributeName?: string;
     convertValue?: (value: any) => any;
     changeHandler?: (value: any) => Promise<void>;
+    pollAttribute?: boolean;
+};
+
+export type GenericDeviceConfiguration = {
+    pollInterval?: number;
 };
 
 /** Base class to map an ioBroker device to a matter device. */
 export abstract class GenericDeviceToIoBroker {
     readonly #adapter: ioBroker.Adapter;
     readonly baseId: string;
+    readonly #node: PairedNode;
     protected readonly appEndpoint: Endpoint;
     readonly #rootEndpoint: Endpoint;
     #name: string;
     readonly deviceType: string;
     readonly #deviceOptions: DeviceOptions;
     #enabledProperties = new Map<PropertyType, EnabledProperty>();
+    #connectionStateId: string;
+    #hasBridgedReachabilityAttribute = false;
+    #pollTimeout?: ioBroker.Timeout;
+    #destroyed = false;
+    #initialized = false;
+    #pollInterval = 60_000;
+    #hasAttributesToPoll = false;
 
     protected constructor(
         adapter: ioBroker.Adapter,
+        node: PairedNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         endpointDeviceBaseId: string,
         deviceTypeName: string,
+        defaultConnectionStateId: string,
     ) {
         this.#adapter = adapter;
+        this.#node = node;
         this.appEndpoint = endpoint;
         this.#rootEndpoint = rootEndpoint;
         this.baseId = endpointDeviceBaseId;
         this.#name = deviceTypeName;
         this.deviceType = deviceTypeName;
+        this.#connectionStateId = defaultConnectionStateId;
 
         this.#deviceOptions = {
             additionalStateData: {},
@@ -65,6 +82,14 @@ export abstract class GenericDeviceToIoBroker {
         return this.appEndpoint.number!;
     }
 
+    get connectionStateId(): string {
+        return this.#connectionStateId;
+    }
+
+    get nodeBasicInformation(): Partial<DeviceBasicInformation> {
+        return this.#node.basicInformation ?? {};
+    }
+
     /**
      * Method to override to add own states to the device.
      * This method is called by the constructor.
@@ -76,6 +101,17 @@ export abstract class GenericDeviceToIoBroker {
             attributeName: 'reachable',
             convertValue: value => !value,
         });
+        if (!this.#enabledProperties.has(PropertyType.Unreachable)) {
+            this.enableDeviceTypeState(PropertyType.Unreachable, {
+                endpointId: this.appEndpoint.number,
+                clusterId: BridgedDeviceBasicInformation.Cluster.id,
+                attributeName: 'reachable',
+                convertValue: value => !value,
+            });
+            if (this.#enabledProperties.has(PropertyType.Unreachable)) {
+                this.#hasBridgedReachabilityAttribute = true;
+            }
+        }
         return this.#deviceOptions;
     }
 
@@ -90,9 +126,10 @@ export abstract class GenericDeviceToIoBroker {
             clusterId?: ClusterId;
             convertValue?: (value: any) => any;
             changeHandler?: (value: any) => Promise<void>;
+            pollAttribute?: boolean;
         } & ({ vendorSpecificAttributeId: AttributeId } | { attributeName?: string }),
     ): void {
-        const { endpointId, clusterId, convertValue, changeHandler } = data;
+        const { endpointId, clusterId, convertValue, changeHandler, pollAttribute } = data;
         const stateData = this.#deviceOptions.additionalStateData![type] ?? {};
         if (stateData.id !== undefined) {
             console.log(`State ${type} already enabled`);
@@ -125,6 +162,7 @@ export abstract class GenericDeviceToIoBroker {
             attributeName,
             convertValue,
             changeHandler,
+            pollAttribute,
         });
     }
 
@@ -161,6 +199,10 @@ export abstract class GenericDeviceToIoBroker {
         }
         if (value !== undefined) {
             await this.ioBrokerDevice.updatePropertyValue(property, value);
+
+            if (property === PropertyType.Unreachable && this.#hasBridgedReachabilityAttribute) {
+                await this.#adapter.setStateAsync(this.#connectionStateId, { val: !value, ack: true });
+            }
         }
     }
 
@@ -194,14 +236,63 @@ export abstract class GenericDeviceToIoBroker {
 
     /** Initialization Logic for the device. makes sure all handlers are registered for both sides. */
     async init(): Promise<void> {
-        const obj = await this.#adapter.getObjectAsync(this.baseId);
-        if (obj && obj.common.name) {
-            this.#name = typeof obj.common.name === 'string' ? obj.common.name : obj.common.name.en;
+        const existingObject = await this.#adapter.getObjectAsync(this.baseId);
+        if (existingObject) {
+            if (existingObject.common.name) {
+                this.#name =
+                    typeof existingObject.common.name === 'string'
+                        ? existingObject.common.name
+                        : existingObject.common.name.en;
+            }
+            this.setDeviceConfiguration({
+                pollInterval: existingObject.native?.pollInterval,
+            });
         }
 
         await this.ioBrokerDevice.init();
         this.#registerIoBrokerHandlersAndInitialize();
         await this.#initializeStates();
+
+        if (this.#hasBridgedReachabilityAttribute) {
+            await this.#adapter.setObjectNotExists(`${this.baseId}.info`, {
+                type: 'channel',
+                common: {
+                    name: 'Bridged Device connection info',
+                },
+                native: {},
+            });
+
+            this.#connectionStateId = `${this.baseId}.info.connection`;
+            await this.#adapter.setObjectNotExists(`${this.#connectionStateId}`, {
+                type: 'state',
+                common: {
+                    name: 'Connected',
+                    role: 'indicator.connected',
+                    type: 'boolean',
+                    read: true,
+                    write: false,
+                },
+                native: {},
+            });
+
+            await this.#adapter.setState(this.#connectionStateId, {
+                val:
+                    (await this.appEndpoint
+                        .getClusterClient(BridgedDeviceBasicInformation.Cluster)
+                        ?.getReachableAttribute()) ?? false,
+                ack: true,
+            });
+        }
+
+        await this.#adapter.extendObjectAsync(this.baseId, {
+            common: {
+                statusStates: {
+                    onlineId: `${this.#connectionStateId}`,
+                },
+            },
+        });
+
+        this.#initialized = true;
     }
 
     #registerIoBrokerHandlersAndInitialize(): void {
@@ -229,9 +320,117 @@ export abstract class GenericDeviceToIoBroker {
                 await this.updateIoBrokerState(property, value);
             }
         }
+        this.#initAttributePolling();
+    }
+
+    #initAttributePolling(): void {
+        if (this.#pollTimeout !== undefined) {
+            this.#adapter.clearTimeout(this.#pollTimeout);
+            this.#pollTimeout = undefined;
+        }
+        const pollingAttributes = new Array<{
+            endpointId: EndpointNumber;
+            clusterId: ClusterId;
+            attributeId: AttributeId;
+        }>();
+        for (const { endpointId, clusterId, attributeId, pollAttribute } of this.#enabledProperties.values()) {
+            if (pollAttribute) {
+                if (endpointId !== undefined && clusterId !== undefined && attributeId !== undefined) {
+                    pollingAttributes.push({ endpointId, clusterId, attributeId });
+                }
+            }
+        }
+        if (pollingAttributes.length) {
+            this.#hasAttributesToPoll = true;
+            this.#pollTimeout = this.#adapter.setTimeout(
+                () => this.#pollAttributes(pollingAttributes),
+                this.#pollInterval,
+            );
+        }
+    }
+
+    async #pollAttributes(
+        attributes: {
+            endpointId: EndpointNumber;
+            clusterId: ClusterId;
+            attributeId: AttributeId;
+        }[],
+    ): Promise<void> {
+        this.#pollTimeout = undefined;
+        if (this.#destroyed || attributes.length === 0) {
+            return;
+        }
+
+        if (this.#node.isConnected) {
+            // Split in chunks of maximum 9 attributes and get an interactionClient from node
+            const client = await this.#node.getInteractionClient();
+
+            for (let i = 0; i < attributes.length; i += 9) {
+                if (this.#destroyed) {
+                    return;
+                }
+                // Maximum read for 9 attribute paths is allowed, so split in chunks of 9
+                const chunk = attributes.slice(i, i + 9);
+
+                // Collect the endpoints and clusters and get the last known data version for each to use as filter
+                const endpointClusters = new Map<string, { endpointId: EndpointNumber; clusterId: ClusterId }>();
+                for (const { endpointId, clusterId } of chunk) {
+                    const key = `${endpointId}-${clusterId}`;
+                    endpointClusters.set(key, { endpointId, clusterId });
+                }
+                const dataVersionFilters = new Array<{
+                    endpointId: EndpointNumber;
+                    clusterId: ClusterId;
+                    dataVersion: number;
+                }>();
+                for (const data of endpointClusters.values()) {
+                    const filter = client.getCachedClusterDataVersions(data);
+                    if (filter.length) {
+                        dataVersionFilters.push(filter[0]);
+                    }
+                }
+
+                try {
+                    // Query the attributes
+                    const result = await client.getMultipleAttributes({
+                        attributes: chunk.map(({ endpointId, clusterId, attributeId }) => ({
+                            endpointId,
+                            clusterId,
+                            attributeId,
+                        })),
+                        dataVersionFilters,
+                    });
+
+                    // Handle the results as if they would have come as subscription update
+                    for (const {
+                        path: { endpointId, clusterId, attributeId, attributeName },
+                        value,
+                    } of result) {
+                        await this.handleChangedAttribute({
+                            clusterId,
+                            endpointId,
+                            attributeId,
+                            attributeName,
+                            value,
+                        });
+                    }
+                } catch (e) {
+                    this.#adapter.log.info(`Error polling attributes for node ${this.#node.nodeId}: ${e}`);
+                }
+            }
+        } else {
+            this.#adapter.log.debug(`Node ${this.#node.nodeId} is not connected, do not poll attributes`);
+        }
+
+        this.#pollTimeout = this.#adapter.setTimeout(() => this.#pollAttributes(attributes), this.#pollInterval);
     }
 
     destroy(): Promise<void> {
+        this.#destroyed = true;
+        if (this.#pollTimeout !== undefined) {
+            this.#adapter.clearTimeout(this.#pollTimeout);
+            this.#pollTimeout = undefined;
+        }
         return this.ioBrokerDevice.destroy();
     }
 
@@ -273,5 +472,28 @@ export abstract class GenericDeviceToIoBroker {
         }
 
         return Promise.resolve(result);
+    }
+
+    get deviceConfiguration(): { pollInterval?: number } {
+        return {
+            pollInterval: this.#hasAttributesToPoll ? Math.round(this.#pollInterval / 1000) : undefined,
+        };
+    }
+
+    setDeviceConfiguration(config: GenericDeviceConfiguration): void {
+        const { pollInterval } = config;
+        if (pollInterval !== undefined) {
+            if (isNaN(pollInterval) || pollInterval < 30 || pollInterval > 2_147_482) {
+                this.#adapter.log.warn(
+                    `Invalid polling interval ${pollInterval} seconds, use former value of ${Math.round(this.#pollInterval / 1000)}.`,
+                );
+                return;
+            }
+            this.#pollInterval = pollInterval * 1000;
+            if (this.#initialized) {
+                // If already initialized, restart polling
+                this.#initAttributePolling();
+            }
+        }
     }
 }

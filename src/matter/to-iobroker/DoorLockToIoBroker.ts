@@ -34,7 +34,7 @@ export class DoorLockToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
-        this.enableDeviceTypeState(PropertyType.Power, {
+        this.enableDeviceTypeState(PropertyType.LockState, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: DoorLock.Cluster.id,
             attributeName: 'lockState',
@@ -53,7 +53,7 @@ export class DoorLockToIoBroker extends GenericElectricityDataDeviceToIoBroker {
             },
             convertValue: value => value === DoorLock.LockState.Unlocked,
         });
-        this.enableDeviceTypeState(PropertyType.PowerActual, {
+        this.enableDeviceTypeState(PropertyType.LockStateActual, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: DoorLock.Cluster.id,
             attributeName: 'lockState',

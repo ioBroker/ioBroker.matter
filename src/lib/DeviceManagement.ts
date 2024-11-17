@@ -597,6 +597,10 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     continue;
                 }
 
+                if (data[key][subKey] === undefined) {
+                    continue;
+                }
+
                 const subKeyShortenerIndex = subKey.indexOf('__');
                 const subKeyLabel = decamelize(
                     subKeyShortenerIndex !== -1 ? subKey.substring(subKeyShortenerIndex + 2) : subKey,

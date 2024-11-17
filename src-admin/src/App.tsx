@@ -163,8 +163,17 @@ class App extends GenericApp<GenericAppProps, AppState> {
             console.error('Subscribe is not accepted');
             this.setState({ backendRunning: false });
         } else if (!this.state.backendRunning) {
-            this.setState({ backendRunning: true });
+            this.setState({ backendRunning: true }, () => {
+                if (this.controllerMessageHandler) {
+                    this.controllerMessageHandler({ command: 'reconnect' });
+                }
+            });
         }
+    };
+
+    // eslint-disable-next-line class-methods-use-this
+    onSubscribeToBackEndFailed = (e: unknown): void => {
+        console.warn(`Cannot connect to backend: ${e as Error}`);
     };
 
     refreshBackendSubscription(afterAlive?: boolean): void {
@@ -197,7 +206,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
 
         void this.socket
             .subscribeOnInstance(`matter.${this.instance}`, 'gui', null, this.onBackendUpdates)
-            .then(this.onSubscribeToBackEndSubmitted);
+            .then(this.onSubscribeToBackEndSubmitted)
+            .catch(this.onSubscribeToBackEndFailed);
     }
 
     async onConnectionReady(): Promise<void> {

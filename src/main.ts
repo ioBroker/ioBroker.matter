@@ -115,6 +115,14 @@ export class MatterAdapter extends utils.Adapter {
             ({}) as ioBroker.Translated;
     }
 
+    /** Get string from StringOrTranslated */
+    public getString(text: ioBroker.StringOrTranslated): string {
+        if (typeof text === 'object') {
+            return text[this.sysLanguage] || text.en;
+        }
+        return text.toString();
+    }
+
     get controllerNode(): MatterController | undefined {
         return this.#controller;
     }

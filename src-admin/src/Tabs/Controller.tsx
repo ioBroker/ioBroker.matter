@@ -127,6 +127,8 @@ interface ComponentState {
     states: Record<string, ioBroker.State>;
     /** If qr code dialog should be shown (optional a device can be provided) */
     showQrCodeDialog: { device?: CommissionableDevice; open: boolean };
+    /* increase this number to reload the devices */
+    triggerControllerLoad: number;
 }
 
 class Controller extends Component<ComponentProps, ComponentState> {
@@ -155,6 +157,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
             showQrCodeDialog: { open: false },
             backendProcessingActive: false,
             bleDialogOpen: false,
+            triggerControllerLoad: 0,
         };
     }
 
@@ -302,7 +305,15 @@ class Controller extends Component<ComponentProps, ComponentState> {
     }
 
     onMessage = (message: GUIMessage | null): void => {
-        if (message?.command === 'discoveredDevice') {
+        if (message?.command === 'reconnect') {
+            // refresh the list of devices
+            setTimeout(() => {
+                this.setState({
+                    triggerControllerLoad:
+                        this.state.triggerControllerLoad > 5000 ? 1 : this.state.triggerControllerLoad + 1,
+                });
+            }, 50);
+        } else if (message?.command === 'discoveredDevice') {
             if (message.device) {
                 const discovered = clone(this.state.discovered);
                 discovered.push(message.device);

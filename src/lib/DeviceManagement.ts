@@ -18,6 +18,7 @@ import type { GeneralMatterNode, NodeDetails } from '../matter/GeneralMatterNode
 import { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIoBroker';
 
 import { decamelize } from './utils';
+import { UtilityOnlyToIoBroker } from '../matter/to-iobroker/UtilityOnlyToIoBroker';
 
 function strToBool(str: string): boolean | null {
     if (str === 'true') {
@@ -175,7 +176,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             deviceCount++;
         }
         // define the icon depends on number of sub-devices
-        node.icon = deviceCount > 3 ? 'hub5' : deviceCount > 2 ? 'hub3' : 'node';
+        node.icon = ioNode.hasAggregatorEndpoint ? 'hub5' : deviceCount > 1 ? 'hub3' : 'node';
 
         return res;
     }

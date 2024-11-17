@@ -76,6 +76,7 @@ export class GeneralMatterNode {
     #name?: string;
     #details: NodeDetails = {};
     #connectedAddress?: string;
+    #hasAggregatorEndpoint = false;
 
     constructor(
         protected readonly adapter: MatterAdapter,
@@ -110,6 +111,10 @@ export class GeneralMatterNode {
 
     get devices(): Map<number, GenericDeviceToIoBroker> {
         return this.#deviceMap;
+    }
+
+    get hasAggregatorEndpoint(): boolean {
+        return this.#hasAggregatorEndpoint;
     }
 
     async initialize(nodeDetails?: { operationalAddress?: string }): Promise<void> {
@@ -325,6 +330,7 @@ export class GeneralMatterNode {
             primaryDeviceType.deviceType.name === 'BridgedNode'
         ) {
             // An Aggregator device type has a slightly different structure
+            this.#hasAggregatorEndpoint = true;
             this.adapter.log.info(
                 `Node ${this.node.nodeId}: ${primaryDeviceType.deviceType.name} device type detected`,
             );

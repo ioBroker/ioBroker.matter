@@ -274,8 +274,10 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                                 <TableRow>
                                     <TableCell>{I18n.t('Status')}</TableCell>
                                     <TableCell>
-                                        {BridgesAndDevices.getStatusIcon(data.status, this.props.themeType)}
-                                        <span style={{ marginLeft: 10 }}>{I18n.t(`status_${data.status}`)}</span>
+                                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                                            {BridgesAndDevices.getStatusIcon(data.status, this.props.themeType)}
+                                            <span style={{ marginLeft: 10 }}>{I18n.t(`status_${data.status}`)}</span>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                                 {data.connectionInfo?.map((info, i) => (

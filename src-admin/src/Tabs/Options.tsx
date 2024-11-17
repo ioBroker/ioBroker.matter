@@ -76,7 +76,16 @@ interface OptionsState {
     iotLogin: string;
     iotPassword: string;
     iotInstance: string;
-    interfaces?: { value: string; address: string }[];
+    interfaces?: { value: string; address?: string; address6?: string }[];
+}
+
+function cutIpV6(address: string, length?: number): string {
+    length = length || 10;
+    // +2, while ... is longer than 2 characters
+    if (address.length < length + 2) {
+        return address;
+    }
+    return `${address.substring(0, length)}...`;
 }
 
 class Options extends Component<OptionsProps, OptionsState> {
@@ -185,7 +194,9 @@ class Options extends Component<OptionsProps, OptionsState> {
 
         try {
             const host = await this.props.socket.getObject(`system.host.${this.props.common.host}`);
-            const interfaces = [{ value: '_', address: I18n.t('All interfaces') }];
+            const interfaces: { value: string; address?: string; address6?: string }[] = [
+                { value: '_', address: I18n.t('All interfaces') },
+            ];
             if (host?.native?.hardware?.networkInterfaces) {
                 const list: Record<string, NetworkInterface[]> = host.native.hardware.networkInterfaces as Record<
                     string,
@@ -197,9 +208,9 @@ class Options extends Component<OptionsProps, OptionsState> {
                     }
 
                     // find ipv4 address
-                    let ip = list[inter].find(_ip => _ip.family === 'IPv4');
-                    ip = ip || list[inter].find(_ip => _ip.family === 'IPv6');
-                    interfaces.push({ value: inter, address: ip?.address || '' });
+                    const ip4 = list[inter].find(_ip => _ip.family === 'IPv4');
+                    const ip6 = list[inter].find(_ip => _ip.family === 'IPv6');
+                    interfaces.push({ value: inter, address: ip4?.address || '', address6: ip6?.address });
                 });
             }
 
@@ -267,10 +278,17 @@ class Options extends Component<OptionsProps, OptionsState> {
                                     <span
                                         style={{
                                             fontWeight: item.value === '_' ? 'bold' : undefined,
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            width: '100%',
                                         }}
                                     >
                                         {item.value === '_' ? I18n.t('All interfaces') : item.value}
-                                        {item.value === '_' ? null : <span style={styles.address}>{item.address}</span>}
+                                        {item.value === '_' ? null : (
+                                            <span
+                                                style={styles.address}
+                                            >{`${item.address || item.address6}${!item.address6 ? ` / ${I18n.t('no IPv6')}` : item.address ? ` / ${cutIpV6(item.address6)}` : ''}`}</span>
+                                        )}{' '}
                                     </span>
                                 );
                             }}
@@ -281,15 +299,23 @@ class Options extends Component<OptionsProps, OptionsState> {
                             {this.state.interfaces.map((it, i) => (
                                 <MenuItem
                                     key={i}
+                                    disabled={!it.address6 && it.value !== '_'}
                                     value={it.value}
                                 >
                                     <span
                                         style={{
                                             fontWeight: it.value === '_' ? 'bold' : undefined,
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            width: '100%',
                                         }}
                                     >
                                         {it.value === '_' ? I18n.t('All interfaces') : it.value}
-                                        {it.value === '_' ? null : <span style={styles.address}>{it.address}</span>}
+                                        {it.value === '_' ? null : (
+                                            <span
+                                                style={styles.address}
+                                            >{`${it.address || it.address6}${!it.address6 ? ` / ${I18n.t('no IPv6')}` : it.address ? ` / ${cutIpV6(it.address6)}` : ''}`}</span>
+                                        )}
                                     </span>
                                 </MenuItem>
                             ))}

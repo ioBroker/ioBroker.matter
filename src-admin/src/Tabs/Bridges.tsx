@@ -773,7 +773,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     onOk={async (_oid, name) => {
                         const oid: string | undefined = Array.isArray(_oid) ? _oid[0] : (_oid as string);
                         // Try to detect ID
-                        const controls = await detectDevices(this.props.socket, [oid]);
+                        const controls = await detectDevices(this.props.socket, I18n.getLanguage(), [oid]);
                         if (!controls?.length) {
                             this.setState({
                                 addDeviceDialog: null,

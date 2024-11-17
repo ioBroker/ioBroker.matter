@@ -10,6 +10,10 @@ function copyAllFiles() {
     copyFiles(['src-admin/build/**/*', '!src-admin/build/index.html'], 'admin/');
 }
 
+function copyI18n() {
+    copyFiles(['src/lib/i18n/**/*'], 'build/lib/i18n');
+}
+
 async function patch() {
     await patchHtmlFile(`${__dirname}/src-admin/build/index.html`, '../..');
     if (!existsSync(`${__dirname}/src-admin/build/index.html`)) {
@@ -56,6 +60,8 @@ if (process.argv.includes('--0-clean')) {
             console.error(`Cannot build: ${e}`);
             process.exit(1);
         });
+} else if (process.argv.includes('--copy-i18n')) {
+    copyI18n();
 } else {
     clean();
 

@@ -6,15 +6,17 @@ import {
     type ConfigItemAny,
     type DeviceDetails,
     type DeviceInfo,
+    type ConfigItemPanel,
     DeviceManagement,
     type DeviceRefresh,
     type DeviceStatus,
     type InstanceDetails,
+    type JsonFormSchema,
     type JsonFormData,
 } from '@iobroker/dm-utils';
 import type { GeneralMatterNode, NodeDetails } from '../matter/GeneralMatterNode';
 import { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIoBroker';
-import { getText, t } from './i18n';
+
 import { decamelize } from './utils';
 
 function strToBool(str: string): boolean | null {
@@ -89,13 +91,13 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 {
                     id: 'delete',
                     icon: '',
-                    description: t('Delete this device'),
+                    description: this.#adapter.t('Delete this device'),
                     handler: this.handleDeleteDevice.bind(this),
                 },
                 {
                     id: 'rename',
                     icon: '',
-                    description: t('Rename this device'),
+                    description: this.#adapter.t('Rename this device'),
                     handler: this.#handleRenameDevice.bind(this),
                 },
             ],
@@ -124,51 +126,56 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const details = ioNode.details;
 
         const res = new Array<DeviceInfo>();
-        res.push({
+        const node: DeviceInfo = {
             id,
             name: `Node ${ioNode.nodeId}`,
-            icon: undefined, // TODO
+            icon: undefined,
             ...details,
             status,
             hasDetails: true,
             actions: [
                 {
                     id: 'deleteNode',
-                    icon: 'fa-solid fa-trash-can',
-                    description: t('Unpair this node'),
+                    icon: 'delete',
+                    description: this.#adapter.t('Unpair this node'),
                     handler: (id, context) => this.#handleDeleteNode(ioNode, context),
                 },
                 {
                     id: 'renameNode',
-                    icon: 'fa-solid fa-pen',
-                    description: t('Rename this node'),
+                    icon: 'edit',
+                    description: this.#adapter.t('Rename this node'),
                     handler: (id, context) => this.#handleRenameNode(ioNode, context),
                 },
                 {
                     id: 'pairingCodeNode',
-                    icon: 'fa-solid fa-qrcode',
-                    description: t('Generate new pairing code'),
+                    icon: 'qrcode',
+                    description: this.#adapter.t('Generate new pairing code'),
                     handler: (id, context) => this.#handlePairingCode(ioNode, context),
                 },
                 {
                     id: 'configureNode',
-                    icon: 'fa-solid fa-gear', // Why icon does not work??
-                    description: t('Configure this node'),
+                    icon: 'settings',
+                    description: this.#adapter.t('Configure this node'),
                     handler: (id, context) => this.#handleConfigureNode(ioNode, context),
                 },
                 {
                     id: 'logNodeDebug',
                     icon: 'fa-solid fa-file-lines', // Why icon does not work??
-                    description: t('Output Debug details this node'),
+                    description: this.#adapter.t('Output Debug details this node'),
                     handler: (id, context) => this.#handleLogDebugNode(ioNode, context),
                 },
             ],
-        });
+        };
+        res.push(node);
 
+        let deviceCount = 0;
         for (const device of ioNode.devices.values()) {
             const deviceInfo = this.#getNodeDeviceEntries(device, id, details, status);
             res.push(deviceInfo);
+            deviceCount++;
         }
+        // define the icon depends on number of sub-devices
+        node.icon = deviceCount > 3 ? 'hub5' : deviceCount > 2 ? 'hub3' : 'node';
 
         return res;
     }
@@ -185,21 +192,21 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const data: DeviceInfo = {
             id: `${nodeId}-${device.number}`,
             name: `Device ${device.name}`,
-            icon: undefined, // TODO
+            icon: device.ioBrokerDevice.deviceType,
             ...nodeDetails,
             status,
             hasDetails: true,
             actions: [
                 {
                     id: 'renameDevice',
-                    icon: 'fa-solid fa-pen',
-                    description: t('Rename this device'),
+                    icon: 'rename',
+                    description: this.#adapter.t('Rename this device'),
                     handler: (id, context) => this.#handleRenameDevice(device, context),
                 },
                 {
                     id: 'configureDevice',
-                    icon: 'fa-solid fa-gear',
-                    description: t('Configure this device'),
+                    icon: 'settings',
+                    description: this.#adapter.t('Configure this device'),
                     handler: (id, context) => this.#handleConfigureDevice(device, context),
                 },
             ],
@@ -208,8 +215,8 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         if (device.hasIdentify()) {
             data.actions!.push({
                 id: 'identify',
-                icon: 'fa-solid fa-search-location',
-                description: t('Identify this device'),
+                icon: 'identify',
+                description: this.#adapter.t('Identify this device'),
                 handler: (id, context) => this.#handleIdentifyDevice(device, context),
             });
         }
@@ -219,14 +226,14 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
     async #handleDeleteNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
         this.adapter.log.info(`Delete node ${node.nodeId}`);
-        if (!(await context.showConfirmation(t('Are you sure?')))) {
+        if (!(await context.showConfirmation(this.#adapter.t('Are you sure?')))) {
             return { refresh: false };
         }
 
         if (!node.node.isConnected) {
             if (
                 !(await context.showConfirmation(
-                    t(
+                    this.#adapter.t(
                         'The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?',
                     ),
                 ))
@@ -247,7 +254,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 items: {
                     name: {
                         type: 'text',
-                        label: t('Name'),
+                        label: this.#adapter.t('Name'),
                         sm: 12,
                     },
                 },
@@ -257,9 +264,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
             {
                 data: {
-                    name: getText(node.nodeId, this.adapter.sysLanguage),
+                    name: node.nodeId,
                 },
-                title: t('Rename node'),
+                title: this.#adapter.t('Rename node'),
             },
         );
 
@@ -279,9 +286,37 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         this.adapter.log.info(`New pairing code for node ${node.nodeId}: ${JSON.stringify(result)}`);
 
         // TODO Display it in the UI, ideally as QRCode ... How to return??
-        void context.showMessage(
-            `Use the following pairing code to commission the device: ${result?.manualPairingCode}`,
-        );
+        if (result?.manualPairingCode || result?.qrPairingCode) {
+            const schema: JsonFormSchema = {
+                type: 'panel',
+                items: {},
+            };
+            if (result?.manualPairingCode) {
+                schema.items._text = {
+                    type: 'text',
+                    sm: 12,
+                    readOnly: true,
+                    copyToClipboard: true,
+                    default: this.#adapter.t(
+                        'Use the following pairing code to commission the device: %s',
+                        result?.manualPairingCode,
+                    ),
+                };
+            }
+            if (result?.qrPairingCode) {
+                schema.items._qrCode = {
+                    type: 'qrCode',
+                    newLine: true,
+                    sm: 12,
+                    size: 80,
+                    data: result?.qrPairingCode,
+                };
+            }
+
+            void context.showForm(schema);
+        } else {
+            void context.showMessage(this.#adapter.t('No paring code received'));
+        }
 
         return Promise.resolve({ refresh: false });
     }
@@ -295,7 +330,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 items: {
                     debugInfos: {
                         type: 'text',
-                        label: t('Debug Infos'),
+                        label: this.#adapter.t('Debug Infos'),
                         minRows: 30,
                         sm: 12,
                         disabled: true,
@@ -307,7 +342,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
             {
                 data: { debugInfos },
-                title: t('Debug Infos'),
+                title: this.#adapter.t('Debug Infos'),
             },
         );
 
@@ -328,7 +363,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const items: Record<string, ConfigItemAny> = {
             exposeMatterApplicationClusterData: {
                 type: 'select',
-                label: t('Expose Matter Application Cluster Data'),
+                label: this.#adapter.t('Expose Matter Application Cluster Data'),
                 options: [
                     { label: 'Yes', value: 'true' },
                     { label: 'No', value: 'false' },
@@ -338,7 +373,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
             exposeMatterSystemClusterData: {
                 type: 'select',
-                label: t('Expose Matter System Cluster Data'),
+                label: this.#adapter.t('Expose Matter System Cluster Data'),
                 options: [
                     { label: 'Yes', value: 'true' },
                     { label: 'No', value: 'false' },
@@ -367,7 +402,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             if (deviceConfig.pollInterval !== undefined) {
                 items.pollInterval = {
                     type: 'number',
-                    label: t('Energy Attribute Polling Interval (s)'),
+                    label: this.#adapter.t('Energy Attribute Polling Interval (s)'),
                     min: 30,
                     max: 2147482,
                     sm: 12,
@@ -381,12 +416,12 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 type: 'panel',
                 items,
                 style: {
-                    minWidth: 200,
+                    minWidth: 300,
                 },
             },
             {
                 data,
-                title: t(title),
+                title: this.#adapter.t(title),
             },
         );
 
@@ -430,7 +465,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     ): Promise<{ refresh: DeviceRefresh }> {
         await device.identify();
 
-        await context.showMessage(`The device should now identify itself for 30 seconds.`);
+        await context.showMessage(this.#adapter.t(`The device should now identify itself for 30 seconds.`));
 
         return { refresh: false };
     }
@@ -473,7 +508,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 items: {
                     name: {
                         type: 'text',
-                        label: t('Name'),
+                        label: this.#adapter.t('Name'),
                         sm: 12,
                     },
                 },
@@ -483,9 +518,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
             {
                 data: {
-                    name: getText(device.name || '', this.adapter.sysLanguage),
+                    name: device.name,
                 },
-                title: t('Rename device'),
+                title: this.#adapter.t('Rename device'),
             },
         );
 
@@ -511,9 +546,8 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         if (endpointId === undefined) {
             // Get Node details
-            const { schema, data } = this.#convertDataToJsonConfig(await node.getNodeDetails());
-            // @ts-expect-error TODO: Fix typings
-            return { id, schema, data };
+            const schema = this.#convertDataToJsonConfig(await node.getNodeDetails());
+            return { id, schema, data: {} };
         }
 
         // Get Endpoint details
@@ -522,10 +556,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             return { error: 'Device not found' };
         }
 
-        const { schema, data } = this.#convertDataToJsonConfig(await device.getDeviceDetails());
+        const schema = this.#convertDataToJsonConfig(await device.getDeviceDetails());
 
-        // @ts-expect-error TODO: Fix typings
-        return { id, schema, data };
+        return { id, schema, data: {} };
     }
 
     async close(): Promise<void> {
@@ -534,18 +567,14 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
     /**
      * Convert a generic object data model into JSON Config data forms
-     * Keys are expected to be camelized strings and will be used as field name too  in de-camelized form
+     * Keys are expected to be camel-case strings and will be used as field name too  in de-camel-cased form
      * If needed for uniqueness "__" can be used as splitter and anything after this is used as field name
      * "__header__*" entries are converted into a headline with the value as text
      * "__divider__*" entries are converted into a divider
      * The logic expects a two level object structure. By default, it returns a tabs structure. If only one key is used on first level only one panel is returned
      */
-    #convertDataToJsonConfig(data: Record<string, Record<string, unknown>>): {
-        schema: ConfigItemAny;
-        data: Record<string, unknown>;
-    } {
-        const items: Record<string, ConfigItemAny> = {};
-        const flatData: Record<string, unknown> = {};
+    #convertDataToJsonConfig(data: Record<string, Record<string, unknown>>): JsonFormSchema {
+        const items: Record<string, ConfigItemPanel> = {};
 
         let panelCount = 0;
         for (const key in data) {
@@ -568,38 +597,16 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     continue;
                 }
 
-                const dataType = typeof data[key][subKey];
                 const subKeyShortenerIndex = subKey.indexOf('__');
                 const subKeyLabel = decamelize(
                     subKeyShortenerIndex !== -1 ? subKey.substring(subKeyShortenerIndex + 2) : subKey,
                 );
-                switch (dataType) {
-                    case 'boolean':
-                        tabItems[flatKey] = {
-                            type: 'checkbox',
-                            label: subKeyLabel,
-                            disabled: 'true',
-                            newLine: true,
-                        };
-                        break;
-                    case 'number':
-                        tabItems[flatKey] = {
-                            type: 'number',
-                            label: subKeyLabel,
-                            disabled: 'true',
-                            newLine: true,
-                        };
-                        break;
-                    default:
-                        tabItems[flatKey] = {
-                            type: 'text',
-                            label: subKeyLabel,
-                            disabled: 'true',
-                            newLine: true,
-                        };
-                }
-
-                flatData[flatKey] = data[key][subKey];
+                tabItems[flatKey] = {
+                    type: 'staticInfo',
+                    label: subKeyLabel,
+                    newLine: true,
+                    data: data[key][subKey] as number | string | boolean,
+                };
             }
 
             items[`_tab_${key}`] = {
@@ -613,18 +620,12 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         }
 
         if (panelCount === 1) {
-            return {
-                schema: items[`_tab_${Object.keys(data)[0]}`],
-                data: flatData,
-            };
+            return items[`_tab_${Object.keys(data)[0]}`];
         }
 
         return {
-            schema: {
-                type: 'tabs',
-                items,
-            } as ConfigItemAny,
-            data: flatData,
+            type: 'tabs',
+            items,
         };
     }
 }

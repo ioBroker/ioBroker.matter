@@ -989,7 +989,7 @@ export class GeneralMatterNode {
                 result.matterRootEndpointClusters[`__header__${client.name}`] = decamelize(client.name);
                 result.matterRootEndpointClusters[`${client.name}__Features`] = activeFeatures.length
                     ? activeFeatures.map(name => decamelize(name)).join(', ')
-                    : 'Basic Featureset';
+                    : 'Basic features set';
                 result.matterRootEndpointClusters[`${client.name}__Revision`] = client.revision;
             }
         }

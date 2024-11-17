@@ -18,7 +18,6 @@ import type { GeneralMatterNode, NodeDetails } from '../matter/GeneralMatterNode
 import { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIoBroker';
 
 import { decamelize } from './utils';
-import { UtilityOnlyToIoBroker } from '../matter/to-iobroker/UtilityOnlyToIoBroker';
 
 function strToBool(str: string): boolean | null {
     if (str === 'true') {

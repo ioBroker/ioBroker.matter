@@ -8,7 +8,7 @@ import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDev
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 
 /** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
-export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
+export class DimmableToIobroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Dimmer;
     #isLighting = false;
     #minLevel = 0;

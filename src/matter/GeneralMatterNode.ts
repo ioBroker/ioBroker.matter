@@ -76,6 +76,7 @@ export class GeneralMatterNode {
     #name?: string;
     #details: NodeDetails = {};
     #connectedAddress?: string;
+    #hasAggregatorEndpoint = false;
 
     constructor(
         protected readonly adapter: MatterAdapter,
@@ -110,6 +111,10 @@ export class GeneralMatterNode {
 
     get devices(): Map<number, GenericDeviceToIoBroker> {
         return this.#deviceMap;
+    }
+
+    get hasAggregatorEndpoint(): boolean {
+        return this.#hasAggregatorEndpoint;
     }
 
     async initialize(nodeDetails?: { operationalAddress?: string }): Promise<void> {
@@ -325,6 +330,7 @@ export class GeneralMatterNode {
             primaryDeviceType.deviceType.name === 'BridgedNode'
         ) {
             // An Aggregator device type has a slightly different structure
+            this.#hasAggregatorEndpoint = true;
             this.adapter.log.info(
                 `Node ${this.node.nodeId}: ${primaryDeviceType.deviceType.name} device type detected`,
             );
@@ -714,8 +720,8 @@ export class GeneralMatterNode {
                     type: 'state',
                     common: {
                         name: command.name,
-                        role: hasArguments ? 'state' : 'button',
-                        type: hasArguments ? 'object' : 'boolean',
+                        role: hasArguments ? 'json' : 'button',
+                        type: hasArguments ? 'string' : 'boolean',
                         read: false,
                         write: true,
                     },
@@ -914,28 +920,36 @@ export class GeneralMatterNode {
         const details = this.node.basicInformation;
 
         if (details) {
-            result.nodeDetails = {};
+            result.node = {};
 
-            result.nodeDetails.vendorName = details.vendorName;
-            result.nodeDetails.vendorId = toHex(details.vendorId as number);
-            result.nodeDetails.productName = details.productName;
-            result.nodeDetails.productId = toHex(details.productId as number);
-            result.nodeDetails.nodeLabel = details.nodeLabel;
-            result.nodeDetails.location = details.location;
-            result.nodeDetails.hardwareVersion = details.hardwareVersionString;
-            result.nodeDetails.softwareVersion = details.softwareVersionString;
+            result.node.vendorName = details.vendorName;
+            result.node.vendorId = toHex(details.vendorId as number);
+            result.node.productName = details.productName;
+            result.node.productId = toHex(details.productId as number);
+            result.node.nodeLabel = details.nodeLabel;
+            result.node.location = details.location;
+            result.node.hardwareVersion = details.hardwareVersionString;
+            result.node.softwareVersion = details.softwareVersionString;
             if (details.productUrl) {
-                result.nodeDetails.productUrl = details.productUrl;
+                result.node.productUrl = details.productUrl;
             }
             if (details.serialNumber) {
-                result.nodeDetails.serialNumber = details.serialNumber;
+                result.node.serialNumber = details.serialNumber;
             }
             if (details.uniqueId) {
-                result.nodeDetails.uniqueId = details.uniqueId;
+                result.node.uniqueId = details.uniqueId;
             }
 
+            result.capabilities = {
+                ...this.node.deviceInformation,
+
+                // hide these two entries
+                dataRevision: undefined,
+                rootEndpointServerList: undefined,
+            };
+
             if (this.node.isConnected) {
-                result.networkInformation = {
+                result.network = {
                     connectedAddress: this.#connectedAddress,
                 };
                 const generalDiag = this.node.getRootClusterClient(GeneralDiagnosticsCluster);
@@ -946,14 +960,12 @@ export class GeneralMatterNode {
                             const interfaces = networkInterfaces.filter(({ isOperational }) => isOperational);
                             if (interfaces.length) {
                                 interfaces.forEach(({ name, hardwareAddress, iPv4Addresses, iPv6Addresses }, index) => {
-                                    result.networkInformation[`__header__${index}_${name}`] =
-                                        `Interface ${index} "${name}"`;
-                                    result.networkInformation[`${index}_${name}__HardwareAddress`] =
-                                        bytesToMac(hardwareAddress);
-                                    result.networkInformation[`${index}_${name}__IPv4Addresses`] = iPv4Addresses
+                                    result.network[`__header__${index}_${name}`] = `Interface ${index} "${name}"`;
+                                    result.network[`${index}_${name}__HardwareAddress`] = bytesToMac(hardwareAddress);
+                                    result.network[`${index}_${name}__IPv4Addresses`] = iPv4Addresses
                                         .map(ip => bytesToIpV4(ip))
                                         .join(', ');
-                                    result.networkInformation[`${index}_${name}__IPv6Addresses`] = iPv6Addresses
+                                    result.network[`${index}_${name}__IPv6Addresses`] = iPv6Addresses
                                         .map(ip => bytesToIpV6(ip))
                                         .join(', ');
                                 });
@@ -965,32 +977,32 @@ export class GeneralMatterNode {
                 }
             }
 
-            result.specificationDetails = {};
+            result.specification = {};
             if (details.dataModelVersion) {
-                result.specificationDetails.dataModelVersion = details.dataModelVersion;
+                result.specification.dataModelVersion = details.dataModelVersion;
             }
             if (details.specificationVersion) {
-                result.specificationDetails.specificationVersion = details.specificationVersion;
+                result.specification.specificationVersion = details.specificationVersion;
             }
             if (details.maxPathsPerInvoke) {
-                result.specificationDetails.maxPathsPerInvoke = details.maxPathsPerInvoke;
+                result.specification.maxPathsPerInvoke = details.maxPathsPerInvoke;
             }
-            result.specificationDetails.capabilityMinima = JSON.stringify(details.capabilityMinima);
+            result.specification.capabilityMinima = JSON.stringify(details.capabilityMinima);
         }
 
         const rootEndpoint = this.node.getRootEndpoint();
         if (rootEndpoint) {
-            result.matterRootEndpointClusters = {} as Record<string, unknown>;
+            result.rootEndpointClusters = {} as Record<string, unknown>;
             for (const client of rootEndpoint.getAllClusterClients()) {
                 const activeFeatures = new Array<string>();
                 Object.keys(client.supportedFeatures).forEach(
                     f => client.supportedFeatures[f] && activeFeatures.push(f),
                 );
-                result.matterRootEndpointClusters[`__header__${client.name}`] = decamelize(client.name);
-                result.matterRootEndpointClusters[`${client.name}__Features`] = activeFeatures.length
+                result.rootEndpointClusters[`__header__${client.name}`] = decamelize(client.name);
+                result.rootEndpointClusters[`${client.name}__Features`] = activeFeatures.length
                     ? activeFeatures.map(name => decamelize(name)).join(', ')
                     : 'Basic features set';
-                result.matterRootEndpointClusters[`${client.name}__Revision`] = client.revision;
+                result.rootEndpointClusters[`${client.name}__Revision`] = client.revision;
             }
         }
 

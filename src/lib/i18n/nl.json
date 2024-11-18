@@ -1,10 +1,12 @@
 {
     "Are you sure?": "Weet je het zeker?",
+    "Close": "Dichtbij",
     "Configure device": "Apparaat configureren",
     "Configure node": "Knooppunt configureren",
     "Configure this device": "Dit apparaat configureren",
     "Configure this node": "Configureer dit knooppunt",
     "Debug Infos": "Debug-info",
+    "Default": "Standaard",
     "Delete this device": "Verwijder dit apparaat",
     "Device not found": "Apparaat niet gevonden",
     "Energy Attribute Polling Interval (s)": "Energie-attribuut pollinginterval (s)",
@@ -13,7 +15,9 @@
     "Generate new pairing code": "Nieuwe koppelingscode genereren",
     "Identify this device": "Identificeer dit apparaat",
     "Name": "Naam",
+    "No": "Nee",
     "No paring code received": "Geen paringcode ontvangen",
+    "Pairing Code": "Koppelingscode",
     "Rename device": "Apparaat hernoemen",
     "Rename node": "Node hernoemen",
     "Rename this device": "Hernoem dit apparaat",
@@ -21,5 +25,7 @@
     "The device should now identify itself for 30 seconds.": "Het apparaat zou zichzelf nu 30 seconden lang moeten identificeren.",
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "De node is momenteel niet verbonden. Als je hem nu ontkoppelt, moet je de node een fabrieksreset geven om hem weer in gebruik te kunnen nemen. Weet je het zeker?",
     "Unpair this node": "Ontkoppel dit knooppunt",
-    "Use the following pairing code to commission the device: %s": "Gebruik de volgende koppelcode om het apparaat in gebruik te nemen: %s"
+    "Use the following pairing code to commission the device": "Gebruik de volgende koppelingscode om het apparaat in gebruik te nemen",
+    "Use the following pairing code to commission the device: %s": "Gebruik de volgende koppelcode om het apparaat in gebruik te nemen: %s",
+    "Yes": "Ja"
 }

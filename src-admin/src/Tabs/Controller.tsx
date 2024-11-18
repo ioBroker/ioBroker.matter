@@ -599,7 +599,6 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         value={this.state.manualCode}
                         onChange={e => this.setState({ manualCode: e.target.value })}
                     />
-                    {this.state.camera ? <br /> : null}
                     <div id="video-container">
                         <video
                             ref={this.refQrScanner}
@@ -609,20 +608,21 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             }}
                         />
                     </div>
-                    <TextField
-                        variant="standard"
-                        label={I18n.t('QR Code')}
-                        slotProps={{
-                            htmlInput: {
-                                readOnly: true,
-                            },
-                        }}
-                        fullWidth
-                        value={this.state.qrCode || ''}
-                        error={!!this.state.qrError}
-                        helperText={this.state.qrError}
-                    />
-                    {this.state.cameras.length ? <br /> : null}
+                    <div style={{ width: '100%', height: 71 }}>
+                        <TextField
+                            variant="standard"
+                            label={I18n.t('QR Code')}
+                            slotProps={{
+                                htmlInput: {
+                                    readOnly: true,
+                                },
+                            }}
+                            fullWidth
+                            value={this.state.qrCode || ''}
+                            error={!!this.state.qrError}
+                            helperText={this.state.qrError}
+                        />
+                    </div>
                     {this.state.camera.length ? (
                         <Select
                             variant="standard"

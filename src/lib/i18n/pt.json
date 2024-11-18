@@ -1,10 +1,12 @@
 {
     "Are you sure?": "Tens a certeza?",
+    "Close": "Fechar",
     "Configure device": "Configurar dispositivo",
     "Configure node": "Configurar nó",
     "Configure this device": "Configurar este dispositivo",
     "Configure this node": "Configurar este nó",
     "Debug Infos": "Informações de depuração",
+    "Default": "Padrão",
     "Delete this device": "Excluir este dispositivo",
     "Device not found": "Dispositivo não encontrado",
     "Energy Attribute Polling Interval (s)": "Intervalo de sondagem de atributo de energia (s)",
@@ -13,7 +15,9 @@
     "Generate new pairing code": "Gerar novo código de emparelhamento",
     "Identify this device": "Identificar este dispositivo",
     "Name": "Nome",
+    "No": "Não",
     "No paring code received": "Não foi recebido nenhum código de emparelhamento",
+    "Pairing Code": "Código de pareamento",
     "Rename device": "Renomear dispositivo",
     "Rename node": "Mudar o nome do nó",
     "Rename this device": "Renomear este dispositivo",
@@ -21,5 +25,7 @@
     "The device should now identify itself for 30 seconds.": "O dispositivo agora deve se identificar por 30 segundos.",
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "O nó não está atualmente ligado. Quando o desemparelhar, terá de repor as predefinições do nó para o colocar novamente em funcionamento. Tem a certeza?",
     "Unpair this node": "Desemparelhar este nó",
-    "Use the following pairing code to commission the device: %s": "Utilize o seguinte código de emparelhamento para ativar o dispositivo: %s"
+    "Use the following pairing code to commission the device": "Use o seguinte código de pareamento para comissionar o dispositivo",
+    "Use the following pairing code to commission the device: %s": "Utilize o seguinte código de emparelhamento para ativar o dispositivo: %s",
+    "Yes": "Sim"
 }

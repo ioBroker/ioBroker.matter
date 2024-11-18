@@ -1,10 +1,12 @@
 {
     "Are you sure?": "Sei sicuro?",
+    "Close": "Vicino",
     "Configure device": "Configurare il dispositivo",
     "Configure node": "Configurare il nodo",
     "Configure this device": "Configurare questo dispositivo",
     "Configure this node": "Configurare questo nodo",
     "Debug Infos": "Informazioni di debug",
+    "Default": "Predefinito",
     "Delete this device": "Elimina questo dispositivo",
     "Device not found": "Dispositivo non trovato",
     "Energy Attribute Polling Interval (s)": "Intervallo di polling degli attributi energetici (s)",
@@ -13,7 +15,9 @@
     "Generate new pairing code": "Generare un nuovo codice di accoppiamento",
     "Identify this device": "Identificare il dispositivo",
     "Name": "Nome",
+    "No": "No",
     "No paring code received": "Nessun codice di paring ricevuto",
+    "Pairing Code": "Codice di associazione",
     "Rename device": "Rinominare il dispositivo",
     "Rename node": "Rinominare il nodo",
     "Rename this device": "Rinomina questo dispositivo",
@@ -21,5 +25,7 @@
     "The device should now identify itself for 30 seconds.": "Ora il dispositivo dovrebbe identificarsi per 30 secondi.",
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "Il nodo non è attualmente collegato. Quando lo si disaccoppia, è necessario ripristinare le impostazioni di fabbrica del nodo per metterlo nuovamente in funzione. È sicuro?",
     "Unpair this node": "Disaccoppiamento di questo nodo",
-    "Use the following pairing code to commission the device: %s": "Utilizzare il seguente codice di accoppiamento per mettere in funzione il dispositivo: %s"
+    "Use the following pairing code to commission the device": "Utilizzare il seguente codice di associazione per mettere in funzione il dispositivo",
+    "Use the following pairing code to commission the device: %s": "Utilizzare il seguente codice di accoppiamento per mettere in funzione il dispositivo: %s",
+    "Yes": "SÌ"
 }

@@ -1,10 +1,12 @@
 {
     "Are you sure?": "Вы уверены?",
+    "Close": "Закрыть",
     "Configure device": "Настроить устройство",
     "Configure node": "Настроить узел",
     "Configure this device": "Настройте это устройство",
     "Configure this node": "Настройте этот узел",
     "Debug Infos": "Отладочная информация",
+    "Default": "По умолчанию",
     "Delete this device": "Удалить это устройство",
     "Device not found": "Устройство не найдено",
     "Energy Attribute Polling Interval (s)": "Интервал опроса атрибутов энергии (с)",
@@ -13,7 +15,9 @@
     "Generate new pairing code": "Сгенерируйте новый код сопряжения",
     "Identify this device": "Идентифицируйте это устройство",
     "Name": "Имя",
+    "No": "Нет",
     "No paring code received": "Код разбора не получен",
+    "Pairing Code": "Код сопряжения",
     "Rename device": "Переименовать устройство",
     "Rename node": "Переименовать узел",
     "Rename this device": "Переименуйте это устройство",
@@ -21,5 +25,7 @@
     "The device should now identify itself for 30 seconds.": "Теперь устройство должно идентифицировать себя в течение 30 секунд.",
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "В настоящее время узел не подключен. При снятии сопряжения необходимо выполнить заводской сброс узла, чтобы он снова начал работать. Вы уверены?",
     "Unpair this node": "Отсоедините этот узел",
-    "Use the following pairing code to commission the device: %s": "Используйте следующий код сопряжения для ввода устройства в эксплуатацию: %s"
+    "Use the following pairing code to commission the device": "Используйте следующий код сопряжения для ввода устройства в эксплуатацию.",
+    "Use the following pairing code to commission the device: %s": "Используйте следующий код сопряжения для ввода устройства в эксплуатацию: %s",
+    "Yes": "Да"
 }

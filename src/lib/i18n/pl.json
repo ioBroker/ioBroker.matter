@@ -1,10 +1,12 @@
 {
     "Are you sure?": "Jesteś pewien?",
+    "Close": "Zamknąć",
     "Configure device": "Konfiguruj urządzenie",
     "Configure node": "Konfiguruj węzeł",
     "Configure this device": "Konfiguracja tego urządzenia",
     "Configure this node": "Konfiguracja tego węzła",
     "Debug Infos": "Informacje debugowania",
+    "Default": "Domyślny",
     "Delete this device": "Usuń to urządzenie",
     "Device not found": "Urządzenie nie zostało znalezione",
     "Energy Attribute Polling Interval (s)": "Interwał sondowania atrybutów energii (s)",
@@ -13,7 +15,9 @@
     "Generate new pairing code": "Generowanie nowego kodu parowania",
     "Identify this device": "Zidentyfikuj to urządzenie",
     "Name": "Nazwa",
+    "No": "Nie",
     "No paring code received": "Nie otrzymano kodu parowania",
+    "Pairing Code": "Kod parowania",
     "Rename device": "Zmień nazwę urządzenia",
     "Rename node": "Zmiana nazwy węzła",
     "Rename this device": "Zmień nazwę tego urządzenia",
@@ -21,5 +25,7 @@
     "The device should now identify itself for 30 seconds.": "Urządzenie powinno teraz identyfikować się przez 30 sekund.",
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "Węzeł nie jest obecnie podłączony. Po rozparowaniu należy przywrócić ustawienia fabryczne, aby ponownie uruchomić węzeł. Czy na pewno?",
     "Unpair this node": "Rozparuj ten węzeł",
-    "Use the following pairing code to commission the device: %s": "Użyj następującego kodu parowania, aby uruchomić urządzenie: %s"
+    "Use the following pairing code to commission the device": "Użyj poniższego kodu parowania, aby uruchomić urządzenie",
+    "Use the following pairing code to commission the device: %s": "Użyj następującego kodu parowania, aby uruchomić urządzenie: %s",
+    "Yes": "Tak"
 }

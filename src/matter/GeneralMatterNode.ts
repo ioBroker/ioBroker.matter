@@ -720,8 +720,8 @@ export class GeneralMatterNode {
                     type: 'state',
                     common: {
                         name: command.name,
-                        role: hasArguments ? 'state' : 'button',
-                        type: hasArguments ? 'object' : 'boolean',
+                        role: hasArguments ? 'json' : 'button',
+                        type: hasArguments ? 'string' : 'boolean',
                         read: false,
                         write: true,
                     },

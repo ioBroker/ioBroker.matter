@@ -18,6 +18,11 @@ export class MotionToMatter extends GenericDeviceToMatter {
         super(name, uuid);
         this.#matterEndpointOccupancy = new Endpoint(OccupancySensorDevice, {
             id: `${uuid}-Occupancy`,
+            occupancySensing: {
+                // Deprecated fields but mandatory, so et PIR for now
+                occupancySensorType: OccupancySensing.OccupancySensorType.Pir,
+                occupancySensorTypeBitmap: { pir: true },
+            },
         });
         this.#ioBrokerDevice = ioBrokerDevice as Motion;
         if (this.#ioBrokerDevice.hasBrightness()) {
@@ -79,10 +84,6 @@ export class MotionToMatter extends GenericDeviceToMatter {
         await this.#matterEndpointOccupancy.set({
             occupancySensing: {
                 occupancy: this.convertMotionValue(value ?? false),
-
-                // Deprecated fields but mandatory, so et PIR for now
-                occupancySensorType: OccupancySensing.OccupancySensorType.Pir,
-                occupancySensorTypeBitmap: { pir: true },
             },
         });
         await initializeMaintenanceStateHandlers(this.#matterEndpointOccupancy, this.#ioBrokerDevice);

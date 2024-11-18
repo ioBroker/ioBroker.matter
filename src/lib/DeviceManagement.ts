@@ -285,13 +285,12 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         this.adapter.log.info(`New pairing code for node ${node.nodeId}: ${JSON.stringify(result)}`);
 
-        // TODO Display it in the UI, ideally as QRCode ... How to return??
         if (result?.manualPairingCode || result?.qrPairingCode) {
             const schema: JsonFormSchema = {
                 type: 'panel',
                 items: {},
             };
-            if (result?.manualPairingCode) {
+            if (result.manualPairingCode) {
                 schema.items._text = {
                     type: 'text',
                     sm: 12,
@@ -299,17 +298,17 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     copyToClipboard: true,
                     default: this.#adapter.t(
                         'Use the following pairing code to commission the device: %s',
-                        result?.manualPairingCode,
+                        result.manualPairingCode,
                     ),
                 };
             }
-            if (result?.qrPairingCode) {
+            if (result.qrPairingCode) {
                 schema.items._qrCode = {
                     type: 'qrCode',
                     newLine: true,
                     sm: 12,
                     size: 80,
-                    data: result?.qrPairingCode,
+                    data: result.qrPairingCode,
                 };
             }
 

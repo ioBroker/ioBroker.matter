@@ -129,6 +129,8 @@ interface ComponentState {
     showQrCodeDialog: { device?: CommissionableDevice; open: boolean };
     /* increase this number to reload the devices */
     triggerControllerLoad: number;
+    /** qr scan error */
+    qrError: string;
 }
 
 class Controller extends Component<ComponentProps, ComponentState> {
@@ -158,6 +160,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
             backendProcessingActive: false,
             bleDialogOpen: false,
             triggerControllerLoad: 0,
+            qrError: '',
         };
     }
 
@@ -279,14 +282,20 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 this.refQrScanner.current,
                 result => {
                     if (result?.data && result.data !== this.state.qrCode) {
-                        this.setState({ qrCode: result.data });
+                        this.setState({ qrCode: result.data, qrError: '' });
                     }
                 },
                 {
                     returnDetailedScanResult: true,
                     highlightCodeOutline: true,
+                    highlightScanRegion: true,
                     maxScansPerSecond: 5,
-                    // preferredCamera: camera,
+                    alsoTryWithoutScanRegion: true,
+                    onDecodeError: error => {
+                        if (!this.state.qrCode && this.state.qrError !== error.toString()) {
+                            this.setState({ qrError: I18n.t(error.toString()) });
+                        }
+                    },
                 },
             );
 
@@ -590,22 +599,28 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         value={this.state.manualCode}
                         onChange={e => this.setState({ manualCode: e.target.value })}
                     />
+                    {this.state.camera ? <br /> : null}
+                    <div id="video-container">
+                        <video
+                            ref={this.refQrScanner}
+                            style={{
+                                ...styles.qrScanner,
+                                display: this.state.hideVideo ? 'none' : 'block',
+                            }}
+                        />
+                    </div>
                     <TextField
                         variant="standard"
-                        label={I18n.t('QR code')}
-                        InputProps={{
-                            readOnly: true,
+                        label={I18n.t('QR Code')}
+                        slotProps={{
+                            htmlInput: {
+                                readOnly: true,
+                            },
                         }}
                         fullWidth
-                        value={this.state.qrCode}
-                    />
-                    {this.state.camera ? <br /> : null}
-                    <video
-                        ref={this.refQrScanner}
-                        style={{
-                            ...styles.qrScanner,
-                            display: this.state.hideVideo ? 'none' : 'block',
-                        }}
+                        value={this.state.qrCode || ''}
+                        error={!!this.state.qrError}
+                        helperText={this.state.qrError}
                     />
                     {this.state.cameras.length ? <br /> : null}
                     {this.state.camera.length ? (
@@ -724,6 +739,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                                     showQrCodeDialog: { device, open: true },
                                                     manualCode: '',
                                                     qrCode: '',
+                                                    qrError: '',
                                                 });
                                                 setTimeout(async () => {
                                                     try {
@@ -878,7 +894,16 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             sx={{ marginX: 1 }}
                             variant="contained"
                             color="primary"
-                            onClick={() => this.setState({ showQrCodeDialog: { open: true } })}
+                            onClick={() => {
+                                this.setState({ showQrCodeDialog: { open: true }, qrError: '', qrCode: '' });
+                                setTimeout(async () => {
+                                    try {
+                                        await this.initQrCode();
+                                    } catch (e) {
+                                        console.warn(`Cannot provide QR Code scanning: ${e}`);
+                                    }
+                                }, 200);
+                            }}
                             startIcon={<Add />}
                         >
                             {I18n.t('Add device by pairing code or QR Code')}

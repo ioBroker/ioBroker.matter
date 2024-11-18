@@ -147,7 +147,14 @@ export interface NodeStateResponse {
 }
 
 export interface GUIMessage {
-    command: 'bridgeStates' | 'deviceStates' | 'stopped' | 'updateStates' | 'discoveredDevice' | 'reconnect';
+    command:
+        | 'bridgeStates'
+        | 'deviceStates'
+        | 'stopped'
+        | 'updateStates'
+        | 'discoveredDevice'
+        | 'reconnect'
+        | 'updateController';
     states?: { [uuid: string]: NodeStateResponse };
     device?: CommissionableDevice;
 }

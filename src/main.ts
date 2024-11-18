@@ -322,6 +322,13 @@ export class MatterAdapter extends utils.Adapter {
         }
     };
 
+    /** This command will be sent to GUI to update the controller devices */
+    refreshControllerDevices = async (): Promise<void> => {
+        return this.sendToGui({
+            command: 'updateController',
+        });
+    };
+
     async prepareMatterEnvironment(): Promise<void> {
         const config: MatterAdapterConfig = this.config as MatterAdapterConfig;
         Logger.defaultLogLevel = LogLevel.DEBUG;

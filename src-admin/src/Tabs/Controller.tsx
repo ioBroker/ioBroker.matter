@@ -314,7 +314,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
     }
 
     onMessage = (message: GUIMessage | null): void => {
-        if (message?.command === 'reconnect') {
+        if (message?.command === 'reconnect' || message?.command === 'updateController') {
             // refresh the list of devices
             setTimeout(() => {
                 this.setState({

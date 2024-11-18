@@ -622,6 +622,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             return items[`_tab_${Object.keys(data)[0]}`];
         }
 
+            return {
         return {
             type: 'tabs',
             items,

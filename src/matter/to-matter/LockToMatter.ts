@@ -16,7 +16,14 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
     constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
         super(name, uuid);
 
-        this.#matterEndpoint = new Endpoint(DoorLockDevice, { id: uuid });
+        this.#matterEndpoint = new Endpoint(DoorLockDevice, {
+            id: uuid,
+            doorLock: {
+                lockType: DoorLock.LockType.Other,
+                actuatorEnabled: true,
+                lockState: DoorLock.LockState.Locked, // Will be corrected later
+            },
+        });
         this.#ioBrokerDevice = ioBrokerDevice as Lock;
     }
 

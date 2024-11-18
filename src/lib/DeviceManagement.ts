@@ -175,7 +175,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             deviceCount++;
         }
         // define the icon depends on number of sub-devices
-        node.icon = deviceCount > 3 ? 'hub5' : deviceCount > 2 ? 'hub3' : 'node';
+        node.icon = ioNode.hasAggregatorEndpoint ? 'hub5' : deviceCount > 1 ? 'hub3' : 'node';
 
         return res;
     }
@@ -291,7 +291,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 type: 'panel',
                 items: {},
             };
-            if (result?.manualPairingCode) {
+            if (result.manualPairingCode) {
                 schema.items._text = {
                     type: 'text',
                     sm: 12,
@@ -303,7 +303,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     ),
                 };
             }
-            if (result?.qrPairingCode) {
+            if (result.qrPairingCode) {
                 schema.items._qrCode = {
                     type: 'qrCode',
                     newLine: true,
@@ -313,9 +313,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 };
             }
 
-            void context.showForm(schema);
+            await context.showForm(schema, { title: this.#adapter.t('Pair with Device') });
         } else {
-            void context.showMessage(this.#adapter.t('No paring code received'));
+            await context.showMessage(this.#adapter.t('No paring code received'));
         }
 
         return Promise.resolve({ refresh: false });
@@ -594,6 +594,10 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     tabItems[flatKey] = {
                         type: 'divider',
                     };
+                    continue;
+                }
+
+                if (data[key][subKey] === undefined) {
                     continue;
                 }
 

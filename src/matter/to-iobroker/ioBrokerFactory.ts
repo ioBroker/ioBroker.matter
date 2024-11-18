@@ -1,7 +1,7 @@
 import { DeviceClassification, DeviceTypeModel, MatterModel } from '@matter/main/model';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
 import { ContactSensorToIoBroker } from './ContactSensorToIoBroker';
-import { DimmableToIobroker } from './DimmableToIobroker';
+import { DimmableToIoBroker } from './DimmableToIoBroker';
 import { DoorLockToIoBroker } from './DoorLockToIoBroker';
 import type { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
 import { HumiditySensorToIoBroker } from './HumiditySensorToIoBroker';
@@ -58,7 +58,7 @@ async function ioBrokerDeviceFabric(
     switch (mainDeviceTypeName) {
         case 'DimmablePlugInUnit':
         case 'DimmableLight':
-            device = new DimmableToIobroker(
+            device = new DimmableToIoBroker(
                 node,
                 endpoint,
                 rootEndpoint,

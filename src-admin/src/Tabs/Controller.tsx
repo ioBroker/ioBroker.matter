@@ -807,6 +807,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
             return null;
         }
 
+        if (!this.props.alive) {
+            return <div style={{ fontSize: 'larger', color: '#8c5c5c' }}>{I18n.t('Instance is not alive')}</div>;
+        }
+
         return (
             <div style={{ width: '100%' }}>
                 <DeviceManager

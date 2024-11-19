@@ -39,7 +39,7 @@ const styles: Record<string, React.CSSProperties> = {
         marginTop: 2,
         marginBottom: 1,
         width: '100%',
-        maxWidth: 300,
+        maxWidth: 500,
     },
     header: {
         fontSize: 18,

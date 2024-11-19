@@ -28,7 +28,6 @@ import {
 
 import { type AdminConnection, type IobTheme, type ThemeName, type ThemeType, I18n } from '@iobroker/adapter-react-v5';
 import DeviceManager from '@iobroker/dm-gui-components';
-// import DeviceManager from '../components/DeviceManagerDev';
 
 import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
 import { clone, getVendorName } from '../Utils';
@@ -280,7 +279,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
             this.qrScanner = new QrScanner(
                 this.refQrScanner.current,
-                result => {
+                (result: QrScanner.ScanResult): void => {
                     if (result?.data && result.data !== this.state.qrCode) {
                         this.setState({ qrCode: result.data, qrError: '' });
                     }

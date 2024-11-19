@@ -39,6 +39,12 @@ const styles: Record<string, React.CSSProperties> = {
         marginTop: 2,
         marginBottom: 1,
         width: '100%',
+        maxWidth: 300,
+    },
+    inputLong: {
+        marginTop: 2,
+        marginBottom: 1,
+        width: '100%',
         maxWidth: 500,
     },
     header: {
@@ -272,18 +278,18 @@ class Options extends Component<OptionsProps, OptionsState> {
 
                 {!this.state.interfaces?.length ? (
                     <TextField
-                        style={styles.input}
+                        style={styles.inputLong}
                         variant="standard"
                         value={this.props.native.interface}
                         onChange={e => this.props.onChange('interface', e.target.value === '_' ? '' : e.target.value)}
                         label={I18n.t('Limit network traffic to the selected interfaces')}
                     />
                 ) : (
-                    <FormControl style={styles.input}>
+                    <FormControl style={styles.inputLong}>
                         <InputLabel>{I18n.t('Interface')}</InputLabel>
                         <Select
                             variant="standard"
-                            style={styles.input}
+                            style={styles.inputLong}
                             value={this.props.native.interface || '_'}
                             renderValue={val => {
                                 if (!item) {
@@ -340,11 +346,11 @@ class Options extends Component<OptionsProps, OptionsState> {
                 )}
 
                 <Box sx={{ marginTop: 2 }}>
-                    <FormControl style={styles.input}>
+                    <FormControl style={styles.inputLong}>
                         <InputLabel>{I18n.t('Default bridge (Alexa-compatible)')}</InputLabel>
                         <Select
                             variant="standard"
-                            style={styles.input}
+                            style={styles.inputLong}
                             value={this.props.native.defaultBridge || '_'}
                             renderValue={() => {
                                 if (!bridge) {

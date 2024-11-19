@@ -326,7 +326,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
             await context.showForm(schema, { title: this.#adapter.getText('Pair with Device') });
         } else {
-            void context.showMessage(this.#adapter.t('No paring code received'));
+            await context.showMessage(this.#adapter.t('No paring code received'));
         }
 
         return { refresh: false };

@@ -7,8 +7,8 @@
     },
     "dependencies": {
         "@foxriver76/iob-component-lib": "^0.1.6",
-        "@iobroker/adapter-react-v5": "^7.4.0",
-        "@iobroker/dm-gui-components": "~7.4.0",
+        "@iobroker/adapter-react-v5": "^7.4.1",
+        "@iobroker/dm-gui-components": "~7.4.1",
         "@iobroker/type-detector": "^4.0.1",
         "@types/react-dom": "^18.3.1",
         "@types/uuid": "^10.0.0",

@@ -1,5 +1,6 @@
 import { Types } from '@iobroker/type-detector';
 import type GenericDevice from './devices/GenericDevice';
+// eslint-disable-next-line no-duplicate-imports
 import type { DetectedDevice, DeviceOptions } from './devices/GenericDevice';
 
 import AirCondition from './devices/AirCondition';

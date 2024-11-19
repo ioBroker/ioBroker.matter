@@ -374,22 +374,24 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                     </Box>
                     <TextField
                         value={nodeState.manualPairingCode ? formatPairingCode(nodeState.manualPairingCode) : ''}
-                        InputProps={{
-                            readOnly: true,
-                            endAdornment: nodeState.manualPairingCode ? (
-                                <InputAdornment position="end">
-                                    <IconButton
-                                        onClick={() => {
-                                            nodeState.manualPairingCode &&
-                                                Utils.copyToClipboard(nodeState.manualPairingCode);
-                                            this.props.showToast(I18n.t('Copied to clipboard'));
-                                        }}
-                                        edge="end"
-                                    >
-                                        <ContentCopy />
-                                    </IconButton>
-                                </InputAdornment>
-                            ) : undefined,
+                        slotProps={{
+                            htmlInput: { readOnly: true },
+                            input: {
+                                endAdornment: nodeState.manualPairingCode ? (
+                                    <InputAdornment position="end">
+                                        <IconButton
+                                            onClick={() => {
+                                                nodeState.manualPairingCode &&
+                                                    Utils.copyToClipboard(nodeState.manualPairingCode);
+                                                this.props.showToast(I18n.t('Copied to clipboard'));
+                                            }}
+                                            edge="end"
+                                        >
+                                            <ContentCopy />
+                                        </IconButton>
+                                    </InputAdornment>
+                                ) : undefined,
+                            },
                         }}
                         fullWidth
                         label={I18n.t('Manual pairing code')}

@@ -74,6 +74,7 @@ export class MatterAdapter extends utils.Adapter {
     readonly #devices = new Map<string, MatterDevice>();
     readonly #bridges = new Map<string, BridgedDevice>();
     #controller?: MatterController;
+    #sendControllerUpdateTimeout?: NodeJS.Timeout | null = null;
     #detector: ChannelDetector;
     #_guiSubscribes: { clientId: string; ts: number }[] | null = null;
     readonly #matterEnvironment: Environment;
@@ -320,6 +321,18 @@ export class MatterAdapter extends utils.Adapter {
                 await this.sendToUI({ clientId: this.#_guiSubscribes[i].clientId, data });
             }
         }
+    };
+
+    /** This command will be sent to GUI to update the controller devices */
+    refreshControllerDevices = (): void => {
+        this.#sendControllerUpdateTimeout =
+            this.#sendControllerUpdateTimeout ||
+            setTimeout(() => {
+                this.#sendControllerUpdateTimeout = null;
+                void this.sendToGui({
+                    command: 'updateController',
+                });
+            }, 300);
     };
 
     async prepareMatterEnvironment(): Promise<void> {

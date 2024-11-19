@@ -160,6 +160,12 @@ class Options extends Component<OptionsProps, OptionsState> {
         );
     }
 
+    onHostChange = (id: string, hostObj: ioBroker.Object | null | undefined): void => {
+        if (hostObj?.type === 'host') {
+            this.parseNetworkInterfaces(hostObj as ioBroker.HostObject);
+        }
+    };
+
     async componentDidMount(): Promise<void> {
         // detect if any iot or cloud with pro-account are available
         const instancesIot = await this.props.socket.getAdapterInstances('iot');
@@ -194,30 +200,40 @@ class Options extends Component<OptionsProps, OptionsState> {
 
         try {
             const host = await this.props.socket.getObject(`system.host.${this.props.common.host}`);
-            const interfaces: { value: string; address?: string; address6?: string }[] = [
-                { value: '_', address: I18n.t('All interfaces') },
-            ];
-            if (host?.native?.hardware?.networkInterfaces) {
-                const list: Record<string, NetworkInterface[]> = host.native.hardware.networkInterfaces as Record<
-                    string,
-                    NetworkInterface[]
-                >;
-                Object.keys(list).forEach(inter => {
-                    if (!list[inter].find(_ip => !_ip.internal)) {
-                        return;
-                    }
-
-                    // find ipv4 address
-                    const ip4 = list[inter].find(_ip => _ip.family === 'IPv4');
-                    const ip6 = list[inter].find(_ip => _ip.family === 'IPv6');
-                    interfaces.push({ value: inter, address: ip4?.address || '', address6: ip6?.address });
-                });
-            }
-
-            this.setState({ interfaces });
+            this.parseNetworkInterfaces(host);
         } catch (e) {
             window.alert(`Cannot read interfaces: ${e}`);
         }
+
+        await this.props.socket.subscribeObject(`system.host.${this.props.common.host}`, this.onHostChange);
+    }
+
+    async componentWillUnmount(): Promise<void> {
+        await this.props.socket.unsubscribeObject(`system.host.${this.props.common.host}`, this.onHostChange);
+    }
+
+    parseNetworkInterfaces(hostObj: ioBroker.HostObject | null | undefined): void {
+        const interfaces: { value: string; address?: string; address6?: string }[] = [
+            { value: '_', address: I18n.t('All interfaces') },
+        ];
+        if (hostObj?.native?.hardware?.networkInterfaces) {
+            const list: Record<string, NetworkInterface[]> = hostObj.native.hardware.networkInterfaces as Record<
+                string,
+                NetworkInterface[]
+            >;
+            Object.keys(list).forEach(inter => {
+                if (!list[inter].find(_ip => !_ip.internal)) {
+                    return;
+                }
+
+                // find ipv4 address
+                const ip4 = list[inter].find(_ip => _ip.family === 'IPv4');
+                const ip6 = list[inter].find(_ip => _ip.family === 'IPv6');
+                interfaces.push({ value: inter, address: ip4?.address || '', address6: ip6?.address });
+            });
+        }
+
+        this.setState({ interfaces });
     }
 
     static checkPassword(pass: string): string | false {

@@ -69,11 +69,7 @@ class Device extends BaseServerNode {
         }
 
         const ioBrokerDevice = this.#device;
-        const mappingDevice = await matterDeviceFactory(
-            ioBrokerDevice,
-            this.#deviceOptions.name,
-            this.#parameters.uuid,
-        );
+        const mappingDevice = matterDeviceFactory(ioBrokerDevice, this.#deviceOptions.name, this.#parameters.uuid);
 
         if (!mappingDevice) {
             this.adapter.log.error(`ioBroker Device "${this.#device.deviceType}" is not supported`);

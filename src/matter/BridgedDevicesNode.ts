@@ -51,7 +51,7 @@ class BridgedDevices extends BaseServerNode {
             this.adapter.log.error('Aggregator not initialized. Should never happen');
             return;
         }
-        const mappingDevice = await matterDeviceFactory(device, deviceOptions.name, deviceOptions.uuid);
+        const mappingDevice = matterDeviceFactory(device, deviceOptions.name, deviceOptions.uuid);
         if (mappingDevice) {
             const name = mappingDevice.name;
             const endpoints = mappingDevice.getMatterEndpoints();

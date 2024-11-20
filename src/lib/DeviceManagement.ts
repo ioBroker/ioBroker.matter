@@ -632,11 +632,11 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     if (data[key][subKey] && typeof data[key][subKey] === 'object') {
                         tabItems[flatKey] = {
                             type: 'state',
-                            // @ts-expect-error fix typing
                             foreign: true,
                             label: subKey.substring(12),
                             addColon: true,
                             controlDelay: 500,
+                            oid: '', // oid will be overwritten by data[key][subKey]
                             ...data[key][subKey],
                         };
                     }

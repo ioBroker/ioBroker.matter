@@ -14,6 +14,7 @@
     "Expose Matter System Cluster Data": "Раскрытие данных кластера системы материи",
     "Generate new pairing code": "Сгенерируйте новый код сопряжения",
     "Identify this device": "Идентифицируйте это устройство",
+    "In case of issues with this node please copy and post these details together with Debug logs to the issue.": "В случае возникновения проблем с этим узлом, пожалуйста, скопируйте и опубликуйте эти данные вместе с журналами отладки в разделе «Требование».",
     "Name": "Имя",
     "No": "Нет",
     "No paring code received": "Код разбора не получен",

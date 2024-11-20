@@ -20,6 +20,7 @@ export interface ControllerCreateOptions {
     adapter: MatterAdapter;
     controllerOptions: MatterControllerConfig;
     matterEnvironment: Environment;
+    updateCallback: () => void;
 }
 
 interface AddDeviceResult {
@@ -39,6 +40,7 @@ class Controller implements GeneralNode {
     #parameters: MatterControllerConfig;
     readonly #adapter: MatterAdapter;
     readonly #matterEnvironment: Environment;
+    readonly updateCallback: () => void;
     #commissioningController?: CommissioningController;
     #nodes = new Map<string, GeneralMatterNode>();
     #connected: { [nodeId: string]: boolean } = {};
@@ -50,6 +52,7 @@ class Controller implements GeneralNode {
         this.#adapter = options.adapter;
         this.#parameters = options.controllerOptions;
         this.#matterEnvironment = options.matterEnvironment;
+        this.updateCallback = options.updateCallback;
     }
 
     get nodes(): Map<string, GeneralMatterNode> {
@@ -221,6 +224,7 @@ class Controller implements GeneralNode {
             } else {
                 this.#adapter.log.info(`Matter node "${nodeIdStr}" not yet initialized ...`);
             }
+            this.updateCallback();
         });
         node.events.structureChanged.on(async () => {
             this.#adapter.log.debug(`Node "${node.nodeId}" structure changed`);

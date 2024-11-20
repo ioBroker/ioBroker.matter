@@ -74,7 +74,7 @@ export class MatterAdapter extends utils.Adapter {
     readonly #devices = new Map<string, MatterDevice>();
     readonly #bridges = new Map<string, BridgedDevice>();
     #controller?: MatterController;
-    #sendControllerUpdateTimeout?: NodeJS.Timeout | null = null;
+    #sendControllerUpdateTimeout?: ioBroker.Timeout;
     #detector: ChannelDetector;
     #_guiSubscribes: { clientId: string; ts: number }[] | null = null;
     readonly #matterEnvironment: Environment;
@@ -324,16 +324,16 @@ export class MatterAdapter extends utils.Adapter {
     };
 
     /** This command will be sent to GUI to update the controller devices */
-    refreshControllerDevices = (): void => {
+    #refreshControllerDevices(): void {
         this.#sendControllerUpdateTimeout =
-            this.#sendControllerUpdateTimeout ||
-            setTimeout(() => {
-                this.#sendControllerUpdateTimeout = null;
+            this.#sendControllerUpdateTimeout ??
+            this.setTimeout(() => {
+                this.#sendControllerUpdateTimeout = undefined;
                 void this.sendToGui({
                     command: 'updateController',
                 });
             }, 300);
-    };
+    }
 
     async prepareMatterEnvironment(): Promise<void> {
         const config: MatterAdapterConfig = this.config as MatterAdapterConfig;
@@ -818,6 +818,7 @@ export class MatterAdapter extends utils.Adapter {
             adapter: this,
             controllerOptions,
             matterEnvironment: this.#matterEnvironment,
+            updateCallback: () => this.#refreshControllerDevices(),
         });
         await matterController.init(); // add bridge to server
 

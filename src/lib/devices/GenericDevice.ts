@@ -97,7 +97,7 @@ abstract class GenericDevice {
     #detectedDevice: DetectedDevice;
     #isIoBrokerDevice: boolean;
     #handlers: ((event: { property: PropertyType; value: any; device: GenericDevice }) => Promise<void>)[] = [];
-    protected _construction = new Array<Promise<void>>();
+    protected _construction = new Array<() => Promise<void>>();
 
     #errorState?: DeviceStateObject<boolean>;
     #maintenanceState?: DeviceStateObject<boolean>;
@@ -182,8 +182,8 @@ abstract class GenericDevice {
     }
 
     async init(): Promise<void> {
-        for (const promise of this._construction) {
-            await promise;
+        for (const func of this._construction) {
+            await func();
         }
     }
 
@@ -307,18 +307,20 @@ abstract class GenericDevice {
         return this.#detectedDevice.states.find(state => state.name === name);
     }
 
-    async addDeviceStates(states: DeviceStateDescription[]): Promise<void> {
-        for (const state of states) {
-            // we cannot give the whole object as it must be cast to T
-            await this.addDeviceState(
-                state.name,
-                state.type,
-                state.callback,
-                state.accessType,
-                state.valueType,
-                state.unitConversionMap,
-            );
-        }
+    addDeviceStates(states: DeviceStateDescription[]): () => Promise<void> {
+        return async (): Promise<void> => {
+            for (const state of states) {
+                // we cannot give the whole object as it must be cast to T
+                await this.addDeviceState(
+                    state.name,
+                    state.type,
+                    state.callback,
+                    state.accessType,
+                    state.valueType,
+                    state.unitConversionMap,
+                );
+            }
+        };
     }
 
     getPropertyValue(property: PropertyType): boolean | number | string | null | undefined {

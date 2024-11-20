@@ -559,8 +559,13 @@ abstract class GenericDevice {
     #determineControlType(property: string): string {
         const { valueType, write, read, role, min, max } = this.#properties[property];
         if (valueType === ValueType.Boolean) {
-            if (role && (role.startsWith('switch') || role.startsWith('button'))) {
-                return role; // Trust role in a first place
+            if (role) {
+                if (role.startsWith('switch')) {
+                    return 'switch';
+                }
+                if (role.startsWith('button')) {
+                    return 'button';
+                }
             }
             if (write && !read) {
                 return 'button';

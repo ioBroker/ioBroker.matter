@@ -14,6 +14,8 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
     #isLighting = false;
     #minLevel = 1;
     #maxLevel = 254;
+    #colorTemperatureMinMireds = kelvinToMireds(6_500);
+    #colorTemperatureMaxMireds = kelvinToMireds(2_000);
 
     constructor(
         node: PairedNode,
@@ -48,6 +50,14 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                 : undefined;
             this.#maxLevel = maxLevel ?? 254;
         }
+
+        const colorControl = this.appEndpoint.getClusterClient(ColorControl.Complete);
+        if (colorControl) {
+            this.#colorTemperatureMinMireds =
+                (await colorControl.getColorTempPhysicalMinMiredsAttribute()) ?? kelvinToMireds(6_500);
+            this.#colorTemperatureMaxMireds =
+                (await colorControl.getColorTempPhysicalMaxMiredsAttribute()) ?? kelvinToMireds(2_000);
+        }
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
@@ -77,8 +87,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                 let level = Math.round((value / 100) * 254);
                 if (level < this.#minLevel) {
                     level = this.#minLevel;
-                }
-                if (level > this.#maxLevel) {
+                } else if (level > this.#maxLevel) {
                     level = this.#maxLevel;
                 }
                 await this.appEndpoint
@@ -93,7 +102,12 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
             clusterId: ColorControl.Cluster.id,
             attributeName: 'colorTemperatureMireds',
             changeHandler: async value => {
-                const colorTemperatureMireds = kelvinToMireds(value);
+                let colorTemperatureMireds = kelvinToMireds(value);
+                if (colorTemperatureMireds < this.#colorTemperatureMinMireds) {
+                    colorTemperatureMireds = this.#colorTemperatureMinMireds;
+                } else if (colorTemperatureMireds > this.#colorTemperatureMaxMireds) {
+                    colorTemperatureMireds = this.#colorTemperatureMaxMireds;
+                }
                 await this.appEndpoint.getClusterClient(ColorControl.Complete)?.moveToColorTemperature({
                     colorTemperatureMireds,
                     transitionTime: 0,

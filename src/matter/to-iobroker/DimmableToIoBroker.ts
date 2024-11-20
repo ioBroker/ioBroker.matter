@@ -75,8 +75,7 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
                 let level = Math.round((value / 100) * 254);
                 if (level < this.#minLevel) {
                     level = this.#minLevel;
-                }
-                if (level > this.#maxLevel) {
+                } else if (level > this.#maxLevel) {
                     level = this.#maxLevel;
                 }
                 await this.appEndpoint

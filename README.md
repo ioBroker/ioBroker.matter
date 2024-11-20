@@ -146,6 +146,7 @@ TBD
 
 ## ToDo
 * Texts are partially in english
+* Sync min/max from Matter into ioBroker objects
 * ioBroker device types
   * (9) Lights:
     * rgb

@@ -19,6 +19,7 @@ import { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIo
 
 import { decamelize } from './utils';
 import type { DeviceAction } from '@iobroker/dm-utils/build/types/base';
+import { logEndpoint } from '../matter/EndpointStructureInspector';
 
 function strToBool(str: string): boolean | null {
     if (str === 'true') {
@@ -333,22 +334,33 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     async #handleLogDebugNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        const debugInfos = 'TODO';
+        const rootEndpoint = node.node.getRootEndpoint();
+
+        const debugInfos = rootEndpoint ? logEndpoint(rootEndpoint) : 'No root endpoint found';
 
         await context.showForm(
             {
                 type: 'panel',
                 items: {
+                    _instructions: {
+                        type: 'staticText',
+                        text: this.#adapter.getText(
+                            'In case of issues with this node please copy and post these details together with Debug logs to the issue.',
+                        ),
+                    },
                     debugInfos: {
                         type: 'text',
                         label: this.#adapter.getText('Debug Infos'),
                         minRows: 30,
                         sm: 12,
                         readOnly: true,
+                        copyToClipboard: true,
+                        trim: false,
+                        noClearButton: true,
                     },
                 },
                 style: {
-                    minWidth: 200,
+                    minWidth: 600,
                 },
             },
             {

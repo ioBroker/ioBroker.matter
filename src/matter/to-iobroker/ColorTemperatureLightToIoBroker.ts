@@ -1,18 +1,21 @@
 import ChannelDetector from '@iobroker/type-detector';
-import { LevelControl, OnOff } from '@matter/main/clusters';
+import { LevelControl, OnOff, ColorControl } from '@matter/main/clusters';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
 import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import Dimmer from '../../lib/devices/Dimmer';
+import Ct from '../../lib/devices/Ct';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
+import { kelvinToMireds, miredsToKelvin } from '@matter/main/behaviors';
 
 /** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
-export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
-    readonly #ioBrokerDevice: Dimmer;
+export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDeviceToIoBroker {
+    readonly #ioBrokerDevice: Ct;
     #isLighting = false;
-    #minLevel = 0;
+    #minLevel = 1;
     #maxLevel = 254;
+    #colorTemperatureMinMireds = kelvinToMireds(6_500);
+    #colorTemperatureMaxMireds = kelvinToMireds(2_000);
 
     constructor(
         node: PairedNode,
@@ -25,8 +28,8 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     ) {
         super(adapter, node, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName, defaultConnectionStateId);
 
-        this.#ioBrokerDevice = new Dimmer(
-            { ...ChannelDetector.getPatterns().dimmer, isIoBrokerDevice: false } as DetectedDevice,
+        this.#ioBrokerDevice = new Ct(
+            { ...ChannelDetector.getPatterns().ct, isIoBrokerDevice: false } as DetectedDevice,
             adapter,
             this.enableDeviceTypeStates(),
         );
@@ -37,7 +40,7 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
 
         const levelControl = this.appEndpoint.getClusterClient(LevelControl.Complete);
         if (levelControl) {
-            this.#isLighting = !!levelControl.supportedFeatures.lighting;
+            this.#isLighting = !!levelControl.supportedFeatures.lighting; // Should always be the case
             const minLevel = levelControl.isAttributeSupportedByName('minLevel')
                 ? await levelControl.getMinLevelAttribute()
                 : undefined;
@@ -46,6 +49,14 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
                 ? await levelControl.getMaxLevelAttribute()
                 : undefined;
             this.#maxLevel = maxLevel ?? 254;
+        }
+
+        const colorControl = this.appEndpoint.getClusterClient(ColorControl.Complete);
+        if (colorControl) {
+            this.#colorTemperatureMinMireds =
+                (await colorControl.getColorTempPhysicalMinMiredsAttribute()) ?? kelvinToMireds(6_500);
+            this.#colorTemperatureMaxMireds =
+                (await colorControl.getColorTempPhysicalMaxMiredsAttribute()) ?? kelvinToMireds(2_000);
         }
     }
 
@@ -67,7 +78,8 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
             clusterId: OnOff.Cluster.id,
             attributeName: 'onOff',
         });
-        this.enableDeviceTypeState(PropertyType.Level, {
+
+        this.enableDeviceTypeState(PropertyType.Dimmer, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: LevelControl.Cluster.id,
             attributeName: 'currentLevel',
@@ -84,11 +96,26 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
             },
             convertValue: value => Math.round((value / 254) * 100),
         });
-        this.enableDeviceTypeState(PropertyType.LevelActual, {
+
+        this.enableDeviceTypeState(PropertyType.Temperature, {
             endpointId: this.appEndpoint.getNumber(),
-            clusterId: LevelControl.Cluster.id,
-            attributeName: 'currentLevel',
-            convertValue: value => Math.round((value / 254) * 100),
+            clusterId: ColorControl.Cluster.id,
+            attributeName: 'colorTemperatureMireds',
+            changeHandler: async value => {
+                let colorTemperatureMireds = kelvinToMireds(value);
+                if (colorTemperatureMireds < this.#colorTemperatureMinMireds) {
+                    colorTemperatureMireds = this.#colorTemperatureMinMireds;
+                } else if (colorTemperatureMireds > this.#colorTemperatureMaxMireds) {
+                    colorTemperatureMireds = this.#colorTemperatureMaxMireds;
+                }
+                await this.appEndpoint.getClusterClient(ColorControl.Complete)?.moveToColorTemperature({
+                    colorTemperatureMireds,
+                    transitionTime: 0,
+                    optionsMask: {},
+                    optionsOverride: {},
+                });
+            },
+            convertValue: value => Math.round(miredsToKelvin(value)),
         });
         return super.enableDeviceTypeStates();
     }

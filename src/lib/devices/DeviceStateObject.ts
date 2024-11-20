@@ -253,6 +253,14 @@ export class DeviceStateObject<T> {
         return this.unit;
     }
 
+    get id(): string {
+        return this.#id;
+    }
+
+    get role(): string {
+        return this.object?.common.role ?? 'state';
+    }
+
     protected parseMinMax(percent = false): void {
         if (!this.object) {
             throw new Error(`Object not initialized`);

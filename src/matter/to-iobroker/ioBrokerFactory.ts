@@ -11,6 +11,7 @@ import { OnOffPlugInUnitToIoBroker } from './OnOffPlugInUnitToIoBroker';
 import { TemperatureSensorToIoBroker } from './TemperatureSensorToIoBroker';
 import { UtilityOnlyToIoBroker } from './UtilityOnlyToIoBroker';
 import { WaterLeakDetectorToIoBroker } from './WaterLeakDetectorToIoBroker';
+import { ColorTemperatureLightToIoBroker } from './ColorTemperatureLightToIoBroker';
 
 export function identifyDeviceTypes(endpoint: Endpoint): {
     utilityTypes: { deviceType: DeviceTypeModel; revision: number }[];
@@ -56,6 +57,18 @@ async function ioBrokerDeviceFabric(
     adapter.log.info(`Node ${node.nodeId}: Creating device for ${mainDeviceTypeName}`);
     let device: GenericDeviceToIoBroker;
     switch (mainDeviceTypeName) {
+        case 'ExtendedColorLight':
+        case 'ColorTemperatureLight':
+            device = new ColorTemperatureLightToIoBroker(
+                node,
+                endpoint,
+                rootEndpoint,
+                adapter,
+                fullEndpointDeviceBaseId,
+                mainDeviceTypeName,
+                defaultConnectionStateId,
+            );
+            break;
         case 'DimmablePlugInUnit':
         case 'DimmableLight':
             device = new DimmableToIoBroker(

@@ -74,7 +74,7 @@ export class MatterAdapter extends utils.Adapter {
     readonly #devices = new Map<string, MatterDevice>();
     readonly #bridges = new Map<string, BridgedDevice>();
     #controller?: MatterController;
-    #sendControllerUpdateTimeout?: NodeJS.Timeout | null = null;
+    #sendControllerUpdateTimeout?: ioBroker.Timeout;
     #detector: ChannelDetector;
     #_guiSubscribes: { clientId: string; ts: number }[] | null = null;
     readonly #matterEnvironment: Environment;
@@ -268,10 +268,10 @@ export class MatterAdapter extends utils.Adapter {
         }
     }
 
-    onClientSubscribe(clientId: string): Promise<{ error?: string; accepted: boolean; heartbeat?: number }> {
+    onClientSubscribe(clientId: string): { error?: string; accepted: boolean; heartbeat?: number } {
         this.log.debug(`Subscribe from ${clientId}`);
         if (!this.#_guiSubscribes) {
-            return Promise.resolve({ error: `Adapter is still initializing`, accepted: false });
+            return { error: `Adapter is still initializing`, accepted: false };
         }
         // start camera with obj.message.data
         if (!this.#_guiSubscribes.find(s => s.clientId === clientId)) {
@@ -293,7 +293,7 @@ export class MatterAdapter extends utils.Adapter {
             sub.ts = Date.now();
         }
 
-        return Promise.resolve({ accepted: true, heartbeat: 120000 });
+        return { accepted: true, heartbeat: 120000 };
     }
 
     onClientUnsubscribe(clientId: string): void {
@@ -324,16 +324,16 @@ export class MatterAdapter extends utils.Adapter {
     };
 
     /** This command will be sent to GUI to update the controller devices */
-    refreshControllerDevices = (): void => {
+    #refreshControllerDevices(): void {
         this.#sendControllerUpdateTimeout =
-            this.#sendControllerUpdateTimeout ||
-            setTimeout(() => {
-                this.#sendControllerUpdateTimeout = null;
+            this.#sendControllerUpdateTimeout ??
+            this.setTimeout(() => {
+                this.#sendControllerUpdateTimeout = undefined;
                 void this.sendToGui({
                     command: 'updateController',
                 });
             }, 300);
-    };
+    }
 
     async prepareMatterEnvironment(): Promise<void> {
         const config: MatterAdapterConfig = this.config as MatterAdapterConfig;
@@ -424,15 +424,16 @@ export class MatterAdapter extends utils.Adapter {
 
         this.log.debug('Devices synced');
 
-        this.subscribeObjects('bridges.*');
-        this.subscribeObjects('devices.*');
-        this.subscribeObjects('controller.*');
-
-        this.log.debug('Objects subscribed');
         /**
          * Start the nodes. This also announces them in the network
          */
         await this.startUpMatterNodes();
+
+        this.subscribeObjects('bridges.*');
+        this.subscribeObjects('devices.*');
+        this.subscribeObjects('controller.*');
+
+        this.log.debug('Initialization done, Objects subscribed');
 
         // this allows to GUI to read the devices. So make it after all devices are loaded
         this.#_guiSubscribes = this.#_guiSubscribes || [];
@@ -813,13 +814,14 @@ export class MatterAdapter extends utils.Adapter {
         return null;
     }
 
-    async createMatterController(controllerOptions: MatterControllerConfig): Promise<MatterController> {
+    createMatterController(controllerOptions: MatterControllerConfig): MatterController {
         const matterController = new MatterController({
             adapter: this,
             controllerOptions,
             matterEnvironment: this.#matterEnvironment,
+            updateCallback: () => this.#refreshControllerDevices(),
         });
-        await matterController.init(); // add bridge to server
+        matterController.init(); // add bridge to server
 
         return matterController;
     }
@@ -1027,10 +1029,11 @@ export class MatterAdapter extends utils.Adapter {
     async applyControllerConfiguration(config: MatterControllerConfig, handleStart = true): Promise<MessageResponse> {
         if (config.enabled) {
             if (this.#controller) {
-                return this.#controller.applyConfiguration(config);
+                this.#controller.applyConfiguration(config);
+                return;
             }
 
-            this.#controller = await this.createMatterController(config);
+            this.#controller = this.createMatterController(config);
 
             if (handleStart) {
                 await this.#controller.start();

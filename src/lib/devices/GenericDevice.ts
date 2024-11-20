@@ -85,6 +85,7 @@ interface StateDescription {
     min?: number;
     max?: number;
     unit?: string;
+    role?: string;
 }
 
 abstract class GenericDevice {
@@ -96,7 +97,7 @@ abstract class GenericDevice {
     #detectedDevice: DetectedDevice;
     #isIoBrokerDevice: boolean;
     #handlers: ((event: { property: PropertyType; value: any; device: GenericDevice }) => Promise<void>)[] = [];
-    protected _construction = new Array<Promise<void>>();
+    protected _construction = new Array<() => Promise<void>>();
 
     #errorState?: DeviceStateObject<boolean>;
     #maintenanceState?: DeviceStateObject<boolean>;
@@ -181,8 +182,8 @@ abstract class GenericDevice {
     }
 
     async init(): Promise<void> {
-        for (const promise of this._construction) {
-            await promise;
+        for (const func of this._construction) {
+            await func();
         }
     }
 
@@ -227,7 +228,7 @@ abstract class GenericDevice {
             }
             const data = object.ioBrokerState;
             if (!this.#properties[type]) {
-                this.#properties[type] = { name, accessType, valueType };
+                this.#properties[type] = { name, accessType, valueType, role: object.role };
                 if (accessType === StateAccessType.ReadWrite) {
                     this.#properties[type].read = data.id;
                     this.#properties[type].write = data.id;
@@ -306,18 +307,20 @@ abstract class GenericDevice {
         return this.#detectedDevice.states.find(state => state.name === name);
     }
 
-    async addDeviceStates(states: DeviceStateDescription[]): Promise<void> {
-        for (const state of states) {
-            // we cannot give the whole object as it must be cast to T
-            await this.addDeviceState(
-                state.name,
-                state.type,
-                state.callback,
-                state.accessType,
-                state.valueType,
-                state.unitConversionMap,
-            );
-        }
+    addDeviceStates(states: DeviceStateDescription[]): () => Promise<void> {
+        return async (): Promise<void> => {
+            for (const state of states) {
+                // we cannot give the whole object as it must be cast to T
+                await this.addDeviceState(
+                    state.name,
+                    state.type,
+                    state.callback,
+                    state.accessType,
+                    state.valueType,
+                    state.unitConversionMap,
+                );
+            }
+        };
     }
 
     getPropertyValue(property: PropertyType): boolean | number | string | null | undefined {
@@ -551,6 +554,47 @@ abstract class GenericDevice {
             );
         }
         this.options = options;
+    }
+
+    #determineControlType(property: string): string {
+        const { valueType, write, read, role, min, max } = this.#properties[property];
+        if (valueType === ValueType.Boolean) {
+            if (role) {
+                if (role.startsWith('switch')) {
+                    return 'switch';
+                }
+                if (role.startsWith('button')) {
+                    return 'button';
+                }
+            }
+            if (write && !read) {
+                return 'button';
+            }
+            return 'switch';
+        } else if (valueType === ValueType.Number) {
+            if (min !== undefined || max !== undefined) {
+                return 'slider';
+            }
+            return 'number';
+        }
+        return 'input';
+    }
+
+    get states(): Record<string, unknown> {
+        const states: Record<string, unknown> = {};
+        Object.keys(this.#properties).forEach(property => {
+            const { name, unit, write, read, min, max } = this.#properties[property];
+            states[`__iobstate__${name}`] = {
+                oid: write ?? read,
+                unit,
+                min,
+                max,
+                readOnly: !write,
+                control: this.#determineControlType(property),
+            };
+        });
+
+        return states;
     }
 }
 

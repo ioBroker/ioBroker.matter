@@ -19,6 +19,7 @@ import { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIo
 
 import { decamelize } from './utils';
 import type { DeviceAction } from '@iobroker/dm-utils/build/types/base';
+import { logEndpoint } from '../matter/EndpointStructureInspector';
 
 function strToBool(str: string): boolean | null {
     if (str === 'true') {
@@ -67,9 +68,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     // contents see in the next chapters
-    listDevices(): Promise<DeviceInfo[]> {
+    listDevices(): DeviceInfo[] {
         if (!this.#adapter.controllerNode) {
-            return Promise.resolve([]); // TODO How to return that no controller is started?
+            return []; // TODO How to return that no controller is started?
         }
 
         const nodes = this.#adapter.controllerNode.nodes;
@@ -115,7 +116,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             ],
         });*/
 
-        return Promise.resolve(arrDevices);
+        return arrDevices;
     }
 
     /**
@@ -333,22 +334,33 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     async #handleLogDebugNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        const debugInfos = 'TODO';
+        const rootEndpoint = node.node.getRootEndpoint();
+
+        const debugInfos = rootEndpoint ? logEndpoint(rootEndpoint) : 'No root endpoint found';
 
         await context.showForm(
             {
                 type: 'panel',
                 items: {
+                    _instructions: {
+                        type: 'staticText',
+                        text: this.#adapter.getText(
+                            'In case of issues with this node please copy and post these details together with Debug logs to the issue.',
+                        ),
+                    },
                     debugInfos: {
                         type: 'text',
                         label: this.#adapter.getText('Debug Infos'),
                         minRows: 30,
                         sm: 12,
                         readOnly: true,
+                        copyToClipboard: true,
+                        trim: false,
+                        noClearButton: true,
                     },
                 },
                 style: {
-                    minWidth: 200,
+                    minWidth: 600,
                 },
             },
             {
@@ -575,7 +587,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             return { error: 'Device not found' };
         }
 
-        const schema = this.#convertDataToJsonConfig(await device.getDeviceDetails());
+        const schema = this.#convertDataToJsonConfig(device.getDeviceDetails());
 
         return { id, schema, data: {} };
     }
@@ -614,6 +626,20 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     tabItems[flatKey] = {
                         type: 'divider',
                     };
+                    continue;
+                }
+                if (subKey.startsWith('__iobstate__')) {
+                    if (data[key][subKey] && typeof data[key][subKey] === 'object') {
+                        tabItems[flatKey] = {
+                            type: 'state',
+                            foreign: true,
+                            label: subKey.substring(12),
+                            addColon: true,
+                            controlDelay: 500,
+                            oid: '', // oid will be overwritten by data[key][subKey]
+                            ...data[key][subKey],
+                        };
+                    }
                     continue;
                 }
 

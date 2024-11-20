@@ -14,6 +14,7 @@
     "Expose Matter System Cluster Data": "Clustergegevens van materiesysteem weergeven",
     "Generate new pairing code": "Nieuwe koppelingscode genereren",
     "Identify this device": "Identificeer dit apparaat",
+    "In case of issues with this node please copy and post these details together with Debug logs to the issue.": "Mochten er problemen optreden met dit knooppunt, kopieer en post dan deze details samen met de debuglogs bij het probleem.",
     "Name": "Naam",
     "No": "Nee",
     "No paring code received": "Geen paringcode ontvangen",

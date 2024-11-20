@@ -14,6 +14,7 @@
     "Expose Matter System Cluster Data": "Exposer les données du cluster du système Matter",
     "Generate new pairing code": "Générer un nouveau code d'appariement",
     "Identify this device": "Identifier ce dispositif",
+    "In case of issues with this node please copy and post these details together with Debug logs to the issue.": "En cas de problèmes avec ce nœud, veuillez copier et publier ces détails avec les journaux de débogage sur le problème.",
     "Name": "Nom",
     "No": "Non",
     "No paring code received": "Pas de code de parage reçu",

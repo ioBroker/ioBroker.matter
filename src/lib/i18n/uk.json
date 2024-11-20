@@ -14,6 +14,7 @@
     "Expose Matter System Cluster Data": "Expose Matter System Cluster Data",
     "Generate new pairing code": "Згенеруйте новий код сполучення",
     "Identify this device": "Ідентифікуйте цей пристрій",
+    "In case of issues with this node please copy and post these details together with Debug logs to the issue.": "У разі проблем із цим вузлом, будь ласка, скопіюйте та опублікуйте ці деталі разом із журналами налагодження до проблеми.",
     "Name": "Ім'я",
     "No": "Немає",
     "No paring code received": "Не отримано код парсингу",

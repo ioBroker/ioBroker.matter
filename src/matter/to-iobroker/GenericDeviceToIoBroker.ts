@@ -447,8 +447,13 @@ export abstract class GenericDeviceToIoBroker {
         await this.#adapter.extendObjectAsync(this.baseId, { common: { name } });
     }
 
-    getDeviceDetails(): Promise<Record<string, Record<string, unknown>>> {
+    getDeviceDetails(): Record<string, Record<string, unknown>> {
         const result: Record<string, Record<string, unknown>> = {};
+
+        const states = this.ioBrokerDevice.states;
+        if (Object.keys(states).length) {
+            result.states = states;
+        }
 
         result.details = {
             name: this.#name,
@@ -471,7 +476,7 @@ export abstract class GenericDeviceToIoBroker {
             result.matterClusters[`${client.name}__Revision`] = client.revision;
         }
 
-        return Promise.resolve(result);
+        return result;
     }
 
     get deviceConfiguration(): { pollInterval?: number } {

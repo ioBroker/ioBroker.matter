@@ -20,6 +20,7 @@ export interface ControllerCreateOptions {
     adapter: MatterAdapter;
     controllerOptions: MatterControllerConfig;
     matterEnvironment: Environment;
+    updateCallback: () => void;
 }
 
 interface AddDeviceResult {
@@ -39,6 +40,7 @@ class Controller implements GeneralNode {
     #parameters: MatterControllerConfig;
     readonly #adapter: MatterAdapter;
     readonly #matterEnvironment: Environment;
+    readonly updateCallback: () => void;
     #commissioningController?: CommissioningController;
     #nodes = new Map<string, GeneralMatterNode>();
     #connected: { [nodeId: string]: boolean } = {};
@@ -50,14 +52,15 @@ class Controller implements GeneralNode {
         this.#adapter = options.adapter;
         this.#parameters = options.controllerOptions;
         this.#matterEnvironment = options.matterEnvironment;
+        this.updateCallback = options.updateCallback;
     }
 
     get nodes(): Map<string, GeneralMatterNode> {
         return this.#nodes;
     }
 
-    async init(): Promise<void> {
-        await this.applyConfiguration(this.#parameters);
+    init(): void {
+        this.applyConfiguration(this.#parameters);
         this.#commissioningController = new CommissioningController({
             autoConnect: false,
             environment: {
@@ -67,7 +70,7 @@ class Controller implements GeneralNode {
         });
     }
 
-    applyConfiguration(config: MatterControllerConfig): Promise<MessageResponse> {
+    applyConfiguration(config: MatterControllerConfig): MessageResponse {
         const currentConfig: MatterControllerConfig = {
             enabled: true,
             defaultExposeMatterApplicationClusterData: false,
@@ -89,14 +92,14 @@ class Controller implements GeneralNode {
                 } catch (error) {
                     this.#adapter.log.warn(`Failed to initialize BLE: ${error.message}`);
                     config.ble = false;
-                    return Promise.resolve({
+                    return {
                         error: `Can not adjust configuration and enable BLE because of error: ${error.message}`,
-                    });
+                    };
                 }
             }
         }
         this.#parameters = config;
-        return Promise.resolve({ result: true });
+        return { result: true };
     }
 
     async applyPairedNodeConfiguration(nodeId: string, config: PairedNodeConfig): Promise<void> {
@@ -221,6 +224,7 @@ class Controller implements GeneralNode {
             } else {
                 this.#adapter.log.info(`Matter node "${nodeIdStr}" not yet initialized ...`);
             }
+            this.updateCallback();
         });
         node.events.structureChanged.on(async () => {
             this.#adapter.log.debug(`Node "${node.nodeId}" structure changed`);

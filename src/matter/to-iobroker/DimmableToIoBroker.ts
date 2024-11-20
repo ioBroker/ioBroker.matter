@@ -72,18 +72,24 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
             clusterId: LevelControl.Cluster.id,
             attributeName: 'currentLevel',
             changeHandler: async value => {
-                const level = Math.round((value / 100) * (this.#maxLevel - this.#minLevel) + this.#minLevel);
+                let level = Math.round((value / 100) * 254);
+                if (level < this.#minLevel) {
+                    level = this.#minLevel;
+                }
+                if (level > this.#maxLevel) {
+                    level = this.#maxLevel;
+                }
                 await this.appEndpoint
                     .getClusterClient(LevelControl.Complete)
                     ?.moveToLevel({ level, transitionTime: null, optionsMask: {}, optionsOverride: {} });
             },
-            convertValue: value => Math.round(((value - this.#minLevel) / (this.#maxLevel - this.#minLevel)) * 100),
+            convertValue: value => Math.round((value / 254) * 100),
         });
         this.enableDeviceTypeState(PropertyType.LevelActual, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: LevelControl.Cluster.id,
             attributeName: 'currentLevel',
-            convertValue: value => Math.round(((value - this.#minLevel) / (this.#maxLevel - this.#minLevel)) * 100),
+            convertValue: value => Math.round((value / 254) * 100),
         });
         return super.enableDeviceTypeStates();
     }

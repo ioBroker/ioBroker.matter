@@ -51,7 +51,7 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
         this.#matterEndpoint.events.levelControl.currentLevel$Changed.on(async (level: number | null) => {
             const currentValue = this.#ioBrokerDevice.getLevel();
             if (level !== currentValue && level !== null) {
-                await this.#ioBrokerDevice.setLevel(level);
+                await this.#ioBrokerDevice.setLevel(Math.round((level / 254) * 100));
             }
         });
 
@@ -86,10 +86,10 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
                         },
                     });
                     break;
-                case PropertyType.Dimmer:
+                case PropertyType.Level:
                     await this.#matterEndpoint.set({
                         levelControl: {
-                            currentLevel: event.value as number,
+                            currentLevel: Math.round(((event.value as number) / 100) * 254),
                         },
                     });
                     break;

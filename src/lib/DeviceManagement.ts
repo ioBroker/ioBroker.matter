@@ -628,6 +628,20 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     };
                     continue;
                 }
+                if (subKey.startsWith('__iobstate__')) {
+                    if (data[key][subKey] && typeof data[key][subKey] === 'object') {
+                        tabItems[flatKey] = {
+                            type: 'state',
+                            // @ts-expect-error fix typing
+                            foreign: true,
+                            label: subKey.substring(12),
+                            addColon: true,
+                            controlDelay: 500,
+                            ...data[key][subKey],
+                        };
+                    }
+                    continue;
+                }
 
                 if (data[key][subKey] === undefined) {
                     continue;

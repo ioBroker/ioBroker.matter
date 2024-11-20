@@ -85,6 +85,7 @@ interface StateDescription {
     min?: number;
     max?: number;
     unit?: string;
+    role?: string;
 }
 
 abstract class GenericDevice {
@@ -227,7 +228,7 @@ abstract class GenericDevice {
             }
             const data = object.ioBrokerState;
             if (!this.#properties[type]) {
-                this.#properties[type] = { name, accessType, valueType };
+                this.#properties[type] = { name, accessType, valueType, role: object.role };
                 if (accessType === StateAccessType.ReadWrite) {
                     this.#properties[type].read = data.id;
                     this.#properties[type].write = data.id;
@@ -551,6 +552,42 @@ abstract class GenericDevice {
             );
         }
         this.options = options;
+    }
+
+    #determineControlType(property: string): string {
+        const { valueType, write, read, role, min, max } = this.#properties[property];
+        if (valueType === ValueType.Boolean) {
+            if (role && (role.startsWith('switch') || role.startsWith('button'))) {
+                return role; // Trust role in a first place
+            }
+            if (write && !read) {
+                return 'button';
+            }
+            return 'switch';
+        } else if (valueType === ValueType.Number) {
+            if (min !== undefined || max !== undefined) {
+                return 'slider';
+            }
+            return 'number';
+        }
+        return 'input';
+    }
+
+    get states(): Record<string, unknown> {
+        const states: Record<string, unknown> = {};
+        Object.keys(this.#properties).forEach(property => {
+            const { name, unit, write, read, min, max } = this.#properties[property];
+            states[`__iobstate__${name}`] = {
+                oid: write ?? read,
+                unit,
+                min,
+                max,
+                readOnly: !write,
+                control: this.#determineControlType(property),
+            };
+        });
+
+        return states;
     }
 }
 

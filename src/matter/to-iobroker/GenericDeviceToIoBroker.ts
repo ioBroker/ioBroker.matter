@@ -450,6 +450,11 @@ export abstract class GenericDeviceToIoBroker {
     getDeviceDetails(): Promise<Record<string, Record<string, unknown>>> {
         const result: Record<string, Record<string, unknown>> = {};
 
+        const states = this.ioBrokerDevice.states;
+        if (Object.keys(states).length) {
+            result.states = states;
+        }
+
         result.details = {
             name: this.#name,
             primaryDeviceType: this.deviceType,

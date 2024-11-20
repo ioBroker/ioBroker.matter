@@ -268,10 +268,10 @@ export class MatterAdapter extends utils.Adapter {
         }
     }
 
-    onClientSubscribe(clientId: string): Promise<{ error?: string; accepted: boolean; heartbeat?: number }> {
+    onClientSubscribe(clientId: string): { error?: string; accepted: boolean; heartbeat?: number } {
         this.log.debug(`Subscribe from ${clientId}`);
         if (!this.#_guiSubscribes) {
-            return Promise.resolve({ error: `Adapter is still initializing`, accepted: false });
+            return { error: `Adapter is still initializing`, accepted: false };
         }
         // start camera with obj.message.data
         if (!this.#_guiSubscribes.find(s => s.clientId === clientId)) {
@@ -293,7 +293,7 @@ export class MatterAdapter extends utils.Adapter {
             sub.ts = Date.now();
         }
 
-        return Promise.resolve({ accepted: true, heartbeat: 120000 });
+        return { accepted: true, heartbeat: 120000 };
     }
 
     onClientUnsubscribe(clientId: string): void {
@@ -813,14 +813,14 @@ export class MatterAdapter extends utils.Adapter {
         return null;
     }
 
-    async createMatterController(controllerOptions: MatterControllerConfig): Promise<MatterController> {
+    createMatterController(controllerOptions: MatterControllerConfig): MatterController {
         const matterController = new MatterController({
             adapter: this,
             controllerOptions,
             matterEnvironment: this.#matterEnvironment,
             updateCallback: () => this.#refreshControllerDevices(),
         });
-        await matterController.init(); // add bridge to server
+        matterController.init(); // add bridge to server
 
         return matterController;
     }
@@ -1028,10 +1028,11 @@ export class MatterAdapter extends utils.Adapter {
     async applyControllerConfiguration(config: MatterControllerConfig, handleStart = true): Promise<MessageResponse> {
         if (config.enabled) {
             if (this.#controller) {
-                return this.#controller.applyConfiguration(config);
+                this.#controller.applyConfiguration(config);
+                return;
             }
 
-            this.#controller = await this.createMatterController(config);
+            this.#controller = this.createMatterController(config);
 
             if (handleStart) {
                 await this.#controller.start();

@@ -68,9 +68,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     // contents see in the next chapters
-    listDevices(): Promise<DeviceInfo[]> {
+    listDevices(): DeviceInfo[] {
         if (!this.#adapter.controllerNode) {
-            return Promise.resolve([]); // TODO How to return that no controller is started?
+            return []; // TODO How to return that no controller is started?
         }
 
         const nodes = this.#adapter.controllerNode.nodes;
@@ -116,7 +116,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             ],
         });*/
 
-        return Promise.resolve(arrDevices);
+        return arrDevices;
     }
 
     /**
@@ -587,7 +587,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             return { error: 'Device not found' };
         }
 
-        const schema = this.#convertDataToJsonConfig(await device.getDeviceDetails());
+        const schema = this.#convertDataToJsonConfig(device.getDeviceDetails());
 
         return { id, schema, data: {} };
     }

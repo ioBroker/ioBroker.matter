@@ -59,8 +59,8 @@ class Controller implements GeneralNode {
         return this.#nodes;
     }
 
-    async init(): Promise<void> {
-        await this.applyConfiguration(this.#parameters);
+    init(): void {
+        this.applyConfiguration(this.#parameters);
         this.#commissioningController = new CommissioningController({
             autoConnect: false,
             environment: {
@@ -70,7 +70,7 @@ class Controller implements GeneralNode {
         });
     }
 
-    applyConfiguration(config: MatterControllerConfig): Promise<MessageResponse> {
+    applyConfiguration(config: MatterControllerConfig): MessageResponse {
         const currentConfig: MatterControllerConfig = {
             enabled: true,
             defaultExposeMatterApplicationClusterData: false,
@@ -92,14 +92,14 @@ class Controller implements GeneralNode {
                 } catch (error) {
                     this.#adapter.log.warn(`Failed to initialize BLE: ${error.message}`);
                     config.ble = false;
-                    return Promise.resolve({
+                    return {
                         error: `Can not adjust configuration and enable BLE because of error: ${error.message}`,
-                    });
+                    };
                 }
             }
         }
         this.#parameters = config;
-        return Promise.resolve({ result: true });
+        return { result: true };
     }
 
     async applyPairedNodeConfiguration(nodeId: string, config: PairedNodeConfig): Promise<void> {

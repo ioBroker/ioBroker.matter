@@ -48,7 +48,7 @@ class Ct extends ElectricityDataDevice {
                     name: 'ON_ACTUAL',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.Read,
-                    type: PropertyType.Power,
+                    type: PropertyType.PowerActual,
                     callback: state => (this.#getPower = state),
                 },
                 {
@@ -64,14 +64,30 @@ class Ct extends ElectricityDataDevice {
 
     getDimmer(): number | undefined {
         if (!this.#dimmer) {
-            throw new Error('Dimmer state not found');
+            if (!this.#brightness) {
+                throw new Error('Dimmer state not found');
+            }
+            return this.#brightness.value;
         }
         return this.#dimmer.value;
     }
 
+    async updateDimmer(value: number): Promise<void> {
+        if (!this.#dimmer) {
+            if (!this.#brightness) {
+                throw new Error('Dimmer state not found');
+            }
+            return this.#brightness.updateValue(value);
+        }
+        await this.#dimmer.updateValue(value);
+    }
+
     async setDimmer(value: number): Promise<void> {
         if (!this.#dimmer) {
-            throw new Error('Dimmer state not found');
+            if (!this.#brightness) {
+                throw new Error('Dimmer state not found');
+            }
+            return this.#brightness.setValue(value);
         }
         return this.#dimmer.setValue(value);
     }
@@ -81,6 +97,13 @@ class Ct extends ElectricityDataDevice {
             throw new Error('Brightness state not found');
         }
         return this.#brightness.value;
+    }
+
+    async updateBrightness(value: number): Promise<void> {
+        if (!this.#brightness) {
+            throw new Error('Brightness state not found');
+        }
+        await this.#brightness.updateValue(value);
     }
 
     async setBrightness(value: number): Promise<void> {
@@ -111,6 +134,20 @@ class Ct extends ElectricityDataDevice {
         return this.#temperature.value;
     }
 
+    getTemperatureMinMax(): { min: number; max: number } | null {
+        if (!this.#temperature) {
+            throw new Error('Temperature state not found');
+        }
+        return this.#temperature.getMinMax();
+    }
+
+    async updateTemperature(value: number): Promise<void> {
+        if (!this.#temperature) {
+            throw new Error('Temperature state not found');
+        }
+        await this.#temperature.updateValue(value);
+    }
+
     async setTemperature(value: number): Promise<void> {
         if (!this.#temperature) {
             throw new Error('Temperature state not found');
@@ -130,6 +167,32 @@ class Ct extends ElectricityDataDevice {
             throw new Error('On state not found');
         }
         return this.#setPower.setValue(value);
+    }
+
+    async updatePower(value: boolean): Promise<void> {
+        if (!this.#getPower && !this.#setPower) {
+            throw new Error('Power state not found');
+        }
+        if (this.#getPower) {
+            await this.#getPower.updateValue(value);
+        }
+        if (this.#setPower) {
+            await this.#setPower.updateValue(value);
+        }
+    }
+
+    getPowerActual(): boolean | undefined {
+        if (!this.#getPower) {
+            throw new Error('PowerActual state not found');
+        }
+        return this.#getPower.value;
+    }
+
+    async updatePowerActual(value: boolean): Promise<void> {
+        if (!this.#getPower) {
+            throw new Error('PowerActual state not found');
+        }
+        await this.#getPower.updateValue(value);
     }
 }
 

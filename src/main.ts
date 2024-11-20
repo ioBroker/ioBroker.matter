@@ -424,15 +424,16 @@ export class MatterAdapter extends utils.Adapter {
 
         this.log.debug('Devices synced');
 
-        this.subscribeObjects('bridges.*');
-        this.subscribeObjects('devices.*');
-        this.subscribeObjects('controller.*');
-
-        this.log.debug('Objects subscribed');
         /**
          * Start the nodes. This also announces them in the network
          */
         await this.startUpMatterNodes();
+
+        this.subscribeObjects('bridges.*');
+        this.subscribeObjects('devices.*');
+        this.subscribeObjects('controller.*');
+
+        this.log.debug('Initialization done, Objects subscribed');
 
         // this allows to GUI to read the devices. So make it after all devices are loaded
         this.#_guiSubscribes = this.#_guiSubscribes || [];

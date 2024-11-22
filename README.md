@@ -13,10 +13,6 @@
 
 ## Description
 TODO
-- Different colors of header for node and for devices
-- QR Code paring - no OK button, only close
-- Make header text shorter (Long names are not symmetric after ellipsis)
-- Debug info - wider and copyToClipboard
 
 ## Important Information (READ FIRST!)
 * **Never delete partial matter instance objects or object trees!** The configuration for this adapter is **not** contained in just one central object like in other ore simple adapters. This means that deleting instance objects or object trees can lead to a broken configuration, and you might need to reconfigure the adapter from scratch.

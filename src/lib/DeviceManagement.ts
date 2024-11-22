@@ -336,7 +336,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 };
             }
 
-            await context.showForm(schema, { title: this.#adapter.getText('Pair with Device') });
+            await context.showForm(schema, { title: this.#adapter.getText('Pair with Device'), buttons: ['cancel'] });
         } else {
             await context.showMessage(this.#adapter.t('No paring code received'));
         }
@@ -370,9 +370,6 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                         noClearButton: true,
                     },
                 },
-                style: {
-                    minWidth: 600,
-                },
             },
             {
                 data: { debugInfos },
@@ -383,6 +380,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                         label: this.#adapter.getText('Close'),
                     },
                 ],
+                maxWidth: 'lg',
             },
         );
 

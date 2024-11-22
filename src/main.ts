@@ -288,6 +288,7 @@ export class MatterAdapter extends utils.Adapter {
                 this.#stateTimeout = null;
                 const states = await this.requestNodeStates();
                 await this.sendToGui({ command: 'bridgeStates', states });
+                this.#refreshControllerDevices();
             }, 100);
         } else {
             sub.ts = Date.now();

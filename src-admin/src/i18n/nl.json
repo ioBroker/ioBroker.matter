@@ -11,6 +11,7 @@
     "Add device with auto-detection": "Apparaat toevoegen met automatische detectie",
     "Add devices": "Apparaten toevoegen",
     "Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.": "Naast bruggen kunt u ioBroker-statussen ook blootstellen als zelfstandige zakenapparaten.\nZe kunnen allemaal afzonderlijk worden gekoppeld.\nGebruik bij voorkeur bruggen.",
+    "All": "Alles",
     "All devices": "Alle apparaten",
     "All interfaces": "Alle interfaces",
     "All state information of matter controller and devices will be deleted. You cannot undo it.": "De controller en alle apparaten en bruggen worden teruggezet naar de fabrieksinstellingen. \nHierdoor worden de koppelings- en huidige waarden voor alle apparaten, bruggen en ook gekoppelde apparaten in de controller verwijderd. Je kunt het niet ongedaan maken.\nDe algemene configuratie van de controller en de toegewezen ioBroker-statussen voor de bruggen en apparaten blijven ongewijzigd.",

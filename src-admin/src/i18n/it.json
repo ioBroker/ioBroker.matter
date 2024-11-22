@@ -11,6 +11,7 @@
     "Add device with auto-detection": "Aggiungi dispositivo con rilevamento automatico",
     "Add devices": "Aggiungi dispositivi",
     "Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.": "Oltre ai bridge puoi anche esporre gli stati di ioBroker come dispositivi di questione autonomi.\nPossono essere tutti accoppiati individualmente.\nDovresti preferire usare i bridge.",
+    "All": "Al",
     "All devices": "Tutti i dispositivi",
     "All interfaces": "Tutte le interfacce",
     "All state information of matter controller and devices will be deleted. You cannot undo it.": "Il Controller, tutti i dispositivi e i bridge verranno ripristinati alle impostazioni di fabbrica. \nIn questo modo vengono cancellati l'accoppiamento e i valori attuali per tutti i dispositivi, i bridge e anche i dispositivi accoppiati nel controller. Non puoi annullarlo.\nLa configurazione generale del controller e gli stati ioBroker assegnati ai bridge e ai dispositivi rimarranno invariati.",

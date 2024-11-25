@@ -66,7 +66,7 @@ jobs:
                   node-version: ${{ matrix.node-version }}
 
             - name: Install Dependencies
-              run: npm ci
+              run: npm ci && cd src-admin && npm ci
 
             - name: Build typescript
               run: npm run build
@@ -101,11 +101,11 @@ jobs:
                   fetch-depth: 0 # Fetch the history, or this action won't work
                   ref: 'main'
 
-            - name: Use Node.js 18
+            - name: Use Node.js 20
               if: steps.automerge.outputs.mergeResult == 'merged'
               uses: actions/setup-node@v4
               with:
-                  node-version: 18
+                  node-version: 20
 
             - name: Determine version
               if: steps.automerge.outputs.mergeResult == 'merged'
@@ -118,7 +118,7 @@ jobs:
 
             - name: Install dependencies
               if: steps.automerge.outputs.mergeResult == 'merged'
-              run: npm ci
+              run: npm ci && cd src-admin && npm ci
 
             - name: Build
               if: steps.automerge.outputs.mergeResult == 'merged'
@@ -129,18 +129,24 @@ jobs:
               id: extract_release
               # The body may be multiline, therefore we need to escape some characters
               run: |
-                  BODY=$(git show -s --format=%b)
-                  BODY="${BODY//'%'/'%25'}"
-                  BODY="${BODY//$'\n'/'%0A'}"
-                  BODY="${BODY//$'\r'/'%0D'}"
-                  echo "::set-output name=BODY::$BODY"
+                VERSION="${{ github.ref }}"
+                VERSION=${VERSION##*/v}
+                echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+                EOF=$(od -An -N6 -x /dev/urandom | tr -d ' ')
+                BODY=$(git show -s --format=%b)
+                echo "BODY<<$EOF" >> $GITHUB_OUTPUT
+                echo "$BODY" >> $GITHUB_OUTPUT
+                echo "$EOF" >> $GITHUB_OUTPUT
+                if [[ $VERSION == *"-"* ]] ; then
+                  echo "TAG=--tag next" >> $GITHUB_OUTPUT
+                fi
 
             - name: Publish npm
               if: steps.automerge.outputs.mergeResult == 'merged'
               run: |
                   npm config set //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
                   npm whoami
-                  npm publish
+                  npm publish ${{ steps.extract_release.outputs.TAG }}
 
             - name: Create Github Release
               if: steps.automerge.outputs.mergeResult == 'merged'

@@ -102,13 +102,13 @@ class Controller implements GeneralNode {
         return { result: true };
     }
 
-    async applyPairedNodeConfiguration(nodeId: string, config: PairedNodeConfig): Promise<void> {
+    async applyPairedNodeConfiguration(nodeId: string, config: PairedNodeConfig, forcedUpdate = false): Promise<void> {
         const node = this.#nodes.get(nodeId);
         if (node === undefined) {
             this.#adapter.log.warn(`Node ${nodeId} not found`);
             return;
         }
-        return node.applyConfiguration(config);
+        return node.applyConfiguration(config, forcedUpdate);
     }
 
     async handleCommand(command: string, message: ioBroker.MessagePayload): Promise<MessageResponse> {

@@ -22,10 +22,10 @@ updates:
             update-types: ['version-update:semver-minor', 'version-update:semver-major']
 
     - package-ecosystem: npm
-      directory: '/src'
+      directory: '/src-admin'
       schedule:
           interval: monthly
           time: '04:00'
           timezone: Europe/Berlin
-      open-pull-requests-limit: 20
+      open-pull-requests-limit: 10
       versioning-strategy: increase

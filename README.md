@@ -157,7 +157,7 @@ TBD
     * rgbSingle
     * cie
     * hue
-  * (8) blinds
+  * (8) blinds + blindButtons
   * (-8) thermostat
   * (5+2) button
   * (5+2) buttonSensor?
@@ -167,14 +167,13 @@ TBD
   * (2+) fireAlarm
   * (-2) mediaPlayer
   * warning - how?
-  * blindButtons - with bindings?
   * gate - aka blinds?
   * windowTilt - how?
   * levelSlider - how?
 * Matter device types
   * (9) Enhanced Color Light -> rgb/rgbw/cie/hue/...
   * (8) Thermostat -> thermostat
-  * (8) Window Covering -> blinds
+  * (8) Window Covering -> blinds / blindButtons
   * (7+) Light Sensor -> ??? DEF
   * (7) Fan -> thermostat?
   * (5+2) Generic Switch -> button? buttonSensor?

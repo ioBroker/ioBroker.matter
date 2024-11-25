@@ -83,6 +83,10 @@ class Lock extends GenericDevice {
         }
         return this.#setOpenState.setValue(true);
     }
+
+    hasOpen(): boolean {
+        return this.propertyNames.includes(PropertyType.Open);
+    }
 }
 
 export default Lock;

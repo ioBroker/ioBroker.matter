@@ -697,6 +697,7 @@ export class MatterAdapter extends utils.Adapter {
                 `Type detection mismatch for state ${oid}: ${detectedDevice?.type} !== ${type}. Initialize device with just this one state.`,
             );
         }
+        this.log.debug(`No auto detection for ${oid} with type ${type} ... fallback to default for SET state only`);
         // ignore all detected states and let only one
         return {
             type: type as Types,
@@ -724,6 +725,7 @@ export class MatterAdapter extends utils.Adapter {
         options.list = options.list ?? [];
         const devices = [];
         for (const device of options.list) {
+            this.log.debug(`Prepare device ${device.uuid} "${device.name}"`);
             const detectedDevice = await this.determineIoBrokerDevice(device.oid, device.type, device.auto);
             try {
                 const deviceObject = await DeviceFactory(detectedDevice, this, device as DeviceOptions);

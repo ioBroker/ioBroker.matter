@@ -98,6 +98,7 @@ export const DEVICE_ICONS: Record<Types, React.JSX.Element> = {
 };
 
 export const SUPPORTED_DEVICES: Types[] = [
+    Types.ct,
     Types.dimmer,
     Types.door,
     Types.floodAlarm,

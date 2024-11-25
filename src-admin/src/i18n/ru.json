@@ -11,6 +11,7 @@
     "Add device with auto-detection": "Добавить устройство с автоопределением",
     "Add devices": "Добавить устройства",
     "Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.": "В дополнение к мостам вы также можете предоставлять состояния ioBroker как автономные материальные устройства.\nВсе они могут быть соединены индивидуально.\nВы должны предпочесть использовать мосты.",
+    "All": "Все",
     "All devices": "Все устройства",
     "All interfaces": "Все интерфейсы",
     "All state information of matter controller and devices will be deleted. You cannot undo it.": "Для контроллера, всех устройств и мостов будут восстановлены заводские настройки по умолчанию. \nПри этом удаляются сопряженные и текущие значения для всех устройств, мостов, а также сопряженных устройств в контроллере. Вы не можете отменить это.\nОбщая конфигурация контроллера и назначенные состояния ioBroker для мостов и устройств останутся неизменными.",

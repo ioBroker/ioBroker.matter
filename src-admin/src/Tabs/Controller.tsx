@@ -823,6 +823,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     theme={this.props.theme}
                     isFloatComma={this.props.isFloatComma}
                     dateFormat={this.props.dateFormat}
+                    triggerLoad={this.state.triggerControllerLoad}
                 />
             </div>
         );

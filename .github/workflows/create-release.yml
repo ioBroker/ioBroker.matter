@@ -6,9 +6,13 @@ on:
             versionBump:
                 description: 'Type of version bump'
                 required: true
-                default: 'patch'
+                default: 'prerelease'
                 type: choice
                 options:
+                    - prerelease
+                    - prepatch
+                    - preminor
+                    - premajor
                     - patch
                     - minor
                     - major

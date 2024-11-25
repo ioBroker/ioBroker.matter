@@ -696,6 +696,7 @@ export class MatterAdapter extends utils.Adapter {
                 `Type detection mismatch for state ${oid}: ${detectedDevice?.type} !== ${type}. Initialize device with just this one state.`,
             );
         }
+        this.log.debug(`No auto detection for ${oid} with type ${type} ... fallback to default for SET state only`);
         // ignore all detected states and let only one
         return {
             type: type as Types,

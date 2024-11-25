@@ -11,6 +11,7 @@ import { MotionToMatter } from './MotionToMatter';
 import { SocketToMatter } from './SocketToMatter';
 import { TemperatureToMatter } from './TemperatureToMatter';
 import { WindowToMatter } from './WindowToMatter';
+import { CtToMatter } from './CtToMatter';
 
 /**
  * Factory function to create a Matter device from an ioBroker device.
@@ -19,6 +20,8 @@ function matterDeviceFabric(ioBrokerDevice: GenericDevice, name: string, uuid: s
     const ioBrokerDeviceType = ioBrokerDevice.deviceType;
 
     switch (ioBrokerDeviceType) {
+        case Types.ct:
+            return new CtToMatter(ioBrokerDevice, name, uuid);
         case Types.dimmer:
             return new DimmerToMatter(ioBrokerDevice, name, uuid);
         case Types.door:

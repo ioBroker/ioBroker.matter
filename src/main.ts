@@ -725,6 +725,7 @@ export class MatterAdapter extends utils.Adapter {
         options.list = options.list ?? [];
         const devices = [];
         for (const device of options.list) {
+            this.log.debug(`Prepare device ${device.uuid} "${device.name}"`);
             const detectedDevice = await this.determineIoBrokerDevice(device.oid, device.type, device.auto);
             try {
                 const deviceObject = await DeviceFactory(detectedDevice, this, device as DeviceOptions);

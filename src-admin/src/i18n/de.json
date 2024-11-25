@@ -11,6 +11,7 @@
     "Add device with auto-detection": "Gerät mit automatischer Erkennung hinzufügen",
     "Add devices": "Geräte hinzufügen",
     "Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.": "Zusätzlich zu Bridges können Sie ioBroker-Zustände auch als eigenständige Matter-Geräte verfügbar machen.\nSie können alle einzeln gepaart werden.\nSie sollten vorzugsweise Bridges verwenden.",
+    "All": "Alle",
     "All devices": "Alle Geräte",
     "All interfaces": "Alle Schnittstellen",
     "All state information of matter controller and devices will be deleted. You cannot undo it.": "Der Controller und alle Geräte und Bridges werden auf die Werkseinstellungen zurückgesetzt. \nDadurch werden die Pairing- und aktuellen Werte für alle Geräte, Bridges und auch gepaarten Geräte im Controller gelöscht. Sie können dies nicht rückgängig machen.\nDie allgemeine Konfiguration des Controllers und die zugewiesenen ioBroker-Zustände für die Bridges und Geräte bleiben unverändert.",

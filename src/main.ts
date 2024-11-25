@@ -1027,8 +1027,11 @@ export class MatterAdapter extends utils.Adapter {
             return;
         } // not active
         this.#nodeReSyncInProgress.add(nodeId);
-        await this.#controller.applyPairedNodeConfiguration(nodeId, obj.native as PairedNodeConfig, forcedUpdate);
-        this.#nodeReSyncInProgress.delete(nodeId);
+        try {
+            await this.#controller.applyPairedNodeConfiguration(nodeId, obj.native as PairedNodeConfig, forcedUpdate);
+        } finally {
+            this.#nodeReSyncInProgress.delete(nodeId);
+        }
     }
 
     async applyControllerConfiguration(config: MatterControllerConfig, handleStart = true): Promise<MessageResponse> {

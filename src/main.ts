@@ -86,6 +86,7 @@ export class MatterAdapter extends utils.Adapter {
     #instanceDataDir?: string;
     t: (word: string, ...args: (string | number | boolean | null)[]) => string;
     getText: (word: string, ...args: (string | number | boolean | null)[]) => ioBroker.Translated;
+    #nodeReSyncInProgress = new Set<string>();
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -483,9 +484,9 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async onObjectChange(id: string, obj: ioBroker.Object | null | undefined): Promise<void> {
-        this.log.debug(`Object changed ${id}, type = ${obj?.type}`);
         const objParts = id.split('.').slice(2); // remove namespace and instance
         const objPartsLength = objParts.length;
+        this.log.debug(`Object changed ${id}, type = ${obj?.type}, length=${objPartsLength}`);
 
         // matter.0.bridges.a6e61de9-e450-47bb-8f27-ee360350bdd8
         if (
@@ -506,7 +507,9 @@ export class MatterAdapter extends utils.Adapter {
                 this.log.warn('Controller node not found');
                 return;
             }
-            await this.syncControllerNode(nodeId, nodeObj as ioBroker.FolderObject);
+            if (!this.#nodeReSyncInProgress.has(nodeId)) {
+                await this.syncControllerNode(nodeId, nodeObj as ioBroker.FolderObject, true);
+            }
         }
     }
 
@@ -694,6 +697,7 @@ export class MatterAdapter extends utils.Adapter {
                 `Type detection mismatch for state ${oid}: ${detectedDevice?.type} !== ${type}. Initialize device with just this one state.`,
             );
         }
+        this.log.debug(`No auto detection for ${oid} with type ${type} ... fallback to default for SET state only`);
         // ignore all detected states and let only one
         return {
             type: type as Types,
@@ -721,6 +725,7 @@ export class MatterAdapter extends utils.Adapter {
         options.list = options.list ?? [];
         const devices = [];
         for (const device of options.list) {
+            this.log.debug(`Prepare device ${device.uuid} "${device.name}"`);
             const detectedDevice = await this.determineIoBrokerDevice(device.oid, device.type, device.auto);
             try {
                 const deviceObject = await DeviceFactory(detectedDevice, this, device as DeviceOptions);
@@ -1020,11 +1025,16 @@ export class MatterAdapter extends utils.Adapter {
         this.log.debug('Sync done');
     }
 
-    async syncControllerNode(nodeId: string, obj: ioBroker.FolderObject): Promise<void> {
+    async syncControllerNode(nodeId: string, obj: ioBroker.FolderObject, forcedUpdate = false): Promise<void> {
         if (!this.#controller) {
             return;
         } // not active
-        return this.#controller.applyPairedNodeConfiguration(nodeId, obj.native as PairedNodeConfig);
+        this.#nodeReSyncInProgress.add(nodeId);
+        try {
+            await this.#controller.applyPairedNodeConfiguration(nodeId, obj.native as PairedNodeConfig, forcedUpdate);
+        } finally {
+            this.#nodeReSyncInProgress.delete(nodeId);
+        }
     }
 
     async applyControllerConfiguration(config: MatterControllerConfig, handleStart = true): Promise<MessageResponse> {

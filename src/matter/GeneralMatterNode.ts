@@ -246,8 +246,9 @@ export class GeneralMatterNode {
         return this.#details;
     }
 
-    async applyConfiguration(config: PairedNodeConfig): Promise<void> {
+    async applyConfiguration(config: PairedNodeConfig, forcedUpdate = false): Promise<void> {
         if (
+            !forcedUpdate &&
             config.exposeMatterApplicationClusterData === this.exposeMatterApplicationClusterData &&
             config.exposeMatterSystemClusterData === this.exposeMatterSystemClusterData
         ) {

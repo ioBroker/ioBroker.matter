@@ -86,7 +86,7 @@ Important: In order to expose more than 5 Bridged devices or to expose additiona
 ## Usage information
 TBD
 
-## Wording: Node vs Device
+### Wording: Node vs Device
 TBD
 
 ### Using the Matter Controller
@@ -120,7 +120,10 @@ Note: This is considered Professional Usage!
 In all normal end user cases you should not need to use the System Cluster states. They are only needed for special cases and for debugging or to deeply explore the Matter cluster data. If you enable them you will see a lot of additional states that are not needed for normal operation. Any changes to the writable states can break the functionality of the devices. So please only use them if you know what you are doing!
 
 ### Using the Matter Bridges
-TBD
+
+#### Recommendations
+* Not all ecosystems support all device types and sometimes ecosystems react strange when you add a device type they do not support. So please check the ecosystem documentation for the supported device types, if available or try it out. We try to collect the details in the [Supported ioBroker devices](#supported-iobroker-device-types) section. Please report any new information as an issue or PR.
+* If you plan to use bridges with many devices so please consider commissioning the bridge initially with just some added devices and then add more overtime. This can help to avoid issues with the ecosystems and also could be a better experience for you. 
 
 ### Using the Matter Devices
 TBD
@@ -146,6 +149,7 @@ TBD
 ## ToDo
 * Texts are partially in english
 * Sync min/max from Matter into ioBroker objects
+* Cleanup objects when devices/states are removed
 * ioBroker device types
   * (9) Lights:
     * rgb
@@ -153,7 +157,7 @@ TBD
     * rgbSingle
     * cie
     * hue
-  * (8) blinds
+  * (8) blinds + blindButtons
   * (-8) thermostat
   * (5+2) button
   * (5+2) buttonSensor?
@@ -163,14 +167,13 @@ TBD
   * (2+) fireAlarm
   * (-2) mediaPlayer
   * warning - how?
-  * blindButtons - with bindings?
   * gate - aka blinds?
   * windowTilt - how?
   * levelSlider - how?
 * Matter device types
   * (9) Enhanced Color Light -> rgb/rgbw/cie/hue/...
   * (8) Thermostat -> thermostat
-  * (8) Window Covering -> blinds
+  * (8) Window Covering -> blinds / blindButtons
   * (7+) Light Sensor -> ??? DEF
   * (7) Fan -> thermostat?
   * (5+2) Generic Switch -> button? buttonSensor?

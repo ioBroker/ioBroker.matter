@@ -13,7 +13,12 @@ export class FloodAlarmToMatter extends GenericDeviceToMatter {
 
     constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
         super(name, uuid);
-        this.#matterEndpoint = new Endpoint(WaterLeakDetectorDevice);
+        this.#matterEndpoint = new Endpoint(WaterLeakDetectorDevice, {
+            id: uuid,
+            booleanState: {
+                stateValue: false, // Will be corrected in registerIoBrokerHandlersAndInitialize
+            },
+        });
         this.#ioBrokerDevice = ioBrokerDevice as FloodAlarm;
     }
 
@@ -30,10 +35,10 @@ export class FloodAlarmToMatter extends GenericDeviceToMatter {
 
     registerMatterHandlers(): void {}
 
-    convertContactValue(value: boolean): boolean {
+    convertContactValue(value?: boolean): boolean {
         // True Water leak detected
         // False No water leak detected
-        return value;
+        return !!value;
     }
 
     async registerIoBrokerHandlersAndInitialize(): Promise<void> {
@@ -55,7 +60,7 @@ export class FloodAlarmToMatter extends GenericDeviceToMatter {
         // init current state from ioBroker side
         await this.#matterEndpoint.set({
             booleanState: {
-                stateValue: this.convertContactValue(value ?? false),
+                stateValue: this.convertContactValue(value),
             },
         });
         await initializeMaintenanceStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);

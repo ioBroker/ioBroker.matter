@@ -1,21 +1,33 @@
 import { Endpoint } from '@matter/main';
-import { DimmableLightDevice } from '@matter/main/devices';
+import { ColorTemperatureLightDevice } from '@matter/main/devices';
 import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import type Dimmer from '../../lib/devices/Dimmer';
 import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
 import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
+import type Ct from '../../lib/devices/Ct';
+import { kelvinToMireds, miredsToKelvin } from '@matter/main/behaviors';
 
 /** Mapping Logic to map a ioBroker Dimmer device to a Matter DimmableLightDevice. */
-export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
-    readonly #ioBrokerDevice: Dimmer;
-    readonly #matterEndpoint: Endpoint<DimmableLightDevice>;
+export class CtToMatter extends GenericElectricityDataDeviceToMatter {
+    readonly #ioBrokerDevice: Ct;
+    readonly #matterEndpoint: Endpoint<ColorTemperatureLightDevice>;
 
     constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
         super(name, uuid);
-        this.#matterEndpoint = new Endpoint(DimmableLightDevice, { id: uuid });
-        this.#ioBrokerDevice = ioBrokerDevice as Dimmer;
+        this.#matterEndpoint = new Endpoint(ColorTemperatureLightDevice, {
+            id: uuid,
+            colorControl: {
+                remainingTime: 0,
+
+                // Dummy values, will be better set later
+                colorTempPhysicalMinMireds: kelvinToMireds(6_500),
+                colorTempPhysicalMaxMireds: kelvinToMireds(2_000),
+                coupleColorTempToLevelMinMireds: kelvinToMireds(6_500),
+                startUpColorTemperatureMireds: null,
+            },
+        });
+        this.#ioBrokerDevice = ioBrokerDevice as Ct;
         this.addElectricityDataClusters(this.#matterEndpoint, this.#ioBrokerDevice);
     }
 
@@ -34,7 +46,7 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
         return [this.#matterEndpoint];
     }
 
-    get ioBrokerDevice(): Dimmer {
+    get ioBrokerDevice(): Ct {
         return this.#ioBrokerDevice;
     }
 
@@ -48,10 +60,21 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
             });
         }
 
-        this.#matterEndpoint.events.levelControl.currentLevel$Changed.on(async (level: number | null) => {
-            const currentValue = this.#ioBrokerDevice.getLevel();
-            if (level !== currentValue && level !== null) {
-                await this.#ioBrokerDevice.setLevel(Math.round((level / 254) * 100));
+        if (this.ioBrokerDevice.hasDimmer()) {
+            this.#matterEndpoint.events.levelControl.currentLevel$Changed.on(async (level: number | null) => {
+                const currentValue = this.#ioBrokerDevice.getDimmer();
+                if (level !== currentValue && level !== null) {
+                    await this.#ioBrokerDevice.setDimmer((level / 254) * 100);
+                }
+            });
+        }
+
+        this.#matterEndpoint.events.colorControl.colorTemperatureMireds$Changed.on(async (mireds: number) => {
+            const currentValue = this.#ioBrokerDevice.getTemperature();
+
+            const kelvin = Math.round(miredsToKelvin(mireds));
+            if (kelvin !== currentValue) {
+                await this.#ioBrokerDevice.setTemperature(kelvin);
             }
         });
 
@@ -88,15 +111,24 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
                         },
                     });
                     break;
-                case PropertyType.Level:
+                case PropertyType.Dimmer:
                     await this.#matterEndpoint.set({
                         levelControl: {
-                            currentLevel: Math.round((((event.value as number) || 1) / 100) * 254),
+                            currentLevel: (((event.value as number) || 1) / 100) * 254,
+                        },
+                    });
+                    break;
+                case PropertyType.Temperature:
+                    await this.#matterEndpoint.set({
+                        colorControl: {
+                            colorTemperatureMireds: kelvinToMireds(event.value as number),
                         },
                     });
                     break;
             }
         });
+
+        const { min, max } = this.#ioBrokerDevice.getTemperatureMinMax() || { min: 2_000, max: 6_500 };
 
         // init current state from ioBroker side
         await this.#matterEndpoint.set({
@@ -104,7 +136,15 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
                 onOff: this.ioBrokerDevice.hasPower() ? !!this.#ioBrokerDevice.getPower() : true,
             },
             levelControl: {
-                currentLevel: Math.round(((this.#ioBrokerDevice.getLevel() || 1) / 100) * 254),
+                currentLevel: this.ioBrokerDevice.hasDimmer()
+                    ? Math.round(((this.#ioBrokerDevice.getDimmer() || 1) / 100) * 254)
+                    : 254,
+            },
+            colorControl: {
+                colorTemperatureMireds: kelvinToMireds(this.#ioBrokerDevice.getTemperature() || max),
+                colorTempPhysicalMinMireds: kelvinToMireds(max),
+                colorTempPhysicalMaxMireds: kelvinToMireds(min),
+                coupleColorTempToLevelMinMireds: kelvinToMireds(max),
             },
         });
 

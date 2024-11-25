@@ -171,7 +171,7 @@ class BridgedDevices extends BaseServerNode {
 
     /** Apply an updated configuration for the Bridge. */
     async applyConfiguration(options: BridgeCreateOptions): Promise<void> {
-        this.adapter.log.debug('Apply new bridge configuration!!');
+        this.adapter.log.debug('Applying new bridge configuration');
 
         if (!this.serverNode) {
             this.adapter.log.error('Bridge not initialized. Should never happen');
@@ -187,6 +187,7 @@ class BridgedDevices extends BaseServerNode {
                 const device = options.devices[i];
                 const deviceOptions = options.devicesOptions[i];
                 newDeviceList.push(deviceOptions.uuid);
+                this.adapter.log.debug(`Processing device ${deviceOptions.uuid} "${deviceOptions.name}" in bridge`);
                 if (existingDevicesInBridge.includes(deviceOptions.uuid)) {
                     existingDevicesInBridge.splice(existingDevicesInBridge.indexOf(deviceOptions.uuid), 1);
                     this.adapter.log.debug(`Device ${deviceOptions.uuid} already in bridge. Sync Configuration`);
@@ -199,7 +200,7 @@ class BridgedDevices extends BaseServerNode {
                     continue;
                 }
                 await this.addBridgedIoBrokerDevice(device, deviceOptions);
-                this.adapter.log.debug(`Device ${deviceOptions.uuid} added to bridge`);
+                this.adapter.log.debug(`Device ${deviceOptions.uuid} "${deviceOptions.name}" added to bridge`);
                 this.#devices.push(device);
                 this.#devicesOptions.push(deviceOptions);
             }

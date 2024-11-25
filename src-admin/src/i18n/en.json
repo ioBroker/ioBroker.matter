@@ -148,7 +148,7 @@
     "rgbSingle": "RGB Light",
     "slider": "Slider",
     "socket": "Socket",
-    "status_commissioned": "Commissioned but not connected to controler",
+    "status_commissioned": "Commissioned but not connected to controller",
     "status_connected": "Connected to controller",
     "status_creating": "Creating",
     "status_disconnected": "Disconnected",

@@ -13,7 +13,12 @@ export class DoorToMatter extends GenericDeviceToMatter {
 
     constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
         super(name, uuid);
-        this.#matterEndpoint = new Endpoint(ContactSensorDevice);
+        this.#matterEndpoint = new Endpoint(ContactSensorDevice, {
+            id: uuid,
+            booleanState: {
+                stateValue: false, // Will be corrected in registerIoBrokerHandlersAndInitialize
+            },
+        });
         this.#ioBrokerDevice = ioBrokerDevice as Door;
     }
 
@@ -30,7 +35,7 @@ export class DoorToMatter extends GenericDeviceToMatter {
 
     registerMatterHandlers(): void {}
 
-    convertContactValue(value: boolean): boolean {
+    convertContactValue(value?: boolean): boolean {
         // True Closed or contact
         // False Open or no contact
         return !value;
@@ -55,7 +60,7 @@ export class DoorToMatter extends GenericDeviceToMatter {
         // init current state from ioBroker side
         await this.#matterEndpoint.set({
             booleanState: {
-                stateValue: this.convertContactValue(value ?? false),
+                stateValue: this.convertContactValue(value),
             },
         });
         await initializeMaintenanceStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);

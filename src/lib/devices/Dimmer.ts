@@ -145,6 +145,10 @@ class Dimmer extends ElectricityDataDevice {
         }
     }
 
+    hasPower(): boolean {
+        return this.propertyNames.includes(PropertyType.Power);
+    }
+
     async updatePowerActual(value: boolean): Promise<void> {
         if (!this.#getPowerState) {
             throw new Error('Power state not found');

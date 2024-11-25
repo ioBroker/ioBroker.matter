@@ -41,7 +41,8 @@ export class HumidityToMatter extends GenericDeviceToMatter {
                 case PropertyType.Humidity:
                     await this.#matterEndpoint.set({
                         relativeHumidityMeasurement: {
-                            measuredValue: this.convertHumidityValue(event.value as number),
+                            measuredValue:
+                                typeof event.value === 'number' ? this.convertHumidityValue(event.value) : null,
                         },
                     });
                     break;
@@ -52,7 +53,7 @@ export class HumidityToMatter extends GenericDeviceToMatter {
         // init current state from ioBroker side
         await this.#matterEndpoint.set({
             relativeHumidityMeasurement: {
-                measuredValue: value === undefined ? null : this.convertHumidityValue(value),
+                measuredValue: typeof value === 'number' ? this.convertHumidityValue(value) : null,
             },
         });
 

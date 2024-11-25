@@ -41,7 +41,7 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
         return [this.#matterEndpoint];
     }
 
-    get ioBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): Lock {
         return this.#ioBrokerDevice;
     }
 
@@ -59,7 +59,7 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
                     // NotFullyLocked is not a valid state for a lock, ignore it
                     return;
                 case DoorLock.LockState.Unlatched:
-                    if (this.ioBrokerDevice.propertyNames.includes(PropertyType.Open)) {
+                    if (this.ioBrokerDevice.hasOpen()) {
                         await this.#ioBrokerDevice.setOpen();
                     } else {
                         // Adjust state to get it handled by default logic

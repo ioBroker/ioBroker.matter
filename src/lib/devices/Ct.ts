@@ -92,6 +92,10 @@ class Ct extends ElectricityDataDevice {
         return this.#dimmer.setValue(value);
     }
 
+    hasDimmer(): boolean {
+        return this.propertyNames.includes(PropertyType.Dimmer) || this.propertyNames.includes(PropertyType.Brightness);
+    }
+
     getBrightness(): number | undefined {
         if (!this.#brightness) {
             throw new Error('Brightness state not found');
@@ -179,6 +183,10 @@ class Ct extends ElectricityDataDevice {
         if (this.#setPower) {
             await this.#setPower.updateValue(value);
         }
+    }
+
+    hasPower(): boolean {
+        return this.propertyNames.includes(PropertyType.Power);
     }
 
     getPowerActual(): boolean | undefined {

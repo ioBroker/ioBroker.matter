@@ -46,27 +46,29 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
         return [this.#matterEndpoint];
     }
 
-    get ioBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): Ct {
         return this.#ioBrokerDevice;
     }
 
     registerMatterHandlers(): void {
-        // install matter listeners
-        // here we can react on changes from the matter side for onOff
-        this.#matterEndpoint.events.onOff.onOff$Changed.on(async on => {
-            const currentValue = !!this.#ioBrokerDevice.getPower();
-            if (on !== currentValue) {
-                await this.#ioBrokerDevice.setPower(on);
-            }
-        });
-        // here we can react on changes from the matter side for the current lamp level
-        this.#matterEndpoint.events.levelControl.currentLevel$Changed.on(async (level: number | null) => {
-            const currentValue = this.#ioBrokerDevice.getDimmer();
-            if (level !== currentValue && level !== null) {
-                await this.#ioBrokerDevice.setDimmer((level / 254) * 100);
-            }
-        });
-        // and color control
+        if (this.ioBrokerDevice.hasPower()) {
+            this.#matterEndpoint.events.onOff.onOff$Changed.on(async on => {
+                const currentValue = !!this.#ioBrokerDevice.getPower();
+                if (on !== currentValue) {
+                    await this.#ioBrokerDevice.setPower(on);
+                }
+            });
+        }
+
+        if (this.ioBrokerDevice.hasDimmer()) {
+            this.#matterEndpoint.events.levelControl.currentLevel$Changed.on(async (level: number | null) => {
+                const currentValue = this.#ioBrokerDevice.getDimmer();
+                if (level !== currentValue && level !== null) {
+                    await this.#ioBrokerDevice.setDimmer((level / 254) * 100);
+                }
+            });
+        }
+
         this.#matterEndpoint.events.colorControl.colorTemperatureMireds$Changed.on(async (mireds: number) => {
             const currentValue = this.#ioBrokerDevice.getTemperature();
 
@@ -76,23 +78,25 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
             }
         });
 
-        let isIdentifying = false;
-        const identifyOptions: IdentifyOptions = {};
-        this.#matterEndpoint.events.identify.identifyTime$Changed.on(async value => {
-            // identifyTime is set when an identify command is called and then decreased every second while indentify logic runs.
-            if (value > 0 && !isIdentifying) {
-                isIdentifying = true;
-                const identifyInitialState = !!this.#ioBrokerDevice.getPower();
+        if (this.ioBrokerDevice.hasPower()) {
+            let isIdentifying = false;
+            const identifyOptions: IdentifyOptions = {};
+            this.#matterEndpoint.events.identify.identifyTime$Changed.on(async value => {
+                // identifyTime is set when an identify command is called and then decreased every second while indentify logic runs.
+                if (value > 0 && !isIdentifying) {
+                    isIdentifying = true;
+                    const identifyInitialState = !!this.#ioBrokerDevice.getPower();
 
-                identifyOptions.currentState = identifyInitialState;
-                identifyOptions.initialState = identifyInitialState;
+                    identifyOptions.currentState = identifyInitialState;
+                    identifyOptions.initialState = identifyInitialState;
 
-                this.handleIdentify(identifyOptions);
-            } else if (value === 0) {
-                isIdentifying = false;
-                await this.stopIdentify(identifyOptions);
-            }
-        });
+                    this.handleIdentify(identifyOptions);
+                } else if (value === 0) {
+                    isIdentifying = false;
+                    await this.stopIdentify(identifyOptions);
+                }
+            });
+        }
     }
 
     async registerIoBrokerHandlersAndInitialize(): Promise<void> {
@@ -129,10 +133,10 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
         // init current state from ioBroker side
         await this.#matterEndpoint.set({
             onOff: {
-                onOff: !!this.#ioBrokerDevice.getPower(),
+                onOff: this.ioBrokerDevice.hasPower() ? !!this.#ioBrokerDevice.getPower() : true,
             },
             levelControl: {
-                currentLevel: this.#ioBrokerDevice.getDimmer() || 1,
+                currentLevel: this.ioBrokerDevice.hasDimmer() ? this.#ioBrokerDevice.getDimmer() || 1 : 254,
             },
             colorControl: {
                 colorTemperatureMireds: kelvinToMireds(this.#ioBrokerDevice.getTemperature() || max),

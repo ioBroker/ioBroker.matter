@@ -114,7 +114,7 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
                 case PropertyType.Dimmer:
                     await this.#matterEndpoint.set({
                         levelControl: {
-                            currentLevel: ((event.value as number) / 100) * 254,
+                            currentLevel: (((event.value as number) || 1) / 100) * 254,
                         },
                     });
                     break;
@@ -136,7 +136,9 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
                 onOff: this.ioBrokerDevice.hasPower() ? !!this.#ioBrokerDevice.getPower() : true,
             },
             levelControl: {
-                currentLevel: this.ioBrokerDevice.hasDimmer() ? this.#ioBrokerDevice.getDimmer() || 1 : 254,
+                currentLevel: this.ioBrokerDevice.hasDimmer()
+                    ? Math.round(((this.#ioBrokerDevice.getDimmer() || 1) / 100) * 254)
+                    : 254,
             },
             colorControl: {
                 colorTemperatureMireds: kelvinToMireds(this.#ioBrokerDevice.getTemperature() || max),

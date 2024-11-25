@@ -91,7 +91,7 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
                 case PropertyType.Level:
                     await this.#matterEndpoint.set({
                         levelControl: {
-                            currentLevel: Math.round(((event.value as number) / 100) * 254),
+                            currentLevel: Math.round((((event.value as number) || 1) / 100) * 254),
                         },
                     });
                     break;
@@ -104,7 +104,7 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
                 onOff: this.ioBrokerDevice.hasPower() ? !!this.#ioBrokerDevice.getPower() : true,
             },
             levelControl: {
-                currentLevel: this.#ioBrokerDevice.getLevel() || 1,
+                currentLevel: Math.round(((this.#ioBrokerDevice.getLevel() || 1) / 100) * 254),
             },
         });
 

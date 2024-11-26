@@ -6,7 +6,12 @@ import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
 import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 import type Ct from '../../lib/devices/Ct';
-import { kelvinToMireds, miredsToKelvin } from '@matter/main/behaviors';
+import { kelvinToMireds as kToM, miredsToKelvin } from '@matter/main/behaviors';
+
+// Remove with matter.js > 0.11.5
+function kelvinToMireds(kelvin: number): number {
+    return Math.round(kToM(kelvin));
+}
 
 /** Mapping Logic to map a ioBroker Dimmer device to a Matter DimmableLightDevice. */
 export class CtToMatter extends GenericElectricityDataDeviceToMatter {
@@ -100,8 +105,8 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
     }
 
     async registerIoBrokerHandlersAndInitialize(): Promise<void> {
-        // install ioBroker listeners
-        // here we react on changes from the ioBroker side for onOff and current lamp level
+        const { min, max } = this.#ioBrokerDevice.getTemperatureMinMax() || { min: 2_000, max: 6_500 };
+
         this.#ioBrokerDevice.onChange(async event => {
             switch (event.property) {
                 case PropertyType.Power:
@@ -111,24 +116,36 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
                         },
                     });
                     break;
-                case PropertyType.Dimmer:
+                case PropertyType.Dimmer: {
+                    const value = this.#ioBrokerDevice.cropValue((event.value as number) ?? 0, 0, 100);
+
                     await this.#matterEndpoint.set({
                         levelControl: {
-                            currentLevel: (((event.value as number) || 1) / 100) * 254,
+                            currentLevel: Math.round((value / 100) * 254),
                         },
                     });
                     break;
-                case PropertyType.Temperature:
+                }
+                case PropertyType.Temperature: {
+                    const value = this.#ioBrokerDevice.cropValue((event.value as number) ?? min, min, max);
                     await this.#matterEndpoint.set({
                         colorControl: {
-                            colorTemperatureMireds: kelvinToMireds(event.value as number),
+                            colorTemperatureMireds: kelvinToMireds(value),
                         },
                     });
                     break;
+                }
             }
         });
 
-        const { min, max } = this.#ioBrokerDevice.getTemperatureMinMax() || { min: 2_000, max: 6_500 };
+        const currentLevel = this.ioBrokerDevice.hasDimmer()
+            ? this.#ioBrokerDevice.cropValue(this.#ioBrokerDevice.getDimmer() ?? 0, 0, 100)
+            : 100;
+        const currentTemperature = this.#ioBrokerDevice.cropValue(
+            this.#ioBrokerDevice.getTemperature() ?? min,
+            min,
+            max,
+        );
 
         // init current state from ioBroker side
         await this.#matterEndpoint.set({
@@ -136,12 +153,10 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
                 onOff: this.ioBrokerDevice.hasPower() ? !!this.#ioBrokerDevice.getPower() : true,
             },
             levelControl: {
-                currentLevel: this.ioBrokerDevice.hasDimmer()
-                    ? Math.round(((this.#ioBrokerDevice.getDimmer() || 1) / 100) * 254)
-                    : 254,
+                currentLevel: Math.round((currentLevel / 100) * 254) || 1,
             },
             colorControl: {
-                colorTemperatureMireds: kelvinToMireds(this.#ioBrokerDevice.getTemperature() || max),
+                colorTemperatureMireds: kelvinToMireds(currentTemperature),
                 colorTempPhysicalMinMireds: kelvinToMireds(max),
                 colorTempPhysicalMaxMireds: kelvinToMireds(min),
                 coupleColorTempToLevelMinMireds: kelvinToMireds(max),

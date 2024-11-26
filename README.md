@@ -218,6 +218,7 @@ TBD
 * (@Apollon77) Finalizes Devices, Bridges and Controller functionality
 * (@Apollon77) Upgrades to new Matter.js version and API (breaks storage structure)
 * (@GermanBluefox) Moved build process of GUI to vite
+* (@GermanBluefox) Added possibility to group devices in the GUI
 
 ### 0.1.13 (2023-12-01)
 * (@GermanBluefox) Working on the controller

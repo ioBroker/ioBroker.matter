@@ -53,7 +53,7 @@ jobs:
                   git config --global user.name "Github Action"
                 
                   git diff --name-only
-                  yes "" | npm run release -- ${VERSION_BUMP} alpha --yes --noPush --all
+                  yes "" | npm run release -- ${VERSION_BUMP} alpha --yes --noPush --all --ioPackageNoPrerelease
 
             - name: Determine the version bump
               id: version

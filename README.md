@@ -213,7 +213,7 @@ TBD
 -->
 
 ## Changelog
-### __WORK IN PROGRESS__
+### 0.2.0-alpha.1 (2024-11-26)
 * IMPORTANT: Breaking change!! Please decommission ALL devices and do a full factory reset of the adapter Matter storage before installing this version. Pair the devices new afterwards. 
 * (@Apollon77) Finalizes Devices, Bridges and Controller functionality with a first set of 11 device types
 * (@Apollon77) Upgrades to new Matter.js version and API (breaks storage structure)

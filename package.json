@@ -70,7 +70,7 @@
         "build:gui": "node tasks.js --build",
         "build:ts": "tsc -p tsconfig.build.json && node tasks.js --copy-i18n",
         "copy-i18n": "node tasks.js --copy-i18n",
-        "release": "release-script -y --noPush",
+        "release": "release-script",
         "update-packages": "ncu --upgrade && cd src-admin && ncu --upgrade",
         "dev-server": "dev-server",
         "format": "prettier --write 'src/**/*.ts' 'src-admin/**/*.tsx'",

@@ -215,7 +215,7 @@ TBD
 ## Changelog
 ### __WORK IN PROGRESS__
 * IMPORTANT: Breaking change!! Please decommission ALL devices and do a full factory reset of the adapter Matter storage before installing this version. Pair the devices new afterwards. 
-* (@Apollon77) Finalizes Devices, Bridges and Controller functionality
+* (@Apollon77) Finalizes Devices, Bridges and Controller functionality with a first set of 11 device types
 * (@Apollon77) Upgrades to new Matter.js version and API (breaks storage structure)
 * (@GermanBluefox) Moved build process of GUI to vite
 * (@GermanBluefox) Added possibility to group devices in the GUI

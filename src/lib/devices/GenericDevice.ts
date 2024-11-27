@@ -598,6 +598,10 @@ abstract class GenericDevice {
     }
 
     cropValue(value: number, min: number, max: number): number {
+        if (isNaN(value)) {
+            this.#adapter.log.warn(`${this.#deviceType}: Value ${value} is not a number. Adjusting to ${min}`);
+            return min;
+        }
         if (value < min) {
             this.#adapter.log.warn(`${this.#deviceType}: Value ${value} is below minimum ${min}. Adjusting to ${min}`);
             return min;

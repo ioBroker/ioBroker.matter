@@ -26,9 +26,9 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
                 remainingTime: 0,
 
                 // Dummy values, will be better set later
-                colorTempPhysicalMinMireds: kelvinToMireds(6_500),
-                colorTempPhysicalMaxMireds: kelvinToMireds(2_000),
-                coupleColorTempToLevelMinMireds: kelvinToMireds(6_500),
+                colorTempPhysicalMinMireds: 0,
+                colorTempPhysicalMaxMireds: 65279,
+                coupleColorTempToLevelMinMireds: 0,
                 startUpColorTemperatureMireds: null,
             },
         });
@@ -69,7 +69,7 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
             this.#matterEndpoint.events.levelControl.currentLevel$Changed.on(async (level: number | null) => {
                 const currentValue = this.#ioBrokerDevice.getDimmer();
                 if (level !== currentValue && level !== null) {
-                    await this.#ioBrokerDevice.setDimmer((level / 254) * 100);
+                    await this.#ioBrokerDevice.setDimmer(Math.round((level / 254) * 100));
                 }
             });
         }
@@ -77,7 +77,7 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
         this.#matterEndpoint.events.colorControl.colorTemperatureMireds$Changed.on(async (mireds: number) => {
             const currentValue = this.#ioBrokerDevice.getTemperature();
 
-            const kelvin = Math.round(miredsToKelvin(mireds));
+            const kelvin = miredsToKelvin(mireds);
             if (kelvin !== currentValue) {
                 await this.#ioBrokerDevice.setTemperature(kelvin);
             }
@@ -105,7 +105,7 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
     }
 
     async registerIoBrokerHandlersAndInitialize(): Promise<void> {
-        const { min, max } = this.#ioBrokerDevice.getTemperatureMinMax() || { min: 2_000, max: 6_500 };
+        const { min = 2_000, max = 6_500 } = this.#ioBrokerDevice.getTemperatureMinMax() ?? {};
 
         this.#ioBrokerDevice.onChange(async event => {
             switch (event.property) {
@@ -156,9 +156,9 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
                 currentLevel: Math.round((currentLevel / 100) * 254) || 1,
             },
             colorControl: {
-                colorTemperatureMireds: kelvinToMireds(currentTemperature),
                 colorTempPhysicalMinMireds: kelvinToMireds(max),
                 colorTempPhysicalMaxMireds: kelvinToMireds(min),
+                colorTemperatureMireds: kelvinToMireds(currentTemperature),
                 coupleColorTempToLevelMinMireds: kelvinToMireds(max),
             },
         });

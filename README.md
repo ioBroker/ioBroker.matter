@@ -213,6 +213,12 @@ TBD
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (@Apollon77) Adds Color Temperature conversion if unit is "mireds"
+* (@Apollon77) Fixes Color Temperature cluster initialization
+* (@Apollon77) Fixes Min/Max calculation when unit conversion is used
+
 ### 0.2.0 (2024-11-26)
 * IMPORTANT: Breaking change!! Please decommission ALL devices and do a full factory reset of the adapter Matter storage before installing this version. Pair the devices new afterwards. 
 * (@Apollon77) Finalizes Devices, Bridges and Controller functionality with a first set of 11 device types

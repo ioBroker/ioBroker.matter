@@ -91,4 +91,9 @@ export abstract class GenericDeviceToMatter {
         this.registerMatterHandlers();
         await this.registerIoBrokerHandlersAndInitialize();
     }
+
+    async destroy(): Promise<void> {
+        // The endpoints are destroyed by the Node handler because maybe more endpoints were added
+        await this.ioBrokerDevice.destroy();
+    }
 }

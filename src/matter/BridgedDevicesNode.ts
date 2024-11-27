@@ -9,6 +9,7 @@ import type { MatterAdapter } from '../main';
 import { BaseServerNode } from './BaseServerNode';
 import matterDeviceFactory from './to-matter/matterFactory';
 import { initializeBridgedUnreachableStateHandler } from './to-matter/SharedStateHandlers';
+import type { GenericDeviceToMatter } from './to-matter/GenericDeviceToMatter';
 
 export interface BridgeCreateOptions {
     parameters: BridgeOptions;
@@ -33,6 +34,7 @@ class BridgedDevices extends BaseServerNode {
     #started = false;
     #aggregator?: Endpoint<AggregatorEndpoint>;
     #deviceEndpoints = new Map<string, Endpoint[]>();
+    #mappingDevices = new Map<string, GenericDeviceToMatter>();
 
     constructor(adapter: MatterAdapter, options: BridgeCreateOptions) {
         super(adapter, 'bridges', options.parameters.uuid);
@@ -99,6 +101,7 @@ class BridgedDevices extends BaseServerNode {
                 this.#deviceEndpoints.set(deviceOptions.uuid, [composedEndpoint]);
             }
             await mappingDevice.init();
+            this.#mappingDevices.set(deviceOptions.uuid, mappingDevice);
 
             const addedEndpoints = this.#deviceEndpoints.get(deviceOptions.uuid) as Endpoint<BridgedNodeEndpoint>[];
             for (const endpoint of addedEndpoints) {
@@ -208,13 +211,22 @@ class BridgedDevices extends BaseServerNode {
             for (const [uuid, endpoints] of this.#deviceEndpoints) {
                 if (!newDeviceList.includes(uuid)) {
                     this.adapter.log.info(`Removing device ${uuid} from bridge`);
+
+                    await this.#mappingDevices.get(uuid)?.destroy();
+                    this.#mappingDevices.delete(uuid);
+
                     for (const endpoint of endpoints) {
                         await endpoint.close();
                     }
+
                     this.#deviceEndpoints.delete(uuid);
+
                     const deviceIndex = this.#devicesOptions.findIndex(device => device.uuid === uuid);
-                    this.#devices.splice(deviceIndex, 1);
-                    this.#devicesOptions.splice(deviceIndex, 1);
+                    if (deviceIndex !== -1) {
+                        await this.#devices[deviceIndex].destroy();
+                        this.#devices.splice(deviceIndex, 1);
+                        this.#devicesOptions.splice(deviceIndex, 1);
+                    }
                 }
             }
 
@@ -249,6 +261,9 @@ class BridgedDevices extends BaseServerNode {
     async stop(): Promise<void> {
         for (const device of this.#devices) {
             await device.destroy();
+        }
+        for (const mappingDevice of this.#mappingDevices.values()) {
+            await mappingDevice.destroy();
         }
         await this.serverNode?.close();
         this.serverNode = undefined;

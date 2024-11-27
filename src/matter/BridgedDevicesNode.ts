@@ -199,19 +199,19 @@ class BridgedDevices extends BaseServerNode {
                     existingDevice.applyConfiguration(deviceOptions);
                     continue;
                 }
+                this.adapter.log.info(`Adding device  ${deviceOptions.uuid} "${deviceOptions.name}" to bridge`);
                 await this.addBridgedIoBrokerDevice(device, deviceOptions);
-                this.adapter.log.debug(`Device ${deviceOptions.uuid} "${deviceOptions.name}" added to bridge`);
                 this.#devices.push(device);
                 this.#devicesOptions.push(deviceOptions);
             }
 
             for (const [uuid, endpoints] of this.#deviceEndpoints) {
                 if (!newDeviceList.includes(uuid)) {
+                    this.adapter.log.info(`Removing device ${uuid} from bridge`);
                     for (const endpoint of endpoints) {
                         await endpoint.close();
                     }
                     this.#deviceEndpoints.delete(uuid);
-                    this.adapter.log.debug(`Device ${uuid} removed from bridge`);
                     const deviceIndex = this.#devicesOptions.findIndex(device => device.uuid === uuid);
                     this.#devices.splice(deviceIndex, 1);
                     this.#devicesOptions.splice(deviceIndex, 1);

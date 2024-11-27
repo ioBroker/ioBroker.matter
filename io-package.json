@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "news": {
+      "0.2.1": {
+        "en": "Adds Color Temperature conversion if unit is \"mireds\"\nFixes Color Temperature cluster initialization\nFixes Min/Max calculation when unit conversion is used",
+        "de": "Fügt Farbtemperaturkonvertierung hinzu, wenn Einheit \"Wunder\" ist\nBehebt die Initialisierung von Farbtemperaturcluster\nBehebt Min/Max-Berechnung, wenn die Einheitskonvertierung verwendet wird",
+        "ru": "Добавляет преобразование цветовой температуры, если единица является «зерновой»\nИсправления Цвет Температурная инициализация кластера\nИсчисление запятой и Максом при использовании преобразования единицы",
+        "pt": "Adiciona conversão de temperatura de cor se a unidade é \"espelho\"\nCorrige a inicialização do cluster de temperatura de cor\nCorrige o cálculo Min/Max quando a conversão da unidade é usada",
+        "nl": "Voegt kleurtemperatuurconversie toe als eenheid \"gespiegeld\" is\nHerstelt kleurtemperatuur cluster initialisatie\nFixes Min/Max berekening wanneer eenheid conversie wordt gebruikt",
+        "fr": "Ajoute la conversion de température de couleur si l'unité est \"mireds\"\nCorrige l'initialisation du groupe de température de couleur\nCorrige le calcul min/max lorsque la conversion unitaire est utilisée",
+        "it": "Aggiunge la conversione di temperatura di colore se l'unità è \"mireds\"\nFissa l'inizializzazione del cluster di temperatura colore\nRisolve il calcolo Min/Max quando viene utilizzata la conversione dell'unità",
+        "es": "Agrega la conversión de temperatura de color si la unidad es \"mirada\"\nArreglos de inicialización del grupo de temperatura de color\nArreglos Min/Max cálculo cuando se utiliza la conversión de unidad",
+        "pl": "Dodaje konwersja temperatury koloru, jeśli jednostka jest \"mireds\"\nFixes Color Temperatura klaster inicjalizacja\nFixes Min / Max Calculation when unit conversion is used",
+        "uk": "Додавання перетворення температури кольору, якщо блок \"перемирає\"\nВиправлення початкової ініціалізації кольорових температур\nВиправлення мінімальних/максів при переході блоку використовується",
+        "zh-cn": "如果单位为“ 迷恋” , 则添加颜色温度转换\n修复色彩温度集群初始化\n在使用单位转换时修复 Min/ Max 计算"
+      },
       "0.2.0": {
         "en": "IMPORTANT: Breaking change!! Please decommission ALL devices and do a full factory reset of the adapter Matter storage before installing this version. Pair the devices new afterwards. \nFinalizes Devices, Bridges and Controller functionality with a first set of 11 device types\nUpgrades to new Matter.js version and API (breaks storage structure)\nMoved build process of GUI to vite\nAdded possibility to group devices in the GUI",
         "de": "WICHTIG: Wechseln!! Bitte schalten Sie ALL-Geräte ein und machen Sie einen kompletten Werks-Reset des Adapters Matter Speicher vor der Installation dieser Version. Kombinieren Sie die Geräte danach neu.\nVervollständigt Geräte, Brücken und Controller-Funktionalität mit einem ersten Satz von 11 Gerätetypen\nUpgrades auf neue Matter.js-Version und API (bricht Speicherstruktur)\nUmgebauter Prozess der GUI to vite\nMöglichkeit, Geräte in der GUI zu gruppieren",
@@ -69,19 +82,6 @@
         "zh-cn": "执行工厂的重新定位和重新宣布"
       },
       "0.1.8": {
-        "en": "Implemented the factory reset and re-announcing",
-        "de": "Ergänzt die Werksanweisung und Wiederankündigung",
-        "ru": "Реализовано переустановку завода и переосмысление",
-        "pt": "Implementado o reset de fábrica e re-anunciamento",
-        "nl": "Vertaling:",
-        "fr": "Mise en œuvre de l'usine réinitialisée et renonçant",
-        "it": "Implementato il reset della fabbrica e riannuncio",
-        "es": "Implementado el reajuste de fábrica y reanunciamiento",
-        "pl": "Zrezygnował z resetu i ponowił działalność",
-        "uk": "Реалізовано заводське скидання та переадресацію",
-        "zh-cn": "执行工厂的重新定位和重新宣布"
-      },
-      "0.1.7": {
         "en": "Implemented the factory reset and re-announcing",
         "de": "Ergänzt die Werksanweisung und Wiederankündigung",
         "ru": "Реализовано переустановку завода и переосмысление",

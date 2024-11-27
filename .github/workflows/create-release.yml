@@ -75,7 +75,7 @@ jobs:
                   BODY="${BODY//'%'/'%25'}"
                   BODY="${BODY//$'\n'/'%0A'}"
                   BODY="${BODY//$'\r'/'%0D'}"
-                  echo "BODY=BODY" >> $GITHUB_OUTPUT
+                  echo "BODY=$BODY" >> $GITHUB_OUTPUT
 
             - name: Create Pull Request
               id: cpr

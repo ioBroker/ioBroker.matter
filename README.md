@@ -213,8 +213,7 @@ TBD
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.2.1 (2024-11-27)
 * (@Apollon77) Adds Color Temperature conversion if unit is "mireds"
 * (@Apollon77) Fixes Color Temperature cluster initialization
 * (@Apollon77) Fixes Min/Max calculation when unit conversion is used

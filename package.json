@@ -6,6 +6,10 @@
     "name": "Denis Haev",
     "email": "dogafox@gmail.com"
   },
+  "contributors": [
+    "Apollon77 <matter@fischer-ka.de>",
+    "foxriver76 <moritz.heusinger@gmail.com>"
+  ],
   "homepage": "https://github.com/ioBroker/ioBroker.matter",
   "keywords": [
     "ioBroker",

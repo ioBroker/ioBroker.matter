@@ -246,7 +246,11 @@ export class DeviceStateObject<T> {
         if (this.min === undefined || this.max === undefined) {
             return null;
         }
-        return { min: this.min, max: this.max };
+
+        const min = this.convertValue(this.min, true);
+        const max = this.convertValue(this.max, true);
+
+        return { min: Math.min(min, max), max: Math.max(min, max) };
     }
 
     getUnit(): string | undefined {
@@ -373,6 +377,7 @@ export class DeviceStateObject<T> {
                 throw new Error(`Value ${realValue} is greater than max ${object.common.max}`);
             }
 
+            this.adapter.log.debug(`Set ${this.#id} to "${realValue}" (ack = ${!this.#isIoBrokerState})`);
             await this.adapter.setForeignStateAsync(this.#id, realValue as ioBroker.StateValue, !this.#isIoBrokerState);
         } else {
             // convert value
@@ -385,6 +390,7 @@ export class DeviceStateObject<T> {
                         value === true ||
                         value === 'on' ||
                         value === 'ON';
+                    this.adapter.log.debug(`Set ${this.#id} to "${realValue}" (ack = ${!this.#isIoBrokerState})`);
                     await this.adapter.setForeignStateAsync(
                         this.#id,
                         realValue as ioBroker.StateValue,
@@ -400,6 +406,7 @@ export class DeviceStateObject<T> {
                         throw new Error(`Value ${JSON.stringify(value)} is greater than max ${object.common.max}`);
                     }
 
+                    this.adapter.log.debug(`Set ${this.#id} to "${realValue}" (ack = ${!this.#isIoBrokerState})`);
                     await this.adapter.setForeignStateAsync(
                         this.#id,
                         realValue as ioBroker.StateValue,
@@ -407,6 +414,7 @@ export class DeviceStateObject<T> {
                     );
                 } else if (valueType === 'string') {
                     const realValue = String(value);
+                    this.adapter.log.debug(`Set ${this.#id} to "${realValue}" (ack = ${!this.#isIoBrokerState})`);
                     await this.adapter.setForeignStateAsync(
                         this.#id,
                         realValue as ioBroker.StateValue,
@@ -414,12 +422,16 @@ export class DeviceStateObject<T> {
                     );
                 } else if (valueType === 'json') {
                     const realValue: string = JSON.stringify(value);
+                    this.adapter.log.debug(`Set ${this.#id} to "${realValue}" (ack = ${!this.#isIoBrokerState})`);
                     await this.adapter.setForeignStateAsync(
                         this.#id,
                         realValue as ioBroker.StateValue,
                         !this.#isIoBrokerState,
                     );
                 } else if (valueType === 'mixed') {
+                    this.adapter.log.debug(
+                        `Set ${this.#id} to ${JSON.stringify(value)} (ack = ${!this.#isIoBrokerState})`,
+                    );
                     await this.adapter.setForeignStateAsync(
                         this.#id,
                         value as ioBroker.StateValue,
@@ -442,6 +454,7 @@ export class DeviceStateObject<T> {
                 }
             }
 
+            this.adapter.log.debug(`Set ${this.#id} to ${JSON.stringify(value)} (ack = ${!this.#isIoBrokerState})`);
             await this.adapter.setForeignStateAsync(this.#id, value as ioBroker.StateValue, !this.#isIoBrokerState);
         }
     }

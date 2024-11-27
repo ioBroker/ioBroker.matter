@@ -42,6 +42,9 @@ class Ct extends ElectricityDataDevice {
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Temperature,
                     callback: state => (this.#temperature = state),
+                    unitConversionMap: {
+                        mireds: value => Math.round(1_000_000 / value),
+                    },
                 },
                 // actual value first, as it will be read first
                 {

@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.2.1",
+    "version": "0.2.2",
     "news": {
+      "0.2.2": {
+        "en": "Uses plain matter.js logs for better readability\nPrevents ghost connection entries in the UI\nAdds some missing implementations for Controller of Door, Window, FloodAlarm and Motion",
+        "de": "Benutzt reine Materie. js logs für bessere Lesbarkeit\nVerhindert Geisteranschlusseinträge in der UI\nFügt einige fehlende Implementierungen für Controller von Tür, Fenster, FlutAlarm und Motion hinzu",
+        "ru": "Использует простую материю. js для лучшей читаемости\nПредотвращает записи подключения к привидению в UI\nДобавляет некоторые недостающие реализации для контроллера двери, окна, уведомления о наводнениях и движения",
+        "pt": "Usa matéria simples. js logs para melhor legibilidade\nPrevine entradas de conexão fantasma na interface do usuário\nAdiciona algumas implementações em falta para Controller of Door, Window, FloodAlarm e Motion",
+        "nl": "Gebruikt gewone materie. js logs voor betere leesbaarheid\nVoorkomt spookverbinding in de UI\nVoegt enkele ontbrekende implementaties voor Controller van deur, venster, FloodAlarm en beweging",
+        "fr": "Utilise la matière pure. js logs pour une meilleure lisibilité\nEmpêche les entrées de connexion fantôme dans l'interface utilisateur\nAjoute quelques implémentations manquantes pour Contrôleur de Porte, Fenêtre, InondAlarm et Motion",
+        "it": "Usa la materia normale. js logs per una migliore leggibilità\nPreviene le voci di connessione fantasma nell'interfaccia utente\nAggiunge alcune implementazioni mancanti per Controller di Porta, Finestra, Inondazione e Moto",
+        "es": "Usa materia simple. js logs for better readability\nEvita las entradas de conexión fantasma en la UI\nAñade algunas implementaciones faltantes para Controlador de Puerta, Ventana, FloodAlarm y Motion",
+        "pl": "Używa czystej materii. logi js dla lepszej czytelności\nZapobiega wpisom połączeń widmowych w UI\nDodaje brakujące implementacje dla Kontrolera Drzwi, Okna, Powódź Alarm i Ruch",
+        "uk": "Використання простої матерії. js журнали для кращого зчитування\nЗапобігає запису з'єднання привидів в УІ\nДодавання деяких відсутніх заходів для контролера дверей, вікна, повені",
+        "zh-cn": "使用普通物质。 js 更易读的日志\n防止 UI 中的幽灵连接条目\n为 Door 、 Window、 FloodAlmar 和 Motion 控制器添加一些缺失的执行"
+      },
       "0.2.1": {
         "en": "Adds Color Temperature conversion if unit is \"mireds\"\nFixes Color Temperature cluster initialization\nFixes Min/Max calculation when unit conversion is used",
         "de": "Fügt Farbtemperaturkonvertierung hinzu, wenn Einheit \"Wunder\" ist\nBehebt die Initialisierung von Farbtemperaturcluster\nBehebt Min/Max-Berechnung, wenn die Einheitskonvertierung verwendet wird",
@@ -69,19 +82,6 @@
         "zh-cn": "执行工厂的重新定位和重新宣布"
       },
       "0.1.9": {
-        "en": "Implemented the factory reset and re-announcing",
-        "de": "Ergänzt die Werksanweisung und Wiederankündigung",
-        "ru": "Реализовано переустановку завода и переосмысление",
-        "pt": "Implementado o reset de fábrica e re-anunciamento",
-        "nl": "Vertaling:",
-        "fr": "Mise en œuvre de l'usine réinitialisée et renonçant",
-        "it": "Implementato il reset della fabbrica e riannuncio",
-        "es": "Implementado el reajuste de fábrica y reanunciamiento",
-        "pl": "Zrezygnował z resetu i ponowił działalność",
-        "uk": "Реалізовано заводське скидання та переадресацію",
-        "zh-cn": "执行工厂的重新定位和重新宣布"
-      },
-      "0.1.8": {
         "en": "Implemented the factory reset and re-announcing",
         "de": "Ergänzt die Werksanweisung und Wiederankündigung",
         "ru": "Реализовано переустановку завода и переосмысление",

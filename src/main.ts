@@ -1,6 +1,6 @@
 import * as utils from '@iobroker/adapter-core';
 import ChannelDetector, { type DetectorState, Types } from '@iobroker/type-detector';
-import { Environment, LogLevel, Logger, StorageService } from '@matter/main';
+import { Environment, LogLevel, LogFormat, Logger, StorageService } from '@matter/main';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import fs from 'node:fs/promises';
@@ -340,6 +340,7 @@ export class MatterAdapter extends utils.Adapter {
     async prepareMatterEnvironment(): Promise<void> {
         const config: MatterAdapterConfig = this.config as MatterAdapterConfig;
         Logger.defaultLogLevel = LogLevel.DEBUG;
+        Logger.format = LogFormat.PLAIN;
         Logger.log = (level: LogLevel, formattedLog: string) => {
             switch (level) {
                 case LogLevel.DEBUG:

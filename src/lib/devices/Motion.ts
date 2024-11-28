@@ -35,6 +35,13 @@ class Motion extends GenericDevice {
         return this.#getMotionState.value;
     }
 
+    updateMotion(value: boolean): Promise<void> {
+        if (!this.#getMotionState) {
+            throw new Error('Value state not found');
+        }
+        return this.#getMotionState.updateValue(value);
+    }
+
     hasBrightness(): boolean {
         return this.propertyNames.includes(PropertyType.Brightness);
     }
@@ -44,6 +51,13 @@ class Motion extends GenericDevice {
             throw new Error('Brightness state not found');
         }
         return this.#getBrightnessState.value;
+    }
+
+    updateBrightness(value: number): Promise<void> {
+        if (!this.#getBrightnessState) {
+            throw new Error('Brightness state not found');
+        }
+        return this.#getBrightnessState.updateValue(value);
     }
 }
 

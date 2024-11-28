@@ -110,13 +110,19 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         }
     }
 
+    static getVendorName(vendorId: number): string {
+        return VENDOR_IDS[vendorId]
+            ? `${VENDOR_IDS[vendorId]} (0x${vendorId.toString(16)})`
+            : `0x${vendorId.toString(16)}`;
+    }
+
     static getVendorIcon(vendorId: number, themeType: ThemeType): React.JSX.Element | null {
         const vendor = VENDOR_IDS[vendorId];
 
         if (vendor === 'Amazon Lab126') {
             return (
                 <SiAmazonalexa
-                    title={vendor}
+                    title={this.getVendorName(vendorId)}
                     style={{
                         ...STYLES.vendorIcon,
                         color: themeType === 'dark' ? '#0000dc' : '#001ca8',
@@ -135,7 +141,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 />
             );
         }
-        if (vendor === 'Apple Inc.') {
+        if (vendor === 'Apple Inc.' || vendor === 'Apple Keychain') {
             return (
                 <SiApple
                     title={vendor}
@@ -146,7 +152,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 />
             );
         }
-        if (vendor === 'Samsung') {
+        if (vendor === 'SmartThings, Inc.' || vendor === 'Samsung') {
             return (
                 <SiSmartthings
                     title={vendor}
@@ -284,7 +290,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                                     <TableRow key={i}>
                                         <TableCell>
                                             {BridgesAndDevices.getVendorIcon(info.vendorId, this.props.themeType) ||
-                                                info.vendorId}
+                                                BridgesAndDevices.getVendorName(info.vendorId)}
                                             {info.label ? (
                                                 <span
                                                     style={{

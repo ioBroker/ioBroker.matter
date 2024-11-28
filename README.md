@@ -213,13 +213,19 @@ TBD
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (@Apollon77) Uses plain matter.js logs for better readability
+* (@Apollon77) Prevents ghost connection entries in the UI
+* (@Apollon77) Adds some missing implementations for Controller of Door, Window, FloodAlarm and Motion
+
 ### 0.2.1 (2024-11-27)
 * (@Apollon77) Adds Color Temperature conversion if unit is "mireds"
 * (@Apollon77) Fixes Color Temperature cluster initialization
 * (@Apollon77) Fixes Min/Max calculation when unit conversion is used
 
 ### 0.2.0 (2024-11-26)
-* IMPORTANT: Breaking change!! Please decommission ALL devices and do a full factory reset of the adapter Matter storage before installing this version. Pair the devices new afterwards. 
+* IMPORTANT: Breaking change!! Please decommission ALL devices and do a full factory reset of the adapter Matter storage before installing this version. Pair the devices new afterward. 
 * (@Apollon77) Finalizes Devices, Bridges and Controller functionality with a first set of 11 device types
 * (@Apollon77) Upgrades to new Matter.js version and API (breaks storage structure)
 * (@GermanBluefox) Moved build process of GUI to vite

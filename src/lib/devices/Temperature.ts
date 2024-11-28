@@ -55,6 +55,13 @@ class Temperature extends GenericDevice {
         }
         return this.#getHumidityState.value;
     }
+
+    updateHumidity(value: number): Promise<void> {
+        if (!this.#getHumidityState) {
+            throw new Error('Humidity state not found');
+        }
+        return this.#getHumidityState.updateValue(value);
+    }
 }
 
 export default Temperature;

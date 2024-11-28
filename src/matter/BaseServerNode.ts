@@ -134,7 +134,7 @@ export abstract class BaseServerNode implements GeneralNode {
         }
         this.serverNode.events.commissioning.fabricsChanged.on(async fabricIndex => {
             this.adapter.log.debug(
-                `commissioningChangedCallback: Commissioning changed on Fabric ${fabricIndex}: ${JSON.stringify(this.serverNode?.state.operationalCredentials.fabrics.find(fabric => fabric.fabricIndex === fabricIndex))}`,
+                `commissioningChangedCallback: Commissioning changed on Fabric ${fabricIndex}: ${serialize(this.serverNode?.state.operationalCredentials.fabrics.find(fabric => fabric.fabricIndex === fabricIndex))}`,
             );
             await this.updateUiState();
         });

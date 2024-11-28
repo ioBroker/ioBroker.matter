@@ -213,6 +213,11 @@ TBD
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (@Apollon77) Uses plain matter.js logs for better readability
+* (@Apollon77) Prevents ghost connection entries in the UI
+
 ### 0.2.1 (2024-11-27)
 * (@Apollon77) Adds Color Temperature conversion if unit is "mireds"
 * (@Apollon77) Fixes Color Temperature cluster initialization

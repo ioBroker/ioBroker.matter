@@ -1,4 +1,4 @@
-import { Logger, type ServerNode, type SessionsBehavior } from '@matter/main';
+import { Logger, type ServerNode, type SessionsBehavior, serialize } from '@matter/main';
 import type { MatterAdapter } from '../main';
 import type { GeneralNode, MessageResponse } from './GeneralNode';
 

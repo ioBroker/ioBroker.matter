@@ -213,8 +213,7 @@ TBD
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.2.2 (2024-11-28)
 * (@Apollon77) Uses plain matter.js logs for better readability
 * (@Apollon77) Prevents ghost connection entries in the UI
 * (@Apollon77) Adds some missing implementations for Controller of Door, Window, FloodAlarm and Motion

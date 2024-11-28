@@ -105,7 +105,7 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
     }
 
     async registerIoBrokerHandlersAndInitialize(): Promise<void> {
-        const { min = 2_000, max = 6_500 } = this.#ioBrokerDevice.getTemperatureMinMax() ?? {};
+        const { min = 2_000, max = 6_536 } = this.#ioBrokerDevice.getTemperatureMinMax() ?? {}; // 153 till 500 mireds
 
         this.#ioBrokerDevice.onChange(async event => {
             switch (event.property) {

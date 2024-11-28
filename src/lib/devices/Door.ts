@@ -26,6 +26,13 @@ class Door extends GenericDevice {
         }
         return this.#getValueState.value;
     }
+
+    updateValue(value: boolean): Promise<void> {
+        if (!this.#getValueState) {
+            throw new Error('Value state not found');
+        }
+        return this.#getValueState.updateValue(value);
+    }
 }
 
 export default Door;

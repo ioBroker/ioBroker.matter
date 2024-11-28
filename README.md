@@ -217,6 +217,7 @@ TBD
 ### __WORK IN PROGRESS__
 * (@Apollon77) Uses plain matter.js logs for better readability
 * (@Apollon77) Prevents ghost connection entries in the UI
+* (@Apollon77) Adds some missing implementations for Controller of Door, Window, FloodAlarm and Motion
 
 ### 0.2.1 (2024-11-27)
 * (@Apollon77) Adds Color Temperature conversion if unit is "mireds"

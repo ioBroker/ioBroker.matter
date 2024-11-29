@@ -10,7 +10,6 @@ export class EventedLightingLevelControlServer extends DimmableLightRequirements
         withOnOff: boolean,
         options: TypeFromPartialBitSchema<typeof LevelControl.Options> = {},
     ): MaybePromise<void> {
-        // @ts-expect-error options is there, just broken type, will be fixed in matter.js 0.11.8
         const result = super.setLevel(level, withOnOff, options);
         return MaybePromise.then(result, () =>
             this.endpoint.act(agent => agent.get(IoBrokerEvents).events.dimmerLevelControlled.emit(level)),

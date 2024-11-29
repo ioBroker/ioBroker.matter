@@ -479,6 +479,9 @@ export class DeviceStateObject<T> {
         } else {
             this.value = value as T;
         }
+        this.adapter.log.debug(
+            `Received state change for ${this.#id}: ${JSON.stringify(state.val)} (ack=${state.ack}) --> ${JSON.stringify(this.value)}`,
+        );
         if (this.updateHandler) {
             await this.updateHandler(this);
         }

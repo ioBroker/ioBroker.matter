@@ -88,7 +88,7 @@ interface DevicesState extends BridgesAndDevicesState {
         oid: string;
         name: string;
         deviceType: Types | '';
-        customDeviceType?: Types;
+        detectedDeviceType?: Types;
         vendorID: string;
         productID: string;
         noComposed?: boolean;
@@ -567,7 +567,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 }
 
                                 const addCustomDeviceDialog = clone(this.state.addCustomDeviceDialog);
-                                addCustomDeviceDialog.customDeviceType = e.target.value as Types;
+                                addCustomDeviceDialog.deviceType = e.target.value as Types;
                                 this.setState({ addCustomDeviceDialog });
                             }}
                         >
@@ -661,8 +661,8 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                             const addCustomDeviceDialog = this.state.addCustomDeviceDialog;
                             if (addCustomDeviceDialog) {
                                 const isAutoType =
-                                    !addCustomDeviceDialog.customDeviceType ||
-                                    addCustomDeviceDialog.customDeviceType === addCustomDeviceDialog.deviceType;
+                                    !!addCustomDeviceDialog.detectedDeviceType &&
+                                    addCustomDeviceDialog.detectedDeviceType === addCustomDeviceDialog.deviceType;
                                 void this.addDevices(
                                     [
                                         {
@@ -670,8 +670,8 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                             common: {
                                                 name: addCustomDeviceDialog.name,
                                             },
-                                            deviceType: (addCustomDeviceDialog.customDeviceType ??
-                                                addCustomDeviceDialog.deviceType) as Types,
+                                            deviceType: (addCustomDeviceDialog.deviceType ??
+                                                addCustomDeviceDialog.detectedDeviceType) as Types,
                                             hasOnState: !!addCustomDeviceDialog.hasOnState,
                                             // ignored
                                             type: 'device',
@@ -819,6 +819,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 addCustomDeviceDialog: {
                                     oid,
                                     name,
+                                    detectedDeviceType: deviceType,
                                     deviceType: SUPPORTED_DEVICES.includes(deviceType) ? deviceType : '',
                                     hasOnState: controls[0].devices[0].hasOnState,
                                     vendorID: '0xFFF1',

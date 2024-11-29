@@ -734,6 +734,15 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async determineIoBrokerDevice(oid: string, type: string, auto: boolean): Promise<DetectedDevice> {
+        if (!auto) {
+            // Fix for wrong UI currently that sets auto to false when channel or device is selected
+            const obj = await this.getForeignObjectAsync(oid);
+            if (obj && (obj.type === 'device' || obj.type === 'channel')) {
+                auto = true;
+                this.log.debug(`Enable auto detection for ${oid} with type ${type} because object is ${obj.type}`);
+            }
+        }
+
         const detectedDevice = await this.getIoBrokerDeviceStates(oid);
         if (detectedDevice && detectedDevice.type === type && auto) {
             return detectedDevice;
@@ -771,7 +780,7 @@ export class MatterAdapter extends utils.Adapter {
         options.list = options.list ?? [];
         const devices = [];
         for (const device of options.list) {
-            this.log.debug(`Prepare device ${device.uuid} "${device.name}"`);
+            this.log.debug(`Prepare bridged device ${device.uuid} "${device.name}" (auto=${device.auto})`);
             const detectedDevice = await this.determineIoBrokerDevice(device.oid, device.type, device.auto);
             try {
                 const deviceObject = await DeviceFactory(detectedDevice, this, device as DeviceOptions);
@@ -833,6 +842,8 @@ export class MatterAdapter extends utils.Adapter {
         if (options.enabled === false) {
             return null; // Not startup
         }
+
+        this.log.debug(`Prepare device ${options.uuid} "${options.name}" (auto=${options.auto})`);
         const detectedDevice = await this.determineIoBrokerDevice(options.oid, options.type, options.auto);
         try {
             const device = await DeviceFactory(detectedDevice, this, options as DeviceOptions);

@@ -56,6 +56,10 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
                     await this.#ioBrokerDevice.setPower(on);
                 }
             });
+        } else {
+            this.#ioBrokerDevice.adapter.log.info(
+                `Device ${this.#ioBrokerDevice.deviceType} (${this.ioBrokerDevice.uuid}) has no mapped power state`,
+            );
         }
 
         this.#matterEndpoint.events.ioBrokerEvents.dimmerLevelControlled.on(async level => {

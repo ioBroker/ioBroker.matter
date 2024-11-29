@@ -75,6 +75,10 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
                     await this.#ioBrokerDevice.setPower(on);
                 }
             });
+        } else {
+            this.#ioBrokerDevice.adapter.log.info(
+                `Device ${this.#ioBrokerDevice.deviceType} (${this.ioBrokerDevice.uuid}) has no mapped power state`,
+            );
         }
 
         if (this.ioBrokerDevice.hasDimmer()) {
@@ -84,6 +88,10 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
                     await this.#ioBrokerDevice.setDimmer(Math.round((level / 254) * 100));
                 }
             });
+        } else {
+            this.#ioBrokerDevice.adapter.log.info(
+                `Device ${this.#ioBrokerDevice.deviceType} (${this.ioBrokerDevice.uuid}) has no mapped dimmer state`,
+            );
         }
 
         this.#matterEndpoint.events.ioBrokerEvents.colorTemperatureControlled.on(async (mireds: number) => {

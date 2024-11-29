@@ -6,15 +6,20 @@ import type Light from '../../lib/devices/Light';
 import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
 import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
+import { EventedOnOffLightOnOffServer } from '../behaviors/EventedOnOffLightOnOffServer';
+import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
+
+const IoBrokerOnOffLightDevice = OnOffLightDevice.with(EventedOnOffLightOnOffServer, IoBrokerEvents);
+type IoBrokerOnOffLightDevice = typeof IoBrokerOnOffLightDevice;
 
 /** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
 export class LightToMatter extends GenericElectricityDataDeviceToMatter {
     readonly #ioBrokerDevice: Light;
-    readonly #matterEndpoint: Endpoint<OnOffLightDevice>;
+    readonly #matterEndpoint: Endpoint<IoBrokerOnOffLightDevice>;
 
     constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
         super(name, uuid);
-        this.#matterEndpoint = new Endpoint(OnOffLightDevice, { id: uuid });
+        this.#matterEndpoint = new Endpoint(IoBrokerOnOffLightDevice, { id: uuid });
         this.#ioBrokerDevice = ioBrokerDevice as Light;
         this.addElectricityDataClusters(this.#matterEndpoint, this.#ioBrokerDevice);
     }
@@ -41,7 +46,7 @@ export class LightToMatter extends GenericElectricityDataDeviceToMatter {
     registerMatterHandlers(): void {
         // install matter listeners
         // here we can react on changes from the matter side for onOff
-        this.#matterEndpoint.events.onOff.onOff$Changed.on(async on => {
+        this.#matterEndpoint.events.ioBrokerEvents.onOffControlled.on(async on => {
             const currentValue = !!this.#ioBrokerDevice.getPower();
             if (on !== currentValue) {
                 await this.#ioBrokerDevice.setPower(on);

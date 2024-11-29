@@ -7,20 +7,32 @@ import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDe
 import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 import type Ct from '../../lib/devices/Ct';
 import { kelvinToMireds as kToM, miredsToKelvin } from '@matter/main/behaviors';
+import { EventedOnOffLightOnOffServer } from '../behaviors/EventedOnOffLightOnOffServer';
+import { EventedLightingLevelControlServer } from '../behaviors/EventedLightingLevelControlServer';
+import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
+import { EventedColorTemperatureColorControlServer } from '../behaviors/EventedLightingColorControlServer';
 
 // Remove with matter.js > 0.11.5
 function kelvinToMireds(kelvin: number): number {
     return Math.round(kToM(kelvin));
 }
 
+const IoBrokerColorTemperatureLightDevice = ColorTemperatureLightDevice.with(
+    EventedOnOffLightOnOffServer,
+    EventedLightingLevelControlServer,
+    EventedColorTemperatureColorControlServer,
+    IoBrokerEvents,
+);
+type IoBrokerColorTemperatureLightDevice = typeof IoBrokerColorTemperatureLightDevice;
+
 /** Mapping Logic to map a ioBroker Dimmer device to a Matter DimmableLightDevice. */
 export class CtToMatter extends GenericElectricityDataDeviceToMatter {
     readonly #ioBrokerDevice: Ct;
-    readonly #matterEndpoint: Endpoint<ColorTemperatureLightDevice>;
+    readonly #matterEndpoint: Endpoint<IoBrokerColorTemperatureLightDevice>;
 
     constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
         super(name, uuid);
-        this.#matterEndpoint = new Endpoint(ColorTemperatureLightDevice, {
+        this.#matterEndpoint = new Endpoint(IoBrokerColorTemperatureLightDevice, {
             id: uuid,
             colorControl: {
                 remainingTime: 0,
@@ -57,7 +69,7 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
 
     registerMatterHandlers(): void {
         if (this.ioBrokerDevice.hasPower()) {
-            this.#matterEndpoint.events.onOff.onOff$Changed.on(async on => {
+            this.#matterEndpoint.events.ioBrokerEvents.onOffControlled.on(async on => {
                 const currentValue = !!this.#ioBrokerDevice.getPower();
                 if (on !== currentValue) {
                     await this.#ioBrokerDevice.setPower(on);
@@ -66,7 +78,7 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
         }
 
         if (this.ioBrokerDevice.hasDimmer()) {
-            this.#matterEndpoint.events.levelControl.currentLevel$Changed.on(async (level: number | null) => {
+            this.#matterEndpoint.events.ioBrokerEvents.dimmerLevelControlled.on(async level => {
                 const currentValue = this.#ioBrokerDevice.getDimmer();
                 if (level !== currentValue && level !== null) {
                     await this.#ioBrokerDevice.setDimmer(Math.round((level / 254) * 100));
@@ -74,7 +86,7 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
             });
         }
 
-        this.#matterEndpoint.events.colorControl.colorTemperatureMireds$Changed.on(async (mireds: number) => {
+        this.#matterEndpoint.events.ioBrokerEvents.colorTemperatureControlled.on(async (mireds: number) => {
             const currentValue = this.#ioBrokerDevice.getTemperature();
 
             const kelvin = miredsToKelvin(mireds);

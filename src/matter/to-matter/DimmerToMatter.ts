@@ -6,15 +6,25 @@ import type Dimmer from '../../lib/devices/Dimmer';
 import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
 import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
+import { EventedOnOffLightOnOffServer } from '../behaviors/EventedOnOffLightOnOffServer';
+import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
+import { EventedLightingLevelControlServer } from '../behaviors/EventedLightingLevelControlServer';
+
+const IoBrokerDimmableLightDevice = DimmableLightDevice.with(
+    EventedOnOffLightOnOffServer,
+    EventedLightingLevelControlServer,
+    IoBrokerEvents,
+);
+type IoBrokerDimmableLightDevice = typeof IoBrokerDimmableLightDevice;
 
 /** Mapping Logic to map a ioBroker Dimmer device to a Matter DimmableLightDevice. */
 export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
     readonly #ioBrokerDevice: Dimmer;
-    readonly #matterEndpoint: Endpoint<DimmableLightDevice>;
+    readonly #matterEndpoint: Endpoint<IoBrokerDimmableLightDevice>;
 
     constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
         super(name, uuid);
-        this.#matterEndpoint = new Endpoint(DimmableLightDevice, { id: uuid });
+        this.#matterEndpoint = new Endpoint(IoBrokerDimmableLightDevice, { id: uuid });
         this.#ioBrokerDevice = ioBrokerDevice as Dimmer;
         this.addElectricityDataClusters(this.#matterEndpoint, this.#ioBrokerDevice);
     }
@@ -40,7 +50,7 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
 
     registerMatterHandlers(): void {
         if (this.ioBrokerDevice.hasPower()) {
-            this.#matterEndpoint.events.onOff.onOff$Changed.on(async on => {
+            this.#matterEndpoint.events.ioBrokerEvents.onOffControlled.on(async on => {
                 const currentValue = !!this.#ioBrokerDevice.getPower();
                 if (on !== currentValue) {
                     await this.#ioBrokerDevice.setPower(on);
@@ -48,7 +58,7 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
             });
         }
 
-        this.#matterEndpoint.events.levelControl.currentLevel$Changed.on(async (level: number | null) => {
+        this.#matterEndpoint.events.ioBrokerEvents.dimmerLevelControlled.on(async level => {
             const currentValue = this.#ioBrokerDevice.getLevel();
             if (level !== currentValue && level !== null) {
                 await this.#ioBrokerDevice.setLevel(Math.round((level / 254) * 100));

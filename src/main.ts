@@ -78,7 +78,7 @@ export class MatterAdapter extends utils.Adapter {
     #detector: ChannelDetector;
     #_guiSubscribes: { clientId: string; ts: number }[] | null = null;
     readonly #matterEnvironment: Environment;
-    #stateTimeout: NodeJS.Timeout | null = null;
+    #stateTimeout?: ioBroker.Timeout;
     #license: { [key: string]: boolean | undefined } = {};
     sysLanguage: ioBroker.Languages = 'en';
     readonly #deviceManagement: MatterAdapterDeviceManagement;
@@ -87,6 +87,7 @@ export class MatterAdapter extends utils.Adapter {
     t: (word: string, ...args: (string | number | boolean | null)[]) => string;
     getText: (word: string, ...args: (string | number | boolean | null)[]) => ioBroker.Translated;
     #nodeReSyncInProgress = new Set<string>();
+    #closing = false;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -284,8 +285,8 @@ export class MatterAdapter extends utils.Adapter {
         const sub = this.#_guiSubscribes.find(s => s.clientId === clientId);
         if (!sub) {
             this.#_guiSubscribes.push({ clientId, ts: Date.now() });
-            this.#stateTimeout && clearTimeout(this.#stateTimeout);
-            this.#stateTimeout = setTimeout(async () => {
+            this.#stateTimeout && this.clearTimeout(this.#stateTimeout);
+            this.#stateTimeout = this.setTimeout(async () => {
                 this.#stateTimeout = null;
                 const states = await this.requestNodeStates();
                 await this.sendToGui({ command: 'bridgeStates', states });
@@ -327,6 +328,9 @@ export class MatterAdapter extends utils.Adapter {
 
     /** This command will be sent to GUI to update the controller devices */
     #refreshControllerDevices(): void {
+        if (this.#closing) {
+            return;
+        }
         this.#sendControllerUpdateTimeout =
             this.#sendControllerUpdateTimeout ??
             this.setTimeout(() => {
@@ -465,8 +469,11 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async onUnload(callback: () => void): Promise<void> {
+        this.#closing = true;
         this.#stateTimeout && clearTimeout(this.#stateTimeout);
-        this.#stateTimeout = null;
+        this.#stateTimeout = undefined;
+        this.#sendControllerUpdateTimeout && clearTimeout(this.#sendControllerUpdateTimeout);
+        this.#sendControllerUpdateTimeout = undefined;
 
         try {
             // inform GUI about stop

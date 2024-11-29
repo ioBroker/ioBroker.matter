@@ -223,6 +223,7 @@ TBD
 * (@Apollon77) Fixes "auto" flag in UI
 * (@Apollon77) Prevents cyclic state updates when a state is updated by the adapter to matter
 * (@Apollon77) Log warnings when device optional device states are not mapped
+* (@Apollon77) Hides Product-ID and VendorId fields in UI when adding devices into a bridge
 
 ### 0.2.2 (2024-11-28)
 * (@Apollon77) Uses plain matter.js logs for better readability

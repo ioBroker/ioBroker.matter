@@ -821,7 +821,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 socket={this.props.socket}
                 detectedDevices={this.props.detectedDevices}
                 setDetectedDevices={(detectedDevices: DetectedRoom[]) => this.props.setDetectedDevices(detectedDevices)}
-                type="device"
+                type="bridge"
                 name={this.props.matter.bridges[this.state.addDeviceDialog.bridgeIndex].name}
             />
         );

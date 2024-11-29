@@ -140,6 +140,7 @@ class BridgedDevices extends BaseServerNode {
             return;
         }
 
+        const versions = this.adapter.versions;
         this.serverNode = await ServerNode.create({
             id: this.#parameters.uuid,
             network: {
@@ -158,6 +159,10 @@ class BridgedDevices extends BaseServerNode {
                 productId,
                 serialNumber: uniqueId,
                 uniqueId: md5(uniqueId),
+                hardwareVersion: versions.versionNum,
+                hardwareVersionString: versions.versionStr,
+                softwareVersion: versions.versionNum,
+                softwareVersionString: versions.versionStr,
             },
         });
 

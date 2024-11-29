@@ -88,6 +88,7 @@ export class MatterAdapter extends utils.Adapter {
     getText: (word: string, ...args: (string | number | boolean | null)[]) => ioBroker.Translated;
     #nodeReSyncInProgress = new Set<string>();
     #closing = false;
+    #version: string = '0.0.0';
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -128,6 +129,17 @@ export class MatterAdapter extends utils.Adapter {
 
     get controllerNode(): MatterController | undefined {
         return this.#controller;
+    }
+
+    get versions(): { versionStr: string; versionNum: number } {
+        const versionParts = this.#version.split('.');
+        // Create a numeric version number from the version string, multiply parts from end to start with 100^index
+        const numVersion = versionParts.reduce((acc, part, index) => acc + parseInt(part) * Math.pow(100, index), 0);
+
+        return {
+            versionStr: this.#version,
+            versionNum: numVersion,
+        };
     }
 
     async shutDownMatterNodes(): Promise<void> {
@@ -411,6 +423,13 @@ export class MatterAdapter extends utils.Adapter {
                 );
             }
         }
+
+        try {
+            this.#version = require('./package.json').version;
+        } catch (error) {
+            this.log.error(`Can not read version from package.json: ${error}`);
+        }
+
         // init i18n
         const i18n = await I18n;
         await i18n.init(`${__dirname}/lib`, this);

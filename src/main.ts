@@ -489,6 +489,25 @@ export class MatterAdapter extends utils.Adapter {
         const objPartsLength = objParts.length;
         this.log.debug(`Object changed ${id}, type = ${obj?.type}, length=${objPartsLength}`);
 
+        if (
+            ((objParts[0] === 'devices' && objPartsLength === 2) ||
+                (objParts[0] === 'bridges' && objPartsLength === 2)) &&
+            obj === undefined
+        ) {
+            this.log.warn(`Object ${id} deleted ... trying to also remove it from matter`);
+            // We try to restore a minimum object that we can handle the deletion
+            obj = {
+                _id: id,
+                type: 'channel',
+                common: {
+                    name: id,
+                },
+                native: {
+                    deleted: true,
+                    uuid: objParts[1],
+                },
+            } as ioBroker.Object;
+        }
         // matter.0.bridges.a6e61de9-e450-47bb-8f27-ee360350bdd8
         if (
             ((objParts[0] === 'devices' && objPartsLength === 2) ||

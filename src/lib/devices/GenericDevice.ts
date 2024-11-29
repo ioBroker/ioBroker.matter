@@ -187,6 +187,10 @@ abstract class GenericDevice {
         }
     }
 
+    get adapter(): ioBroker.Adapter {
+        return this.#adapter;
+    }
+
     async addDeviceState<T>(
         name: string,
         type: PropertyType,

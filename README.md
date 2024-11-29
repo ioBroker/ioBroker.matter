@@ -213,6 +213,17 @@ TBD
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (@Apollon77) Makes sure to delete all objects and stop device when a device is deleted in UI
+* (@Apollon77) When a devices/bridge object is deleted and adapter runs we try to detect this and stop the device/bridge
+* (@Apollon77) Optimizes close handling of adapter
+* (@Apollon77) Uses adapter version as Software and Hardware versions in the exposed Matter devices
+* (@Apollon77) Fixes "auto" flags in backend when make no sense in objects
+* (@Apollon77) Fixes "auto" flag in UI
+* (@Apollon77) Prevents cyclic state updates when a state is updated by the adapter to matter
+* (@Apollon77) Log warnings when device optional devcie states are not mapped
+
 ### 0.2.2 (2024-11-28)
 * (@Apollon77) Uses plain matter.js logs for better readability
 * (@Apollon77) Prevents ghost connection entries in the UI

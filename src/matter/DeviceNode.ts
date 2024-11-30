@@ -84,6 +84,7 @@ class Device extends BaseServerNode {
         // The device type to announce we use from the first returned endpoint of the device
         const deviceType = endpoints[0].type.deviceType;
 
+        const versions = this.adapter.versions;
         try {
             this.serverNode = await ServerNode.create({
                 id: this.#parameters.uuid,
@@ -103,6 +104,10 @@ class Device extends BaseServerNode {
                     productId,
                     serialNumber: uniqueId,
                     uniqueId: md5(uniqueId),
+                    hardwareVersion: versions.versionNum,
+                    hardwareVersionString: versions.versionStr,
+                    softwareVersion: versions.versionNum,
+                    softwareVersionString: versions.versionStr,
                 },
             });
         } catch (error) {

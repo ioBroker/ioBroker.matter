@@ -88,6 +88,7 @@ interface DevicesState extends BridgesAndDevicesState {
         oid: string;
         name: string;
         deviceType: Types | '';
+        detectedDeviceType?: Types;
         vendorID: string;
         productID: string;
         noComposed?: boolean;
@@ -657,24 +658,30 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 <DialogActions>
                     <Button
                         onClick={() => {
-                            this.state.addCustomDeviceDialog &&
+                            const addCustomDeviceDialog = this.state.addCustomDeviceDialog;
+                            if (addCustomDeviceDialog) {
+                                const isAutoType =
+                                    !!addCustomDeviceDialog.detectedDeviceType &&
+                                    addCustomDeviceDialog.detectedDeviceType === addCustomDeviceDialog.deviceType;
                                 void this.addDevices(
                                     [
                                         {
-                                            _id: this.state.addCustomDeviceDialog.oid,
+                                            _id: addCustomDeviceDialog.oid,
                                             common: {
-                                                name: this.state.addCustomDeviceDialog.name,
+                                                name: addCustomDeviceDialog.name,
                                             },
-                                            deviceType: this.state.addCustomDeviceDialog.deviceType as Types,
-                                            hasOnState: !!this.state.addCustomDeviceDialog.hasOnState,
+                                            deviceType: (addCustomDeviceDialog.deviceType ??
+                                                addCustomDeviceDialog.detectedDeviceType) as Types,
+                                            hasOnState: !!addCustomDeviceDialog.hasOnState,
                                             // ignored
                                             type: 'device',
                                             states: [],
                                             roomName: '',
                                         },
                                     ],
-                                    false,
+                                    isAutoType,
                                 );
+                            }
 
                             this.setState({ addCustomDeviceDialog: null });
                         }}
@@ -812,6 +819,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 addCustomDeviceDialog: {
                                     oid,
                                     name,
+                                    detectedDeviceType: deviceType,
                                     deviceType: SUPPORTED_DEVICES.includes(deviceType) ? deviceType : '',
                                     hasOnState: controls[0].devices[0].hasOnState,
                                     vendorID: '0xFFF1',

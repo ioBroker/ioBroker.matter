@@ -366,60 +366,64 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                             this.setState({ rooms });
                         }}
                     />
-                    <TextField
-                        select
-                        disabled={!supported}
-                        style={{ minWidth: 'initial' }}
-                        value={device.vendorID}
-                        onChange={e => {
-                            if (!this.state.rooms) {
-                                return;
-                            }
+                    {this.props.type === 'device' ? (
+                        <>
+                            <TextField
+                                select
+                                disabled={!supported}
+                                style={{ minWidth: 'initial' }}
+                                value={device.vendorID}
+                                onChange={e => {
+                                    if (!this.state.rooms) {
+                                        return;
+                                    }
 
-                            const rooms = clone(this.state.rooms);
-                            rooms[roomIndex].devices[deviceIndex].vendorID = e.target.value;
-                            this.setState({ rooms });
-                        }}
-                        label={I18n.t('Vendor ID')}
-                        helperText={<span style={styles.spaceHolder} />}
-                        variant="standard"
-                    >
-                        {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorId => (
-                            <MenuItem
-                                key={vendorId}
-                                value={vendorId}
+                                    const rooms = clone(this.state.rooms);
+                                    rooms[roomIndex].devices[deviceIndex].vendorID = e.target.value;
+                                    this.setState({ rooms });
+                                }}
+                                label={I18n.t('Vendor ID')}
+                                helperText={<span style={styles.spaceHolder} />}
+                                variant="standard"
                             >
-                                {vendorId}
-                            </MenuItem>
-                        ))}
-                    </TextField>
-                    <TextField
-                        select
-                        disabled={!supported}
-                        style={{ minWidth: 'initial' }}
-                        value={device.productID}
-                        onChange={e => {
-                            if (!this.state.rooms) {
-                                return;
-                            }
+                                {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorId => (
+                                    <MenuItem
+                                        key={vendorId}
+                                        value={vendorId}
+                                    >
+                                        {vendorId}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                            <TextField
+                                select
+                                disabled={!supported}
+                                style={{ minWidth: 'initial' }}
+                                value={device.productID}
+                                onChange={e => {
+                                    if (!this.state.rooms) {
+                                        return;
+                                    }
 
-                            const rooms = clone(this.state.rooms);
-                            rooms[roomIndex].devices[deviceIndex].productID = e.target.value;
-                            this.setState({ rooms });
-                        }}
-                        label={I18n.t('Product ID')}
-                        helperText={<span style={styles.spaceHolder} />}
-                        variant="standard"
-                    >
-                        {productIds.map(productId => (
-                            <MenuItem
-                                key={productId}
-                                value={productId}
+                                    const rooms = clone(this.state.rooms);
+                                    rooms[roomIndex].devices[deviceIndex].productID = e.target.value;
+                                    this.setState({ rooms });
+                                }}
+                                label={I18n.t('Product ID')}
+                                helperText={<span style={styles.spaceHolder} />}
+                                variant="standard"
                             >
-                                {productId}
-                            </MenuItem>
-                        ))}
-                    </TextField>
+                                {productIds.map(productId => (
+                                    <MenuItem
+                                        key={productId}
+                                        value={productId}
+                                    >
+                                        {productId}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                        </>
+                    ) : null}
                 </div>
             </div>
         );

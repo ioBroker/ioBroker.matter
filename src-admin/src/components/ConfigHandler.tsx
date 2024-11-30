@@ -413,7 +413,12 @@ class ConfigHandler {
             if (!newDev) {
                 this.config.devices.splice(d, 1);
                 console.log(`Device ${oldDev.uuid} created`);
-                await this.socket.delObject(`matter.${this.instance}.devices.${oldDev.uuid}`);
+                const obj: ioBroker.ChannelObject = (await this.socket.getObject(
+                    `matter.${this.instance}.devices.${oldDev.uuid}`,
+                )) as ioBroker.ChannelObject;
+                obj.native.deleted = true;
+                console.log(`Device ${obj._id} deleted`);
+                await this.socket.setObject(obj._id, obj);
             }
         }
 

@@ -157,6 +157,7 @@ interface AddCustomDeviceDialog {
     oid: string;
     name: string;
     deviceType: Types | '';
+    detectedDeviceType?: Types;
     bridgeIndex: number;
     hasOnState?: boolean;
 }
@@ -796,6 +797,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                 addCustomDeviceDialog: {
                                     oid,
                                     name,
+                                    detectedDeviceType: deviceType,
                                     deviceType: SUPPORTED_DEVICES.includes(deviceType) ? deviceType : '',
                                     bridgeIndex: this.bridgeIndex as number,
                                     hasOnState: controls[0].devices[0].hasOnState,
@@ -819,7 +821,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 socket={this.props.socket}
                 detectedDevices={this.props.detectedDevices}
                 setDetectedDevices={(detectedDevices: DetectedRoom[]) => this.props.setDetectedDevices(detectedDevices)}
-                type="device"
+                type="bridge"
                 name={this.props.matter.bridges[this.state.addDeviceDialog.bridgeIndex].name}
             />
         );
@@ -992,6 +994,9 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         onClick={() => {
                             const addCustomDeviceDialog = this.state.addCustomDeviceDialog;
                             if (addCustomDeviceDialog) {
+                                const isAutoType =
+                                    !!addCustomDeviceDialog.detectedDeviceType &&
+                                    addCustomDeviceDialog.detectedDeviceType === addCustomDeviceDialog.deviceType;
                                 void this.addDevicesToBridge(
                                     [
                                         {
@@ -999,7 +1004,8 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                             common: {
                                                 name: addCustomDeviceDialog.name,
                                             },
-                                            deviceType: addCustomDeviceDialog.deviceType as Types,
+                                            deviceType: (addCustomDeviceDialog.deviceType ??
+                                                addCustomDeviceDialog.detectedDeviceType) as Types,
                                             hasOnState: addCustomDeviceDialog.hasOnState,
                                             // ignored
                                             type: 'device',
@@ -1008,7 +1014,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                         },
                                     ],
                                     addCustomDeviceDialog.bridgeIndex,
-                                    false,
+                                    isAutoType,
                                 );
                             }
 

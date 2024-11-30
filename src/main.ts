@@ -78,7 +78,7 @@ export class MatterAdapter extends utils.Adapter {
     #detector: ChannelDetector;
     #_guiSubscribes: { clientId: string; ts: number }[] | null = null;
     readonly #matterEnvironment: Environment;
-    #stateTimeout: NodeJS.Timeout | null = null;
+    #stateTimeout?: ioBroker.Timeout;
     #license: { [key: string]: boolean | undefined } = {};
     sysLanguage: ioBroker.Languages = 'en';
     readonly #deviceManagement: MatterAdapterDeviceManagement;
@@ -87,6 +87,8 @@ export class MatterAdapter extends utils.Adapter {
     t: (word: string, ...args: (string | number | boolean | null)[]) => string;
     getText: (word: string, ...args: (string | number | boolean | null)[]) => ioBroker.Translated;
     #nodeReSyncInProgress = new Set<string>();
+    #closing = false;
+    #version: string = '0.0.0';
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -127,6 +129,17 @@ export class MatterAdapter extends utils.Adapter {
 
     get controllerNode(): MatterController | undefined {
         return this.#controller;
+    }
+
+    get versions(): { versionStr: string; versionNum: number } {
+        const versionParts = this.#version.split('.');
+        // Create a numeric version number from the version string, multiply parts from end to start with 100^index
+        const numVersion = versionParts.reduce((acc, part, index) => acc + parseInt(part) * Math.pow(100, index), 0);
+
+        return {
+            versionStr: this.#version,
+            versionNum: numVersion,
+        };
     }
 
     async shutDownMatterNodes(): Promise<void> {
@@ -284,8 +297,8 @@ export class MatterAdapter extends utils.Adapter {
         const sub = this.#_guiSubscribes.find(s => s.clientId === clientId);
         if (!sub) {
             this.#_guiSubscribes.push({ clientId, ts: Date.now() });
-            this.#stateTimeout && clearTimeout(this.#stateTimeout);
-            this.#stateTimeout = setTimeout(async () => {
+            this.#stateTimeout && this.clearTimeout(this.#stateTimeout);
+            this.#stateTimeout = this.setTimeout(async () => {
                 this.#stateTimeout = null;
                 const states = await this.requestNodeStates();
                 await this.sendToGui({ command: 'bridgeStates', states });
@@ -327,6 +340,9 @@ export class MatterAdapter extends utils.Adapter {
 
     /** This command will be sent to GUI to update the controller devices */
     #refreshControllerDevices(): void {
+        if (this.#closing) {
+            return;
+        }
         this.#sendControllerUpdateTimeout =
             this.#sendControllerUpdateTimeout ??
             this.setTimeout(() => {
@@ -407,6 +423,13 @@ export class MatterAdapter extends utils.Adapter {
                 );
             }
         }
+
+        try {
+            this.#version = require('./package.json').version;
+        } catch (error) {
+            this.log.error(`Can not read version from package.json: ${error}`);
+        }
+
         // init i18n
         const i18n = await I18n;
         await i18n.init(`${__dirname}/lib`, this);
@@ -465,8 +488,11 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async onUnload(callback: () => void): Promise<void> {
+        this.#closing = true;
         this.#stateTimeout && clearTimeout(this.#stateTimeout);
-        this.#stateTimeout = null;
+        this.#stateTimeout = undefined;
+        this.#sendControllerUpdateTimeout && clearTimeout(this.#sendControllerUpdateTimeout);
+        this.#sendControllerUpdateTimeout = undefined;
 
         try {
             // inform GUI about stop
@@ -489,6 +515,25 @@ export class MatterAdapter extends utils.Adapter {
         const objPartsLength = objParts.length;
         this.log.debug(`Object changed ${id}, type = ${obj?.type}, length=${objPartsLength}`);
 
+        if (
+            ((objParts[0] === 'devices' && objPartsLength === 2) ||
+                (objParts[0] === 'bridges' && objPartsLength === 2)) &&
+            obj === undefined
+        ) {
+            this.log.warn(`Object ${id} deleted ... trying to also remove it from matter`);
+            // We try to restore a minimum object that we can handle the deletion
+            obj = {
+                _id: id,
+                type: 'channel',
+                common: {
+                    name: id,
+                },
+                native: {
+                    deleted: true,
+                    uuid: objParts[1],
+                },
+            } as ioBroker.Object;
+        }
         // matter.0.bridges.a6e61de9-e450-47bb-8f27-ee360350bdd8
         if (
             ((objParts[0] === 'devices' && objPartsLength === 2) ||
@@ -689,6 +734,15 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async determineIoBrokerDevice(oid: string, type: string, auto: boolean): Promise<DetectedDevice> {
+        if (!auto) {
+            // Fix for wrong UI currently that sets auto to false when channel or device is selected
+            const obj = await this.getForeignObjectAsync(oid);
+            if (obj && (obj.type === 'device' || obj.type === 'channel')) {
+                auto = true;
+                this.log.debug(`Enable auto detection for ${oid} with type ${type} because object is ${obj.type}`);
+            }
+        }
+
         const detectedDevice = await this.getIoBrokerDeviceStates(oid);
         if (detectedDevice && detectedDevice.type === type && auto) {
             return detectedDevice;
@@ -726,7 +780,7 @@ export class MatterAdapter extends utils.Adapter {
         options.list = options.list ?? [];
         const devices = [];
         for (const device of options.list) {
-            this.log.debug(`Prepare device ${device.uuid} "${device.name}"`);
+            this.log.debug(`Prepare bridged device ${device.uuid} "${device.name}" (auto=${device.auto})`);
             const detectedDevice = await this.determineIoBrokerDevice(device.oid, device.type, device.auto);
             try {
                 const deviceObject = await DeviceFactory(detectedDevice, this, device as DeviceOptions);
@@ -788,6 +842,8 @@ export class MatterAdapter extends utils.Adapter {
         if (options.enabled === false) {
             return null; // Not startup
         }
+
+        this.log.debug(`Prepare device ${options.uuid} "${options.name}" (auto=${options.auto})`);
         const detectedDevice = await this.determineIoBrokerDevice(options.oid, options.type, options.auto);
         try {
             const device = await DeviceFactory(detectedDevice, this, options as DeviceOptions);

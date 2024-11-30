@@ -7,16 +7,23 @@ import type Lock from '../../lib/devices/Lock';
 import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
 import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
+import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
+import { EventedDoorLockServer } from '../behaviors/EventedDoorLockServer';
+
+const IoBrokerDoorLockDevice = DoorLockDevice.with(EventedDoorLockServer, IoBrokerEvents);
+type IoBrokerDoorLockDevice = typeof IoBrokerDoorLockDevice;
+
+// TODO Add Latching support when "Open" is there!
 
 /** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
 export class LockToMatter extends GenericElectricityDataDeviceToMatter {
     readonly #ioBrokerDevice: Lock;
-    readonly #matterEndpoint: Endpoint<DoorLockDevice>;
+    readonly #matterEndpoint: Endpoint<IoBrokerDoorLockDevice>;
 
     constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
         super(name, uuid);
 
-        this.#matterEndpoint = new Endpoint(DoorLockDevice, {
+        this.#matterEndpoint = new Endpoint(IoBrokerDoorLockDevice, {
             id: uuid,
             doorLock: {
                 lockType: DoorLock.LockType.Other,
@@ -48,7 +55,7 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
     registerMatterHandlers(): void {
         // install matter listeners
         // here we can react on changes from the matter side for onOff
-        this.#matterEndpoint.events.doorLock.lockState$Changed.on(async state => {
+        this.#matterEndpoint.events.ioBrokerEvents.doorLockStateControlled.on(async state => {
             const currentState = this.#ioBrokerDevice.getLockState()
                 ? DoorLock.LockState.Locked
                 : DoorLock.LockState.Unlocked;

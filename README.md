@@ -213,8 +213,7 @@ TBD
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.2.3 (2024-11-30)
 * (@Apollon77) Makes sure to delete all objects and stop device when a device is deleted in UI
 * (@Apollon77) When a devices/bridge object is deleted and adapter runs we try to detect this and stop the device/bridge
 * (@Apollon77) Optimizes close handling of adapter

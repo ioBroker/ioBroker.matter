@@ -12,7 +12,7 @@
         "@iobroker/type-detector": "^4.0.1",
         "@types/react-dom": "^18.3.1",
         "@types/uuid": "^10.0.0",
-        "@vitejs/plugin-react": "^4.3.3",
+        "@vitejs/plugin-react": "^4.3.4",
         "qr-scanner": "^1.4.2",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",

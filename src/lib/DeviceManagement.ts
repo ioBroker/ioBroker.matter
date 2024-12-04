@@ -266,7 +266,35 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             }
         }
 
-        await this.adapter.controllerNode?.decommissionNode(node.nodeId);
+        const progress = await context.openProgress(this.#adapter.t('Unpairing node...'), { label: '0%' });
+
+        // Start an interval that normally covers 30s and with each update the number gets slower increased for the percentage
+        let finished = false;
+        let timeout: NodeJS.Timeout | undefined = undefined;
+        let iteration = 0;
+
+        const updateProgress = async (): Promise<void> => {
+            iteration++;
+            const progressValue = Math.min(99.9 * (1 - Math.exp(-iteration / (33 / 2))), 99.9); // Max 33 usually, scale factor 2
+            await progress.update({ value: progressValue, label: `${progressValue.toFixed(0)}%` });
+            if (finished) {
+                return;
+            }
+            timeout = setTimeout(updateProgress, 1000);
+        };
+        timeout = setTimeout(updateProgress, 1000);
+
+        try {
+            await this.adapter.controllerNode?.decommissionNode(node.nodeId);
+        } catch (error) {
+            await context.showMessage(this.#adapter.t('Error during unpairing: ') + error);
+        }
+
+        finished = true;
+        if (timeout) {
+            clearTimeout(timeout);
+        }
+        await progress.close();
         return { refresh: true };
     }
 

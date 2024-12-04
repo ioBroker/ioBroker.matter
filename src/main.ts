@@ -521,10 +521,11 @@ export class MatterAdapter extends utils.Adapter {
         callback();
     }
 
-    async onObjectChange(id: string, obj: ioBroker.Object | null | undefined): Promise<void> {
+    async #processObjectChange(id: string): Promise<void> {
+        let obj = await this.getObjectAsync(id);
         const objParts = id.split('.').slice(2); // remove namespace and instance
         const objPartsLength = objParts.length;
-        this.log.debug(`Object changed ${id}, type = ${obj?.type}, length=${objPartsLength}`);
+        this.log.debug(`Process changed object ${id}, type = ${obj?.type}, length=${objPartsLength}`);
 
         if (
             ((objParts[0] === 'devices' && objPartsLength === 2) ||

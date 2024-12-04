@@ -60,10 +60,11 @@ class BridgedDevices extends BaseServerNode {
             if (endpoints.length === 1 || deviceOptions.noComposed) {
                 // When only one endpoint or non-composed we simply add all endpoints for itself to the bridge
                 for (const endpoint of endpoints) {
+                    const matterName = name.substring(0, 32);
                     endpoint.behaviors.require(BridgedDeviceBasicInformationServer, {
-                        nodeLabel: name,
-                        productName: name,
-                        productLabel: name,
+                        nodeLabel: matterName,
+                        productName: matterName,
+                        productLabel: name.substring(0, 64),
                         uniqueId: md5(endpoint.id),
                         reachable: true,
                     });
@@ -81,9 +82,9 @@ class BridgedDevices extends BaseServerNode {
                 const composedEndpoint = new Endpoint(BridgedNodeEndpoint, {
                     id,
                     bridgedDeviceBasicInformation: {
-                        nodeLabel: name,
-                        productName: name,
-                        productLabel: name,
+                        nodeLabel: matterName,
+                        productName: matterName,
+                        productLabel: name.substring(0, 64),
                         uniqueId: md5(id),
                         reachable: true,
                     },

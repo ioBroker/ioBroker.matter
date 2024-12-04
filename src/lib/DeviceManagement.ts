@@ -1,5 +1,4 @@
 import type { MatterAdapter } from '../main';
-
 import {
     type ActionContext,
     type ApiVersion,
@@ -16,10 +15,10 @@ import {
 } from '@iobroker/dm-utils';
 import type { GeneralMatterNode, NodeDetails } from '../matter/GeneralMatterNode';
 import { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIoBroker';
-
 import { decamelize } from './utils';
 import type { DeviceAction } from '@iobroker/dm-utils/build/types/base';
 import { logEndpoint } from '../matter/EndpointStructureInspector';
+import { inspect } from 'util';
 
 function strToBool(str: string): boolean | null {
     if (str === 'true') {
@@ -270,7 +269,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         // Start an interval that normally covers 30s and with each update the number gets slower increased for the percentage
         let finished = false;
-        let timeout: NodeJS.Timeout | undefined = undefined;
+        let timeout: NodeJS.Timeout | undefined;
         let iteration = 0;
 
         const updateProgress = async (): Promise<void> => {
@@ -287,7 +286,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         try {
             await this.adapter.controllerNode?.decommissionNode(node.nodeId);
         } catch (error) {
-            await context.showMessage(this.#adapter.t('Error during unpairing: ') + error);
+            const errorText = inspect(error, { depth: 10 });
+            this.adapter.log.error(`Error during unpairing for node ${node.nodeId}: ${errorText}`);
+            await context.showMessage(this.#adapter.t('Error happened during unpairing. Please check the log.'));
         }
 
         finished = true;

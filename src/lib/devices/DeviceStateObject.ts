@@ -317,7 +317,7 @@ export class DeviceStateObject<T> {
             if (this.unitConversionMap[this.unit]) {
                 const convertedValue = this.unitConversionMap[this.unit](value, toDefaultUnit);
                 this.adapter.log.debug(
-                    `Converted value ${value} with ${this.unit} (to default: ${toDefaultUnit}): ${convertedValue}`,
+                    `Converted value ${value} with ${this.unit} (to default: ${toDefaultUnit}): ${convertedValue} ${this.state.defaultUnit}`,
                 );
                 return convertedValue;
             }

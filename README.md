@@ -218,8 +218,7 @@ TBD
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.2.4 (2024-12-04)
 * (@Apollon77) Shows a progress indicator when deleting controller nodes
 * (@Apollon77) Cuts names and labels to 32 or 64 characters as needed by Matter
 * (@Apollon77) Improves error handling on devices and bridges

@@ -151,7 +151,7 @@ class Device extends BaseServerNode {
 
         // Shut down the device
         const wasStarted = this.#started;
-        await this.stop();
+        await this.destroy();
 
         // Reinitialize
         this.#parameters = options.parameters;
@@ -180,7 +180,7 @@ class Device extends BaseServerNode {
         await this.updateUiState();
     }
 
-    async stop(): Promise<void> {
+    async destroy(): Promise<void> {
         try {
             await this.serverNode?.close();
         } catch (error) {

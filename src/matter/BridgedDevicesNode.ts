@@ -241,7 +241,7 @@ class BridgedDevices extends BaseServerNode {
 
         // Shut down the device
         const wasStarted = this.#started;
-        await this.stop();
+        await this.destroy();
 
         // Reinitialize
         this.#parameters = options.parameters;
@@ -264,7 +264,7 @@ class BridgedDevices extends BaseServerNode {
         await this.updateUiState();
     }
 
-    async stop(): Promise<void> {
+    async destroy(): Promise<void> {
         for (const device of this.#devices) {
             await device.destroy();
         }

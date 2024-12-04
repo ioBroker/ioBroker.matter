@@ -53,6 +53,8 @@ class BridgedDevices extends BaseServerNode {
             throw new Error(`Aggregator on Bridge ${deviceOptions.uuid} not initialized. Should never happen`);
         }
 
+        this.adapter.log.info(`Adding device ${deviceOptions.uuid} "${deviceOptions.name}" to bridge`);
+
         if (this.#deviceEndpoints.has(deviceOptions.uuid)) {
             this.adapter.log.warn(
                 `Device ${deviceOptions.uuid} already in bridge. Should never happen. Closing them before re-adding`,
@@ -62,7 +64,7 @@ class BridgedDevices extends BaseServerNode {
             }
         }
 
-        const mappingDevice = matterDeviceFactory(device, deviceOptions.name, deviceOptions.uuid);
+        const mappingDevice = await matterDeviceFactory(device, deviceOptions.name, deviceOptions.uuid);
         if (mappingDevice) {
             const name = mappingDevice.name;
             const endpoints = mappingDevice.getMatterEndpoints();

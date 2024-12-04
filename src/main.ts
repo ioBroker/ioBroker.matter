@@ -854,7 +854,7 @@ export class MatterAdapter extends utils.Adapter {
                 continue;
             }
             try {
-                const deviceObject = await DeviceFactory(detectedDevice, this, device as DeviceOptions);
+                const deviceObject = await DeviceFactory(detectedDevice, this, device as DeviceOptions, false);
                 if (devices.length >= 5) {
                     if (!(await this.checkLicense())) {
                         this.log.error(
@@ -928,7 +928,7 @@ export class MatterAdapter extends utils.Adapter {
             return null;
         }
         try {
-            const device = await DeviceFactory(detectedDevice, this, options as DeviceOptions);
+            const device = await DeviceFactory(detectedDevice, this, options as DeviceOptions, false);
             return {
                 parameters: {
                     port: assignedPort ?? this.#nextPortNumber++,

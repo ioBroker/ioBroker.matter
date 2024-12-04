@@ -226,6 +226,7 @@ TBD
 * (@Apollon77) Clear storage when removing a bridged device
 * (@Apollon77) Processes changed objects with a 5s delay to prevent too many changes at once
 * (@Apollon77) Fixes version determination
+* (@Apollon77) Initializes Device objects more lazily
 
 ### 0.2.3 (2024-11-30)
 * (@Apollon77) Makes sure to delete all objects and stop device when a device is deleted in UI

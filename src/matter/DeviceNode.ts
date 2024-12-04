@@ -44,6 +44,8 @@ class Device extends BaseServerNode {
     }
 
     async init(): Promise<void> {
+        this.adapter.log.info(`Adding device ${this.#deviceOptions.uuid} "${this.#deviceOptions.name}"`);
+
         await this.adapter.extendObjectAsync(`devices.${this.#parameters.uuid}.commissioned`, {
             type: 'state',
             common: {
@@ -70,7 +72,11 @@ class Device extends BaseServerNode {
         }
 
         const ioBrokerDevice = this.#device;
-        const mappingDevice = matterDeviceFactory(ioBrokerDevice, this.#deviceOptions.name, this.#parameters.uuid);
+        const mappingDevice = await matterDeviceFactory(
+            ioBrokerDevice,
+            this.#deviceOptions.name,
+            this.#parameters.uuid,
+        );
 
         if (!mappingDevice) {
             throw new Error(`ioBroker Device "${this.#device.deviceType}" is not supported`);

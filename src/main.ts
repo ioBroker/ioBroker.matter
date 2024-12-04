@@ -90,6 +90,13 @@ export class MatterAdapter extends utils.Adapter {
     #nodeReSyncInProgress = new Set<string>();
     #closing = false;
     #version: string = '0.0.0';
+    #objectProcessQueue = new Array<{
+        id: string;
+        func: () => Promise<void>;
+        earliest: number;
+        inProgress?: boolean;
+    }>();
+    #objectProcessQueueTimeout?: NodeJS.Timeout;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -106,11 +113,11 @@ export class MatterAdapter extends utils.Adapter {
                 this.onClientUnsubscribe(clientId);
             },
         });
-        this.on('ready', () => this.onReady());
-        this.on('stateChange', (id, state) => this.onStateChange(id, state));
-        this.on('objectChange', (id, object) => this.onObjectChange(id, object));
-        this.on('unload', callback => this.onUnload(callback));
-        this.on('message', this.onMessage.bind(this));
+        this.on('ready', () => this.#onReady());
+        this.on('stateChange', (id, state) => this.#onStateChange(id, state));
+        this.on('objectChange', (id, object) => this.#onObjectChange(id, object));
+        this.on('unload', callback => this.#onUnload(callback));
+        this.on('message', this.#onMessage.bind(this));
         this.#deviceManagement = new MatterAdapterDeviceManagement(this);
         this.#matterEnvironment = Environment.default;
 
@@ -180,7 +187,7 @@ export class MatterAdapter extends utils.Adapter {
         this.restart();
     }
 
-    async onMessage(obj: ioBroker.Message): Promise<void> {
+    async #onMessage(obj: ioBroker.Message): Promise<void> {
         if (obj.command?.startsWith('dm:')) {
             // Handled by Device Manager class itself, so ignored here
             return;
@@ -413,7 +420,7 @@ export class MatterAdapter extends utils.Adapter {
         }
     }
 
-    async onReady(): Promise<void> {
+    async #onReady(): Promise<void> {
         const dataDir = utils.getAbsoluteInstanceDataDir(this);
         try {
             await fs.mkdir(dataDir);
@@ -491,7 +498,7 @@ export class MatterAdapter extends utils.Adapter {
         return states;
     }
 
-    async onUnload(callback: () => void): Promise<void> {
+    async #onUnload(callback: () => void): Promise<void> {
         this.#closing = true;
         this.#stateTimeout && clearTimeout(this.#stateTimeout);
         this.#stateTimeout = undefined;
@@ -563,7 +570,57 @@ export class MatterAdapter extends utils.Adapter {
         }
     }
 
-    onStateChange(id: string, state: ioBroker.State | null | undefined): void {
+    #processObjectChangeQueue(): void {
+        if (this.#objectProcessQueue.length === 0 || this.#objectProcessQueue.some(e => e.inProgress)) {
+            return;
+        }
+
+        if (this.#objectProcessQueueTimeout) {
+            clearTimeout(this.#objectProcessQueueTimeout);
+        }
+
+        const now = Date.now();
+        const diffToFirstEntry = this.#objectProcessQueue[0].earliest - now;
+
+        // When next is in 100ms then we do it directly ... no need to start another timer for that :-)
+        // That also prevents issues with too short timers and such
+        if (diffToFirstEntry > 100) {
+            this.#objectProcessQueueTimeout = setTimeout(() => {
+                this.#objectProcessQueueTimeout = undefined;
+                this.#processObjectChangeQueue();
+            }, diffToFirstEntry);
+            return;
+        }
+
+        const entry = this.#objectProcessQueue[0];
+        entry.inProgress = true;
+
+        entry
+            .func()
+            .catch(error => this.log.error(`Error while processing object change ${entry.id}: ${error}`))
+            .finally(() => {
+                this.#objectProcessQueue.shift();
+                this.#processObjectChangeQueue();
+            });
+    }
+
+    #onObjectChange(id: string, obj: ioBroker.Object | null | undefined): void {
+        this.log.debug(`Object changed ${id}, type = ${obj?.type} - Register to process delayed ...`);
+
+        const index = this.#objectProcessQueue.findIndex(e => e.id === id);
+        if (index !== -1 && !this.#objectProcessQueue[index].inProgress) {
+            this.#objectProcessQueue.splice(index, 1);
+            this.log.debug(`Object change ${id} already in queue, register it again.`);
+        }
+        this.#objectProcessQueue.push({
+            id,
+            func: async () => this.#processObjectChange(id),
+            earliest: Date.now() + 5000,
+        });
+        this.#processObjectChangeQueue();
+    }
+
+    #onStateChange(id: string, state: ioBroker.State | null | undefined): void {
         SubscribeManager.observer(id, state).catch(e => this.log.error(`Error while observing state ${id}: ${e}`));
     }
 

@@ -281,7 +281,8 @@ class BridgedDevices extends BaseServerNode {
                     this.#mappingDevices.delete(uuid);
 
                     for (const endpoint of endpoints) {
-                        await endpoint.close();
+                        this.adapter.log.debug(`Removing endpoint ${endpoint.id} from bridge`);
+                        await endpoint.delete();
                     }
 
                     this.#deviceEndpoints.delete(uuid);

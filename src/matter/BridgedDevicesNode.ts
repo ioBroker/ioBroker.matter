@@ -125,13 +125,12 @@ class BridgedDevices extends BaseServerNode {
             native: {},
         });
 
-        const deviceName = this.#parameters.deviceName || 'Matter Bridge device';
+        const deviceName = this.#parameters.deviceName || 'ioBroker Matter Bridge';
         const deviceType = AggregatorEndpoint.deviceType;
         const vendorName = 'ioBroker';
 
         // product name / id and vendor id should match what is in the device certificate
         const vendorId = this.#parameters.vendorId; // 0xfff1;
-        const productName = `ioBroker Bridge`;
         const productId = this.#parameters.productId; // 0x8000;
 
         const uniqueId = this.#parameters.uuid.replace(/-/g, '').split('.').pop();
@@ -141,21 +140,22 @@ class BridgedDevices extends BaseServerNode {
         }
 
         const versions = this.adapter.versions;
+        const matterName = deviceName.substring(0, 32);
         this.serverNode = await ServerNode.create({
             id: this.#parameters.uuid,
             network: {
                 port: this.#parameters.port,
             },
             productDescription: {
-                name: deviceName,
+                name: matterName,
                 deviceType,
             },
             basicInformation: {
                 vendorName,
                 vendorId: VendorId(vendorId),
-                nodeLabel: productName,
-                productName,
-                productLabel: productName,
+                nodeLabel: matterName,
+                productName: matterName,
+                productLabel: deviceName.substring(0, 64),
                 productId,
                 serialNumber: uniqueId,
                 uniqueId: md5(uniqueId),

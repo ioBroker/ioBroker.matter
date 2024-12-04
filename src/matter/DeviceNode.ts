@@ -85,6 +85,7 @@ class Device extends BaseServerNode {
         const deviceType = endpoints[0].type.deviceType;
 
         const versions = this.adapter.versions;
+        const matterName = productName.substring(0, 32);
         try {
             this.serverNode = await ServerNode.create({
                 id: this.#parameters.uuid,
@@ -92,15 +93,15 @@ class Device extends BaseServerNode {
                     port: this.#parameters.port,
                 },
                 productDescription: {
-                    name: deviceName,
+                    name: deviceName.substring(0, 32),
                     deviceType,
                 },
                 basicInformation: {
                     vendorName,
                     vendorId: VendorId(vendorId),
-                    nodeLabel: productName,
-                    productName,
-                    productLabel: productName,
+                    nodeLabel: matterName,
+                    productName: matterName,
+                    productLabel: productName.substring(0, 64),
                     productId,
                     serialNumber: uniqueId,
                     uniqueId: md5(uniqueId),

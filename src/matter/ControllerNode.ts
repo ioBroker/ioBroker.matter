@@ -143,12 +143,7 @@ class Controller implements GeneralNode {
                                     result: { error: error.message },
                                 }),
                             )
-                            .finally(() =>
-                                this.#adapter.setTimeout(
-                                    () => this.#commissioningStatus.delete(pollingId),
-                                    60 * 60_000,
-                                ),
-                            );
+                            .finally(() => setTimeout(() => this.#commissioningStatus.delete(pollingId), 60 * 60_000));
                         return { result: { pollingId } };
                     }
                     return await this.commissionDevice(options);

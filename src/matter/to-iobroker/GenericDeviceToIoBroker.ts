@@ -35,7 +35,7 @@ export abstract class GenericDeviceToIoBroker {
     #enabledProperties = new Map<PropertyType, EnabledProperty>();
     #connectionStateId: string;
     #hasBridgedReachabilityAttribute = false;
-    #pollTimeout?: ioBroker.Timeout;
+    #pollTimeout?: NodeJS.Timeout;
     #destroyed = false;
     #initialized = false;
     #pollInterval = 60_000;
@@ -325,7 +325,7 @@ export abstract class GenericDeviceToIoBroker {
 
     #initAttributePolling(): void {
         if (this.#pollTimeout !== undefined) {
-            this.#adapter.clearTimeout(this.#pollTimeout);
+            clearTimeout(this.#pollTimeout);
             this.#pollTimeout = undefined;
         }
         const pollingAttributes = new Array<{
@@ -342,10 +342,7 @@ export abstract class GenericDeviceToIoBroker {
         }
         if (pollingAttributes.length) {
             this.#hasAttributesToPoll = true;
-            this.#pollTimeout = this.#adapter.setTimeout(
-                () => this.#pollAttributes(pollingAttributes),
-                this.#pollInterval,
-            );
+            this.#pollTimeout = setTimeout(() => this.#pollAttributes(pollingAttributes), this.#pollInterval);
         }
     }
 
@@ -422,13 +419,13 @@ export abstract class GenericDeviceToIoBroker {
             this.#adapter.log.debug(`Node ${this.#node.nodeId} is not connected, do not poll attributes`);
         }
 
-        this.#pollTimeout = this.#adapter.setTimeout(() => this.#pollAttributes(attributes), this.#pollInterval);
+        this.#pollTimeout = setTimeout(() => this.#pollAttributes(attributes), this.#pollInterval);
     }
 
     destroy(): Promise<void> {
         this.#destroyed = true;
         if (this.#pollTimeout !== undefined) {
-            this.#adapter.clearTimeout(this.#pollTimeout);
+            clearTimeout(this.#pollTimeout);
             this.#pollTimeout = undefined;
         }
         return this.ioBrokerDevice.destroy();

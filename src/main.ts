@@ -74,11 +74,11 @@ export class MatterAdapter extends utils.Adapter {
     readonly #devices = new Map<string, MatterDevice>();
     readonly #bridges = new Map<string, BridgedDevice>();
     #controller?: MatterController;
-    #sendControllerUpdateTimeout?: ioBroker.Timeout;
+    #sendControllerUpdateTimeout?: NodeJS.Timeout;
     #detector: ChannelDetector;
     #_guiSubscribes: { clientId: string; ts: number }[] | null = null;
     readonly #matterEnvironment: Environment;
-    #stateTimeout?: ioBroker.Timeout;
+    #stateTimeout?: NodeJS.Timeout;
     #license: { [key: string]: boolean | undefined } = {};
     sysLanguage: ioBroker.Languages = 'en';
     readonly #deviceManagement: MatterAdapterDeviceManagement;
@@ -297,9 +297,9 @@ export class MatterAdapter extends utils.Adapter {
         const sub = this.#_guiSubscribes.find(s => s.clientId === clientId);
         if (!sub) {
             this.#_guiSubscribes.push({ clientId, ts: Date.now() });
-            this.#stateTimeout && this.clearTimeout(this.#stateTimeout);
-            this.#stateTimeout = this.setTimeout(async () => {
-                this.#stateTimeout = null;
+            this.#stateTimeout && clearTimeout(this.#stateTimeout);
+            this.#stateTimeout = setTimeout(async () => {
+                this.#stateTimeout = undefined;
                 const states = await this.requestNodeStates();
                 await this.sendToGui({ command: 'bridgeStates', states });
                 this.#refreshControllerDevices();
@@ -345,7 +345,7 @@ export class MatterAdapter extends utils.Adapter {
         }
         this.#sendControllerUpdateTimeout =
             this.#sendControllerUpdateTimeout ??
-            this.setTimeout(() => {
+            setTimeout(() => {
                 this.#sendControllerUpdateTimeout = undefined;
                 void this.sendToGui({
                     command: 'updateController',

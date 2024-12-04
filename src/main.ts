@@ -21,6 +21,7 @@ import MatterDevice, { type DeviceCreateOptions } from './matter/DeviceNode';
 import type { PairedNodeConfig } from './matter/GeneralMatterNode';
 import type { MessageResponse } from './matter/GeneralNode';
 import { IoBrokerObjectStorage } from './matter/IoBrokerObjectStorage';
+import { inspect } from 'util';
 const I18n = import('@iobroker/i18n');
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
@@ -144,12 +145,15 @@ export class MatterAdapter extends utils.Adapter {
 
     async shutDownMatterNodes(): Promise<void> {
         for (const device of this.#devices.values()) {
-            await device.stop();
+            await device.destroy();
         }
+        this.#devices.clear();
         for (const bridge of this.#bridges.values()) {
-            await bridge.stop();
+            await bridge.destroy();
         }
+        this.#bridges.clear();
         await this.#controller?.stop();
+        this.#controller = undefined;
     }
 
     async startUpMatterNodes(): Promise<void> {
@@ -733,7 +737,7 @@ export class MatterAdapter extends utils.Adapter {
         return this.#license[key];
     }
 
-    async determineIoBrokerDevice(oid: string, type: string, auto: boolean): Promise<DetectedDevice> {
+    async determineIoBrokerDevice(oid: string, type: string, auto: boolean): Promise<DetectedDevice | null> {
         if (!auto) {
             // Fix for wrong UI currently that sets auto to false when channel or device is selected
             const obj = await this.getForeignObjectAsync(oid);
@@ -744,10 +748,13 @@ export class MatterAdapter extends utils.Adapter {
         }
 
         const detectedDevice = await this.getIoBrokerDeviceStates(oid);
-        if (detectedDevice && detectedDevice.type === type && auto) {
+        if (!detectedDevice) {
+            return null;
+        }
+        if (detectedDevice.type === type && auto) {
             return detectedDevice;
         }
-        if (detectedDevice?.type !== type) {
+        if (detectedDevice.type !== type) {
             this.log.error(
                 `Type detection mismatch for state ${oid}: ${detectedDevice?.type} !== ${type}. Initialize device with just this one state.`,
             );
@@ -782,9 +789,14 @@ export class MatterAdapter extends utils.Adapter {
         for (const device of options.list) {
             this.log.debug(`Prepare bridged device ${device.uuid} "${device.name}" (auto=${device.auto})`);
             const detectedDevice = await this.determineIoBrokerDevice(device.oid, device.type, device.auto);
+            if (detectedDevice === null) {
+                this.log.error(
+                    `Cannot initialize device ${device.uuid} "${device.name}" because ${device.oid} does not exist! Check configuration.`,
+                );
+                continue;
+            }
             try {
                 const deviceObject = await DeviceFactory(detectedDevice, this, device as DeviceOptions);
-                devices.push(deviceObject);
                 if (devices.length >= 5) {
                     if (!(await this.checkLicense())) {
                         this.log.error(
@@ -794,6 +806,7 @@ export class MatterAdapter extends utils.Adapter {
                         break;
                     }
                 }
+                devices.push(deviceObject);
             } catch (e) {
                 this.log.error(`Cannot create device for ${device.oid}: ${e.message}`);
             }
@@ -826,9 +839,14 @@ export class MatterAdapter extends utils.Adapter {
         if (config) {
             const bridge = new BridgedDevice(this, config);
 
-            await bridge.init(); // add bridge to server
+            try {
+                await bridge.init(); // add bridge to server
 
-            return bridge;
+                return bridge;
+            } catch (error) {
+                const errorText = inspect(error, { depth: 10 });
+                this.log.error(`Error creating bridge ${config.parameters.uuid}: ${errorText}`);
+            }
         }
 
         return null;
@@ -845,6 +863,12 @@ export class MatterAdapter extends utils.Adapter {
 
         this.log.debug(`Prepare device ${options.uuid} "${options.name}" (auto=${options.auto})`);
         const detectedDevice = await this.determineIoBrokerDevice(options.oid, options.type, options.auto);
+        if (detectedDevice === null) {
+            this.log.error(
+                `Cannot initialize device ${options.uuid} "${options.name}" because ${options.oid} does not exist! Check configuration.`,
+            );
+            return null;
+        }
         try {
             const device = await DeviceFactory(detectedDevice, this, options as DeviceOptions);
             return {
@@ -869,9 +893,14 @@ export class MatterAdapter extends utils.Adapter {
         const config = await this.prepareMatterDeviceConfiguration(deviceName, options);
         if (config) {
             const matterDevice = new MatterDevice(this, config);
-            await matterDevice.init(); // add bridge to server
+            try {
+                await matterDevice.init(); // add bridge to server
 
-            return matterDevice;
+                return matterDevice;
+            } catch (error) {
+                const errorText = inspect(error, { depth: 10 });
+                this.log.error(`Error creating device ${config.parameters.uuid}: ${errorText}`);
+            }
         }
 
         return null;
@@ -996,7 +1025,7 @@ export class MatterAdapter extends utils.Adapter {
                             this.log.error(
                                 `You cannot use more than one bridge without ioBroker.pro subscription. Bridge "${bridge._id}" will be ignored.}`,
                             );
-                            await matterBridge.stop();
+                            await matterBridge.destroy();
                             break;
                         }
                     }
@@ -1018,7 +1047,7 @@ export class MatterAdapter extends utils.Adapter {
                     this.log.info(
                         `Configuration for bridge "${bridge._id}" is no longer valid or bridge disabled. Stopping it now.`,
                     );
-                    await existingBridge.stop();
+                    await existingBridge.destroy();
                     this.#bridges.delete(bridge._id);
                 }
             }
@@ -1042,7 +1071,7 @@ export class MatterAdapter extends utils.Adapter {
                             this.log.error(
                                 'You cannot use more than 2 devices without ioBroker.pro subscription. Only first 2 devices will be created.}',
                             );
-                            await matterDevice.stop();
+                            await matterDevice.destroy();
                             break;
                         }
                     }
@@ -1064,7 +1093,7 @@ export class MatterAdapter extends utils.Adapter {
                     this.log.info(
                         `Configuration for device "${device._id}" is no longer valid or bridge disabled. Stopping it now.`,
                     );
-                    await existingDevice.stop();
+                    await existingDevice.destroy();
                     this.#devices.delete(device._id);
                 }
             }
@@ -1119,7 +1148,7 @@ export class MatterAdapter extends utils.Adapter {
         const nodes = type === 'bridge' ? this.#bridges : this.#devices;
         const node = nodes.get(id);
         if (node) {
-            await node.stop();
+            await node.destroy();
             nodes.delete(id);
         }
     }

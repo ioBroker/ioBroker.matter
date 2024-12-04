@@ -436,7 +436,7 @@ export class MatterAdapter extends utils.Adapter {
         }
 
         try {
-            this.#version = require('./package.json').version;
+            this.#version = require('../package.json').version;
         } catch (error) {
             this.log.error(`Can not read version from package.json: ${error}`);
         }

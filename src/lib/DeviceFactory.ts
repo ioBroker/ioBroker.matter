@@ -95,13 +95,16 @@ async function DeviceFactory(
     detectedDevice: DetectedDevice,
     adapter: ioBroker.Adapter,
     options: DeviceOptions,
+    initialize = true,
 ): Promise<GenericDevice> {
     const DeviceType = types[detectedDevice.type];
     if (!DeviceType) {
         throw new Error(`No class found for device type ${detectedDevice.type}.`);
     }
     const deviceObject = new DeviceType(detectedDevice, adapter, options);
-    await deviceObject.init();
+    if (initialize) {
+        await deviceObject.init();
+    }
     return deviceObject;
 }
 

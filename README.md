@@ -11,10 +11,15 @@
 
 **This adapter uses Sentry libraries to automatically report exceptions and code errors to the developers.** For more details and for information how to disable the error reporting see [Sentry-Plugin Documentation](https://github.com/ioBroker/plugin-sentry#plugin-sentry)! Sentry reporting is used starting with js-controller 3.0.
 
+> [!IMPORTANT]  
+> This adapter can only be installed from npm. A GitHub install is not possible!
+> For more important information please read the [Important Information](#important-information-read-first) section!
+
 ## Description
 TODO
 
 ## Important Information (READ FIRST!)
+* **Not installable via GitHub**: This adapter can only be installed via npm.
 * **Never delete partial matter instance objects or object trees!** The configuration for this adapter is **not** contained in just one central object like in other ore simple adapters. This means that deleting instance objects or object trees can lead to a broken configuration, and you might need to reconfigure the adapter from scratch.
 * **Never reinstall the adapter by deleting the instance** if you want to keep paired devices (e.g. on Controller) or paired Controllers (e.g. on Bridges). If you delete the instance all paired devices will be deleted, and you need to pair them again.
 * **Use an ioBroker Backup to back up the configuration** and restore the backup to restore it. If really needed without backup then export the whole object tree of the adapter instance (e.g. matter.0) and import it back if needed. These can be a high number of objects depending on the number of devices and controllers you have paired.
@@ -213,6 +218,16 @@ TBD
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (@Apollon77) Shows a progress indicator when deleting controller nodes
+* (@Apollon77) Cuts names and labels to 32 or 64 characters as needed by Matter
+* (@Apollon77) Improves error handling on devices and bridges
+* (@Apollon77) Clear storage when removing a bridged device
+* (@Apollon77) Processes changed objects with a 5s delay to prevent too many changes at once
+* (@Apollon77) Fixes version determination
+* (@Apollon77) Initializes Device objects more lazily
+
 ### 0.2.3 (2024-11-30)
 * (@Apollon77) Makes sure to delete all objects and stop device when a device is deleted in UI
 * (@Apollon77) When a devices/bridge object is deleted and adapter runs we try to detect this and stop the device/bridge

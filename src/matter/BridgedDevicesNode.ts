@@ -50,20 +50,44 @@ class BridgedDevices extends BaseServerNode {
     /** Creates the Matter device/endpoint and adds it to the code. It also handles Composed vs non-composed structuring. */
     async addBridgedIoBrokerDevice(device: GenericDevice, deviceOptions: BridgeDeviceDescription): Promise<void> {
         if (!this.#aggregator) {
-            this.adapter.log.error('Aggregator not initialized. Should never happen');
-            return;
+            throw new Error(`Aggregator on Bridge ${deviceOptions.uuid} not initialized. Should never happen`);
         }
-        const mappingDevice = matterDeviceFactory(device, deviceOptions.name, deviceOptions.uuid);
+
+        this.adapter.log.info(`Adding device ${deviceOptions.uuid} "${deviceOptions.name}" to bridge`);
+
+        if (this.#deviceEndpoints.has(deviceOptions.uuid)) {
+            this.adapter.log.warn(
+                `Device ${deviceOptions.uuid} already in bridge. Should never happen. Closing them before re-adding`,
+            );
+            for (const endpoint of this.#deviceEndpoints.get(deviceOptions.uuid) ?? []) {
+                await endpoint.close();
+            }
+        }
+
+        const mappingDevice = await matterDeviceFactory(device, deviceOptions.name, deviceOptions.uuid);
         if (mappingDevice) {
             const name = mappingDevice.name;
             const endpoints = mappingDevice.getMatterEndpoints();
             if (endpoints.length === 1 || deviceOptions.noComposed) {
+                let erroredCount = 0;
                 // When only one endpoint or non-composed we simply add all endpoints for itself to the bridge
                 for (const endpoint of endpoints) {
+                    try {
+                        if (this.#aggregator.parts.has(endpoint.id)) {
+                            this.adapter.log.warn(
+                                `Endpoint ${endpoint.id} already in bridge. Should never happen. Closing them before re-adding`,
+                            );
+                            await this.#aggregator.parts.get(endpoint.id)?.close();
+                        }
+                    } catch (error) {
+                        this.adapter.log.error(`Error closing endpoint ${endpoint.id} in bridge: ${error}`);
+                    }
+
+                    const matterName = name.substring(0, 32);
                     endpoint.behaviors.require(BridgedDeviceBasicInformationServer, {
-                        nodeLabel: name,
-                        productName: name,
-                        productLabel: name,
+                        nodeLabel: matterName,
+                        productName: matterName,
+                        productLabel: name.substring(0, 64),
                         uniqueId: md5(endpoint.id),
                         reachable: true,
                     });
@@ -73,22 +97,41 @@ class BridgedDevices extends BaseServerNode {
                         // MatterErrors might contain nested information so make sure we see all of this
                         const errorText = inspect(error, { depth: 10 });
                         this.adapter.log.error(`Error adding endpoint ${endpoint.id} to bridge: ${errorText}`);
+                        erroredCount++;
                     }
+                }
+                if (erroredCount === endpoints.length) {
+                    await mappingDevice.destroy();
+                    throw new Error(`Could not add any endpoint to device`);
                 }
                 this.#deviceEndpoints.set(deviceOptions.uuid, endpoints);
             } else {
                 const id = `${deviceOptions.uuid}-composed`;
+
+                try {
+                    if (this.#aggregator.parts.has(id)) {
+                        this.adapter.log.warn(
+                            `Endpoint ${id} already in bridge. Should never happen. Closing them before re-adding`,
+                        );
+                        await this.#aggregator.parts.get(id)?.close();
+                    }
+                } catch (error) {
+                    this.adapter.log.error(`Error closing endpoint ${id} in bridge: ${error}`);
+                }
+
+                const matterName = name.substring(0, 32);
                 const composedEndpoint = new Endpoint(BridgedNodeEndpoint, {
                     id,
                     bridgedDeviceBasicInformation: {
-                        nodeLabel: name,
-                        productName: name,
-                        productLabel: name,
+                        nodeLabel: matterName,
+                        productName: matterName,
+                        productLabel: name.substring(0, 64),
                         uniqueId: md5(id),
                         reachable: true,
                     },
                 });
                 await this.#aggregator.add(composedEndpoint);
+                let erroredCount = 0;
                 for (const endpoint of endpoints) {
                     try {
                         await composedEndpoint.add(endpoint);
@@ -96,8 +139,15 @@ class BridgedDevices extends BaseServerNode {
                         // MatterErrors might contain nested information so make sure we see all of this
                         const errorText = inspect(error, { depth: 10 });
                         this.adapter.log.error(`Error adding endpoint ${endpoint.id} to bridge: ${errorText}`);
+                        erroredCount++;
                     }
                 }
+                if (erroredCount === endpoints.length) {
+                    await mappingDevice.destroy();
+                    await composedEndpoint.delete();
+                    throw new Error(`Could not add any endpoint to composed device`);
+                }
+
                 this.#deviceEndpoints.set(deviceOptions.uuid, [composedEndpoint]);
             }
             await mappingDevice.init();
@@ -108,7 +158,7 @@ class BridgedDevices extends BaseServerNode {
                 await initializeBridgedUnreachableStateHandler(endpoint, device);
             }
         } else {
-            this.adapter.log.error(`ioBroker Device in Bridge "${device.deviceType}" is not supported`);
+            throw new Error(`ioBroker Device in Bridge "${device.deviceType}" is not supported`);
         }
     }
 
@@ -125,37 +175,36 @@ class BridgedDevices extends BaseServerNode {
             native: {},
         });
 
-        const deviceName = this.#parameters.deviceName || 'Matter Bridge device';
+        const deviceName = this.#parameters.deviceName || 'ioBroker Matter Bridge';
         const deviceType = AggregatorEndpoint.deviceType;
         const vendorName = 'ioBroker';
 
         // product name / id and vendor id should match what is in the device certificate
         const vendorId = this.#parameters.vendorId; // 0xfff1;
-        const productName = `ioBroker Bridge`;
         const productId = this.#parameters.productId; // 0x8000;
 
         const uniqueId = this.#parameters.uuid.replace(/-/g, '').split('.').pop();
         if (uniqueId === undefined) {
-            this.adapter.log.warn(`Could not determine device unique id from ${this.#parameters.uuid}`);
-            return;
+            throw new Error(`Could not determine device unique id from ${this.#parameters.uuid}`);
         }
 
         const versions = this.adapter.versions;
+        const matterName = deviceName.substring(0, 32);
         this.serverNode = await ServerNode.create({
             id: this.#parameters.uuid,
             network: {
                 port: this.#parameters.port,
             },
             productDescription: {
-                name: deviceName,
+                name: matterName,
                 deviceType,
             },
             basicInformation: {
                 vendorName,
                 vendorId: VendorId(vendorId),
-                nodeLabel: productName,
-                productName,
-                productLabel: productName,
+                nodeLabel: matterName,
+                productName: matterName,
+                productLabel: deviceName.substring(0, 64),
                 productId,
                 serialNumber: uniqueId,
                 uniqueId: md5(uniqueId),
@@ -170,8 +219,19 @@ class BridgedDevices extends BaseServerNode {
 
         await this.serverNode.add(this.#aggregator);
 
+        let erroredCount = 0;
         for (let i = 0; i < this.#devices.length; i++) {
-            await this.addBridgedIoBrokerDevice(this.#devices[i], this.#devicesOptions[i]);
+            try {
+                await this.addBridgedIoBrokerDevice(this.#devices[i], this.#devicesOptions[i]);
+            } catch (error) {
+                erroredCount++;
+                const errorText = inspect(error, { depth: 10 });
+                this.adapter.log.error(`Error adding device ${this.#devicesOptions[i].uuid} to bridge: ${errorText}`);
+            }
+        }
+        if (erroredCount === this.#devices.length) {
+            await this.destroy();
+            throw new Error(`Could not add any device to bridge`);
         }
 
         this.registerServerNodeHandlers();
@@ -182,7 +242,9 @@ class BridgedDevices extends BaseServerNode {
         this.adapter.log.debug('Applying new bridge configuration');
 
         if (!this.serverNode) {
-            this.adapter.log.error('Bridge not initialized. Should never happen');
+            this.adapter.log.error(
+                `ServerNode for Bridge ${this.#parameters.uuid} not initialized. Should never happen`,
+            );
             return;
         }
 
@@ -221,7 +283,8 @@ class BridgedDevices extends BaseServerNode {
                     this.#mappingDevices.delete(uuid);
 
                     for (const endpoint of endpoints) {
-                        await endpoint.close();
+                        this.adapter.log.debug(`Removing endpoint ${endpoint.id} from bridge`);
+                        await endpoint.delete();
                     }
 
                     this.#deviceEndpoints.delete(uuid);
@@ -240,7 +303,7 @@ class BridgedDevices extends BaseServerNode {
 
         // Shut down the device
         const wasStarted = this.#started;
-        await this.stop();
+        await this.destroy();
 
         // Reinitialize
         this.#parameters = options.parameters;
@@ -263,7 +326,7 @@ class BridgedDevices extends BaseServerNode {
         await this.updateUiState();
     }
 
-    async stop(): Promise<void> {
+    async destroy(): Promise<void> {
         for (const device of this.#devices) {
             await device.destroy();
         }

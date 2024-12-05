@@ -504,7 +504,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         auto: isAutoDetected,
                         productID: device.productID || '0x8000',
                         vendorID: device.vendorID || '0xFFF1',
-                        noComposed: true,
+                        noComposed: !!device.noComposed,
                         enabled: true,
                         actionAllowedByIdentify: false,
                     };
@@ -673,6 +673,9 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                             deviceType: (addCustomDeviceDialog.deviceType ??
                                                 addCustomDeviceDialog.detectedDeviceType) as Types,
                                             hasOnState: !!addCustomDeviceDialog.hasOnState,
+                                            noComposed: !!addCustomDeviceDialog.noComposed,
+                                            productID: addCustomDeviceDialog.productID,
+                                            vendorID: addCustomDeviceDialog.vendorID,
                                             // ignored
                                             type: 'device',
                                             states: [],

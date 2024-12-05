@@ -87,7 +87,6 @@ export class MatterAdapter extends utils.Adapter {
     #instanceDataDir?: string;
     t: (word: string, ...args: (string | number | boolean | null)[]) => string;
     getText: (word: string, ...args: (string | number | boolean | null)[]) => ioBroker.Translated;
-    #nodeReSyncInProgress = new Set<string>();
     #closing = false;
     #version: string = '0.0.0';
     #objectProcessQueue = new Array<{
@@ -565,9 +564,7 @@ export class MatterAdapter extends utils.Adapter {
                 this.log.warn('Controller node not found');
                 return;
             }
-            if (!this.#nodeReSyncInProgress.has(nodeId)) {
-                await this.syncControllerNode(nodeId, nodeObj as ioBroker.FolderObject, true);
-            }
+            await this.syncControllerNode(nodeId, nodeObj as ioBroker.FolderObject, true);
         }
     }
 
@@ -606,6 +603,19 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     #onObjectChange(id: string, obj: ioBroker.Object | null | undefined): void {
+        const mainObjectId = id.split('.').slice(0, 4).join('.'); // get the device or controller object
+        if (this.#objectProcessQueue.length && this.#objectProcessQueue[0].id.startsWith(mainObjectId)) {
+            this.log.debug(
+                `Object changed ${id}, type = ${obj?.type} - Already in queue via ${mainObjectId}, ignore ...`,
+            );
+            return;
+        }
+
+        if (obj && obj.type !== 'device' && obj.type !== 'channel' && obj.type === 'folder') {
+            this.log.debug(`${obj?.type} Object changed ${id}, type = ${obj?.type} - Ignore ...`);
+            return;
+        }
+
         this.log.debug(`Object changed ${id}, type = ${obj?.type} - Register to process delayed ...`);
 
         const index = this.#objectProcessQueue.findIndex(e => e.id === id);
@@ -1173,12 +1183,7 @@ export class MatterAdapter extends utils.Adapter {
         if (!this.#controller) {
             return;
         } // not active
-        this.#nodeReSyncInProgress.add(nodeId);
-        try {
-            await this.#controller.applyPairedNodeConfiguration(nodeId, obj.native as PairedNodeConfig, forcedUpdate);
-        } finally {
-            this.#nodeReSyncInProgress.delete(nodeId);
-        }
+        await this.#controller.applyPairedNodeConfiguration(nodeId, obj.native as PairedNodeConfig, forcedUpdate);
     }
 
     async applyControllerConfiguration(config: MatterControllerConfig, handleStart = true): Promise<MessageResponse> {

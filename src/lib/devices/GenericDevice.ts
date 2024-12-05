@@ -440,6 +440,17 @@ abstract class GenericDevice {
         return this.#errorState.value;
     }
 
+    updateError(value: boolean): Promise<void> {
+        if (!this.#errorState) {
+            throw new Error('Error state not found');
+        }
+        return this.#errorState.updateValue(value);
+    }
+
+    hasError(): boolean {
+        return this.propertyNames.includes(PropertyType.Error);
+    }
+
     getMaintenance(): boolean | number | undefined {
         if (!this.#maintenanceState) {
             throw new Error('Maintenance state not found');
@@ -452,6 +463,10 @@ abstract class GenericDevice {
             throw new Error('Maintenance state not found');
         }
         return this.#maintenanceState.updateValue(value);
+    }
+
+    hasMaintenance(): boolean {
+        return this.propertyNames.includes(PropertyType.Maintenance);
     }
 
     getUnreachable(): boolean | number | undefined {
@@ -471,6 +486,10 @@ abstract class GenericDevice {
         return this.#unreachState.updateValue(value);
     }
 
+    hasUnreachable(): boolean {
+        return this.propertyNames.includes(PropertyType.Unreachable);
+    }
+
     getLowBattery(): boolean | number | undefined {
         if (!this.#lowbatState) {
             throw new Error('Low battery state not found');
@@ -483,6 +502,10 @@ abstract class GenericDevice {
             throw new Error('Low battery state not found');
         }
         return this.#lowbatState.updateValue(value);
+    }
+
+    hasLowBattery(): boolean {
+        return this.propertyNames.includes(PropertyType.LowBattery);
     }
 
     getWorking(): string | undefined {
@@ -499,6 +522,10 @@ abstract class GenericDevice {
         return this.#workingState.updateValue(value);
     }
 
+    hasWorking(): boolean {
+        return this.propertyNames.includes(PropertyType.Working);
+    }
+
     getDirection(): string | undefined {
         if (!this.#directionState) {
             throw new Error('Direction state not found');
@@ -511,6 +538,10 @@ abstract class GenericDevice {
             throw new Error('Direction state not found');
         }
         return this.#directionState.updateValue(value);
+    }
+
+    hasDirection(): boolean {
+        return this.propertyNames.includes(PropertyType.Direction);
     }
 
     onChange<T>(handler: (event: { property: PropertyType; value: T }) => Promise<void>): void {

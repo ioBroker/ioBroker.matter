@@ -283,12 +283,13 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         };
         timeout = setTimeout(updateProgress, 1000);
 
+        let errorHappened = false;
         try {
             await this.adapter.controllerNode?.decommissionNode(node.nodeId);
         } catch (error) {
             const errorText = inspect(error, { depth: 10 });
             this.adapter.log.error(`Error during unpairing for node ${node.nodeId}: ${errorText}`);
-            await context.showMessage(this.#adapter.t('Error happened during unpairing. Please check the log.'));
+            errorHappened = true;
         }
 
         finished = true;
@@ -296,6 +297,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             clearTimeout(timeout);
         }
         await progress.close();
+        if (errorHappened) {
+            await context.showMessage(this.#adapter.t('Error happened during unpairing. Please check the log.'));
+        }
         return { refresh: true };
     }
 
@@ -308,6 +312,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     name: {
                         type: 'text',
                         label: this.#adapter.getText('Name'),
+                        allowEmpty: false,
                         sm: 12,
                     },
                 },
@@ -578,6 +583,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     name: {
                         type: 'text',
                         label: this.#adapter.getText('Name'),
+                        allowEmpty: false,
                         sm: 12,
                     },
                 },

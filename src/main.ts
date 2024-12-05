@@ -846,6 +846,7 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async prepareMatterBridgeConfiguration(
+        deviceName: string,
         options: BridgeDescription,
         assignedPort?: number,
     ): Promise<BridgeCreateOptions | null> {
@@ -891,8 +892,8 @@ export class MatterAdapter extends utils.Adapter {
                     uuid: options.uuid,
                     vendorId: parseInt(options.vendorID) || 0xfff1,
                     productId: parseInt(options.productID) || 0x8000,
-                    deviceName: options.name,
-                    productName: `Product ${options.name}`,
+                    deviceName: deviceName,
+                    productName: `Bridge ${deviceName}`,
                 },
                 devices,
                 devicesOptions: options.list,
@@ -901,8 +902,8 @@ export class MatterAdapter extends utils.Adapter {
         return null;
     }
 
-    async createMatterBridge(options: BridgeDescription): Promise<BridgedDevice | null> {
-        const config = await this.prepareMatterBridgeConfiguration(options);
+    async createMatterBridge(deviceName: string, options: BridgeDescription): Promise<BridgedDevice | null> {
+        const config = await this.prepareMatterBridgeConfiguration(deviceName, options);
 
         if (config) {
             const bridge = new BridgedDevice(this, config);
@@ -1083,9 +1084,15 @@ export class MatterAdapter extends utils.Adapter {
         // Objects exist and enabled: Sync bridges
         for (const bridge of bridges) {
             const existingBridge = this.#bridges.get(bridge._id);
+            const deviceName =
+                typeof bridge.common.name === 'object'
+                    ? bridge.common.name[this.sysLanguage]
+                        ? (bridge.common.name[this.sysLanguage] as string)
+                        : bridge.common.name.en
+                    : bridge.common.name;
             if (existingBridge === undefined) {
                 // if one bridge already exists, check the license
-                const matterBridge = await this.createMatterBridge(bridge.native as BridgeDescription);
+                const matterBridge = await this.createMatterBridge(deviceName, bridge.native as BridgeDescription);
                 if (matterBridge) {
                     if (Object.keys(this.#bridges).length) {
                         // check license
@@ -1105,6 +1112,7 @@ export class MatterAdapter extends utils.Adapter {
                 }
             } else {
                 const config = await this.prepareMatterBridgeConfiguration(
+                    deviceName,
                     bridge.native as BridgeDescription,
                     existingBridge.port,
                 );

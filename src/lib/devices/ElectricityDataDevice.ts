@@ -100,7 +100,7 @@ class ElectricityDataDevice extends GenericDevice {
         if (!this.#getElectricPowerState) {
             throw new Error('Power state not found');
         }
-        return this.#getElectricPowerState.setValue(value);
+        return this.#getElectricPowerState.updateValue(value);
     }
 
     getCurrent(): number | undefined {
@@ -114,7 +114,7 @@ class ElectricityDataDevice extends GenericDevice {
         if (!this.#getCurrentState) {
             throw new Error('Current state not found');
         }
-        return this.#getCurrentState.setValue(value);
+        return this.#getCurrentState.updateValue(value);
     }
 
     getVoltage(): number | undefined {
@@ -128,7 +128,7 @@ class ElectricityDataDevice extends GenericDevice {
         if (!this.#getVoltageState) {
             throw new Error('Voltage state not found');
         }
-        return this.#getVoltageState.setValue(value);
+        return this.#getVoltageState.updateValue(value);
     }
 
     getConsumption(): number | undefined {
@@ -142,7 +142,7 @@ class ElectricityDataDevice extends GenericDevice {
         if (!this.#getConsumptionState) {
             throw new Error('Consumption state not found');
         }
-        return this.#getConsumptionState.setValue(value);
+        return this.#getConsumptionState.updateValue(value);
     }
 
     getFrequency(): number | undefined {
@@ -156,7 +156,7 @@ class ElectricityDataDevice extends GenericDevice {
         if (!this.#getFrequencyState) {
             throw new Error('Frequency state not found');
         }
-        return this.#getFrequencyState.setValue(value);
+        return this.#getFrequencyState.updateValue(value);
     }
 }
 

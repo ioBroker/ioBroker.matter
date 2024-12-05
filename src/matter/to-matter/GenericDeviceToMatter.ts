@@ -1,4 +1,4 @@
-import type { Endpoint } from '@matter/main';
+import { type Endpoint, ObserverGroup } from '@matter/main';
 import type { GenericDevice } from '../../lib';
 
 export interface IdentifyOptions {
@@ -12,10 +12,15 @@ export abstract class GenericDeviceToMatter {
     #identifyHighlightState = false;
     #name: string;
     #uuid: string;
+    #observers = new ObserverGroup();
 
     protected constructor(name: string, uuid: string) {
         this.#name = name;
         this.#uuid = uuid;
+    }
+
+    get matterEvents(): ObserverGroup {
+        return this.#observers;
     }
 
     /**
@@ -93,6 +98,8 @@ export abstract class GenericDeviceToMatter {
     }
 
     async destroy(): Promise<void> {
+        // Close all subscribed matter events
+        this.#observers.close();
         // The endpoints are destroyed by the Node handler because maybe more endpoints were added
         await this.ioBrokerDevice.destroy();
     }

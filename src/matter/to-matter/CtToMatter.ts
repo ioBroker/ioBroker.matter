@@ -106,7 +106,7 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
         if (this.ioBrokerDevice.hasPower()) {
             let isIdentifying = false;
             const identifyOptions: IdentifyOptions = {};
-            this.#matterEndpoint.events.identify.identifyTime$Changed.on(async value => {
+            this.matterEvents.on(this.#matterEndpoint.events.identify.identifyTime$Changed, async (value, _a, _b) => {
                 // identifyTime is set when an identify command is called and then decreased every second while indentify logic runs.
                 if (value > 0 && !isIdentifying) {
                     isIdentifying = true;

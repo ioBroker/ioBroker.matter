@@ -168,9 +168,8 @@ export abstract class GenericElectricityDataDeviceToMatter extends GenericDevice
             });
 
             // init current state from ioBroker side
-            await endpoint.set({
-                electricalPowerMeasurement: this.#getPowerValues(ioBrokerDevice),
-            });
+            const electricalPowerMeasurement = this.#getPowerValues(ioBrokerDevice);
+            await endpoint.set({ electricalPowerMeasurement });
         }
 
         if (this.#energyClusterAdded) {
@@ -190,12 +189,11 @@ export abstract class GenericElectricityDataDeviceToMatter extends GenericDevice
                 }
             });
 
+            const imported = this.#getEnergyValues(ioBrokerDevice);
             // init current state from ioBroker side
             await endpoint.act(agent =>
                 agent.get(ElectricalEnergyMeasurementServer).setMeasurement({
-                    cumulativeEnergy: {
-                        imported: this.#getEnergyValues(ioBrokerDevice),
-                    },
+                    cumulativeEnergy: { imported },
                 }),
             );
         }

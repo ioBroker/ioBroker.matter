@@ -72,7 +72,7 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
         if (this.ioBrokerDevice.hasPower()) {
             let isIdentifying = false;
             const identifyOptions: IdentifyOptions = {};
-            this.matterEvents.on(this.#matterEndpoint.events.identify.identifyTime$Changed, async (value, _a, _b) => {
+            this.matterEvents.on(this.#matterEndpoint.events.identify.identifyTime$Changed, async value => {
                 // identifyTime is set when an identify command is called and then decreased every second while indentify logic runs.
                 if (value > 0 && !isIdentifying) {
                     isIdentifying = true;

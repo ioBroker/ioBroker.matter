@@ -239,7 +239,7 @@ export class GeneralMatterNode {
     }
 
     get name(): string {
-        return this.#name ?? this.nodeId;
+        return this.#name || this.nodeId;
     }
 
     get details(): NodeDetails {

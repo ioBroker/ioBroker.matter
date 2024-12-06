@@ -96,6 +96,7 @@ export class MatterAdapter extends utils.Adapter {
         inProgress?: boolean;
     }>();
     #objectProcessQueueTimeout?: NodeJS.Timeout;
+    #currentObjectProcessPromise?: Promise<void>;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -503,6 +504,17 @@ export class MatterAdapter extends utils.Adapter {
         this.#stateTimeout = undefined;
         this.#sendControllerUpdateTimeout && clearTimeout(this.#sendControllerUpdateTimeout);
         this.#sendControllerUpdateTimeout = undefined;
+        this.#objectProcessQueueTimeout && clearTimeout(this.#objectProcessQueueTimeout);
+        if (this.#objectProcessQueue.length && this.#objectProcessQueue[0].inProgress) {
+            const promise = this.#currentObjectProcessPromise;
+            this.#objectProcessQueue.length = 1;
+            try {
+                await promise;
+            } catch {
+                // ignore
+            }
+        }
+        this.#objectProcessQueue.length = 0;
 
         try {
             // inform GUI about stop
@@ -521,6 +533,9 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async #processObjectChange(id: string): Promise<void> {
+        if (this.#closing) {
+            return;
+        }
         let obj = await this.getObjectAsync(id);
         const objParts = id.split('.').slice(2); // remove namespace and instance
         const objPartsLength = objParts.length;
@@ -593,8 +608,8 @@ export class MatterAdapter extends utils.Adapter {
         const entry = this.#objectProcessQueue[0];
         entry.inProgress = true;
 
-        entry
-            .func()
+        this.#currentObjectProcessPromise = entry.func();
+        this.#currentObjectProcessPromise
             .catch(error => this.log.error(`Error while processing object change ${entry.id}: ${error}`))
             .finally(() => {
                 this.#objectProcessQueue.shift();

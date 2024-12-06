@@ -218,8 +218,7 @@ TBD
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.2.6 (2024-12-06)
 * (@Apollon77) Fixes ColorTemperature light initialization because of matter.js update
 
 ### 0.2.5 (2024-12-06)

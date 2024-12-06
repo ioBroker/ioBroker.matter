@@ -160,6 +160,7 @@ interface AddCustomDeviceDialog {
     detectedDeviceType?: Types;
     bridgeIndex: number;
     hasOnState?: boolean;
+    noComposed?: boolean;
 }
 
 interface BridgesState extends BridgesAndDevicesState {
@@ -272,7 +273,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         oid: device._id,
                         type: device.deviceType,
                         enabled: true,
-                        noComposed: true,
+                        noComposed: !!device.noComposed,
                         auto: isAutoDetected,
                         actionAllowedByIdentify: false,
                     };
@@ -783,6 +784,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                     name,
                                     deviceType: '',
                                     bridgeIndex: this.bridgeIndex as number,
+                                    noComposed: false,
                                 },
                             });
                         } else {
@@ -801,6 +803,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                     deviceType: SUPPORTED_DEVICES.includes(deviceType) ? deviceType : '',
                                     bridgeIndex: this.bridgeIndex as number,
                                     hasOnState: controls[0].devices[0].hasOnState,
+                                    noComposed: false,
                                 },
                             });
                         }
@@ -988,6 +991,27 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                 ))}
                         </Select>
                     </FormControl>
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={this.state.addCustomDeviceDialog.noComposed}
+                                onChange={e => {
+                                    if (!this.state.addCustomDeviceDialog) {
+                                        return;
+                                    }
+
+                                    const addCustomDeviceDialog = clone(this.state.addCustomDeviceDialog);
+                                    addCustomDeviceDialog.noComposed = e.target.checked;
+                                    this.setState({ addCustomDeviceDialog });
+                                }}
+                            />
+                        }
+                        label={
+                            <span style={{ fontSize: 'smaller' }}>
+                                {I18n.t('Do not compose devices (Alexa does not support composed devices yet)')}
+                            </span>
+                        }
+                    />
                 </DialogContent>
                 <DialogActions>
                     <Button
@@ -1007,6 +1031,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                             deviceType: (addCustomDeviceDialog.deviceType ??
                                                 addCustomDeviceDialog.detectedDeviceType) as Types,
                                             hasOnState: addCustomDeviceDialog.hasOnState,
+                                            noComposed: !!addCustomDeviceDialog.noComposed,
                                             // ignored
                                             type: 'device',
                                             states: [],

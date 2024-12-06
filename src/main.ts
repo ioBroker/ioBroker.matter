@@ -87,7 +87,6 @@ export class MatterAdapter extends utils.Adapter {
     #instanceDataDir?: string;
     t: (word: string, ...args: (string | number | boolean | null)[]) => string;
     getText: (word: string, ...args: (string | number | boolean | null)[]) => ioBroker.Translated;
-    #nodeReSyncInProgress = new Set<string>();
     #closing = false;
     #version: string = '0.0.0';
     #objectProcessQueue = new Array<{
@@ -97,6 +96,7 @@ export class MatterAdapter extends utils.Adapter {
         inProgress?: boolean;
     }>();
     #objectProcessQueueTimeout?: NodeJS.Timeout;
+    #currentObjectProcessPromise?: Promise<void>;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -504,6 +504,17 @@ export class MatterAdapter extends utils.Adapter {
         this.#stateTimeout = undefined;
         this.#sendControllerUpdateTimeout && clearTimeout(this.#sendControllerUpdateTimeout);
         this.#sendControllerUpdateTimeout = undefined;
+        this.#objectProcessQueueTimeout && clearTimeout(this.#objectProcessQueueTimeout);
+        if (this.#objectProcessQueue.length && this.#objectProcessQueue[0].inProgress) {
+            const promise = this.#currentObjectProcessPromise;
+            this.#objectProcessQueue.length = 1;
+            try {
+                await promise;
+            } catch {
+                // ignore
+            }
+        }
+        this.#objectProcessQueue.length = 0;
 
         try {
             // inform GUI about stop
@@ -522,6 +533,9 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async #processObjectChange(id: string): Promise<void> {
+        if (this.#closing) {
+            return;
+        }
         let obj = await this.getObjectAsync(id);
         const objParts = id.split('.').slice(2); // remove namespace and instance
         const objPartsLength = objParts.length;
@@ -565,9 +579,7 @@ export class MatterAdapter extends utils.Adapter {
                 this.log.warn('Controller node not found');
                 return;
             }
-            if (!this.#nodeReSyncInProgress.has(nodeId)) {
-                await this.syncControllerNode(nodeId, nodeObj as ioBroker.FolderObject, true);
-            }
+            await this.syncControllerNode(nodeId, nodeObj as ioBroker.FolderObject, true);
         }
     }
 
@@ -596,8 +608,8 @@ export class MatterAdapter extends utils.Adapter {
         const entry = this.#objectProcessQueue[0];
         entry.inProgress = true;
 
-        entry
-            .func()
+        this.#currentObjectProcessPromise = entry.func();
+        this.#currentObjectProcessPromise
             .catch(error => this.log.error(`Error while processing object change ${entry.id}: ${error}`))
             .finally(() => {
                 this.#objectProcessQueue.shift();
@@ -606,13 +618,25 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     #onObjectChange(id: string, obj: ioBroker.Object | null | undefined): void {
+        const mainObjectId = id.split('.').slice(0, 4).join('.'); // get the device or controller object
+        if (
+            this.#objectProcessQueue.length &&
+            this.#objectProcessQueue[0].id.startsWith(mainObjectId) &&
+            id !== mainObjectId
+        ) {
+            this.log.debug(
+                `Sub object changed ${id}, type = ${obj?.type} - Already in queue via ${mainObjectId}, ignore ...`,
+            );
+            return;
+        }
+
+        if (obj && obj.type !== 'device' && obj.type !== 'channel' && obj.type !== 'folder') {
+            this.log.debug(`${obj?.type} Object changed ${id}, type = ${obj?.type} - Ignore ...`);
+            return;
+        }
+
         this.log.debug(`Object changed ${id}, type = ${obj?.type} - Register to process delayed ...`);
 
-        const index = this.#objectProcessQueue.findIndex(e => e.id === id);
-        if (index !== -1 && !this.#objectProcessQueue[index].inProgress) {
-            this.#objectProcessQueue.splice(index, 1);
-            this.log.debug(`Object change ${id} already in queue, register it again.`);
-        }
         this.#objectProcessQueue.push({
             id,
             func: async () => this.#processObjectChange(id),
@@ -836,6 +860,7 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async prepareMatterBridgeConfiguration(
+        deviceName: string,
         options: BridgeDescription,
         assignedPort?: number,
     ): Promise<BridgeCreateOptions | null> {
@@ -881,8 +906,8 @@ export class MatterAdapter extends utils.Adapter {
                     uuid: options.uuid,
                     vendorId: parseInt(options.vendorID) || 0xfff1,
                     productId: parseInt(options.productID) || 0x8000,
-                    deviceName: options.name,
-                    productName: `Product ${options.name}`,
+                    deviceName: deviceName,
+                    productName: `Bridge ${deviceName}`,
                 },
                 devices,
                 devicesOptions: options.list,
@@ -891,8 +916,8 @@ export class MatterAdapter extends utils.Adapter {
         return null;
     }
 
-    async createMatterBridge(options: BridgeDescription): Promise<BridgedDevice | null> {
-        const config = await this.prepareMatterBridgeConfiguration(options);
+    async createMatterBridge(deviceName: string, options: BridgeDescription): Promise<BridgedDevice | null> {
+        const config = await this.prepareMatterBridgeConfiguration(deviceName, options);
 
         if (config) {
             const bridge = new BridgedDevice(this, config);
@@ -1073,9 +1098,15 @@ export class MatterAdapter extends utils.Adapter {
         // Objects exist and enabled: Sync bridges
         for (const bridge of bridges) {
             const existingBridge = this.#bridges.get(bridge._id);
+            const deviceName =
+                typeof bridge.common.name === 'object'
+                    ? bridge.common.name[this.sysLanguage]
+                        ? (bridge.common.name[this.sysLanguage] as string)
+                        : bridge.common.name.en
+                    : bridge.common.name;
             if (existingBridge === undefined) {
                 // if one bridge already exists, check the license
-                const matterBridge = await this.createMatterBridge(bridge.native as BridgeDescription);
+                const matterBridge = await this.createMatterBridge(deviceName, bridge.native as BridgeDescription);
                 if (matterBridge) {
                     if (Object.keys(this.#bridges).length) {
                         // check license
@@ -1095,6 +1126,7 @@ export class MatterAdapter extends utils.Adapter {
                 }
             } else {
                 const config = await this.prepareMatterBridgeConfiguration(
+                    deviceName,
                     bridge.native as BridgeDescription,
                     existingBridge.port,
                 );
@@ -1173,12 +1205,7 @@ export class MatterAdapter extends utils.Adapter {
         if (!this.#controller) {
             return;
         } // not active
-        this.#nodeReSyncInProgress.add(nodeId);
-        try {
-            await this.#controller.applyPairedNodeConfiguration(nodeId, obj.native as PairedNodeConfig, forcedUpdate);
-        } finally {
-            this.#nodeReSyncInProgress.delete(nodeId);
-        }
+        await this.#controller.applyPairedNodeConfiguration(nodeId, obj.native as PairedNodeConfig, forcedUpdate);
     }
 
     async applyControllerConfiguration(config: MatterControllerConfig, handleStart = true): Promise<MessageResponse> {

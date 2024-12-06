@@ -53,6 +53,7 @@ export interface DetectedDevice {
     vendorID?: string;
     productID?: string;
     auto?: boolean;
+    noComposed?: boolean;
 }
 
 export interface DetectedRoom {

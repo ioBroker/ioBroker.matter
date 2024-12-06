@@ -170,7 +170,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const res = new Array<DeviceInfo>();
         const node: DeviceInfo = {
             id,
-            name: `Node ${ioNode.nodeId}`,
+            name: `Node ${ioNode.name}`,
             icon: undefined,
             ...details,
             status,
@@ -283,12 +283,13 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         };
         timeout = setTimeout(updateProgress, 1000);
 
+        let errorHappened = false;
         try {
             await this.adapter.controllerNode?.decommissionNode(node.nodeId);
         } catch (error) {
             const errorText = inspect(error, { depth: 10 });
             this.adapter.log.error(`Error during unpairing for node ${node.nodeId}: ${errorText}`);
-            await context.showMessage(this.#adapter.t('Error happened during unpairing. Please check the log.'));
+            errorHappened = true;
         }
 
         finished = true;
@@ -296,11 +297,13 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             clearTimeout(timeout);
         }
         await progress.close();
+        if (errorHappened) {
+            await context.showMessage(this.#adapter.t('Error happened during unpairing. Please check the log.'));
+        }
         return { refresh: true };
     }
 
     async #handleRenameNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        this.adapter.log.info(`Rename node ${node.nodeId}`);
         const result = await context.showForm(
             {
                 type: 'panel',
@@ -308,6 +311,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     name: {
                         type: 'text',
                         label: this.#adapter.getText('Name'),
+                        allowEmpty: false,
                         sm: 12,
                     },
                 },
@@ -317,13 +321,14 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
             {
                 data: {
-                    name: node.nodeId,
+                    name: node.name,
                 },
                 title: this.#adapter.getText('Rename node'),
             },
         );
 
-        if (result?.name !== undefined) {
+        if (result?.name !== undefined && result.name !== node.name) {
+            this.adapter.log.info(`Rename node ${node.nodeId} to "${result.name}"`);
             await node.rename(result.name);
             return { refresh: true };
         }
@@ -570,7 +575,6 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         device: GenericDeviceToIoBroker,
         context: ActionContext,
     ): Promise<{ refresh: DeviceRefresh }> {
-        this.adapter.log.info(`Rename device ${device.name}`);
         const result = await context.showForm(
             {
                 type: 'panel',
@@ -578,6 +582,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     name: {
                         type: 'text',
                         label: this.#adapter.getText('Name'),
+                        allowEmpty: false,
                         sm: 12,
                     },
                 },
@@ -593,9 +598,10 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
         );
 
-        if (result?.name !== undefined) {
+        if (result?.name !== undefined && result.name !== device.name) {
+            this.adapter.log.info(`Rename device ${device.name} to "${result.name}"`);
             await device.rename(result.name);
-            return { refresh: 'device' };
+            return { refresh: true };
         }
         return { refresh: false };
     }

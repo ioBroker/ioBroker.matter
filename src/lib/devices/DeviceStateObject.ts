@@ -343,7 +343,7 @@ export class DeviceStateObject<T> {
 
     /** Used for ioBroker states to update the value */
     async setValue(value: T, isUpdate = false): Promise<void> {
-        if (value === null || value === undefined) {
+        if (value === undefined) {
             throw new Error(`Value ${JSON.stringify(value)} is not valid`);
         }
         if (!this.object) {

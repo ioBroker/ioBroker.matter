@@ -55,7 +55,7 @@ export class LightToMatter extends GenericElectricityDataDeviceToMatter {
 
         let isIdentifying = false;
         const identifyOptions: IdentifyOptions = {};
-        this.#matterEndpoint.events.identify.identifyTime$Changed.on(async value => {
+        this.matterEvents.on(this.#matterEndpoint.events.identify.identifyTime$Changed, async value => {
             // identifyTime is set when an identify command is called and then decreased every second while identify logic runs.
             if (value > 0 && !isIdentifying) {
                 isIdentifying = true;

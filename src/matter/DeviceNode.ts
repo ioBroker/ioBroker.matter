@@ -114,6 +114,7 @@ class Device extends BaseServerNode {
                     hardwareVersionString: versions.versionStr,
                     softwareVersion: versions.versionNum,
                     softwareVersionString: versions.versionStr,
+                    reachable: true,
                 },
             });
         } catch (error) {

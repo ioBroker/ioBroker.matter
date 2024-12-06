@@ -218,6 +218,15 @@ TBD
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (@Apollon77) Sets the "no-compose" flag correctly to normally use composed if needed and adds it to a missing dialog
+* (@Apollon77) Allows to use null values if needed
+* (@Apollon77) Fixes UNREACH handling for devices
+* (@Apollon77) Fixes object change handling for controller
+* (@Apollon77) Allow Bridges to expose its name as a device name
+* (@Apollon77) Allows to rename controller nodes and devices
+
 ### 0.2.4 (2024-12-04)
 * (@Apollon77) Shows a progress indicator when deleting controller nodes
 * (@Apollon77) Cuts names and labels to 32 or 64 characters as needed by Matter

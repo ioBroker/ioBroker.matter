@@ -11,6 +11,7 @@ import { EventedOnOffLightOnOffServer } from '../behaviors/EventedOnOffLightOnOf
 import { EventedLightingLevelControlServer } from '../behaviors/EventedLightingLevelControlServer';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { EventedColorTemperatureColorControlServer } from '../behaviors/EventedLightingColorControlServer';
+import { ColorControl } from '@matter/main/clusters';
 
 // Remove with matter.js > 0.11.5
 function kelvinToMireds(kelvin: number): number {
@@ -38,6 +39,7 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
                 remainingTime: 0,
 
                 // Dummy values, will be better set later
+                colorMode: ColorControl.ColorMode.ColorTemperatureMireds,
                 colorTempPhysicalMinMireds: 0,
                 colorTempPhysicalMaxMireds: 65279,
                 coupleColorTempToLevelMinMireds: 0,

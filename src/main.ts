@@ -604,25 +604,24 @@ export class MatterAdapter extends utils.Adapter {
 
     #onObjectChange(id: string, obj: ioBroker.Object | null | undefined): void {
         const mainObjectId = id.split('.').slice(0, 4).join('.'); // get the device or controller object
-        if (this.#objectProcessQueue.length && this.#objectProcessQueue[0].id.startsWith(mainObjectId)) {
+        if (
+            this.#objectProcessQueue.length &&
+            this.#objectProcessQueue[0].id.startsWith(mainObjectId) &&
+            id !== mainObjectId
+        ) {
             this.log.debug(
-                `Object changed ${id}, type = ${obj?.type} - Already in queue via ${mainObjectId}, ignore ...`,
+                `Sub object changed ${id}, type = ${obj?.type} - Already in queue via ${mainObjectId}, ignore ...`,
             );
             return;
         }
 
-        if (obj && obj.type !== 'device' && obj.type !== 'channel' && obj.type === 'folder') {
+        if (obj && obj.type !== 'device' && obj.type !== 'channel' && obj.type !== 'folder') {
             this.log.debug(`${obj?.type} Object changed ${id}, type = ${obj?.type} - Ignore ...`);
             return;
         }
 
         this.log.debug(`Object changed ${id}, type = ${obj?.type} - Register to process delayed ...`);
 
-        const index = this.#objectProcessQueue.findIndex(e => e.id === id);
-        if (index !== -1 && !this.#objectProcessQueue[index].inProgress) {
-            this.#objectProcessQueue.splice(index, 1);
-            this.log.debug(`Object change ${id} already in queue, register it again.`);
-        }
         this.#objectProcessQueue.push({
             id,
             func: async () => this.#processObjectChange(id),

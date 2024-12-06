@@ -225,6 +225,7 @@ TBD
 * (@Apollon77) Fixes UNREACH handling for devices
 * (@Apollon77) Fixes object change handling for controller
 * (@Apollon77) Allow Bridges to expose its name as a device name
+* (@Apollon77) Allows to rename controller nodes and devices
 
 ### 0.2.4 (2024-12-04)
 * (@Apollon77) Shows a progress indicator when deleting controller nodes

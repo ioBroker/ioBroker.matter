@@ -175,7 +175,7 @@ export class GeneralMatterNode {
                 ? await info.getSerialNumberAttribute()
                 : undefined;
         }
-        this.#name = deviceObj.common.name as string;
+        this.#name = (deviceObj.common.name || this.nodeId) as string;
 
         await this.adapter.extendObjectAsync(deviceObj._id, deviceObj);
 

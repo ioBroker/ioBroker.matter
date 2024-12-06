@@ -170,7 +170,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const res = new Array<DeviceInfo>();
         const node: DeviceInfo = {
             id,
-            name: `Node ${ioNode.nodeId}`,
+            name: `Node ${ioNode.name}`,
             icon: undefined,
             ...details,
             status,
@@ -285,7 +285,8 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         let errorHappened = false;
         try {
-            await this.adapter.controllerNode?.decommissionNode(node.nodeId);
+            //await this.adapter.controllerNode?.decommissionNode(node.nodeId);
+            await new Promise<void>(resolve => setTimeout(resolve, 20_000));
         } catch (error) {
             const errorText = inspect(error, { depth: 10 });
             this.adapter.log.error(`Error during unpairing for node ${node.nodeId}: ${errorText}`);
@@ -304,7 +305,6 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     async #handleRenameNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        this.adapter.log.info(`Rename node ${node.nodeId}`);
         const result = await context.showForm(
             {
                 type: 'panel',
@@ -322,13 +322,14 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
             {
                 data: {
-                    name: node.nodeId,
+                    name: node.name,
                 },
                 title: this.#adapter.getText('Rename node'),
             },
         );
 
-        if (result?.name !== undefined) {
+        if (result?.name !== undefined && result.name !== node.name) {
+            this.adapter.log.info(`Rename node ${node.nodeId} to "${result.name}"`);
             await node.rename(result.name);
             return { refresh: true };
         }
@@ -575,7 +576,6 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         device: GenericDeviceToIoBroker,
         context: ActionContext,
     ): Promise<{ refresh: DeviceRefresh }> {
-        this.adapter.log.info(`Rename device ${device.name}`);
         const result = await context.showForm(
             {
                 type: 'panel',
@@ -599,9 +599,10 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
         );
 
-        if (result?.name !== undefined) {
+        if (result?.name !== undefined && result.name !== device.name) {
+            this.adapter.log.info(`Rename device ${device.name} to "${result.name}"`);
             await device.rename(result.name);
-            return { refresh: 'device' };
+            return { refresh: true };
         }
         return { refresh: false };
     }

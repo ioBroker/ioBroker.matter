@@ -218,8 +218,7 @@ TBD
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.2.5 (2024-12-06)
 * (@Apollon77) Sets the "no-compose" flag correctly to normally use composed if needed and adds it to a missing dialog
 * (@Apollon77) Allows to use null values if needed
 * (@Apollon77) Fixes UNREACH handling for devices

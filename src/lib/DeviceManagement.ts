@@ -285,8 +285,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         let errorHappened = false;
         try {
-            //await this.adapter.controllerNode?.decommissionNode(node.nodeId);
-            await new Promise<void>(resolve => setTimeout(resolve, 20_000));
+            await this.adapter.controllerNode?.decommissionNode(node.nodeId);
         } catch (error) {
             const errorText = inspect(error, { depth: 10 });
             this.adapter.log.error(`Error during unpairing for node ${node.nodeId}: ${errorText}`);

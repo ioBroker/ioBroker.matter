@@ -218,6 +218,10 @@ TBD
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (@Apollon77) Fixes ColorTemperature light initialization because of matter.js update
+
 ### 0.2.5 (2024-12-06)
 * (@Apollon77) Sets the "no-compose" flag correctly to normally use composed if needed and adds it to a missing dialog
 * (@Apollon77) Allows to use null values if needed

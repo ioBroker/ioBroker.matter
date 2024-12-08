@@ -1,6 +1,6 @@
 {
   "name": "iobroker.matter",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Controlling and simulation of matter devices",
   "author": {
     "name": "Denis Haev",

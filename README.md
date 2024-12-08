@@ -218,8 +218,7 @@ TBD
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.2.7 (2024-12-08)
 * (@Apollon77) Cleans up objects when a controller node is deleted
 * (@Apollon77) Prevents controller configuration changes to be executed in parallel
 

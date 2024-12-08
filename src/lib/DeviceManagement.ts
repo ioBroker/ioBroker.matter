@@ -285,7 +285,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         let errorHappened = false;
         try {
-            await this.adapter.controllerNode?.decommissionNode(node.nodeId);
+            await node.remove();
         } catch (error) {
             const errorText = inspect(error, { depth: 10 });
             this.adapter.log.error(`Error during unpairing for node ${node.nodeId}: ${errorText}`);
@@ -607,7 +607,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     async getDeviceDetails(id: string): Promise<DeviceDetails | null | { error: string }> {
-        this.adapter.log.info(`Get details ${id}`);
+        this.adapter.log.debug(`Get details ${id}`);
 
         const idParts = id.split('-');
         const nodeId = idParts[0];

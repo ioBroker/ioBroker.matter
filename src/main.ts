@@ -1,6 +1,6 @@
 import * as utils from '@iobroker/adapter-core';
 import ChannelDetector, { type DetectorState, Types } from '@iobroker/type-detector';
-import { Environment, LogLevel, LogFormat, Logger, StorageService } from '@matter/main';
+import { Environment, LogLevel, LogFormat, Logger, StorageService, PromiseQueue } from '@matter/main';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import fs from 'node:fs/promises';
@@ -97,6 +97,7 @@ export class MatterAdapter extends utils.Adapter {
     }>();
     #objectProcessQueueTimeout?: NodeJS.Timeout;
     #currentObjectProcessPromise?: Promise<void>;
+    #controllerConfigurationUpdateQueue = new PromiseQueue();
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -505,6 +506,7 @@ export class MatterAdapter extends utils.Adapter {
         this.#sendControllerUpdateTimeout && clearTimeout(this.#sendControllerUpdateTimeout);
         this.#sendControllerUpdateTimeout = undefined;
         this.#objectProcessQueueTimeout && clearTimeout(this.#objectProcessQueueTimeout);
+        this.#controllerConfigurationUpdateQueue.clear(false);
         if (this.#objectProcessQueue.length && this.#objectProcessQueue[0].inProgress) {
             const promise = this.#currentObjectProcessPromise;
             this.#objectProcessQueue.length = 1;
@@ -1209,24 +1211,28 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async applyControllerConfiguration(config: MatterControllerConfig, handleStart = true): Promise<MessageResponse> {
-        if (config.enabled) {
-            if (this.#controller) {
-                this.#controller.applyConfiguration(config);
-                return;
+        // Make sure to not overlap controller config updates
+        return this.#controllerConfigurationUpdateQueue.add(async () => {
+            if (config.enabled) {
+                if (this.#controller) {
+                    this.#controller.applyConfiguration(config);
+                    return { result: true };
+                }
+
+                this.#controller = this.createMatterController(config);
+
+                if (handleStart) {
+                    await this.#controller.start();
+                }
+            } else if (this.#controller) {
+                // Controller should be disabled but is not
+                const controller = this.#controller;
+                this.#controller = undefined;
+                await controller.stop();
             }
 
-            this.#controller = this.createMatterController(config);
-
-            if (handleStart) {
-                await this.#controller.start();
-            }
-        } else if (this.#controller) {
-            // Controller should be disabled but is not
-            await this.#controller.stop();
-            this.#controller = undefined;
-        }
-
-        return { result: true };
+            return { result: true };
+        });
     }
 
     async stopBridgeOrDevice(type: 'bridge' | 'device', id: string): Promise<void> {

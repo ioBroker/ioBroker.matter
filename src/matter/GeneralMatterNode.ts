@@ -866,16 +866,16 @@ export class GeneralMatterNode {
 
         switch (state) {
             case NodeStates.Connected:
-                this.adapter.log.debug(`Node "${this.nodeId}" connected`);
+                this.adapter.log.info(`Node "${this.nodeId}" connected`);
                 break;
             case NodeStates.Disconnected:
-                this.adapter.log.debug(`Node "${this.nodeId}" disconnected`);
+                this.adapter.log.info(`Node "${this.nodeId}" disconnected`);
                 break;
             case NodeStates.Reconnecting:
-                this.adapter.log.debug(`Node "${this.nodeId}" reconnecting`);
+                this.adapter.log.info(`Node "${this.nodeId}" reconnecting`);
                 break;
             case NodeStates.WaitingForDeviceDiscovery:
-                this.adapter.log.debug(`Node "${this.nodeId}" waiting for device discovery`);
+                this.adapter.log.info(`Node "${this.nodeId}" offline, waiting for device discovery`);
                 break;
         }
     }
@@ -908,6 +908,15 @@ export class GeneralMatterNode {
 
     destroy(): Promise<void> {
         return this.clear();
+    }
+
+    async remove(): Promise<void> {
+        if (this.adapter.controllerNode === undefined) {
+            throw new Error('Controller seems not to be initialized ... can not unpair device!');
+        }
+        await this.adapter.controllerNode.decommissionNode(this.nodeId);
+        await this.clear();
+        await this.adapter.delObjectAsync(this.nodeBaseId, { recursive: true });
     }
 
     async rename(newName: string): Promise<void> {

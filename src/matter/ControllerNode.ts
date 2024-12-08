@@ -222,11 +222,11 @@ class Controller implements GeneralNode {
             this.updateCallback();
         });
         node.events.structureChanged.on(async () => {
-            this.#adapter.log.debug(`Node "${node.nodeId}" structure changed`);
+            this.#adapter.log.info(`Node "${node.nodeId}" structure changed`);
             await this.nodeToIoBrokerStructure(node);
         });
         node.events.decommissioned.on(() => {
-            this.#adapter.log.debug(`Node "${node.nodeId}" decommissioned`);
+            this.#adapter.log.info(`Node "${node.nodeId}" decommissioned`);
             // TODO Delete the node from config and objects
         });
     }

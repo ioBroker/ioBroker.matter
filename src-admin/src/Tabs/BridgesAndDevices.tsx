@@ -32,7 +32,7 @@ import {
     Tooltip,
 } from '@mui/material';
 import { SiAmazonalexa, SiApple, SiGoogleassistant, SiSmartthings } from 'react-icons/si';
-import VENDOR_IDS from '../utils/vendorIDs';
+import { VendorIds, VendorIdsAmazon, VendorIdsApple, VendorIdsGoogle, VendorIdsSamsung } from '../utils/vendorIDs';
 
 import type {
     BridgeDescription,
@@ -111,15 +111,16 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
     }
 
     static getVendorName(vendorId: number): string {
-        return VENDOR_IDS[vendorId]
-            ? `${VENDOR_IDS[vendorId]} (0x${vendorId.toString(16)})`
+        return VendorIds[vendorId]
+            ? `${VendorIds[vendorId]} (0x${vendorId.toString(16)})`
             : `0x${vendorId.toString(16)}`;
     }
 
     static getVendorIcon(vendorId: number, themeType: ThemeType): React.JSX.Element | null {
-        const vendor = VENDOR_IDS[vendorId];
+        const vendor = VendorIds[vendorId];
 
-        if (vendor === 'Amazon Lab126') {
+        if (VendorIdsAmazon.includes(vendorId)) {
+            // AmazonLab126
             return (
                 <SiAmazonalexa
                     title={this.getVendorName(vendorId)}
@@ -130,7 +131,8 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 />
             );
         }
-        if (vendor === 'Google LLC') {
+        if (VendorIdsGoogle.includes(vendorId)) {
+            // Google LLC
             return (
                 <SiGoogleassistant
                     title={vendor}
@@ -141,7 +143,8 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 />
             );
         }
-        if (vendor === 'Apple Inc.' || vendor === 'Apple Keychain') {
+        if (VendorIdsApple.includes(vendorId)) {
+            // Apple Inc. and Apple Keychain
             return (
                 <SiApple
                     title={vendor}
@@ -152,7 +155,8 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 />
             );
         }
-        if (vendor === 'SmartThings, Inc.' || vendor === 'Samsung') {
+        if (VendorIdsSamsung.includes(vendorId)) {
+            // SmartThings, Inc. and Samsung
             return (
                 <SiSmartthings
                     title={vendor}

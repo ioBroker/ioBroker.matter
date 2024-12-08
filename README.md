@@ -218,6 +218,11 @@ TBD
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (@Apollon77) Cleans up objects when a controller node is deleted
+* (@Apollon77) Prevents controller configuration changes to be executed in parallel
+
 ### 0.2.6 (2024-12-06)
 * (@Apollon77) Fixes ColorTemperature light initialization because of matter.js update
 
@@ -226,7 +231,7 @@ TBD
 * (@Apollon77) Allows to use null values if needed
 * (@Apollon77) Fixes UNREACH handling for devices
 * (@Apollon77) Fixes object change handling for controller
-* (@Apollon77) Allow Bridges to expose its name as a device name
+* (@Apollon77) Allows Bridges to expose its name as a device name
 * (@Apollon77) Allows to rename controller nodes and devices
 
 ### 0.2.4 (2024-12-04)

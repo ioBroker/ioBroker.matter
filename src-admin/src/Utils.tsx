@@ -2,7 +2,7 @@ import { I18n, type AdminConnection } from '@iobroker/adapter-react-v5';
 import ChannelDetector, { Types, type DetectOptions } from '@iobroker/type-detector';
 
 import type { DetectedDevice, DetectedRoom } from './types';
-import VENDOR_IDS from './utils/vendorIDs';
+import { VendorIds } from './utils/vendorIDs';
 
 function getObjectIcon(
     obj: ioBroker.Object | DetectedDevice,
@@ -333,5 +333,5 @@ export function getVendorName(vendorId?: number): string {
         return '-';
     }
 
-    return VENDOR_IDS[vendorId] || `0x${vendorId.toString(16)}`;
+    return VendorIds[vendorId] || `0x${vendorId.toString(16)}`;
 }

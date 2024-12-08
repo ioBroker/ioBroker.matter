@@ -44,7 +44,7 @@ class Device extends BaseServerNode {
     }
 
     async init(): Promise<void> {
-        this.adapter.log.info(`Adding device ${this.#deviceOptions.uuid} "${this.#deviceOptions.name}"`);
+        this.adapter.log.info(`Adding device ${this.#parameters.uuid} "${this.#parameters.deviceName}"`);
 
         await this.adapter.extendObjectAsync(`devices.${this.#parameters.uuid}.commissioned`, {
             type: 'state',

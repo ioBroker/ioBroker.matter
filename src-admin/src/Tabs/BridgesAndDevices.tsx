@@ -119,7 +119,8 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
     static getVendorIcon(vendorId: number, themeType: ThemeType): React.JSX.Element | null {
         const vendor = VENDOR_IDS[vendorId];
 
-        if (vendor === 'Amazon Lab126') {
+        if (vendorId === 0x1217) {
+            // AmazonLab126
             return (
                 <SiAmazonalexa
                     title={this.getVendorName(vendorId)}
@@ -130,7 +131,8 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 />
             );
         }
-        if (vendor === 'Google LLC') {
+        if (vendorId === 0x6006) {
+            // Google LLC
             return (
                 <SiGoogleassistant
                     title={vendor}
@@ -141,7 +143,8 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 />
             );
         }
-        if (vendor === 'Apple Inc.' || vendor === 'Apple Keychain') {
+        if (vendorId === 0x1349 || vendorId === 0x1384) {
+            // Apple Inc. and Apple Keychain
             return (
                 <SiApple
                     title={vendor}
@@ -152,7 +155,8 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 />
             );
         }
-        if (vendor === 'SmartThings, Inc.' || vendor === 'Samsung') {
+        if (vendorId === 0x110a || vendorId === 0x10e1) {
+            // SmartThings, Inc. and Samsung
             return (
                 <SiSmartthings
                     title={vendor}

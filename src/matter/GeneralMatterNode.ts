@@ -910,6 +910,15 @@ export class GeneralMatterNode {
         return this.clear();
     }
 
+    async remove(): Promise<void> {
+        if (this.adapter.controllerNode === undefined) {
+            throw new Error('Controller seems not to be initialized ... can not unpair device!');
+        }
+        await this.adapter.controllerNode.decommissionNode(this.nodeId);
+        await this.clear();
+        await this.adapter.delObjectAsync(this.nodeBaseId, { recursive: true });
+    }
+
     async rename(newName: string): Promise<void> {
         this.#name = newName;
         await this.adapter.extendObjectAsync(this.nodeBaseId, { common: { name: newName } });

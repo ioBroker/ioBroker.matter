@@ -12,6 +12,13 @@ const ValueType = {
     Enum: 'enum',
 };
 
+const excludedTypes = [
+    'unknown',
+    'instance',
+    'valve',
+    'illuminance' // Not yet implemented
+];
+
 // create a maximal set of states
 const detectedDevices = {
     states: [
@@ -265,7 +272,7 @@ describe('Test Devices', function () {
     //     });
     // }
     it('Test that all devices are existing', async function () {
-        const types = Object.keys(Types).filter(type => type !== 'unknown' && type !== 'instance' && type !== 'valve');
+        const types = Object.keys(Types).filter(type => !excludedTypes.includes(type));
         for (const type of types) {
             // detect that only read values are subscribed
             console.log(`------------------------\nCreated device for ${type}`);

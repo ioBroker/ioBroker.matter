@@ -607,7 +607,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     async getDeviceDetails(id: string): Promise<DeviceDetails | null | { error: string }> {
-        this.adapter.log.info(`Get details ${id}`);
+        this.adapter.log.debug(`Get details ${id}`);
 
         const idParts = id.split('-');
         const nodeId = idParts[0];

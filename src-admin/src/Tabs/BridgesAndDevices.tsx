@@ -32,7 +32,7 @@ import {
     Tooltip,
 } from '@mui/material';
 import { SiAmazonalexa, SiApple, SiGoogleassistant, SiSmartthings } from 'react-icons/si';
-import VENDOR_IDS from '../utils/vendorIDs';
+import { VendorIds, VendorIdsAmazon, VendorIdsApple, VendorIdsGoogle, VendorIdsSamsung } from '../utils/vendorIDs';
 
 import type {
     BridgeDescription,
@@ -111,15 +111,15 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
     }
 
     static getVendorName(vendorId: number): string {
-        return VENDOR_IDS[vendorId]
-            ? `${VENDOR_IDS[vendorId]} (0x${vendorId.toString(16)})`
+        return VendorIds[vendorId]
+            ? `${VendorIds[vendorId]} (0x${vendorId.toString(16)})`
             : `0x${vendorId.toString(16)}`;
     }
 
     static getVendorIcon(vendorId: number, themeType: ThemeType): React.JSX.Element | null {
-        const vendor = VENDOR_IDS[vendorId];
+        const vendor = VendorIds[vendorId];
 
-        if (vendorId === 0x1217) {
+        if (VendorIdsAmazon.includes(vendorId)) {
             // AmazonLab126
             return (
                 <SiAmazonalexa
@@ -131,7 +131,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 />
             );
         }
-        if (vendorId === 0x6006) {
+        if (VendorIdsGoogle.includes(vendorId)) {
             // Google LLC
             return (
                 <SiGoogleassistant
@@ -143,7 +143,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 />
             );
         }
-        if (vendorId === 0x1349 || vendorId === 0x1384) {
+        if (VendorIdsApple.includes(vendorId)) {
             // Apple Inc. and Apple Keychain
             return (
                 <SiApple
@@ -155,7 +155,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 />
             );
         }
-        if (vendorId === 0x110a || vendorId === 0x10e1) {
+        if (VendorIdsSamsung.includes(vendorId)) {
             // SmartThings, Inc. and Samsung
             return (
                 <SiSmartthings

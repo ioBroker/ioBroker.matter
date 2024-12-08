@@ -60,6 +60,7 @@ const types: { [key in Types]: ClassExtends<GenericDevice> | null } = {
     [Types.floodAlarm]: FloodAlarm,
     [Types.gate]: Gate,
     [Types.humidity]: Humidity,
+    [Types.illuminance]: null, // TODO
     [Types.info]: Info,
     [Types.instance]: null,
     [Types.light]: Light,

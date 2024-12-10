@@ -22,6 +22,7 @@ import type { PairedNodeConfig } from './matter/GeneralMatterNode';
 import type { MessageResponse } from './matter/GeneralNode';
 import { IoBrokerObjectStorage } from './matter/IoBrokerObjectStorage';
 import { inspect } from 'util';
+import type { ConfigItemPanel, BackEndCommandJsonFormOptions } from '@iobroker/dm-utils';
 const I18n = import('@iobroker/i18n');
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
@@ -285,6 +286,42 @@ export class MatterAdapter extends utils.Adapter {
                     await this.extendObjectAsync(`${this.namespace}.controller`, { native: newControllerConfig });
                 }
                 this.sendTo(obj.from, obj.command, result, obj.callback);
+                break;
+            }
+            case 'extendedInfo': {
+                console.log(`Extended info requested: ${JSON.stringify(obj.message.uuid)}`);
+                if (obj.callback) {
+                    const schema: ConfigItemPanel = {
+                        type: 'panel',
+                        items: {
+                            _uuid: {
+                                type: 'text',
+                                label: 'UUID',
+                                readOnly: true,
+                                default: obj.message.uuid,
+                                xs: 12,
+                            },
+                        },
+                    };
+
+                    const options: BackEndCommandJsonFormOptions = {
+                        maxWidth: 'lg',
+                        data: {},
+                        title: 'Extended information',
+                        // @ts-expect-error fixed in dm-utils
+                        buttons: ['close'],
+                    };
+
+                    this.sendTo(
+                        obj.from,
+                        obj.command,
+                        {
+                            schema,
+                            options,
+                        },
+                        obj.callback,
+                    );
+                }
                 break;
             }
             default:

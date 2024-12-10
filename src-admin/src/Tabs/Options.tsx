@@ -21,7 +21,7 @@ import { Check, Close, LayersClear } from '@mui/icons-material';
 
 import { type AdminConnection, I18n, Logo } from '@iobroker/adapter-react-v5';
 
-import { InfoBox } from '@foxriver76/iob-component-lib';
+import InfoBox from '../components/InfoBox';
 import type { MatterAdapterConfig, MatterConfig } from '../types';
 
 const styles: Record<string, React.CSSProperties> = {

@@ -43,7 +43,7 @@ import {
 
 import { I18n, SelectID, type IobTheme } from '@iobroker/adapter-react-v5';
 
-import { InfoBox } from '@foxriver76/iob-component-lib';
+import InfoBox from '../components/InfoBox';
 import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import type {
     BridgeDescription,
@@ -1451,7 +1451,15 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 {this.renderQrCodeDialog()}
                 {this.renderDebugDialog()}
                 {this.renderResetDialog()}
-                <InfoBox type="info">{I18n.t('Matter Bridges Infotext')}</InfoBox>
+                {this.renderJsonConfigDialog()}
+                <InfoBox
+                    type="info"
+                    closeable
+                    storeId="matter.bridge"
+                    iconPosition="top"
+                >
+                    {I18n.t('Matter Bridges Infotext')}
+                </InfoBox>
                 <Tooltip
                     title={I18n.t('Add bridge')}
                     slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}

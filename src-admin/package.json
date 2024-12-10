@@ -6,17 +6,17 @@
         "@rollup/rollup-linux-x64-gnu": "*"
     },
     "dependencies": {
-        "@foxriver76/iob-component-lib": "^0.1.6",
-        "@iobroker/adapter-react-v5": "^7.4.2",
-        "@iobroker/dm-gui-components": "~7.4.2",
+        "@foxriver76/iob-component-lib": "^0.2.0",
+        "@iobroker/adapter-react-v5": "^7.4.4",
+        "@iobroker/dm-gui-components": "~7.4.4",
         "@iobroker/type-detector": "^4.1.0",
-        "@types/react-dom": "^18.3.1",
+        "@types/react-dom": "^18.3.3",
         "@types/uuid": "^10.0.0",
         "@vitejs/plugin-react": "^4.3.4",
         "qr-scanner": "^1.4.2",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
-        "react-icons": "^5.3.0",
+        "react-icons": "^5.4.0",
         "react-qr-code": "^2.0.15",
         "uuid": "^11.0.3"
     },

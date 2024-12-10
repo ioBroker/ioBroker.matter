@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import QrScanner from 'qr-scanner';
 
-import { IconButton, InfoBox } from '@foxriver76/iob-component-lib';
+import { IconButton } from '@foxriver76/iob-component-lib';
 
 import { Add, Bluetooth, BluetoothDisabled, Close, Save, Search, SearchOff } from '@mui/icons-material';
 
@@ -31,6 +31,7 @@ import DeviceManager from '@iobroker/dm-gui-components';
 
 import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
 import { clone, getVendorName } from '../Utils';
+import InfoBox from '../components/InfoBox';
 
 const styles: Record<string, React.CSSProperties> = {
     panel: {
@@ -836,7 +837,14 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
         return (
             <div style={styles.panel}>
-                <InfoBox type="info">{I18n.t('Matter Controller Infotext')}</InfoBox>
+                <InfoBox
+                    type="info"
+                    closeable
+                    storeId="matter.controller.info"
+                    iconPosition="top"
+                >
+                    {I18n.t('Matter Controller Infotext')}
+                </InfoBox>
                 {this.renderLoadingSpinner()}
                 {this.renderShowDiscoveredDevices()}
                 {this.renderQrCodeDialog()}

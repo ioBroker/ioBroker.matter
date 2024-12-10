@@ -136,6 +136,7 @@ export enum NodeStates {
 
 export interface ConnectionInfo {
     vendorId: number;
+    vendorName: string;
     connected: boolean;
     label?: string;
 }

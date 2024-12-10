@@ -11,6 +11,7 @@ export enum NodeStates {
 
 export interface ConnectionInfo {
     vendorId?: number;
+    vendorName?: string;
     connected: boolean;
     label?: string;
 }
@@ -59,6 +60,7 @@ export abstract class BaseServerNode implements GeneralNode {
                 status: NodeStates.Creating,
             };
         }
+        const { qrPairingCode, manualPairingCode } = this.serverNode.state.commissioning.pairingCodes;
 
         // Device is not commissioned, so show QR code
         if (!this.serverNode.lifecycle.isCommissioned) {
@@ -66,7 +68,6 @@ export abstract class BaseServerNode implements GeneralNode {
                 this.commissioned = false;
                 await this.adapter.setState(`${this.type}.${this.uuid}.commissioned`, this.commissioned, true);
             }
-            const { qrPairingCode, manualPairingCode } = this.serverNode.state.commissioning.pairingCodes;
 
             return {
                 status: NodeStates.WaitingForCommissioning,
@@ -84,6 +85,7 @@ export abstract class BaseServerNode implements GeneralNode {
 
         const connectionInfo: ConnectionInfo[] = fabrics.map(fabric => ({
             vendorId: fabric?.rootVendorId,
+            vendorName: 'TODO', // TODO: Get vendor name
             connected: activeSessions
                 .filter(session => session.fabric?.fabricId === fabric.fabricId)
                 .some(({ numberOfActiveSubscriptions }) => !!numberOfActiveSubscriptions),
@@ -95,14 +97,19 @@ export abstract class BaseServerNode implements GeneralNode {
             return {
                 status: NodeStates.ConnectedWithController,
                 connectionInfo,
+                qrPairingCode: qrPairingCode,
+                manualPairingCode: manualPairingCode,
             };
         }
         this.adapter.log.debug(
             `${this.type} ${this.uuid} is already commissioned. Waiting for controllers to connect ...`,
         );
+
         return {
             status: NodeStates.Commissioned,
             connectionInfo,
+            qrPairingCode: qrPairingCode,
+            manualPairingCode: manualPairingCode,
         };
     }
 

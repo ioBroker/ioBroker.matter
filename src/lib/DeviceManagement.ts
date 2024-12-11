@@ -370,7 +370,11 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 };
             }
 
-            await context.showForm(schema, { title: this.#adapter.getText('Pair with Device'), buttons: ['cancel'] });
+            await context.showForm(schema, {
+                title: this.#adapter.getText('Pair with Device'),
+                buttons: ['cancel'],
+                maxWidth: 'md',
+            });
         } else {
             await context.showMessage(this.#adapter.t('No paring code received'));
         }

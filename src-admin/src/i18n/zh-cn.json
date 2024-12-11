@@ -119,7 +119,7 @@
     "Status": "地位",
     "Stop": "停止",
     "Successfully re-announced": "成功重播！",
-    "Suppress question for 2 minutes": "抑制提问 2 分钟",
+    "Suppress question for 5 minutes": "抑制提问 5 分钟",
     "Sync credentials with %s": "与 %s 同步凭据",
     "This cannot be undone!": "这不能被撤消！",
     "This device/bridge is linked to some ecosystem. If it is deleted here, you must manually remove it from your ecosystem!": "此设备/桥接器已链接到某个生态系统。如果在此处删除，则必须手动将其从生态系统中移除！",

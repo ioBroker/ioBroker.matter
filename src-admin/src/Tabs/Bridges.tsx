@@ -712,7 +712,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                 onChange={e => this.setState({ suppressDeleteEnabled: e.target.checked })}
                             />
                         }
-                        label={I18n.t('Suppress question for 2 minutes')}
+                        label={I18n.t('Suppress question for 5 minutes')}
                     />
                 </DialogContent>
                 <DialogActions>
@@ -732,7 +732,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             this.setState(
                                 {
                                     deleteDialog: null,
-                                    suppressDeleteTime: this.state.suppressDeleteEnabled ? Date.now() + 120_000 : 0,
+                                    suppressDeleteTime: this.state.suppressDeleteEnabled ? Date.now() + 300_000 : 0,
                                 },
                                 () => this.props.updateConfig(matter),
                             );

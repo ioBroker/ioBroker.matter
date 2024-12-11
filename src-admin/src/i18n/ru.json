@@ -119,7 +119,7 @@
     "Status": "Положение дел",
     "Stop": "Останавливаться",
     "Successfully re-announced": "Успешно повторно объявлено!",
-    "Suppress question for 2 minutes": "Подавить вопрос на 2 минуты",
+    "Suppress question for 5 minutes": "Не задавать вопрос 5 минут",
     "Sync credentials with %s": "Синхронизировать учетные данные с %s",
     "This cannot be undone!": "Это не может быть отменено!",
     "This device/bridge is linked to some ecosystem. If it is deleted here, you must manually remove it from your ecosystem!": "Это устройство/мост привязано к какой-то экосистеме. Если оно удалено здесь, вам необходимо вручную удалить его из вашей экосистемы!",

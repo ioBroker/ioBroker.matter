@@ -119,7 +119,7 @@
     "Status": "Status",
     "Stop": "Zatrzymywać się",
     "Successfully re-announced": "Pomyślnie ogłoszono ponownie!",
-    "Suppress question for 2 minutes": "Ukryj pytanie na 2 minuty",
+    "Suppress question for 5 minutes": "Ukryj pytanie na 5 minuty",
     "Sync credentials with %s": "Zsynchronizuj dane uwierzytelniające z %s",
     "This cannot be undone!": "Tego nie da się cofnąć!",
     "This device/bridge is linked to some ecosystem. If it is deleted here, you must manually remove it from your ecosystem!": "To urządzenie/most jest połączone z jakimś ekosystemem. Jeśli zostanie tutaj usunięte, musisz ręcznie usunąć je ze swojego ekosystemu!",

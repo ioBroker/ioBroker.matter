@@ -128,6 +128,8 @@ interface DevicesState extends BridgesAndDevicesState {
 }
 
 class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
+    protected readonly isDevice = true;
+
     constructor(props: DevicesProps) {
         super(props);
         Object.assign(this.state, {

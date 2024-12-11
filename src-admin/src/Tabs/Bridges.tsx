@@ -219,6 +219,7 @@ interface BridgesState extends BridgesAndDevicesState {
 
 export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
     private bridgeIndex: number | null = null;
+    protected readonly isDevice = false;
 
     constructor(props: BridgesProps) {
         super(props);
@@ -1323,7 +1324,13 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         >
                             <span>
                                 <IconButton
-                                    sx={styles.bridgeButtonsAndTitleColor}
+                                    style={{
+                                        color: this.isDevice
+                                            ? this.props.themeType === 'dark'
+                                                ? 'white'
+                                                : '#00000080'
+                                            : 'white',
+                                    }}
                                     disabled={bridge.enabled && !allowDisable}
                                     onClick={e => {
                                         e.stopPropagation();

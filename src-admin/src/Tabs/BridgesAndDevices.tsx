@@ -106,6 +106,9 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
     TProps,
     TState
 > {
+    // eslint-disable-next-line react/no-unused-class-component-methods
+    protected isDevice: boolean;
+
     constructor(props: TProps) {
         super(props);
 
@@ -203,12 +206,15 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         return null;
     }
 
-    static getStatusColor(status: NodeStates, themeType: ThemeType): string {
+    static getStatusColor(status: NodeStates, themeType: ThemeType, isContrast?: boolean): string {
         if (status === 'creating') {
             return themeType === 'dark' ? '#a4a4a4' : '#1c1c1c';
         }
         if (status === 'waitingForCommissioning') {
-            return themeType === 'dark' ? '#2865ea' : '#00288d';
+            if (!isContrast) {
+                return themeType === 'dark' ? '#aac7ff' : '#4e7bff';
+            }
+            return themeType === 'dark' ? '#699aff' : '#5385ff';
         }
         if (status === 'commissioned') {
             return themeType === 'dark' ? '#fcb35f' : '#b24a00';
@@ -219,8 +225,8 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         return 'grey';
     }
 
-    static getStatusIcon(status: NodeStates, themeType: ThemeType): React.JSX.Element {
-        const color = BridgesAndDevices.getStatusColor(status, themeType);
+    static getStatusIcon(status: NodeStates, themeType: ThemeType, isContrast?: boolean): React.JSX.Element {
+        const color = BridgesAndDevices.getStatusColor(status, themeType, isContrast);
         if (status === 'creating') {
             return <SignalWifiStatusbarNull style={{ color }} />;
         }
@@ -301,7 +307,10 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
             >
                 <IconButton
-                    style={{ height: 40 }}
+                    style={{
+                        height: 40,
+                        color: this.isDevice ? (this.props.themeType === 'dark' ? 'white' : '#00000080') : 'white',
+                    }}
                     onClick={() => this.requestAdditionalInformation(deviceOrBridge.uuid)}
                 >
                     <Info />
@@ -329,6 +338,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                         {BridgesAndDevices.getStatusIcon(
                             this.props.nodeStates[deviceOrBridge.uuid].status,
                             this.props.themeType,
+                            this.isDevice,
                         )}
                     </IconButton>
                 </Tooltip>

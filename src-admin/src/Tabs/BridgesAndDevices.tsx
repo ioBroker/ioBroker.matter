@@ -55,9 +55,8 @@ import type {
     NodeStateResponse,
     NodeStates,
 } from '../types';
-import { formatPairingCode } from '../Utils';
+import { formatPairingCode, getTranslation } from '../Utils';
 import type { ActionButton, BackEndCommandJsonFormOptions, JsonFormSchema } from '@iobroker/dm-utils';
-import { getTranslation } from '../components/DeviceManagerDev/Utils';
 
 export const STYLES: Record<string, React.CSSProperties> = {
     vendorIcon: {

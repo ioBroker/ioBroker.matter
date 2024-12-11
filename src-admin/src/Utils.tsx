@@ -301,8 +301,26 @@ export async function detectDevices(
     return result;
 }
 
+/**
+ * Get text from object or just a string without trying to translate it
+ */
 export function getText(text?: ioBroker.StringOrTranslated): string {
     return typeof text === 'object' ? text?.[I18n.getLanguage()] || '' : text || '';
+}
+
+/**
+ * Get Translation and try to translate given string
+ */
+export function getTranslation(
+    /** Text to translate */
+    text: ioBroker.StringOrTranslated,
+    noTranslation?: boolean,
+): string {
+    if (typeof text === 'object') {
+        return text[I18n.getLanguage()] || text.en;
+    }
+
+    return noTranslation ? text : I18n.t(text);
 }
 
 /**

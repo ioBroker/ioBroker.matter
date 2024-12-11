@@ -113,6 +113,8 @@
     "Select default bridge": "Seleccionar puente predeterminado",
     "Select/Unselect all devices in room": "Seleccionar/deseleccionar todos los dispositivos en la habitación",
     "Show QR Code for commissioning": "Mostrar código QR para puesta en servicio",
+    "Show additional information": "Mostrar información adicional",
+    "Show error": "Mostrar error",
     "Show unsupported devices": "Mostrar dispositivos no compatibles",
     "Status": "Estado",
     "Stop": "Detener",

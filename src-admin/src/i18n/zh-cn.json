@@ -113,6 +113,8 @@
     "Select default bridge": "选择默认桥",
     "Select/Unselect all devices in room": "选择/取消选择房间中的所有设备",
     "Show QR Code for commissioning": "显示二维码进行调试",
+    "Show additional information": "显示更多信息",
+    "Show error": "显示错误",
     "Show unsupported devices": "显示不支持的设备",
     "Status": "地位",
     "Stop": "停止",

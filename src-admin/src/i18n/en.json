@@ -113,6 +113,8 @@
     "Select default bridge": "Select default bridge",
     "Select/Unselect all devices in room": "Select/Unselect all devices in room",
     "Show QR Code for commissioning": "Show QR Code for commissioning",
+    "Show additional information": "Show additional information",
+    "Show error": "Show error",
     "Show unsupported devices": "Show unsupported devices",
     "Status": "Status",
     "Stop": "Stop",

@@ -113,6 +113,8 @@
     "Select default bridge": "Wybierz domyślny most",
     "Select/Unselect all devices in room": "Zaznacz/odznacz wszystkie urządzenia w pokoju",
     "Show QR Code for commissioning": "Pokaż kod QR do uruchomienia",
+    "Show additional information": "Pokaż dodatkowe informacje",
+    "Show error": "Pokaż błąd",
     "Show unsupported devices": "Pokaż nieobsługiwane urządzenia",
     "Status": "Status",
     "Stop": "Zatrzymywać się",

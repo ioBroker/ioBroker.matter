@@ -113,6 +113,8 @@
     "Select default bridge": "Выбрать мост по умолчанию",
     "Select/Unselect all devices in room": "Выбрать/отменить выбор всех устройств в комнате",
     "Show QR Code for commissioning": "Показать QR-код для ввода в эксплуатацию",
+    "Show additional information": "Показать дополнительную информацию",
+    "Show error": "Показать ошибку",
     "Show unsupported devices": "Показать неподдерживаемые устройства",
     "Status": "Положение дел",
     "Stop": "Останавливаться",

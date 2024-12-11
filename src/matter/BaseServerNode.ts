@@ -18,6 +18,7 @@ export interface ConnectionInfo {
 
 export interface NodeStateResponse {
     status: NodeStates;
+    error?: boolean;
     qrPairingCode?: string;
     manualPairingCode?: string;
     connectionInfo?: ConnectionInfo[];
@@ -62,6 +63,15 @@ export abstract class BaseServerNode implements GeneralNode {
         }
         const { qrPairingCode, manualPairingCode } = this.serverNode.state.commissioning.pairingCodes;
 
+        const result: NodeStateResponse = {
+            status: NodeStates.WaitingForCommissioning,
+            qrPairingCode: qrPairingCode,
+            manualPairingCode: manualPairingCode,
+        };
+
+        // TODO: @Apollon77. Set this flag to true if error flag should be shown
+        // result.error = true;
+
         // Device is not commissioned, so show QR code
         if (!this.serverNode.lifecycle.isCommissioned) {
             if (this.commissioned !== false) {
@@ -69,11 +79,7 @@ export abstract class BaseServerNode implements GeneralNode {
                 await this.adapter.setState(`${this.type}.${this.uuid}.commissioned`, this.commissioned, true);
             }
 
-            return {
-                status: NodeStates.WaitingForCommissioning,
-                qrPairingCode: qrPairingCode,
-                manualPairingCode: manualPairingCode,
-            };
+            return result;
         }
         if (this.commissioned !== true) {
             this.commissioned = true;
@@ -83,7 +89,7 @@ export abstract class BaseServerNode implements GeneralNode {
         const activeSessions = Object.values(this.serverNode.state.sessions.sessions);
         const fabrics = Object.values(this.serverNode.state.commissioning.fabrics);
 
-        const connectionInfo: ConnectionInfo[] = fabrics.map(fabric => ({
+        result.connectionInfo = fabrics.map(fabric => ({
             vendorId: fabric?.rootVendorId,
             vendorName: 'TODO', // TODO: Get vendor name
             connected: activeSessions
@@ -92,25 +98,18 @@ export abstract class BaseServerNode implements GeneralNode {
             label: fabric?.label,
         }));
 
-        if (connectionInfo.find(info => info.connected)) {
+        if (result.connectionInfo.find(info => info.connected)) {
             this.adapter.log.debug(`${this.type} ${this.uuid} is already commissioned and connected with controller`);
-            return {
-                status: NodeStates.ConnectedWithController,
-                connectionInfo,
-                qrPairingCode: qrPairingCode,
-                manualPairingCode: manualPairingCode,
-            };
+            result.status = NodeStates.ConnectedWithController;
+            return result;
         }
         this.adapter.log.debug(
             `${this.type} ${this.uuid} is already commissioned. Waiting for controllers to connect ...`,
         );
 
-        return {
-            status: NodeStates.Commissioned,
-            connectionInfo,
-            qrPairingCode: qrPairingCode,
-            manualPairingCode: manualPairingCode,
-        };
+        result.status = NodeStates.Commissioned;
+
+        return result;
     }
 
     async updateUiState(): Promise<void> {

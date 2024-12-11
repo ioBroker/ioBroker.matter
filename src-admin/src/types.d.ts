@@ -143,6 +143,7 @@ export interface ConnectionInfo {
 
 export interface NodeStateResponse {
     status: NodeStates;
+    error?: boolean;
     qrPairingCode?: string;
     manualPairingCode?: string;
     connectionInfo?: ConnectionInfo[];

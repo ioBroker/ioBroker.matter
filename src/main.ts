@@ -289,8 +289,49 @@ export class MatterAdapter extends utils.Adapter {
                 break;
             }
             case 'extendedInfo': {
-                console.log(`Extended info requested: ${JSON.stringify(obj.message.uuid)}`);
                 if (obj.callback) {
+                    const message: {
+                        uuid: string;
+                        // Device or bridge is in error state
+                        error?: boolean;
+                    } = obj.message;
+
+                    if (message.error) {
+                        // TODO: @Apollon77. Show error and instructions
+
+                        // Device is in error mode (We can read a backend info here!)
+                        const schema: ConfigItemPanel = {
+                            type: 'panel',
+                            items: {
+                                _uuid: {
+                                    type: 'staticText',
+                                    text: 'Device is in error state. Fix the error before enabling it again',
+                                    xs: 12,
+                                },
+                            },
+                        };
+
+                        const options: BackEndCommandJsonFormOptions = {
+                            maxWidth: 'md',
+                            data: {},
+                            title: 'Error information',
+                            // @ts-expect-error fixed in dm-utils
+                            buttons: ['close'],
+                        };
+
+                        this.sendTo(
+                            obj.from,
+                            obj.command,
+                            {
+                                schema,
+                                options,
+                            },
+                            obj.callback,
+                        );
+                        return;
+                    }
+
+                    // TODO: @Apollon77. Show extended information
                     const schema: ConfigItemPanel = {
                         type: 'panel',
                         items: {
@@ -298,7 +339,7 @@ export class MatterAdapter extends utils.Adapter {
                                 type: 'text',
                                 label: 'UUID',
                                 readOnly: true,
-                                default: obj.message.uuid,
+                                default: message.uuid,
                                 xs: 12,
                             },
                         },

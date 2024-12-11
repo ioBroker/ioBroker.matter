@@ -20,6 +20,7 @@ import {
     Settings,
     SettingsInputAntenna,
     SignalWifiStatusbarNull,
+    Warning,
     Wifi,
     WifiOff,
 } from '@mui/icons-material';
@@ -247,7 +248,10 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
 
     requestAdditionalInformation(uuid: string): void {
         this.props.socket
-            .sendTo(`matter.${this.props.instance}`, 'extendedInfo', { uuid })
+            .sendTo(`matter.${this.props.instance}`, 'extendedInfo', {
+                uuid,
+                error: this.props.nodeStates[uuid]?.error,
+            })
             .then((result: { schema: JsonFormSchema; options?: BackEndCommandJsonFormOptions }): void => {
                 this.setState({
                     jsonConfig: {
@@ -303,17 +307,27 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         const extendedInfo = (
             <Tooltip
                 key="debug"
-                title={I18n.t('Show additional information')}
+                title={
+                    this.props.nodeStates[deviceOrBridge.uuid].error
+                        ? I18n.t('Show error')
+                        : I18n.t('Show additional information')
+                }
                 slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
             >
                 <IconButton
                     style={{
                         height: 40,
-                        color: this.isDevice ? (this.props.themeType === 'dark' ? 'white' : '#00000080') : 'white',
+                        color: this.props.nodeStates[deviceOrBridge.uuid].error
+                            ? '#FF0000'
+                            : this.isDevice
+                              ? this.props.themeType === 'dark'
+                                  ? 'white'
+                                  : '#00000080'
+                              : 'white',
                     }}
                     onClick={() => this.requestAdditionalInformation(deviceOrBridge.uuid)}
                 >
-                    <Info />
+                    {this.props.nodeStates[deviceOrBridge.uuid].error ? <Warning /> : <Info />}
                 </IconButton>
             </Tooltip>
         );

@@ -138,10 +138,7 @@ export default class InfoBox extends React.Component<InfoBoxProps, InfoBoxState>
                         // This is a shadow box at the bottom of the InfoBox when it closed
                         component="div"
                         sx={theme => ({
-                            background:
-                                theme.palette.mode === 'dark'
-                                    ? 'linear-gradient(rgba(0,0,0,0) 0%, rgba(0,0,0,0) 60%, rgba(0,0,0,1) 100%)'
-                                    : 'linear-gradient(rgba(255,255,255,0) 0%, rgba(255,255,255,0) 60%, rgba(255,255,255,1) 100%)',
+                            background: `linear-gradient(${theme.palette[this.props.type].main}00 0%, ${theme.palette[this.props.type].main}10 60%, ${theme.palette[this.props.type].main}90 100%)`,
                         })}
                         style={{
                             bottom: 0,

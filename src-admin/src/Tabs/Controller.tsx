@@ -373,7 +373,14 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 <DialogTitle>{I18n.t('BLE Commissioning information')}</DialogTitle>
                 <DialogContent>
                     <div>
-                        <InfoBox type="info">{I18n.t('Matter Controller BLE Dialog Infotext')}</InfoBox>
+                        <InfoBox
+                            type="info"
+                            iconPosition="top"
+                            closeable
+                            storeId="matter.ble"
+                        >
+                            {I18n.t('Matter Controller BLE Dialog Infotext')}
+                        </InfoBox>
 
                         <Typography sx={styles.header}>{I18n.t('Bluetooth configuration')}</Typography>
                         <TextField
@@ -712,7 +719,11 @@ class Controller extends Component<ComponentProps, ComponentState> {
             >
                 <DialogTitle>{I18n.t('Discovered devices to pair')}</DialogTitle>
                 <DialogContent>
-                    <InfoBox type="info">
+                    <InfoBox
+                        type="info"
+                        closeable
+                        storeId="matter.pairing"
+                    >
                         {I18n.t(this.props.matter.controller.ble ? 'Pairing Info Text BLE' : 'Pairing Info Text')}
                     </InfoBox>
                     {this.state.discoveryRunning ? <LinearProgress /> : null}
@@ -870,7 +881,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     />
                     {I18n.t('On')}
                 </div>
-                <div>
+                <div style={{ display: 'flex', width: '100%', flexFlow: 'wrap', gap: 9 }}>
                     {this.props.matter.controller.enabled && this.props.alive ? (
                         <Button
                             variant="contained"

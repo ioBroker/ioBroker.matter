@@ -11,7 +11,7 @@ import {
     LinearProgress,
     Tab,
     Tabs,
-    Tooltip
+    Tooltip,
 } from '@mui/material';
 
 import { SignalCellularOff as IconNotAlive } from '@mui/icons-material';
@@ -25,7 +25,7 @@ import {
     type GenericAppState,
     type IobTheme,
 } from '@iobroker/adapter-react-v5';
-import {clone, getText} from './Utils';
+import { clone, getText } from './Utils';
 
 import ConfigHandler from './components/ConfigHandler';
 import BridgesTab from './Tabs/Bridges';
@@ -601,7 +601,9 @@ class App extends GenericApp<GenericAppProps, AppState> {
                         variant={this.state.progress.indeterminate ? 'indeterminate' : 'determinate'}
                         value={this.state.progress.value}
                     />
-                    {this.state.progress.text ? <DialogContentText>{getText(this.state.progress.text)}</DialogContentText> : null}
+                    {this.state.progress.text ? (
+                        <DialogContentText>{getText(this.state.progress.text)}</DialogContentText>
+                    ) : null}
                 </DialogContent>
             </Dialog>
         );

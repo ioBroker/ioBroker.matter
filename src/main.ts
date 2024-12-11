@@ -315,7 +315,6 @@ export class MatterAdapter extends utils.Adapter {
                             maxWidth: 'md',
                             data: {},
                             title: 'Error information',
-                            // @ts-expect-error fixed in dm-utils
                             buttons: ['close'],
                         };
 
@@ -349,7 +348,6 @@ export class MatterAdapter extends utils.Adapter {
                         maxWidth: 'lg',
                         data: {},
                         title: 'Extended information',
-                        // @ts-expect-error fixed in dm-utils
                         buttons: ['close'],
                     };
 

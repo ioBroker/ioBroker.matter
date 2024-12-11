@@ -29,6 +29,7 @@
     "The device should now identify itself for 30 seconds.": "Urządzenie powinno teraz identyfikować się przez 30 sekund.",
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "Węzeł nie jest obecnie podłączony. Po rozparowaniu należy przywrócić ustawienia fabryczne, aby ponownie uruchomić węzeł. Czy na pewno?",
     "Unpair this node": "Rozparuj ten węzeł",
+    "Unpairing node...": "Rozparowywanie węzła...",
     "Use the following pairing code to commission the device": "Użyj poniższego kodu parowania, aby uruchomić urządzenie",
     "Use the following pairing code to commission the device: %s": "Użyj następującego kodu parowania, aby uruchomić urządzenie: %s",
     "Yes": "Tak",

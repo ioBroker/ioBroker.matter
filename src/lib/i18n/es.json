@@ -29,6 +29,7 @@
     "The device should now identify itself for 30 seconds.": "El dispositivo ahora debería identificarse durante 30 segundos.",
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "El nodo no está conectado actualmente. Cuando lo desemparejes ahora tendrás que restablecer de fábrica el nodo para volver a ponerlo en funcionamiento. ¿Está seguro?",
     "Unpair this node": "Desemparejar este nodo",
+    "Unpairing node...": "Desvinculando nodo...",
     "Use the following pairing code to commission the device": "Utilice el siguiente código de emparejamiento para poner en funcionamiento el dispositivo",
     "Use the following pairing code to commission the device: %s": "Utilice el siguiente código de emparejamiento para poner en marcha el dispositivo: %s",
     "Yes": "Sí",

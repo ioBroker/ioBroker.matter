@@ -29,6 +29,7 @@
     "The device should now identify itself for 30 seconds.": "Тепер пристрій має ідентифікувати себе протягом 30 секунд.",
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "Наразі вузол не підключено. Коли ви від'єднаєте його зараз, вам потрібно буде скинути до заводських налаштувань, щоб знову ввести вузол в експлуатацію. Ви впевнені?",
     "Unpair this node": "Від'єднайте цей вузол від пари",
+    "Unpairing node...": "Відключення вузла...",
     "Use the following pairing code to commission the device": "Використовуйте наведений нижче код сполучення, щоб ввести пристрій у дію",
     "Use the following pairing code to commission the device: %s": "Для введення пристрою в експлуатацію використовуйте такий код сполучення: %s",
     "Yes": "Так",

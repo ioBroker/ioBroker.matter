@@ -29,6 +29,7 @@
     "The device should now identify itself for 30 seconds.": "Het apparaat zou zichzelf nu 30 seconden lang moeten identificeren.",
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "De node is momenteel niet verbonden. Als je hem nu ontkoppelt, moet je de node een fabrieksreset geven om hem weer in gebruik te kunnen nemen. Weet je het zeker?",
     "Unpair this node": "Ontkoppel dit knooppunt",
+    "Unpairing node...": "Knooppunt ontkoppelen...",
     "Use the following pairing code to commission the device": "Gebruik de volgende koppelingscode om het apparaat in gebruik te nemen",
     "Use the following pairing code to commission the device: %s": "Gebruik de volgende koppelcode om het apparaat in gebruik te nemen: %s",
     "Yes": "Ja",

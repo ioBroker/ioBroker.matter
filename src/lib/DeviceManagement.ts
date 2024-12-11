@@ -265,7 +265,14 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             }
         }
 
-        const progress = await context.openProgress(this.#adapter.t('Unpairing node...'), { label: '0%' });
+        await this.#adapter.sendToGui({
+            command: 'progress',
+            progress: {
+                title: this.#adapter.t('Unpairing node...'),
+                text: '0%',
+                value: 0,
+            },
+        });
 
         // Start an interval that normally covers 30s and with each update the number gets slower increased for the percentage
         let finished = false;
@@ -275,13 +282,20 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const updateProgress = async (): Promise<void> => {
             iteration++;
             const progressValue = Math.min(99.9 * (1 - Math.exp(-iteration / (33 / 2))), 99.9); // Max 33 usually, scale factor 2
-            await progress.update({ value: progressValue, label: `${progressValue.toFixed(0)}%` });
+            await this.#adapter.sendToGui({
+                command: 'progress',
+                progress: {
+                    value: progressValue,
+                    text: `${progressValue.toFixed(0)}%`,
+                },
+            });
             if (finished) {
                 return;
             }
             timeout = setTimeout(updateProgress, 1000);
         };
         timeout = setTimeout(updateProgress, 1000);
+        setTimeout(updateProgress, 1000);
 
         let errorHappened = false;
         try {
@@ -296,7 +310,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         if (timeout) {
             clearTimeout(timeout);
         }
-        await progress.close();
+        await this.#adapter.sendToGui({ command: 'progress' });
         if (errorHappened) {
             await context.showMessage(this.#adapter.t('Error happened during unpairing. Please check the log.'));
         }
@@ -433,7 +447,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     ): Promise<{ refresh: DeviceRefresh }> {
         const obj = await this.adapter.getObjectAsync(baseId);
 
-        //const node = nodeOrDevice instanceof GeneralMatterNode ? nodeOrDevice : undefined;
+        // const node = nodeOrDevice instanceof GeneralMatterNode ? nodeOrDevice : undefined;
         const device = nodeOrDevice instanceof GenericDeviceToIoBroker ? nodeOrDevice : undefined;
 
         const items: Record<string, ConfigItemAny> = {

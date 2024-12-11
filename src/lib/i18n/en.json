@@ -29,6 +29,7 @@
     "The device should now identify itself for 30 seconds.": "The device should now identify itself for 30 seconds.",
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?",
     "Unpair this node": "Unpair this node",
+    "Unpairing node...": "Unpairing node...",
     "Use the following pairing code to commission the device": "Use the following pairing code to commission the device",
     "Use the following pairing code to commission the device: %s": "Use the following pairing code to commission the device: %s",
     "Yes": "Yes",

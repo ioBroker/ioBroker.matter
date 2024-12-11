@@ -2,7 +2,17 @@ import { StyledEngineProvider, ThemeProvider } from '@mui/material/styles';
 import React from 'react';
 
 import { IconButton } from '@foxriver76/iob-component-lib';
-import { AppBar, Tab, Tabs, Tooltip } from '@mui/material';
+import {
+    AppBar,
+    Dialog,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
+    LinearProgress,
+    Tab,
+    Tabs,
+    Tooltip
+} from '@mui/material';
 
 import { SignalCellularOff as IconNotAlive } from '@mui/icons-material';
 
@@ -15,7 +25,7 @@ import {
     type GenericAppState,
     type IobTheme,
 } from '@iobroker/adapter-react-v5';
-import { clone } from './Utils';
+import {clone, getText} from './Utils';
 
 import ConfigHandler from './components/ConfigHandler';
 import BridgesTab from './Tabs/Bridges';
@@ -83,6 +93,12 @@ interface AppState extends GenericAppState {
     /** Undefined if no detection ran yet */
     detectedDevices?: DetectedRoom[];
     ready: boolean;
+    progress: {
+        title?: ioBroker.StringOrTranslated;
+        text?: ioBroker.StringOrTranslated;
+        indeterminate?: boolean;
+        value?: number;
+    } | null;
 }
 
 class App extends GenericApp<GenericAppProps, AppState> {
@@ -138,6 +154,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 devices: {},
             },
             ready: false,
+            progress: null,
         });
 
         this.alert = window.alert;
@@ -253,9 +270,11 @@ class App extends GenericApp<GenericAppProps, AppState> {
             this.setState({ alive: true });
             this.refreshBackendSubscription(true);
         } else if (!state?.val && this.state.alive) {
-            this.refreshTimer && clearTimeout(this.refreshTimer);
-            this.refreshTimer = null;
-            this.setState({ alive: false });
+            if (this.refreshTimer) {
+                clearTimeout(this.refreshTimer);
+                this.refreshTimer = null;
+            }
+            this.setState({ alive: false, progress: null });
         }
     };
 
@@ -264,7 +283,32 @@ class App extends GenericApp<GenericAppProps, AppState> {
             return;
         }
 
-        if (update.command === 'bridgeStates') {
+        if (update.command === 'progress') {
+            if (update.progress) {
+                if (update.progress.close) {
+                    if (this.state.progress) {
+                        this.setState({ progress: null });
+                    }
+                } else {
+                    const progress = { ...this.state.progress };
+                    if (update.progress.title !== undefined) {
+                        progress.title = update.progress.title;
+                    }
+                    if (update.progress.value !== undefined) {
+                        progress.value = update.progress.value;
+                    }
+                    if (update.progress.text !== undefined) {
+                        progress.text = update.progress.text;
+                    }
+                    if (update.progress.indeterminate !== undefined) {
+                        progress.indeterminate = update.progress.indeterminate;
+                    }
+                    this.setState({ progress });
+                }
+            } else if (this.state.progress) {
+                this.setState({ progress: null });
+            }
+        } else if (update.command === 'bridgeStates') {
             // all states at once
             const nodeStates: { [uuid: string]: NodeStateResponse } = {};
             if (update.states) {
@@ -420,6 +464,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                     this.setState({ nodeStates: _nodeStates });
                 }}
                 nodeStates={this.state.nodeStates}
+                themeName={this.state.themeName}
                 themeType={this.state.themeType}
                 theme={this.state.theme}
                 detectedDevices={this.state.detectedDevices}
@@ -454,6 +499,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 nodeStates={this.state.nodeStates}
                 commissioning={this.state.commissioning?.devices || {}}
                 socket={this.socket}
+                themeName={this.state.themeName}
                 themeType={this.state.themeType}
                 theme={this.state.theme}
                 detectedDevices={this.state.detectedDevices}
@@ -538,6 +584,29 @@ class App extends GenericApp<GenericAppProps, AppState> {
         }
     }
 
+    renderProgressDialog(): React.JSX.Element | null {
+        if (!this.state.progress) {
+            return null;
+        }
+
+        return (
+            <Dialog
+                open={!0}
+                onClose={() => {}}
+                maxWidth="md"
+            >
+                {this.state.progress.title ? <DialogTitle>{getText(this.state.progress.title)}</DialogTitle> : null}
+                <DialogContent>
+                    <LinearProgress
+                        variant={this.state.progress.indeterminate ? 'indeterminate' : 'determinate'}
+                        value={this.state.progress.value}
+                    />
+                    {this.state.progress.text ? <DialogContentText>{getText(this.state.progress.text)}</DialogContentText> : null}
+                </DialogContent>
+            </Dialog>
+        );
+    }
+
     render(): React.JSX.Element {
         if (!this.state.ready) {
             return (
@@ -553,6 +622,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             <StyledEngineProvider injectFirst>
                 <ThemeProvider theme={this.state.theme}>
                     {this.renderToast()}
+                    {this.renderProgressDialog()}
                     <div
                         className="App"
                         style={{

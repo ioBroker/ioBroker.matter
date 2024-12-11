@@ -157,9 +157,18 @@ export interface GUIMessage {
         | 'updateStates'
         | 'discoveredDevice'
         | 'reconnect'
+        | 'progress'
         | 'updateController';
     states?: { [uuid: string]: NodeStateResponse };
     device?: CommissionableDevice;
+
+    progress?: {
+        close?: boolean;
+        title?: string;
+        text?: string;
+        indeterminate?: boolean;
+        value?: number;
+    };
 }
 
 export interface CommissioningInfo {

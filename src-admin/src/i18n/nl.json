@@ -132,6 +132,7 @@
     "Value": "Waarde",
     "Vendor ID": "Verkopers ID",
     "WLAN credentials": "WLAN-referenties",
+    "Warning about 15 devices": "Om problemen te voorkomen bij het koppelen van deze brug, kunt u overwegen om deze nu te koppelen en later meer apparaten toe te voegen.",
     "WiFi SSID": "WiFi-SSID",
     "WiFi password": "Wifi wachtwoord",
     "You need ioBroker.pro assistant or remote subscription to have more than 5 devices in bridge": "U hebt een ioBroker.pro-assistent of een extern abonnement nodig om meer dan 5 apparaten in bridge te hebben",

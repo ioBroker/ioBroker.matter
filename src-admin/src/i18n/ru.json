@@ -132,6 +132,7 @@
     "Value": "Значение",
     "Vendor ID": "Идентификатор поставщика",
     "WLAN credentials": "Учетные данные WLAN",
+    "Warning about 15 devices": "Чтобы избежать проблем при сопряжении этого моста, пожалуйста, рассмотрите возможность сопряжения сейчас и добавления дополнительных устройств позже.",
     "WiFi SSID": "SSID Wi-Fi",
     "WiFi password": "Пароль Wi-Fi",
     "You need ioBroker.pro assistant or remote subscription to have more than 5 devices in bridge": "Вам нужен помощник ioBroker.pro или удаленная подписка, чтобы иметь более 5 устройств в мосту.",

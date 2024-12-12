@@ -43,10 +43,10 @@ import {
     Tooltip,
 } from '@mui/material';
 
-import { I18n, SelectID, type IobTheme } from '@iobroker/adapter-react-v5';
+import { I18n, SelectID, type IobTheme, IconDeviceType } from '@iobroker/adapter-react-v5';
 
 import InfoBox from '../components/InfoBox';
-import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../components/DeviceDialog';
+import DeviceDialog, { SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import type {
     BridgeDescription,
     BridgeDeviceDescription,
@@ -126,6 +126,8 @@ const styles: Record<string, any> = {
     }),
 };
 
+const MAX_UNCOMMISIONED_DEVICES = 15;
+
 interface BridgesProps extends BridgesAndDevicesProps {
     checkLicenseOnAdd: (
         type: 'addBridge' | 'addDevice' | 'addDeviceToBridge',
@@ -181,6 +183,11 @@ interface BridgesState extends BridgesAndDevicesState {
               /** If dialog open */
               open: false;
           };
+    showCommissioningHint: {
+        name: string;
+        bridgeIndex: number;
+        devices: BridgeDeviceDescription[];
+    } | null;
     editBridgeDialog: AddBridgeDialog | EditBridgeDialog | null;
     editDeviceDialog: {
         type: 'device';
@@ -216,6 +223,8 @@ interface BridgesState extends BridgesAndDevicesState {
         type: 'bridge' | 'device';
     } | null;
     suppressDeleteTime: number;
+    suppressAddTime: number;
+    suppressAddEnabled: boolean;
     suppressDeleteEnabled: boolean;
 }
 
@@ -240,6 +249,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
             addDeviceDialog: null,
             editBridgeDialog: null,
             editDeviceDialog: null,
+            showCommissioningHint: null,
             bridgesOpened,
         });
     }
@@ -556,7 +566,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             }}
                             renderValue={value => (
                                 <span>
-                                    <span>{DEVICE_ICONS[value] || <QuestionMark />}</span>
+                                    <IconDeviceType src={value} />
                                     {I18n.t(value)}
                                 </span>
                             )}
@@ -568,7 +578,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                         key={type}
                                         value={type}
                                     >
-                                        <span>{DEVICE_ICONS[type as Types] || <QuestionMark />}</span>
+                                        <IconDeviceType src={type} />
                                         {I18n.t(type)}
                                     </MenuItem>
                                 ))}
@@ -758,6 +768,71 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         );
     }
 
+    renderCommissioningHintDialog(): React.JSX.Element | null {
+        if (!this.state.showCommissioningHint) {
+            return null;
+        }
+
+        if (this.state.suppressAddTime && this.state.suppressAddTime > Date.now()) {
+            setTimeout(() => {
+                if (!this.state.showCommissioningHint) {
+                    return;
+                }
+                this.setState({
+                    addDevicePreDialog: { open: true, bridge: this.state.showCommissioningHint },
+                    showCommissioningHint: null,
+                });
+            }, 50);
+            return null;
+        }
+
+        return (
+            <Dialog
+                onClose={() => this.setState({ showCommissioningHint: null })}
+                open={!0}
+            >
+                <DialogTitle>{I18n.t('Warning')}</DialogTitle>
+                <DialogContent>
+                    {I18n.t('Warning about 15 devices')}
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={this.state.suppressAddEnabled}
+                                onChange={e => this.setState({ suppressAddEnabled: e.target.checked })}
+                            />
+                        }
+                        label={I18n.t('Suppress question for 5 minutes')}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        onClick={() => {
+                            if (this.state.showCommissioningHint) {
+                                this.setState({
+                                    addDevicePreDialog: { open: true, bridge: this.state.showCommissioningHint },
+                                    showCommissioningHint: null,
+                                });
+                            }
+                        }}
+                        startIcon={<Add />}
+                        color="primary"
+                        variant="contained"
+                    >
+                        {I18n.t('Add')}
+                    </Button>
+                    <Button
+                        onClick={() => this.setState({ showCommissioningHint: null })}
+                        startIcon={<Close />}
+                        color="grey"
+                        variant="contained"
+                    >
+                        {I18n.t('Cancel')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        );
+    }
+
     renderAddDeviceDialog(): React.JSX.Element | null {
         if (!this.state.addDeviceDialog) {
             return null;
@@ -822,6 +897,13 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 {...this.state.addDeviceDialog}
                 addDevices={(devices: DetectedDevice[]) =>
                     this.addDevicesToBridge(devices, this.state.addDeviceDialog?.bridgeIndex || 0, true)
+                }
+                devicesInBridge={this.props.matter.bridges[this.state.addDeviceDialog.bridgeIndex].list.length}
+                checkAddedDevices={
+                    this.props.nodeStates[this.props.matter.bridges[this.state.addDeviceDialog.bridgeIndex].uuid]
+                        .status === 'waitingForCommissioning'
+                        ? MAX_UNCOMMISIONED_DEVICES
+                        : 0
                 }
                 matter={this.props.matter}
                 socket={this.props.socket}
@@ -976,7 +1058,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             }}
                             renderValue={value => (
                                 <span>
-                                    <span>{DEVICE_ICONS[value] || <QuestionMark />}</span>
+                                    <IconDeviceType src={value} />
                                     {I18n.t(value)}
                                 </span>
                             )}
@@ -988,7 +1070,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                         key={type}
                                         value={type}
                                     >
-                                        <span>{DEVICE_ICONS[type as Types] || <QuestionMark />}</span>
+                                        <IconDeviceType src={type} />
                                         {I18n.t(type)}
                                     </MenuItem>
                                 ))}
@@ -1091,7 +1173,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             style={{ marginRight: 8 }}
                             title={device.type}
                         >
-                            {DEVICE_ICONS[device.type] || <QuestionMark />}
+                            <IconDeviceType src={device.type} />
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                             <div>
@@ -1454,12 +1536,33 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                                     );
                                                 return;
                                             }
-                                            this.setState({
-                                                addDevicePreDialog: {
-                                                    open: true,
-                                                    bridge: { devices: bridge.list, name: bridge.name, bridgeIndex },
-                                                },
-                                            });
+
+                                            if (
+                                                this.props.nodeStates[bridge.uuid]?.status ===
+                                                    'waitingForCommissioning' &&
+                                                bridge.list.length > MAX_UNCOMMISIONED_DEVICES
+                                            ) {
+                                                // If a user already has >15 devices in an un-commissioned bridge and klicks the "+" button to add more devices
+                                                // to the bridge we should tell him "To avoid problems when pairing this bridge please consider to pair it now and add more devices afterwards".
+                                                this.setState({
+                                                    showCommissioningHint: {
+                                                        devices: bridge.list,
+                                                        name: bridge.name,
+                                                        bridgeIndex,
+                                                    },
+                                                });
+                                            } else {
+                                                this.setState({
+                                                    addDevicePreDialog: {
+                                                        open: true,
+                                                        bridge: {
+                                                            devices: bridge.list,
+                                                            name: bridge.name,
+                                                            bridgeIndex,
+                                                        },
+                                                    },
+                                                });
+                                            }
                                         }}
                                     >
                                         <Add />
@@ -1483,6 +1586,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 {this.renderAddDevicesPreDialog()}
                 {this.renderAddCustomDeviceDialog()}
                 {this.renderDeleteDialog()}
+                {this.renderCommissioningHintDialog()}
                 {this.renderBridgeEditDialog()}
                 {this.renderDeviceEditDialog()}
                 {this.renderQrCodeDialog()}

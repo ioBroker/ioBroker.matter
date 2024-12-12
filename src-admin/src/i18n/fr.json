@@ -132,6 +132,7 @@
     "Value": "Valeur",
     "Vendor ID": "Fournisseur ID",
     "WLAN credentials": "Identifiants WLAN",
+    "Warning about 15 devices": "Pour éviter les problèmes lors de l'appairage de ce pont, pensez à l'appairer maintenant et à ajouter d'autres appareils par la suite.",
     "WiFi SSID": "SSID Wi-Fi",
     "WiFi password": "Mot de passe WiFi",
     "You need ioBroker.pro assistant or remote subscription to have more than 5 devices in bridge": "Vous avez besoin de l'assistant ioBroker.pro ou d'un abonnement à distance pour avoir plus de 5 appareils en pont",

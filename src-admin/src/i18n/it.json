@@ -132,6 +132,7 @@
     "Value": "Valore",
     "Vendor ID": "ID del venditore",
     "WLAN credentials": "Credenziali Wi-Fi",
+    "Warning about 15 devices": "Per evitare problemi durante l'associazione di questo bridge, si prega di considerare di associarlo ora e di aggiungere altri dispositivi in seguito.",
     "WiFi SSID": "SSID Wi-Fi",
     "WiFi password": "Password Wi-Fi",
     "You need ioBroker.pro assistant or remote subscription to have more than 5 devices in bridge": "Hai bisogno dell'assistente ioBroker.pro o di un abbonamento remoto per avere più di 5 dispositivi in bridge",

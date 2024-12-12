@@ -132,6 +132,7 @@
     "Value": "价值",
     "Vendor ID": "供应商ID",
     "WLAN credentials": "WLAN 凭证",
+    "Warning about 15 devices": "为了避免在配对此桥时出现问题，请考虑立即配对，然后再添加更多设备",
     "WiFi SSID": "无线网络名称",
     "WiFi password": "WiFi密码",
     "You need ioBroker.pro assistant or remote subscription to have more than 5 devices in bridge": "您需要 ioBroker.pro 助手或远程订阅才能在桥接中拥有超过 5 个设备",

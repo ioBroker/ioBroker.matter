@@ -1,4 +1,5 @@
 {
+    " Please DO NOT use the QR code / pairing code that is printed on the Matter device.": " Будь ласка, НЕ використовуйте QR-код/код сполучення, надрукований на пристрої Matter.",
     "%s of %s devices selected": "%s із %s вибрано пристроїв",
     "Activate BLE to pair devices nearby. You can also use the \"ioBroker Visu\" App to pair other devices.": "Активуйте BLE, щоб підключити пристрої поблизу вашого хосту ioBroker, які ще не підключено до іншої екосистеми. Ви також можете використовувати додаток \"ioBroker Visu\" для підключення інших пристроїв.",
     "Add": "додати",
@@ -10,6 +11,7 @@
     "Add device from one state": "Додати пристрій з одного стану",
     "Add device with auto-detection": "Додати пристрій з автовизначенням",
     "Add devices": "Додайте пристрої",
+    "Add via QR Code": "Ручне додавання вже підключеного пристрою Matter за допомогою ioBroker Matter Controller",
     "Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.": "На додаток до мостів ви також можете виставляти стани ioBroker як самостійні матеріальні пристрої.\nЇх усіх можна поєднати окремо.\nКраще використовувати мости.",
     "All": "Усе",
     "All devices": "Всі пристрої",
@@ -103,6 +105,7 @@
     "Re-Announce": "Re-announce",
     "Reconnect to backend": "Повторно підключіться до сервера",
     "Required": "Обов'язковий",
+    "Requirements: add via QR Code": "Необхідна умова: пристрій Matter уже має бути підключено до іншої системи Matter (наприклад, Google, Apple, Alexa, ...). Тут ви повинні ввести код підключення QR-коду або відсканувати QR-код, наданий для цього пристрою Matter у програмі екосистемою Matter (наприклад, Google Home).",
     "Reset": "Скинути",
     "Reset device or bridge": "Скинути пристрій або міст",
     "Reset it at least to defaults": "Нарешті скинути налаштування за замовчуванням",

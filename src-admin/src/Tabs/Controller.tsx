@@ -596,13 +596,28 @@ class Controller extends Component<ComponentProps, ComponentState> {
             <Dialog
                 open={!0}
                 onClose={() => this.setState({ showQrCodeDialog: { open: false } }, () => this.destroyQrCode())}
+                maxWidth="lg"
+                fullWidth
             >
-                <DialogTitle>{I18n.t('QR Code')}</DialogTitle>
+                <DialogTitle>{I18n.t('Add device by pairing code or QR Code')}</DialogTitle>
                 <DialogContent>
+                    <div style={{ marginBottom: 10 }}>{I18n.t('Add via QR Code')}</div>
+                    <InfoBox
+                        iconPosition="top"
+                        type="info"
+                    >
+                        {I18n.t('Requirements: add via QR Code')}
+                        <div style={{ color: this.props.themeType === 'dark' ? '#ff6363' : '#800000', marginTop: 10 }}>
+                            {I18n.t(
+                                ' Please DO NOT use the QR code / pairing code that is printed on the Matter device.',
+                            )}
+                        </div>
+                    </InfoBox>
                     <TextField
                         variant="standard"
                         label={I18n.t('Manual pairing code')}
                         fullWidth
+                        style={{ maxWidth: 400 }}
                         value={this.state.manualCode}
                         onChange={e => this.setState({ manualCode: e.target.value })}
                     />
@@ -625,6 +640,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                 },
                             }}
                             fullWidth
+                            style={{ maxWidth: 400 }}
                             value={this.state.qrCode || ''}
                             error={!!this.state.qrError}
                             helperText={this.state.qrError}
@@ -632,6 +648,8 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     </div>
                     {this.state.camera.length ? (
                         <Select
+                            fullWidth
+                            style={{ maxWidth: 400 }}
                             variant="standard"
                             value={this.state.camera}
                             onChange={async e => {

@@ -1,4 +1,5 @@
 {
+    " Please DO NOT use the QR code / pairing code that is printed on the Matter device.": "Si prega di NON utilizzare il codice QR/codice di associazione stampato sul dispositivo Matter.",
     "%s of %s devices selected": "%s di %s dispositivi selezionati",
     "Activate BLE to pair devices nearby. You can also use the \"ioBroker Visu\" App to pair other devices.": "Attiva BLE per associare i dispositivi nelle vicinanze del tuo host ioBroker, che non sono già accoppiati con un altro ecosistema. Puoi anche utilizzare l'app \"ioBroker Visu\" per associare altri dispositivi.",
     "Add": "Aggiungere",
@@ -10,6 +11,7 @@
     "Add device from one state": "Aggiungi dispositivo da uno stato",
     "Add device with auto-detection": "Aggiungi dispositivo con rilevamento automatico",
     "Add devices": "Aggiungi dispositivi",
+    "Add via QR Code": "Aggiunta manuale di un dispositivo Matter già connesso con ioBroker Matter Controller",
     "Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.": "Oltre ai bridge puoi anche esporre gli stati di ioBroker come dispositivi di questione autonomi.\nPossono essere tutti accoppiati individualmente.\nDovresti preferire usare i bridge.",
     "All": "Al",
     "All devices": "Tutti i dispositivi",
@@ -103,6 +105,7 @@
     "Re-Announce": "Re-announce",
     "Reconnect to backend": "Riconnettiti al backend",
     "Required": "Necessario",
+    "Requirements: add via QR Code": "Prerequisito: il dispositivo Matter deve essere già stato commissionato a un altro sistema Matter (ad esempio Google, Apple, Alexa, ...). Qui devi inserire il codice di associazione del codice QR o scansionare il codice QR fornito per questo dispositivo Matter nell'app dall'ecosistema Matter (ad esempio Google Home).",
     "Reset": "Ripristina",
     "Reset device or bridge": "Ripristina il dispositivo o il bridge",
     "Reset it at least to defaults": "Infine ripristina le impostazioni predefinite",

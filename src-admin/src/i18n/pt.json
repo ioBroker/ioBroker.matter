@@ -1,4 +1,5 @@
 {
+    " Please DO NOT use the QR code / pairing code that is printed on the Matter device.": "NÃO use o código QR/código de pareamento impresso no dispositivo Matter.",
     "%s of %s devices selected": "%s de %s dispositivos selecionados",
     "Activate BLE to pair devices nearby. You can also use the \"ioBroker Visu\" App to pair other devices.": "Ative o BLE para emparelhar dispositivos próximos ao seu host ioBroker, que ainda não estejam emparelhados com outro ecossistema. Você também pode usar o aplicativo \"ioBroker Visu\" para emparelhar outros dispositivos.",
     "Add": "Adicionar",
@@ -10,6 +11,7 @@
     "Add device from one state": "Adicionar dispositivo de um estado",
     "Add device with auto-detection": "Adicionar dispositivo com detecção automática",
     "Add devices": "Adicionar dispositivos",
+    "Add via QR Code": "Adição manual de um dispositivo Matter já conectado com o controlador Matter ioBroker",
     "Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.": "Além das pontes, você também pode expor os estados do ioBroker como dispositivos independentes.\nTodos eles podem ser emparelhados individualmente.\nVocê deve preferir usar pontes.",
     "All": "Tudo",
     "All devices": "Todos os dispositivos",
@@ -103,6 +105,7 @@
     "Re-Announce": "Re-announce",
     "Reconnect to backend": "Reconectar ao backend",
     "Required": "Obrigatório",
+    "Requirements: add via QR Code": "Pré-requisito: O dispositivo Matter já deve estar comissionado para outro sistema Matter (por exemplo, Google, Apple, Alexa, ...). Aqui você deve inserir o código de pareamento do código QR ou escanear o código QR fornecido para este dispositivo Matter no aplicativo pelo ecossistema Matter (por exemplo, Google Home).",
     "Reset": "Reiniciar",
     "Reset device or bridge": "Redefinir dispositivo ou ponte",
     "Reset it at least to defaults": "Finalmente redefinir para as configurações padrão",

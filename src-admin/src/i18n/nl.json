@@ -1,4 +1,5 @@
 {
+    " Please DO NOT use the QR code / pairing code that is printed on the Matter device.": "Gebruik NIET de QR-code/koppelingscode die op het Matter-apparaat staat.",
     "%s of %s devices selected": "%s van %s apparaten geselecteerd",
     "Activate BLE to pair devices nearby. You can also use the \"ioBroker Visu\" App to pair other devices.": "Activeer BLE om apparaten in de buurt van uw ioBroker-host te koppelen die nog niet aan een ander ecosysteem zijn gekoppeld. U kunt ook de app \"ioBroker Visu\" gebruiken om andere apparaten te koppelen.",
     "Add": "Toevoegen",
@@ -10,6 +11,7 @@
     "Add device from one state": "Voeg apparaat toe vanuit één staat",
     "Add device with auto-detection": "Apparaat toevoegen met automatische detectie",
     "Add devices": "Apparaten toevoegen",
+    "Add via QR Code": "Handmatige toevoeging van een reeds aangesloten Matter-apparaat met de ioBroker Matter Controller",
     "Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.": "Naast bruggen kunt u ioBroker-statussen ook blootstellen als zelfstandige zakenapparaten.\nZe kunnen allemaal afzonderlijk worden gekoppeld.\nGebruik bij voorkeur bruggen.",
     "All": "Alles",
     "All devices": "Alle apparaten",
@@ -103,6 +105,7 @@
     "Re-Announce": "Re-announce",
     "Reconnect to backend": "Opnieuw verbinden met backend",
     "Required": "Vereist",
+    "Requirements: add via QR Code": "Voorwaarde: Het Matter-apparaat moet al in gebruik zijn genomen bij een ander Matter-systeem (bijv. Google, Apple, Alexa, ...). Hier moet u de QR-codekoppelingscode invoeren of de QR-code scannen die voor dit Matter-apparaat in de app is verstrekt door het Matter-ecosysteem (bijv. Google Home).",
     "Reset": "Opnieuw instellen",
     "Reset device or bridge": "Apparaat of brug resetten",
     "Reset it at least to defaults": "Eindelijk teruggezet naar de standaardinstellingen",

@@ -1,4 +1,5 @@
 {
+    " Please DO NOT use the QR code / pairing code that is printed on the Matter device.": "Bitte verwenden Sie NICHT den QR-Code/Pairing-Code, der auf dem Matter-Gerät aufgedruckt ist.",
     "%s of %s devices selected": "%s von %s Geräten ausgewählt",
     "Activate BLE to pair devices nearby. You can also use the \"ioBroker Visu\" App to pair other devices.": "Aktivieren Sie BLE, um Geräte in der Nähe Ihres ioBroker-Hosts zu koppeln, die noch nicht mit einem anderen Ökosystem gekoppelt sind. Sie können auch die App „ioBroker Visu“ verwenden, um andere Geräte zu koppeln.",
     "Add": "Hinzufügen",
@@ -10,6 +11,7 @@
     "Add device from one state": "Gerät aus einem State hinzufügen",
     "Add device with auto-detection": "Gerät mit automatischer Erkennung hinzufügen",
     "Add devices": "Geräte hinzufügen",
+    "Add via QR Code": "Manuelles Hinzufügen eines bereits verbundenen Matter-Geräts mit dem ioBroker Matter Controller",
     "Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.": "Zusätzlich zu Bridges können Sie ioBroker-Zustände auch als eigenständige Matter-Geräte verfügbar machen.\nSie können alle einzeln gepaart werden.\nSie sollten vorzugsweise Bridges verwenden.",
     "All": "Alle",
     "All devices": "Alle Geräte",
@@ -103,6 +105,7 @@
     "Re-Announce": "Re-announce",
     "Reconnect to backend": "Erneute Verbindung zum Backend herstellen",
     "Required": "Erforderlich",
+    "Requirements: add via QR Code": "Voraussetzung: Das Matter-Gerät muss bereits mit einem anderen Matter-System (z. B. Google, Apple, Alexa, …) verbunden sein. Hier musst du den QR-Code-Pairing-Code eingeben oder den QR-Code scannen, der vom Matter-Ökosystem (z. B. Google Home) für dieses Matter-Gerät in der App bereitgestellt wird.",
     "Reset": "Zurücksetzen",
     "Reset device or bridge": "Gerät oder Bridge zurücksetzen",
     "Reset it at least to defaults": "Endlich auf die Standardeinstellungen zurücksetzten",

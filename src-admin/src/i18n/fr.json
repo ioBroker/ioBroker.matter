@@ -1,4 +1,5 @@
 {
+    " Please DO NOT use the QR code / pairing code that is printed on the Matter device.": "Veuillez NE PAS utiliser le code QR / code d'appairage imprimé sur l'appareil Matter.",
     "%s of %s devices selected": "%s sur %s appareils sélectionnés",
     "Activate BLE to pair devices nearby. You can also use the \"ioBroker Visu\" App to pair other devices.": "Activez BLE pour coupler des appareils à proximité de votre hôte ioBroker, qui ne sont pas déjà couplés à un autre écosystème. Vous pouvez également utiliser l'application « ioBroker Visu » pour coupler d'autres appareils.",
     "Add": "Ajouter",
@@ -10,6 +11,7 @@
     "Add device from one state": "Ajouter un appareil à partir d'un état",
     "Add device with auto-detection": "Ajouter un appareil avec détection automatique",
     "Add devices": "Ajouter des appareils",
+    "Add via QR Code": "Ajout manuel d'un appareil Matter déjà connecté avec le contrôleur Matter ioBroker",
     "Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.": "En plus des ponts, vous pouvez également exposer les états ioBroker en tant que dispositifs autonomes.\nIls peuvent tous être jumelés individuellement.\nVous devriez préférer utiliser des ponts.",
     "All": "Tous",
     "All devices": "Tous les dispositifs",
@@ -103,6 +105,7 @@
     "Re-Announce": "Re-announce",
     "Reconnect to backend": "Se reconnecter au backend",
     "Required": "Requis",
+    "Requirements: add via QR Code": "Condition préalable : l'appareil Matter doit déjà être mis en service sur un autre système Matter (par ex. Google, Apple, Alexa, ...). Vous devez ici saisir le code QR d'appairage ou scanner le code QR fourni pour cet appareil Matter dans l'application par l'écosystème Matter (par ex. Google Home).",
     "Reset": "Réinitialiser",
     "Reset device or bridge": "Réinitialiser l'appareil ou le pont",
     "Reset it at least to defaults": "Enfin réinitialisé aux paramètres par défaut",

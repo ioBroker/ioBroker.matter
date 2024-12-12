@@ -1,4 +1,5 @@
 {
+    " Please DO NOT use the QR code / pairing code that is printed on the Matter device.": "请不要使用印刷在 Matter 设备上的二维码/配对码。",
     "%s of %s devices selected": "已选择 %s 个设备（共 %s 个）",
     "Activate BLE to pair devices nearby. You can also use the \"ioBroker Visu\" App to pair other devices.": "激活 BLE 以配对 ioBroker 主机附近尚未与其他生态系统配对的设备。您还可以使用“ioBroker Visu”应用程序配对其他设备。",
     "Add": "添加",
@@ -10,6 +11,7 @@
     "Add device from one state": "从一种状态添加设备",
     "Add device with auto-detection": "添加自动检测设备",
     "Add devices": "添加设备",
+    "Add via QR Code": "使用 ioBroker Matter Controller 手动添加已连接的 Matter 设备",
     "Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.": "除了桥接器之外，您还可以将 ioBroker 状态公开为独立的物质设备。\n它们都可以单独配对。\n您应该更喜欢使用桥接器。",
     "All": "全部",
     "All devices": "所有设备",
@@ -103,6 +105,7 @@
     "Re-Announce": "Re-announce",
     "Reconnect to backend": "重新连接到后端",
     "Required": "必需的",
+    "Requirements: add via QR Code": "前提条件：Matter 设备必须已委托给另一个 Matter 系统（例如 Google、Apple、Alexa 等）。在这里，您必须输入二维码配对码或扫描 Matter 生态系统（例如 Google Home）在应用程序中为此 Matter 设备提供的二维码。",
     "Reset": "重置",
     "Reset device or bridge": "重置设备或桥接器",
     "Reset it at least to defaults": "最后恢复默认设置",

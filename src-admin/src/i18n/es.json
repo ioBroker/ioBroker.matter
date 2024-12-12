@@ -1,4 +1,5 @@
 {
+    " Please DO NOT use the QR code / pairing code that is printed on the Matter device.": "NO utilice el código QR/código de emparejamiento que está impreso en el dispositivo Matter.",
     "%s of %s devices selected": "%s de %s dispositivos seleccionados",
     "Activate BLE to pair devices nearby. You can also use the \"ioBroker Visu\" App to pair other devices.": "Active BLE para emparejar dispositivos cercanos a su host ioBroker, que aún no estén emparejados con otro ecosistema. También puedes utilizar la aplicación \"ioBroker Visu\" para emparejar otros dispositivos.",
     "Add": "Agregar",
@@ -10,6 +11,7 @@
     "Add device from one state": "Agregar dispositivo desde un estado",
     "Add device with auto-detection": "Agregar dispositivo con detección automática",
     "Add devices": "Agregar dispositivos",
+    "Add via QR Code": "Adición manual de un dispositivo Matter ya conectado con el controlador Matter de ioBroker",
     "Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.": "Además de los puentes, también puede exponer los estados de ioBroker como dispositivos independientes.\nTodos ellos se pueden emparejar individualmente.\nDeberías preferir utilizar puentes.",
     "All": "Todo",
     "All devices": "Todos los dispositivos",
@@ -103,6 +105,7 @@
     "Re-Announce": "Re-announce",
     "Reconnect to backend": "Reconectarse al backend",
     "Required": "Requerido",
+    "Requirements: add via QR Code": "Requisito: El dispositivo Matter ya debe estar conectado a otro sistema Matter (p. ej. Google, Apple, Alexa, etc.). Para ello, debe introducir el código QR de emparejamiento o escanear el código QR que el ecosistema Matter proporciona para este dispositivo Matter en la aplicación (p. ej. Google Home).",
     "Reset": "Reiniciar",
     "Reset device or bridge": "Restablecer dispositivo o puente",
     "Reset it at least to defaults": "Finalmente restablecer la configuración predeterminada",

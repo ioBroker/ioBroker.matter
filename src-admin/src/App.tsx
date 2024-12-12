@@ -8,13 +8,14 @@ import {
     DialogContent,
     DialogContentText,
     DialogTitle,
+    Fab,
     LinearProgress,
     Tab,
     Tabs,
     Tooltip,
 } from '@mui/material';
 
-import { SignalCellularOff as IconNotAlive } from '@mui/icons-material';
+import { Help as IconHelp, SignalCellularOff as IconNotAlive } from '@mui/icons-material';
 
 import {
     AdminConnection,
@@ -697,6 +698,28 @@ class App extends GenericApp<GenericAppProps, AppState> {
                                         </div>
                                     </Tooltip>
                                 )}
+                                {this.common && this.state.selectedTab !== 'options' ? (
+                                    <Tooltip
+                                        title={I18n.t('Show readme page')}
+                                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                                    >
+                                        <Fab
+                                            size="small"
+                                            color="primary"
+                                            style={{
+                                                marginRight: 5,
+                                                marginTop: 5,
+                                                float: 'right',
+                                            }}
+                                            onClick={() => {
+                                                const win = window.open(this.common.readme, '_blank');
+                                                win?.focus();
+                                            }}
+                                        >
+                                            <IconHelp />
+                                        </Fab>
+                                    </Tooltip>
+                                ) : null}
                             </Tabs>
                         </AppBar>
 

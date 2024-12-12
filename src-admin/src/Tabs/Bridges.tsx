@@ -11,12 +11,14 @@ import {
     DomainDisabled,
     Edit,
     FormatListBulleted,
+    Info,
     KeyboardArrowDown,
     KeyboardArrowUp,
     QuestionMark,
     Save,
     UnfoldLess,
     UnfoldMore,
+    Warning,
 } from '@mui/icons-material';
 import {
     Button,
@@ -1073,6 +1075,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         devIndex: number,
     ): React.JSX.Element {
         const isLast = devIndex === bridge.list.length - 1;
+        const hasError = Array.isArray(this.props.nodeStates?.[bridge.uuid]?.error)
+            ? !!(this.props.nodeStates[bridge.uuid].error as string[])?.includes(device.uuid)
+            : false;
+
         return (
             <TableRow
                 key={devIndex}
@@ -1094,6 +1100,30 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             </div>
                             <div style={styles.deviceType}>{`${I18n.t('Device type')}: ${I18n.t(device.type)}`}</div>
                         </div>
+                        <div style={{ flex: 1 }} />
+                        {this.props.nodeStates?.[bridge.uuid] ? (
+                            <Tooltip
+                                key="debug"
+                                title={hasError ? I18n.t('Show error') : I18n.t('Show additional information')}
+                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                            >
+                                <IconButton
+                                    style={{
+                                        height: 40,
+                                        color: hasError
+                                            ? '#FF0000'
+                                            : this.isDevice
+                                              ? this.props.themeType === 'dark'
+                                                  ? 'white'
+                                                  : '#00000080'
+                                              : 'white',
+                                    }}
+                                    onClick={e => this.requestAdditionalInformation(e, device.uuid)}
+                                >
+                                    {hasError ? <Warning /> : <Info />}
+                                </IconButton>
+                            </Tooltip>
+                        ) : null}
                     </div>
                 </TableCell>
                 <TableCell />

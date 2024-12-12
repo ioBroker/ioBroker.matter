@@ -70,7 +70,8 @@ export abstract class BaseServerNode implements GeneralNode {
         };
 
         // TODO: @Apollon77. Set this flag to true if error flag should be shown
-        // result.error = true;
+        // result.error = true; if the error is related to bridge
+        // or ['UUID1', 'UUID2'] if the error is related to a specific device
 
         // Device is not commissioned, so show QR code
         if (!this.serverNode.lifecycle.isCommissioned) {

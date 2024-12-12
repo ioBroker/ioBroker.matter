@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import QrScanner from 'qr-scanner';
 
-import { IconButton, InfoBox } from '@foxriver76/iob-component-lib';
+import { IconButton } from '@foxriver76/iob-component-lib';
 
 import { Add, Bluetooth, BluetoothDisabled, Close, Save, Search, SearchOff } from '@mui/icons-material';
 
@@ -31,6 +31,7 @@ import DeviceManager from '@iobroker/dm-gui-components';
 
 import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
 import { clone, getVendorName } from '../Utils';
+import InfoBox from '../components/InfoBox';
 
 const styles: Record<string, React.CSSProperties> = {
     panel: {
@@ -372,7 +373,14 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 <DialogTitle>{I18n.t('BLE Commissioning information')}</DialogTitle>
                 <DialogContent>
                     <div>
-                        <InfoBox type="info">{I18n.t('Matter Controller BLE Dialog Infotext')}</InfoBox>
+                        <InfoBox
+                            type="info"
+                            iconPosition="top"
+                            closeable
+                            storeId="matter.ble"
+                        >
+                            {I18n.t('Matter Controller BLE Dialog Infotext')}
+                        </InfoBox>
 
                         <Typography sx={styles.header}>{I18n.t('Bluetooth configuration')}</Typography>
                         <TextField
@@ -711,7 +719,11 @@ class Controller extends Component<ComponentProps, ComponentState> {
             >
                 <DialogTitle>{I18n.t('Discovered devices to pair')}</DialogTitle>
                 <DialogContent>
-                    <InfoBox type="info">
+                    <InfoBox
+                        type="info"
+                        closeable
+                        storeId="matter.pairing"
+                    >
                         {I18n.t(this.props.matter.controller.ble ? 'Pairing Info Text BLE' : 'Pairing Info Text')}
                     </InfoBox>
                     {this.state.discoveryRunning ? <LinearProgress /> : null}
@@ -836,7 +848,14 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
         return (
             <div style={styles.panel}>
-                <InfoBox type="info">{I18n.t('Matter Controller Infotext')}</InfoBox>
+                <InfoBox
+                    type="info"
+                    closeable
+                    storeId="matter.controller.info"
+                    iconPosition="top"
+                >
+                    {I18n.t('Matter Controller Infotext')}
+                </InfoBox>
                 {this.renderLoadingSpinner()}
                 {this.renderShowDiscoveredDevices()}
                 {this.renderQrCodeDialog()}
@@ -862,7 +881,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     />
                     {I18n.t('On')}
                 </div>
-                <div>
+                <div style={{ display: 'flex', width: '100%', flexFlow: 'wrap', gap: 9 }}>
                     {this.props.matter.controller.enabled && this.props.alive ? (
                         <Button
                             variant="contained"

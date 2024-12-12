@@ -2,7 +2,7 @@ import { Types } from '@iobroker/type-detector';
 import React from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import { IconButton, InfoBox } from '@foxriver76/iob-component-lib';
+import { IconButton } from '@foxriver76/iob-component-lib';
 import { Add, AutoMode, Close, Delete, DeviceHub, FormatListBulleted, QuestionMark, Save } from '@mui/icons-material';
 import {
     Button,
@@ -30,6 +30,8 @@ import { I18n, SelectID } from '@iobroker/adapter-react-v5';
 import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import type { DetectedDevice, DeviceDescription, MatterConfig } from '../types';
 import { clone, detectDevices, getText } from '../Utils';
+import InfoBox from '../components/InfoBox';
+
 import BridgesAndDevices, {
     type BridgesAndDevicesProps,
     type BridgesAndDevicesState,
@@ -126,6 +128,8 @@ interface DevicesState extends BridgesAndDevicesState {
 }
 
 class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
+    protected readonly isDevice = true;
+
     constructor(props: DevicesProps) {
         super(props);
         Object.assign(this.state, {
@@ -173,7 +177,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 onChange={e => this.setState({ suppressDeleteEnabled: e.target.checked })}
                             />
                         }
-                        label={I18n.t('Suppress question for 2 minutes')}
+                        label={I18n.t('Suppress question for 5 minutes')}
                     />
                 </DialogContent>
                 <DialogActions>
@@ -184,7 +188,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                             this.setState(
                                 {
                                     deleteDialog: null,
-                                    suppressDeleteTime: this.state.suppressDeleteEnabled ? Date.now() + 120_000 : 0,
+                                    suppressDeleteTime: this.state.suppressDeleteEnabled ? Date.now() + 300_000 : 0,
                                 },
                                 () => this.props.updateConfig(matter),
                             );
@@ -888,7 +892,14 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         </div>
                     </div>
                 </TableCell>
-                <TableCell style={{ width: 0 }}>{this.renderStatus(device)}</TableCell>
+                {this.renderStatus(device).map((button, i) => (
+                    <TableCell
+                        key={i}
+                        style={{ width: 0 }}
+                    >
+                        {button}
+                    </TableCell>
+                ))}
                 <TableCell style={{ width: 0 }}>
                     <Switch
                         checked={device.enabled}
@@ -980,7 +991,13 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 {this.renderDebugDialog()}
                 {this.renderQrCodeDialog()}
                 {this.renderResetDialog()}
-                <InfoBox type="info">
+                {this.renderJsonConfigDialog()}
+                <InfoBox
+                    type="info"
+                    closeable
+                    iconPosition="top"
+                    storeId="matter.devices"
+                >
                     {I18n.t(
                         'Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.',
                     )}

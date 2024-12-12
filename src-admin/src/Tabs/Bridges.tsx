@@ -43,7 +43,7 @@ import {
 
 import { I18n, SelectID, type IobTheme } from '@iobroker/adapter-react-v5';
 
-import { InfoBox } from '@foxriver76/iob-component-lib';
+import InfoBox from '../components/InfoBox';
 import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import type {
     BridgeDescription,
@@ -219,6 +219,7 @@ interface BridgesState extends BridgesAndDevicesState {
 
 export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
     private bridgeIndex: number | null = null;
+    protected readonly isDevice = false;
 
     constructor(props: BridgesProps) {
         super(props);
@@ -711,7 +712,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                 onChange={e => this.setState({ suppressDeleteEnabled: e.target.checked })}
                             />
                         }
-                        label={I18n.t('Suppress question for 2 minutes')}
+                        label={I18n.t('Suppress question for 5 minutes')}
                     />
                 </DialogContent>
                 <DialogActions>
@@ -731,7 +732,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             this.setState(
                                 {
                                     deleteDialog: null,
-                                    suppressDeleteTime: this.state.suppressDeleteEnabled ? Date.now() + 120_000 : 0,
+                                    suppressDeleteTime: this.state.suppressDeleteEnabled ? Date.now() + 300_000 : 0,
                                 },
                                 () => this.props.updateConfig(matter),
                             );
@@ -1323,7 +1324,13 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         >
                             <span>
                                 <IconButton
-                                    sx={styles.bridgeButtonsAndTitleColor}
+                                    style={{
+                                        color: this.isDevice
+                                            ? this.props.themeType === 'dark'
+                                                ? 'white'
+                                                : '#00000080'
+                                            : 'white',
+                                    }}
                                     disabled={bridge.enabled && !allowDisable}
                                     onClick={e => {
                                         e.stopPropagation();
@@ -1451,7 +1458,15 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 {this.renderQrCodeDialog()}
                 {this.renderDebugDialog()}
                 {this.renderResetDialog()}
-                <InfoBox type="info">{I18n.t('Matter Bridges Infotext')}</InfoBox>
+                {this.renderJsonConfigDialog()}
+                <InfoBox
+                    type="info"
+                    closeable
+                    storeId="matter.bridge"
+                    iconPosition="top"
+                >
+                    {I18n.t('Matter Bridges Infotext')}
+                </InfoBox>
                 <Tooltip
                     title={I18n.t('Add bridge')}
                     slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}

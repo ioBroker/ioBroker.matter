@@ -1,17 +1,26 @@
 import React, { Component } from 'react';
 import QRCode from 'react-qr-code';
 
-import { InfoBox } from '@foxriver76/iob-component-lib';
-import { type AdminConnection, I18n, type IobTheme, type ThemeType, Utils } from '@iobroker/adapter-react-v5';
+import {
+    type AdminConnection,
+    I18n,
+    Icon,
+    type IobTheme,
+    type ThemeName,
+    type ThemeType,
+    Utils,
+} from '@iobroker/adapter-react-v5';
 import {
     Close,
     ContentCopy,
     Delete,
+    Info,
     QrCode,
     QuestionMark,
     Settings,
     SettingsInputAntenna,
     SignalWifiStatusbarNull,
+    Warning,
     Wifi,
     WifiOff,
 } from '@mui/icons-material';
@@ -32,7 +41,11 @@ import {
     Tooltip,
 } from '@mui/material';
 import { SiAmazonalexa, SiApple, SiGoogleassistant, SiSmartthings } from 'react-icons/si';
+import ioBroker from '../assets/ioBroker.svg';
+import { type ConfigItemPanel, type ConfigItemTabs, JsonConfigComponent } from '@iobroker/json-config';
+
 import { VendorIds, VendorIdsAmazon, VendorIdsApple, VendorIdsGoogle, VendorIdsSamsung } from '../utils/vendorIDs';
+import InfoBox from '../components/InfoBox';
 
 import type {
     BridgeDescription,
@@ -42,7 +55,8 @@ import type {
     NodeStateResponse,
     NodeStates,
 } from '../types';
-import { formatPairingCode } from '../Utils';
+import { formatPairingCode, getTranslation } from '../Utils';
+import type { ActionButton, BackEndCommandJsonFormOptions, JsonFormSchema } from '@iobroker/dm-utils';
 
 export const STYLES: Record<string, React.CSSProperties> = {
     vendorIcon: {
@@ -68,6 +82,7 @@ export interface BridgesAndDevicesProps {
     socket: AdminConnection;
     theme: IobTheme;
     themeType: ThemeType;
+    themeName: ThemeName;
     updateConfig: (config: MatterConfig) => void;
     updateNodeStates: (states: { [uuid: string]: NodeStateResponse }) => void;
 }
@@ -79,12 +94,21 @@ export interface BridgesAndDevicesState {
         step: number;
     } | null;
     showDebugData: DeviceDescription | BridgeDescription | null;
+    jsonConfig: {
+        schema: ConfigItemPanel | ConfigItemTabs;
+        options?: BackEndCommandJsonFormOptions;
+        changed: boolean;
+        data: Record<string, any>;
+    } | null;
 }
 
 class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends BridgesAndDevicesState> extends Component<
     TProps,
     TState
 > {
+    // eslint-disable-next-line react/no-unused-class-component-methods
+    protected isDevice: boolean;
+
     constructor(props: TProps) {
         super(props);
 
@@ -92,6 +116,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
             showQrCode: null,
             showResetDialog: null,
             showDebugData: null,
+            jsonConfig: null,
         } as TState;
     }
 
@@ -116,9 +141,20 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
             : `0x${vendorId.toString(16)}`;
     }
 
-    static getVendorIcon(vendorId: number, themeType: ThemeType): React.JSX.Element | null {
+    static getVendorIcon(vendorId: number, vendorName: string, themeType: ThemeType): React.JSX.Element | null {
         const vendor = VendorIds[vendorId];
 
+        if (vendorId === 0xfff1 && vendorName.toLowerCase() === 'iobroker') {
+            // AmazonLab126
+            return (
+                <img
+                    src={ioBroker}
+                    alt="ioBroker"
+                    title="ioBroker"
+                    style={STYLES.vendorIcon}
+                />
+            );
+        }
         if (VendorIdsAmazon.includes(vendorId)) {
             // AmazonLab126
             return (
@@ -170,12 +206,15 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         return null;
     }
 
-    static getStatusColor(status: NodeStates, themeType: ThemeType): string {
+    static getStatusColor(status: NodeStates, themeType: ThemeType, isContrast?: boolean): string {
         if (status === 'creating') {
             return themeType === 'dark' ? '#a4a4a4' : '#1c1c1c';
         }
         if (status === 'waitingForCommissioning') {
-            return themeType === 'dark' ? '#2865ea' : '#00288d';
+            if (!isContrast) {
+                return themeType === 'dark' ? '#aac7ff' : '#4e7bff';
+            }
+            return themeType === 'dark' ? '#699aff' : '#5385ff';
         }
         if (status === 'commissioned') {
             return themeType === 'dark' ? '#fcb35f' : '#b24a00';
@@ -186,8 +225,8 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         return 'grey';
     }
 
-    static getStatusIcon(status: NodeStates, themeType: ThemeType): React.JSX.Element {
-        const color = BridgesAndDevices.getStatusColor(status, themeType);
+    static getStatusIcon(status: NodeStates, themeType: ThemeType, isContrast?: boolean): React.JSX.Element {
+        const color = BridgesAndDevices.getStatusColor(status, themeType, isContrast);
         if (status === 'creating') {
             return <SignalWifiStatusbarNull style={{ color }} />;
         }
@@ -206,29 +245,99 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         return <QuestionMark style={{ color }} />;
     }
 
-    renderStatus(deviceOrBridge: DeviceDescription | BridgeDescription): React.ReactNode {
+    requestAdditionalInformation(uuid: string): void {
+        this.props.socket
+            .sendTo(`matter.${this.props.instance}`, 'extendedInfo', {
+                uuid,
+                error: this.props.nodeStates[uuid]?.error,
+            })
+            .then((result: { schema: JsonFormSchema; options?: BackEndCommandJsonFormOptions }): void => {
+                this.setState({
+                    jsonConfig: {
+                        schema: result.schema,
+                        options: result.options,
+                        changed: false,
+                        data: result.options?.data || {},
+                    },
+                });
+            })
+            .catch(e => this.props.showToast(`Cannot reset: ${e}`));
+    }
+
+    renderStatus(
+        deviceOrBridge: DeviceDescription | BridgeDescription,
+    ): [React.JSX.Element | null, React.JSX.Element | null, React.JSX.Element | null] {
         if (!this.props.nodeStates[deviceOrBridge.uuid] || !deviceOrBridge.enabled) {
-            return null;
+            return [null, null, null];
         }
 
-        if (this.props.nodeStates[deviceOrBridge.uuid].status === 'waitingForCommissioning') {
-            return (
-                <Tooltip
-                    title={I18n.t('Device is not commissioned. Show QR Code for commissioning')}
-                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+        const result: [React.JSX.Element | null, React.JSX.Element | null, React.JSX.Element | null] = [
+            null,
+            null,
+            null,
+        ];
+
+        const qrCode = this.props.nodeStates[deviceOrBridge.uuid].status ? (
+            <Tooltip
+                key="qrCode"
+                title={
+                    this.props.nodeStates[deviceOrBridge.uuid].status === 'waitingForCommissioning'
+                        ? I18n.t('Device is not commissioned. Show QR Code for commissioning')
+                        : I18n.t('Show QR Code for commissioning')
+                }
+                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+            >
+                <IconButton
+                    style={{ height: 40 }}
+                    onClick={() => {
+                        this.reAnnounceDevice(deviceOrBridge.uuid).catch(e => window.alert(`Cannot re-announce: ${e}`));
+                        this.setState({ showQrCode: deviceOrBridge });
+                    }}
                 >
-                    <IconButton
-                        style={{ height: 40 }}
-                        onClick={() => this.setState({ showQrCode: deviceOrBridge })}
-                    >
-                        <QrCode />
-                    </IconButton>
-                </Tooltip>
-            );
+                    <QrCode />
+                </IconButton>
+            </Tooltip>
+        ) : null;
+
+        if (qrCode) {
+            result[2] = qrCode;
+        }
+
+        const extendedInfo = (
+            <Tooltip
+                key="debug"
+                title={
+                    this.props.nodeStates[deviceOrBridge.uuid].error
+                        ? I18n.t('Show error')
+                        : I18n.t('Show additional information')
+                }
+                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+            >
+                <IconButton
+                    style={{
+                        height: 40,
+                        color: this.props.nodeStates[deviceOrBridge.uuid].error
+                            ? '#FF0000'
+                            : this.isDevice
+                              ? this.props.themeType === 'dark'
+                                  ? 'white'
+                                  : '#00000080'
+                              : 'white',
+                    }}
+                    onClick={() => this.requestAdditionalInformation(deviceOrBridge.uuid)}
+                >
+                    {this.props.nodeStates[deviceOrBridge.uuid].error ? <Warning /> : <Info />}
+                </IconButton>
+            </Tooltip>
+        );
+
+        if (qrCode) {
+            result[2] = extendedInfo;
         }
         if (this.props.nodeStates[deviceOrBridge.uuid].status) {
-            return (
+            result[0] = (
                 <Tooltip
+                    key="status"
                     title={I18n.t('Device is already commissioning. Show status information')}
                     slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                 >
@@ -242,12 +351,14 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                         {BridgesAndDevices.getStatusIcon(
                             this.props.nodeStates[deviceOrBridge.uuid].status,
                             this.props.themeType,
+                            this.isDevice,
                         )}
                     </IconButton>
                 </Tooltip>
             );
         }
-        return null;
+
+        return result;
     }
 
     renderDebugDialog(): React.JSX.Element | null {
@@ -293,8 +404,11 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                                 {data.connectionInfo?.map((info, i) => (
                                     <TableRow key={i}>
                                         <TableCell>
-                                            {BridgesAndDevices.getVendorIcon(info.vendorId, this.props.themeType) ||
-                                                BridgesAndDevices.getVendorName(info.vendorId)}
+                                            {BridgesAndDevices.getVendorIcon(
+                                                info.vendorId,
+                                                info.vendorName,
+                                                this.props.themeType,
+                                            ) || BridgesAndDevices.getVendorName(info.vendorId)}
                                             {info.label ? (
                                                 <span
                                                     style={{
@@ -340,6 +454,123 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         );
     }
 
+    onJsonConfigClose(_data?: Record<string, any>): void {
+        this.setState({ jsonConfig: null });
+    }
+
+    getOkButton(button?: ActionButton | 'apply' | 'cancel'): React.JSX.Element {
+        if (typeof button === 'string') {
+            button = undefined;
+        }
+        return (
+            <Button
+                key="apply"
+                disabled={!this.state.jsonConfig?.changed}
+                variant={button?.variant || 'contained'}
+                color={button?.color || 'primary'}
+                onClick={() => this.onJsonConfigClose(this.state.jsonConfig?.data)}
+                startIcon={button?.icon ? <Icon src={button?.icon} /> : undefined}
+            >
+                {getTranslation(button?.label || 'okButtonText', button?.noTranslation)}
+            </Button>
+        );
+    }
+
+    getCancelButton(button?: ActionButton | 'apply' | 'cancel' | 'close'): React.JSX.Element {
+        let isClose = false;
+        if (typeof button === 'string') {
+            isClose = button === 'close';
+            button = undefined;
+        }
+        return (
+            <Button
+                key="cancel"
+                variant={button?.variant || 'contained'}
+                color={button?.color || 'grey'}
+                onClick={() => this.onJsonConfigClose()}
+                startIcon={isClose ? <Close /> : button?.icon ? <Icon src={button?.icon} /> : undefined}
+            >
+                {isClose ? I18n.t('Close') : getTranslation(button?.label || 'cancelButtonText', button?.noTranslation)}
+            </Button>
+        );
+    }
+
+    renderJsonConfigDialog(): React.JSX.Element | null {
+        if (!this.state.jsonConfig) {
+            return null;
+        }
+
+        let buttons: React.JSX.Element[];
+        if (this.state.jsonConfig.options?.buttons) {
+            buttons = [];
+            this.state.jsonConfig.options.buttons.forEach((button: ActionButton | 'apply' | 'cancel'): void => {
+                if (button === 'apply' || (button as ActionButton).type === 'apply') {
+                    buttons.push(this.getOkButton(button));
+                } else {
+                    buttons.push(this.getCancelButton(button));
+                }
+            });
+        } else {
+            buttons = [this.getOkButton(), this.getCancelButton()];
+        }
+
+        return (
+            <Dialog
+                onClose={() => this.setState({ showDebugData: null })}
+                open={!0}
+                maxWidth={this.state.jsonConfig.options?.maxWidth || 'md'}
+                fullWidth
+            >
+                {this.state.jsonConfig.options?.title ? (
+                    <DialogTitle>
+                        {getTranslation(
+                            this.state.jsonConfig.options.title,
+                            this.state.jsonConfig.options.noTranslation,
+                        )}
+                    </DialogTitle>
+                ) : null}
+                <DialogContent>
+                    <JsonConfigComponent
+                        expertMode
+                        socket={this.props.socket}
+                        adapterName="matter"
+                        instance={this.props.instance}
+                        schema={this.state.jsonConfig.schema}
+                        data={this.state.jsonConfig.options?.data || {}}
+                        onError={() => {
+                            // ignored
+                        }}
+                        onChange={(_data: Record<string, any>) => {
+                            // ignored
+                        }}
+                        embedded
+                        themeName={this.props.themeName}
+                        themeType={this.props.themeType}
+                        theme={this.props.theme}
+                        isFloatComma={!!this.props.socket.systemConfig?.common.isFloatComma}
+                        dateFormat={this.props.socket.systemConfig?.common.dateFormat as string}
+                    />
+                </DialogContent>
+                <DialogActions>{buttons}</DialogActions>
+            </Dialog>
+        );
+    }
+
+    async reAnnounceDevice(uuid: string): Promise<void> {
+        const result = await this.props.socket.sendTo(`matter.${this.props.instance}`, 'deviceReAnnounce', {
+            uuid,
+        });
+
+        if (result.error) {
+            window.alert(`Cannot re-announce: ${result.error}`);
+        } else {
+            this.props.showToast(I18n.t('Successfully re-announced'));
+            this.props.updateNodeStates({
+                [uuid]: result.result,
+            });
+        }
+    }
+
     /**
      * Render the QR code dialog for pairing
      */
@@ -374,7 +605,12 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
             >
                 <DialogTitle>{I18n.t('QR Code to connect')}</DialogTitle>
                 <DialogContent>
-                    <InfoBox type="info">
+                    <InfoBox
+                        type="info"
+                        closeable
+                        storeId="matter.bridgeAndDevice"
+                        iconPosition="top"
+                    >
                         {I18n.t(
                             'Please scan this QR-Code with the App of the ecosystem you want to pair it to or use the below printed setup code.',
                         )}
@@ -411,24 +647,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 </DialogContent>
                 <DialogActions>
                     <Button
-                        onClick={async () => {
-                            const result = await this.props.socket.sendTo(
-                                `matter.${this.props.instance}`,
-                                'deviceReAnnounce',
-                                {
-                                    uuid,
-                                },
-                            );
-
-                            if (result.error) {
-                                window.alert(`Cannot re-announce: ${result.error}`);
-                            } else {
-                                this.props.showToast(I18n.t('Successfully re-announced'));
-                                this.props.updateNodeStates({
-                                    [uuid]: result.result,
-                                });
-                            }
-                        }}
+                        onClick={() => this.reAnnounceDevice(uuid)}
                         startIcon={<SettingsInputAntenna />}
                         color="primary"
                         variant="contained"
@@ -461,9 +680,17 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 <DialogContent>
                     <p>
                         {I18n.t(
-                            'Device or bridge will lost all commissioning information and you must reconnect (with PIN or QR code) again.',
+                            'All information of this device or bridge will be deleted and you must reconnect (with PIN or QR code) again.',
                         )}
                     </p>
+                    {this.props.nodeStates[this.state.showResetDialog.bridgeOrDevice.uuid].status !==
+                    'waitingForCommissioning' ? (
+                        <p style={{ color: this.props.themeType === 'dark' ? '#9c0a0a' : '#910000' }}>
+                            {I18n.t(
+                                'This device/bridge is linked to some ecosystem. If it is deleted here, you must manually remove it from your ecosystem!',
+                            )}
+                        </p>
+                    ) : null}
                     <p>{I18n.t('Are you sure?')}</p>
                     {this.state.showResetDialog.step === 1 ? <p>{I18n.t('This cannot be undone!')}</p> : null}
                 </DialogContent>
@@ -529,6 +756,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 {this.renderDebugDialog()}
                 {this.renderResetDialog()}
                 {this.renderQrCodeDialog()}
+                {this.renderJsonConfigDialog()}
             </div>
         );
     }

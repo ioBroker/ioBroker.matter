@@ -14,7 +14,6 @@ import {
     Info,
     KeyboardArrowDown,
     KeyboardArrowUp,
-    QuestionMark,
     Save,
     UnfoldLess,
     UnfoldMore,
@@ -126,7 +125,7 @@ const styles: Record<string, any> = {
     }),
 };
 
-const MAX_UNCOMMISIONED_DEVICES = 15;
+const MAX_UN_COMMISSIONED_DEVICES = 15;
 
 interface BridgesProps extends BridgesAndDevicesProps {
     checkLicenseOnAdd: (
@@ -902,7 +901,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 checkAddedDevices={
                     this.props.nodeStates[this.props.matter.bridges[this.state.addDeviceDialog.bridgeIndex].uuid]
                         .status === 'waitingForCommissioning'
-                        ? MAX_UNCOMMISIONED_DEVICES
+                        ? MAX_UN_COMMISSIONED_DEVICES
                         : 0
                 }
                 matter={this.props.matter}
@@ -1540,7 +1539,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                             if (
                                                 this.props.nodeStates[bridge.uuid]?.status ===
                                                     'waitingForCommissioning' &&
-                                                bridge.list.length > MAX_UNCOMMISIONED_DEVICES
+                                                bridge.list.length > MAX_UN_COMMISSIONED_DEVICES
                                             ) {
                                                 // If a user already has >15 devices in an un-commissioned bridge and klicks the "+" button to add more devices
                                                 // to the bridge we should tell him "To avoid problems when pairing this bridge please consider to pair it now and add more devices afterwards".

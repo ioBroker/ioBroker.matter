@@ -8,16 +8,18 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
+    Fab,
     FormControl,
-    FormControlLabel,
+    FormControlLabel, IconButton,
     InputLabel,
     MenuItem,
     Select,
     TextField,
+    Tooltip,
     Typography,
 } from '@mui/material';
 
-import { Check, Close, LayersClear } from '@mui/icons-material';
+import {Check, Close, LayersClear, AutoAwesome, Clear, VisibilityOff, Visibility} from '@mui/icons-material';
 
 import { type AdminConnection, I18n, Logo } from '@iobroker/adapter-react-v5';
 
@@ -34,6 +36,7 @@ const styles: Record<string, React.CSSProperties> = {
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
+        position: 'relative',
     },
     input: {
         marginTop: 2,
@@ -74,6 +77,7 @@ interface OptionsProps {
     onLoad: (native: Record<string, any>) => void;
     /** The current matter config */
     matter: MatterConfig;
+    onShowWelcomeDialog: () => void;
 }
 
 interface OptionsState {
@@ -83,6 +87,7 @@ interface OptionsState {
     iotPassword: string;
     iotInstance: string;
     interfaces?: { value: string; address?: string; address6?: string }[];
+    passVisible?: boolean;
 }
 
 function cutIpV6(address: string, length?: number): string {
@@ -265,6 +270,22 @@ class Options extends Component<OptionsProps, OptionsState> {
         return (
             <div style={styles.panel}>
                 {this.renderConfirmDialog()}
+                <Tooltip
+                    title={I18n.t('Show welcome dialog')}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                >
+                    <Fab
+                        size="small"
+                        style={{
+                            position: 'absolute',
+                            top: 4,
+                            left: 80,
+                        }}
+                        onClick={this.props.onShowWelcomeDialog}
+                    >
+                        <AutoAwesome />
+                    </Fab>
+                </Tooltip>
                 <Logo
                     instance={this.props.instance}
                     common={this.props.common}
@@ -411,6 +432,21 @@ class Options extends Component<OptionsProps, OptionsState> {
                         type="text"
                         onChange={e => this.props.onChange('login', e.target.value)}
                         margin="normal"
+                        slotProps={{
+                            htmlInput: {
+                                autocomplete: 'new-password',
+                            },
+                            input: {
+                                endAdornment: this.props.native.login ? (
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => this.props.onChange('login', '')}
+                                    >
+                                        <Clear />
+                                    </IconButton>
+                                ) : null,
+                            },
+                        }}
                         style={{ ...styles.input, marginRight: 16 }}
                     />
                     <TextField
@@ -419,8 +455,23 @@ class Options extends Component<OptionsProps, OptionsState> {
                         error={!!passwordError}
                         autoComplete="current-password"
                         style={styles.input}
+                        slotProps={{
+                            htmlInput: {
+                                autocomplete: 'new-password',
+                            },
+                            input: {
+                                endAdornment: this.props.native.pass ? (
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => this.setState({ passVisible: !this.state.passVisible })}
+                                    >
+                                        {this.state.passVisible ? <VisibilityOff /> : <Visibility />}
+                                    </IconButton>
+                                ) : null,
+                            },
+                        }}
                         value={this.props.native.pass}
-                        type="password"
+                        type={this.state.passVisible ? 'text' : 'password'}
                         helperText={passwordError || ''}
                         onChange={e => this.props.onChange('pass', e.target.value)}
                         margin="normal"

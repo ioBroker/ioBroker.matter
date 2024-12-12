@@ -33,6 +33,7 @@ import BridgesTab from './Tabs/Bridges';
 import ControllerTab from './Tabs/Controller';
 import DevicesTab from './Tabs/Devices';
 import OptionsTab from './Tabs/Options';
+import WelcomeDialog from './components/WelcomeDialog';
 
 import type {
     CommissioningInfo,
@@ -94,12 +95,14 @@ interface AppState extends GenericAppState {
     /** Undefined if no detection ran yet */
     detectedDevices?: DetectedRoom[];
     ready: boolean;
+    showWelcomeDialog: boolean;
     progress: {
         title?: ioBroker.StringOrTranslated;
         text?: ioBroker.StringOrTranslated;
         indeterminate?: boolean;
         value?: number;
     } | null;
+    welcomeDialogShowed: boolean;
 }
 
 class App extends GenericApp<GenericAppProps, AppState> {
@@ -156,6 +159,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
             },
             ready: false,
             progress: null,
+            showWelcomeDialog: false,
+            welcomeDialogShowed: false,
         });
 
         this.alert = window.alert;
@@ -254,6 +259,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
 
         const alive = await this.socket.getState(`system.adapter.matter.${this.instance}.alive`);
 
+        const welcomeDialog = await this.socket.getState(`matter.${this.instance}.welcomeDialog`);
+
         if (alive?.val) {
             this.refreshBackendSubscription(true);
         }
@@ -263,6 +270,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
             commissioning,
             ready: true,
             alive: !!alive?.val,
+            showWelcomeDialog: !welcomeDialog?.val,
+            welcomeDialogShowed: !!welcomeDialog?.val,
         });
     }
 
@@ -278,6 +287,28 @@ class App extends GenericApp<GenericAppProps, AppState> {
             this.setState({ alive: false, progress: null });
         }
     };
+
+    renderWelcomeDialog(): React.JSX.Element | null {
+        if (!this.state.showWelcomeDialog) {
+            return null;
+        }
+
+        return (
+            <WelcomeDialog
+                common={this.common}
+                instance={this.instance}
+                socket={this.socket}
+                onClose={async () => {
+                    if (!this.state.welcomeDialogShowed) {
+                        await this.socket.setState(`matter.${this.instance}.welcomeDialog`, true, true);
+                    }
+                    this.setState({ showWelcomeDialog: false, welcomeDialogShowed: true });
+                }}
+                login={this.state.native.login}
+                pass={this.state.native.pass}
+            />
+        );
+    }
 
     onBackendUpdates = (update: GUIMessage | null): void => {
         if (!update) {
@@ -441,6 +472,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                         this.updateNativeValue(id, value, resolve);
                     });
                 }}
+                onShowWelcomeDialog={() => this.setState({ showWelcomeDialog: true })}
                 onLoad={(native: Record<string, any>) => this.onLoadConfig(native)}
                 socket={this.socket}
                 common={this.common}
@@ -626,6 +658,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 <ThemeProvider theme={this.state.theme}>
                     {this.renderToast()}
                     {this.renderProgressDialog()}
+                    {this.renderWelcomeDialog()}
                     <div
                         className="App"
                         style={{

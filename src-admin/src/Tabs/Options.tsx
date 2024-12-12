@@ -346,6 +346,7 @@ class Options extends Component<OptionsProps, OptionsState> {
                 )}
 
                 <Box sx={{ marginTop: 2 }}>
+                    <InfoBox type="info">{I18n.t('Info about Alexa Bridge')}</InfoBox>
                     <FormControl style={styles.inputLong}>
                         <InputLabel>{I18n.t('Default bridge (Alexa-compatible)')}</InputLabel>
                         <Select

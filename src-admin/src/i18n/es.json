@@ -70,6 +70,7 @@
     "Generate new pairing code": "Generar nuevo código de emparejamiento",
     "Hide unsupported devices": "Ocultar dispositivos no compatibles",
     "If your device has more then one active network interface and you have issues try limiting it to one interface": "Si su dispositivo tiene más de una interfaz de red activa y tiene problemas, intente limitarlo a una interfaz.",
+    "Info about Alexa Bridge": "Tenga en cuenta: Debido a las limitaciones del sistema Amazon Alexa, solo se puede emparejar un puente o dispositivo con Alexa por host de ioBroker. Esta selección determina qué puente se emparejará con el sistema Alexa.",
     "Instance is not alive": "La instancia no está viva",
     "Interface": "Interfaz",
     "Logging": "Inicio sesión",

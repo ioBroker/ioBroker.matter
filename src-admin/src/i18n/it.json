@@ -70,6 +70,7 @@
     "Generate new pairing code": "Genera un nuovo codice di accoppiamento",
     "Hide unsupported devices": "Nascondi i dispositivi non supportati",
     "If your device has more then one active network interface and you have issues try limiting it to one interface": "Se il tuo dispositivo ha più di un'interfaccia di rete attiva e riscontri problemi, prova a limitarla a un'unica interfaccia.",
+    "Info about Alexa Bridge": "Nota bene: a causa delle limitazioni del sistema Amazon Alexa, solo un bridge o dispositivo può essere associato ad Alexa per host ioBroker! Questa selezione determina quale bridge verrà associato al sistema Alexa.",
     "Instance is not alive": "L'istanza non è attiva",
     "Interface": "Interfaccia",
     "Logging": "Registrazione",

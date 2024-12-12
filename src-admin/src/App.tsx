@@ -712,7 +712,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                                                 float: 'right',
                                             }}
                                             onClick={() => {
-                                                const win = window.open(this.common.readme, '_blank');
+                                                const win = window.open(this.common?.readme, '_blank');
                                                 win?.focus();
                                             }}
                                         >

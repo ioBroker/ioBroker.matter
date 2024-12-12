@@ -86,6 +86,9 @@ interface OptionsState {
 }
 
 function cutIpV6(address: string, length?: number): string {
+    if (window.innerWidth > 1024) {
+        return address;
+    }
     length = length || 10;
     // +2, while ... is longer than 2 characters
     if (address.length < length + 2) {

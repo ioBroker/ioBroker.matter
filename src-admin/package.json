@@ -23,7 +23,7 @@
     "scripts": {
         "start": "vite",
         "build": "vite build",
-        "lint": "eslint --fix --ext .js,.jsx,.tsx src",
+        "lint": "eslint -c eslint.config.mjs",
         "check-ts": "tsc --noEmit --checkJS false",
         "tsc": "tsc --project tsconfig.json"
     },

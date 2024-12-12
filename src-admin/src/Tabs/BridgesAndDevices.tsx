@@ -106,7 +106,6 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
     TProps,
     TState
 > {
-    // eslint-disable-next-line react/no-unused-class-component-methods
     protected isDevice: boolean;
 
     constructor(props: TProps) {

@@ -3,7 +3,7 @@ import React from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { IconButton } from '@foxriver76/iob-component-lib';
-import { Add, AutoMode, Close, Delete, DeviceHub, FormatListBulleted, QuestionMark, Save } from '@mui/icons-material';
+import { Add, AutoMode, Close, Delete, DeviceHub, FormatListBulleted, Save } from '@mui/icons-material';
 import {
     Button,
     Checkbox,

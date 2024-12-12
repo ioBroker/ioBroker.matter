@@ -10,7 +10,8 @@ import {
     DialogTitle,
     Fab,
     FormControl,
-    FormControlLabel, IconButton,
+    FormControlLabel,
+    IconButton,
     InputLabel,
     MenuItem,
     Select,
@@ -19,7 +20,7 @@ import {
     Typography,
 } from '@mui/material';
 
-import {Check, Close, LayersClear, AutoAwesome, Clear, VisibilityOff, Visibility} from '@mui/icons-material';
+import { Check, Close, LayersClear, AutoAwesome, Clear, VisibilityOff, Visibility } from '@mui/icons-material';
 
 import { type AdminConnection, I18n, Logo } from '@iobroker/adapter-react-v5';
 

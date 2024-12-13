@@ -200,10 +200,14 @@ export abstract class GenericDeviceToIoBroker {
             value = convertValue(value);
         }
         if (value !== undefined) {
-            await this.ioBrokerDevice.updatePropertyValue(property, value);
+            try {
+                await this.ioBrokerDevice.updatePropertyValue(property, value);
+            } catch (e) {
+                this.#adapter.log.error(`Error updating property ${property} with value ${value}: ${e}`);
+            }
 
             if (property === PropertyType.Unreachable && this.#hasBridgedReachabilityAttribute) {
-                await this.#adapter.setStateAsync(this.#connectionStateId, { val: !value, ack: true });
+                await this.#adapter.setState(this.#connectionStateId, { val: !value, ack: true });
             }
         }
     }
@@ -290,13 +294,15 @@ export abstract class GenericDeviceToIoBroker {
             });
         }
 
-        await this.#adapter.extendObjectAsync(this.baseId, {
-            common: {
-                statusStates: {
-                    onlineId: `${this.#connectionStateId}`,
+        if (!existingObject || existingObject.common.statusStates?.onlineId !== this.#connectionStateId) {
+            await this.#adapter.extendObject(this.baseId, {
+                common: {
+                    statusStates: {
+                        onlineId: `${this.#connectionStateId}`,
+                    },
                 },
-            },
-        });
+            });
+        }
 
         this.#initialized = true;
     }

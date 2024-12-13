@@ -16,7 +16,6 @@ const excludedTypes = [
     'unknown',
     'instance',
     'valve',
-    'illuminance' // Not yet implemented
 ];
 
 // create a maximal set of states

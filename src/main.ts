@@ -102,7 +102,7 @@ export class MatterAdapter extends utils.Adapter {
     }>();
     #objectProcessQueueTimeout?: NodeJS.Timeout;
     #currentObjectProcessPromise?: Promise<void>;
-    #controllerConfigurationUpdateQueue = new PromiseQueue();
+    #controllerActionQueue = new PromiseQueue();
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -145,6 +145,10 @@ export class MatterAdapter extends utils.Adapter {
         return this.#controller;
     }
 
+    get controllerUpdateQueue(): PromiseQueue {
+        return this.#controllerActionQueue;
+    }
+
     get versions(): { versionStr: string; versionNum: number } {
         const versionParts = this.#version.split('.');
         // Create a numeric version number from the version string, multiply parts from end to start with 100^index
@@ -165,6 +169,8 @@ export class MatterAdapter extends utils.Adapter {
             await bridge.destroy();
         }
         this.#bridges.clear();
+        // TODO with next matter.js : if (this.#controllerActionQueue.count)
+        this.#controllerActionQueue.clear(false);
         await this.#controller?.stop();
         this.#controller = undefined;
     }
@@ -200,21 +206,23 @@ export class MatterAdapter extends utils.Adapter {
         }
         this.log.debug(`Handle message ${JSON.stringify(obj)}`);
         if (obj.command?.startsWith('controller')) {
-            if (this.#controller) {
-                try {
-                    const result = await this.#controller.handleCommand(obj.command, obj.message);
-                    if (result !== undefined && obj.callback) {
-                        this.sendTo(obj.from, obj.command, result, obj.callback);
+            await this.#controllerActionQueue.add(async () => {
+                if (this.#controller) {
+                    try {
+                        const result = await this.#controller?.handleCommand(obj);
+                        if (result !== undefined && obj.callback) {
+                            this.sendTo(obj.from, obj.command, result, obj.callback);
+                        }
+                    } catch (error) {
+                        this.log.warn(`Error while handling command "${obj.command}" for controller: ${error.stack}`);
+                        if (obj.callback) {
+                            this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
+                        }
                     }
-                } catch (error) {
-                    this.log.warn(`Error while handling command "${obj.command}" for controller: ${error.stack}`);
-                    if (obj.callback) {
-                        this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
-                    }
+                } else if (obj.callback) {
+                    this.sendTo(obj.from, obj.command, { error: 'Controller not enabled' }, obj.callback);
                 }
-            } else if (obj.callback) {
-                this.sendTo(obj.from, obj.command, { error: 'Controller not enabled' }, obj.callback);
-            }
+            });
             return;
         }
         if (obj.command?.startsWith('device')) {
@@ -511,7 +519,7 @@ export class MatterAdapter extends utils.Adapter {
         this.#sendControllerUpdateTimeout && clearTimeout(this.#sendControllerUpdateTimeout);
         this.#sendControllerUpdateTimeout = undefined;
         this.#objectProcessQueueTimeout && clearTimeout(this.#objectProcessQueueTimeout);
-        this.#controllerConfigurationUpdateQueue.clear(false);
+        this.#controllerActionQueue.clear(false);
         if (this.#objectProcessQueue.length && this.#objectProcessQueue[0].inProgress) {
             const promise = this.#currentObjectProcessPromise;
             this.#objectProcessQueue.length = 1;
@@ -1238,16 +1246,18 @@ export class MatterAdapter extends utils.Adapter {
         this.log.debug('Sync done');
     }
 
-    async syncControllerNode(nodeId: string, obj: ioBroker.FolderObject, forcedUpdate = false): Promise<void> {
-        if (!this.#controller) {
-            return;
-        } // not active
-        await this.#controller.applyPairedNodeConfiguration(nodeId, obj.native as PairedNodeConfig, forcedUpdate);
+    syncControllerNode(nodeId: string, obj: ioBroker.FolderObject, forcedUpdate = false): Promise<void> {
+        return this.#controllerActionQueue.add(async () => {
+            if (!this.#controller) {
+                return;
+            } // not active
+            await this.#controller.applyPairedNodeConfiguration(nodeId, obj.native as PairedNodeConfig, forcedUpdate);
+        });
     }
 
     async applyControllerConfiguration(config: MatterControllerConfig, handleStart = true): Promise<MessageResponse> {
         // Make sure to not overlap controller config updates
-        return this.#controllerConfigurationUpdateQueue.add(async () => {
+        return this.#controllerActionQueue.add(async () => {
             if (config.enabled) {
                 if (this.#controller) {
                     this.#controller.applyConfiguration(config);
@@ -1263,6 +1273,7 @@ export class MatterAdapter extends utils.Adapter {
                 // Controller should be disabled but is not
                 const controller = this.#controller;
                 this.#controller = undefined;
+                this.#controllerActionQueue.clear(false);
                 await controller.stop();
             }
 

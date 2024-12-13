@@ -52,7 +52,7 @@ export class MotionToMatter extends GenericDeviceToMatter {
     }
 
     convertBrightnessValue(value: number): number {
-        return 10_000 * Math.log10(value) + 1;
+        return Math.round(10_000 * Math.log10(value) + 1);
     }
 
     async registerIoBrokerHandlersAndInitialize(): Promise<void> {

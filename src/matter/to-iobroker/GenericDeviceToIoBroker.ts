@@ -29,7 +29,8 @@ export abstract class GenericDeviceToIoBroker {
     readonly #node: PairedNode;
     protected readonly appEndpoint: Endpoint;
     readonly #rootEndpoint: Endpoint;
-    #name: string;
+    #name?: string;
+    #defaultName: string;
     readonly deviceType: string;
     readonly #deviceOptions: DeviceOptions;
     #enabledProperties = new Map<PropertyType, EnabledProperty>();
@@ -49,13 +50,14 @@ export abstract class GenericDeviceToIoBroker {
         endpointDeviceBaseId: string,
         deviceTypeName: string,
         defaultConnectionStateId: string,
+        defaultName: string,
     ) {
         this.#adapter = adapter;
         this.#node = node;
         this.appEndpoint = endpoint;
         this.#rootEndpoint = rootEndpoint;
         this.baseId = endpointDeviceBaseId;
-        this.#name = deviceTypeName;
+        this.#defaultName = defaultName;
         this.deviceType = deviceTypeName;
         this.#connectionStateId = defaultConnectionStateId;
 
@@ -63,7 +65,7 @@ export abstract class GenericDeviceToIoBroker {
             additionalStateData: {},
             uuid: '',
             enabled: true,
-            name: this.#name,
+            name: this.#name || deviceTypeName,
             oid: this.baseId,
             type: '...',
             auto: true,
@@ -75,7 +77,7 @@ export abstract class GenericDeviceToIoBroker {
     abstract ioBrokerDevice: GenericDevice;
 
     get name(): string {
-        return this.#name;
+        return this.#name ?? this.#defaultName ?? this.deviceType;
     }
 
     get number(): EndpointNumber {
@@ -252,6 +254,10 @@ export abstract class GenericDeviceToIoBroker {
         await this.ioBrokerDevice.init();
         this.#registerIoBrokerHandlersAndInitialize();
         await this.#initializeStates();
+
+        if (this.#name === undefined) {
+            this.#name = this.#defaultName;
+        }
 
         if (this.#hasBridgedReachabilityAttribute) {
             await this.#adapter.setObjectNotExists(`${this.baseId}.info`, {

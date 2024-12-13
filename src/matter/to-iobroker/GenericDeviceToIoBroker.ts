@@ -461,10 +461,14 @@ export abstract class GenericDeviceToIoBroker {
 
         const states = this.ioBrokerDevice.states;
         if (Object.keys(states).length) {
-            result.states = states;
+            result.states = {
+                __header__details: 'Mapped ioBroker States',
+                ...states,
+            };
         }
 
         result.details = {
+            __header__details: 'Device Details',
             name: this.#name,
             primaryDeviceType: this.deviceType,
             deviceTypes: this.appEndpoint

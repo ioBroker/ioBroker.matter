@@ -520,6 +520,8 @@ class Controller implements GeneralNode {
             throw new Error(`Can not decommission NodeId "${nodeId}" because controller not initialized.`);
         }
         await this.#commissioningController.removeNode(NodeId(BigInt(nodeId)), this.#connected[nodeId]);
+        delete this.#connected[nodeId];
+        this.#nodes.delete(nodeId);
     }
 }
 

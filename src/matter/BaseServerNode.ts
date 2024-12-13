@@ -128,7 +128,8 @@ export abstract class BaseServerNode implements GeneralNode {
     }
 
     /** Handles device specific Messages from the UI. */
-    async handleCommand(command: string, _message: ioBroker.MessagePayload): Promise<MessageResponse> {
+    async handleCommand(obj: ioBroker.Message): Promise<MessageResponse> {
+        const { command, message } = obj;
         switch (command) {
             case 'deviceReAnnounce':
                 await this.advertise();
@@ -136,6 +137,9 @@ export abstract class BaseServerNode implements GeneralNode {
             case 'deviceFactoryReset':
                 await this.factoryReset();
                 return { result: await this.getState() };
+            case 'deviceExtendedInfo': {
+                return { result: this.getDeviceDetails(message) };
+            }
         }
 
         return { error: `Unknown command "${command}"` };

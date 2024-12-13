@@ -104,10 +104,11 @@ class Controller implements GeneralNode {
         return node.applyConfiguration(config, forcedUpdate);
     }
 
-    async handleCommand(command: string, message: ioBroker.MessagePayload): Promise<MessageResponse> {
+    async handleCommand(obj: ioBroker.Message): Promise<MessageResponse> {
         if (this.#commissioningController === undefined) {
             return { error: 'Controller is not initialized.' };
         }
+        const { command, message } = obj;
         try {
             switch (command) {
                 case 'controllerDiscovery':

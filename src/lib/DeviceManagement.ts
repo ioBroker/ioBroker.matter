@@ -684,6 +684,13 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     };
                     continue;
                 }
+                if (subKey.startsWith('__text__')) {
+                    tabItems[flatKey] = {
+                        type: 'staticText',
+                        text: String(data[key][subKey]),
+                    };
+                    continue;
+                }
                 if (subKey.startsWith('__divider__')) {
                     tabItems[flatKey] = {
                         type: 'divider',

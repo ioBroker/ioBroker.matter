@@ -226,17 +226,16 @@ export class MatterAdapter extends utils.Adapter {
             return;
         }
         if (obj.command?.startsWith('device')) {
-            for (const [oid, bridge] of this.#bridges.entries()) {
-                const uuid = oid.split('.').pop() || '';
-                if (uuid === obj.message.uuid) {
+            for (const bridge of this.#bridges.values()) {
+                if (bridge.uuid === obj.message.uuid) {
                     try {
-                        const result = await bridge.handleCommand(obj.command, obj.message);
+                        const result = await bridge.handleCommand(obj);
                         if (result !== undefined && obj.callback) {
                             this.sendTo(obj.from, obj.command, result, obj.callback);
                         }
                     } catch (error) {
                         this.log.warn(
-                            `Error while handling command "${obj.command}" for device ${uuid}: ${error.stack}`,
+                            `Error while handling command "${obj.command}" for device ${bridge.uuid}: ${error.stack}`,
                         );
                         if (obj.callback) {
                             this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
@@ -245,17 +244,16 @@ export class MatterAdapter extends utils.Adapter {
                     return;
                 }
             }
-            for (const [oid, device] of this.#devices.entries()) {
-                const uuid = oid.split('.').pop() || '';
-                if (uuid === obj.message.uuid) {
+            for (const device of this.#devices.values()) {
+                if (device.uuid === obj.message.uuid) {
                     try {
-                        const result = await device.handleCommand(obj.command, obj.message);
+                        const result = await device.handleCommand(obj);
                         if (result !== undefined && obj.callback) {
                             this.sendTo(obj.from, obj.command, result, obj.callback);
                         }
                     } catch (error) {
                         this.log.warn(
-                            `Error while handling command "${obj.command}" for device ${uuid}: ${error.stack}`,
+                            `Error while handling command "${obj.command}" for device ${device.uuid}: ${error.stack}`,
                         );
                         if (obj.callback) {
                             this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);

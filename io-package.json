@@ -137,7 +137,7 @@
         },
         "tier": 3,
         "keywords": ["matter"],
-        "stopTimeout": 5000,
+        "stopTimeout": 15000,
         "enabled": true,
         "compact": false,
         "singletonHost": true,
@@ -169,7 +169,51 @@
     "objects": [],
     "instanceObjects": [
         {
-            "id": "welcomeDialog",
+            "_id": "bridges",
+            "type": "folder",
+            "common": {
+                "name": "Matter Bridges",
+                "desc": "Configuration and Details for Matter Bridges"
+            },
+            "native": {}
+        },
+        {
+            "_id": "devices",
+            "type": "folder",
+            "common": {
+                "name": "Matter Devices",
+                "desc": "Configuration and Details for Matter Devices"
+            },
+            "native": {}
+        },
+        {
+            "_id": "controller",
+            "type": "folder",
+            "common": {
+                "name": "Matter Controller",
+                "desc": "States for paired Matter Devices"
+            },
+            "native": {}
+        },
+        {
+            "_id": "info",
+            "type": "folder",
+            "common": {
+                "name": "Information"
+            },
+            "native": {}
+        },
+        {
+            "_id": "info",
+            "type": "channel",
+            "common": {
+                "name": "Information"
+            },
+            "native": {}
+        },
+        {
+            "_id": "info.welcomeDialog",
+            "type": "state",
             "common": {
                 "name": "Welcome dialog showed",
                 "role": "indicator",

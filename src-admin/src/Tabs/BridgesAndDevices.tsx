@@ -106,7 +106,6 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
     TProps,
     TState
 > {
-    // eslint-disable-next-line react/no-unused-class-component-methods
     protected isDevice: boolean;
 
     constructor(props: TProps) {
@@ -245,12 +244,11 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         return <QuestionMark style={{ color }} />;
     }
 
-    requestAdditionalInformation(uuid: string): void {
+    requestAdditionalInformation(e: React.MouseEvent, uuid: string): void {
+        e.stopPropagation();
+
         this.props.socket
-            .sendTo(`matter.${this.props.instance}`, 'extendedInfo', {
-                uuid,
-                error: this.props.nodeStates[uuid]?.error,
-            })
+            .sendTo(`matter.${this.props.instance}`, 'extendedInfo', { uuid })
             .then((result: { schema: JsonFormSchema; options?: BackEndCommandJsonFormOptions }): void => {
                 this.setState({
                     jsonConfig: {
@@ -324,7 +322,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                                   : '#00000080'
                               : 'white',
                     }}
-                    onClick={() => this.requestAdditionalInformation(deviceOrBridge.uuid)}
+                    onClick={e => this.requestAdditionalInformation(e, deviceOrBridge.uuid)}
                 >
                     {this.props.nodeStates[deviceOrBridge.uuid].error ? <Warning /> : <Info />}
                 </IconButton>

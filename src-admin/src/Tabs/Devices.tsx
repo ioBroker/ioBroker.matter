@@ -3,7 +3,7 @@ import React from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { IconButton } from '@foxriver76/iob-component-lib';
-import { Add, AutoMode, Close, Delete, DeviceHub, FormatListBulleted, QuestionMark, Save } from '@mui/icons-material';
+import { Add, AutoMode, Close, Delete, DeviceHub, FormatListBulleted, Save } from '@mui/icons-material';
 import {
     Button,
     Checkbox,
@@ -26,8 +26,8 @@ import {
     Tooltip,
 } from '@mui/material';
 
-import { I18n, SelectID } from '@iobroker/adapter-react-v5';
-import DeviceDialog, { DEVICE_ICONS, SUPPORTED_DEVICES } from '../components/DeviceDialog';
+import { I18n, SelectID, IconDeviceType } from '@iobroker/adapter-react-v5';
+import DeviceDialog, { SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import type { DetectedDevice, DeviceDescription, MatterConfig } from '../types';
 import { clone, detectDevices, getText } from '../Utils';
 import InfoBox from '../components/InfoBox';
@@ -379,7 +379,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                             }}
                             renderValue={value => (
                                 <span>
-                                    <span>{DEVICE_ICONS[value] || <QuestionMark />}</span>
+                                    <IconDeviceType src={value} />
                                     {I18n.t(value)}
                                 </span>
                             )}
@@ -391,7 +391,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                         key={type}
                                         value={type}
                                     >
-                                        <span>{DEVICE_ICONS[type as Types] || <QuestionMark />}</span>
+                                        <IconDeviceType src={type} />
                                         {I18n.t(type)}
                                     </MenuItem>
                                 ))}
@@ -874,7 +874,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                             style={{ marginRight: 8 }}
                             title={device.type}
                         >
-                            {DEVICE_ICONS[device.type] || <QuestionMark />}
+                            <IconDeviceType src={device.type} />
                         </span>
                         <div style={styles.bridgeDiv}>
                             <div style={styles.deviceName}>

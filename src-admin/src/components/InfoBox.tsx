@@ -4,7 +4,7 @@ import { Info, Warning, Close, Visibility, type SvgIconComponent } from '@mui/ic
 
 interface InfoBoxProps {
     /** Text to display in the info box */
-    children: string;
+    children: string | (string | React.JSX.Element | null)[] | React.JSX.Element;
     /** The type determines the color and symbol */
     type: 'warning' | 'info' | 'error';
     /** If the Box is closeable */

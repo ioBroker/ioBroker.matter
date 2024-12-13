@@ -209,7 +209,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     ): DeviceInfo {
         const data: DeviceInfo = {
             id: `${nodeId}-${device.number}`,
-            name: `Device ${device.name}`,
+            name: device.name,
             icon: device.ioBrokerDevice.deviceType,
             ...nodeDetails,
             status,

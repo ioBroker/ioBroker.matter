@@ -20,8 +20,18 @@ export class DoorLockToIoBroker extends GenericElectricityDataDeviceToIoBroker {
         endpointDeviceBaseId: string,
         deviceTypeName: string,
         defaultConnectionStateId: string,
+        defaultName: string,
     ) {
-        super(adapter, node, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName, defaultConnectionStateId);
+        super(
+            adapter,
+            node,
+            endpoint,
+            rootEndpoint,
+            endpointDeviceBaseId,
+            deviceTypeName,
+            defaultConnectionStateId,
+            defaultName,
+        );
 
         this.#unboltingSupported =
             this.appEndpoint.getClusterClient(DoorLock.Complete)?.supportedFeatures.unbolting ?? false;

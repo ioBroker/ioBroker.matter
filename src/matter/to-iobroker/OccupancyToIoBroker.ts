@@ -20,8 +20,18 @@ export class OccupancyToIoBroker extends GenericDeviceToIoBroker {
         endpointDeviceBaseId: string,
         deviceTypeName: string,
         defaultConnectionStateId: string,
+        defaultName: string,
     ) {
-        super(adapter, node, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName, defaultConnectionStateId);
+        super(
+            adapter,
+            node,
+            endpoint,
+            rootEndpoint,
+            endpointDeviceBaseId,
+            deviceTypeName,
+            defaultConnectionStateId,
+            defaultName,
+        );
 
         this.#ioBrokerDevice = new Motion(
             { ...ChannelDetector.getPatterns().motion, isIoBrokerDevice: false } as DetectedDevice,

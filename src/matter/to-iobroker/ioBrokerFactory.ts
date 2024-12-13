@@ -54,6 +54,7 @@ async function ioBrokerDeviceFabric(
     adapter: ioBroker.Adapter,
     endpointDeviceBaseId: string,
     defaultConnectionStateId: string,
+    endpointName: string,
 ): Promise<any> {
     const { primaryDeviceType, utilityTypes } = identifyDeviceTypes(endpoint);
 

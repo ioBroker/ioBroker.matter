@@ -19,8 +19,18 @@ export class TemperatureSensorToIoBroker extends GenericElectricityDataDeviceToI
         endpointDeviceBaseId: string,
         deviceTypeName: string,
         defaultConnectionStateId: string,
+        defaultName: string,
     ) {
-        super(adapter, node, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName, defaultConnectionStateId);
+        super(
+            adapter,
+            node,
+            endpoint,
+            rootEndpoint,
+            endpointDeviceBaseId,
+            deviceTypeName,
+            defaultConnectionStateId,
+            defaultName,
+        );
 
         this.#ioBrokerDevice = new Temperature(
             { ...ChannelDetector.getPatterns().temperature, isIoBrokerDevice: false } as DetectedDevice,

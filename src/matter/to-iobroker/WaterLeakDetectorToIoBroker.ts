@@ -19,8 +19,18 @@ export class WaterLeakDetectorToIoBroker extends GenericDeviceToIoBroker {
         endpointDeviceBaseId: string,
         deviceTypeName: string,
         defaultConnectionStateId: string,
+        defaultName: string,
     ) {
-        super(adapter, node, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName, defaultConnectionStateId);
+        super(
+            adapter,
+            node,
+            endpoint,
+            rootEndpoint,
+            endpointDeviceBaseId,
+            deviceTypeName,
+            defaultConnectionStateId,
+            defaultName,
+        );
 
         this.#ioBrokerDevice = new FloodAlarm(
             { ...ChannelDetector.getPatterns().floodAlarm, isIoBrokerDevice: false } as DetectedDevice,

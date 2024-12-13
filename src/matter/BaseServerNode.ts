@@ -46,7 +46,14 @@ export abstract class BaseServerNode implements GeneralNode {
 
     /** Advertise the device into the network via MDNS. */
     async advertise(): Promise<void> {
-        await this.serverNode?.advertiseNow();
+        if (this.serverNode === undefined) {
+            return;
+        }
+        if (this.serverNode.lifecycle.isCommissioned) {
+            await this.serverNode.env.get(DeviceCommissioner)?.allowBasicCommissioning();
+        } else {
+            await this.serverNode.advertiseNow();
+        }
     }
 
     /** Factory reset the device. */

@@ -1,5 +1,10 @@
 import * as utils from '@iobroker/adapter-core';
-import ChannelDetector, { type DetectorState, Types } from '@iobroker/type-detector';
+import ChannelDetector, {
+    type DetectorState,
+    Types,
+    type DetectOptions,
+    type PatternControl,
+} from '@iobroker/type-detector';
 import { Environment, LogLevel, LogFormat, Logger, StorageService, PromiseQueue } from '@matter/main';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
@@ -22,7 +27,6 @@ import type { PairedNodeConfig } from './matter/GeneralMatterNode';
 import type { MessageResponse } from './matter/GeneralNode';
 import { IoBrokerObjectStorage } from './matter/IoBrokerObjectStorage';
 import { inspect } from 'util';
-import type { ConfigItemPanel, BackEndCommandJsonFormOptions } from '@iobroker/dm-utils';
 const I18n = import('@iobroker/i18n');
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
@@ -693,9 +697,9 @@ export class MatterAdapter extends utils.Adapter {
         return foundDevice;
     }
 
-    async getIoBrokerDeviceStates(id: string): Promise<DetectedDevice | null> {
+    async getIoBrokerDeviceStates(id: string, preferredType?: string): Promise<DetectedDevice | null> {
         const deviceId = await this.findDeviceFromId(id);
-        this.log.debug(`Found device for ${id}: ${deviceId}`);
+        this.log.debug(`Found device for ${id}: ${deviceId}, preferred type: ${preferredType}`);
         if (!deviceId) {
             return null;
         }
@@ -718,21 +722,51 @@ export class MatterAdapter extends utils.Adapter {
         const keys = Object.keys(objects); // For optimization
         const usedIds = new Array<string>(); // Do not allow to use the same ID in more than one device
         const ignoreIndicators = ['UNREACH_STICKY']; // Ignore indicators by name
-        const options = {
+        const options: DetectOptions = {
             objects,
             id: deviceId, // Channel, device or state, that must be detected
             _keysOptional: keys,
             _usedIdsOptional: usedIds,
             ignoreIndicators,
+            excludedTypes: [Types.info],
         };
         const controls = this.#detector.detect(options);
-        this.log.debug(`Found ${controls?.length} controls for ${deviceId}: ${JSON.stringify(controls)}`);
         if (controls?.length) {
-            // TODO Handle multiple findings, except "info" type
+            let controlsToCheck = controls.filter((control: PatternControl) =>
+                control.states.some(({ id: foundId }) => foundId === id),
+            );
+            if (controlsToCheck.length) {
+                this.log.debug(
+                    `Found ${controlsToCheck?.length} device types for ${id} in ${deviceId}: ${JSON.stringify(controls)}`,
+                );
+            } else {
+                controlsToCheck = controls;
+            }
+            let controlsWithType = controlsToCheck;
+            if (preferredType) {
+                controlsWithType = controlsToCheck.filter((control: PatternControl) => control.type === preferredType);
+                if (controlsWithType.length) {
+                    this.log.debug(
+                        `Found ${controlsWithType?.length} device types for ${id} with preferred type ${preferredType}: ${JSON.stringify(
+                            controlsWithType,
+                        )}`,
+                    );
+                } else {
+                    controlsWithType = controlsToCheck;
+                }
+            }
+            this.log.debug(
+                `Found ${controlsWithType?.length} device types for ${deviceId} : ${JSON.stringify(controlsWithType)}`,
+            );
             const mainState = controls[0].states.find((state: DetectorState) => state.id);
             if (mainState) {
                 const id = mainState.id;
                 if (id) {
+                    if (preferredType && controls[0].type !== preferredType) {
+                        this.log.warn(
+                            `Type detection mismatch for state ${id}: ${controls[0].type} !== ${preferredType}.`,
+                        );
+                    }
                     // console.log(`In ${options.id} was detected "${controls[0].type}" with following states:`);
                     controls[0].states = controls[0].states.filter((state: DetectorState) => state.id);
 
@@ -832,7 +866,7 @@ export class MatterAdapter extends utils.Adapter {
             }
         }
 
-        const detectedDevice = await this.getIoBrokerDeviceStates(oid);
+        const detectedDevice = await this.getIoBrokerDeviceStates(oid, type);
         if (!detectedDevice) {
             return null;
         }

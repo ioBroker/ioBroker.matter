@@ -389,6 +389,7 @@ export class MatterAdapter extends utils.Adapter {
                 case LogLevel.INFO:
                     this.log.debug(formattedLog);
                     break;
+                case LogLevel.NOTICE:
                 case LogLevel.WARN:
                     this.log.info(formattedLog);
                     break;

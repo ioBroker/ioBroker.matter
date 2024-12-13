@@ -434,11 +434,14 @@ export abstract class GenericDeviceToIoBroker {
         this.#pollTimeout = setTimeout(() => this.#pollAttributes(attributes), this.#pollInterval);
     }
 
-    destroy(): Promise<void> {
+    async destroy(): Promise<void> {
         this.#destroyed = true;
         if (this.#pollTimeout !== undefined) {
             clearTimeout(this.#pollTimeout);
             this.#pollTimeout = undefined;
+        }
+        if (this.#hasBridgedReachabilityAttribute) {
+            await this.#adapter.setState(this.#connectionStateId, { val: false, ack: true });
         }
         return this.ioBrokerDevice.destroy();
     }

@@ -941,7 +941,9 @@ export class GeneralMatterNode {
         return value;
     }
 
-    destroy(): Promise<void> {
+    async destroy(): Promise<void> {
+        await this.adapter.setState(this.connectionStateId, false, true);
+        await this.adapter.setState(this.connectionStatusId, NodeStates.Disconnected, true);
         return this.clear();
     }
 

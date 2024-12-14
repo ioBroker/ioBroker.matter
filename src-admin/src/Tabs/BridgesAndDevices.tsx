@@ -244,21 +244,27 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         return <QuestionMark style={{ color }} />;
     }
 
-    requestAdditionalInformation(e: React.MouseEvent, uuid: string): void {
+    requestAdditionalInformation(e: React.MouseEvent, uuid: string, bridgedDeviceUuid?: string): void {
         e.stopPropagation();
 
         this.props.socket
-            .sendTo(`matter.${this.props.instance}`, 'extendedInfo', { uuid })
-            .then((result: { schema: JsonFormSchema; options?: BackEndCommandJsonFormOptions }): void => {
-                this.setState({
-                    jsonConfig: {
-                        schema: result.schema,
-                        options: result.options,
-                        changed: false,
-                        data: result.options?.data || {},
-                    },
-                });
-            })
+            .sendTo(`matter.${this.props.instance}`, 'deviceExtendedInfo', { uuid, bridgedDeviceUuid })
+            .then(
+                ({
+                    result: { schema, options },
+                }: {
+                    result: { schema: JsonFormSchema; options?: BackEndCommandJsonFormOptions };
+                }): void => {
+                    this.setState({
+                        jsonConfig: {
+                            schema,
+                            options,
+                            changed: false,
+                            data: options?.data || {},
+                        },
+                    });
+                },
+            )
             .catch(e => this.props.showToast(`Cannot reset: ${e}`));
     }
 
@@ -301,20 +307,17 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
             result[2] = qrCode;
         }
 
+        const hasError = !!this.props.nodeStates[deviceOrBridge.uuid].error;
         const extendedInfo = (
             <Tooltip
                 key="debug"
-                title={
-                    this.props.nodeStates[deviceOrBridge.uuid].error
-                        ? I18n.t('Show error')
-                        : I18n.t('Show additional information')
-                }
+                title={hasError ? I18n.t('Show error') : I18n.t('Show additional information')}
                 slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
             >
                 <IconButton
                     style={{
                         height: 40,
-                        color: this.props.nodeStates[deviceOrBridge.uuid].error
+                        color: hasError
                             ? '#FF0000'
                             : this.isDevice
                               ? this.props.themeType === 'dark'
@@ -324,7 +327,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                     }}
                     onClick={e => this.requestAdditionalInformation(e, deviceOrBridge.uuid)}
                 >
-                    {this.props.nodeStates[deviceOrBridge.uuid].error ? <Warning /> : <Info />}
+                    {hasError ? <Warning /> : <Info />}
                 </IconButton>
             </Tooltip>
         );

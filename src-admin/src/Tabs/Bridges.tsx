@@ -160,7 +160,7 @@ interface AddCustomDeviceDialog {
     oid: string;
     name: string;
     deviceType: Types | '';
-    detectedDeviceType?: Types;
+    detectedDeviceTypes?: Types[];
     bridgeIndex: number;
     hasOnState?: boolean;
     noComposed?: boolean;
@@ -851,24 +851,35 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     onClose={() => this.setState({ addDeviceDialog: null })}
                     onOk={async (_oid, name) => {
                         const oid: string | undefined = Array.isArray(_oid) ? _oid[0] : (_oid as string);
-                        // Try to detect ID
-                        const controls = await detectDevices(this.props.socket, I18n.getLanguage(), [oid]);
-                        if (!controls?.length) {
-                            this.setState({
-                                addDeviceDialog: null,
-                                addCustomDeviceDialog: {
-                                    oid,
-                                    name,
-                                    deviceType: '',
-                                    bridgeIndex: this.bridgeIndex as number,
-                                    noComposed: false,
-                                },
-                            });
-                        } else {
-                            const deviceType = controls[0].devices[0].deviceType;
-                            if (!SUPPORTED_DEVICES.includes(deviceType)) {
-                                this.props.showToast(I18n.t('Device type "%s" is not supported yet', deviceType));
+                        // Try to detect ID out of the supported IDs
+                        const controls =
+                            (await detectDevices(this.props.socket, I18n.getLanguage(), SUPPORTED_DEVICES, [oid])) ??
+                            [];
+                        if (!controls.length) {
+                            const controls =
+                                (await detectDevices(this.props.socket, I18n.getLanguage(), undefined, [oid])) ?? [];
+                            const deviceTypes = controls.map(c => c.devices[0].deviceType);
+                            if (deviceTypes.length) {
+                                this.props.showToast(
+                                    I18n.t('Detected device types "%s" are not supported yet', deviceTypes.join(', ')),
+                                );
+                                // TODO Should we really let user select??
+                                this.setState({
+                                    addDeviceDialog: null,
+                                    addCustomDeviceDialog: {
+                                        oid,
+                                        name,
+                                        deviceType: '',
+                                        bridgeIndex: this.bridgeIndex as number,
+                                        noComposed: false,
+                                    },
+                                });
+                            } else {
+                                this.props.showToast(I18n.t('No device found for ID %s', oid));
                             }
+                        } else {
+                            // Show dialog to select device type but only allow the detected ones
+                            const deviceType = controls[0].devices[0].deviceType;
 
                             // try to find ON state for dimmer
                             this.setState({
@@ -876,11 +887,11 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                 addCustomDeviceDialog: {
                                     oid,
                                     name,
-                                    detectedDeviceType: deviceType,
-                                    deviceType: SUPPORTED_DEVICES.includes(deviceType) ? deviceType : '',
+                                    deviceType: deviceType,
                                     bridgeIndex: this.bridgeIndex as number,
                                     hasOnState: controls[0].devices[0].hasOnState,
                                     noComposed: false,
+                                    detectedDeviceTypes: controls.map(c => c.devices[0].deviceType),
                                 },
                             });
                         }
@@ -1063,7 +1074,11 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             )}
                         >
                             {Object.keys(Types)
-                                .filter(key => SUPPORTED_DEVICES.includes(key as Types))
+                                .filter(key =>
+                                    (
+                                        this.state.addCustomDeviceDialog?.detectedDeviceTypes ?? SUPPORTED_DEVICES
+                                    ).includes(key as Types),
+                                )
                                 .map(type => (
                                     <MenuItem
                                         key={type}
@@ -1102,9 +1117,15 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         onClick={() => {
                             const addCustomDeviceDialog = this.state.addCustomDeviceDialog;
                             if (addCustomDeviceDialog) {
+                                if (addCustomDeviceDialog.deviceType === '') {
+                                    this.props.showToast(I18n.t('empty device type is not allowed.'));
+                                    return;
+                                }
                                 const isAutoType =
-                                    !!addCustomDeviceDialog.detectedDeviceType &&
-                                    addCustomDeviceDialog.detectedDeviceType === addCustomDeviceDialog.deviceType;
+                                    !!addCustomDeviceDialog.detectedDeviceTypes?.length &&
+                                    addCustomDeviceDialog.detectedDeviceTypes.includes(
+                                        addCustomDeviceDialog.deviceType,
+                                    );
                                 void this.addDevicesToBridge(
                                     [
                                         {
@@ -1112,8 +1133,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                             common: {
                                                 name: addCustomDeviceDialog.name,
                                             },
-                                            deviceType: (addCustomDeviceDialog.deviceType ??
-                                                addCustomDeviceDialog.detectedDeviceType) as Types,
+                                            deviceType: addCustomDeviceDialog.deviceType,
                                             hasOnState: addCustomDeviceDialog.hasOnState,
                                             noComposed: !!addCustomDeviceDialog.noComposed,
                                             // ignored
@@ -1156,9 +1176,9 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         devIndex: number,
     ): React.JSX.Element {
         const isLast = devIndex === bridge.list.length - 1;
-        const hasError = Array.isArray(this.props.nodeStates?.[bridge.uuid]?.error)
-            ? !!(this.props.nodeStates[bridge.uuid].error as string[])?.includes(device.uuid)
-            : false;
+        const errorInfo = this.props.nodeStates?.[bridge.uuid]?.error;
+        const hasError =
+            typeof errorInfo !== 'boolean' && Array.isArray(errorInfo) ? errorInfo.includes(device.uuid) : false;
 
         return (
             <TableRow
@@ -1199,7 +1219,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                                   : '#00000080'
                                               : 'white',
                                     }}
-                                    onClick={e => this.requestAdditionalInformation(e, device.uuid)}
+                                    onClick={e => this.requestAdditionalInformation(e, bridge.uuid, device.uuid)}
                                 >
                                     {hasError ? <Warning /> : <Info />}
                                 </IconButton>

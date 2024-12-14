@@ -232,7 +232,7 @@ TBD
 * (@bluefox) Optimizes several messages nd approval dialogs
 * (@bluefox) Adds a welcome dialog for new users
 * (@bluefox) Adds user guidance for big unpaired bridges
-* (@Apollon77) Adds Illuminance device type
+* (@Apollon77) Adds Illuminance and Button/ButtonSensor (Switch) device type
 * (@Apollon77) Changes/Optimizes naming structure for paired devices and sub-endpoints
 * (@Apollon77) Adds information when Matter device types are not yet supported to look into objects for details
 * (@Apollon77) Resets connection status when a controller node is disconnected, also on adapter stop

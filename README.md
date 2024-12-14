@@ -53,38 +53,44 @@ Important: In order to expose more than 5 Bridged devices or to expose additiona
 
 ### Supported ioBroker device types
 
-| ioBroker Device Type | Mapped to Matter Device Type |
-|----------------------|------------------------------|
-| Ct                   | Color Temperature Light      |
-| Dimmer               | Dimmable Light               |
-| Door                 | Contact Sensor               |
-| Flood Alarm          | Water Leak Detector          |
-| Humidity             | Humidity Sensor              |
-| Light                | OnOff Light                  |
-| Lock                 | Door Lock                    |
-| Motion               | Occupancy Sensor             |
-| Socket               | OnOff PlugIn                 |
-| Temperature          | Temperature Sensor           |
-| Window               | Contact Sensor               |
+| ioBroker Device Type | Mapped to Matter Device Type | Comments                                                                                                                            |
+|----------------------|------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
+| Button               | GenericSwitch                | Reports multi-presses when the time between single presses is maximum 300ms.                                                        |
+| ButtonSensor         | GenericSwitch                | Reports multi-presses when the time between single presses is maximum 300ms. Reports Long-presses when the PRESS_LONG state is used |
+| Ct                   | Color Temperature Light      |                                                                                                                                     |
+| Dimmer               | Dimmable Light               |                                                                                                                                     |
+| Door                 | Contact Sensor               |                                                                                                                                     |
+| Flood Alarm          | Water Leak Detector          |                                                                                                                                     |
+| Humidity             | Humidity Sensor              |                                                                                                                                     |
+| Illumunance          | Illuminance Sensor           |                                                                                                                                     |
+| Light                | OnOff Light                  |                                                                                                                                     |
+| Lock                 | Door Lock                    |                                                                                                                                     |
+| Motion               | Occupancy Sensor             |                                                                                                                                     |
+| Socket               | OnOff PlugIn                 |                                                                                                                                     |
+| Temperature          | Temperature Sensor           |                                                                                                                                     |
+| Window               | Contact Sensor               |                                                                                                                                     |
 
 ... more to come
 
 ### Supported Matter device types
 
-| Matter Device Type      | Mapped to ioBroker Device Type |
-|-------------------------|--------------------------------|
-| Color Temperature Light | Ct                             |
-| Dimmable Light          | Dimmer                         |
-| Dimmable PlugIn Unit    | Dimmer                         |
-| Contact Sensor          | Window                         |
-| Energy Sensor           | Light with only energy states  |
-| Humidity Sensor         | Humidity                       |
-| OnOff Light             | Light                          |
-| Door Lock               | Lock                           |
-| Occupancy Sensor        | Motion                         |
-| OnOff PlugIn Unit       | Socket                         |
-| Temperature Sensor      | Temperature                    |
-| Water Leak Detector     | Flood Alarm                    |
+| Matter Device Type                   | Mapped to ioBroker Device Type |
+|--------------------------------------|--------------------------------|
+| Color Temperature Light              | Ct                             |
+| Dimmable Light                       | Dimmer                         |
+| Dimmable PlugIn Unit                 | Dimmer                         |
+| Contact Sensor                       | Window                         |
+| Energy Sensor                        | Light with only energy states  |
+| Generic Switch (as Latching Switch)  | Socket (state ACTUAL only)     |
+| Generic Switch (as Momentary Switch) | ButtonSensor                   |
+| Humidity Sensor                      | Humidity                       |
+| Illuminance Sensor                   | Illuminance                    |
+| OnOff Light                          | Light                          |
+| Door Lock                            | Lock                           |
+| Occupancy Sensor                     | Motion                         |
+| OnOff PlugIn Unit                    | Socket                         |
+| Temperature Sensor                   | Temperature                    |
+| Water Leak Detector                  | Flood Alarm                    |
 
 ... more to come
 
@@ -164,8 +170,6 @@ TBD
     * hue
   * (8) blinds + blindButtons
   * (-8) thermostat
-  * (5+2) button
-  * (5+2) buttonSensor?
   * (3+) vacuumCleaner
   * (3) volume, volumeGroup
   * (-3) airCondition
@@ -179,9 +183,7 @@ TBD
   * (9) Enhanced Color Light -> rgb/rgbw/cie/hue/...
   * (8) Thermostat -> thermostat
   * (8) Window Covering -> blinds / blindButtons
-  * (7+) Light Sensor -> ??? DEF
   * (7) Fan -> thermostat?
-  * (5+2) Generic Switch -> button? buttonSensor?
   * (4+) Air Quality Sensor -> ???
   * (4+) Air Purifier -> ???
   * (4) Pump -> ???
@@ -221,6 +223,24 @@ TBD
 ### 0.2.7 (2024-12-08)
 * (@Apollon77) Cleans up objects when a controller node is deleted
 * (@Apollon77) Prevents controller configuration changes to be executed in parallel
+* (@bluefox) Fixes progress dialog for DM - used when deleting a node
+* (@bluefox) Synchronizes the "do not ask again on delete" time with admin and set to 5 minutes
+* (@bluefox) Optimizes bridges display for different color schemes
+* (@bluefox) Allows to collapse the information blocks at the top of the pages
+* (@bluefox) Adds an ioBroker Logo when display commissioned controllers
+* (@bluefox/@apollon77) Adds additional details and error state also for devices and bridged devices
+* (@bluefox/@apollon77) Always display QR code to allow additional pairing for device and bridges from adapter UI
+* (@bluefox) Optimizes several messages nd approval dialogs
+* (@bluefox) Adds a welcome dialog for new users
+* (@bluefox) Adds user guidance for big unpaired bridges
+* (@Apollon77) Adds Illuminance device type
+* (@Apollon77) Changes/Optimizes naming structure for paired devices and sub-endpoints
+* (@Apollon77) Adds information when Matter device types are not yet supported to look into objects for details
+* (@Apollon77) Resets connection status when a controller node is disconnected, also on adapter stop
+* (@Apollon77) Cleans up internal data structures when a node gets deleted for controller
+* (@Apollon77) Uses the configured device type when finding multiple types in the backend
+* (@Apollon77) Adjusts UI device type detection to differentiate between supported and other types
+* (@Apollon77) Makes sure that controller configuration changes are executed sequentially
 
 ### 0.2.6 (2024-12-06)
 * (@Apollon77) Fixes ColorTemperature light initialization because of matter.js update

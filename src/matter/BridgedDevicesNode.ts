@@ -29,8 +29,7 @@ export interface BridgeOptions {
 /** A Bridged Devices Server Node. */
 class BridgedDevices extends BaseServerNode {
     #parameters: BridgeOptions;
-    #devices: GenericDevice[];
-    #devicesOptions: BridgeDeviceDescription[];
+    #devices: Map<string, { device?: GenericDevice; error?: string; options: BridgeDeviceDescription }>;
     #started = false;
     #aggregator?: Endpoint<AggregatorEndpoint>;
     #deviceEndpoints = new Map<string, Endpoint[]>();
@@ -40,7 +39,6 @@ class BridgedDevices extends BaseServerNode {
         super(adapter, 'bridges', options.parameters.uuid);
         this.#parameters = options.parameters;
         this.#devices = options.devices;
-        this.#devicesOptions = options.devicesOptions;
     }
 
     get port(): number {
@@ -53,7 +51,7 @@ class BridgedDevices extends BaseServerNode {
             throw new Error(`Aggregator on Bridge ${deviceOptions.uuid} not initialized. Should never happen`);
         }
 
-        this.adapter.log.info(`Adding device ${deviceOptions.uuid} "${deviceOptions.name}" to bridge`);
+        this.adapter.log.info(`Preparing device ${deviceOptions.uuid} "${deviceOptions.name}" for bridge`);
 
         if (this.#deviceEndpoints.has(deviceOptions.uuid)) {
             this.adapter.log.warn(
@@ -220,16 +218,21 @@ class BridgedDevices extends BaseServerNode {
         await this.serverNode.add(this.#aggregator);
 
         let erroredCount = 0;
-        for (let i = 0; i < this.#devices.length; i++) {
+        for (const { device, error, options: deviceOptions } of this.#devices.values()) {
+            if (!device || error) {
+                erroredCount++;
+                this.adapter.log.info(`Skipping device ${deviceOptions.uuid} because could not be initialized.`);
+                continue;
+            }
             try {
-                await this.addBridgedIoBrokerDevice(this.#devices[i], this.#devicesOptions[i]);
+                await this.addBridgedIoBrokerDevice(device, deviceOptions);
             } catch (error) {
                 erroredCount++;
                 const errorText = inspect(error, { depth: 10 });
-                this.adapter.log.error(`Error adding device ${this.#devicesOptions[i].uuid} to bridge: ${errorText}`);
+                this.adapter.log.error(`Error adding device ${deviceOptions.uuid} to bridge: ${errorText}`);
             }
         }
-        if (erroredCount === this.#devices.length) {
+        if (erroredCount === this.#devices.size) {
             await this.destroy();
             throw new Error(`Could not add any device to bridge`);
         }
@@ -250,52 +253,47 @@ class BridgedDevices extends BaseServerNode {
 
         // If the device is already commissioned we only allow to modify contained devices partially
         if (this.serverNode.lifecycle.isCommissioned) {
-            const existingDevicesInBridge = [...this.#deviceEndpoints.keys()];
-            const newDeviceList = new Array<string>();
+            const newDeviceList = new Set<string>();
 
-            for (let i = 0; i < options.devices.length; i++) {
-                const device = options.devices[i];
-                const deviceOptions = options.devicesOptions[i];
-                newDeviceList.push(deviceOptions.uuid);
+            for (const { device, error, options: deviceOptions } of options.devices.values()) {
                 this.adapter.log.debug(`Processing device ${deviceOptions.uuid} "${deviceOptions.name}" in bridge`);
-                if (existingDevicesInBridge.includes(deviceOptions.uuid)) {
-                    existingDevicesInBridge.splice(existingDevicesInBridge.indexOf(deviceOptions.uuid), 1);
+                const existingDevice = this.#devices.get(deviceOptions.uuid)?.device;
+                if (existingDevice) {
+                    newDeviceList.add(deviceOptions.uuid);
                     this.adapter.log.debug(`Device ${deviceOptions.uuid} already in bridge. Sync Configuration`);
-                    const existingDevice = this.#devices.find(d => d.uuid === deviceOptions.uuid);
-                    if (existingDevice === undefined) {
-                        this.adapter.log.info(`Device ${deviceOptions.uuid} not found in bridge. Should never happen`);
-                        continue;
-                    }
                     existingDevice.applyConfiguration(deviceOptions);
                     continue;
                 }
-                this.adapter.log.info(`Adding device  ${deviceOptions.uuid} "${deviceOptions.name}" to bridge`);
+                if (!device || error) {
+                    this.adapter.log.info(`Skipping device ${deviceOptions.uuid} because could not be initialized.`);
+                    this.#devices.set(deviceOptions.uuid, { device, error, options: deviceOptions });
+                    continue;
+                }
+                newDeviceList.add(deviceOptions.uuid);
+                this.adapter.log.info(`Adding device ${deviceOptions.uuid} "${deviceOptions.name}" to bridge`);
                 await this.addBridgedIoBrokerDevice(device, deviceOptions);
-                this.#devices.push(device);
-                this.#devicesOptions.push(deviceOptions);
+                this.#devices.set(deviceOptions.uuid, { device, options: deviceOptions });
             }
 
             for (const [uuid, endpoints] of this.#deviceEndpoints) {
-                if (!newDeviceList.includes(uuid)) {
-                    this.adapter.log.info(`Removing device ${uuid} from bridge`);
-
-                    await this.#mappingDevices.get(uuid)?.destroy();
-                    this.#mappingDevices.delete(uuid);
-
-                    for (const endpoint of endpoints) {
-                        this.adapter.log.debug(`Removing endpoint ${endpoint.id} from bridge`);
-                        await endpoint.delete();
-                    }
-
-                    this.#deviceEndpoints.delete(uuid);
-
-                    const deviceIndex = this.#devicesOptions.findIndex(device => device.uuid === uuid);
-                    if (deviceIndex !== -1) {
-                        await this.#devices[deviceIndex].destroy();
-                        this.#devices.splice(deviceIndex, 1);
-                        this.#devicesOptions.splice(deviceIndex, 1);
-                    }
+                if (newDeviceList.has(uuid)) {
+                    continue; // It is in current list and also new list, so nothing to do
                 }
+                this.adapter.log.info(`Removing device ${uuid} from bridge`);
+
+                await this.#mappingDevices.get(uuid)?.destroy();
+                this.#mappingDevices.delete(uuid);
+
+                for (const endpoint of endpoints) {
+                    this.adapter.log.debug(`Removing endpoint ${endpoint.id} from bridge`);
+                    await endpoint.delete();
+                }
+
+                this.#deviceEndpoints.delete(uuid);
+
+                const { device } = this.#devices.get(uuid) ?? {};
+                await device?.destroy();
+                this.#devices.delete(uuid);
             }
 
             return;
@@ -308,7 +306,6 @@ class BridgedDevices extends BaseServerNode {
         // Reinitialize
         this.#parameters = options.parameters;
         this.#devices = options.devices;
-        this.#devicesOptions = options.devicesOptions;
         await this.init();
         if (wasStarted) {
             await this.start();
@@ -327,8 +324,8 @@ class BridgedDevices extends BaseServerNode {
     }
 
     async destroy(): Promise<void> {
-        for (const device of this.#devices) {
-            await device.destroy();
+        for (const { device } of this.#devices.values()) {
+            await device?.destroy();
         }
         for (const mappingDevice of this.#mappingDevices.values()) {
             await mappingDevice.destroy();

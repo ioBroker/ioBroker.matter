@@ -16,7 +16,7 @@ import type {
     DeviceDescription,
     MatterAdapterConfig,
 } from './ioBrokerStorageTypes';
-import { DeviceFactory, SubscribeManager } from './lib';
+import { DeviceFactory, type GenericDevice, SubscribeManager } from './lib';
 import MatterAdapterDeviceManagement from './lib/DeviceManagement';
 import type { DetectedDevice, DeviceOptions } from './lib/devices/GenericDevice';
 import type { NodeStateResponse } from './matter/BaseServerNode';
@@ -79,8 +79,8 @@ interface NodeStatesOptions {
 }
 
 export class MatterAdapter extends utils.Adapter {
-    readonly #devices = new Map<string, MatterDevice>();
-    readonly #bridges = new Map<string, BridgedDevice>();
+    readonly #devices = new Map<string, { device?: MatterDevice; error?: string }>();
+    readonly #bridges = new Map<string, { bridge?: BridgedDevice; error?: string }>();
     #controller?: MatterController;
     #sendControllerUpdateTimeout?: NodeJS.Timeout;
     #detector: ChannelDetector;
@@ -163,12 +163,12 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async shutDownMatterNodes(): Promise<void> {
-        for (const device of this.#devices.values()) {
-            await device.destroy();
+        for (const { device } of this.#devices.values()) {
+            await device?.destroy();
         }
         this.#devices.clear();
-        for (const bridge of this.#bridges.values()) {
-            await bridge.destroy();
+        for (const { bridge } of this.#bridges.values()) {
+            await bridge?.destroy();
         }
         this.#bridges.clear();
         // TODO with next matter.js : if (this.#controllerActionQueue.count)
@@ -178,12 +178,12 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async startUpMatterNodes(): Promise<void> {
-        for (const bridge of this.#bridges.values()) {
-            await bridge.start();
+        for (const { bridge } of this.#bridges.values()) {
+            await bridge?.start();
         }
 
-        for (const device of this.#devices.values()) {
-            await device.start();
+        for (const { device } of this.#devices.values()) {
+            await device?.start();
         }
 
         await this.#controller?.start();
@@ -228,37 +228,57 @@ export class MatterAdapter extends utils.Adapter {
             return;
         }
         if (obj.command?.startsWith('device')) {
-            for (const bridge of this.#bridges.values()) {
-                if (bridge.uuid === obj.message.uuid) {
-                    try {
-                        const result = await bridge.handleCommand(obj);
-                        if (result !== undefined && obj.callback) {
-                            this.sendTo(obj.from, obj.command, result, obj.callback);
+            for (const [oid, { bridge, error }] of this.#bridges.entries()) {
+                const uuid = oid.split('.').pop() || '';
+                if (uuid === obj.message.uuid) {
+                    if (bridge) {
+                        try {
+                            const result = await bridge.handleCommand(obj);
+                            if (result !== undefined && obj.callback) {
+                                this.sendTo(obj.from, obj.command, result, obj.callback);
+                            }
+                        } catch (error) {
+                            this.log.warn(
+                                `Error while handling command "${obj.command}" for device ${bridge.uuid}: ${error.stack}`,
+                            );
+                            if (obj.callback) {
+                                this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
+                            }
                         }
-                    } catch (error) {
-                        this.log.warn(
-                            `Error while handling command "${obj.command}" for device ${bridge.uuid}: ${error.stack}`,
-                        );
-                        if (obj.callback) {
-                            this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
+                    } else if (error) {
+                        if (obj.message === 'deviceExtendedInfo') {
+                            const result = this.getGenericErrorDetails('bridge', uuid, error);
+                            if (result !== undefined && obj.callback) {
+                                this.sendTo(obj.from, obj.command, result, obj.callback);
+                            }
                         }
                     }
                     return;
                 }
             }
-            for (const device of this.#devices.values()) {
-                if (device.uuid === obj.message.uuid) {
-                    try {
-                        const result = await device.handleCommand(obj);
-                        if (result !== undefined && obj.callback) {
-                            this.sendTo(obj.from, obj.command, result, obj.callback);
+            for (const [oid, { device, error }] of this.#devices.entries()) {
+                const uuid = oid.split('.').pop() || '';
+                if (uuid === obj.message.uuid) {
+                    if (device) {
+                        try {
+                            const result = await device.handleCommand(obj);
+                            if (result !== undefined && obj.callback) {
+                                this.sendTo(obj.from, obj.command, result, obj.callback);
+                            }
+                        } catch (error) {
+                            this.log.warn(
+                                `Error while handling command "${obj.command}" for device ${device.uuid}: ${error.stack}`,
+                            );
+                            if (obj.callback) {
+                                this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
+                            }
                         }
-                    } catch (error) {
-                        this.log.warn(
-                            `Error while handling command "${obj.command}" for device ${device.uuid}: ${error.stack}`,
-                        );
-                        if (obj.callback) {
-                            this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
+                    } else if (error) {
+                        if (obj.message === 'deviceExtendedInfo') {
+                            const result = this.getGenericErrorDetails('device', uuid, error);
+                            if (result !== undefined && obj.callback) {
+                                this.sendTo(obj.from, obj.command, result, obj.callback);
+                            }
                         }
                     }
 
@@ -494,19 +514,31 @@ export class MatterAdapter extends utils.Adapter {
     async requestNodeStates(options?: NodeStatesOptions): Promise<{ [uuid: string]: NodeStateResponse }> {
         const states: { [uuid: string]: NodeStateResponse } = {};
         if (!options || !Object.keys(options).length || options.bridges) {
-            for (const [oid, bridge] of this.#bridges.entries()) {
-                const state = await bridge.getState();
-                this.log.debug(`State of bridge ${oid} is ${JSON.stringify(state)}`);
+            for (const [oid, { bridge, error }] of this.#bridges.entries()) {
                 const uuid = oid.split('.').pop() || '';
-                states[uuid] = state;
+                if (bridge) {
+                    const state = await bridge.getState();
+                    this.log.debug(`State of bridge ${oid} is ${JSON.stringify(state)}`);
+                    states[uuid] = state;
+                } else if (error) {
+                    states[uuid] = {
+                        error: !!error,
+                    };
+                }
             }
         }
         if (!options || !Object.keys(options).length || options.devices) {
-            for (const [oid, device] of this.#devices.entries()) {
-                const state = await device.getState();
-                this.log.debug(`State of device ${oid} is ${JSON.stringify(state)}`);
+            for (const [oid, { device, error }] of this.#devices.entries()) {
                 const uuid = oid.split('.').pop() || '';
-                states[uuid] = state;
+                if (device) {
+                    const state = await device.getState();
+                    this.log.debug(`State of device ${oid} is ${JSON.stringify(state)}`);
+                    states[uuid] = state;
+                } else if (error) {
+                    states[uuid] = {
+                        error: !!error,
+                    };
+                }
             }
         }
 
@@ -914,19 +946,26 @@ export class MatterAdapter extends utils.Adapter {
             return null; // Not startup
         }
         options.list = options.list ?? [];
-        const devices = [];
-        for (const device of options.list) {
-            this.log.debug(`Prepare bridged device ${device.uuid} "${device.name}" (auto=${device.auto})`);
-            const detectedDevice = await this.determineIoBrokerDevice(device.oid, device.type, device.auto);
+        const devices = new Map<string, { device?: GenericDevice; error?: string; options: BridgeDeviceDescription }>();
+        let addedDevices = 0;
+        for (const deviceOptions of options.list) {
+            this.log.debug(
+                `Prepare bridged device ${deviceOptions.uuid} "${deviceOptions.name}" (auto=${deviceOptions.auto})`,
+            );
+            const detectedDevice = await this.determineIoBrokerDevice(
+                deviceOptions.oid,
+                deviceOptions.type,
+                deviceOptions.auto,
+            );
             if (detectedDevice === null) {
                 this.log.error(
-                    `Cannot initialize device ${device.uuid} "${device.name}" because ${device.oid} does not exist! Check configuration.`,
+                    `Cannot initialize device ${deviceOptions.uuid} "${deviceOptions.name}" because ${deviceOptions.oid} does not exist! Check configuration.`,
                 );
                 continue;
             }
             try {
-                const deviceObject = await DeviceFactory(detectedDevice, this, device as DeviceOptions, false);
-                if (devices.length >= 5) {
+                const deviceObject = await DeviceFactory(detectedDevice, this, deviceOptions as DeviceOptions, false);
+                if (addedDevices >= 5) {
                     if (!(await this.checkLicense())) {
                         this.log.error(
                             'You cannot use more than 5 devices without ioBroker.pro subscription. Only first 5 devices will be created.',
@@ -935,13 +974,21 @@ export class MatterAdapter extends utils.Adapter {
                         break;
                     }
                 }
-                devices.push(deviceObject);
+                devices.set(deviceOptions.uuid, {
+                    device: deviceObject,
+                    options: deviceOptions,
+                });
+                addedDevices++;
             } catch (e) {
-                this.log.error(`Cannot create device for ${device.oid}: ${e.message}`);
+                devices.set(deviceOptions.uuid, {
+                    error: e.message,
+                    options: deviceOptions,
+                });
+                this.log.error(`Cannot create bridged device for ${deviceOptions.oid}: ${e.message}`);
             }
         }
 
-        if (devices.length) {
+        if (addedDevices > 0) {
             const port =
                 (assignedPort ?? (this.config as MatterAdapterConfig).defaultBridge === options.uuid)
                     ? 5540
@@ -956,7 +1003,6 @@ export class MatterAdapter extends utils.Adapter {
                     productName: `Bridge ${deviceName}`,
                 },
                 devices,
-                devicesOptions: options.list,
             };
         }
         return null;
@@ -1143,7 +1189,7 @@ export class MatterAdapter extends utils.Adapter {
 
         // Objects exist and enabled: Sync bridges
         for (const bridge of bridges) {
-            const existingBridge = this.#bridges.get(bridge._id);
+            const existingBridge = this.#bridges.get(bridge._id)?.bridge;
             const deviceName =
                 typeof bridge.common.name === 'object'
                     ? bridge.common.name[this.sysLanguage]
@@ -1154,7 +1200,7 @@ export class MatterAdapter extends utils.Adapter {
                 // if one bridge already exists, check the license
                 const matterBridge = await this.createMatterBridge(deviceName, bridge.native as BridgeDescription);
                 if (matterBridge) {
-                    if (Object.keys(this.#bridges).length) {
+                    if (this.#bridges.size) {
                         // check license
                         if (!(await this.checkLicense())) {
                             this.log.error(
@@ -1165,7 +1211,7 @@ export class MatterAdapter extends utils.Adapter {
                         }
                     }
 
-                    this.#bridges.set(bridge._id, matterBridge);
+                    this.#bridges.set(bridge._id, { bridge: matterBridge });
                     if (obj !== undefined) {
                         await matterBridge.start();
                     }
@@ -1198,11 +1244,11 @@ export class MatterAdapter extends utils.Adapter {
                         ? (device.common.name[this.sysLanguage] as string)
                         : device.common.name.en
                     : device.common.name;
-            const existingDevice = this.#devices.get(device._id);
+            const existingDevice = this.#devices.get(device._id)?.device;
             if (existingDevice === undefined) {
                 const matterDevice = await this.createMatterDevice(deviceName, device.native as DeviceDescription);
                 if (matterDevice) {
-                    if (Object.keys(this.#devices).length >= 2) {
+                    if (this.#devices.size >= 2) {
                         if (!(await this.checkLicense())) {
                             this.log.error(
                                 'You cannot use more than 2 devices without ioBroker.pro subscription. Only first 2 devices will be created.}',
@@ -1211,7 +1257,7 @@ export class MatterAdapter extends utils.Adapter {
                             break;
                         }
                     }
-                    this.#devices.set(device._id, matterDevice);
+                    this.#devices.set(device._id, { device: matterDevice });
                     if (obj !== undefined) {
                         await matterDevice.start();
                     }
@@ -1283,11 +1329,14 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async stopBridgeOrDevice(type: 'bridge' | 'device', id: string): Promise<void> {
-        const nodes = type === 'bridge' ? this.#bridges : this.#devices;
-        const node = nodes.get(id);
-        if (node) {
-            await node.destroy();
-            nodes.delete(id);
+        if (type === 'bridge') {
+            const bridge = this.#bridges.get(id)?.bridge;
+            await bridge?.destroy();
+            this.#bridges.delete(id);
+        } else {
+            const device = this.#devices.get(id)?.device;
+            await device?.destroy();
+            this.#devices.delete(id);
         }
     }
 

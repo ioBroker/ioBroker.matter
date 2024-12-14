@@ -220,9 +220,8 @@ TBD
 -->
 
 ## Changelog
-### 0.2.7 (2024-12-08)
-* (@Apollon77) Cleans up objects when a controller node is deleted
-* (@Apollon77) Prevents controller configuration changes to be executed in parallel
+
+### __WORK IN PROGRESS__
 * (@bluefox) Fixes progress dialog for DM - used when deleting a node
 * (@bluefox) Synchronizes the "do not ask again on delete" time with admin and set to 5 minutes
 * (@bluefox) Optimizes bridges display for different color schemes
@@ -241,6 +240,10 @@ TBD
 * (@Apollon77) Uses the configured device type when finding multiple types in the backend
 * (@Apollon77) Adjusts UI device type detection to differentiate between supported and other types
 * (@Apollon77) Makes sure that controller configuration changes are executed sequentially
+
+### 0.2.7 (2024-12-08)
+* (@Apollon77) Cleans up objects when a controller node is deleted
+* (@Apollon77) Prevents controller configuration changes to be executed in parallel
 
 ### 0.2.6 (2024-12-06)
 * (@Apollon77) Fixes ColorTemperature light initialization because of matter.js update

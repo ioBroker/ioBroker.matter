@@ -69,7 +69,7 @@ export abstract class GenericDeviceToMatter {
     abstract resetIdentify(identifyOptions: IdentifyOptions): Promise<void>;
 
     /** Return the created Matter Endpoints of this device. */
-    abstract getMatterEndpoints(): Endpoint[];
+    abstract get matterEndpoints(): Endpoint[];
 
     /** Return the ioBroker device this mapping is for. */
     abstract ioBrokerDevice: GenericDevice;

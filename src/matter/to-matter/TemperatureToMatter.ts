@@ -26,7 +26,7 @@ export class TemperatureToMatter extends GenericDeviceToMatter {
     async doIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
     async resetIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
 
-    getMatterEndpoints(): Endpoint[] {
+    get matterEndpoints(): Endpoint[] {
         const endpoints: Endpoint[] = [this.#matterEndpointTemperature];
         if (this.#matterEndpointHumidity) {
             endpoints.push(this.#matterEndpointHumidity);

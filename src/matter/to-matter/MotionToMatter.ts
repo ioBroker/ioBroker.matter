@@ -33,7 +33,7 @@ export class MotionToMatter extends GenericDeviceToMatter {
     async doIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
     async resetIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
 
-    getMatterEndpoints(): Endpoint[] {
+    get matterEndpoints(): Endpoint[] {
         const endpoints: Endpoint[] = [this.#matterEndpointOccupancy];
         if (this.#matterEndpointLightSensor) {
             endpoints.push(this.#matterEndpointLightSensor);

@@ -295,7 +295,7 @@ export abstract class GenericDeviceToIoBroker {
         }
 
         if (!existingObject || existingObject.common.statusStates?.onlineId !== this.#connectionStateId) {
-            await this.#adapter.extendObject(this.baseId, {
+            await this.#adapter.extendObjectAsync(this.baseId, {
                 common: {
                     statusStates: {
                         onlineId: `${this.#connectionStateId}`,
@@ -462,7 +462,7 @@ export abstract class GenericDeviceToIoBroker {
     getDeviceDetails(): Record<string, Record<string, unknown>> {
         const result: Record<string, Record<string, unknown>> = {};
 
-        const states = this.ioBrokerDevice.states;
+        const states = this.ioBrokerDevice.getStates();
         if (Object.keys(states).length) {
             result.states = {
                 __header__details: 'Mapped ioBroker States',

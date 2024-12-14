@@ -35,7 +35,7 @@ export class LightToMatter extends GenericElectricityDataDeviceToMatter {
         return this.#ioBrokerDevice.setPower(identifyOptions.initialState as boolean);
     }
 
-    getMatterEndpoints(): Endpoint[] {
+    get matterEndpoints(): Endpoint[] {
         return [this.#matterEndpoint];
     }
 

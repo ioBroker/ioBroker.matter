@@ -44,7 +44,7 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
         // TODO
     }
 
-    getMatterEndpoints(): Endpoint[] {
+    get matterEndpoints(): Endpoint[] {
         return [this.#matterEndpoint];
     }
 

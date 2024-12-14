@@ -45,7 +45,7 @@ const SystemClusters: ClusterId[] = [
     ClusterId(0x0032), // Diagnostic Logs
     ClusterId(0x0033), // General Diagnostics
     ClusterId(0x0034), // Software Diagnostics
-    ClusterId(0x0035), // Thread Network ClusterId(Diagnostics
+    ClusterId(0x0035), // Thread Network Diagnostics
     ClusterId(0x0036), // Wi-Fi Network Diagnostics
     ClusterId(0x0037), // Ethernet Network Diagnostics
     ClusterId(0x0038), // Time Synchronization
@@ -433,7 +433,7 @@ export class GeneralMatterNode {
                         exposeMatterApplicationClusterData = true;
                         customExposeMatterApplicationClusterData = true;
 
-                        await this.adapter.extendObject(endpointDeviceBaseId, {
+                        await this.adapter.extendObjectAsync(endpointDeviceBaseId, {
                             native: {
                                 exposeMatterApplicationClusterData,
                             },
@@ -962,8 +962,8 @@ export class GeneralMatterNode {
         await this.adapter.extendObjectAsync(this.nodeBaseId, { common: { name: newName } });
     }
 
-    async getNodeDetails(): Promise<Record<string, Record<string, unknown>>> {
-        const result: Record<string, Record<string, unknown>> = {};
+    async getNodeDetails(): Promise<StructuredJsonFormData> {
+        const result: StructuredJsonFormData = {};
 
         const details = this.node.basicInformation;
 

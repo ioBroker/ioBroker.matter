@@ -109,9 +109,11 @@ export abstract class GenericDeviceToMatter {
         const details: StructuredJsonFormData = {};
 
         details.detectedStates = {
+            __header__device: 'Detected ioBroker Device type',
+            deviceType: this.ioBrokerDevice.deviceType,
             __header__states: 'Detected device states',
-            __text__info: 'The following states were detected for this device.',
-            __devider__info: true,
+            __text__info: 'The following states were detected for this device:',
+            __divider__info: true,
             ...this.ioBrokerDevice.getStates(true, true),
         };
 
@@ -120,11 +122,11 @@ export abstract class GenericDeviceToMatter {
             details.endpoints = {
                 __header__endpoints: 'Device Endpoints',
                 __text__info: 'The following Matter endpoints are mapped for this device.',
-                __devider__info: true,
+                __divider__info: true,
             };
             endpoints.forEach(endpoint => {
-                details.endpoints.__header__endpoint = `Endpoint ${endpoint.number}`;
-                details.endpoints.__text__deviceType = endpoint.type.name;
+                details.endpoints[`__header__endpoint${endpoint.number}`] = `Endpoint ${endpoint.number}`;
+                details.endpoints[`dt${endpoint.number}__deviceType`] = endpoint.type.name;
                 // TODO expose potentially more
             });
         }

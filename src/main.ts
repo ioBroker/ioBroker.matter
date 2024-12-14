@@ -1215,6 +1215,9 @@ export class MatterAdapter extends utils.Adapter {
                     if (obj !== undefined) {
                         await matterBridge.start();
                     }
+                } else {
+                    this.log.error(`Cannot create device for ${bridge._id}`);
+                    this.#devices.set(bridge._id, { error: 'Cannot create bridge' });
                 }
             } else {
                 const config = await this.prepareMatterBridgeConfiguration(
@@ -1261,6 +1264,9 @@ export class MatterAdapter extends utils.Adapter {
                     if (obj !== undefined) {
                         await matterDevice.start();
                     }
+                } else {
+                    this.log.error(`Cannot create device for ${device._id}`);
+                    this.#devices.set(device._id, { error: 'Cannot create device' });
                 }
             } else {
                 const config = await this.prepareMatterDeviceConfiguration(
@@ -1356,7 +1362,7 @@ export class MatterAdapter extends utils.Adapter {
                 __header__error: 'Error information',
                 __text__info: `${type === 'bridge' ? 'Bridge' : 'Device'} is in error state. Fix the error before enabling it again`,
                 __text__error: error,
-                __text__uuid: `UUID: ${uuid}`,
+                uuid: `UUID: ${uuid}`,
             },
         };
 

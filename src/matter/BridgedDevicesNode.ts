@@ -218,7 +218,7 @@ class BridgedDevices extends BaseServerNode {
         await this.serverNode.add(this.#aggregator);
 
         let erroredCount = 0;
-        for (const { device, error, options: deviceOptions } of this.#devices.values()) {
+        for (const [uuid, { device, error, options: deviceOptions }] of this.#devices.entries()) {
             if (!device || error) {
                 erroredCount++;
                 this.adapter.log.info(`Skipping device ${deviceOptions.uuid} because could not be initialized.`);
@@ -230,6 +230,11 @@ class BridgedDevices extends BaseServerNode {
                 erroredCount++;
                 const errorText = inspect(error, { depth: 10 });
                 this.adapter.log.error(`Error adding device ${deviceOptions.uuid} to bridge: ${errorText}`);
+                const details = this.#devices.get(uuid);
+                if (details !== undefined) {
+                    details.error = error.message;
+                    this.#devices.set(uuid, details);
+                }
             }
         }
         if (erroredCount === this.#devices.size) {
@@ -256,23 +261,30 @@ class BridgedDevices extends BaseServerNode {
             const newDeviceList = new Set<string>();
 
             for (const { device, error, options: deviceOptions } of options.devices.values()) {
-                this.adapter.log.debug(`Processing device ${deviceOptions.uuid} "${deviceOptions.name}" in bridge`);
-                const existingDevice = this.#devices.get(deviceOptions.uuid)?.device;
+                const uuid = deviceOptions.uuid;
+                this.adapter.log.debug(`Processing device ${uuid} "${deviceOptions.name}" in bridge`);
+                const existingDevice = this.#devices.get(uuid)?.device;
                 if (existingDevice) {
-                    newDeviceList.add(deviceOptions.uuid);
-                    this.adapter.log.debug(`Device ${deviceOptions.uuid} already in bridge. Sync Configuration`);
+                    newDeviceList.add(uuid);
+                    this.adapter.log.debug(`Device ${uuid} already in bridge. Sync Configuration`);
                     existingDevice.applyConfiguration(deviceOptions);
                     continue;
                 }
                 if (!device || error) {
-                    this.adapter.log.info(`Skipping device ${deviceOptions.uuid} because could not be initialized.`);
-                    this.#devices.set(deviceOptions.uuid, { device, error, options: deviceOptions });
+                    this.adapter.log.info(`Skipping device ${uuid} because could not be initialized.`);
+                    this.#devices.set(uuid, { device, error, options: deviceOptions });
                     continue;
                 }
-                newDeviceList.add(deviceOptions.uuid);
-                this.adapter.log.info(`Adding device ${deviceOptions.uuid} "${deviceOptions.name}" to bridge`);
-                await this.addBridgedIoBrokerDevice(device, deviceOptions);
-                this.#devices.set(deviceOptions.uuid, { device, options: deviceOptions });
+                newDeviceList.add(uuid);
+                this.adapter.log.info(`Adding device ${uuid} "${deviceOptions.name}" to bridge`);
+                try {
+                    await this.addBridgedIoBrokerDevice(device, deviceOptions);
+                    this.#devices.set(uuid, { device, options: deviceOptions });
+                } catch (error) {
+                    const errorText = inspect(error, { depth: 10 });
+                    this.adapter.log.error(`Error adding device ${uuid} to bridge: ${errorText}`);
+                    this.#devices.set(uuid, { error: error.message, options: deviceOptions });
+                }
             }
 
             for (const [uuid, endpoints] of this.#deviceEndpoints) {
@@ -356,29 +368,54 @@ class BridgedDevices extends BaseServerNode {
     }
 
     getDeviceDetails(message: ioBroker.MessagePayload): StructuredJsonFormData {
-        const bridgedDeviceUuid = message.bridgedDeviceUuid as string;
+        const bridgedDeviceUuid = message.bridgedDeviceUuid;
         const details: StructuredJsonFormData = {};
 
-        const isError = true;
-        if (isError) {
+        const { error } = this.#devices.get(bridgedDeviceUuid) ?? {};
+        if (error) {
             details.error = {
                 __header__error: 'Error information',
                 __text__info: `Bridged Device is in error state. Fix the error before enabling it again`,
-                __text__uuid: `UUID: ${bridgedDeviceUuid} on ${this.uuid}`,
+                uuid: `UUID: ${bridgedDeviceUuid} on ${this.uuid}`,
+                __text__error: `Error: ${error}`,
             };
         }
 
-        details.info = {
-            __header__info: 'Device information',
-            __text__uuid: `UUID: ${bridgedDeviceUuid}`,
+        if (bridgedDeviceUuid !== undefined) {
+            const mappingDevice = this.#mappingDevices.get(bridgedDeviceUuid);
+
+            if (mappingDevice) {
+                return {
+                    ...details,
+                    ...mappingDevice?.getDeviceDetails(),
+                };
+            }
+
+            return {
+                ...details,
+                noDevice: {
+                    __header__error: 'Device not created',
+                    uuid: `UUID: ${bridgedDeviceUuid} on ${this.uuid}`,
+                    __text__error: `Error: The device does not exist on this bridge`,
+                },
+            };
+        }
+
+        details.overview = {
+            __header__info: 'Bridge Overview',
+            uuid: this.uuid,
+            port: this.port,
+            deviceName: this.#parameters.deviceName,
+            productName: this.#parameters.productName,
+            vendorId: this.#parameters.vendorId,
+            productId: this.#parameters.productId,
+            numberOfBridgedDevices: [...this.#devices.values()].reduce(
+                (count, { device }) => count + (device ? 1 : 0),
+                0,
+            ),
         };
 
-        const mappingDevice = this.#mappingDevices.get(bridgedDeviceUuid);
-
-        return {
-            ...details,
-            ...mappingDevice?.getDeviceDetails(),
-        };
+        return details;
     }
 }
 

@@ -213,13 +213,17 @@ class Device extends BaseServerNode {
     }
 
     getDeviceDetails(_message: ioBroker.MessagePayload): StructuredJsonFormData {
-        const details: StructuredJsonFormData = {
-            information: {
-                __header__info: 'Device information',
-                __text__uuid: `UUID: ${this.uuid}`,
-            },
-        };
+        const details: StructuredJsonFormData = {};
 
+        details.overview = {
+            __header__info: 'Device Overview',
+            uuid: this.uuid,
+            port: this.port,
+            deviceName: this.#parameters.deviceName,
+            productName: this.#parameters.productName,
+            vendorId: this.#parameters.vendorId,
+            productId: this.#parameters.productId,
+        };
         return {
             ...details,
             ...this.#mappingDevice?.getDeviceDetails(),

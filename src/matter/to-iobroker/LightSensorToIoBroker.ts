@@ -1,6 +1,5 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { IlluminanceMeasurement } from '@matter/main/clusters';
-import type { TypeFromBitSchema } from '@matter/main/types';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
 import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';

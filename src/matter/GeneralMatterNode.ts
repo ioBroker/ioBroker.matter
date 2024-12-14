@@ -916,7 +916,7 @@ export class GeneralMatterNode {
         }
     }
 
-    #formatAttributeServerValue(endpointId: number, attributeValue: any, targetType: ioBroker.CommonType): string {
+    #formatAttributeServerValue(_endpointId: number, attributeValue: any, targetType: ioBroker.CommonType): string {
         let value: any;
         if (attributeValue === null || attributeValue === undefined) {
             value = null;

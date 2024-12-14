@@ -312,7 +312,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         const editDialog = this.state.editBridgeDialog;
 
         const isCommissioned =
-            !editDialog.add && !!this.props.commissioning[this.props.matter.bridges[editDialog.bridgeIndex].uuid];
+            !editDialog.add && this.props.commissioning[this.props.matter.bridges[editDialog.bridgeIndex].uuid];
 
         const save = (): void => {
             if (!this.state.editBridgeDialog) {
@@ -459,7 +459,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
             return null;
         }
         const isCommissioned =
-            !!this.props.commissioning[this.props.matter.bridges[this.state.editDeviceDialog.bridgeIndex].uuid];
+            this.props.commissioning[this.props.matter.bridges[this.state.editDeviceDialog.bridgeIndex].uuid];
 
         const save = (): void => {
             if (!this.state.editDeviceDialog) {
@@ -1680,7 +1680,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                         );
                                         this.setState({ bridgesOpened });
                                     }}
-                                    disabled={Object.values(this.state.bridgesOpened).every(v => v === true)}
+                                    disabled={Object.values(this.state.bridgesOpened).every(v => v)}
                                 >
                                     <UnfoldMore />
                                 </IconButton>
@@ -1701,7 +1701,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                         );
                                         this.setState({ bridgesOpened });
                                     }}
-                                    disabled={Object.values(this.state.bridgesOpened).every(v => v === false)}
+                                    disabled={Object.values(this.state.bridgesOpened).every(v => !v)}
                                 >
                                     <UnfoldLess />
                                 </IconButton>

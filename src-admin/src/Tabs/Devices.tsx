@@ -173,7 +173,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                     <FormControlLabel
                         control={
                             <Checkbox
-                                checked={!!this.state.suppressDeleteEnabled}
+                                checked={this.state.suppressDeleteEnabled}
                                 onChange={e => this.setState({ suppressDeleteEnabled: e.target.checked })}
                             />
                         }
@@ -218,7 +218,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         }
 
         const isCommissioned =
-            !!this.props.commissioning[this.props.matter.devices[this.state.editDeviceDialog.deviceIndex].uuid];
+            this.props.commissioning[this.props.matter.devices[this.state.editDeviceDialog.deviceIndex].uuid];
 
         const save = (): void => {
             if (!this.state.editDeviceDialog) {
@@ -402,7 +402,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         label={I18n.t('Allow action by identify')}
                         control={
                             <Checkbox
-                                checked={!!this.state.editDeviceDialog.actionAllowedByIdentify}
+                                checked={this.state.editDeviceDialog.actionAllowedByIdentify}
                                 onChange={e => {
                                     if (!this.state.editDeviceDialog) {
                                         return;
@@ -421,7 +421,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                             label={I18n.t('Use last value for ON')}
                             control={
                                 <Checkbox
-                                    checked={!!this.state.editDeviceDialog.dimmerUseLastLevelForOn}
+                                    checked={this.state.editDeviceDialog.dimmerUseLastLevelForOn}
                                     onChange={e => {
                                         if (!this.state.editDeviceDialog) {
                                             return;

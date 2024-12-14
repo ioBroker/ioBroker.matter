@@ -321,7 +321,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                     }}
                 >
                     <Checkbox
-                        checked={!!this.state.devicesChecked[device._id]}
+                        checked={this.state.devicesChecked[device._id]}
                         disabled={!supported}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                             const devicesChecked = clone(this.state.devicesChecked);

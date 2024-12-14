@@ -40,7 +40,7 @@ export class TemperatureSensorToIoBroker extends GenericElectricityDataDeviceToI
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
-        this.enableDeviceTypeState(PropertyType.Temperature, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.Temperature, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: TemperatureMeasurement.Cluster.id,
             attributeName: 'measuredValue',

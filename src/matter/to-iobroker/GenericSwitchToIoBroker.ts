@@ -52,7 +52,7 @@ export class GenericSwitchToIoBroker extends GenericDeviceToIoBroker {
 
     protected enableDeviceTypeStates(): DeviceOptions {
         if (this.#ioBrokerDevice instanceof ButtonSensor) {
-            this.enableDeviceTypeState(PropertyType.Press, {
+            this.enableDeviceTypeStateForAttribute(PropertyType.Press, {
                 endpointId: this.appEndpoint.getNumber(),
                 clusterId: Switch.Cluster.id,
                 attributeName: 'currentPosition',
@@ -61,9 +61,22 @@ export class GenericSwitchToIoBroker extends GenericDeviceToIoBroker {
 
             const hasLongPress = this.appEndpoint.getClusterClient(Switch.Complete)?.supportedFeatures
                 .momentarySwitchLongPress;
-            // TODO: Add support for long press events
+            if (hasLongPress) {
+                this.enableDeviceTypeStateForEvent(PropertyType.PressLong, {
+                    endpointId: this.appEndpoint.getNumber(),
+                    clusterId: Switch.Cluster.id,
+                    eventName: 'longPress',
+                    convertValue: () => true,
+                });
+                this.enableDeviceTypeStateForEvent(PropertyType.PressLong, {
+                    endpointId: this.appEndpoint.getNumber(),
+                    clusterId: Switch.Cluster.id,
+                    eventName: 'longRelease',
+                    convertValue: () => false,
+                });
+            }
         } else {
-            this.enableDeviceTypeState(PropertyType.PowerActual, {
+            this.enableDeviceTypeStateForAttribute(PropertyType.PowerActual, {
                 endpointId: this.appEndpoint.getNumber(),
                 clusterId: Switch.Cluster.id,
                 attributeName: 'currentPosition',

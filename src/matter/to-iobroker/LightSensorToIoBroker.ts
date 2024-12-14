@@ -40,7 +40,7 @@ export class LightSensorToIoBroker extends GenericDeviceToIoBroker {
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
-        this.enableDeviceTypeState(PropertyType.Motion, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.Motion, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: IlluminanceMeasurement.Cluster.id,
             attributeName: 'measuredValue',

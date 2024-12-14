@@ -71,7 +71,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
-        this.enableDeviceTypeState(PropertyType.Power, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.Power, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: OnOff.Cluster.id,
             attributeName: 'onOff',
@@ -83,13 +83,13 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                 }
             },
         });
-        this.enableDeviceTypeState(PropertyType.PowerActual, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.PowerActual, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: OnOff.Cluster.id,
             attributeName: 'onOff',
         });
 
-        this.enableDeviceTypeState(PropertyType.Dimmer, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.Dimmer, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: LevelControl.Cluster.id,
             attributeName: 'currentLevel',
@@ -107,7 +107,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
             convertValue: value => Math.round((value / 254) * 100),
         });
 
-        this.enableDeviceTypeState(PropertyType.Temperature, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.Temperature, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: ColorControl.Cluster.id,
             attributeName: 'colorTemperatureMireds',

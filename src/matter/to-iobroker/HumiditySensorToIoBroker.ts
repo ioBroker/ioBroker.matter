@@ -40,7 +40,7 @@ export class HumiditySensorToIoBroker extends GenericElectricityDataDeviceToIoBr
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
-        this.enableDeviceTypeState(PropertyType.Humidity, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.Humidity, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: RelativeHumidityMeasurement.Cluster.id,
             attributeName: 'measuredValue',

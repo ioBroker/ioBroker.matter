@@ -60,7 +60,7 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
-        this.enableDeviceTypeState(PropertyType.Power, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.Power, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: OnOff.Cluster.id,
             attributeName: 'onOff',
@@ -72,12 +72,12 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
                 }
             },
         });
-        this.enableDeviceTypeState(PropertyType.PowerActual, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.PowerActual, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: OnOff.Cluster.id,
             attributeName: 'onOff',
         });
-        this.enableDeviceTypeState(PropertyType.Level, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.Level, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: LevelControl.Cluster.id,
             attributeName: 'currentLevel',
@@ -94,7 +94,7 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
             },
             convertValue: value => Math.round((value / 254) * 100),
         });
-        this.enableDeviceTypeState(PropertyType.LevelActual, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.LevelActual, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: LevelControl.Cluster.id,
             attributeName: 'currentLevel',

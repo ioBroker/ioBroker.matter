@@ -25,7 +25,7 @@ export abstract class GenericElectricityDataDeviceToIoBroker extends GenericDevi
 
         const powerSource = this.appEndpoint.getClusterClient(PowerSource.Complete);
         if (powerSource !== undefined && powerSource.supportedFeatures.battery) {
-            this.enableDeviceTypeState(PropertyType.LowBattery, {
+            this.enableDeviceTypeStateForAttribute(PropertyType.LowBattery, {
                 endpointId,
                 clusterId: PowerSource.Cluster.id,
                 attributeName: 'batChargeLevel',
@@ -42,25 +42,25 @@ export abstract class GenericElectricityDataDeviceToIoBroker extends GenericDevi
         const electricalPower = this.appEndpoint.getClusterClient(ElectricalPowerMeasurement.Complete);
         if (electricalPower !== undefined) {
             const clusterId = ElectricalPowerMeasurement.Cluster.id;
-            this.enableDeviceTypeState(PropertyType.ElectricPower, {
+            this.enableDeviceTypeStateForAttribute(PropertyType.ElectricPower, {
                 endpointId,
                 clusterId,
                 attributeName: 'activePower',
                 convertValue: value => value / 1000,
             });
-            this.enableDeviceTypeState(PropertyType.Current, {
+            this.enableDeviceTypeStateForAttribute(PropertyType.Current, {
                 endpointId,
                 clusterId,
                 attributeName: 'activeCurrent',
                 // No conversion because also our default unit is mA
             });
-            this.enableDeviceTypeState(PropertyType.Voltage, {
+            this.enableDeviceTypeStateForAttribute(PropertyType.Voltage, {
                 endpointId,
                 clusterId,
                 attributeName: 'voltage',
                 convertValue: value => value / 1000,
             });
-            this.enableDeviceTypeState(PropertyType.Frequency, {
+            this.enableDeviceTypeStateForAttribute(PropertyType.Frequency, {
                 endpointId,
                 clusterId,
                 attributeName: 'frequency',
@@ -72,7 +72,7 @@ export abstract class GenericElectricityDataDeviceToIoBroker extends GenericDevi
         // TODO check for other attributes and feature combinations or also other information
         const electricalEnergy = this.appEndpoint.getClusterClient(ElectricalEnergyMeasurement.Complete);
         if (electricalEnergy !== undefined) {
-            this.enableDeviceTypeState(PropertyType.Consumption, {
+            this.enableDeviceTypeStateForAttribute(PropertyType.Consumption, {
                 endpointId,
                 clusterId: ElectricalEnergyMeasurement.Cluster.id,
                 attributeName: 'cumulativeEnergy',
@@ -96,26 +96,26 @@ export abstract class GenericElectricityDataDeviceToIoBroker extends GenericDevi
             // Label="valvePosition", Tag=0x130A0018, Type=int
             // Label="motionSensitivity", Tag=0x130A000D, Type=int
 
-            this.enableDeviceTypeState(PropertyType.ElectricPower, {
+            this.enableDeviceTypeStateForAttribute(PropertyType.ElectricPower, {
                 endpointId,
                 clusterId,
                 vendorSpecificAttributeId: AttributeId(0x130a000a),
                 pollAttribute: isEveDevice,
             });
-            this.enableDeviceTypeState(PropertyType.Consumption, {
+            this.enableDeviceTypeStateForAttribute(PropertyType.Consumption, {
                 endpointId,
                 clusterId,
                 vendorSpecificAttributeId: AttributeId(0x130a000b),
                 pollAttribute: isEveDevice,
             });
-            this.enableDeviceTypeState(PropertyType.Current, {
+            this.enableDeviceTypeStateForAttribute(PropertyType.Current, {
                 endpointId,
                 clusterId,
                 vendorSpecificAttributeId: AttributeId(0x130a0009),
                 convertValue: value => value * 1000, // let's assume we have A?
                 pollAttribute: isEveDevice,
             });
-            this.enableDeviceTypeState(PropertyType.Voltage, {
+            this.enableDeviceTypeStateForAttribute(PropertyType.Voltage, {
                 endpointId,
                 clusterId,
                 vendorSpecificAttributeId: AttributeId(0x130a0008),
@@ -132,26 +132,26 @@ export abstract class GenericElectricityDataDeviceToIoBroker extends GenericDevi
         const clusterId = ClusterId(0x00125dfc11);
         const neoCluster = this.appEndpoint.getClusterClientById(clusterId);
         if (neoCluster !== undefined) {
-            this.enableDeviceTypeState(PropertyType.ElectricPower, {
+            this.enableDeviceTypeStateForAttribute(PropertyType.ElectricPower, {
                 endpointId,
                 clusterId,
                 vendorSpecificAttributeId: AttributeId(0x00125d0023),
                 pollAttribute: true,
             }); // Watt as Float
-            this.enableDeviceTypeState(PropertyType.Consumption, {
+            this.enableDeviceTypeStateForAttribute(PropertyType.Consumption, {
                 endpointId,
                 clusterId,
                 vendorSpecificAttributeId: AttributeId(0x00125d0021),
                 pollAttribute: true,
             }); // Accumulated Watt as Float
-            this.enableDeviceTypeState(PropertyType.Current, {
+            this.enableDeviceTypeStateForAttribute(PropertyType.Current, {
                 endpointId,
                 clusterId,
                 vendorSpecificAttributeId: AttributeId(0x00125d0022),
                 convertValue: value => value * 1000, // let's assume we have A?
                 pollAttribute: true,
             }); // Current as float 32
-            this.enableDeviceTypeState(PropertyType.Voltage, {
+            this.enableDeviceTypeStateForAttribute(PropertyType.Voltage, {
                 endpointId,
                 clusterId,
                 vendorSpecificAttributeId: AttributeId(0x00125d0024),

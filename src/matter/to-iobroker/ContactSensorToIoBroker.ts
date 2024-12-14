@@ -40,7 +40,7 @@ export class ContactSensorToIoBroker extends GenericDeviceToIoBroker {
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
-        this.enableDeviceTypeState(PropertyType.Value, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.Value, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: BooleanState.Cluster.id,
             attributeName: 'stateValue',

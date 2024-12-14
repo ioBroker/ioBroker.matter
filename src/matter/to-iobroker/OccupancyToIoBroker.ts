@@ -41,7 +41,7 @@ export class OccupancyToIoBroker extends GenericDeviceToIoBroker {
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
-        this.enableDeviceTypeState(PropertyType.Motion, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.Motion, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: OccupancySensing.Cluster.id,
             attributeName: 'occupancy',

@@ -22,6 +22,7 @@ import { bytesToIpV4, bytesToIpV6, bytesToMac, decamelize, toHex } from '../lib/
 import type { MatterAdapter } from '../main';
 import type { GenericDeviceToIoBroker } from './to-iobroker/GenericDeviceToIoBroker';
 import ioBrokerDeviceFabric, { identifyDeviceTypes } from './to-iobroker/ioBrokerFactory';
+import type { StructuredJsonFormData } from '../lib/JsonConfigUtils';
 
 export type PairedNodeConfig = {
     nodeId: NodeId;

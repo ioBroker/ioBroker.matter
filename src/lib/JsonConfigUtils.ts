@@ -1,15 +1,20 @@
 import type { ConfigItemAny, ConfigItemPanel, JsonFormSchema } from '@iobroker/dm-utils';
 import { decamelize } from './utils';
 
+export type StructuredJsonFormData = Record<string, Record<string, unknown>>;
+
 /**
  * Convert a generic object data model into JSON Config data forms
  * Keys are expected to be camel-case strings and will be used as field name too  in de-camel-cased form
  * If needed for uniqueness "__" can be used as splitter and anything after this is used as field name
  * "__header__*" entries are converted into a headline with the value as text
  * "__divider__*" entries are converted into a divider
- * The logic expects a two level object structure. By default, it returns a tabs structure. If only one key is used on first level only one panel is returned
+ * "__text__*" entries are converted into a static text field
+ * "__iobstate__*" entries are converted into a state field with the value as label
+ * The logic expects a two level object structure. By default, it returns a tabs structure. If only one key is used on
+ * first level only one panel is returned.
  */
-export function convertDataToJsonConfig(data: Record<string, Record<string, unknown>>): JsonFormSchema {
+export function convertDataToJsonConfig(data: StructuredJsonFormData): JsonFormSchema {
     const items: Record<string, ConfigItemPanel> = {};
 
     let panelCount = 0;

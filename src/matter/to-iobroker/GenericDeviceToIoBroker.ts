@@ -6,6 +6,7 @@ import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DeviceOptions } from '../../lib/devices/GenericDevice';
 import { decamelize, toHex } from '../../lib/utils';
+import type { StructuredJsonFormData } from '../../lib/JsonConfigUtils';
 
 export type EnabledProperty = {
     common?: Partial<ioBroker.StateCommon>;
@@ -459,8 +460,8 @@ export abstract class GenericDeviceToIoBroker {
         await this.#adapter.extendObjectAsync(this.baseId, { common: { name } });
     }
 
-    getDeviceDetails(): Record<string, Record<string, unknown>> {
-        const result: Record<string, Record<string, unknown>> = {};
+    getDeviceDetails(): StructuredJsonFormData {
+        const result: StructuredJsonFormData = {};
 
         const states = this.ioBrokerDevice.getStates();
         if (Object.keys(states).length) {

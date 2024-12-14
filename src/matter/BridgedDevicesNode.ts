@@ -10,11 +10,11 @@ import { BaseServerNode } from './BaseServerNode';
 import matterDeviceFactory from './to-matter/matterFactory';
 import { initializeBridgedUnreachableStateHandler } from './to-matter/SharedStateHandlers';
 import type { GenericDeviceToMatter } from './to-matter/GenericDeviceToMatter';
+import type { StructuredJsonFormData } from '../lib/JsonConfigUtils';
 
 export interface BridgeCreateOptions {
     parameters: BridgeOptions;
-    devices: GenericDevice[];
-    devicesOptions: BridgeDeviceDescription[];
+    devices: Map<string, { device?: GenericDevice; error?: string; options: BridgeDeviceDescription }>;
 }
 
 export interface BridgeOptions {
@@ -67,7 +67,7 @@ class BridgedDevices extends BaseServerNode {
         const mappingDevice = await matterDeviceFactory(device, deviceOptions.name, deviceOptions.uuid);
         if (mappingDevice) {
             const name = mappingDevice.name;
-            const endpoints = mappingDevice.getMatterEndpoints();
+            const endpoints = mappingDevice.matterEndpoints;
             if (endpoints.length === 1 || deviceOptions.noComposed) {
                 let erroredCount = 0;
                 // When only one endpoint or non-composed we simply add all endpoints for itself to the bridge
@@ -337,6 +337,51 @@ class BridgedDevices extends BaseServerNode {
         this.serverNode = undefined;
         this.#started = false;
         await this.updateUiState();
+    }
+
+    get error(): boolean | string[] {
+        if (!this.serverNode) {
+            return true;
+        }
+        // Collect enabled devices that have an error state to show them in the UI
+        const errors = [...this.#devices.entries()]
+            .map(
+                ([
+                    uuid,
+                    {
+                        error,
+                        options: { enabled },
+                    },
+                ]) => (error && enabled ? uuid : undefined),
+            )
+            .filter(uuid => uuid !== undefined);
+        return errors.length > 0 ? errors : false;
+    }
+
+    getDeviceDetails(message: ioBroker.MessagePayload): StructuredJsonFormData {
+        const bridgedDeviceUuid = message.bridgedDeviceUuid as string;
+        const details: StructuredJsonFormData = {};
+
+        const isError = true;
+        if (isError) {
+            details.error = {
+                __header__error: 'Error information',
+                __text__info: `Bridged Device is in error state. Fix the error before enabling it again`,
+                __text__uuid: `UUID: ${bridgedDeviceUuid} on ${this.uuid}`,
+            };
+        }
+
+        details.info = {
+            __header__info: 'Device information',
+            __text__uuid: `UUID: ${bridgedDeviceUuid}`,
+        };
+
+        const mappingDevice = this.#mappingDevices.get(bridgedDeviceUuid);
+
+        return {
+            ...details,
+            ...mappingDevice?.getDeviceDetails(),
+        };
     }
 }
 

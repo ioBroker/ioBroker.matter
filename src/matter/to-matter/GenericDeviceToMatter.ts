@@ -1,5 +1,6 @@
 import { type Endpoint, ObserverGroup } from '@matter/main';
 import type { GenericDevice } from '../../lib';
+import type { StructuredJsonFormData } from '../../lib/JsonConfigUtils';
 
 export interface IdentifyOptions {
     currentState?: any;
@@ -102,5 +103,32 @@ export abstract class GenericDeviceToMatter {
         this.#observers.close();
         // The endpoints are destroyed by the Node handler because maybe more endpoints were added
         await this.ioBrokerDevice.destroy();
+    }
+
+    getDeviceDetails(): StructuredJsonFormData {
+        const details: StructuredJsonFormData = {};
+
+        details.detectedStates = {
+            __header__states: 'Detected device states',
+            __text__info: 'The following states were detected for this device.',
+            __devider__info: true,
+            ...this.ioBrokerDevice.getStates(true, true),
+        };
+
+        const endpoints = this.matterEndpoints;
+        if (endpoints.length > 0) {
+            details.endpoints = {
+                __header__endpoints: 'Device Endpoints',
+                __text__info: 'The following Matter endpoints are mapped for this device.',
+                __devider__info: true,
+            };
+            endpoints.forEach(endpoint => {
+                details.endpoints.__header__endpoint = `Endpoint ${endpoint.number}`;
+                details.endpoints.__text__deviceType = endpoint.type.name;
+                // TODO expose potentially more
+            });
+        }
+
+        return details;
     }
 }

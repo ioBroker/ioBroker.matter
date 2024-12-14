@@ -28,6 +28,8 @@ import type { MessageResponse } from './matter/GeneralNode';
 import { IoBrokerObjectStorage } from './matter/IoBrokerObjectStorage';
 import { inspect } from 'util';
 const I18n = import('@iobroker/i18n');
+import type { JsonFormSchema, BackEndCommandJsonFormOptions } from '@iobroker/dm-utils';
+import { type StructuredJsonFormData, convertDataToJsonConfig } from './lib/JsonConfigUtils';
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
 
@@ -1293,6 +1295,31 @@ export class MatterAdapter extends utils.Adapter {
         await this.stopBridgeOrDevice(type, id);
         const storage = new IoBrokerObjectStorage(this, uuid);
         await storage.clearAll();
+    }
+
+    getGenericErrorDetails(
+        type: 'bridge' | 'device',
+        uuid: string,
+        error: string,
+    ): { schema: JsonFormSchema; options: BackEndCommandJsonFormOptions } {
+        const details: StructuredJsonFormData = {
+            panel: {
+                __header__error: 'Error information',
+                __text__info: `${type === 'bridge' ? 'Bridge' : 'Device'} is in error state. Fix the error before enabling it again`,
+                __text__error: error,
+                __text__uuid: `UUID: ${uuid}`,
+            },
+        };
+
+        return {
+            schema: convertDataToJsonConfig(details),
+            options: {
+                maxWidth: 'md',
+                data: {},
+                title: `${type === 'bridge' ? 'Bridge' : 'Device'} Error information`,
+                buttons: ['close'],
+            },
+        };
     }
 }
 

@@ -8,6 +8,7 @@ import { BaseServerNode } from './BaseServerNode';
 import matterDeviceFactory from './to-matter/matterFactory';
 import { initializeUnreachableStateHandler } from './to-matter/SharedStateHandlers';
 import type { GenericDeviceToMatter } from './to-matter/GenericDeviceToMatter';
+import type { StructuredJsonFormData } from '../lib/JsonConfigUtils';
 
 export interface DeviceCreateOptions {
     parameters: DeviceOptions;
@@ -83,7 +84,7 @@ class Device extends BaseServerNode {
         }
 
         this.#mappingDevice = mappingDevice;
-        const endpoints = mappingDevice.getMatterEndpoints();
+        const endpoints = mappingDevice.matterEndpoints;
 
         // The device type to announce we use from the first returned endpoint of the device
         const deviceType = endpoints[0].type.deviceType;
@@ -209,6 +210,20 @@ class Device extends BaseServerNode {
         this.serverNode = undefined;
         this.#started = false;
         await this.updateUiState();
+    }
+
+    getDeviceDetails(_message: ioBroker.MessagePayload): StructuredJsonFormData {
+        const details: StructuredJsonFormData = {
+            information: {
+                __header__info: 'Device information',
+                __text__uuid: `UUID: ${this.uuid}`,
+            },
+        };
+
+        return {
+            ...details,
+            ...this.#mappingDevice?.getDeviceDetails(),
+        };
     }
 }
 

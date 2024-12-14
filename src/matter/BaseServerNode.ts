@@ -1,6 +1,8 @@
 import { Logger, type ServerNode, type SessionsBehavior, serialize } from '@matter/main';
+import { DeviceCommissioner } from '@matter/main/protocol';
 import type { MatterAdapter } from '../main';
 import type { GeneralNode, MessageResponse } from './GeneralNode';
+import { type StructuredJsonFormData, convertDataToJsonConfig } from '../lib/JsonConfigUtils';
 
 export enum NodeStates {
     Creating = 'creating',
@@ -17,8 +19,8 @@ export interface ConnectionInfo {
 }
 
 export interface NodeStateResponse {
-    status: NodeStates;
-    error?: boolean;
+    status?: NodeStates;
+    error?: boolean | string[];
     qrPairingCode?: string;
     manualPairingCode?: string;
     connectionInfo?: ConnectionInfo[];
@@ -42,6 +44,10 @@ export abstract class BaseServerNode implements GeneralNode {
 
     get uuid(): string {
         return this.#uuid;
+    }
+
+    get error(): boolean | string[] {
+        return false;
     }
 
     /** Advertise the device into the network via MDNS. */
@@ -68,17 +74,15 @@ export abstract class BaseServerNode implements GeneralNode {
                 status: NodeStates.Creating,
             };
         }
+
         const { qrPairingCode, manualPairingCode } = this.serverNode.state.commissioning.pairingCodes;
 
         const result: NodeStateResponse = {
             status: NodeStates.WaitingForCommissioning,
+            error: this.error,
             qrPairingCode: qrPairingCode,
             manualPairingCode: manualPairingCode,
         };
-
-        // TODO: @Apollon77. Set this flag to true if error flag should be shown
-        // result.error = true; if the error is related to bridge
-        // or ['UUID1', 'UUID2'] if the error is related to a specific device
 
         // Device is not commissioned, so show QR code
         if (!this.serverNode.lifecycle.isCommissioned) {
@@ -99,7 +103,7 @@ export abstract class BaseServerNode implements GeneralNode {
 
         result.connectionInfo = fabrics.map(fabric => ({
             vendorId: fabric?.rootVendorId,
-            vendorName: 'TODO', // TODO: Get vendor name
+            vendorName: 'TODO', // TODO: Get vendor name from Clusters
             connected: activeSessions
                 .filter(session => session.fabric?.fabricId === fabric.fabricId)
                 .some(({ numberOfActiveSubscriptions }) => !!numberOfActiveSubscriptions),
@@ -138,7 +142,17 @@ export abstract class BaseServerNode implements GeneralNode {
                 await this.factoryReset();
                 return { result: await this.getState() };
             case 'deviceExtendedInfo': {
-                return { result: this.getDeviceDetails(message) };
+                return {
+                    result: {
+                        schema: convertDataToJsonConfig(this.getDeviceDetails(message)),
+                        options: {
+                            maxWidth: 'md',
+                            data: {},
+                            title: `${this.type === 'bridges' && !('bridgedDeviceUuid' in message) ? 'Bridge' : 'Device'} Detail information`,
+                            buttons: ['close'],
+                        },
+                    },
+                };
             }
         }
 
@@ -167,4 +181,6 @@ export abstract class BaseServerNode implements GeneralNode {
         this.serverNode.events.sessions.closed.on(sessionChange);
         this.serverNode.events.sessions.subscriptionsChanged.on(sessionChange);
     }
+
+    abstract getDeviceDetails(message: ioBroker.MessagePayload): StructuredJsonFormData;
 }

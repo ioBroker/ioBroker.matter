@@ -615,9 +615,13 @@ abstract class GenericDevice {
         return 'input';
     }
 
-    get states(): Record<string, unknown> {
+    getStates(includeObjectIds = false, reverseOrder = false): Record<string, unknown> {
         const states: Record<string, unknown> = {};
-        Object.keys(this.#properties).forEach(property => {
+        const keys = Object.keys(this.#properties);
+        if (reverseOrder) {
+            keys.reverse();
+        }
+        keys.forEach(property => {
             const { name, unit, write, read, min, max } = this.#properties[property];
             states[`__iobstate__${name}`] = {
                 oid: write ?? read,
@@ -627,6 +631,14 @@ abstract class GenericDevice {
                 readOnly: !write,
                 control: this.#determineControlType(property),
             };
+            if (includeObjectIds) {
+                if (write !== read && write && read) {
+                    states[`__text__${name}`] = `Write: ${write}, Read: ${read}`;
+                } else {
+                    states[`__text__${name}`] = write ?? read;
+                }
+                states[`__divider__${name}`] = true;
+            }
         });
 
         return states;

@@ -156,7 +156,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
             devicesChecked: {},
             roomsChecked: {},
             usedDevices: {},
-            ignoreUsedDevices: window.localStorage.getItem('matter.ignoreUsedDevices') === 'true',
+            ignoreUsedDevices: window.localStorage.getItem('matter.ignoreUsedDevices') !== 'false',
             useRoomNames: window.localStorage.getItem('matter.useRoomNames') !== 'false',
             showUnsupported: window.localStorage.getItem('matter.showUnsupported') === 'true',
             deviceNames: {},

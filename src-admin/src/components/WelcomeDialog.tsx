@@ -55,18 +55,19 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
         let obj: ioBroker.StateObject | null | undefined = null;
         try {
             obj = (await this.props.socket.getObject(
-                `matter.${this.props.instance}.welcomeDialog`,
+                `matter.${this.props.instance}.info.welcomeDialog`,
             )) as ioBroker.StateObject;
         } catch {
             // ignore
         }
         if (!obj) {
-            await this.props.socket.setObject(`matter.${this.props.instance}.welcomeDialog`, {
+            await this.props.socket.setObject(`matter.${this.props.instance}.info.welcomeDialog`, {
                 type: 'state',
                 common: {
                     name: 'Welcome dialog',
                     type: 'boolean',
                     role: 'indicator',
+                    expert: true,
                     read: true,
                     write: true,
                 },

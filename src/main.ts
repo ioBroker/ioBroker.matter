@@ -206,7 +206,7 @@ export class MatterAdapter extends utils.Adapter {
             // Handled by Device Manager class itself, so ignored here
             return;
         }
-        this.log.debug(`Handle message ${JSON.stringify(obj)}`);
+        this.log.debug(`Handle message ${obj.command} ${obj.command !== 'getLicense' ? JSON.stringify(obj) : ''}`);
         if (obj.command?.startsWith('controller')) {
             await this.#controllerActionQueue.add(async () => {
                 if (this.#controller) {

@@ -58,8 +58,14 @@ class BridgedDevices extends BaseServerNode {
                 `Device ${deviceOptions.uuid} already in bridge. Should never happen. Closing them before re-adding`,
             );
             for (const endpoint of this.#deviceEndpoints.get(deviceOptions.uuid) ?? []) {
-                await endpoint.close();
+                try {
+                    await endpoint.close();
+                } catch (error) {
+                    const errorText = inspect(error, { depth: 10 });
+                    this.adapter.log.error(`Error closing endpoint ${endpoint.id} in bridge: ${errorText}`);
+                }
             }
+            this.#deviceEndpoints.delete(deviceOptions.uuid);
         }
 
         const mappingDevice = await matterDeviceFactory(device, deviceOptions.name, deviceOptions.uuid);
@@ -78,7 +84,8 @@ class BridgedDevices extends BaseServerNode {
                             await this.#aggregator.parts.get(endpoint.id)?.close();
                         }
                     } catch (error) {
-                        this.adapter.log.error(`Error closing endpoint ${endpoint.id} in bridge: ${error}`);
+                        const errorText = inspect(error, { depth: 10 });
+                        this.adapter.log.error(`Error closing endpoint ${endpoint.id} in bridge: ${errorText}`);
                     }
 
                     const matterName = name.substring(0, 32);
@@ -247,8 +254,6 @@ class BridgedDevices extends BaseServerNode {
 
     /** Apply an updated configuration for the Bridge. */
     async applyConfiguration(options: BridgeCreateOptions): Promise<void> {
-        this.adapter.log.debug('Applying new bridge configuration');
-
         if (!this.serverNode) {
             this.adapter.log.error(
                 `ServerNode for Bridge ${this.#parameters.uuid} not initialized. Should never happen`,
@@ -336,6 +341,7 @@ class BridgedDevices extends BaseServerNode {
     }
 
     async destroy(): Promise<void> {
+        this.#deviceEndpoints.clear();
         for (const { device } of this.#devices.values()) {
             await device?.destroy();
         }
@@ -344,6 +350,7 @@ class BridgedDevices extends BaseServerNode {
         }
         await this.serverNode?.close();
         this.serverNode = undefined;
+        this.#aggregator = undefined;
         this.#started = false;
         await this.updateUiState();
     }

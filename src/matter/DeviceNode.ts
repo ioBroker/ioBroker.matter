@@ -206,6 +206,7 @@ class Device extends BaseServerNode {
             this.adapter.log.error(`Error stopping device ${this.#parameters.uuid}: ${errorText}`);
         }
         await this.#mappingDevice?.destroy();
+        this.#mappingDevice = undefined;
         await this.#device.destroy();
         this.serverNode = undefined;
         this.#started = false;

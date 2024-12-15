@@ -137,7 +137,7 @@
         },
         "tier": 3,
         "keywords": ["matter"],
-        "stopTimeout": 15000,
+        "stopTimeout": 30000,
         "enabled": true,
         "compact": false,
         "singletonHost": true,

@@ -972,29 +972,6 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             this.setState({
                                 addDevicePreDialog: { open: false },
                                 addDeviceDialog: {
-                                    detectionType: 'state',
-                                    name: getText(this.state.addDevicePreDialog.bridge.name),
-                                    bridgeIndex: this.state.addDevicePreDialog.bridge.bridgeIndex,
-                                    devices: this.state.addDevicePreDialog.bridge.devices,
-                                },
-                            });
-                        }}
-                        startIcon={<FormatListBulleted />}
-                        color="primary"
-                        variant="contained"
-                        sx={{ justifyContent: 'flex-start' }}
-                    >
-                        {I18n.t('Add device from one state')}
-                    </Button>
-                    <Button
-                        onClick={() => {
-                            if (!this.state.addDevicePreDialog.open) {
-                                return;
-                            }
-
-                            this.setState({
-                                addDevicePreDialog: { open: false },
-                                addDeviceDialog: {
                                     detectionType: 'device',
                                     name: getText(this.state.addDevicePreDialog.bridge.name),
                                     bridgeIndex: this.state.addDevicePreDialog.bridge.bridgeIndex,
@@ -1008,6 +985,29 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         sx={{ justifyContent: 'flex-start' }}
                     >
                         {I18n.t('Add device from channel or device')}
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            if (!this.state.addDevicePreDialog.open) {
+                                return;
+                            }
+
+                            this.setState({
+                                addDevicePreDialog: { open: false },
+                                addDeviceDialog: {
+                                    detectionType: 'state',
+                                    name: getText(this.state.addDevicePreDialog.bridge.name),
+                                    bridgeIndex: this.state.addDevicePreDialog.bridge.bridgeIndex,
+                                    devices: this.state.addDevicePreDialog.bridge.devices,
+                                },
+                            });
+                        }}
+                        startIcon={<FormatListBulleted />}
+                        color="primary"
+                        variant="contained"
+                        sx={{ justifyContent: 'flex-start' }}
+                    >
+                        {I18n.t('Add device from one state')}
                     </Button>
                 </DialogContent>
             </Dialog>

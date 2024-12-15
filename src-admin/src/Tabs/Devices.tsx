@@ -759,23 +759,6 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 addDevicePreDialog: false,
                                 addDeviceDialog: {
                                     devices: this.props.matter.devices,
-                                    detectionType: 'state',
-                                },
-                            });
-                        }}
-                        startIcon={<FormatListBulleted />}
-                        color="primary"
-                        variant="contained"
-                        sx={{ justifyContent: 'flex-start' }}
-                    >
-                        {I18n.t('Add device from one state')}
-                    </Button>
-                    <Button
-                        onClick={() => {
-                            this.setState({
-                                addDevicePreDialog: false,
-                                addDeviceDialog: {
-                                    devices: this.props.matter.devices,
                                     detectionType: 'device',
                                 },
                             });
@@ -786,6 +769,23 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         sx={{ justifyContent: 'flex-start' }}
                     >
                         {I18n.t('Add device from channel or device')}
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            this.setState({
+                                addDevicePreDialog: false,
+                                addDeviceDialog: {
+                                    devices: this.props.matter.devices,
+                                    detectionType: 'state',
+                                },
+                            });
+                        }}
+                        startIcon={<FormatListBulleted />}
+                        color="primary"
+                        variant="contained"
+                        sx={{ justifyContent: 'flex-start' }}
+                    >
+                        {I18n.t('Add device from one state')}
                     </Button>
                 </DialogContent>
             </Dialog>

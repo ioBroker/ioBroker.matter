@@ -9,6 +9,7 @@ class Ct extends ElectricityDataDevice {
     #temperature?: DeviceStateObject<number>;
     #setPower?: DeviceStateObject<boolean>;
     #getPower?: DeviceStateObject<boolean>;
+    #transitionTime?: DeviceStateObject<number>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
@@ -60,6 +61,13 @@ class Ct extends ElectricityDataDevice {
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Power,
                     callback: state => (this.#setPower = state),
+                },
+                {
+                    name: 'TRANSITION_TIME',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.TransitionTime,
+                    callback: state => (this.#transitionTime = state),
                 },
             ]),
         );
@@ -204,6 +212,31 @@ class Ct extends ElectricityDataDevice {
             throw new Error('PowerActual state not found');
         }
         await this.#getPower.updateValue(value);
+    }
+
+    hasTransitionTime(): boolean {
+        return this.propertyNames.includes(PropertyType.TransitionTime);
+    }
+
+    getTransitionTime(): number | undefined {
+        if (!this.#transitionTime) {
+            throw new Error('TransitionTime state not found');
+        }
+        return this.#transitionTime.value;
+    }
+
+    setTransitionTime(value: number): Promise<void> {
+        if (!this.#transitionTime) {
+            throw new Error('TransitionTime state not found');
+        }
+        return this.#transitionTime.setValue(value);
+    }
+
+    updateTransitionTime(value: number): Promise<void> {
+        if (!this.#transitionTime) {
+            throw new Error('TransitionTime state not found');
+        }
+        return this.#transitionTime.updateValue(value);
     }
 }
 

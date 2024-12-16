@@ -847,7 +847,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 addCustomDeviceDialog: {
                                     oid,
                                     name,
-                                    deviceType: deviceType,
+                                    deviceType,
                                     hasOnState: controls[0].devices[0].hasOnState,
                                     vendorID: '0xFFF1',
                                     productID: '0x8000',

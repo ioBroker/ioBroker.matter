@@ -887,7 +887,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                 addCustomDeviceDialog: {
                                     oid,
                                     name,
-                                    deviceType: deviceType,
+                                    deviceType,
                                     bridgeIndex: this.bridgeIndex as number,
                                     hasOnState: controls[0].devices[0].hasOnState,
                                     noComposed: false,

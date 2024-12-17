@@ -1,7 +1,6 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { LevelControl, OnOff, ColorControl } from '@matter/main/clusters';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
-import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import Ct from '../../lib/devices/Ct';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
@@ -71,6 +70,8 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
+        this.enableDeviceTypeStateForAttribute(PropertyType.TransitionTime);
+
         this.enableDeviceTypeStateForAttribute(PropertyType.Power, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: OnOff.Cluster.id,
@@ -100,9 +101,14 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                 } else if (level > this.#maxLevel) {
                     level = this.#maxLevel;
                 }
-                await this.appEndpoint
-                    .getClusterClient(LevelControl.Complete)
-                    ?.moveToLevel({ level, transitionTime: null, optionsMask: {}, optionsOverride: {} });
+                const transitionTime = this.ioBrokerDevice.getTransitionTime() ?? null;
+
+                await this.appEndpoint.getClusterClient(LevelControl.Complete)?.moveToLevel({
+                    level,
+                    transitionTime: transitionTime !== null ? Math.round(transitionTime / 1000) : null,
+                    optionsMask: {},
+                    optionsOverride: {},
+                });
             },
             convertValue: value => Math.round((value / 254) * 100),
         });
@@ -118,9 +124,10 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                 } else if (colorTemperatureMireds > this.#colorTemperatureMaxMireds) {
                     colorTemperatureMireds = this.#colorTemperatureMaxMireds;
                 }
+                const transitionTime = Math.round((this.ioBrokerDevice.getTransitionTime() ?? 0) / 1000);
                 await this.appEndpoint.getClusterClient(ColorControl.Complete)?.moveToColorTemperature({
                     colorTemperatureMireds,
-                    transitionTime: 0,
+                    transitionTime,
                     optionsMask: {},
                     optionsOverride: {},
                 });
@@ -130,7 +137,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
         return super.enableDeviceTypeStates();
     }
 
-    get ioBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): Ct {
         return this.#ioBrokerDevice;
     }
 }

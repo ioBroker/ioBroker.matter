@@ -49,6 +49,11 @@ class Dimmer extends ElectricityDataDevice {
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.TransitionTime,
                     callback: state => (this.#transitionTime = state),
+                    unitConversionMap: {
+                        // Default is ms
+                        s: (value: number, toDefaultUnit: boolean): number =>
+                            toDefaultUnit ? value * 1000 : value * 0.001,
+                    },
                 },
             ]),
         );

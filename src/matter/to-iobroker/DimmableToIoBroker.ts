@@ -60,6 +60,8 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
+        this.enableDeviceTypeStateForAttribute(PropertyType.TransitionTime);
+
         this.enableDeviceTypeStateForAttribute(PropertyType.Power, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: OnOff.Cluster.id,
@@ -88,9 +90,13 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
                 } else if (level > this.#maxLevel) {
                     level = this.#maxLevel;
                 }
-                await this.appEndpoint
-                    .getClusterClient(LevelControl.Complete)
-                    ?.moveToLevel({ level, transitionTime: null, optionsMask: {}, optionsOverride: {} });
+                const transitionTime = this.ioBrokerDevice.getTransitionTime() ?? null;
+                await this.appEndpoint.getClusterClient(LevelControl.Complete)?.moveToLevel({
+                    level,
+                    transitionTime: transitionTime !== null ? Math.round(transitionTime / 1000) : null,
+                    optionsMask: {},
+                    optionsOverride: {},
+                });
             },
             convertValue: value => Math.round((value / 254) * 100),
         });
@@ -103,7 +109,7 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
         return super.enableDeviceTypeStates();
     }
 
-    get ioBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): Dimmer {
         return this.#ioBrokerDevice;
     }
 }

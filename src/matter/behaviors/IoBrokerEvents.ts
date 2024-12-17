@@ -11,8 +11,8 @@ export class IoBrokerEvents extends Behavior {
 export namespace IoBrokerEvents {
     export class Events extends Behavior.Events {
         onOffControlled = new Observable<[boolean]>();
-        dimmerLevelControlled = new Observable<[number]>();
-        colorTemperatureControlled = new Observable<[number]>();
+        dimmerLevelControlled = new Observable<[level: number, transitionTime?: number | null]>();
+        colorTemperatureControlled = new Observable<[colorTemperatureMireds: number, transitionTime?: number | null]>();
         doorLockStateControlled = new Observable<[DoorLock.LockState]>();
     }
 }

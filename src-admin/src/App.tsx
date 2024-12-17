@@ -259,7 +259,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
 
         const alive = await this.socket.getState(`system.adapter.matter.${this.instance}.alive`);
 
-        const welcomeDialog = await this.socket.getState(`matter.${this.instance}.welcomeDialog`);
+        const welcomeDialog = await this.socket.getState(`matter.${this.instance}.info.welcomeDialog`);
 
         if (alive?.val) {
             this.refreshBackendSubscription(true);
@@ -300,7 +300,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 socket={this.socket}
                 onClose={async () => {
                     if (!this.state.welcomeDialogShowed) {
-                        await this.socket.setState(`matter.${this.instance}.welcomeDialog`, true, true);
+                        await this.socket.setState(`matter.${this.instance}.info.welcomeDialog`, true, true);
                     }
                     this.setState({ showWelcomeDialog: false, welcomeDialogShowed: true });
                 }}

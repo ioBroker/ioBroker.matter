@@ -5,7 +5,6 @@ import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type Light from '../../lib/devices/Light';
 import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
-import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 import { EventedOnOffLightOnOffServer } from '../behaviors/EventedOnOffLightOnOffServer';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 
@@ -35,7 +34,7 @@ export class LightToMatter extends GenericElectricityDataDeviceToMatter {
         return this.#ioBrokerDevice.setPower(identifyOptions.initialState as boolean);
     }
 
-    getMatterEndpoints(): Endpoint[] {
+    get matterEndpoints(): Endpoint[] {
         return [this.#matterEndpoint];
     }
 
@@ -94,7 +93,6 @@ export class LightToMatter extends GenericElectricityDataDeviceToMatter {
             },
         });
 
-        await initializeMaintenanceStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
         await this.initializeElectricityStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
     }
 }

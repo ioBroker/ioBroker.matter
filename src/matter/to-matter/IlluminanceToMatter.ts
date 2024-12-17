@@ -1,24 +1,19 @@
 import { Endpoint } from '@matter/main';
-import { ContactSensorDevice } from '@matter/main/devices';
+import { LightSensorDevice } from '@matter/main/devices';
 import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import type Window from '../../lib/devices/Window';
+import type Illuminance from '../../lib/devices/Illuminance';
 import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
 
 /** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */
-export class WindowToMatter extends GenericDeviceToMatter {
-    readonly #ioBrokerDevice: Window;
-    readonly #matterEndpoint: Endpoint<ContactSensorDevice>;
+export class IlluminanceToMatter extends GenericDeviceToMatter {
+    readonly #ioBrokerDevice: Illuminance;
+    readonly #matterEndpoint: Endpoint<LightSensorDevice>;
 
     constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
         super(name, uuid);
-        this.#matterEndpoint = new Endpoint(ContactSensorDevice, {
-            id: uuid,
-            booleanState: {
-                stateValue: false, // Will be corrected in registerIoBrokerHandlersAndInitialize
-            },
-        });
-        this.#ioBrokerDevice = ioBrokerDevice as Window;
+        this.#ioBrokerDevice = ioBrokerDevice as Illuminance;
+        this.#matterEndpoint = new Endpoint(LightSensorDevice, { id: uuid });
     }
 
     async doIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
@@ -34,10 +29,8 @@ export class WindowToMatter extends GenericDeviceToMatter {
 
     registerMatterHandlers(): void {}
 
-    convertContactValue(value?: boolean): boolean {
-        // True Closed or contact
-        // False Open or no contact
-        return !value;
+    convertBrightnessValue(value: number): number {
+        return Math.round(10_000 * Math.log10(value) + 1);
     }
 
     async registerIoBrokerHandlersAndInitialize(): Promise<void> {
@@ -45,21 +38,22 @@ export class WindowToMatter extends GenericDeviceToMatter {
         // here we react on changes from the ioBroker side for onOff and current lamp level
         this.#ioBrokerDevice.onChange(async event => {
             switch (event.property) {
-                case PropertyType.Value:
-                    await this.#matterEndpoint.set({
-                        booleanState: {
-                            stateValue: this.convertContactValue(event.value as boolean),
-                        },
-                    });
+                case PropertyType.Brightness:
+                    if (this.#matterEndpoint?.owner !== undefined) {
+                        await this.#matterEndpoint?.set({
+                            illuminanceMeasurement: {
+                                measuredValue: this.convertBrightnessValue(event.value as number),
+                            },
+                        });
+                    }
                     break;
             }
         });
 
-        const value = this.#ioBrokerDevice.getValue();
-        // init current state from ioBroker side
+        const humidity = this.#ioBrokerDevice.getBrightness();
         await this.#matterEndpoint.set({
-            booleanState: {
-                stateValue: this.convertContactValue(value),
+            illuminanceMeasurement: {
+                measuredValue: humidity === undefined ? null : this.convertBrightnessValue(humidity),
             },
         });
     }

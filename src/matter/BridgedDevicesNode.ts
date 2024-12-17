@@ -1,6 +1,7 @@
 import { Endpoint, ServerNode, VendorId } from '@matter/main';
-import { BridgedDeviceBasicInformationServer } from '@matter/main/behaviors';
+import { BridgedDeviceBasicInformationServer, NetworkCommissioningServer } from '@matter/main/behaviors';
 import { AggregatorEndpoint, BridgedNodeEndpoint } from '@matter/main/endpoints';
+import { NetworkCommissioning } from '@matter/main/clusters';
 import { inspect } from 'util';
 import type { BridgeDeviceDescription } from '../ioBrokerStorageTypes';
 import type { GenericDevice } from '../lib';
@@ -8,13 +9,12 @@ import { md5 } from '../lib/utils';
 import type { MatterAdapter } from '../main';
 import { BaseServerNode } from './BaseServerNode';
 import matterDeviceFactory from './to-matter/matterFactory';
-import { initializeBridgedUnreachableStateHandler } from './to-matter/SharedStateHandlers';
 import type { GenericDeviceToMatter } from './to-matter/GenericDeviceToMatter';
+import type { StructuredJsonFormData } from '../lib/JsonConfigUtils';
 
 export interface BridgeCreateOptions {
     parameters: BridgeOptions;
-    devices: GenericDevice[];
-    devicesOptions: BridgeDeviceDescription[];
+    devices: Map<string, { device?: GenericDevice; error?: string; options: BridgeDeviceDescription }>;
 }
 
 export interface BridgeOptions {
@@ -29,8 +29,7 @@ export interface BridgeOptions {
 /** A Bridged Devices Server Node. */
 class BridgedDevices extends BaseServerNode {
     #parameters: BridgeOptions;
-    #devices: GenericDevice[];
-    #devicesOptions: BridgeDeviceDescription[];
+    #devices: Map<string, { device?: GenericDevice; error?: string; options: BridgeDeviceDescription }>;
     #started = false;
     #aggregator?: Endpoint<AggregatorEndpoint>;
     #deviceEndpoints = new Map<string, Endpoint[]>();
@@ -40,7 +39,6 @@ class BridgedDevices extends BaseServerNode {
         super(adapter, 'bridges', options.parameters.uuid);
         this.#parameters = options.parameters;
         this.#devices = options.devices;
-        this.#devicesOptions = options.devicesOptions;
     }
 
     get port(): number {
@@ -53,21 +51,27 @@ class BridgedDevices extends BaseServerNode {
             throw new Error(`Aggregator on Bridge ${deviceOptions.uuid} not initialized. Should never happen`);
         }
 
-        this.adapter.log.info(`Adding device ${deviceOptions.uuid} "${deviceOptions.name}" to bridge`);
+        this.adapter.log.info(`Preparing bridged device ${deviceOptions.uuid} "${deviceOptions.name}" for bridge`);
 
         if (this.#deviceEndpoints.has(deviceOptions.uuid)) {
             this.adapter.log.warn(
                 `Device ${deviceOptions.uuid} already in bridge. Should never happen. Closing them before re-adding`,
             );
             for (const endpoint of this.#deviceEndpoints.get(deviceOptions.uuid) ?? []) {
-                await endpoint.close();
+                try {
+                    await endpoint.close();
+                } catch (error) {
+                    const errorText = inspect(error, { depth: 10 });
+                    this.adapter.log.error(`Error closing endpoint ${endpoint.id} in bridge: ${errorText}`);
+                }
             }
+            this.#deviceEndpoints.delete(deviceOptions.uuid);
         }
 
         const mappingDevice = await matterDeviceFactory(device, deviceOptions.name, deviceOptions.uuid);
         if (mappingDevice) {
             const name = mappingDevice.name;
-            const endpoints = mappingDevice.getMatterEndpoints();
+            const endpoints = mappingDevice.matterEndpoints;
             if (endpoints.length === 1 || deviceOptions.noComposed) {
                 let erroredCount = 0;
                 // When only one endpoint or non-composed we simply add all endpoints for itself to the bridge
@@ -80,7 +84,8 @@ class BridgedDevices extends BaseServerNode {
                             await this.#aggregator.parts.get(endpoint.id)?.close();
                         }
                     } catch (error) {
-                        this.adapter.log.error(`Error closing endpoint ${endpoint.id} in bridge: ${error}`);
+                        const errorText = inspect(error, { depth: 10 });
+                        this.adapter.log.error(`Error closing endpoint ${endpoint.id} in bridge: ${errorText}`);
                     }
 
                     const matterName = name.substring(0, 32);
@@ -91,6 +96,7 @@ class BridgedDevices extends BaseServerNode {
                         uniqueId: md5(endpoint.id),
                         reachable: true,
                     });
+                    this.registerMaintenanceClusters(endpoint, device);
                     try {
                         await this.#aggregator.add(endpoint);
                     } catch (error) {
@@ -129,23 +135,20 @@ class BridgedDevices extends BaseServerNode {
                         uniqueId: md5(id),
                         reachable: true,
                     },
+                    parts: endpoints,
                 });
-                await this.#aggregator.add(composedEndpoint);
-                let erroredCount = 0;
-                for (const endpoint of endpoints) {
-                    try {
-                        await composedEndpoint.add(endpoint);
-                    } catch (error) {
-                        // MatterErrors might contain nested information so make sure we see all of this
-                        const errorText = inspect(error, { depth: 10 });
-                        this.adapter.log.error(`Error adding endpoint ${endpoint.id} to bridge: ${errorText}`);
-                        erroredCount++;
-                    }
-                }
-                if (erroredCount === endpoints.length) {
+                this.registerMaintenanceClusters(composedEndpoint, device);
+
+                try {
+                    await this.#aggregator.add(composedEndpoint);
+                } catch (error) {
                     await mappingDevice.destroy();
                     await composedEndpoint.delete();
-                    throw new Error(`Could not add any endpoint to composed device`);
+
+                    const errorText = inspect(error, { depth: 10 });
+                    throw new Error(
+                        `Error adding endpoints to bridged device ${deviceOptions.uuid} "${deviceOptions.name}" to bridge: ${errorText}`,
+                    );
                 }
 
                 this.#deviceEndpoints.set(deviceOptions.uuid, [composedEndpoint]);
@@ -155,7 +158,8 @@ class BridgedDevices extends BaseServerNode {
 
             const addedEndpoints = this.#deviceEndpoints.get(deviceOptions.uuid) as Endpoint<BridgedNodeEndpoint>[];
             for (const endpoint of addedEndpoints) {
-                await initializeBridgedUnreachableStateHandler(endpoint, device);
+                await this.initializeBridgedUnreachableStateHandler(endpoint, device);
+                this.initializeMaintenanceStateHandlers(endpoint, device);
             }
         } else {
             throw new Error(`ioBroker Device in Bridge "${device.deviceType}" is not supported`);
@@ -190,46 +194,71 @@ class BridgedDevices extends BaseServerNode {
 
         const versions = this.adapter.versions;
         const matterName = deviceName.substring(0, 32);
-        this.serverNode = await ServerNode.create({
-            id: this.#parameters.uuid,
-            network: {
-                port: this.#parameters.port,
+        const networkId = new Uint8Array(32);
+
+        this.serverNode = await ServerNode.create(
+            ServerNode.RootEndpoint.with(
+                NetworkCommissioningServer.withFeatures(NetworkCommissioning.Feature.EthernetNetworkInterface),
+            ),
+            {
+                id: this.#parameters.uuid,
+                network: {
+                    port: this.#parameters.port,
+                },
+                productDescription: {
+                    name: matterName,
+                    deviceType,
+                },
+                basicInformation: {
+                    vendorName,
+                    vendorId: VendorId(vendorId),
+                    nodeLabel: matterName,
+                    productName: matterName,
+                    productLabel: deviceName.substring(0, 64),
+                    productId,
+                    serialNumber: uniqueId,
+                    uniqueId: md5(uniqueId),
+                    hardwareVersion: versions.versionNum,
+                    hardwareVersionString: versions.versionStr,
+                    softwareVersion: versions.versionNum,
+                    softwareVersionString: versions.versionStr,
+                },
+                networkCommissioning: {
+                    maxNetworks: 1,
+                    interfaceEnabled: true,
+                    lastConnectErrorValue: 0,
+                    lastNetworkId: networkId,
+                    lastNetworkingStatus: NetworkCommissioning.NetworkCommissioningStatus.Success,
+                    networks: [{ networkId: networkId, connected: true }],
+                },
             },
-            productDescription: {
-                name: matterName,
-                deviceType,
-            },
-            basicInformation: {
-                vendorName,
-                vendorId: VendorId(vendorId),
-                nodeLabel: matterName,
-                productName: matterName,
-                productLabel: deviceName.substring(0, 64),
-                productId,
-                serialNumber: uniqueId,
-                uniqueId: md5(uniqueId),
-                hardwareVersion: versions.versionNum,
-                hardwareVersionString: versions.versionStr,
-                softwareVersion: versions.versionNum,
-                softwareVersionString: versions.versionStr,
-            },
-        });
+        );
 
         this.#aggregator = new Endpoint(AggregatorEndpoint, { id: 'bridge' });
 
         await this.serverNode.add(this.#aggregator);
 
         let erroredCount = 0;
-        for (let i = 0; i < this.#devices.length; i++) {
+        for (const [uuid, { device, error, options: deviceOptions }] of this.#devices.entries()) {
+            if (!device || error) {
+                erroredCount++;
+                this.adapter.log.info(`Skipping device ${deviceOptions.uuid} because could not be initialized.`);
+                continue;
+            }
             try {
-                await this.addBridgedIoBrokerDevice(this.#devices[i], this.#devicesOptions[i]);
+                await this.addBridgedIoBrokerDevice(device, deviceOptions);
             } catch (error) {
                 erroredCount++;
                 const errorText = inspect(error, { depth: 10 });
-                this.adapter.log.error(`Error adding device ${this.#devicesOptions[i].uuid} to bridge: ${errorText}`);
+                this.adapter.log.error(`Error adding device ${deviceOptions.uuid} to bridge: ${errorText}`);
+                const details = this.#devices.get(uuid);
+                if (details !== undefined) {
+                    details.error = error.message;
+                    this.#devices.set(uuid, details);
+                }
             }
         }
-        if (erroredCount === this.#devices.length) {
+        if (erroredCount === this.#devices.size) {
             await this.destroy();
             throw new Error(`Could not add any device to bridge`);
         }
@@ -239,8 +268,6 @@ class BridgedDevices extends BaseServerNode {
 
     /** Apply an updated configuration for the Bridge. */
     async applyConfiguration(options: BridgeCreateOptions): Promise<void> {
-        this.adapter.log.debug('Applying new bridge configuration');
-
         if (!this.serverNode) {
             this.adapter.log.error(
                 `ServerNode for Bridge ${this.#parameters.uuid} not initialized. Should never happen`,
@@ -250,52 +277,54 @@ class BridgedDevices extends BaseServerNode {
 
         // If the device is already commissioned we only allow to modify contained devices partially
         if (this.serverNode.lifecycle.isCommissioned) {
-            const existingDevicesInBridge = [...this.#deviceEndpoints.keys()];
-            const newDeviceList = new Array<string>();
+            const newDeviceList = new Set<string>();
 
-            for (let i = 0; i < options.devices.length; i++) {
-                const device = options.devices[i];
-                const deviceOptions = options.devicesOptions[i];
-                newDeviceList.push(deviceOptions.uuid);
-                this.adapter.log.debug(`Processing device ${deviceOptions.uuid} "${deviceOptions.name}" in bridge`);
-                if (existingDevicesInBridge.includes(deviceOptions.uuid)) {
-                    existingDevicesInBridge.splice(existingDevicesInBridge.indexOf(deviceOptions.uuid), 1);
-                    this.adapter.log.debug(`Device ${deviceOptions.uuid} already in bridge. Sync Configuration`);
-                    const existingDevice = this.#devices.find(d => d.uuid === deviceOptions.uuid);
-                    if (existingDevice === undefined) {
-                        this.adapter.log.info(`Device ${deviceOptions.uuid} not found in bridge. Should never happen`);
-                        continue;
-                    }
+            for (const { device, error, options: deviceOptions } of options.devices.values()) {
+                const uuid = deviceOptions.uuid;
+                this.adapter.log.debug(`Processing device ${uuid} "${deviceOptions.name}" in bridge`);
+                const existingDevice = this.#devices.get(uuid)?.device;
+                if (existingDevice) {
+                    newDeviceList.add(uuid);
+                    this.adapter.log.debug(`Device ${uuid} already in bridge. Sync Configuration`);
                     existingDevice.applyConfiguration(deviceOptions);
                     continue;
                 }
-                this.adapter.log.info(`Adding device  ${deviceOptions.uuid} "${deviceOptions.name}" to bridge`);
-                await this.addBridgedIoBrokerDevice(device, deviceOptions);
-                this.#devices.push(device);
-                this.#devicesOptions.push(deviceOptions);
+                if (!device || error) {
+                    this.adapter.log.info(`Skipping device ${uuid} because could not be initialized.`);
+                    this.#devices.set(uuid, { device, error, options: deviceOptions });
+                    continue;
+                }
+                newDeviceList.add(uuid);
+                this.adapter.log.info(`Adding device ${uuid} "${deviceOptions.name}" to bridge`);
+                try {
+                    await this.addBridgedIoBrokerDevice(device, deviceOptions);
+                    this.#devices.set(uuid, { device, options: deviceOptions });
+                } catch (error) {
+                    const errorText = inspect(error, { depth: 10 });
+                    this.adapter.log.error(`Error adding device ${uuid} to bridge: ${errorText}`);
+                    this.#devices.set(uuid, { error: error.message, options: deviceOptions });
+                }
             }
 
             for (const [uuid, endpoints] of this.#deviceEndpoints) {
-                if (!newDeviceList.includes(uuid)) {
-                    this.adapter.log.info(`Removing device ${uuid} from bridge`);
-
-                    await this.#mappingDevices.get(uuid)?.destroy();
-                    this.#mappingDevices.delete(uuid);
-
-                    for (const endpoint of endpoints) {
-                        this.adapter.log.debug(`Removing endpoint ${endpoint.id} from bridge`);
-                        await endpoint.delete();
-                    }
-
-                    this.#deviceEndpoints.delete(uuid);
-
-                    const deviceIndex = this.#devicesOptions.findIndex(device => device.uuid === uuid);
-                    if (deviceIndex !== -1) {
-                        await this.#devices[deviceIndex].destroy();
-                        this.#devices.splice(deviceIndex, 1);
-                        this.#devicesOptions.splice(deviceIndex, 1);
-                    }
+                if (newDeviceList.has(uuid)) {
+                    continue; // It is in current list and also new list, so nothing to do
                 }
+                this.adapter.log.info(`Removing device ${uuid} from bridge`);
+
+                await this.#mappingDevices.get(uuid)?.destroy();
+                this.#mappingDevices.delete(uuid);
+
+                for (const endpoint of endpoints) {
+                    this.adapter.log.debug(`Removing endpoint ${endpoint.id} from bridge`);
+                    await endpoint.delete();
+                }
+
+                this.#deviceEndpoints.delete(uuid);
+
+                const { device } = this.#devices.get(uuid) ?? {};
+                await device?.destroy();
+                this.#devices.delete(uuid);
             }
 
             return;
@@ -308,7 +337,6 @@ class BridgedDevices extends BaseServerNode {
         // Reinitialize
         this.#parameters = options.parameters;
         this.#devices = options.devices;
-        this.#devicesOptions = options.devicesOptions;
         await this.init();
         if (wasStarted) {
             await this.start();
@@ -327,16 +355,88 @@ class BridgedDevices extends BaseServerNode {
     }
 
     async destroy(): Promise<void> {
-        for (const device of this.#devices) {
-            await device.destroy();
+        this.#deviceEndpoints.clear();
+        for (const { device } of this.#devices.values()) {
+            await device?.destroy();
         }
         for (const mappingDevice of this.#mappingDevices.values()) {
             await mappingDevice.destroy();
         }
         await this.serverNode?.close();
         this.serverNode = undefined;
+        this.#aggregator = undefined;
         this.#started = false;
         await this.updateUiState();
+    }
+
+    get error(): boolean | string[] {
+        if (!this.serverNode) {
+            return true;
+        }
+        // Collect enabled devices that have an error state to show them in the UI
+        const errors = [...this.#devices.entries()]
+            .map(
+                ([
+                    uuid,
+                    {
+                        error,
+                        options: { enabled },
+                    },
+                ]) => (error && enabled ? uuid : undefined),
+            )
+            .filter(uuid => uuid !== undefined);
+        return errors.length > 0 ? errors : false;
+    }
+
+    getDeviceDetails(message: ioBroker.MessagePayload): StructuredJsonFormData {
+        const bridgedDeviceUuid = message.bridgedDeviceUuid;
+        const details: StructuredJsonFormData = {};
+
+        const { error } = this.#devices.get(bridgedDeviceUuid) ?? {};
+        if (error) {
+            details.error = {
+                __header__error: 'Error information',
+                __text__info: `Bridged Device is in error state. Fix the error before enabling it again`,
+                uuid: `${bridgedDeviceUuid} on ${this.uuid}`,
+                __text__error: `Error: ${error}`,
+            };
+        }
+
+        if (bridgedDeviceUuid !== undefined) {
+            const mappingDevice = this.#mappingDevices.get(bridgedDeviceUuid);
+
+            if (mappingDevice) {
+                return {
+                    ...details,
+                    ...mappingDevice?.getDeviceDetails(),
+                };
+            }
+
+            return {
+                ...details,
+                noDevice: {
+                    __header__error: 'Device not created',
+                    uuid: `${bridgedDeviceUuid} on ${this.uuid}`,
+                    __text__error: `Error: The device does not exist on this bridge`,
+                },
+            };
+        }
+
+        details.overview = {
+            __header__info: 'Bridge Overview',
+            uuid: this.uuid,
+            port: this.port,
+            deviceName: this.#parameters.deviceName,
+            productName: this.#parameters.productName,
+            vendorId: this.#parameters.vendorId,
+            productId: this.#parameters.productId,
+            numberOfBridgedDevices: [...this.#devices.values()].reduce(
+                (count, { device }) => count + (device ? 1 : 0),
+                0,
+            ),
+        };
+
+        return details;
     }
 }
 

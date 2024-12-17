@@ -13,6 +13,9 @@ import { TemperatureToMatter } from './TemperatureToMatter';
 import { WindowToMatter } from './WindowToMatter';
 import { CtToMatter } from './CtToMatter';
 import type { ClassExtends } from '@matter/main';
+import { ButtonToMatter } from './ButtonToMatter';
+import { ButtonSensorToMatter } from './ButtonSensorToMatter';
+import { IlluminanceToMatter } from './IlluminanceToMatter';
 
 /**
  * Factory function to create a Matter device from an ioBroker device.
@@ -27,6 +30,12 @@ async function matterDeviceFabric(
     let ToMatter: ClassExtends<GenericDeviceToMatter>;
 
     switch (ioBrokerDeviceType) {
+        case Types.button:
+            ToMatter = ButtonToMatter;
+            break;
+        case Types.buttonSensor:
+            ToMatter = ButtonSensorToMatter;
+            break;
         case Types.ct:
             ToMatter = CtToMatter;
             break;
@@ -41,6 +50,9 @@ async function matterDeviceFabric(
             break;
         case Types.humidity:
             ToMatter = HumidityToMatter;
+            break;
+        case Types.illuminance:
+            ToMatter = IlluminanceToMatter;
             break;
         case Types.light:
             ToMatter = LightToMatter;

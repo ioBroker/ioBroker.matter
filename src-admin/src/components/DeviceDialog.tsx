@@ -25,11 +25,14 @@ import { clone, detectDevices, getText } from '../Utils';
 import type { DetectedDevice, DetectedRoom, MatterConfig } from '../types';
 
 export const SUPPORTED_DEVICES: Types[] = [
+    Types.button,
+    Types.buttonSensor,
     Types.ct,
     Types.dimmer,
     Types.door,
     Types.floodAlarm,
     Types.humidity,
+    Types.illuminance,
     Types.light,
     Types.lock,
     Types.motion,
@@ -153,7 +156,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
             devicesChecked: {},
             roomsChecked: {},
             usedDevices: {},
-            ignoreUsedDevices: window.localStorage.getItem('matter.ignoreUsedDevices') === 'true',
+            ignoreUsedDevices: window.localStorage.getItem('matter.ignoreUsedDevices') !== 'false',
             useRoomNames: window.localStorage.getItem('matter.useRoomNames') !== 'false',
             showUnsupported: window.localStorage.getItem('matter.showUnsupported') === 'true',
             deviceNames: {},
@@ -318,7 +321,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                     }}
                 >
                     <Checkbox
-                        checked={!!this.state.devicesChecked[device._id]}
+                        checked={this.state.devicesChecked[device._id]}
                         disabled={!supported}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                             const devicesChecked = clone(this.state.devicesChecked);

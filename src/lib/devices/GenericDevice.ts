@@ -105,6 +105,7 @@ abstract class GenericDevice {
     #lowbatState?: DeviceStateObject<boolean>;
     #workingState?: DeviceStateObject<string>;
     #directionState?: DeviceStateObject<string>;
+    #batteryState?: DeviceStateObject<number>;
 
     constructor(
         detectedDevice: DetectedDevice,
@@ -164,6 +165,13 @@ abstract class GenericDevice {
                     accessType: StateAccessType.Read,
                     type: PropertyType.Direction,
                     callback: state => (this.#directionState = state),
+                },
+                {
+                    name: 'BATTERY',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Battery,
+                    callback: state => (this.#batteryState = state),
                 },
             ]),
         );
@@ -490,7 +498,7 @@ abstract class GenericDevice {
         return this.propertyNames.includes(PropertyType.Unreachable);
     }
 
-    getLowBattery(): boolean | number | undefined {
+    getLowBattery(): boolean | undefined {
         if (!this.#lowbatState) {
             throw new Error('Low battery state not found');
         }
@@ -542,6 +550,24 @@ abstract class GenericDevice {
 
     hasDirection(): boolean {
         return this.propertyNames.includes(PropertyType.Direction);
+    }
+
+    getBattery(): number | undefined {
+        if (!this.#batteryState) {
+            throw new Error('Battery state not found');
+        }
+        return this.#batteryState.value;
+    }
+
+    updateBattery(value: number): Promise<void> {
+        if (!this.#batteryState) {
+            throw new Error('Battery state not found');
+        }
+        return this.#batteryState.updateValue(value);
+    }
+
+    hasBattery(): boolean {
+        return this.propertyNames.includes(PropertyType.Battery);
     }
 
     onChange<T>(handler: (event: { property: PropertyType; value: T }) => Promise<void>): void {
@@ -615,9 +641,13 @@ abstract class GenericDevice {
         return 'input';
     }
 
-    get states(): Record<string, unknown> {
+    getStates(includeObjectIds = false, reverseOrder = false): Record<string, unknown> {
         const states: Record<string, unknown> = {};
-        Object.keys(this.#properties).forEach(property => {
+        const keys = Object.keys(this.#properties);
+        if (reverseOrder) {
+            keys.reverse();
+        }
+        keys.forEach(property => {
             const { name, unit, write, read, min, max } = this.#properties[property];
             states[`__iobstate__${name}`] = {
                 oid: write ?? read,
@@ -627,6 +657,14 @@ abstract class GenericDevice {
                 readOnly: !write,
                 control: this.#determineControlType(property),
             };
+            if (includeObjectIds) {
+                if (write !== read && write && read) {
+                    states[`__text__${name}`] = `Write: ${write}, Read: ${read}`;
+                } else {
+                    states[`__text__${name}`] = write ?? read;
+                }
+                states[`__divider__${name}`] = true;
+            }
         });
 
         return states;

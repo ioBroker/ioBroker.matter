@@ -71,6 +71,7 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
     }
 
     async clearAll(): Promise<void> {
+        this.#adapter.log.warn(`[STORAGE] Clearing all storage for ${this.#storageRootOid}`);
         try {
             await this.#adapter.delObjectAsync(this.#storageRootOid, { recursive: true });
         } catch (error) {
@@ -220,6 +221,7 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
         }
 
         const oid = this.buildKey(contexts, key);
+        this.#adapter.log.warn(`[STORAGE] Deleting key "${key}" as "${oid}"`);
 
         try {
             await this.#adapter.delObjectAsync(oid);

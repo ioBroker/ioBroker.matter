@@ -114,6 +114,7 @@ async function allObjects(socket: AdminConnection): Promise<Record<string, ioBro
 export async function detectDevices(
     socket: AdminConnection,
     lang: ioBroker.Languages,
+    allowedTypes?: Types[],
     list?: string[],
 ): Promise<DetectedRoom[]> {
     const devicesObject = await allObjects(socket);
@@ -163,6 +164,7 @@ export async function detectDevices(
         _keysOptional: keys,
         _usedIdsOptional: usedIds,
         ignoreIndicators,
+        allowedTypes,
         excludedTypes,
     };
 

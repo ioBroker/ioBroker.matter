@@ -90,7 +90,7 @@ interface DevicesState extends BridgesAndDevicesState {
         oid: string;
         name: string;
         deviceType: Types | '';
-        detectedDeviceType?: Types;
+        detectedDeviceTypes?: Types[];
         vendorID: string;
         productID: string;
         noComposed?: boolean;
@@ -173,7 +173,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                     <FormControlLabel
                         control={
                             <Checkbox
-                                checked={!!this.state.suppressDeleteEnabled}
+                                checked={this.state.suppressDeleteEnabled}
                                 onChange={e => this.setState({ suppressDeleteEnabled: e.target.checked })}
                             />
                         }
@@ -218,7 +218,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         }
 
         const isCommissioned =
-            !!this.props.commissioning[this.props.matter.devices[this.state.editDeviceDialog.deviceIndex].uuid];
+            this.props.commissioning[this.props.matter.devices[this.state.editDeviceDialog.deviceIndex].uuid];
 
         const save = (): void => {
             if (!this.state.editDeviceDialog) {
@@ -402,7 +402,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         label={I18n.t('Allow action by identify')}
                         control={
                             <Checkbox
-                                checked={!!this.state.editDeviceDialog.actionAllowedByIdentify}
+                                checked={this.state.editDeviceDialog.actionAllowedByIdentify}
                                 onChange={e => {
                                     if (!this.state.editDeviceDialog) {
                                         return;
@@ -421,7 +421,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                             label={I18n.t('Use last value for ON')}
                             control={
                                 <Checkbox
-                                    checked={!!this.state.editDeviceDialog.dimmerUseLastLevelForOn}
+                                    checked={this.state.editDeviceDialog.dimmerUseLastLevelForOn}
                                     onChange={e => {
                                         if (!this.state.editDeviceDialog) {
                                             return;
@@ -576,7 +576,11 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                             }}
                         >
                             {Object.keys(Types)
-                                .filter(key => SUPPORTED_DEVICES.includes(key as Types))
+                                .filter(key =>
+                                    (
+                                        this.state.addCustomDeviceDialog?.detectedDeviceTypes ?? SUPPORTED_DEVICES
+                                    ).includes(key as Types),
+                                )
                                 .map(type => (
                                     <MenuItem
                                         key={type}
@@ -664,9 +668,15 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         onClick={() => {
                             const addCustomDeviceDialog = this.state.addCustomDeviceDialog;
                             if (addCustomDeviceDialog) {
+                                if (addCustomDeviceDialog.deviceType === '') {
+                                    this.props.showToast(I18n.t('empty device type is not allowed.'));
+                                    return;
+                                }
                                 const isAutoType =
-                                    !!addCustomDeviceDialog.detectedDeviceType &&
-                                    addCustomDeviceDialog.detectedDeviceType === addCustomDeviceDialog.deviceType;
+                                    !!addCustomDeviceDialog.detectedDeviceTypes?.length &&
+                                    addCustomDeviceDialog.detectedDeviceTypes.includes(
+                                        addCustomDeviceDialog.deviceType,
+                                    );
                                 void this.addDevices(
                                     [
                                         {
@@ -674,8 +684,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                             common: {
                                                 name: addCustomDeviceDialog.name,
                                             },
-                                            deviceType: (addCustomDeviceDialog.deviceType ??
-                                                addCustomDeviceDialog.detectedDeviceType) as Types,
+                                            deviceType: addCustomDeviceDialog.deviceType,
                                             hasOnState: !!addCustomDeviceDialog.hasOnState,
                                             noComposed: !!addCustomDeviceDialog.noComposed,
                                             productID: addCustomDeviceDialog.productID,
@@ -750,23 +759,6 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 addDevicePreDialog: false,
                                 addDeviceDialog: {
                                     devices: this.props.matter.devices,
-                                    detectionType: 'state',
-                                },
-                            });
-                        }}
-                        startIcon={<FormatListBulleted />}
-                        color="primary"
-                        variant="contained"
-                        sx={{ justifyContent: 'flex-start' }}
-                    >
-                        {I18n.t('Add device from one state')}
-                    </Button>
-                    <Button
-                        onClick={() => {
-                            this.setState({
-                                addDevicePreDialog: false,
-                                addDeviceDialog: {
-                                    devices: this.props.matter.devices,
                                     detectionType: 'device',
                                 },
                             });
@@ -777,6 +769,23 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         sx={{ justifyContent: 'flex-start' }}
                     >
                         {I18n.t('Add device from channel or device')}
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            this.setState({
+                                addDevicePreDialog: false,
+                                addDeviceDialog: {
+                                    devices: this.props.matter.devices,
+                                    detectionType: 'state',
+                                },
+                            });
+                        }}
+                        startIcon={<FormatListBulleted />}
+                        color="primary"
+                        variant="contained"
+                        sx={{ justifyContent: 'flex-start' }}
+                    >
+                        {I18n.t('Add device from one state')}
                     </Button>
                 </DialogContent>
             </Dialog>
@@ -801,24 +810,36 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                     onClose={() => this.setState({ addDeviceDialog: null })}
                     onOk={async (_oid, name) => {
                         const oid: string | undefined = Array.isArray(_oid) ? _oid[0] : (_oid as string);
-                        // Try to detect ID
-                        const controls = await detectDevices(this.props.socket, I18n.getLanguage(), [oid]);
-                        if (!controls?.length) {
-                            this.setState({
-                                addDeviceDialog: null,
-                                addCustomDeviceDialog: {
-                                    oid,
-                                    name,
-                                    deviceType: '',
-                                    vendorID: '0xFFF1',
-                                    productID: '0x8000',
-                                },
-                            });
-                        } else {
-                            const deviceType = controls[0].devices[0].deviceType;
-                            if (!SUPPORTED_DEVICES.includes(deviceType)) {
-                                this.props.showToast(I18n.t('Device type "%s" is not supported yet', deviceType));
+                        // Try to detect ID out of the supported IDs
+                        const controls =
+                            (await detectDevices(this.props.socket, I18n.getLanguage(), SUPPORTED_DEVICES, [oid])) ??
+                            [];
+                        if (!controls.length) {
+                            const controls =
+                                (await detectDevices(this.props.socket, I18n.getLanguage(), undefined, [oid])) ?? [];
+                            const deviceTypes = controls.map(c => c.devices[0].deviceType);
+                            if (deviceTypes.length) {
+                                this.props.showToast(
+                                    I18n.t('Detected device types "%s" are not supported yet', deviceTypes.join(', ')),
+                                );
+                                // TODO Should we really let user select??
+                                this.setState({
+                                    addDeviceDialog: null,
+                                    addCustomDeviceDialog: {
+                                        oid,
+                                        name,
+                                        deviceType: '',
+                                        noComposed: false,
+                                        vendorID: '0xFFF1',
+                                        productID: '0x8000',
+                                    },
+                                });
+                            } else {
+                                this.props.showToast(I18n.t('No device found for ID %s', oid));
                             }
+                        } else {
+                            // Show dialog to select device type but only allow the detected ones
+                            const deviceType = controls[0].devices[0].deviceType;
 
                             // try to find ON state for dimmer
                             this.setState({
@@ -826,11 +847,12 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 addCustomDeviceDialog: {
                                     oid,
                                     name,
-                                    detectedDeviceType: deviceType,
-                                    deviceType: SUPPORTED_DEVICES.includes(deviceType) ? deviceType : '',
+                                    deviceType,
                                     hasOnState: controls[0].devices[0].hasOnState,
                                     vendorID: '0xFFF1',
                                     productID: '0x8000',
+                                    noComposed: false,
+                                    detectedDeviceTypes: controls.map(c => c.devices[0].deviceType),
                                 },
                             });
                         }

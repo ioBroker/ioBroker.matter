@@ -16,7 +16,6 @@ const excludedTypes = [
     'unknown',
     'instance',
     'valve',
-    'illuminance' // Not yet implemented
 ];
 
 // create a maximal set of states
@@ -163,6 +162,7 @@ const detectedDevices = {
         { name: 'BRIGHTNESS', id: '0_userdata.0.brightness' },
         { name: 'SATURATION', id: '0_userdata.0.saturation' },
         { name: 'TEMPERATURE', id: '0_userdata.0.temperature' },
+        { name: 'TRANSITION_TIME', id: '0_userdata.0.TRANSITIONTIME' },
 
         { name: 'LEVEL', id: '0_userdata.0.level' },
 
@@ -217,6 +217,7 @@ class Adapter {
     }
 
     async setForeignStateAsync(id, value) {
+        console.log("SET", id, value);
         this.states[id] = this.states[id] || {};
         this.states[id].ts = Date.now();
         this.states[id].val = value;
@@ -229,6 +230,7 @@ class Adapter {
     }
 
     async getForeignStateAsync(id) {
+        console.log("GET", id);
         if (!this.states[id]) {
             const entry = detectedDevices.states.find(state => state.id === id);
             if (entry && entry.val !== undefined) {

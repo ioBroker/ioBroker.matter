@@ -1,7 +1,6 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { LevelControl, OnOff, ColorControl } from '@matter/main/clusters';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
-import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import Ct from '../../lib/devices/Ct';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
@@ -25,8 +24,18 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
         endpointDeviceBaseId: string,
         deviceTypeName: string,
         defaultConnectionStateId: string,
+        defaultName: string,
     ) {
-        super(adapter, node, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName, defaultConnectionStateId);
+        super(
+            adapter,
+            node,
+            endpoint,
+            rootEndpoint,
+            endpointDeviceBaseId,
+            deviceTypeName,
+            defaultConnectionStateId,
+            defaultName,
+        );
 
         this.#ioBrokerDevice = new Ct(
             { ...ChannelDetector.getPatterns().ct, isIoBrokerDevice: false } as DetectedDevice,
@@ -61,7 +70,9 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
-        this.enableDeviceTypeState(PropertyType.Power, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.TransitionTime);
+
+        this.enableDeviceTypeStateForAttribute(PropertyType.Power, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: OnOff.Cluster.id,
             attributeName: 'onOff',
@@ -73,13 +84,13 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                 }
             },
         });
-        this.enableDeviceTypeState(PropertyType.PowerActual, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.PowerActual, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: OnOff.Cluster.id,
             attributeName: 'onOff',
         });
 
-        this.enableDeviceTypeState(PropertyType.Dimmer, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.Dimmer, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: LevelControl.Cluster.id,
             attributeName: 'currentLevel',
@@ -90,14 +101,19 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                 } else if (level > this.#maxLevel) {
                     level = this.#maxLevel;
                 }
-                await this.appEndpoint
-                    .getClusterClient(LevelControl.Complete)
-                    ?.moveToLevel({ level, transitionTime: null, optionsMask: {}, optionsOverride: {} });
+                const transitionTime = this.ioBrokerDevice.getTransitionTime() ?? null;
+
+                await this.appEndpoint.getClusterClient(LevelControl.Complete)?.moveToLevel({
+                    level,
+                    transitionTime: transitionTime !== null ? Math.round(transitionTime / 1000) : null,
+                    optionsMask: {},
+                    optionsOverride: {},
+                });
             },
             convertValue: value => Math.round((value / 254) * 100),
         });
 
-        this.enableDeviceTypeState(PropertyType.Temperature, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.Temperature, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: ColorControl.Cluster.id,
             attributeName: 'colorTemperatureMireds',
@@ -108,9 +124,10 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                 } else if (colorTemperatureMireds > this.#colorTemperatureMaxMireds) {
                     colorTemperatureMireds = this.#colorTemperatureMaxMireds;
                 }
+                const transitionTime = Math.round((this.ioBrokerDevice.getTransitionTime() ?? 0) / 1000);
                 await this.appEndpoint.getClusterClient(ColorControl.Complete)?.moveToColorTemperature({
                     colorTemperatureMireds,
-                    transitionTime: 0,
+                    transitionTime,
                     optionsMask: {},
                     optionsOverride: {},
                 });
@@ -120,7 +137,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
         return super.enableDeviceTypeStates();
     }
 
-    get ioBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): Ct {
         return this.#ioBrokerDevice;
     }
 }

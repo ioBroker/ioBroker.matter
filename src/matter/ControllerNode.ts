@@ -61,13 +61,6 @@ class Controller implements GeneralNode {
 
     init(): void {
         this.applyConfiguration(this.#parameters);
-        this.#commissioningController = new CommissioningController({
-            autoConnect: false,
-            environment: {
-                environment: this.#matterEnvironment,
-                id: 'controller',
-            },
-        });
     }
 
     applyConfiguration(config: MatterControllerConfig): MessageResponse {
@@ -111,15 +104,16 @@ class Controller implements GeneralNode {
         return node.applyConfiguration(config, forcedUpdate);
     }
 
-    async handleCommand(command: string, message: ioBroker.MessagePayload): Promise<MessageResponse> {
+    async handleCommand(obj: ioBroker.Message): Promise<MessageResponse> {
         if (this.#commissioningController === undefined) {
             return { error: 'Controller is not initialized.' };
         }
+        const { command, message } = obj;
         try {
             switch (command) {
                 case 'controllerDiscovery':
                     // Discover for Matter devices in the IP and potentially BLE network
-                    return { result: await this.discovery() };
+                    return { result: await this.#discovery() };
                 case 'controllerDiscoveryStop':
                     // Stop Discovery
                     if (this.#discovering) {
@@ -239,9 +233,17 @@ class Controller implements GeneralNode {
     }
 
     async start(): Promise<void> {
-        if (!this.#commissioningController) {
-            throw new Error('CommissioningController not initialized');
+        if (this.#commissioningController) {
+            throw new Error('CommissioningController already started!');
         }
+
+        this.#commissioningController = new CommissioningController({
+            autoConnect: false,
+            environment: {
+                environment: this.#matterEnvironment,
+                id: 'controller',
+            },
+        });
 
         await this.#adapter.extendObjectAsync('controller.info', {
             type: 'channel',
@@ -439,7 +441,7 @@ class Controller implements GeneralNode {
         this.#adapter.log.debug(`Commissioning successfully completed with nodeId "${nodeId}"`);
     }
 
-    async discovery(): Promise<CommissionableDevice[] | null> {
+    async #discovery(): Promise<CommissionableDevice[] | null> {
         if (!this.#commissioningController) {
             return null;
         }
@@ -518,6 +520,8 @@ class Controller implements GeneralNode {
             throw new Error(`Can not decommission NodeId "${nodeId}" because controller not initialized.`);
         }
         await this.#commissioningController.removeNode(NodeId(BigInt(nodeId)), this.#connected[nodeId]);
+        delete this.#connected[nodeId];
+        this.#nodes.delete(nodeId);
     }
 }
 

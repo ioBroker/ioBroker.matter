@@ -5,7 +5,6 @@ import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type Socket from '../../lib/devices/Socket';
 import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
-import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 import { EventedOnOffPlugInUnitOnOffServer } from '../behaviors/EventedOnOffPlugInUnitOnOffServer';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 
@@ -35,7 +34,7 @@ export class SocketToMatter extends GenericElectricityDataDeviceToMatter {
         return this.#ioBrokerDevice.setPower(!!identifyOptions.initialState);
     }
 
-    getMatterEndpoints(): Endpoint[] {
+    get matterEndpoints(): Endpoint[] {
         return [this.#matterEndpoint];
     }
 
@@ -94,7 +93,6 @@ export class SocketToMatter extends GenericElectricityDataDeviceToMatter {
             },
         });
 
-        await initializeMaintenanceStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
         await this.initializeElectricityStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
     }
 }

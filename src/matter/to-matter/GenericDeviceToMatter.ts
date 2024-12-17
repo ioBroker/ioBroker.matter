@@ -1,5 +1,6 @@
-import { type Endpoint, ObserverGroup } from '@matter/main';
+import { type Endpoint, ObserverGroup, type MaybePromise } from '@matter/main';
 import type { GenericDevice } from '../../lib';
+import type { StructuredJsonFormData } from '../../lib/JsonConfigUtils';
 
 export interface IdentifyOptions {
     currentState?: any;
@@ -69,7 +70,7 @@ export abstract class GenericDeviceToMatter {
     abstract resetIdentify(identifyOptions: IdentifyOptions): Promise<void>;
 
     /** Return the created Matter Endpoints of this device. */
-    abstract getMatterEndpoints(): Endpoint[];
+    abstract get matterEndpoints(): Endpoint[];
 
     /** Return the ioBroker device this mapping is for. */
     abstract ioBrokerDevice: GenericDevice;
@@ -88,8 +89,8 @@ export abstract class GenericDeviceToMatter {
      */
     abstract registerMatterHandlers(): void;
 
-    /** Registers all the ioBroker change handlers to update statee changes from ioBroker onto the Matter device. */
-    abstract registerIoBrokerHandlersAndInitialize(): Promise<void>;
+    /** Registers all the ioBroker change handlers to update state changes from ioBroker onto the Matter device. */
+    abstract registerIoBrokerHandlersAndInitialize(): MaybePromise<void>;
 
     /** Initialization Logic for the device. makes sure all handlers are registered for both sides. */
     async init(): Promise<void> {
@@ -102,5 +103,34 @@ export abstract class GenericDeviceToMatter {
         this.#observers.close();
         // The endpoints are destroyed by the Node handler because maybe more endpoints were added
         await this.ioBrokerDevice.destroy();
+    }
+
+    getDeviceDetails(): StructuredJsonFormData {
+        const details: StructuredJsonFormData = {};
+
+        details.detectedStates = {
+            __header__device: 'Detected ioBroker Device type',
+            deviceType: this.ioBrokerDevice.deviceType,
+            __header__states: 'Detected device states',
+            __text__info: 'The following states were detected for this device:',
+            __divider__info: true,
+            ...this.ioBrokerDevice.getStates(true, true),
+        };
+
+        const endpoints = this.matterEndpoints;
+        if (endpoints.length > 0) {
+            details.endpoints = {
+                __header__endpoints: 'Device Endpoints',
+                __text__info: 'The following Matter endpoints are mapped for this device.',
+                __divider__info: true,
+            };
+            endpoints.forEach(endpoint => {
+                details.endpoints[`__header__endpoint${endpoint.number}`] = `Endpoint ${endpoint.number}`;
+                details.endpoints[`dt${endpoint.number}__deviceType`] = endpoint.type.name;
+                // TODO expose potentially more
+            });
+        }
+
+        return details;
     }
 }

@@ -19,8 +19,18 @@ export class ContactSensorToIoBroker extends GenericDeviceToIoBroker {
         endpointDeviceBaseId: string,
         deviceTypeName: string,
         defaultConnectionStateId: string,
+        defaultName: string,
     ) {
-        super(adapter, node, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName, defaultConnectionStateId);
+        super(
+            adapter,
+            node,
+            endpoint,
+            rootEndpoint,
+            endpointDeviceBaseId,
+            deviceTypeName,
+            defaultConnectionStateId,
+            defaultName,
+        );
 
         this.#ioBrokerDevice = new Window(
             { ...ChannelDetector.getPatterns().window, isIoBrokerDevice: false } as DetectedDevice,
@@ -30,7 +40,7 @@ export class ContactSensorToIoBroker extends GenericDeviceToIoBroker {
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
-        this.enableDeviceTypeState(PropertyType.Value, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.Value, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: BooleanState.Cluster.id,
             attributeName: 'stateValue',

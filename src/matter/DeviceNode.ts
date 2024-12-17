@@ -1,4 +1,6 @@
 import { ServerNode, VendorId } from '@matter/main';
+import { NetworkCommissioningServer } from '@matter/main/behaviors';
+import { NetworkCommissioning } from '@matter/main/clusters';
 import { inspect } from 'util';
 import type { DeviceDescription } from '../ioBrokerStorageTypes';
 import type { GenericDevice } from '../lib';
@@ -6,8 +8,8 @@ import { md5 } from '../lib/utils';
 import type { MatterAdapter } from '../main';
 import { BaseServerNode } from './BaseServerNode';
 import matterDeviceFactory from './to-matter/matterFactory';
-import { initializeUnreachableStateHandler } from './to-matter/SharedStateHandlers';
 import type { GenericDeviceToMatter } from './to-matter/GenericDeviceToMatter';
+import type { StructuredJsonFormData } from '../lib/JsonConfigUtils';
 
 export interface DeviceCreateOptions {
     parameters: DeviceOptions;
@@ -83,7 +85,7 @@ class Device extends BaseServerNode {
         }
 
         this.#mappingDevice = mappingDevice;
-        const endpoints = mappingDevice.getMatterEndpoints();
+        const endpoints = mappingDevice.matterEndpoints;
 
         // The device type to announce we use from the first returned endpoint of the device
         const deviceType = endpoints[0].type.deviceType;
@@ -91,32 +93,47 @@ class Device extends BaseServerNode {
         const versions = this.adapter.versions;
         const matterName = productName.substring(0, 32);
 
+        const networkId = new Uint8Array(32);
         try {
-            this.serverNode = await ServerNode.create({
-                id: this.#parameters.uuid,
-                network: {
-                    port: this.#parameters.port,
+            this.serverNode = await ServerNode.create(
+                ServerNode.RootEndpoint.with(
+                    NetworkCommissioningServer.withFeatures(NetworkCommissioning.Feature.EthernetNetworkInterface),
+                ),
+                {
+                    id: this.#parameters.uuid,
+                    network: {
+                        port: this.#parameters.port,
+                    },
+                    productDescription: {
+                        name: deviceName.substring(0, 32),
+                        deviceType,
+                    },
+                    basicInformation: {
+                        vendorName,
+                        vendorId: VendorId(vendorId),
+                        nodeLabel: matterName,
+                        productName: matterName,
+                        productLabel: productName.substring(0, 64),
+                        productId,
+                        serialNumber: uniqueId,
+                        uniqueId: md5(uniqueId),
+                        hardwareVersion: versions.versionNum,
+                        hardwareVersionString: versions.versionStr,
+                        softwareVersion: versions.versionNum,
+                        softwareVersionString: versions.versionStr,
+                        reachable: true,
+                    },
+                    networkCommissioning: {
+                        maxNetworks: 1,
+                        interfaceEnabled: true,
+                        lastConnectErrorValue: 0,
+                        lastNetworkId: networkId,
+                        lastNetworkingStatus: NetworkCommissioning.NetworkCommissioningStatus.Success,
+                        networks: [{ networkId: networkId, connected: true }],
+                    },
                 },
-                productDescription: {
-                    name: deviceName.substring(0, 32),
-                    deviceType,
-                },
-                basicInformation: {
-                    vendorName,
-                    vendorId: VendorId(vendorId),
-                    nodeLabel: matterName,
-                    productName: matterName,
-                    productLabel: productName.substring(0, 64),
-                    productId,
-                    serialNumber: uniqueId,
-                    uniqueId: md5(uniqueId),
-                    hardwareVersion: versions.versionNum,
-                    hardwareVersionString: versions.versionStr,
-                    softwareVersion: versions.versionNum,
-                    softwareVersionString: versions.versionStr,
-                    reachable: true,
-                },
-            });
+            );
+            this.registerMaintenanceClusters(this.serverNode, ioBrokerDevice);
         } catch (error) {
             await mappingDevice.destroy();
             throw error;
@@ -146,7 +163,8 @@ class Device extends BaseServerNode {
             throw new Error(`Could not add any endpoint to device`);
         }
         await mappingDevice.init();
-        await initializeUnreachableStateHandler(this.serverNode, ioBrokerDevice);
+        await this.initializeUnreachableStateHandler(this.serverNode, ioBrokerDevice);
+        this.initializeMaintenanceStateHandlers(this.serverNode, ioBrokerDevice);
 
         this.registerServerNodeHandlers();
     }
@@ -205,10 +223,29 @@ class Device extends BaseServerNode {
             this.adapter.log.error(`Error stopping device ${this.#parameters.uuid}: ${errorText}`);
         }
         await this.#mappingDevice?.destroy();
+        this.#mappingDevice = undefined;
         await this.#device.destroy();
         this.serverNode = undefined;
         this.#started = false;
         await this.updateUiState();
+    }
+
+    getDeviceDetails(_message: ioBroker.MessagePayload): StructuredJsonFormData {
+        const details: StructuredJsonFormData = {};
+
+        details.overview = {
+            __header__info: 'Device Overview',
+            uuid: this.uuid,
+            port: this.port,
+            deviceName: this.#parameters.deviceName,
+            productName: this.#parameters.productName,
+            vendorId: this.#parameters.vendorId,
+            productId: this.#parameters.productId,
+        };
+        return {
+            ...details,
+            ...this.#mappingDevice?.getDeviceDetails(),
+        };
     }
 }
 

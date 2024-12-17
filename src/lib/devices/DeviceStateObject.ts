@@ -110,6 +110,7 @@ export enum PropertyType {
     TimeSunset = 'timeSunset',
     Title = 'title',
     Track = 'track',
+    TransitionTime = 'transitionTime',
     Uv = 'uv',
     Unreachable = 'unreachable',
     Url = 'url',

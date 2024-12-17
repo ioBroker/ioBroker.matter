@@ -1,15 +1,15 @@
 import ChannelDetector from '@iobroker/type-detector';
-import { TemperatureMeasurement } from '@matter/main/clusters';
+import { IlluminanceMeasurement } from '@matter/main/clusters';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
 import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
-import Temperature from '../../lib/devices/Temperature';
-import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
+import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
+import Illuminance from '../../lib/devices/Illuminance';
 
 /** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
-export class TemperatureSensorToIoBroker extends GenericElectricityDataDeviceToIoBroker {
-    readonly #ioBrokerDevice: Temperature;
+export class LightSensorToIoBroker extends GenericDeviceToIoBroker {
+    readonly #ioBrokerDevice: Illuminance;
 
     constructor(
         node: PairedNode,
@@ -32,19 +32,19 @@ export class TemperatureSensorToIoBroker extends GenericElectricityDataDeviceToI
             defaultName,
         );
 
-        this.#ioBrokerDevice = new Temperature(
-            { ...ChannelDetector.getPatterns().temperature, isIoBrokerDevice: false } as DetectedDevice,
+        this.#ioBrokerDevice = new Illuminance(
+            { ...ChannelDetector.getPatterns().illuminance, isIoBrokerDevice: false } as DetectedDevice,
             adapter,
             this.enableDeviceTypeStates(),
         );
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
-        this.enableDeviceTypeStateForAttribute(PropertyType.Temperature, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.Motion, {
             endpointId: this.appEndpoint.getNumber(),
-            clusterId: TemperatureMeasurement.Cluster.id,
+            clusterId: IlluminanceMeasurement.Cluster.id,
             attributeName: 'measuredValue',
-            convertValue: value => value / 100, // TODO Validate
+            convertValue: (value: number) => Math.round(Math.pow(10, (value - 1) / 10000)),
         });
         return super.enableDeviceTypeStates();
     }

@@ -1,227 +1,236 @@
 {
-    "common": {
-        "name": "matter",
-        "version": "0.2.7",
-        "news": {
-            "0.2.7": {
-                "en": "Cleans up objects when a controller node is deleted\nPrevents controller configuration changes to be executed in parallel",
-                "de": "Reinigt Objekte, wenn ein Controller-Knoten gelöscht wird\nVerhindert, dass Reglerkonfigurationsänderungen parallel ausgeführt werden",
-                "ru": "Очищает объекты при удалении узла контроллера\nПредотвращает изменения конфигурации контроллера, которые должны быть выполнены параллельно",
-                "pt": "Limpa objetos quando um nó do controlador é excluído\nImpede que as alterações de configuração do controlador sejam executadas em paralelo",
-                "nl": "Opruimt objecten wanneer een controllerknooppunt wordt verwijderd\nVoorkomt dat de configuratie van de controller parallel wordt uitgevoerd",
-                "fr": "Nettoie les objets lorsqu'un noeud du contrôleur est supprimé\nEmpêche les modifications de configuration du contrôleur d'être exécutées en parallèle",
-                "it": "Pulisce gli oggetti quando un nodo del controller viene eliminato\nPreviene modifiche di configurazione del controller da eseguire in parallelo",
-                "es": "Limpia objetos cuando se elimina un nodo controlador\nEvita los cambios de configuración del controlador a ejecutarse en paralelo",
-                "pl": "Oczyszcza obiekty po usunięciu węzła kontrolera\nZapobiega zmianom konfiguracji sterownika, które mają być wykonywane równolegle",
-                "uk": "Очищення об'єктів при видаленні вузла контролера\nЗапобігає зміни конфігурації контролера, які будуть виконуватися паралельно",
-                "zh-cn": "删除控制节点时清理对象\n防止同时执行控制器配置更改"
-            },
-            "0.2.6": {
-                "en": "Fixes ColorTemperature light initialization because of matter.js update",
-                "de": "Behebt die ColorTemperatur Licht Initialisierung aufgrund der Materie. js update",
-                "ru": "Исправляет инициализацию цвета температуры из-за материи. js обновление",
-                "pt": "Corrige a inicialização de luz ColorTemperature por causa da matéria. js update",
-                "nl": "Bevestigt kleurTemperatuur licht initialisatie vanwege materie. js update",
-                "fr": "Corrige l'initialisation de la lumière ColorTemperature à cause de la matière. Mise à jour de js",
-                "it": "Fissa l'inizializzazione della luce ColorTemperature a causa della materia. aggiornamento js",
-                "es": "Arreglos ColorTemperatura inicialización de la luz debido a la materia. js update",
-                "pl": "Fixes ColorTemperatura inicjalizacja światła z powodu materii. Aktualizacja js",
-                "uk": "Фіксує колірТемпературна ініціалізація світла через матерію. оновлення js",
-                "zh-cn": "修补颜色Temperature光因物质而初始化. js 更新"
-            },
-            "0.2.5": {
-                "en": "Sets the \"no-compose\" flag correctly to normally use composed if needed and adds it to a missing dialog\nAllows to use null values if needed\nFixes UNREACH handling for devices\nFixes object change handling for controller\nAllow Bridges to expose its name as a device name\nAllows to rename controller nodes and devices",
-                "de": "Setzt das \"no-compose\"-Flag richtig ein, um normalerweise komponiert zu verwenden und fügt es zu einem fehlenden Dialog hinzu\nErlaubt, bei Bedarf Nullwerte zu verwenden\nBehebt UNREACH-Handling für Geräte\nFixes Objektänderungshandling für Controller\nErlaubt Bridges, seinen Namen als Gerätenamen zu entlarven\nErmöglicht die Umbenennung von Controller-Knoten und -Geräten",
-                "ru": "Установить флаг «без композиций» правильно, чтобы обычно использовать его, если это необходимо, и добавить его в недостающий диалог\nПозволяет использовать нулевые значения в случае необходимости\nFixes UNREACH для устройств\nИсправление изменения объекта для контроллера\nПозволяет Bridges разоблачить свое имя как имя устройства\nПозволяет переименовать узлы и устройства контроллера",
-                "pt": "Define a bandeira \"não compor\" corretamente para usar normalmente composta se necessário e adiciona-a a uma caixa de diálogo ausente\nPermite usar valores nulos se necessário\nCorrige o manuseio UNREACH para dispositivos\nCorrige o manuseio de alterações de objetos para o controlador\nPermitir que Bridges exponha seu nome como um nome de dispositivo\nPermite renomear nós de controlador e dispositivos",
-                "nl": "Stelt de \"no-compose\"-vlag correct in om gecomposed te gebruiken indien nodig en voegt deze toe aan een ontbrekend dialoogvenster\nHiermee kunt u zo nodig nulwaarden gebruiken\nBevestigt UNREACH-afhandeling voor apparaten\nHerstelt object verandering behandeling voor controller\nBruggen toestaan om haar naam als apparaatnaam te ontmaskeren\nHiermee kunt u controllerknooppunten en -apparaten hernoemen",
-                "fr": "Définit le drapeau \"non-composant\" correctement pour utiliser normalement composé si nécessaire et l'ajoute à une boîte de dialogue manquante\nPermet d'utiliser des valeurs null si nécessaire\nCorrige la manipulation d'UNREACH pour les appareils\nCorrection de la manipulation du changement d'objet pour le contrôleur\nPermettre à Bridges d'exposer son nom comme un nom d'appareil\nPermet de renommer les nœuds et les périphériques du contrôleur",
-                "it": "Imposta la bandiera \"no-compose\" correttamente per utilizzare normalmente composta se necessario e aggiungerla a una finestra di dialogo mancante\nConsente di utilizzare valori null se necessario\nFissa la gestione UNREACH per dispositivi\nRisolve la gestione del cambiamento degli oggetti per il controller\nConsente a Bridges di esporre il suo nome come nome di un dispositivo\nConsente di rinominare nodi e dispositivi del controller",
-                "es": "Establece la bandera \"no-compos\" correctamente para usar normalmente compuesta si es necesario y la añade a un diálogo perdido\nPermite utilizar valores nulos si es necesario\nFija el manejo UNREACH para dispositivos\nArregla el manejo del cambio de objeto para el controlador\nPermitir a Bridges exponer su nombre como un nombre de dispositivo\nPermite renombrar nodos y dispositivos controlador",
-                "pl": "Ustawia flagę \"no- composite\" poprawnie, aby normalnie używać skomponowanego w razie potrzeby i dodaje ją do brakującego okna dialogowego\nPozwala na użycie wartości zerowych w razie potrzeby\nFixes UNREACH obsługi urządzeń\nUstawia obsługę zmiany obiektu dla kontrolera\nPozwól Mostkom na ujawnienie nazwy urządzenia\nUmożliwia zmianę nazwy węzłów i urządzeń sterownika",
-                "uk": "Встановіть прапорець \"no-compose\" правильно, щоб зазвичай використовувати, що складається, якщо потрібно і додає його до відсутній діалог\nДозволяє використовувати значення null, якщо потрібно\nВиправлення роботи UNREACH для пристроїв\nВиправлення управління змінами об'єкта для контролера\nДозволяє мостів, щоб виставити ім'я пристрою\nДозволяє перейменувати вузли контролера і пристрої",
-                "zh-cn": "设置“ 无编解” 旗帜, 以便在必要时正常使用编解, 并将其添加到缺少的对话框中\n需要时允许使用无效值\n修复设备的UNREACH处理\n修正控制器对象更改处理\n允许 Bridges 将其名称曝光为设备名称\n允许重命名控制器节点和设备"
-            },
-            "0.2.4": {
-                "en": "Shows a progress indicator when deleting controller nodes\nCuts names and labels to 32 or 64 characters as needed by Matter\nImproves error handling on devices and bridges\nClear storage when removing a bridged device\nProcesses changed objects with a 5s delay to prevent too many changes at once\nFixes version determination\nInitializes Device objects more lazily",
-                "de": "Zeigt einen Fortschrittsindikator beim Löschen von Controller-Knoten\nSchneidet Namen und Labels auf 32 oder 64 Zeichen nach Bedarf von Matter\nVerbessert die Fehlerbehandlung auf Geräten und Brücken\nLöschen Sie die Speicherung beim Entfernen eines überbrückten Geräts\nProzesse veränderten Objekte mit einer Verzögerung von 5s, um zu viele Änderungen auf einmal zu verhindern\nBehebt die Versionsbestimmung\nInitialisiert Geräteobjekte mehr lazily",
-                "ru": "Показывает индикатор прогресса при удалении узлов контроллера\nОтрезает имена и этикетки до 32 или 64 символов по мере необходимости от Matter\nУлучшает обработку ошибок на устройствах и мостах\nЧистое хранение при удалении мостового устройства\nПроцессы изменили объекты с задержкой 5s, чтобы предотвратить слишком много изменений сразу\nОпределение версии\nИнициализировать объекты устройства более лениво",
-                "pt": "Mostra um indicador de progresso ao excluir nós do controlador\nCorta nomes e rótulos para 32 ou 64 caracteres conforme necessário pela Matter\nMelhora o manuseio de erros em dispositivos e pontes\nLimpar armazenamento ao remover um dispositivo ponte\nProcessos mudou objetos com um atraso de 5s para evitar muitas mudanças ao mesmo tempo\nCorrige a determinação da versão\nInicializa objetos de dispositivo mais preguiçosamente",
-                "nl": "Toont een voortgangsindicator bij het verwijderen van controllerknooppunten\nKnipt namen en labels tot 32 of 64 tekens naar behoefte door Matter\nVerbetert de foutafhandeling op apparaten en bruggen\nBewaarruimte wissen bij het verwijderen van een gebrugd apparaat\nProcessen veranderden objecten met een 5s vertraging om te veel veranderingen tegelijk te voorkomen\nRepareert versiebepaling\nInitialiseert apparaat objecten luier",
-                "fr": "Affiche un indicateur de progression lors de la suppression des nœuds du contrôleur\nCoupe les noms et les étiquettes à 32 ou 64 caractères selon les besoins de la matière\nAméliore la gestion des erreurs sur les appareils et les ponts\nEffacer le stockage lors de l'enlèvement d'un dispositif ponté\nLes processus ont changé des objets avec un retard de 5s pour éviter trop de changements à la fois\nCorrige la détermination de la version\nInitialise les objets du périphérique plus paresseusement",
-                "it": "Mostra un indicatore di progresso quando si eliminano i nodi del controller\nTagli nomi ed etichette a 32 o 64 caratteri come necessario da Matter\nMigliora la gestione degli errori su dispositivi e ponti\nConservazione chiara quando si rimuove un dispositivo pontificato\nProcessi modificati oggetti con un ritardo di 5s per prevenire troppe modifiche contemporaneamente\nFissa la determinazione della versione\nInizialmente gli oggetti del dispositivo più pigramente",
-                "es": "Muestra un indicador de progreso al eliminar los nodos del controlador\nCorta nombres y etiquetas a 32 o 64 caracteres según sea necesario por Matter\nMejora el manejo de errores en dispositivos y puentes\nDespejado el almacenamiento cuando se quita un dispositivo puente\nProcesos cambiaron objetos con un retraso de 5s para prevenir demasiados cambios a la vez\nDeterminación de la versión fija\nInicia objetos de dispositivo más lazily",
-                "pl": "Pokazuje wskaźnik postępu podczas usuwania węzłów sterownika\nWycina nazwy i etykiety do 32 lub 64 znaków według potrzeb Matter\nPoprawia obsługę błędów na urządzeniach i mostach\nPrzezroczysta pamięć masowa podczas usuwania zaokrąglonego urządzenia\nProcesy zmieniały obiekty z opóźnieniem 5s, aby zapobiec zbyt wielu zmian naraz\nUstalanie wersji filtrów\nInicjuje obiekty urządzenia bardziej leniwie",
-                "uk": "Показує індикатор прогресу при видаленні вузлів контролера\nНарізки імен і етикеток до 32 або 64 символів, як це потрібно за допомогою Matter\nПокращує обробку помилок на пристроях і мостах\nПрозоре зберігання при видаленні мостового пристрою\nПроцеси змінилися об'єкти з затримкою 5-х, щоб запобігти занадто багато змін одночасно\nВизначення виправлень\nНавігація Пристрої об'єктів більш лляною",
-                "zh-cn": "删除控制器节点时显示进度指标\n根据 Matter 的需要将名称和标签剪切为 32 或 64 个字符\n改进设备和桥梁的错误处理\n删除桥式设备时清除存储\n用5s延迟来防止太多更改的处理对象\n修复版本确定\n初始化设备对象更加懒散"
-            },
-            "0.2.3": {
-                "en": "Makes sure to delete all objects and stop device when a device is deleted in UI\nWhen a devices/bridge object is deleted and adapter runs we try to detect this and stop the device/bridge\nOptimizes close handling of adapter\nUses adapter version as Software and Hardware versions in the exposed Matter devices\nFixes \"auto\" flags in backend when make no sense in objects\nFixes \"auto\" flag in UI\nPrevents cyclic state updates when a state is updated by the adapter to matter\nLog warnings when device optional device states are not mapped\nHides Product-ID and VendorId fields in UI when adding devices into a bridge",
-                "de": "Vergewissern Sie sich, alle Objekte zu löschen und das Gerät zu stoppen, wenn ein Gerät in UI gelöscht wird\nWenn ein Gerät/Brücke-Objekt gelöscht wird und der Adapter läuft, versuchen wir dies zu erkennen und das Gerät/Brücke zu stoppen\nOptimiert die enge Handhabung des Adapters\nVerwendet die Adapterversion als Software- und Hardwareversionen in den exponierten Matter-Geräten\nBehebt \"auto\" Fahnen im Backend, wenn kein Sinn in Objekten\nBehebt \"auto\"-Flag in UI\nVerhindert zyklische Zustandsaktualisierungen, wenn ein Zustand durch den Adapter zur Materie aktualisiert wird\nLog-Warnungen, wenn Geräte optionale Gerätezustände nicht abgebildet werden\nHides Produkt-ID und Verkäufer Id-Felder in UI beim Hinzufügen von Geräten in eine Brücke",
-                "ru": "Убедитесь, что удалить все объекты и остановить устройство, когда устройство удалено в пользовательском интерфейсе\nПри удалении устройства/мост и запуске адаптера мы пытаемся обнаружить это и остановить устройство/мост\nОптимизирует тесную обработку адаптера\nИспользует версию адаптера как версии программного обеспечения и оборудования в устройствах, находящихся под угрозой\nИсправления «авто» флаги в задней части, когда нет смысла в объектах\nФлаг \"авто\" в UI\nПредотвращает циклические обновления состояния, когда состояние обновляется адаптером к материи\nЖурнал предупреждения, когда состояния устройства не отображаются\nHides Product-ID и Vendor Id поля в пользовательском интерфейсе при добавлении устройств в мост",
-                "pt": "Certifica-se de excluir todos os objetos e parar o dispositivo quando um dispositivo é excluído na interface do usuário\nQuando um objeto de dispositivos / ponte é excluído e o adaptador é executado, tentamos detectar isso e parar o dispositivo / ponte\nOtimiza o manuseio próximo do adaptador\nUsa a versão do adaptador como versões de software e hardware nos dispositivos expostos da Matter\nCorrige bandeiras \"auto\" no backend quando não faz sentido em objetos\nCorrige a bandeira \"auto\" na interface do usuário\nPrevine atualizações de estado cíclico quando um estado é atualizado pelo adaptador para importar\nAvisos de log quando os estados do dispositivo opcional não são mapeados\nEsconde Produto-ID e Fornecedor Campos de identificação na interface do usuário ao adicionar dispositivos em uma ponte",
-                "nl": "Zorgt ervoor dat alle objecten te verwijderen en apparaat te stoppen wanneer een apparaat wordt verwijderd in UI\nWanneer een apparaat/brug object wordt verwijderd en de adapter draait proberen we dit te detecteren en het apparaat/brug te stoppen\nOptimaliseert het gebruik van de adapter\nGebruikt adapterversie als Software en Hardware versies in de blootgestelde Matter apparaten\nFixeert \"auto\"-vlaggen in backend wanneer geen zin in objecten\nFixeert \"auto\" vlag in UI\nVoorkomt cyclische status updates wanneer een toestand wordt bijgewerkt door de adapter aan materie\nLogwaarschuwingen wanneer optionele apparaattoestanden niet in kaart zijn gebracht\nVerbergt product-ID en leverancier Id velden in UI bij het toevoegen van apparaten aan een brug",
-                "fr": "S'assure de supprimer tous les objets et d'arrêter le périphérique quand un périphérique est supprimé dans l'interface utilisateur\nLorsqu'un objet périphérique/pont est supprimé et que l'adaptateur fonctionne, nous essayons de le détecter et arrêtons l'appareil/pont\nOptimise la manipulation étroite de l'adaptateur\nUtilise la version adaptateur comme versions logicielles et matérielles dans les périphériques de matière exposés\nCorrige les drapeaux \"auto\" en backend quand n'ont aucun sens dans les objets\nCorrection du drapeau \"auto\" dans l'interface utilisateur\nPrévient les mises à jour de l'état cyclique lorsqu'un état est mis à jour par l'adaptateur pour la matière\nSignaler les avertissements lorsque les états optionnels de l'appareil ne sont pas cartographiés\nCacher le produit-ID et le fournisseur Champs d'id dans l'interface utilisateur lors de l'ajout de dispositifs dans un pont",
-                "it": "Assicurarsi di eliminare tutti gli oggetti e fermare il dispositivo quando un dispositivo viene eliminato in UI\nQuando un oggetto dispositivo/ponte viene eliminato e l'adattatore viene eseguito cerchiamo di rilevare questo e di fermare il dispositivo/ponte\nOttimizza la stretta gestione dell'adattatore\nUtilizza la versione adattatore come versioni software e hardware nei dispositivi Matter esposti\nFissa bandiere \"auto\" in backend quando non hanno senso in oggetti\nFissa la bandiera \"auto\" in UI\nPreviene gli aggiornamenti dello stato ciclico quando uno stato viene aggiornato dall'adattatore alla materia\nAvvertenze di registro quando gli stati del dispositivo facoltativi non sono mappati\nNasconde prodotto-ID e venditore Id campi in UI quando si aggiungono dispositivi in un ponte",
-                "es": "Asegúrese de eliminar todos los objetos y detener el dispositivo cuando se elimina un dispositivo en UI\nCuando se elimina un objeto de dispositivo / puente y se ejecuta el adaptador intentamos detectarlo y detener el dispositivo/puente\nOptimiza el manejo cercano del adaptador\nUtiliza la versión de adaptador como versiones de software y hardware en los dispositivos de Matter expuestos\nFija banderas \"auto\" en backend cuando no tenga sentido en los objetos\nFija la bandera \"auto\" en UI\nEvita las actualizaciones del estado cíclico cuando un estado es actualizado por el adaptador a la materia\nAvisos de registro cuando los estados del dispositivo opcional no son mapeados\nOculta producto-ID y vendedor Campos de Id en UI al agregar dispositivos en un puente",
-                "pl": "Upewnij się, aby usunąć wszystkie obiekty i zatrzymać urządzenie, gdy urządzenie jest usuwane w UI\nPo usunięciu urządzenia / obiektu mostka i uruchomieniu adaptera staramy się to wykryć i zatrzymać urządzenie / most\nOptymalizuje ścisłą obsługę adaptera\nUżywa wersji adaptera jako wersji Software i Hardware w urządzeniach Matter narażonych\nFixes \"auto\" flagi w tle, gdy nie ma sensu w obiektach\nFixes \"auto\" flaga w UI\nZapobiega cyklicznym aktualizacjom stanu, gdy stan jest aktualizowany przez adapter do materii\nOstrzeżenia dotyczące dziennika, gdy dane urządzenia opcjonalnego nie są odwzorowane\nHides Product- ID i Vendor Id pola w UI podczas dodawania urządzeń do mostu",
-                "uk": "Переконайтеся, що видалити всі об'єкти і зупинити пристрій при видаленні пристрою в UI\nКоли пристрій / мостовий об'єкт видалений і адаптер працює, ми намагаємося виявити це і зупинити пристрій / мост\nОптимізуйте тісну обробку адаптера\nВикористання версії адаптера як програмно-апаратних версій у відкритих пристроях Matter\nВиправлення \"auto\" прапорів у спанді при відсутності сенсу в об'єктах\nВиправлення \"авто\" прапора в UI\nЗапобігає циклічному стану оновлення, коли стан оновлюється адаптером до речовини\nУвімкніть попередження, коли пристрій не позначений стан пристроїв\nСховати продукти та постачальник Id поля в UI при додаванні пристроїв в міст",
-                "zh-cn": "在 UI 中删除设备时确定删除所有对象并停止设备\n当设备/桥对象被删除和适配器运行时,我们尝试检测并停止设备/桥\n优化适配器的密切处理\n在已曝光的 Matter 设备中使用适配器版本作为软件和硬件版本\n当物体没有意义时将“自动”旗帜固定在后端\n在UI中修补“自动”旗帜\n当适配器将状态更新为物质时, 防止循环状态更新\n未映射设备可选设备状态时的日志警告\n隐藏产品识别和供应商 将设备添加到桥中的 ID 字段"
-            },
-            "0.2.2": {
-                "en": "Uses plain matter.js logs for better readability\nPrevents ghost connection entries in the UI\nAdds some missing implementations for Controller of Door, Window, FloodAlarm and Motion",
-                "de": "Benutzt reine Materie. js logs für bessere Lesbarkeit\nVerhindert Geisteranschlusseinträge in der UI\nFügt einige fehlende Implementierungen für Controller von Tür, Fenster, FlutAlarm und Motion hinzu",
-                "ru": "Использует простую материю. js для лучшей читаемости\nПредотвращает записи подключения к привидению в UI\nДобавляет некоторые недостающие реализации для контроллера двери, окна, уведомления о наводнениях и движения",
-                "pt": "Usa matéria simples. js logs para melhor legibilidade\nPrevine entradas de conexão fantasma na interface do usuário\nAdiciona algumas implementações em falta para Controller of Door, Window, FloodAlarm e Motion",
-                "nl": "Gebruikt gewone materie. js logs voor betere leesbaarheid\nVoorkomt spookverbinding in de UI\nVoegt enkele ontbrekende implementaties voor Controller van deur, venster, FloodAlarm en beweging",
-                "fr": "Utilise la matière pure. js logs pour une meilleure lisibilité\nEmpêche les entrées de connexion fantôme dans l'interface utilisateur\nAjoute quelques implémentations manquantes pour Contrôleur de Porte, Fenêtre, InondAlarm et Motion",
-                "it": "Usa la materia normale. js logs per una migliore leggibilità\nPreviene le voci di connessione fantasma nell'interfaccia utente\nAggiunge alcune implementazioni mancanti per Controller di Porta, Finestra, Inondazione e Moto",
-                "es": "Usa materia simple. js logs for better readability\nEvita las entradas de conexión fantasma en la UI\nAñade algunas implementaciones faltantes para Controlador de Puerta, Ventana, FloodAlarm y Motion",
-                "pl": "Używa czystej materii. logi js dla lepszej czytelności\nZapobiega wpisom połączeń widmowych w UI\nDodaje brakujące implementacje dla Kontrolera Drzwi, Okna, Powódź Alarm i Ruch",
-                "uk": "Використання простої матерії. js журнали для кращого зчитування\nЗапобігає запису з'єднання привидів в УІ\nДодавання деяких відсутніх заходів для контролера дверей, вікна, повені",
-                "zh-cn": "使用普通物质。 js 更易读的日志\n防止 UI 中的幽灵连接条目\n为 Door 、 Window、 FloodAlmar 和 Motion 控制器添加一些缺失的执行"
-            },
-            "0.2.1": {
-                "en": "Adds Color Temperature conversion if unit is \"mireds\"\nFixes Color Temperature cluster initialization\nFixes Min/Max calculation when unit conversion is used",
-                "de": "Fügt Farbtemperaturkonvertierung hinzu, wenn Einheit \"Wunder\" ist\nBehebt die Initialisierung von Farbtemperaturcluster\nBehebt Min/Max-Berechnung, wenn die Einheitskonvertierung verwendet wird",
-                "ru": "Добавляет преобразование цветовой температуры, если единица является «зерновой»\nИсправления Цвет Температурная инициализация кластера\nИсчисление запятой и Максом при использовании преобразования единицы",
-                "pt": "Adiciona conversão de temperatura de cor se a unidade é \"espelho\"\nCorrige a inicialização do cluster de temperatura de cor\nCorrige o cálculo Min/Max quando a conversão da unidade é usada",
-                "nl": "Voegt kleurtemperatuurconversie toe als eenheid \"gespiegeld\" is\nHerstelt kleurtemperatuur cluster initialisatie\nFixes Min/Max berekening wanneer eenheid conversie wordt gebruikt",
-                "fr": "Ajoute la conversion de température de couleur si l'unité est \"mireds\"\nCorrige l'initialisation du groupe de température de couleur\nCorrige le calcul min/max lorsque la conversion unitaire est utilisée",
-                "it": "Aggiunge la conversione di temperatura di colore se l'unità è \"mireds\"\nFissa l'inizializzazione del cluster di temperatura colore\nRisolve il calcolo Min/Max quando viene utilizzata la conversione dell'unità",
-                "es": "Agrega la conversión de temperatura de color si la unidad es \"mirada\"\nArreglos de inicialización del grupo de temperatura de color\nArreglos Min/Max cálculo cuando se utiliza la conversión de unidad",
-                "pl": "Dodaje konwersja temperatury koloru, jeśli jednostka jest \"mireds\"\nFixes Color Temperatura klaster inicjalizacja\nFixes Min / Max Calculation when unit conversion is used",
-                "uk": "Додавання перетворення температури кольору, якщо блок \"перемирає\"\nВиправлення початкової ініціалізації кольорових температур\nВиправлення мінімальних/максів при переході блоку використовується",
-                "zh-cn": "如果单位为“ 迷恋” , 则添加颜色温度转换\n修复色彩温度集群初始化\n在使用单位转换时修复 Min/ Max 计算"
-            }
-        },
-        "title": "Matter",
-        "titleLang": {
-            "en": "Matter protocol",
-            "de": "Matter Protokoll",
-            "ru": "Мэттерный протокол",
-            "pt": "Protocolo de matéria",
-            "nl": "Matter protocol",
-            "fr": "Matter protocol",
-            "it": "Protocollo della materia",
-            "es": "Protocolo de la materia",
-            "pl": "Protokół Matter",
-            "uk": "Протокол Маттер",
-            "zh-cn": "马特议定书"
-        },
-        "desc": {
-            "en": "Controlling and simulation of matter devices",
-            "de": "Steuerung und Simulation von Matter-Geräten",
-            "ru": "Контроль и моделирование Matter-устройств",
-            "pt": "Controle e simulação de Matter-dispositivos",
-            "nl": "Controleren en simulatie van Matter-apparaten",
-            "fr": "Contrôle et simulation des Matter-dispositifs",
-            "it": "Controllo e simulazione di Matter-dispositivi",
-            "es": "Control y simulación de Matter-dispositivos",
-            "pl": "Kontrola i symulacja Matter-urządzeń",
-            "uk": "Контроль та імітація Matter-пристроїв",
-            "zh-cn": "控制和模拟事故装置"
-        },
-        "authors": ["Denis Haev <dogafox@gmail.com>"],
-        "license": "Apache-2.0",
-        "platform": "Javascript/Node.js",
-        "mode": "daemon",
-        "nogit": true,
-        "loglevel": "info",
-        "readme": "https://github.com/ioBroker/ioBroker.matter/blob/master/README.md",
-        "icon": "matter.png",
-        "connectionType": "local",
-        "dataSource": "push",
-        "adminUI": {
-            "config": "materialize"
-        },
-        "tier": 3,
-        "keywords": ["matter"],
-        "stopTimeout": 30000,
-        "enabled": true,
-        "compact": false,
-        "singletonHost": true,
-        "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.matter/master/admin/matter.png",
-        "type": "iot-systems",
-        "messagebox": true,
-        "plugins": {
-            "sentry": {
-                "dsn": "https://de38f4a20c964ce395d2e236c64aa075@sentry.iobroker.net/234"
-            }
-        },
-        "licenseInformation": {
-            "type": "free",
-            "license": "Apache-2.0"
-        },
-        "supportedMessages": {
-            "deviceManager": true
-        }
+  "common": {
+    "name": "matter",
+    "version": "0.2.8",
+    "news": {
+      "0.2.8": {
+        "en": "Contains many changes in Frontend and Backend including updates and new Feature. Please check the Changelog.",
+        "de": "Enthält viele Änderungen in Frontend und Backend einschließlich Updates und neue Feature. Bitte überprüfen Sie das Changelog.",
+        "ru": "Содержит много изменений в Frontend и Backend, включая обновления и новую функцию. Пожалуйста, проверьте Изменлог.",
+        "pt": "Contém muitas mudanças no Frontend e Backend, incluindo atualizações e novos recursos. Por favor, verifique o Changelog.",
+        "nl": "Bevat veel wijzigingen in Frontend en Backend inclusief updates en nieuwe feature. Controleer de Changelog.",
+        "fr": "Contient de nombreux changements dans Frontend et Backend, y compris des mises à jour et une nouvelle fonctionnalité. Veuillez consulter le Changelog.",
+        "it": "Contiene molte modifiche in Frontend e Backend tra cui aggiornamenti e nuova funzionalità. Controlla il Changelog.",
+        "es": "Contiene muchos cambios en Frontend y Backend incluyendo actualizaciones y nuevas características. Por favor, compruebe el Changelog.",
+        "pl": "Zawiera wiele zmian w Frontend i Backend w tym aktualizacje i nowe funkcje. Proszę sprawdzić Changelog.",
+        "uk": "Містить багато змін у Frontend і Backend, включаючи оновлення та нову функцію. Будь ласка, перевірте Логін.",
+        "zh-cn": "包含许多前端和后端的修改,包括更新和新的特性. 请检查date=中的日期值 (帮助) Changelog."
+      },
+      "0.2.7": {
+        "en": "Cleans up objects when a controller node is deleted\nPrevents controller configuration changes to be executed in parallel",
+        "de": "Reinigt Objekte, wenn ein Controller-Knoten gelöscht wird\nVerhindert, dass Reglerkonfigurationsänderungen parallel ausgeführt werden",
+        "ru": "Очищает объекты при удалении узла контроллера\nПредотвращает изменения конфигурации контроллера, которые должны быть выполнены параллельно",
+        "pt": "Limpa objetos quando um nó do controlador é excluído\nImpede que as alterações de configuração do controlador sejam executadas em paralelo",
+        "nl": "Opruimt objecten wanneer een controllerknooppunt wordt verwijderd\nVoorkomt dat de configuratie van de controller parallel wordt uitgevoerd",
+        "fr": "Nettoie les objets lorsqu'un noeud du contrôleur est supprimé\nEmpêche les modifications de configuration du contrôleur d'être exécutées en parallèle",
+        "it": "Pulisce gli oggetti quando un nodo del controller viene eliminato\nPreviene modifiche di configurazione del controller da eseguire in parallelo",
+        "es": "Limpia objetos cuando se elimina un nodo controlador\nEvita los cambios de configuración del controlador a ejecutarse en paralelo",
+        "pl": "Oczyszcza obiekty po usunięciu węzła kontrolera\nZapobiega zmianom konfiguracji sterownika, które mają być wykonywane równolegle",
+        "uk": "Очищення об'єктів при видаленні вузла контролера\nЗапобігає зміни конфігурації контролера, які будуть виконуватися паралельно",
+        "zh-cn": "删除控制节点时清理对象\n防止同时执行控制器配置更改"
+      },
+      "0.2.6": {
+        "en": "Fixes ColorTemperature light initialization because of matter.js update",
+        "de": "Behebt die ColorTemperatur Licht Initialisierung aufgrund der Materie. js update",
+        "ru": "Исправляет инициализацию цвета температуры из-за материи. js обновление",
+        "pt": "Corrige a inicialização de luz ColorTemperature por causa da matéria. js update",
+        "nl": "Bevestigt kleurTemperatuur licht initialisatie vanwege materie. js update",
+        "fr": "Corrige l'initialisation de la lumière ColorTemperature à cause de la matière. Mise à jour de js",
+        "it": "Fissa l'inizializzazione della luce ColorTemperature a causa della materia. aggiornamento js",
+        "es": "Arreglos ColorTemperatura inicialización de la luz debido a la materia. js update",
+        "pl": "Fixes ColorTemperatura inicjalizacja światła z powodu materii. Aktualizacja js",
+        "uk": "Фіксує колірТемпературна ініціалізація світла через матерію. оновлення js",
+        "zh-cn": "修补颜色Temperature光因物质而初始化. js 更新"
+      },
+      "0.2.5": {
+        "en": "Sets the \"no-compose\" flag correctly to normally use composed if needed and adds it to a missing dialog\nAllows to use null values if needed\nFixes UNREACH handling for devices\nFixes object change handling for controller\nAllow Bridges to expose its name as a device name\nAllows to rename controller nodes and devices",
+        "de": "Setzt das \"no-compose\"-Flag richtig ein, um normalerweise komponiert zu verwenden und fügt es zu einem fehlenden Dialog hinzu\nErlaubt, bei Bedarf Nullwerte zu verwenden\nBehebt UNREACH-Handling für Geräte\nFixes Objektänderungshandling für Controller\nErlaubt Bridges, seinen Namen als Gerätenamen zu entlarven\nErmöglicht die Umbenennung von Controller-Knoten und -Geräten",
+        "ru": "Установить флаг «без композиций» правильно, чтобы обычно использовать его, если это необходимо, и добавить его в недостающий диалог\nПозволяет использовать нулевые значения в случае необходимости\nFixes UNREACH для устройств\nИсправление изменения объекта для контроллера\nПозволяет Bridges разоблачить свое имя как имя устройства\nПозволяет переименовать узлы и устройства контроллера",
+        "pt": "Define a bandeira \"não compor\" corretamente para usar normalmente composta se necessário e adiciona-a a uma caixa de diálogo ausente\nPermite usar valores nulos se necessário\nCorrige o manuseio UNREACH para dispositivos\nCorrige o manuseio de alterações de objetos para o controlador\nPermitir que Bridges exponha seu nome como um nome de dispositivo\nPermite renomear nós de controlador e dispositivos",
+        "nl": "Stelt de \"no-compose\"-vlag correct in om gecomposed te gebruiken indien nodig en voegt deze toe aan een ontbrekend dialoogvenster\nHiermee kunt u zo nodig nulwaarden gebruiken\nBevestigt UNREACH-afhandeling voor apparaten\nHerstelt object verandering behandeling voor controller\nBruggen toestaan om haar naam als apparaatnaam te ontmaskeren\nHiermee kunt u controllerknooppunten en -apparaten hernoemen",
+        "fr": "Définit le drapeau \"non-composant\" correctement pour utiliser normalement composé si nécessaire et l'ajoute à une boîte de dialogue manquante\nPermet d'utiliser des valeurs null si nécessaire\nCorrige la manipulation d'UNREACH pour les appareils\nCorrection de la manipulation du changement d'objet pour le contrôleur\nPermettre à Bridges d'exposer son nom comme un nom d'appareil\nPermet de renommer les nœuds et les périphériques du contrôleur",
+        "it": "Imposta la bandiera \"no-compose\" correttamente per utilizzare normalmente composta se necessario e aggiungerla a una finestra di dialogo mancante\nConsente di utilizzare valori null se necessario\nFissa la gestione UNREACH per dispositivi\nRisolve la gestione del cambiamento degli oggetti per il controller\nConsente a Bridges di esporre il suo nome come nome di un dispositivo\nConsente di rinominare nodi e dispositivi del controller",
+        "es": "Establece la bandera \"no-compos\" correctamente para usar normalmente compuesta si es necesario y la añade a un diálogo perdido\nPermite utilizar valores nulos si es necesario\nFija el manejo UNREACH para dispositivos\nArregla el manejo del cambio de objeto para el controlador\nPermitir a Bridges exponer su nombre como un nombre de dispositivo\nPermite renombrar nodos y dispositivos controlador",
+        "pl": "Ustawia flagę \"no- composite\" poprawnie, aby normalnie używać skomponowanego w razie potrzeby i dodaje ją do brakującego okna dialogowego\nPozwala na użycie wartości zerowych w razie potrzeby\nFixes UNREACH obsługi urządzeń\nUstawia obsługę zmiany obiektu dla kontrolera\nPozwól Mostkom na ujawnienie nazwy urządzenia\nUmożliwia zmianę nazwy węzłów i urządzeń sterownika",
+        "uk": "Встановіть прапорець \"no-compose\" правильно, щоб зазвичай використовувати, що складається, якщо потрібно і додає його до відсутній діалог\nДозволяє використовувати значення null, якщо потрібно\nВиправлення роботи UNREACH для пристроїв\nВиправлення управління змінами об'єкта для контролера\nДозволяє мостів, щоб виставити ім'я пристрою\nДозволяє перейменувати вузли контролера і пристрої",
+        "zh-cn": "设置“ 无编解” 旗帜, 以便在必要时正常使用编解, 并将其添加到缺少的对话框中\n需要时允许使用无效值\n修复设备的UNREACH处理\n修正控制器对象更改处理\n允许 Bridges 将其名称曝光为设备名称\n允许重命名控制器节点和设备"
+      },
+      "0.2.4": {
+        "en": "Shows a progress indicator when deleting controller nodes\nCuts names and labels to 32 or 64 characters as needed by Matter\nImproves error handling on devices and bridges\nClear storage when removing a bridged device\nProcesses changed objects with a 5s delay to prevent too many changes at once\nFixes version determination\nInitializes Device objects more lazily",
+        "de": "Zeigt einen Fortschrittsindikator beim Löschen von Controller-Knoten\nSchneidet Namen und Labels auf 32 oder 64 Zeichen nach Bedarf von Matter\nVerbessert die Fehlerbehandlung auf Geräten und Brücken\nLöschen Sie die Speicherung beim Entfernen eines überbrückten Geräts\nProzesse veränderten Objekte mit einer Verzögerung von 5s, um zu viele Änderungen auf einmal zu verhindern\nBehebt die Versionsbestimmung\nInitialisiert Geräteobjekte mehr lazily",
+        "ru": "Показывает индикатор прогресса при удалении узлов контроллера\nОтрезает имена и этикетки до 32 или 64 символов по мере необходимости от Matter\nУлучшает обработку ошибок на устройствах и мостах\nЧистое хранение при удалении мостового устройства\nПроцессы изменили объекты с задержкой 5s, чтобы предотвратить слишком много изменений сразу\nОпределение версии\nИнициализировать объекты устройства более лениво",
+        "pt": "Mostra um indicador de progresso ao excluir nós do controlador\nCorta nomes e rótulos para 32 ou 64 caracteres conforme necessário pela Matter\nMelhora o manuseio de erros em dispositivos e pontes\nLimpar armazenamento ao remover um dispositivo ponte\nProcessos mudou objetos com um atraso de 5s para evitar muitas mudanças ao mesmo tempo\nCorrige a determinação da versão\nInicializa objetos de dispositivo mais preguiçosamente",
+        "nl": "Toont een voortgangsindicator bij het verwijderen van controllerknooppunten\nKnipt namen en labels tot 32 of 64 tekens naar behoefte door Matter\nVerbetert de foutafhandeling op apparaten en bruggen\nBewaarruimte wissen bij het verwijderen van een gebrugd apparaat\nProcessen veranderden objecten met een 5s vertraging om te veel veranderingen tegelijk te voorkomen\nRepareert versiebepaling\nInitialiseert apparaat objecten luier",
+        "fr": "Affiche un indicateur de progression lors de la suppression des nœuds du contrôleur\nCoupe les noms et les étiquettes à 32 ou 64 caractères selon les besoins de la matière\nAméliore la gestion des erreurs sur les appareils et les ponts\nEffacer le stockage lors de l'enlèvement d'un dispositif ponté\nLes processus ont changé des objets avec un retard de 5s pour éviter trop de changements à la fois\nCorrige la détermination de la version\nInitialise les objets du périphérique plus paresseusement",
+        "it": "Mostra un indicatore di progresso quando si eliminano i nodi del controller\nTagli nomi ed etichette a 32 o 64 caratteri come necessario da Matter\nMigliora la gestione degli errori su dispositivi e ponti\nConservazione chiara quando si rimuove un dispositivo pontificato\nProcessi modificati oggetti con un ritardo di 5s per prevenire troppe modifiche contemporaneamente\nFissa la determinazione della versione\nInizialmente gli oggetti del dispositivo più pigramente",
+        "es": "Muestra un indicador de progreso al eliminar los nodos del controlador\nCorta nombres y etiquetas a 32 o 64 caracteres según sea necesario por Matter\nMejora el manejo de errores en dispositivos y puentes\nDespejado el almacenamiento cuando se quita un dispositivo puente\nProcesos cambiaron objetos con un retraso de 5s para prevenir demasiados cambios a la vez\nDeterminación de la versión fija\nInicia objetos de dispositivo más lazily",
+        "pl": "Pokazuje wskaźnik postępu podczas usuwania węzłów sterownika\nWycina nazwy i etykiety do 32 lub 64 znaków według potrzeb Matter\nPoprawia obsługę błędów na urządzeniach i mostach\nPrzezroczysta pamięć masowa podczas usuwania zaokrąglonego urządzenia\nProcesy zmieniały obiekty z opóźnieniem 5s, aby zapobiec zbyt wielu zmian naraz\nUstalanie wersji filtrów\nInicjuje obiekty urządzenia bardziej leniwie",
+        "uk": "Показує індикатор прогресу при видаленні вузлів контролера\nНарізки імен і етикеток до 32 або 64 символів, як це потрібно за допомогою Matter\nПокращує обробку помилок на пристроях і мостах\nПрозоре зберігання при видаленні мостового пристрою\nПроцеси змінилися об'єкти з затримкою 5-х, щоб запобігти занадто багато змін одночасно\nВизначення виправлень\nНавігація Пристрої об'єктів більш лляною",
+        "zh-cn": "删除控制器节点时显示进度指标\n根据 Matter 的需要将名称和标签剪切为 32 或 64 个字符\n改进设备和桥梁的错误处理\n删除桥式设备时清除存储\n用5s延迟来防止太多更改的处理对象\n修复版本确定\n初始化设备对象更加懒散"
+      },
+      "0.2.3": {
+        "en": "Makes sure to delete all objects and stop device when a device is deleted in UI\nWhen a devices/bridge object is deleted and adapter runs we try to detect this and stop the device/bridge\nOptimizes close handling of adapter\nUses adapter version as Software and Hardware versions in the exposed Matter devices\nFixes \"auto\" flags in backend when make no sense in objects\nFixes \"auto\" flag in UI\nPrevents cyclic state updates when a state is updated by the adapter to matter\nLog warnings when device optional device states are not mapped\nHides Product-ID and VendorId fields in UI when adding devices into a bridge",
+        "de": "Vergewissern Sie sich, alle Objekte zu löschen und das Gerät zu stoppen, wenn ein Gerät in UI gelöscht wird\nWenn ein Gerät/Brücke-Objekt gelöscht wird und der Adapter läuft, versuchen wir dies zu erkennen und das Gerät/Brücke zu stoppen\nOptimiert die enge Handhabung des Adapters\nVerwendet die Adapterversion als Software- und Hardwareversionen in den exponierten Matter-Geräten\nBehebt \"auto\" Fahnen im Backend, wenn kein Sinn in Objekten\nBehebt \"auto\"-Flag in UI\nVerhindert zyklische Zustandsaktualisierungen, wenn ein Zustand durch den Adapter zur Materie aktualisiert wird\nLog-Warnungen, wenn Geräte optionale Gerätezustände nicht abgebildet werden\nHides Produkt-ID und Verkäufer Id-Felder in UI beim Hinzufügen von Geräten in eine Brücke",
+        "ru": "Убедитесь, что удалить все объекты и остановить устройство, когда устройство удалено в пользовательском интерфейсе\nПри удалении устройства/мост и запуске адаптера мы пытаемся обнаружить это и остановить устройство/мост\nОптимизирует тесную обработку адаптера\nИспользует версию адаптера как версии программного обеспечения и оборудования в устройствах, находящихся под угрозой\nИсправления «авто» флаги в задней части, когда нет смысла в объектах\nФлаг \"авто\" в UI\nПредотвращает циклические обновления состояния, когда состояние обновляется адаптером к материи\nЖурнал предупреждения, когда состояния устройства не отображаются\nHides Product-ID и Vendor Id поля в пользовательском интерфейсе при добавлении устройств в мост",
+        "pt": "Certifica-se de excluir todos os objetos e parar o dispositivo quando um dispositivo é excluído na interface do usuário\nQuando um objeto de dispositivos / ponte é excluído e o adaptador é executado, tentamos detectar isso e parar o dispositivo / ponte\nOtimiza o manuseio próximo do adaptador\nUsa a versão do adaptador como versões de software e hardware nos dispositivos expostos da Matter\nCorrige bandeiras \"auto\" no backend quando não faz sentido em objetos\nCorrige a bandeira \"auto\" na interface do usuário\nPrevine atualizações de estado cíclico quando um estado é atualizado pelo adaptador para importar\nAvisos de log quando os estados do dispositivo opcional não são mapeados\nEsconde Produto-ID e Fornecedor Campos de identificação na interface do usuário ao adicionar dispositivos em uma ponte",
+        "nl": "Zorgt ervoor dat alle objecten te verwijderen en apparaat te stoppen wanneer een apparaat wordt verwijderd in UI\nWanneer een apparaat/brug object wordt verwijderd en de adapter draait proberen we dit te detecteren en het apparaat/brug te stoppen\nOptimaliseert het gebruik van de adapter\nGebruikt adapterversie als Software en Hardware versies in de blootgestelde Matter apparaten\nFixeert \"auto\"-vlaggen in backend wanneer geen zin in objecten\nFixeert \"auto\" vlag in UI\nVoorkomt cyclische status updates wanneer een toestand wordt bijgewerkt door de adapter aan materie\nLogwaarschuwingen wanneer optionele apparaattoestanden niet in kaart zijn gebracht\nVerbergt product-ID en leverancier Id velden in UI bij het toevoegen van apparaten aan een brug",
+        "fr": "S'assure de supprimer tous les objets et d'arrêter le périphérique quand un périphérique est supprimé dans l'interface utilisateur\nLorsqu'un objet périphérique/pont est supprimé et que l'adaptateur fonctionne, nous essayons de le détecter et arrêtons l'appareil/pont\nOptimise la manipulation étroite de l'adaptateur\nUtilise la version adaptateur comme versions logicielles et matérielles dans les périphériques de matière exposés\nCorrige les drapeaux \"auto\" en backend quand n'ont aucun sens dans les objets\nCorrection du drapeau \"auto\" dans l'interface utilisateur\nPrévient les mises à jour de l'état cyclique lorsqu'un état est mis à jour par l'adaptateur pour la matière\nSignaler les avertissements lorsque les états optionnels de l'appareil ne sont pas cartographiés\nCacher le produit-ID et le fournisseur Champs d'id dans l'interface utilisateur lors de l'ajout de dispositifs dans un pont",
+        "it": "Assicurarsi di eliminare tutti gli oggetti e fermare il dispositivo quando un dispositivo viene eliminato in UI\nQuando un oggetto dispositivo/ponte viene eliminato e l'adattatore viene eseguito cerchiamo di rilevare questo e di fermare il dispositivo/ponte\nOttimizza la stretta gestione dell'adattatore\nUtilizza la versione adattatore come versioni software e hardware nei dispositivi Matter esposti\nFissa bandiere \"auto\" in backend quando non hanno senso in oggetti\nFissa la bandiera \"auto\" in UI\nPreviene gli aggiornamenti dello stato ciclico quando uno stato viene aggiornato dall'adattatore alla materia\nAvvertenze di registro quando gli stati del dispositivo facoltativi non sono mappati\nNasconde prodotto-ID e venditore Id campi in UI quando si aggiungono dispositivi in un ponte",
+        "es": "Asegúrese de eliminar todos los objetos y detener el dispositivo cuando se elimina un dispositivo en UI\nCuando se elimina un objeto de dispositivo / puente y se ejecuta el adaptador intentamos detectarlo y detener el dispositivo/puente\nOptimiza el manejo cercano del adaptador\nUtiliza la versión de adaptador como versiones de software y hardware en los dispositivos de Matter expuestos\nFija banderas \"auto\" en backend cuando no tenga sentido en los objetos\nFija la bandera \"auto\" en UI\nEvita las actualizaciones del estado cíclico cuando un estado es actualizado por el adaptador a la materia\nAvisos de registro cuando los estados del dispositivo opcional no son mapeados\nOculta producto-ID y vendedor Campos de Id en UI al agregar dispositivos en un puente",
+        "pl": "Upewnij się, aby usunąć wszystkie obiekty i zatrzymać urządzenie, gdy urządzenie jest usuwane w UI\nPo usunięciu urządzenia / obiektu mostka i uruchomieniu adaptera staramy się to wykryć i zatrzymać urządzenie / most\nOptymalizuje ścisłą obsługę adaptera\nUżywa wersji adaptera jako wersji Software i Hardware w urządzeniach Matter narażonych\nFixes \"auto\" flagi w tle, gdy nie ma sensu w obiektach\nFixes \"auto\" flaga w UI\nZapobiega cyklicznym aktualizacjom stanu, gdy stan jest aktualizowany przez adapter do materii\nOstrzeżenia dotyczące dziennika, gdy dane urządzenia opcjonalnego nie są odwzorowane\nHides Product- ID i Vendor Id pola w UI podczas dodawania urządzeń do mostu",
+        "uk": "Переконайтеся, що видалити всі об'єкти і зупинити пристрій при видаленні пристрою в UI\nКоли пристрій / мостовий об'єкт видалений і адаптер працює, ми намагаємося виявити це і зупинити пристрій / мост\nОптимізуйте тісну обробку адаптера\nВикористання версії адаптера як програмно-апаратних версій у відкритих пристроях Matter\nВиправлення \"auto\" прапорів у спанді при відсутності сенсу в об'єктах\nВиправлення \"авто\" прапора в UI\nЗапобігає циклічному стану оновлення, коли стан оновлюється адаптером до речовини\nУвімкніть попередження, коли пристрій не позначений стан пристроїв\nСховати продукти та постачальник Id поля в UI при додаванні пристроїв в міст",
+        "zh-cn": "在 UI 中删除设备时确定删除所有对象并停止设备\n当设备/桥对象被删除和适配器运行时,我们尝试检测并停止设备/桥\n优化适配器的密切处理\n在已曝光的 Matter 设备中使用适配器版本作为软件和硬件版本\n当物体没有意义时将“自动”旗帜固定在后端\n在UI中修补“自动”旗帜\n当适配器将状态更新为物质时, 防止循环状态更新\n未映射设备可选设备状态时的日志警告\n隐藏产品识别和供应商 将设备添加到桥中的 ID 字段"
+      },
+      "0.2.2": {
+        "en": "Uses plain matter.js logs for better readability\nPrevents ghost connection entries in the UI\nAdds some missing implementations for Controller of Door, Window, FloodAlarm and Motion",
+        "de": "Benutzt reine Materie. js logs für bessere Lesbarkeit\nVerhindert Geisteranschlusseinträge in der UI\nFügt einige fehlende Implementierungen für Controller von Tür, Fenster, FlutAlarm und Motion hinzu",
+        "ru": "Использует простую материю. js для лучшей читаемости\nПредотвращает записи подключения к привидению в UI\nДобавляет некоторые недостающие реализации для контроллера двери, окна, уведомления о наводнениях и движения",
+        "pt": "Usa matéria simples. js logs para melhor legibilidade\nPrevine entradas de conexão fantasma na interface do usuário\nAdiciona algumas implementações em falta para Controller of Door, Window, FloodAlarm e Motion",
+        "nl": "Gebruikt gewone materie. js logs voor betere leesbaarheid\nVoorkomt spookverbinding in de UI\nVoegt enkele ontbrekende implementaties voor Controller van deur, venster, FloodAlarm en beweging",
+        "fr": "Utilise la matière pure. js logs pour une meilleure lisibilité\nEmpêche les entrées de connexion fantôme dans l'interface utilisateur\nAjoute quelques implémentations manquantes pour Contrôleur de Porte, Fenêtre, InondAlarm et Motion",
+        "it": "Usa la materia normale. js logs per una migliore leggibilità\nPreviene le voci di connessione fantasma nell'interfaccia utente\nAggiunge alcune implementazioni mancanti per Controller di Porta, Finestra, Inondazione e Moto",
+        "es": "Usa materia simple. js logs for better readability\nEvita las entradas de conexión fantasma en la UI\nAñade algunas implementaciones faltantes para Controlador de Puerta, Ventana, FloodAlarm y Motion",
+        "pl": "Używa czystej materii. logi js dla lepszej czytelności\nZapobiega wpisom połączeń widmowych w UI\nDodaje brakujące implementacje dla Kontrolera Drzwi, Okna, Powódź Alarm i Ruch",
+        "uk": "Використання простої матерії. js журнали для кращого зчитування\nЗапобігає запису з'єднання привидів в УІ\nДодавання деяких відсутніх заходів для контролера дверей, вікна, повені",
+        "zh-cn": "使用普通物质。 js 更易读的日志\n防止 UI 中的幽灵连接条目\n为 Door 、 Window、 FloodAlmar 和 Motion 控制器添加一些缺失的执行"
+      }
     },
-    "protectedNative": ["password", "login"],
-    "encryptedNative": ["password"],
-    "native": {
-        "interface": "",
-        "debug": false,
-        "login": "",
-        "pass": "",
-        "defaultBridge": ""
+    "title": "Matter",
+    "titleLang": {
+      "en": "Matter protocol",
+      "de": "Matter Protokoll",
+      "ru": "Мэттерный протокол",
+      "pt": "Protocolo de matéria",
+      "nl": "Matter protocol",
+      "fr": "Matter protocol",
+      "it": "Protocollo della materia",
+      "es": "Protocolo de la materia",
+      "pl": "Protokół Matter",
+      "uk": "Протокол Маттер",
+      "zh-cn": "马特议定书"
     },
-    "objects": [],
-    "instanceObjects": [
-        {
-            "_id": "bridges",
-            "type": "folder",
-            "common": {
-                "name": "Matter Bridges",
-                "desc": "Configuration and Details for Matter Bridges"
-            },
-            "native": {}
-        },
-        {
-            "_id": "devices",
-            "type": "folder",
-            "common": {
-                "name": "Matter Devices",
-                "desc": "Configuration and Details for Matter Devices"
-            },
-            "native": {}
-        },
-        {
-            "_id": "controller",
-            "type": "folder",
-            "common": {
-                "name": "Matter Controller",
-                "desc": "States for paired Matter Devices"
-            },
-            "native": {}
-        },
-        {
-            "_id": "info",
-            "type": "folder",
-            "common": {
-                "name": "Information"
-            },
-            "native": {}
-        },
-        {
-            "_id": "info",
-            "type": "channel",
-            "common": {
-                "name": "Information"
-            },
-            "native": {}
-        },
-        {
-            "_id": "info.welcomeDialog",
-            "type": "state",
-            "common": {
-                "name": "Welcome dialog showed",
-                "role": "indicator",
-                "type": "boolean",
-                "read": true,
-                "write": false
-            },
-            "native": {}
-        }
-    ]
+    "desc": {
+      "en": "Controlling and simulation of matter devices",
+      "de": "Steuerung und Simulation von Matter-Geräten",
+      "ru": "Контроль и моделирование Matter-устройств",
+      "pt": "Controle e simulação de Matter-dispositivos",
+      "nl": "Controleren en simulatie van Matter-apparaten",
+      "fr": "Contrôle et simulation des Matter-dispositifs",
+      "it": "Controllo e simulazione di Matter-dispositivi",
+      "es": "Control y simulación de Matter-dispositivos",
+      "pl": "Kontrola i symulacja Matter-urządzeń",
+      "uk": "Контроль та імітація Matter-пристроїв",
+      "zh-cn": "控制和模拟事故装置"
+    },
+    "authors": [
+      "Denis Haev <dogafox@gmail.com>"
+    ],
+    "license": "Apache-2.0",
+    "platform": "Javascript/Node.js",
+    "mode": "daemon",
+    "nogit": true,
+    "loglevel": "info",
+    "readme": "https://github.com/ioBroker/ioBroker.matter/blob/master/README.md",
+    "icon": "matter.png",
+    "connectionType": "local",
+    "dataSource": "push",
+    "adminUI": {
+      "config": "materialize"
+    },
+    "tier": 3,
+    "keywords": [
+      "matter"
+    ],
+    "stopTimeout": 30000,
+    "enabled": true,
+    "compact": false,
+    "singletonHost": true,
+    "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.matter/master/admin/matter.png",
+    "type": "iot-systems",
+    "messagebox": true,
+    "plugins": {
+      "sentry": {
+        "dsn": "https://de38f4a20c964ce395d2e236c64aa075@sentry.iobroker.net/234"
+      }
+    },
+    "licenseInformation": {
+      "type": "free",
+      "license": "Apache-2.0"
+    },
+    "supportedMessages": {
+      "deviceManager": true
+    }
+  },
+  "protectedNative": [
+    "password",
+    "login"
+  ],
+  "encryptedNative": [
+    "password"
+  ],
+  "native": {
+    "interface": "",
+    "debug": false,
+    "login": "",
+    "pass": "",
+    "defaultBridge": ""
+  },
+  "objects": [],
+  "instanceObjects": [
+    {
+      "_id": "bridges",
+      "type": "folder",
+      "common": {
+        "name": "Matter Bridges",
+        "desc": "Configuration and Details for Matter Bridges"
+      },
+      "native": {}
+    },
+    {
+      "_id": "devices",
+      "type": "folder",
+      "common": {
+        "name": "Matter Devices",
+        "desc": "Configuration and Details for Matter Devices"
+      },
+      "native": {}
+    },
+    {
+      "_id": "controller",
+      "type": "folder",
+      "common": {
+        "name": "Matter Controller",
+        "desc": "States for paired Matter Devices"
+      },
+      "native": {}
+    },
+    {
+      "_id": "info",
+      "type": "folder",
+      "common": {
+        "name": "Information"
+      },
+      "native": {}
+    },
+    {
+      "_id": "info",
+      "type": "channel",
+      "common": {
+        "name": "Information"
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.welcomeDialog",
+      "type": "state",
+      "common": {
+        "name": "Welcome dialog showed",
+        "role": "indicator",
+        "type": "boolean",
+        "read": true,
+        "write": false
+      },
+      "native": {}
+    }
+  ]
 }

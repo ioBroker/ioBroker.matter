@@ -220,8 +220,7 @@ TBD
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.2.8 (2024-12-17)
 * (Apollon77/bluefox) Contains many changes in Frontend and Backend including updates and new Feature. Please check the Changelog.
 
 ### 0.2.7 (2024-12-08)

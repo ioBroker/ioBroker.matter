@@ -240,6 +240,9 @@ TBD
 * (@Apollon77) Uses the configured device type when finding multiple types in the backend
 * (@Apollon77) Adjusts UI device type detection to differentiate between supported and other types
 * (@Apollon77) Makes sure that controller configuration changes are executed sequentially
+* (@Apollon77) Added Transition Time handling for Dimmer and Ct device types in both directions
+* (@Apollon77) Added Low-Battery and Battery-percent for all device types in both directions
+* (@Apollon77) Added Ethernet Network Commissioning Cluster to prevent issues with Tuya
 
 ### 0.2.7 (2024-12-08)
 * (@Apollon77) Cleans up objects when a controller node is deleted

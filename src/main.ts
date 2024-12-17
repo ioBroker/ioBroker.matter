@@ -740,7 +740,7 @@ export class MatterAdapter extends utils.Adapter {
 
     async getIoBrokerDeviceStates(id: string, preferredType?: string): Promise<DetectedDevice | null> {
         const deviceId = await this.findDeviceFromId(id);
-        this.log.debug(`Found device for ${id}: ${deviceId}, preferred type: ${preferredType}`);
+        this.log.debug(`Handle device for ${id}: ${deviceId}, preferred type: ${preferredType}`);
         if (!deviceId) {
             return null;
         }
@@ -1216,8 +1216,10 @@ export class MatterAdapter extends utils.Adapter {
                         await matterBridge.start();
                     }
                 } else {
-                    this.log.error(`Cannot create device for ${bridge._id}`);
-                    this.#devices.set(bridge._id, { error: 'Cannot create bridge' });
+                    this.log.error(`Cannot create bridge for ${bridge._id}`);
+                    this.#bridges.set(bridge._id, {
+                        error: 'Cannot create bridge because of an error. Please check the logs.',
+                    });
                 }
             } else {
                 const config = await this.prepareMatterBridgeConfiguration(
@@ -1266,7 +1268,9 @@ export class MatterAdapter extends utils.Adapter {
                     }
                 } else {
                     this.log.error(`Cannot create device for ${device._id}`);
-                    this.#devices.set(device._id, { error: 'Cannot create device' });
+                    this.#devices.set(device._id, {
+                        error: 'Cannot create device because of an error. Please check logs.',
+                    });
                 }
             } else {
                 const config = await this.prepareMatterDeviceConfiguration(
@@ -1362,7 +1366,7 @@ export class MatterAdapter extends utils.Adapter {
                 __header__error: 'Error information',
                 __text__info: `${type === 'bridge' ? 'Bridge' : 'Device'} is in error state. Fix the error before enabling it again`,
                 __text__error: error,
-                uuid: `UUID: ${uuid}`,
+                uuid: uuid,
             },
         };
 

@@ -954,6 +954,7 @@ export class GeneralMatterNode {
         }
         await this.adapter.controllerNode.decommissionNode(this.nodeId);
         await this.clear();
+        this.adapter.log.warn(`Node "${this.nodeId}" removed. Removing Storage in ${this.nodeBaseId}`);
         await this.adapter.delObjectAsync(this.nodeBaseId, { recursive: true });
     }
 

@@ -412,7 +412,6 @@ class ConfigHandler {
             const newDev = config.devices.find(dev => dev.uuid === oldDev.uuid);
             if (!newDev) {
                 this.config.devices.splice(d, 1);
-                console.log(`Device ${oldDev.uuid} created`);
                 const obj: ioBroker.ChannelObject = (await this.socket.getObject(
                     `matter.${this.instance}.devices.${oldDev.uuid}`,
                 )) as ioBroker.ChannelObject;
@@ -473,8 +472,12 @@ class ConfigHandler {
             const newBridge = config.bridges.find(brd => brd.uuid === oldBridge.uuid);
             if (!newBridge) {
                 this.config.bridges.splice(b, 1);
+                const obj: ioBroker.ChannelObject = (await this.socket.getObject(
+                    `matter.${this.instance}.bridges.${oldBridge.uuid}`,
+                )) as ioBroker.ChannelObject;
+                obj.native.deleted = true;
                 console.log(`Bridge ${oldBridge.uuid} deleted`);
-                await this.socket.delObject(`matter.${this.instance}.bridges.${oldBridge.uuid}`);
+                await this.socket.setObject(obj._id, obj);
             }
         }
 

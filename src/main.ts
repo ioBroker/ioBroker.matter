@@ -190,7 +190,7 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async onTotalReset(): Promise<void> {
-        this.log.debug('Reset complete matter state');
+        this.log.warn('Resetting complete matter state as requested by UI');
         await this.shutDownMatterNodes();
         // clear all matter storage data of the device nodes
         await this.delObjectAsync('storage', { recursive: true });

@@ -1,4 +1,4 @@
-import { type Endpoint, ObserverGroup } from '@matter/main';
+import { type Endpoint, ObserverGroup, type MaybePromise } from '@matter/main';
 import type { GenericDevice } from '../../lib';
 import type { StructuredJsonFormData } from '../../lib/JsonConfigUtils';
 
@@ -89,8 +89,8 @@ export abstract class GenericDeviceToMatter {
      */
     abstract registerMatterHandlers(): void;
 
-    /** Registers all the ioBroker change handlers to update statee changes from ioBroker onto the Matter device. */
-    abstract registerIoBrokerHandlersAndInitialize(): Promise<void>;
+    /** Registers all the ioBroker change handlers to update state changes from ioBroker onto the Matter device. */
+    abstract registerIoBrokerHandlersAndInitialize(): MaybePromise<void>;
 
     /** Initialization Logic for the device. makes sure all handlers are registered for both sides. */
     async init(): Promise<void> {

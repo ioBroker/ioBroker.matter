@@ -6,7 +6,6 @@ import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type Lock from '../../lib/devices/Lock';
 import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
-import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { EventedDoorLockServer } from '../behaviors/EventedDoorLockServer';
 
@@ -109,7 +108,5 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
                     : DoorLock.LockState.Locked,
             },
         });
-
-        await initializeMaintenanceStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
     }
 }

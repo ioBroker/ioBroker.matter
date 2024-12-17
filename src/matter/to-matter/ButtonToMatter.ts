@@ -6,7 +6,6 @@ import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type Button from '../../lib/devices/Button';
 import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
-import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 
 const SwitchDevice = GenericSwitchDevice.with(
     SwitchServer.withFeatures(
@@ -48,7 +47,7 @@ export class ButtonToMatter extends GenericDeviceToMatter {
 
     registerMatterHandlers(): void {}
 
-    async registerIoBrokerHandlersAndInitialize(): Promise<void> {
+    registerIoBrokerHandlersAndInitialize(): void {
         // install ioBroker listeners
         // here we react on changes from the ioBroker side for onOff and current lamp level
         this.#ioBrokerDevice.onChange(async event => {
@@ -71,7 +70,5 @@ export class ButtonToMatter extends GenericDeviceToMatter {
                     break;
             }
         });
-
-        await initializeMaintenanceStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
     }
 }

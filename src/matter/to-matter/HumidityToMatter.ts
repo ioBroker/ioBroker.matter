@@ -3,7 +3,6 @@ import { HumiditySensorDevice } from '@matter/main/devices';
 import type { GenericDevice, Humidity } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
-import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 
 /** Mapping Logic to map a ioBroker Humidity device to a Matter HumiditySensorDevice. */
 export class HumidityToMatter extends GenericDeviceToMatter {
@@ -56,7 +55,5 @@ export class HumidityToMatter extends GenericDeviceToMatter {
                 measuredValue: typeof value === 'number' ? this.convertHumidityValue(value) : null,
             },
         });
-
-        await initializeMaintenanceStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
     }
 }

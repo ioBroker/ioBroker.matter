@@ -1,5 +1,5 @@
 import { type AttributeId, type ClusterId, Diagnostic, EndpointNumber, type EventId } from '@matter/main';
-import { BasicInformation, BridgedDeviceBasicInformation, Identify } from '@matter/main/clusters';
+import { BasicInformation, BridgedDeviceBasicInformation, Identify, PowerSource } from '@matter/main/clusters';
 import type { DecodedEventData } from '@matter/main/protocol';
 import type { Endpoint, PairedNode, DeviceBasicInformation } from '@project-chip/matter.js/device';
 import type { GenericDevice } from '../../lib';
@@ -140,7 +140,46 @@ export abstract class GenericDeviceToIoBroker {
                 this.#hasBridgedReachabilityAttribute = true;
             }
         }
+        // Check for PowerSource
+        this.#enablePowerSourceStates();
+
         return this.#deviceOptions;
+    }
+
+    #enablePowerSourceStates(): void {
+        const endpointId = this.appEndpoint.getNumber();
+
+        const powerSource = this.appEndpoint.getClusterClient(PowerSource.Complete);
+        if (powerSource !== undefined && powerSource.supportedFeatures.battery) {
+            this.enableDeviceTypeStateForAttribute(PropertyType.LowBattery, {
+                endpointId,
+                clusterId: PowerSource.Cluster.id,
+                attributeName: 'batChargeLevel',
+                convertValue: value => value !== PowerSource.BatChargeLevel.Ok,
+            });
+            this.enableDeviceTypeStateForAttribute(PropertyType.Battery, {
+                endpointId,
+                clusterId: PowerSource.Cluster.id,
+                attributeName: 'batPercentRemaining',
+                convertValue: value => Math.round(value / 2),
+            });
+        } else if (powerSource === undefined) {
+            const rootPowerSource = this.#rootEndpoint.getClusterClient(PowerSource.Complete);
+            if (rootPowerSource !== undefined && rootPowerSource.supportedFeatures.battery) {
+                this.enableDeviceTypeStateForAttribute(PropertyType.LowBattery, {
+                    endpointId: EndpointNumber(0),
+                    clusterId: PowerSource.Cluster.id,
+                    attributeName: 'batChargeLevel',
+                    convertValue: value => value !== PowerSource.BatChargeLevel.Ok,
+                });
+                this.enableDeviceTypeStateForAttribute(PropertyType.Battery, {
+                    endpointId: EndpointNumber(0),
+                    clusterId: PowerSource.Cluster.id,
+                    attributeName: 'batPercentRemaining',
+                    convertValue: value => Math.round(value / 2),
+                });
+            }
+        }
     }
 
     /**
@@ -149,7 +188,7 @@ export abstract class GenericDeviceToIoBroker {
      */
     protected enableDeviceTypeStateForAttribute(
         type: PropertyType,
-        data: {
+        data?: {
             endpointId?: EndpointNumber;
             clusterId?: ClusterId;
             convertValue?: (value: any) => any;
@@ -157,46 +196,48 @@ export abstract class GenericDeviceToIoBroker {
             pollAttribute?: boolean;
         } & ({ vendorSpecificAttributeId: AttributeId } | { attributeName?: string }),
     ): void {
-        const { endpointId, clusterId, convertValue, changeHandler, pollAttribute } = data;
         const stateData = this.#deviceOptions.additionalStateData![type] ?? {};
         if (stateData.id !== undefined) {
             console.log(`State ${type} already enabled`);
             return;
         }
 
-        let attributeId: AttributeId | undefined;
-        const attributeName =
-            'vendorSpecificAttributeId' in data
-                ? `unknownAttribute_${Diagnostic.hex(data.vendorSpecificAttributeId)}`
-                : data.attributeName;
-        if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
-            const cluster =
-                endpointId === 0
-                    ? this.#rootEndpoint.getClusterClientById(clusterId)
-                    : this.appEndpoint.getClusterClientById(clusterId);
-            if (!cluster || !cluster.isAttributeSupportedByName(attributeName)) {
-                return;
+        if (data !== undefined) {
+            const { endpointId, clusterId, convertValue, changeHandler, pollAttribute } = data;
+            let attributeId: AttributeId | undefined;
+            const attributeName =
+                'vendorSpecificAttributeId' in data
+                    ? `unknownAttribute_${Diagnostic.hex(data.vendorSpecificAttributeId)}`
+                    : data.attributeName;
+            if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
+                const cluster =
+                    endpointId === 0
+                        ? this.#rootEndpoint.getClusterClientById(clusterId)
+                        : this.appEndpoint.getClusterClientById(clusterId);
+                if (!cluster || !cluster.isAttributeSupportedByName(attributeName)) {
+                    return;
+                }
+
+                attributeId = cluster.attributes[attributeName].id;
             }
 
-            attributeId = cluster.attributes[attributeName].id;
+            if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
+                const pathId = attributePathToString({ endpointId, clusterId, attributeName });
+                this.#matterMappings.set(pathId, type);
+            }
+            this.#enabledAttributeProperties.set(type, {
+                type: 'attribute',
+                endpointId,
+                clusterId,
+                attributeId,
+                attributeName,
+                convertValue,
+                changeHandler,
+                pollAttribute,
+            });
         }
-
         stateData.id = `${this.baseId}.`;
         this.#deviceOptions.additionalStateData![type] = stateData;
-        if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
-            const pathId = attributePathToString({ endpointId, clusterId, attributeName });
-            this.#matterMappings.set(pathId, type);
-        }
-        this.#enabledAttributeProperties.set(type, {
-            type: 'attribute',
-            endpointId,
-            clusterId,
-            attributeId,
-            attributeName,
-            convertValue,
-            changeHandler,
-            pollAttribute,
-        });
     }
 
     /**

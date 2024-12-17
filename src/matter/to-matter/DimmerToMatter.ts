@@ -5,7 +5,6 @@ import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type Dimmer from '../../lib/devices/Dimmer';
 import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
-import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 import { EventedOnOffLightOnOffServer } from '../behaviors/EventedOnOffLightOnOffServer';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { EventedLightingLevelControlServer } from '../behaviors/EventedLightingLevelControlServer';
@@ -21,6 +20,7 @@ type IoBrokerDimmableLightDevice = typeof IoBrokerDimmableLightDevice;
 export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
     readonly #ioBrokerDevice: Dimmer;
     readonly #matterEndpoint: Endpoint<IoBrokerDimmableLightDevice>;
+    #hasTransitionTime = false;
 
     constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
         super(name, uuid);
@@ -62,7 +62,12 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
             );
         }
 
-        this.#matterEndpoint.events.ioBrokerEvents.dimmerLevelControlled.on(async level => {
+        this.#hasTransitionTime = this.#ioBrokerDevice.hasTransitionTime();
+        this.#matterEndpoint.events.ioBrokerEvents.dimmerLevelControlled.on(async (level, transitionTime) => {
+            if (this.#hasTransitionTime && transitionTime !== null && transitionTime !== undefined) {
+                await this.#ioBrokerDevice.setTransitionTime(transitionTime * 1000);
+            }
+
             const currentValue = this.#ioBrokerDevice.getLevel();
             if (level !== currentValue && level !== null) {
                 await this.#ioBrokerDevice.setLevel(Math.round((level / 254) * 100));
@@ -127,7 +132,6 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
             },
         });
 
-        await initializeMaintenanceStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
         await this.initializeElectricityStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
     }
 }

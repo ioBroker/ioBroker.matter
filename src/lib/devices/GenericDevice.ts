@@ -105,6 +105,7 @@ abstract class GenericDevice {
     #lowbatState?: DeviceStateObject<boolean>;
     #workingState?: DeviceStateObject<string>;
     #directionState?: DeviceStateObject<string>;
+    #batteryState?: DeviceStateObject<number>;
 
     constructor(
         detectedDevice: DetectedDevice,
@@ -164,6 +165,13 @@ abstract class GenericDevice {
                     accessType: StateAccessType.Read,
                     type: PropertyType.Direction,
                     callback: state => (this.#directionState = state),
+                },
+                {
+                    name: 'BATTERY',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Battery,
+                    callback: state => (this.#batteryState = state),
                 },
             ]),
         );
@@ -490,7 +498,7 @@ abstract class GenericDevice {
         return this.propertyNames.includes(PropertyType.Unreachable);
     }
 
-    getLowBattery(): boolean | number | undefined {
+    getLowBattery(): boolean | undefined {
         if (!this.#lowbatState) {
             throw new Error('Low battery state not found');
         }
@@ -542,6 +550,24 @@ abstract class GenericDevice {
 
     hasDirection(): boolean {
         return this.propertyNames.includes(PropertyType.Direction);
+    }
+
+    getBattery(): number | undefined {
+        if (!this.#batteryState) {
+            throw new Error('Battery state not found');
+        }
+        return this.#batteryState.value;
+    }
+
+    updateBattery(value: number): Promise<void> {
+        if (!this.#batteryState) {
+            throw new Error('Battery state not found');
+        }
+        return this.#batteryState.updateValue(value);
+    }
+
+    hasBattery(): boolean {
+        return this.propertyNames.includes(PropertyType.Battery);
     }
 
     onChange<T>(handler: (event: { property: PropertyType; value: T }) => Promise<void>): void {

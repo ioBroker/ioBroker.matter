@@ -6,7 +6,6 @@ import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type Motion from '../../lib/devices/Motion';
 import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
-import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 
 /** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */
 export class MotionToMatter extends GenericDeviceToMatter {
@@ -86,7 +85,6 @@ export class MotionToMatter extends GenericDeviceToMatter {
                 occupancy: this.convertMotionValue(value ?? false),
             },
         });
-        await initializeMaintenanceStateHandlers(this.#matterEndpointOccupancy, this.#ioBrokerDevice);
 
         if (this.#matterEndpointLightSensor && this.#matterEndpointLightSensor?.owner !== undefined) {
             const humidity = this.#ioBrokerDevice.getBrightness();
@@ -95,7 +93,6 @@ export class MotionToMatter extends GenericDeviceToMatter {
                     measuredValue: humidity === undefined ? null : this.convertBrightnessValue(humidity),
                 },
             });
-            await initializeMaintenanceStateHandlers(this.#matterEndpointLightSensor, this.#ioBrokerDevice);
         }
     }
 }

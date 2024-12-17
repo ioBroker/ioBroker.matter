@@ -4,7 +4,6 @@ import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type Window from '../../lib/devices/Window';
 import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
-import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 
 /** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */
 export class WindowToMatter extends GenericDeviceToMatter {
@@ -63,6 +62,5 @@ export class WindowToMatter extends GenericDeviceToMatter {
                 stateValue: this.convertContactValue(value),
             },
         });
-        await initializeMaintenanceStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
     }
 }

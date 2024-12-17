@@ -1,14 +1,11 @@
 import { AttributeId, ClusterId } from '@matter/main';
-import { ElectricalEnergyMeasurement, ElectricalPowerMeasurement, PowerSource } from '@matter/main/clusters';
+import { ElectricalEnergyMeasurement, ElectricalPowerMeasurement } from '@matter/main/clusters';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
 
 export abstract class GenericElectricityDataDeviceToIoBroker extends GenericDeviceToIoBroker {
     protected enableDeviceTypeStates(): DeviceOptions {
-        // Check for PowerSource
-        this.#enablePowerSourceStates();
-
         // Check for Energy or Power measurement clusters
         let found = this.#enableMatterElectricalMeasurementStates();
         if (!found) {
@@ -18,20 +15,6 @@ export abstract class GenericElectricityDataDeviceToIoBroker extends GenericDevi
             this.#enableCustomNeoMeasurementStates();
         }
         return super.enableDeviceTypeStates();
-    }
-
-    #enablePowerSourceStates(): void {
-        const endpointId = this.appEndpoint.getNumber();
-
-        const powerSource = this.appEndpoint.getClusterClient(PowerSource.Complete);
-        if (powerSource !== undefined && powerSource.supportedFeatures.battery) {
-            this.enableDeviceTypeStateForAttribute(PropertyType.LowBattery, {
-                endpointId,
-                clusterId: PowerSource.Cluster.id,
-                attributeName: 'batChargeLevel',
-                convertValue: value => value !== PowerSource.BatChargeLevel.Ok,
-            });
-        }
     }
 
     #enableMatterElectricalMeasurementStates(): boolean {

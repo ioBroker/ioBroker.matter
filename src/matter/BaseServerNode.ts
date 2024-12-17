@@ -1,8 +1,13 @@
-import { Logger, type ServerNode, type SessionsBehavior, serialize } from '@matter/main';
+import { Logger, type ServerNode, type SessionsBehavior, type Endpoint, serialize } from '@matter/main';
 import { DeviceCommissioner } from '@matter/main/protocol';
 import type { MatterAdapter } from '../main';
 import type { GeneralNode, MessageResponse } from './GeneralNode';
 import { type StructuredJsonFormData, convertDataToJsonConfig } from '../lib/JsonConfigUtils';
+import type { BridgedNodeEndpoint, RootEndpoint } from '@matter/main/endpoints';
+import { PowerSource } from '@matter/main/clusters';
+import type GenericDevice from '../lib/devices/GenericDevice';
+import { PropertyType } from '../lib/devices/DeviceStateObject';
+import { BatteryPowerSourceServer } from './behaviors/PowerSourceServer';
 
 export enum NodeStates {
     Creating = 'creating',
@@ -183,4 +188,133 @@ export abstract class BaseServerNode implements GeneralNode {
     }
 
     abstract getDeviceDetails(message: ioBroker.MessagePayload): StructuredJsonFormData;
+
+    /**
+     * Initializes the reachable state handler for a device and map it to the Basic Information Cluster of the Matter +
+     * device.
+     */
+    async initializeUnreachableStateHandler(
+        endpoint: Endpoint<RootEndpoint>,
+        ioBrokerDevice: GenericDevice,
+    ): Promise<void> {
+        if (!ioBrokerDevice.propertyNames.includes(PropertyType.Unreachable)) {
+            return;
+        }
+
+        ioBrokerDevice.onChange(async event => {
+            switch (event.property) {
+                case PropertyType.Unreachable:
+                    await endpoint.set({
+                        basicInformation: {
+                            reachable: !event.value,
+                        },
+                    });
+                    break;
+            }
+        });
+
+        await endpoint.set({
+            basicInformation: {
+                reachable: !ioBrokerDevice.getUnreachable(),
+            },
+        });
+    }
+
+    /**
+     * Initializes the reachable state handler for a device and map it to the Bridged Node Basic Information Cluster of the
+     * Matter device.
+     */
+    async initializeBridgedUnreachableStateHandler(
+        endpoint: Endpoint<BridgedNodeEndpoint>,
+        ioBrokerDevice: GenericDevice,
+    ): Promise<void> {
+        if (!ioBrokerDevice.propertyNames.includes(PropertyType.Unreachable)) {
+            return;
+        }
+
+        ioBrokerDevice.onChange(async event => {
+            switch (event.property) {
+                case PropertyType.Unreachable:
+                    await endpoint.set({
+                        bridgedDeviceBasicInformation: {
+                            reachable: !event.value,
+                        },
+                    });
+                    break;
+            }
+        });
+
+        await endpoint.set({
+            bridgedDeviceBasicInformation: {
+                reachable: !ioBrokerDevice.getUnreachable(),
+            },
+        });
+    }
+
+    #determineBatteryDetails(ioBrokerDevice: GenericDevice): {
+        batPercentRemaining?: number | null;
+        batChargeLevel: PowerSource.BatChargeLevel;
+        batReplacementNeeded: boolean;
+    } {
+        const batteryValue = ioBrokerDevice.hasBattery() ? ioBrokerDevice.getBattery() : null;
+        const batPercentRemaining = typeof batteryValue === 'number' ? batteryValue * 2 : batteryValue;
+
+        const isLowBattery = ioBrokerDevice.hasLowBattery() ? (ioBrokerDevice.getLowBattery() ?? false) : undefined;
+        let batChargeLevel = isLowBattery ? PowerSource.BatChargeLevel.Critical : PowerSource.BatChargeLevel.Ok;
+
+        if (isLowBattery !== false && typeof batteryValue === 'number') {
+            if (batteryValue <= 10) {
+                batChargeLevel = PowerSource.BatChargeLevel.Critical;
+            } else if (batteryValue <= 15) {
+                batChargeLevel = PowerSource.BatChargeLevel.Warning;
+            } else if (isLowBattery === undefined) {
+                batChargeLevel = PowerSource.BatChargeLevel.Ok;
+            }
+        }
+
+        return {
+            batPercentRemaining,
+            batChargeLevel,
+            batReplacementNeeded: batChargeLevel !== PowerSource.BatChargeLevel.Ok,
+        };
+    }
+
+    registerMaintenanceClusters(endpoint: Endpoint<any>, ioBrokerDevice: GenericDevice): void {
+        if (!ioBrokerDevice.hasBattery() && !ioBrokerDevice.hasLowBattery()) {
+            return;
+        }
+
+        const { batPercentRemaining, batChargeLevel, batReplacementNeeded } =
+            this.#determineBatteryDetails(ioBrokerDevice);
+        endpoint.behaviors.require(BatteryPowerSourceServer, {
+            status: PowerSource.PowerSourceStatus.Active,
+            order: 0,
+            description: 'Battery as reported by ioBroker',
+            batPercentRemaining,
+            batChargeLevel,
+            batReplacementNeeded,
+            batReplaceability: PowerSource.BatReplaceability.UserReplaceable, // Meaningful default
+            endpointList: [],
+        });
+    }
+
+    /**
+     * Initialize other Maintenance states for the device and Map it to Matter.
+     */
+    initializeMaintenanceStateHandlers(endpoint: Endpoint<any>, ioBrokerDevice: GenericDevice): void {
+        if (!ioBrokerDevice.hasBattery() && !ioBrokerDevice.hasLowBattery()) {
+            return;
+        }
+
+        // install ioBroker listeners
+        // here we react on changes from the ioBroker side for onOff and current lamp level
+        ioBrokerDevice.onChange(async event => {
+            switch (event.property) {
+                case PropertyType.LowBattery:
+                case PropertyType.Battery:
+                    await endpoint.setStateOf(BatteryPowerSourceServer, this.#determineBatteryDetails(ioBrokerDevice));
+                    break;
+            }
+        });
+    }
 }

@@ -1,6 +1,7 @@
 import { Endpoint, ServerNode, VendorId } from '@matter/main';
-import { BridgedDeviceBasicInformationServer } from '@matter/main/behaviors';
+import { BridgedDeviceBasicInformationServer, NetworkCommissioningServer } from '@matter/main/behaviors';
 import { AggregatorEndpoint, BridgedNodeEndpoint } from '@matter/main/endpoints';
+import { NetworkCommissioning } from '@matter/main/clusters';
 import { inspect } from 'util';
 import type { BridgeDeviceDescription } from '../ioBrokerStorageTypes';
 import type { GenericDevice } from '../lib';
@@ -8,7 +9,6 @@ import { md5 } from '../lib/utils';
 import type { MatterAdapter } from '../main';
 import { BaseServerNode } from './BaseServerNode';
 import matterDeviceFactory from './to-matter/matterFactory';
-import { initializeBridgedUnreachableStateHandler } from './to-matter/SharedStateHandlers';
 import type { GenericDeviceToMatter } from './to-matter/GenericDeviceToMatter';
 import type { StructuredJsonFormData } from '../lib/JsonConfigUtils';
 
@@ -51,7 +51,7 @@ class BridgedDevices extends BaseServerNode {
             throw new Error(`Aggregator on Bridge ${deviceOptions.uuid} not initialized. Should never happen`);
         }
 
-        this.adapter.log.info(`Preparing device ${deviceOptions.uuid} "${deviceOptions.name}" for bridge`);
+        this.adapter.log.info(`Preparing bridged device ${deviceOptions.uuid} "${deviceOptions.name}" for bridge`);
 
         if (this.#deviceEndpoints.has(deviceOptions.uuid)) {
             this.adapter.log.warn(
@@ -96,6 +96,7 @@ class BridgedDevices extends BaseServerNode {
                         uniqueId: md5(endpoint.id),
                         reachable: true,
                     });
+                    this.registerMaintenanceClusters(endpoint, device);
                     try {
                         await this.#aggregator.add(endpoint);
                     } catch (error) {
@@ -134,23 +135,20 @@ class BridgedDevices extends BaseServerNode {
                         uniqueId: md5(id),
                         reachable: true,
                     },
+                    parts: endpoints,
                 });
-                await this.#aggregator.add(composedEndpoint);
-                let erroredCount = 0;
-                for (const endpoint of endpoints) {
-                    try {
-                        await composedEndpoint.add(endpoint);
-                    } catch (error) {
-                        // MatterErrors might contain nested information so make sure we see all of this
-                        const errorText = inspect(error, { depth: 10 });
-                        this.adapter.log.error(`Error adding endpoint ${endpoint.id} to bridge: ${errorText}`);
-                        erroredCount++;
-                    }
-                }
-                if (erroredCount === endpoints.length) {
+                this.registerMaintenanceClusters(composedEndpoint, device);
+
+                try {
+                    await this.#aggregator.add(composedEndpoint);
+                } catch (error) {
                     await mappingDevice.destroy();
                     await composedEndpoint.delete();
-                    throw new Error(`Could not add any endpoint to composed device`);
+
+                    const errorText = inspect(error, { depth: 10 });
+                    throw new Error(
+                        `Error adding endpoints to bridged device ${deviceOptions.uuid} "${deviceOptions.name}" to bridge: ${errorText}`,
+                    );
                 }
 
                 this.#deviceEndpoints.set(deviceOptions.uuid, [composedEndpoint]);
@@ -160,7 +158,8 @@ class BridgedDevices extends BaseServerNode {
 
             const addedEndpoints = this.#deviceEndpoints.get(deviceOptions.uuid) as Endpoint<BridgedNodeEndpoint>[];
             for (const endpoint of addedEndpoints) {
-                await initializeBridgedUnreachableStateHandler(endpoint, device);
+                await this.initializeBridgedUnreachableStateHandler(endpoint, device);
+                this.initializeMaintenanceStateHandlers(endpoint, device);
             }
         } else {
             throw new Error(`ioBroker Device in Bridge "${device.deviceType}" is not supported`);
@@ -195,30 +194,45 @@ class BridgedDevices extends BaseServerNode {
 
         const versions = this.adapter.versions;
         const matterName = deviceName.substring(0, 32);
-        this.serverNode = await ServerNode.create({
-            id: this.#parameters.uuid,
-            network: {
-                port: this.#parameters.port,
+        const networkId = new Uint8Array(32);
+
+        this.serverNode = await ServerNode.create(
+            ServerNode.RootEndpoint.with(
+                NetworkCommissioningServer.withFeatures(NetworkCommissioning.Feature.EthernetNetworkInterface),
+            ),
+            {
+                id: this.#parameters.uuid,
+                network: {
+                    port: this.#parameters.port,
+                },
+                productDescription: {
+                    name: matterName,
+                    deviceType,
+                },
+                basicInformation: {
+                    vendorName,
+                    vendorId: VendorId(vendorId),
+                    nodeLabel: matterName,
+                    productName: matterName,
+                    productLabel: deviceName.substring(0, 64),
+                    productId,
+                    serialNumber: uniqueId,
+                    uniqueId: md5(uniqueId),
+                    hardwareVersion: versions.versionNum,
+                    hardwareVersionString: versions.versionStr,
+                    softwareVersion: versions.versionNum,
+                    softwareVersionString: versions.versionStr,
+                },
+                networkCommissioning: {
+                    maxNetworks: 1,
+                    interfaceEnabled: true,
+                    lastConnectErrorValue: 0,
+                    lastNetworkId: networkId,
+                    lastNetworkingStatus: NetworkCommissioning.NetworkCommissioningStatus.Success,
+                    networks: [{ networkId: networkId, connected: true }],
+                },
             },
-            productDescription: {
-                name: matterName,
-                deviceType,
-            },
-            basicInformation: {
-                vendorName,
-                vendorId: VendorId(vendorId),
-                nodeLabel: matterName,
-                productName: matterName,
-                productLabel: deviceName.substring(0, 64),
-                productId,
-                serialNumber: uniqueId,
-                uniqueId: md5(uniqueId),
-                hardwareVersion: versions.versionNum,
-                hardwareVersionString: versions.versionStr,
-                softwareVersion: versions.versionNum,
-                softwareVersionString: versions.versionStr,
-            },
-        });
+        );
 
         this.#aggregator = new Endpoint(AggregatorEndpoint, { id: 'bridge' });
 
@@ -383,7 +397,7 @@ class BridgedDevices extends BaseServerNode {
             details.error = {
                 __header__error: 'Error information',
                 __text__info: `Bridged Device is in error state. Fix the error before enabling it again`,
-                uuid: `UUID: ${bridgedDeviceUuid} on ${this.uuid}`,
+                uuid: `${bridgedDeviceUuid} on ${this.uuid}`,
                 __text__error: `Error: ${error}`,
             };
         }
@@ -402,7 +416,7 @@ class BridgedDevices extends BaseServerNode {
                 ...details,
                 noDevice: {
                     __header__error: 'Device not created',
-                    uuid: `UUID: ${bridgedDeviceUuid} on ${this.uuid}`,
+                    uuid: `${bridgedDeviceUuid} on ${this.uuid}`,
                     __text__error: `Error: The device does not exist on this bridge`,
                 },
             };

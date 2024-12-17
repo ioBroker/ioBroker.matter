@@ -1,4 +1,6 @@
 import { ServerNode, VendorId } from '@matter/main';
+import { NetworkCommissioningServer } from '@matter/main/behaviors';
+import { NetworkCommissioning } from '@matter/main/clusters';
 import { inspect } from 'util';
 import type { DeviceDescription } from '../ioBrokerStorageTypes';
 import type { GenericDevice } from '../lib';
@@ -6,7 +8,6 @@ import { md5 } from '../lib/utils';
 import type { MatterAdapter } from '../main';
 import { BaseServerNode } from './BaseServerNode';
 import matterDeviceFactory from './to-matter/matterFactory';
-import { initializeUnreachableStateHandler } from './to-matter/SharedStateHandlers';
 import type { GenericDeviceToMatter } from './to-matter/GenericDeviceToMatter';
 import type { StructuredJsonFormData } from '../lib/JsonConfigUtils';
 
@@ -92,32 +93,47 @@ class Device extends BaseServerNode {
         const versions = this.adapter.versions;
         const matterName = productName.substring(0, 32);
 
+        const networkId = new Uint8Array(32);
         try {
-            this.serverNode = await ServerNode.create({
-                id: this.#parameters.uuid,
-                network: {
-                    port: this.#parameters.port,
+            this.serverNode = await ServerNode.create(
+                ServerNode.RootEndpoint.with(
+                    NetworkCommissioningServer.withFeatures(NetworkCommissioning.Feature.EthernetNetworkInterface),
+                ),
+                {
+                    id: this.#parameters.uuid,
+                    network: {
+                        port: this.#parameters.port,
+                    },
+                    productDescription: {
+                        name: deviceName.substring(0, 32),
+                        deviceType,
+                    },
+                    basicInformation: {
+                        vendorName,
+                        vendorId: VendorId(vendorId),
+                        nodeLabel: matterName,
+                        productName: matterName,
+                        productLabel: productName.substring(0, 64),
+                        productId,
+                        serialNumber: uniqueId,
+                        uniqueId: md5(uniqueId),
+                        hardwareVersion: versions.versionNum,
+                        hardwareVersionString: versions.versionStr,
+                        softwareVersion: versions.versionNum,
+                        softwareVersionString: versions.versionStr,
+                        reachable: true,
+                    },
+                    networkCommissioning: {
+                        maxNetworks: 1,
+                        interfaceEnabled: true,
+                        lastConnectErrorValue: 0,
+                        lastNetworkId: networkId,
+                        lastNetworkingStatus: NetworkCommissioning.NetworkCommissioningStatus.Success,
+                        networks: [{ networkId: networkId, connected: true }],
+                    },
                 },
-                productDescription: {
-                    name: deviceName.substring(0, 32),
-                    deviceType,
-                },
-                basicInformation: {
-                    vendorName,
-                    vendorId: VendorId(vendorId),
-                    nodeLabel: matterName,
-                    productName: matterName,
-                    productLabel: productName.substring(0, 64),
-                    productId,
-                    serialNumber: uniqueId,
-                    uniqueId: md5(uniqueId),
-                    hardwareVersion: versions.versionNum,
-                    hardwareVersionString: versions.versionStr,
-                    softwareVersion: versions.versionNum,
-                    softwareVersionString: versions.versionStr,
-                    reachable: true,
-                },
-            });
+            );
+            this.registerMaintenanceClusters(this.serverNode, ioBrokerDevice);
         } catch (error) {
             await mappingDevice.destroy();
             throw error;
@@ -147,7 +163,8 @@ class Device extends BaseServerNode {
             throw new Error(`Could not add any endpoint to device`);
         }
         await mappingDevice.init();
-        await initializeUnreachableStateHandler(this.serverNode, ioBrokerDevice);
+        await this.initializeUnreachableStateHandler(this.serverNode, ioBrokerDevice);
+        this.initializeMaintenanceStateHandlers(this.serverNode, ioBrokerDevice);
 
         this.registerServerNodeHandlers();
     }

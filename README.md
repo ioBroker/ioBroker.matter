@@ -222,27 +222,7 @@ TBD
 ## Changelog
 
 ### __WORK IN PROGRESS__
-* (@bluefox) Fixes progress dialog for DM - used when deleting a node
-* (@bluefox) Synchronizes the "do not ask again on delete" time with admin and set to 5 minutes
-* (@bluefox) Optimizes bridges display for different color schemes
-* (@bluefox) Allows to collapse the information blocks at the top of the pages
-* (@bluefox) Adds an ioBroker Logo when display commissioned controllers
-* (@bluefox/@apollon77) Adds additional details and error state also for devices and bridged devices
-* (@bluefox/@apollon77) Always display QR code to allow additional pairing for device and bridges from adapter UI
-* (@bluefox) Optimizes several messages nd approval dialogs
-* (@bluefox) Adds a welcome dialog for new users
-* (@bluefox) Adds user guidance for big unpaired bridges
-* (@Apollon77) Adds Illuminance and Button/ButtonSensor (Switch) device type
-* (@Apollon77) Changes/Optimizes naming structure for paired devices and sub-endpoints
-* (@Apollon77) Adds information when Matter device types are not yet supported to look into objects for details
-* (@Apollon77) Resets connection status when a controller node is disconnected, also on adapter stop
-* (@Apollon77) Cleans up internal data structures when a node gets deleted for controller
-* (@Apollon77) Uses the configured device type when finding multiple types in the backend
-* (@Apollon77) Adjusts UI device type detection to differentiate between supported and other types
-* (@Apollon77) Makes sure that controller configuration changes are executed sequentially
-* (@Apollon77) Added Transition Time handling for Dimmer and Ct device types in both directions
-* (@Apollon77) Added Low-Battery and Battery-percent for all device types in both directions
-* (@Apollon77) Added Ethernet Network Commissioning Cluster to prevent issues with Tuya
+* (Apollon77/bluefox) Contains many changes in Frontend and Backend including updates and new Feature. Please check the Changelog.
 
 ### 0.2.7 (2024-12-08)
 * (@Apollon77) Cleans up objects when a controller node is deleted

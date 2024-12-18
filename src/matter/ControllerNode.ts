@@ -1,4 +1,4 @@
-import { type Environment, Logger, NodeId, singleton, VendorId } from '@matter/main';
+import { type Environment, Logger, NodeId, singleton, VendorId, type ServerAddressIp } from '@matter/main';
 import { GeneralCommissioning } from '@matter/main/clusters';
 import {
     Ble,
@@ -148,7 +148,7 @@ class Controller implements GeneralNode {
                     const status = this.#commissioningStatus.get(pollingId);
                     if (status === undefined) {
                         this.#adapter.log.warn(`No commissioning process with pollingId ${pollingId} found`);
-                        return { error: `No commissioning process with pollingId ${pollingId} found` };
+                        return { error: `No commissioning process with pollingId ${pollingId} found.` };
                     }
                     const { status: statusText, result } = status;
                     this.#adapter.log.debug(
@@ -353,6 +353,7 @@ class Controller implements GeneralNode {
         let longDiscriminator: number | undefined = undefined;
         let productId: number | undefined = undefined;
         let vendorId: VendorId | undefined = undefined;
+        let knownAddress: ServerAddressIp | undefined = undefined;
         if ('manualCode' in data) {
             const pairingCodeCodec = ManualPairingCodeCodec.decode(data.manualCode);
             shortDiscriminator = pairingCodeCodec.shortDiscriminator;
@@ -370,6 +371,21 @@ class Controller implements GeneralNode {
             // TODO also try ip/port once matter.js can use this without a full discoverableDevice
             vendorId = VendorId(data.vendorId);
             productId = data.productId;
+            if (data.ip && data.port) {
+                // Mainly Android
+                if (data.ip.startsWith('/')) {
+                    // Sometimes strange character is there
+                    data.ip = data.ip.substring(1);
+                }
+                // Link local addresses from Mobile devices are not really useful
+                if (!data.ip.startsWith('fe80')) {
+                    knownAddress = {
+                        type: 'udp',
+                        ip: data.ip,
+                        port: data.port,
+                    };
+                }
+            }
         }
         const { device } = data;
         if (device) {
@@ -386,6 +402,7 @@ class Controller implements GeneralNode {
             ...this.nodeConnectSettings,
             commissioning: commissioningOptions,
             discovery: {
+                knownAddress,
                 commissionableDevice: device || undefined,
                 identifierData:
                     longDiscriminator !== undefined

@@ -113,7 +113,9 @@ class Controller implements GeneralNode {
             switch (command) {
                 case 'controllerDiscovery':
                     // Discover for Matter devices in the IP and potentially BLE network
-                    return { result: await this.#discovery() };
+                    // Response is handled by method and runs asynchronous
+                    await this.#discovery(obj);
+                    break;
                 case 'controllerDiscoveryStop':
                     // Stop Discovery
                     if (this.#discovering) {
@@ -458,32 +460,50 @@ class Controller implements GeneralNode {
         this.#adapter.log.debug(`Commissioning successfully completed with nodeId "${nodeId}"`);
     }
 
-    async #discovery(): Promise<CommissionableDevice[] | null> {
+    async #discovery(obj: ioBroker.Message): Promise<void> {
         if (!this.#commissioningController) {
-            return null;
+            return;
         }
         await this.#adapter.setState('controller.info.discovering', true, true);
         this.#discovering = true;
         this.#adapter.log.info(`Start the discovering...`);
-        const result = await this.#commissioningController.discoverCommissionableDevices(
-            {},
-            {
-                ble: this.#useBle,
-                onIpNetwork: true,
-            },
-            device => {
-                this.#adapter.log.debug(`Found: ${Logger.toJSON(device)}`);
-                void this.#adapter.sendToGui({
-                    command: 'discoveredDevice',
-                    device,
-                });
-            },
-            60, // timeoutSeconds
-        );
-        this.#adapter.log.info(`Discovering stopped. Found ${result.length} devices.`);
-        await this.#adapter.setState('controller.info.discovering', false, true);
-        this.#discovering = false;
-        return result;
+        this.#commissioningController
+            .discoverCommissionableDevices(
+                {},
+                {
+                    ble: this.#useBle,
+                    onIpNetwork: true,
+                },
+                device => {
+                    this.#adapter.log.debug(`Discovered Device: ${Logger.toJSON(device)}`);
+                    if (!this.#discovering) {
+                        void this.#adapter.sendToGui({
+                            command: 'discoveredDevice',
+                            device,
+                        });
+                    }
+                },
+                60, // timeoutSeconds
+            )
+            .then(result => {
+                this.#adapter.log.info(`Discovering stopped. Found ${result.length} devices.`);
+                if (this.#discovering) {
+                    this.#adapter
+                        .setState('controller.info.discovering', false, true)
+                        .catch(error => this.#adapter.log.info(`Error setting state: ${error}`));
+                    this.#discovering = false;
+                    if (obj.callback) {
+                        this.#adapter.sendTo(obj.from, obj.command, result, obj.callback);
+                    }
+                }
+            })
+            .catch(error => {
+                const errorText = inspect(error, { depth: 10 });
+                this.#adapter.log.warn(`Error while handling command "${obj.command}" for controller: ${errorText}`);
+                if (obj.callback) {
+                    this.#adapter.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
+                }
+            });
     }
 
     async #discoveryStop(): Promise<void> {

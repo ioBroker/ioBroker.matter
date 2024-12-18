@@ -1623,6 +1623,49 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 {this.props.matter.bridges.length ? (
                     <div>
                         <Tooltip
+                            title={I18n.t('Add bridge')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        >
+                            <Fab
+                                color="primary"
+                                size="small"
+                                onClick={async () => {
+                                    const isLicenseOk = await this.props.checkLicenseOnAdd('addBridge');
+                                    if (!isLicenseOk) {
+                                        this.props.alive &&
+                                            this.props.showToast(
+                                                'You need ioBroker.pro assistant or remote subscription to have more than one bridge',
+                                            );
+                                        return;
+                                    }
+                                    let i = 1;
+                                    const name = `${I18n.t('New bridge')} `;
+                                    while (this.props.matter.bridges.find(b => b.name === name + i)) {
+                                        i++;
+                                    }
+                                    this.setState({
+                                        editBridgeDialog: {
+                                            type: 'bridge',
+                                            name: name + i,
+                                            originalName: '',
+                                            add: true,
+                                            vendorID: '0xFFF1',
+                                            originalVendorID: '0xFFF1',
+                                            productID: '0x8000',
+                                            originalProductID: '0x8000',
+                                        },
+                                    });
+                                }}
+                                style={{
+                                    width: 36,
+                                    height: 36,
+                                    marginBottom: 4,
+                                }}
+                            >
+                                <Add />
+                            </Fab>
+                        </Tooltip>
+                        <Tooltip
                             title={I18n.t('Expand all')}
                             slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                         >
@@ -1663,44 +1706,6 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                     <UnfoldLess />
                                 </IconButton>
                             </span>
-                        </Tooltip>
-                        <Tooltip
-                            title={I18n.t('Add bridge')}
-                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
-                        >
-                            <Fab
-                                color="primary"
-                                size="small"
-                                onClick={async () => {
-                                    const isLicenseOk = await this.props.checkLicenseOnAdd('addBridge');
-                                    if (!isLicenseOk) {
-                                        this.props.alive &&
-                                        this.props.showToast(
-                                            'You need ioBroker.pro assistant or remote subscription to have more than one bridge',
-                                        );
-                                        return;
-                                    }
-                                    let i = 1;
-                                    const name = `${I18n.t('New bridge')} `;
-                                    while (this.props.matter.bridges.find(b => b.name === name + i)) {
-                                        i++;
-                                    }
-                                    this.setState({
-                                        editBridgeDialog: {
-                                            type: 'bridge',
-                                            name: name + i,
-                                            originalName: '',
-                                            add: true,
-                                            vendorID: '0xFFF1',
-                                            originalVendorID: '0xFFF1',
-                                            productID: '0x8000',
-                                            originalProductID: '0x8000',
-                                        },
-                                    });
-                                }}
-                            >
-                                <Add />
-                            </Fab>
                         </Tooltip>
                     </div>
                 ) : (

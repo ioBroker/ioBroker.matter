@@ -1036,6 +1036,10 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 addDevicePreDialog: true,
                             })
                         }
+                        style={{
+                            width: 36,
+                            height: 36,
+                        }}
                     >
                         <Add />
                     </Fab>

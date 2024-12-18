@@ -43,7 +43,7 @@ class Motion extends GenericDevice {
     }
 
     hasBrightness(): boolean {
-        return this.propertyNames.includes(PropertyType.Brightness);
+        return !!this.#getBrightnessState;
     }
 
     getBrightness(): number | undefined {

@@ -2,7 +2,7 @@ import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateOb
 import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
 class Humidity extends GenericDevice {
-    #getValueState?: DeviceStateObject<number>;
+    #getHumidityState?: DeviceStateObject<number>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
@@ -14,24 +14,24 @@ class Humidity extends GenericDevice {
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Humidity,
-                    callback: state => (this.#getValueState = state),
+                    callback: state => (this.#getHumidityState = state),
                 },
             ]),
         );
     }
 
     getHumidity(): number | undefined {
-        if (!this.#getValueState) {
+        if (!this.#getHumidityState) {
             throw new Error('Value state not found');
         }
-        return this.#getValueState.value;
+        return this.#getHumidityState.value;
     }
 
     async updateHumidity(value: number): Promise<void> {
-        if (!this.#getValueState) {
+        if (!this.#getHumidityState) {
             throw new Error('Value state not found');
         }
-        await this.#getValueState.updateValue(value);
+        await this.#getHumidityState.updateValue(value);
     }
 }
 

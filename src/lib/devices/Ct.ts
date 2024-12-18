@@ -3,13 +3,13 @@ import ElectricityDataDevice from './ElectricityDataDevice';
 import { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
 class Ct extends ElectricityDataDevice {
-    #dimmer?: DeviceStateObject<number>;
-    #brightness?: DeviceStateObject<number>;
-    #saturation?: DeviceStateObject<number>;
-    #temperature?: DeviceStateObject<number>;
-    #setPower?: DeviceStateObject<boolean>;
-    #getPower?: DeviceStateObject<boolean>;
-    #transitionTime?: DeviceStateObject<number>;
+    #dimmerState?: DeviceStateObject<number>;
+    #brightnessState?: DeviceStateObject<number>;
+    //#saturationState?: DeviceStateObject<number>; //Makes no sense!
+    #temperatureState?: DeviceStateObject<number>;
+    #setPowerState?: DeviceStateObject<boolean>;
+    #getPowerState?: DeviceStateObject<boolean>;
+    #transitionTimeState?: DeviceStateObject<number>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
@@ -21,28 +21,29 @@ class Ct extends ElectricityDataDevice {
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Dimmer,
-                    callback: state => (this.#dimmer = state),
+                    callback: state => (this.#dimmerState = state),
                 },
                 {
                     name: 'BRIGHTNESS',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Brightness,
-                    callback: state => (this.#brightness = state),
+                    callback: state => (this.#brightnessState = state),
                 },
+                /* Even if this state is defined for the device type it makes no sense on a Color Temperature Light, so ignore it
                 {
                     name: 'SATURATION',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Saturation,
-                    callback: state => (this.#saturation = state),
-                },
+                    callback: state => (this.#saturationState = state),
+                },*/
                 {
                     name: 'TEMPERATURE',
                     valueType: ValueType.NumberMinMax,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Temperature,
-                    callback: state => (this.#temperature = state),
+                    callback: state => (this.#temperatureState = state),
                     unitConversionMap: {
                         mireds: value => Math.round(1_000_000 / value),
                     },
@@ -53,21 +54,21 @@ class Ct extends ElectricityDataDevice {
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.Read,
                     type: PropertyType.PowerActual,
-                    callback: state => (this.#getPower = state),
+                    callback: state => (this.#getPowerState = state),
                 },
                 {
                     name: 'ON',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Power,
-                    callback: state => (this.#setPower = state),
+                    callback: state => (this.#setPowerState = state),
                 },
                 {
                     name: 'TRANSITION_TIME',
                     valueType: ValueType.Number,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.TransitionTime,
-                    callback: state => (this.#transitionTime = state),
+                    callback: state => (this.#transitionTimeState = state),
                     unitConversionMap: {
                         // Default is ms
                         s: (value: number, toDefaultUnit: boolean): number =>
@@ -79,169 +80,168 @@ class Ct extends ElectricityDataDevice {
     }
 
     getDimmer(): number | undefined {
-        if (!this.#dimmer) {
-            if (!this.#brightness) {
+        if (!this.#dimmerState) {
+            if (!this.#brightnessState) {
                 throw new Error('Dimmer state not found');
             }
-            return this.#brightness.value;
+            return this.#brightnessState.value;
         }
-        return this.#dimmer.value;
+        return this.#dimmerState.value;
     }
 
     async updateDimmer(value: number): Promise<void> {
-        if (!this.#dimmer) {
-            if (!this.#brightness) {
+        if (!this.#dimmerState) {
+            if (!this.#brightnessState) {
                 throw new Error('Dimmer state not found');
             }
-            return this.#brightness.updateValue(value);
+            return this.#brightnessState.updateValue(value);
         }
-        await this.#dimmer.updateValue(value);
+        await this.#dimmerState.updateValue(value);
     }
 
     async setDimmer(value: number): Promise<void> {
-        if (!this.#dimmer) {
-            if (!this.#brightness) {
+        if (!this.#dimmerState) {
+            if (!this.#brightnessState) {
                 throw new Error('Dimmer state not found');
             }
-            return this.#brightness.setValue(value);
+            return this.#brightnessState.setValue(value);
         }
-        return this.#dimmer.setValue(value);
+        return this.#dimmerState.setValue(value);
     }
 
     hasDimmer(): boolean {
-        return this.propertyNames.includes(PropertyType.Dimmer) || this.propertyNames.includes(PropertyType.Brightness);
+        return !!this.#dimmerState || !!this.#brightnessState;
     }
 
     getBrightness(): number | undefined {
-        if (!this.#brightness) {
+        if (!this.#brightnessState) {
             throw new Error('Brightness state not found');
         }
-        return this.#brightness.value;
+        return this.#brightnessState.value;
     }
 
     async updateBrightness(value: number): Promise<void> {
-        if (!this.#brightness) {
+        if (!this.#brightnessState) {
             throw new Error('Brightness state not found');
         }
-        await this.#brightness.updateValue(value);
+        await this.#brightnessState.updateValue(value);
     }
 
     async setBrightness(value: number): Promise<void> {
-        if (!this.#brightness) {
+        if (!this.#brightnessState) {
             throw new Error('Brightness state not found');
         }
-        return this.#brightness.setValue(value);
+        return this.#brightnessState.setValue(value);
     }
 
+    /*
     getSaturation(): number | undefined {
-        if (!this.#saturation) {
+        if (!this.#saturationState) {
             throw new Error('Saturation state not found');
         }
-        return this.#saturation.value;
+        return this.#saturationState.value;
     }
 
     async setSaturation(value: number): Promise<void> {
-        if (!this.#saturation) {
+        if (!this.#saturationState) {
             throw new Error('Saturation state not found');
         }
-        return this.#saturation.setValue(value);
+        return this.#saturationState.setValue(value);
     }
+    */
 
     getTemperature(): number | undefined {
-        if (!this.#temperature) {
+        if (!this.#temperatureState) {
             throw new Error('Temperature state not found');
         }
-        return this.#temperature.value;
+        return this.#temperatureState.value;
     }
 
     getTemperatureMinMax(): { min: number; max: number } | null {
-        if (!this.#temperature) {
+        if (!this.#temperatureState) {
             throw new Error('Temperature state not found');
         }
-        return this.#temperature.getMinMax();
+        return this.#temperatureState.getMinMax();
     }
 
     async updateTemperature(value: number): Promise<void> {
-        if (!this.#temperature) {
+        if (!this.#temperatureState) {
             throw new Error('Temperature state not found');
         }
-        await this.#temperature.updateValue(value);
+        await this.#temperatureState.updateValue(value);
     }
 
     async setTemperature(value: number): Promise<void> {
-        if (!this.#temperature) {
+        if (!this.#temperatureState) {
             throw new Error('Temperature state not found');
         }
-        return this.#temperature.setValue(value);
+        return this.#temperatureState.setValue(value);
     }
 
     getPower(): boolean | undefined {
-        if (!this.#getPower && !this.#setPower) {
+        if (!this.#getPowerState && !this.#setPowerState) {
             throw new Error('On state not found');
         }
-        return (this.#getPower || this.#setPower)?.value;
+        return (this.#getPowerState || this.#setPowerState)?.value;
     }
 
     async setPower(value: boolean): Promise<void> {
-        if (!this.#setPower) {
+        if (!this.#setPowerState) {
             throw new Error('On state not found');
         }
-        return this.#setPower.setValue(value);
+        return this.#setPowerState.setValue(value);
     }
 
     async updatePower(value: boolean): Promise<void> {
-        if (!this.#getPower && !this.#setPower) {
+        if (!this.#getPowerState && !this.#setPowerState) {
             throw new Error('Power state not found');
         }
-        if (this.#getPower) {
-            await this.#getPower.updateValue(value);
-        }
-        if (this.#setPower) {
-            await this.#setPower.updateValue(value);
-        }
+        await this.#getPowerState?.updateValue(value);
+        await this.#setPowerState?.updateValue(value);
     }
 
     hasPower(): boolean {
-        return this.propertyNames.includes(PropertyType.Power);
+        return !!this.#getPowerState;
     }
 
     getPowerActual(): boolean | undefined {
-        if (!this.#getPower) {
+        if (!this.#getPowerState) {
             throw new Error('PowerActual state not found');
         }
-        return this.#getPower.value;
+        return this.#getPowerState.value;
     }
 
     async updatePowerActual(value: boolean): Promise<void> {
-        if (!this.#getPower) {
+        if (!this.#getPowerState) {
             throw new Error('PowerActual state not found');
         }
-        await this.#getPower.updateValue(value);
+        await this.#getPowerState.updateValue(value);
+        await this.#setPowerState?.updateValue(value);
     }
 
     hasTransitionTime(): boolean {
-        return this.propertyNames.includes(PropertyType.TransitionTime);
+        return !!this.#transitionTimeState;
     }
 
     getTransitionTime(): number | undefined {
-        if (!this.#transitionTime) {
+        if (!this.#transitionTimeState) {
             throw new Error('TransitionTime state not found');
         }
-        return this.#transitionTime.value;
+        return this.#transitionTimeState.value;
     }
 
     setTransitionTime(value: number): Promise<void> {
-        if (!this.#transitionTime) {
+        if (!this.#transitionTimeState) {
             throw new Error('TransitionTime state not found');
         }
-        return this.#transitionTime.setValue(value);
+        return this.#transitionTimeState.setValue(value);
     }
 
     updateTransitionTime(value: number): Promise<void> {
-        if (!this.#transitionTime) {
+        if (!this.#transitionTimeState) {
             throw new Error('TransitionTime state not found');
         }
-        return this.#transitionTime.updateValue(value);
+        return this.#transitionTimeState.updateValue(value);
     }
 }
 

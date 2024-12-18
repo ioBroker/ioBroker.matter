@@ -147,10 +147,9 @@ export abstract class GenericDeviceToIoBroker {
     }
 
     #enablePowerSourceStates(): void {
-        const endpointId = this.appEndpoint.getNumber();
-
         const powerSource = this.appEndpoint.getClusterClient(PowerSource.Complete);
-        if (powerSource !== undefined && powerSource.supportedFeatures.battery) {
+        if (powerSource !== undefined) {
+            const endpointId = this.appEndpoint.getNumber();
             this.enableDeviceTypeStateForAttribute(PropertyType.LowBattery, {
                 endpointId,
                 clusterId: PowerSource.Cluster.id,
@@ -163,7 +162,7 @@ export abstract class GenericDeviceToIoBroker {
                 attributeName: 'batPercentRemaining',
                 convertValue: value => Math.round(value / 2),
             });
-        } else if (powerSource === undefined) {
+        } else {
             const rootPowerSource = this.#rootEndpoint.getClusterClient(PowerSource.Complete);
             if (rootPowerSource !== undefined && rootPowerSource.supportedFeatures.battery) {
                 this.enableDeviceTypeStateForAttribute(PropertyType.LowBattery, {

@@ -1036,11 +1036,6 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 addDevicePreDialog: true,
                             })
                         }
-                        style={{
-                            position: 'absolute',
-                            right: 15,
-                            bottom: 10,
-                        }}
                     >
                         <Add />
                     </Fab>

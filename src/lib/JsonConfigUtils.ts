@@ -21,6 +21,7 @@ export function convertDataToJsonConfig(data: StructuredJsonFormData): JsonFormS
     for (const key in data) {
         panelCount++;
         const tabItems: Record<string, ConfigItemAny> = {};
+        let lastControl: null | 'state';
 
         for (const subKey in data[key]) {
             const flatKey = `${key}_${subKey}`;
@@ -43,7 +44,7 @@ export function convertDataToJsonConfig(data: StructuredJsonFormData): JsonFormS
                 tabItems[flatKey] = {
                     type: 'staticText',
                     text: String(data[key][subKey]),
-                    style: { fontSize: 10, fontStyle: 'italic', marginTop: -20 },
+                    style: { fontSize: 10, fontStyle: 'italic', marginTop: -8 },
                 };
                 continue;
             }

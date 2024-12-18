@@ -43,7 +43,7 @@ export function convertDataToJsonConfig(data: StructuredJsonFormData): JsonFormS
                 tabItems[flatKey] = {
                     type: 'staticText',
                     text: String(data[key][subKey]),
-                    style: { fontSize: 10, fontStyle: 'italic' },
+                    style: { fontSize: 10, fontStyle: 'italic', marginTop: -20 },
                 };
                 continue;
             }

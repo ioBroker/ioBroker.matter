@@ -120,6 +120,9 @@ class App extends GenericApp<GenericAppProps, AppState> {
 
     private controllerMessageHandler: ((_message: GUIMessage | null) => void) | null = null;
 
+    private readonly isTab: boolean =
+        window.location.pathname.includes('tab_m.html') || window.location.search.includes('tab=');
+
     constructor(props: GenericAppProps) {
         const extendedProps: GenericAppProps = { ...props };
         // @ts-expect-error no idea how to fix it
@@ -147,9 +150,14 @@ class App extends GenericApp<GenericAppProps, AppState> {
 
         super(props, extendedProps);
 
+        let selectedTab =
+            window.localStorage.getItem(`${this.adapterName}.${this.instance}.selectedTab`) || 'controller';
+        if (this.isTab && selectedTab === 'options') {
+            selectedTab = 'controller';
+        }
+
         Object.assign(this.state, {
-            selectedTab:
-                window.localStorage.getItem(`${this.adapterName}.${this.instance}.selectedTab`) || 'controller',
+            selectedTab,
             alive: false,
             backendRunning: false,
             nodeStates: {},
@@ -259,7 +267,9 @@ class App extends GenericApp<GenericAppProps, AppState> {
 
         const alive = await this.socket.getState(`system.adapter.matter.${this.instance}.alive`);
 
-        const welcomeDialog = await this.socket.getState(`matter.${this.instance}.info.welcomeDialog`);
+        const welcomeDialog = this.isTab
+            ? null
+            : await this.socket.getState(`matter.${this.instance}.info.welcomeDialog`);
 
         if (alive?.val) {
             this.refreshBackendSubscription(true);
@@ -270,7 +280,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             commissioning,
             ready: true,
             alive: !!alive?.val,
-            showWelcomeDialog: !welcomeDialog?.val,
+            showWelcomeDialog: this.isTab ? false : !welcomeDialog?.val,
             welcomeDialogShowed: !!welcomeDialog?.val,
         });
     }
@@ -679,11 +689,13 @@ class App extends GenericApp<GenericAppProps, AppState> {
                                 scrollButtons="auto"
                                 sx={{ '& .MuiTabs-indicator': styles.indicator }}
                             >
-                                <Tab
-                                    sx={{ '&.Mui-selected': styles.selected }}
-                                    label={I18n.t('General')}
-                                    value="options"
-                                />
+                                {this.isTab ? null : (
+                                    <Tab
+                                        sx={{ '&.Mui-selected': styles.selected }}
+                                        label={I18n.t('General')}
+                                        value="options"
+                                    />
+                                )}
                                 <Tab
                                     sx={{ '&.Mui-selected': styles.selected }}
                                     label={I18n.t('Controller')}

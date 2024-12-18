@@ -21,6 +21,7 @@ async function patch() {
         process.exit(2);
     }
     copyFileSync(`${__dirname}/src-admin/build/index.html`, `${__dirname}/admin/index_m.html`);
+    copyFileSync(`${__dirname}/src-admin/build/index.html`, `${__dirname}/admin/tab_m.html`);
 }
 
 if (process.argv.includes('--0-clean')) {

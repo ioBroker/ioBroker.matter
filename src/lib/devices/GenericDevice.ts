@@ -659,11 +659,10 @@ abstract class GenericDevice {
             };
             if (includeObjectIds) {
                 if (write !== read && write && read) {
-                    states[`__text__${name}`] = `Write: ${write}, Read: ${read}`;
+                    states[`__smalltext__${name}`] = `Write: ${write}, Read: ${read}`;
                 } else {
-                    states[`__text__${name}`] = write ?? read;
+                    states[`__smalltext__${name}`] = write ?? read;
                 }
-                states[`__divider__${name}`] = true;
             }
         });
 

@@ -35,37 +35,45 @@ const fakedAccuracyDetails = {
 export abstract class GenericElectricityDataDeviceToMatter extends GenericDeviceToMatter {
     #powerClusterAdded = false;
     #energyClusterAdded = false;
+    #hasActivePower = false;
+    #hasActiveCurrent = false;
+    #hasVoltage = false;
+    #hasFrequency = false;
 
     protected addElectricityDataClusters(endpoint: Endpoint<any>, ioBrokerDevice: ElectricityDataDevice): void {
         const measuredAccuracies = [];
         const initialValues: any = {};
-        if (ioBrokerDevice.propertyNames.includes(PropertyType.ElectricPower)) {
+        if (ioBrokerDevice.hasElectricPower()) {
             measuredAccuracies.push({
                 measurementType: MeasurementType.ActivePower,
                 ...fakedAccuracyDetails,
             });
             initialValues.activePower = null;
+            this.#hasActivePower = true;
         }
-        if (ioBrokerDevice.propertyNames.includes(PropertyType.Current)) {
+        if (ioBrokerDevice.hasCurrent()) {
             measuredAccuracies.push({
                 measurementType: MeasurementType.ActiveCurrent,
                 ...fakedAccuracyDetails,
             });
             initialValues.activeCurrent = null;
+            this.#hasActiveCurrent = true;
         }
-        if (ioBrokerDevice.propertyNames.includes(PropertyType.Voltage)) {
+        if (ioBrokerDevice.hasVoltage()) {
             measuredAccuracies.push({
                 measurementType: MeasurementType.Voltage,
                 ...fakedAccuracyDetails,
             });
             initialValues.voltage = null;
+            this.#hasVoltage = true;
         }
-        if (ioBrokerDevice.propertyNames.includes(PropertyType.Frequency)) {
+        if (ioBrokerDevice.hasFrequency()) {
             measuredAccuracies.push({
                 measurementType: MeasurementType.Frequency,
                 ...fakedAccuracyDetails,
             });
             initialValues.frequency = null;
+            this.#hasFrequency = true;
         }
 
         if (measuredAccuracies.length) {
@@ -82,7 +90,7 @@ export abstract class GenericElectricityDataDeviceToMatter extends GenericDevice
             this.#powerClusterAdded = true;
         }
 
-        if (ioBrokerDevice.propertyNames.includes(PropertyType.Consumption)) {
+        if (ioBrokerDevice.hasConsumption()) {
             // Adds the ElectricalEnergyMeasurement cluster to the endpoint
             endpoint.behaviors.require(
                 ElectricalEnergyMeasurementServer.with(
@@ -113,10 +121,10 @@ export abstract class GenericElectricityDataDeviceToMatter extends GenericDevice
     }
 
     #getPowerValues(ioBrokerDevice: ElectricityDataDevice): PowerValues {
-        const electricalPower = ioBrokerDevice.getElectricPower();
-        const current = ioBrokerDevice.getCurrent();
-        const voltage = ioBrokerDevice.getVoltage();
-        const frequency = ioBrokerDevice.getFrequency();
+        const electricalPower = this.#hasActivePower ? ioBrokerDevice.getElectricPower() : undefined;
+        const current = this.#hasActiveCurrent ? ioBrokerDevice.getCurrent() : undefined;
+        const voltage = this.#hasVoltage ? ioBrokerDevice.getVoltage() : undefined;
+        const frequency = this.#hasFrequency ? ioBrokerDevice.getFrequency() : undefined;
 
         return {
             activePower: typeof electricalPower === 'number' ? electricalPower * 1000 : null, // mW

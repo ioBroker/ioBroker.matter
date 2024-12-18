@@ -1353,7 +1353,7 @@ export class MatterAdapter extends utils.Adapter {
     async deleteBridgeOrDevice(type: 'bridge' | 'device', id: string, uuid: string): Promise<void> {
         await this.stopBridgeOrDevice(type, id);
         const storage = new IoBrokerObjectStorage(this, uuid);
-        await storage.clearAll();
+        await storage.clear();
     }
 
     getGenericErrorDetails(

@@ -7,7 +7,7 @@ class Dimmer extends ElectricityDataDevice {
     #getLevelState?: DeviceStateObject<number>;
     #setPowerState?: DeviceStateObject<boolean>;
     #getPowerState?: DeviceStateObject<boolean>;
-    #transitionTime?: DeviceStateObject<number>;
+    #transitionTimeState?: DeviceStateObject<number>;
     #lastNotZeroLevel?: number;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
@@ -48,7 +48,7 @@ class Dimmer extends ElectricityDataDevice {
                     valueType: ValueType.Number,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.TransitionTime,
-                    callback: state => (this.#transitionTime = state),
+                    callback: state => (this.#transitionTimeState = state),
                     unitConversionMap: {
                         // Default is ms
                         s: (value: number, toDefaultUnit: boolean): number =>
@@ -78,6 +78,14 @@ class Dimmer extends ElectricityDataDevice {
         return this.#setLevelState.setValue(value);
     }
 
+    async updateLevel(value: number): Promise<void> {
+        if (!this.#setLevelState && !this.#getLevelState) {
+            throw new Error('Level state not found');
+        }
+        await this.#setLevelState?.updateValue(value);
+        await this.#getLevelState?.updateValue(value);
+    }
+
     getLevelActual(): number | undefined {
         if (!this.#getLevelState) {
             throw new Error('Level state not found');
@@ -85,23 +93,12 @@ class Dimmer extends ElectricityDataDevice {
         return this.#getLevelState.value;
     }
 
-    async updateLevel(value: number): Promise<void> {
-        if (!this.#setLevelState && !this.#getLevelState) {
-            throw new Error('Level state not found');
-        }
-        if (this.#setLevelState) {
-            await this.#setLevelState.updateValue(value);
-        }
-        if (this.#getLevelState) {
-            await this.#getLevelState.updateValue(value);
-        }
-    }
-
     async updateLevelActual(value: number): Promise<void> {
         if (!this.#getLevelState) {
             throw new Error('Level state not found');
         }
         await this.#getLevelState.updateValue(value);
+        await this.#setLevelState?.updateValue(value);
     }
 
     getPower(): boolean | undefined {
@@ -116,13 +113,6 @@ class Dimmer extends ElectricityDataDevice {
             return (state.value || 0) > 0;
         }
         return undefined;
-    }
-
-    getPowerActual(): boolean | undefined {
-        if (!this.#getPowerState) {
-            throw new Error('Power state not found');
-        }
-        return this.#getPowerState.value;
     }
 
     async setPower(value: boolean): Promise<void> {
@@ -150,16 +140,19 @@ class Dimmer extends ElectricityDataDevice {
         if (!this.#setPowerState && !this.#getPowerState) {
             throw new Error('Power state not found');
         }
-        if (this.#setPowerState) {
-            await this.#setPowerState.updateValue(value);
-        }
-        if (this.#getPowerState) {
-            await this.#getPowerState.updateValue(value);
-        }
+        await this.#setPowerState?.updateValue(value);
+        await this.#getPowerState?.updateValue(value);
     }
 
     hasPower(): boolean {
-        return this.propertyNames.includes(PropertyType.Power);
+        return !!this.#setPowerState;
+    }
+
+    getPowerActual(): boolean | undefined {
+        if (!this.#getPowerState) {
+            throw new Error('Power state not found');
+        }
+        return this.#getPowerState.value;
     }
 
     async updatePowerActual(value: boolean): Promise<void> {
@@ -167,31 +160,32 @@ class Dimmer extends ElectricityDataDevice {
             throw new Error('Power state not found');
         }
         await this.#getPowerState.updateValue(value);
+        await this.#setPowerState?.updateValue(value);
     }
 
     hasTransitionTime(): boolean {
-        return this.propertyNames.includes(PropertyType.TransitionTime);
+        return !!this.#transitionTimeState;
     }
 
     getTransitionTime(): number | undefined {
-        if (!this.#transitionTime) {
+        if (!this.#transitionTimeState) {
             throw new Error('TransitionTime state not found');
         }
-        return this.#transitionTime.value;
+        return this.#transitionTimeState.value;
     }
 
     setTransitionTime(value: number): Promise<void> {
-        if (!this.#transitionTime) {
+        if (!this.#transitionTimeState) {
             throw new Error('TransitionTime state not found');
         }
-        return this.#transitionTime.setValue(value);
+        return this.#transitionTimeState.setValue(value);
     }
 
     updateTransitionTime(value: number): Promise<void> {
-        if (!this.#transitionTime) {
+        if (!this.#transitionTimeState) {
             throw new Error('TransitionTime state not found');
         }
-        return this.#transitionTime.updateValue(value);
+        return this.#transitionTimeState.updateValue(value);
     }
 }
 

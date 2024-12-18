@@ -1,4 +1,4 @@
-import { type Environment, Logger, NodeId, singleton, VendorId } from '@matter/main';
+import { type Environment, Logger, NodeId, singleton, VendorId, type ServerAddressIp } from '@matter/main';
 import { GeneralCommissioning } from '@matter/main/clusters';
 import {
     Ble,
@@ -40,7 +40,7 @@ class Controller implements GeneralNode {
     #parameters: MatterControllerConfig;
     readonly #adapter: MatterAdapter;
     readonly #matterEnvironment: Environment;
-    readonly updateCallback: () => void;
+    readonly #updateCallback: () => void;
     #commissioningController?: CommissioningController;
     #nodes = new Map<string, GeneralMatterNode>();
     #connected: { [nodeId: string]: boolean } = {};
@@ -52,7 +52,7 @@ class Controller implements GeneralNode {
         this.#adapter = options.adapter;
         this.#parameters = options.controllerOptions;
         this.#matterEnvironment = options.matterEnvironment;
-        this.updateCallback = options.updateCallback;
+        this.#updateCallback = options.updateCallback;
     }
 
     get nodes(): Map<string, GeneralMatterNode> {
@@ -113,7 +113,9 @@ class Controller implements GeneralNode {
             switch (command) {
                 case 'controllerDiscovery':
                     // Discover for Matter devices in the IP and potentially BLE network
-                    return { result: await this.#discovery() };
+                    // Response is handled by method and runs asynchronous
+                    await this.#discovery(obj);
+                    break;
                 case 'controllerDiscoveryStop':
                     // Stop Discovery
                     if (this.#discovering) {
@@ -148,7 +150,7 @@ class Controller implements GeneralNode {
                     const status = this.#commissioningStatus.get(pollingId);
                     if (status === undefined) {
                         this.#adapter.log.warn(`No commissioning process with pollingId ${pollingId} found`);
-                        return { error: `No commissioning process with pollingId ${pollingId} found` };
+                        return { error: `No commissioning process with pollingId ${pollingId} found.` };
                     }
                     const { status: statusText, result } = status;
                     this.#adapter.log.debug(
@@ -213,15 +215,17 @@ class Controller implements GeneralNode {
             } else {
                 this.#adapter.log.info(`Matter node "${nodeIdStr}" not yet initialized ...`);
             }
-            this.updateCallback();
+            this.#updateCallback();
         });
         node.events.structureChanged.on(async () => {
             this.#adapter.log.info(`Node "${node.nodeId}" structure changed`);
             await this.nodeToIoBrokerStructure(node);
+            this.#updateCallback();
         });
         node.events.decommissioned.on(() => {
             this.#adapter.log.info(`Node "${node.nodeId}" decommissioned`);
             // TODO Delete the node from config and objects
+            this.#updateCallback();
         });
     }
 
@@ -353,6 +357,7 @@ class Controller implements GeneralNode {
         let longDiscriminator: number | undefined = undefined;
         let productId: number | undefined = undefined;
         let vendorId: VendorId | undefined = undefined;
+        let knownAddress: ServerAddressIp | undefined = undefined;
         if ('manualCode' in data) {
             const pairingCodeCodec = ManualPairingCodeCodec.decode(data.manualCode);
             shortDiscriminator = pairingCodeCodec.shortDiscriminator;
@@ -370,6 +375,21 @@ class Controller implements GeneralNode {
             // TODO also try ip/port once matter.js can use this without a full discoverableDevice
             vendorId = VendorId(data.vendorId);
             productId = data.productId;
+            if (data.ip && data.port) {
+                // Mainly Android
+                if (data.ip.startsWith('/')) {
+                    // Sometimes strange character is there
+                    data.ip = data.ip.substring(1);
+                }
+                // Link local addresses from Mobile devices are not really useful
+                if (!data.ip.startsWith('fe80')) {
+                    knownAddress = {
+                        type: 'udp',
+                        ip: data.ip,
+                        port: data.port,
+                    };
+                }
+            }
         }
         const { device } = data;
         if (device) {
@@ -386,6 +406,7 @@ class Controller implements GeneralNode {
             ...this.nodeConnectSettings,
             commissioning: commissioningOptions,
             discovery: {
+                knownAddress,
                 commissionableDevice: device || undefined,
                 identifierData:
                     longDiscriminator !== undefined
@@ -439,34 +460,53 @@ class Controller implements GeneralNode {
         );
 
         this.#adapter.log.debug(`Commissioning successfully completed with nodeId "${nodeId}"`);
+        this.#updateCallback();
     }
 
-    async #discovery(): Promise<CommissionableDevice[] | null> {
+    async #discovery(obj: ioBroker.Message): Promise<void> {
         if (!this.#commissioningController) {
-            return null;
+            return;
         }
         await this.#adapter.setState('controller.info.discovering', true, true);
         this.#discovering = true;
         this.#adapter.log.info(`Start the discovering...`);
-        const result = await this.#commissioningController.discoverCommissionableDevices(
-            {},
-            {
-                ble: this.#useBle,
-                onIpNetwork: true,
-            },
-            device => {
-                this.#adapter.log.debug(`Found: ${Logger.toJSON(device)}`);
-                void this.#adapter.sendToGui({
-                    command: 'discoveredDevice',
-                    device,
-                });
-            },
-            60, // timeoutSeconds
-        );
-        this.#adapter.log.info(`Discovering stopped. Found ${result.length} devices.`);
-        await this.#adapter.setState('controller.info.discovering', false, true);
-        this.#discovering = false;
-        return result;
+        this.#commissioningController
+            .discoverCommissionableDevices(
+                {},
+                {
+                    ble: this.#useBle,
+                    onIpNetwork: true,
+                },
+                device => {
+                    this.#adapter.log.debug(`Discovered Device: ${Logger.toJSON(device)}`);
+                    if (!this.#discovering) {
+                        void this.#adapter.sendToGui({
+                            command: 'discoveredDevice',
+                            device,
+                        });
+                    }
+                },
+                60, // timeoutSeconds
+            )
+            .then(result => {
+                this.#adapter.log.info(`Discovering stopped. Found ${result.length} devices.`);
+                if (this.#discovering) {
+                    this.#adapter
+                        .setState('controller.info.discovering', false, true)
+                        .catch(error => this.#adapter.log.info(`Error setting state: ${error}`));
+                    this.#discovering = false;
+                    if (obj.callback) {
+                        this.#adapter.sendTo(obj.from, obj.command, result, obj.callback);
+                    }
+                }
+            })
+            .catch(error => {
+                const errorText = inspect(error, { depth: 10 });
+                this.#adapter.log.warn(`Error while handling command "${obj.command}" for controller: ${errorText}`);
+                if (obj.callback) {
+                    this.#adapter.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
+                }
+            });
     }
 
     async #discoveryStop(): Promise<void> {
@@ -522,6 +562,7 @@ class Controller implements GeneralNode {
         await this.#commissioningController.removeNode(NodeId(BigInt(nodeId)), this.#connected[nodeId]);
         delete this.#connected[nodeId];
         this.#nodes.delete(nodeId);
+        this.#updateCallback();
     }
 }
 

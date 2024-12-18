@@ -56,7 +56,7 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
 
         if (this.#clear) {
             this.initialized = true;
-            await this.clearAll();
+            await this.clear();
             return;
         }
 
@@ -70,22 +70,51 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
         this.initialized = true;
     }
 
-    async clearAll(): Promise<void> {
+    async clear(): Promise<void> {
         this.#adapter.log.warn(`[STORAGE] Clearing all storage for ${this.#storageRootOid}`);
         try {
             await this.#adapter.delObjectAsync(this.#storageRootOid, { recursive: true });
         } catch (error) {
             this.#adapter.log.error(`[STORAGE] Cannot clear all state: ${error.message}`);
         }
-        this.#existingObjectIds.clear();
         if (this.#nodeDataStorageDirectory !== undefined && this.#localStorageManager !== undefined) {
             await this.#localStorageManager.clear();
         }
+        this.#existingObjectIds.clear();
         this.#clear = false;
     }
 
+    async clearAll(contexts: string[]): Promise<void> {
+        if (!contexts.length) {
+            return;
+        }
+        if (this.#localStorageManager && this.#isLocallyStored(contexts)) {
+            this.#adapter.log.warn(`[STORAGE] Clearing all storage for ${contexts.join('$$')} in local storage`);
+            return this.#localStorageManager.clearAll(contexts);
+        }
+
+        const contextKey = `${this.#adapter.namespace}.${this.buildKey(contexts, '')}`;
+        const objs = await this.#adapter.getObjectViewAsync('system', 'state', {
+            startkey: `${contextKey}`,
+            endkey: `${contextKey}\u9999`,
+        });
+        this.#adapter.log.warn(`[STORAGE] Clearing all storage (${objs.rows.length} keys found) for ${contextKey}`);
+        const namespaceLen = this.#adapter.namespace.length + 1;
+        for (const state of objs.rows) {
+            if (state.value) {
+                const oid = state.id.substring(namespaceLen);
+                try {
+                    await this.#adapter.delObjectAsync(oid);
+                } catch (error) {
+                    this.#adapter.log.error(`[STORAGE] Cannot delete state: ${error.message}`);
+                }
+                this.#existingObjectIds.delete(oid);
+            }
+        }
+    }
+
     async close(): Promise<void> {
-        // Nothing todo
+        // Nothing to do
     }
 
     buildKey(contexts: string[], key: string): string {
@@ -96,8 +125,8 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
         if (!key.length) {
             throw new StorageError('[STORAGE] Context and key must not be empty strings!');
         }
-        if (this.#isLocallyStored(contexts)) {
-            return this.#localStorageManager?.get<T>(contexts, key);
+        if (this.#localStorageManager && this.#isLocallyStored(contexts)) {
+            return this.#localStorageManager.get<T>(contexts, key);
         }
         try {
             const valueState = await this.#adapter.getStateAsync(this.buildKey(contexts, key));
@@ -199,7 +228,7 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
         keyOrValue: string | Record<string, SupportedStorageTypes>,
         value?: SupportedStorageTypes,
     ): Promise<void> {
-        if (this.#isLocallyStored(contexts) && this.#localStorageManager) {
+        if (this.#localStorageManager && this.#isLocallyStored(contexts)) {
             // @ts-expect-error we have multi type parameters here
             return this.#localStorageManager.set(contexts, keyOrValue, value);
         }
@@ -216,7 +245,7 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
         if (!key.length) {
             throw new StorageError('[STORAGE] Context and key must not be empty strings!');
         }
-        if (this.#isLocallyStored(contexts) && this.#localStorageManager) {
+        if (this.#localStorageManager && this.#isLocallyStored(contexts)) {
             return this.#localStorageManager.delete(contexts, key);
         }
 

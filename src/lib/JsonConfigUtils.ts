@@ -39,6 +39,14 @@ export function convertDataToJsonConfig(data: StructuredJsonFormData): JsonFormS
                 };
                 continue;
             }
+            if (subKey.startsWith('__smalltext__')) {
+                tabItems[flatKey] = {
+                    type: 'staticText',
+                    text: String(data[key][subKey]),
+                    style: { fontSize: 10, fontStyle: 'italic' },
+                };
+                continue;
+            }
             if (subKey.startsWith('__divider__')) {
                 tabItems[flatKey] = {
                     type: 'divider',

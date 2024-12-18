@@ -31,10 +31,6 @@ class Temperature extends GenericDevice {
         );
     }
 
-    hasHumidity(): boolean {
-        return this.propertyNames.includes(PropertyType.Humidity);
-    }
-
     getTemperature(): number | undefined {
         if (!this.#getTemperatureState) {
             throw new Error('Value state not found');
@@ -47,6 +43,10 @@ class Temperature extends GenericDevice {
             throw new Error('Value state not found');
         }
         await this.#getTemperatureState.updateValue(value);
+    }
+
+    hasHumidity(): boolean {
+        return !!this.#getHumidityState;
     }
 
     getHumidity(): number | undefined {

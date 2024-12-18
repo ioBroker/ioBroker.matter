@@ -16,6 +16,5 @@ export class BatteryPowerSourceServer extends BatteryPowerSource {
             endpointNumbers.push(number);
         });
         this.state.endpointList = endpointNumbers;
-        console.log(`Endpoint numbers set for PowerSource on : ${this.endpoint.id}`, endpointNumbers);
     }
 }

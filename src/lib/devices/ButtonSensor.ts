@@ -43,7 +43,7 @@ class ButtonSensor extends GenericDevice {
     }
 
     hasPressLong(): boolean {
-        return this.propertyNames.includes(PropertyType.PressLong);
+        return !!this.#setPressLongState;
     }
 
     getPressLong(): boolean | undefined {

@@ -40,7 +40,7 @@ class Controller implements GeneralNode {
     #parameters: MatterControllerConfig;
     readonly #adapter: MatterAdapter;
     readonly #matterEnvironment: Environment;
-    readonly updateCallback: () => void;
+    readonly #updateCallback: () => void;
     #commissioningController?: CommissioningController;
     #nodes = new Map<string, GeneralMatterNode>();
     #connected: { [nodeId: string]: boolean } = {};
@@ -52,7 +52,7 @@ class Controller implements GeneralNode {
         this.#adapter = options.adapter;
         this.#parameters = options.controllerOptions;
         this.#matterEnvironment = options.matterEnvironment;
-        this.updateCallback = options.updateCallback;
+        this.#updateCallback = options.updateCallback;
     }
 
     get nodes(): Map<string, GeneralMatterNode> {
@@ -215,15 +215,17 @@ class Controller implements GeneralNode {
             } else {
                 this.#adapter.log.info(`Matter node "${nodeIdStr}" not yet initialized ...`);
             }
-            this.updateCallback();
+            this.#updateCallback();
         });
         node.events.structureChanged.on(async () => {
             this.#adapter.log.info(`Node "${node.nodeId}" structure changed`);
             await this.nodeToIoBrokerStructure(node);
+            this.#updateCallback();
         });
         node.events.decommissioned.on(() => {
             this.#adapter.log.info(`Node "${node.nodeId}" decommissioned`);
             // TODO Delete the node from config and objects
+            this.#updateCallback();
         });
     }
 
@@ -458,6 +460,7 @@ class Controller implements GeneralNode {
         );
 
         this.#adapter.log.debug(`Commissioning successfully completed with nodeId "${nodeId}"`);
+        this.#updateCallback();
     }
 
     async #discovery(obj: ioBroker.Message): Promise<void> {
@@ -559,6 +562,7 @@ class Controller implements GeneralNode {
         await this.#commissioningController.removeNode(NodeId(BigInt(nodeId)), this.#connected[nodeId]);
         delete this.#connected[nodeId];
         this.#nodes.delete(nodeId);
+        this.#updateCallback();
     }
 }
 

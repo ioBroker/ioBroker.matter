@@ -220,8 +220,7 @@ TBD
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.2.9 (2024-12-18)
 * (@Apollon77) When Get and set states are separated then also update set state with new values
 * (@Apollon77) Node details dialog in controller now exposes some more Battery information
 * (@Apollon77) Also exposes the battery states when features are set wrong on the device

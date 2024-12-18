@@ -7,10 +7,10 @@
     },
     "dependencies": {
         "@foxriver76/iob-component-lib": "^0.2.0",
-        "@iobroker/adapter-react-v5": "^7.4.4",
-        "@iobroker/dm-gui-components": "~7.4.4",
+        "@iobroker/adapter-react-v5": "^7.4.7",
+        "@iobroker/dm-gui-components": "~7.4.7",
         "@iobroker/type-detector": "^4.1.1",
-        "@types/react-dom": "^18.3.3",
+        "@types/react-dom": "^18.3.5",
         "@types/uuid": "^10.0.0",
         "@vitejs/plugin-react": "^4.3.4",
         "qr-scanner": "^1.4.2",

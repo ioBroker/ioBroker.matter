@@ -268,34 +268,12 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             command: 'progress',
             progress: {
                 title: this.#adapter.t('Unpairing node...'),
-                text: '0%',
+                indeterminate: true,
                 value: 0,
             },
         });
 
         // Start an interval that normally covers 30s and with each update the number gets slower increased for the percentage
-        let finished = false;
-        let timeout: NodeJS.Timeout | undefined;
-        let iteration = 0;
-
-        const updateProgress = async (): Promise<void> => {
-            iteration++;
-            const progressValue = Math.min(99.9 * (1 - Math.exp(-iteration / (33 / 2))), 99.9); // Max 33 usually, scale factor 2
-            await this.#adapter.sendToGui({
-                command: 'progress',
-                progress: {
-                    value: progressValue,
-                    text: `${progressValue.toFixed(0)}%`,
-                },
-            });
-            if (finished) {
-                return;
-            }
-            timeout = setTimeout(updateProgress, 1000);
-        };
-        timeout = setTimeout(updateProgress, 1000);
-        setTimeout(updateProgress, 1000);
-
         let errorHappened = false;
         try {
             await node.remove();
@@ -305,11 +283,13 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             errorHappened = true;
         }
 
-        finished = true;
-        if (timeout) {
-            clearTimeout(timeout);
-        }
-        await this.#adapter.sendToGui({ command: 'progress' });
+        await this.#adapter.sendToGui({
+            command: 'progress',
+            progress: {
+                close: true,
+            },
+        });
+
         if (errorHappened) {
             await context.showMessage(this.#adapter.t('Error happened during unpairing. Please check the log.'));
         }

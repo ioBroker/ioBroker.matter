@@ -598,7 +598,32 @@ export abstract class GenericDeviceToIoBroker {
         await this.#adapter.extendObjectAsync(this.baseId, { common: { name } });
     }
 
-    getDeviceDetails(): StructuredJsonFormData {
+    async getMatterStates(): Promise<Record<string, unknown>> {
+        const states: Record<string, unknown> = {};
+
+        const powerSource = this.appEndpoint.getClusterClient(PowerSource.Complete);
+        if (powerSource !== undefined) {
+            if (
+                powerSource.isAttributeSupportedByName('batQuantity') &&
+                powerSource.isAttributeSupportedByName('batReplacementDescription')
+            ) {
+                states.includedBattery = `${await powerSource.getBatQuantityAttribute()} x ${await powerSource.getBatReplacementDescriptionAttribute()}`;
+            }
+            if (powerSource.isAttributeSupportedByName('batVoltage')) {
+                const voltage = await powerSource.getBatVoltageAttribute();
+                const percentRemaining = await powerSource.getBatPercentRemainingAttribute();
+                if (typeof voltage === 'number') {
+                    states.batteryVoltage = `${(voltage / 1_000).toFixed(2)} V${typeof percentRemaining === 'number' ? ` (${percentRemaining}%)` : ''}`;
+                } else if (typeof percentRemaining === 'number') {
+                    states.batteryVoltage = `${percentRemaining}%`;
+                }
+            }
+        }
+
+        return states;
+    }
+
+    async getDeviceDetails(): Promise<StructuredJsonFormData> {
         const result: StructuredJsonFormData = {};
 
         const states = this.ioBrokerDevice.getStates();
@@ -618,6 +643,8 @@ export abstract class GenericDeviceToIoBroker {
                 .map(({ name, code }) => `${name} (${toHex(code)})`)
                 .join(', '),
             endpoint: this.appEndpoint.number,
+            __divider__matterdata: true,
+            ...(await this.getMatterStates()),
         } as Record<string, unknown>;
 
         result.matterClusters = {} as Record<string, unknown>;

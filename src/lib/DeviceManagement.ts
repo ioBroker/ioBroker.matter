@@ -628,7 +628,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             return { error: 'Device not found' };
         }
 
-        const schema = convertDataToJsonConfig(device.getDeviceDetails());
+        const schema = convertDataToJsonConfig(await device.getDeviceDetails());
 
         return { id, schema, data: {} };
     }

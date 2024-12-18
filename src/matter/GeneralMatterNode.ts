@@ -514,25 +514,36 @@ export class GeneralMatterNode {
         clusterId: number,
         attributeId: number,
         isUnknown: boolean,
-    ): ioBroker.CommonType {
+    ): { type: ioBroker.CommonType; states?: Record<number, string> } {
         const knownType = this.#attributeTypeMap.get(this.#getAttributeMapId(endpointId, clusterId, attributeId));
         if (knownType !== undefined) {
-            return knownType;
+            return { type: knownType };
         }
 
         let type: ioBroker.CommonType;
+        const states: Record<number, string> = {};
         if (isUnknown) {
             type = 'mixed';
         } else {
             const attributeModel = MatterModel.standard.get(ClusterModel, clusterId)?.get(AttributeModel, attributeId);
             const effectiveType = attributeModel?.effectiveType;
-            if (effectiveType === undefined) {
+            const metatype = attributeModel?.effectiveMetatype;
+            if (metatype === undefined) {
                 type = 'mixed';
-            } else if (effectiveType.startsWith('int') || effectiveType.startsWith('uint')) {
-                if (effectiveType.endsWith('64')) {
-                    return 'string';
+            } else if (metatype.startsWith('int') || metatype.startsWith('uint')) {
+                if (metatype.endsWith('64')) {
+                    type = 'string';
+                } else {
+                    type = 'number';
                 }
+            } else if (metatype.startsWith('enum')) {
                 type = 'number';
+                attributeModel?.members.forEach(member => {
+                    if (member.id === undefined || member.name === undefined) {
+                        return;
+                    }
+                    states[member.id] = member.name;
+                });
             } else if (effectiveType === 'bool') {
                 type = 'boolean';
             } else if (effectiveType === 'string') {
@@ -542,7 +553,7 @@ export class GeneralMatterNode {
             }
         }
         this.#attributeTypeMap.set(this.#getAttributeMapId(endpointId, clusterId, attributeId), type);
-        return type;
+        return { type, states: Object.keys(states).length > 0 ? states : undefined };
     }
 
     async initializeEndpointRawDataStates(
@@ -637,7 +648,7 @@ export class GeneralMatterNode {
                 const unknown = attribute instanceof UnknownSupportedAttributeClient;
                 const attributeBaseId = `${clusterBaseId}.attributes.${attribute.name.replace('unknownAttribute_', '')}`;
 
-                const targetType = this.#determineIoBrokerDatatype(
+                const { type: targetType, states: targetStates } = this.#determineIoBrokerDatatype(
                     endpoint.number,
                     attribute.clusterId,
                     attribute.id,
@@ -651,6 +662,7 @@ export class GeneralMatterNode {
                         type: targetType,
                         read: true,
                         write: attribute.attribute.writable,
+                        states: targetStates,
                     },
                     native: {},
                 });

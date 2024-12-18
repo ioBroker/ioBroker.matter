@@ -220,6 +220,18 @@ TBD
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (@Apollon77) When Get and set states are separated then also update set state with new values
+* (@Apollon77) Node details dialog in controller now exposes some more Battery information
+* (@Apollon77) Also exposes the battery states when features are set wrong on the device
+* (@Apollon77) Fixes LightSensor state mapping
+* (@Apollon77) Prevents errors when only some energy states exist
+* (@Apollon77) Uses the IP provided by Android when commissioning devices if possible
+* (@Apollon77) Restructure discovery to run in background and not block the UI
+* (@Apollon77) Exposes States for Enums for Matter nodes
+* (@Apollon77) Prevent storage to delete wrong data when a node gets removed
+
 ### 0.2.8 (2024-12-17)
 * (@bluefox) Fixes progress dialog for DM - used when deleting a node
 * (@bluefox) Synchronizes the "do not ask again on delete" time with admin and set to 5 minutes

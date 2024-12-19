@@ -496,6 +496,9 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
 
     addDevices = async (devices: DetectedDevice[], isAutoDetected: boolean): Promise<void> => {
         const matter = clone(this.props.matter);
+        const alreadyExist: string[] = [];
+        let anyAdded = false;
+        const becauseOfLicense: string[] = [];
 
         for (const device of devices) {
             if (!matter.devices.find(d => d.oid === device._id)) {
@@ -519,7 +522,42 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         obj.actionAllowedByIdentify = true;
                     }
                     matter.devices.push(obj);
+                    anyAdded = true;
+                } else {
+                    becauseOfLicense.push(device._id);
                 }
+            } else {
+                alreadyExist.push(device._id);
+            }
+        }
+
+        if (anyAdded) {
+            if (!alreadyExist.length) {
+                this.setState({
+                    message: `${I18n.t('Following object IDs was not added because of the license')}:${becauseOfLicense.join(', ')}`,
+                });
+            } else if (!becauseOfLicense.length) {
+                this.setState({
+                    message: `${I18n.t('Following object IDs was not added because already exists')}:${alreadyExist.join(', ')}`,
+                });
+            } else {
+                this.setState({
+                    message:
+                        `${I18n.t('Following object IDs was not added because of the license')}:${becauseOfLicense.join(', ')}` +
+                        '\n' +
+                        `${I18n.t('Following object IDs was not added because already exists')}:${alreadyExist.join(', ')}`,
+                });
+            }
+        } else {
+            if (!becauseOfLicense.length) {
+                this.setState({ message: I18n.t('No devices was added, as they are already in the list') });
+            } else if (!alreadyExist.length) {
+                this.setState({ message: I18n.t('No devices was added, as they are not allowed by license') });
+            } else {
+                // Actually this branch could not happen
+                this.setState({
+                    message: I18n.t('No devices was added, as they are already in the list or not allowed by license'),
+                });
             }
         }
 
@@ -810,6 +848,13 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                     onClose={() => this.setState({ addDeviceDialog: null })}
                     onOk={async (_oid, name) => {
                         const oid: string | undefined = Array.isArray(_oid) ? _oid[0] : (_oid as string);
+
+                        // Find out if this OID is already in the list
+                        if (this.props.matter.devices.find(dev => dev.oid === oid)) {
+                            this.setState({ message: I18n.t('This object ID is already added') });
+                            return;
+                        }
+
                         // Try to detect ID out of the supported IDs
                         const controls =
                             (await detectDevices(this.props.socket, I18n.getLanguage(), SUPPORTED_DEVICES, [oid])) ??
@@ -1014,6 +1059,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 {this.renderQrCodeDialog()}
                 {this.renderResetDialog()}
                 {this.renderJsonConfigDialog()}
+                {this.renderMessageDialog()}
                 <InfoBox
                     type="info"
                     closeable

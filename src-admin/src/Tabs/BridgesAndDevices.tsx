@@ -100,6 +100,7 @@ export interface BridgesAndDevicesState {
         changed: boolean;
         data: Record<string, any>;
     } | null;
+    message: string;
 }
 
 class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends BridgesAndDevicesState> extends Component<
@@ -116,6 +117,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
             showResetDialog: null,
             showDebugData: null,
             jsonConfig: null,
+            message: '',
         } as TState;
     }
 
@@ -266,6 +268,33 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 },
             )
             .catch(e => this.props.showToast(`Cannot reset: ${e}`));
+    }
+
+    renderMessageDialog() {
+        if (!this.state.message) {
+            return null;
+        }
+        return (
+            <Dialog
+                open={!0}
+                onClose={() => this.setState({ message: '' })}
+            >
+                <DialogTitle>{I18n.t('Message')}</DialogTitle>
+                <DialogContent>
+                    <p>{this.state.message}</p>
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        onClick={() => this.setState({ message: '' })}
+                        startIcon={<Close />}
+                        color="grey"
+                        variant="contained"
+                    >
+                        {I18n.t('Close')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        );
     }
 
     renderStatus(
@@ -754,6 +783,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         return (
             <div style={{ height: '100%', overflow: 'auto' }}>
                 {this.renderStatus(this.state.showQrCode)}
+                {this.renderMessageDialog()}
                 {this.renderDebugDialog()}
                 {this.renderResetDialog()}
                 {this.renderQrCodeDialog()}

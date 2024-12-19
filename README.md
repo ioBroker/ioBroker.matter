@@ -220,8 +220,7 @@ TBD
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.2.10 (2024-12-19)
 * (@bluefox) Makes the Adapter UI also available as standalone tab
 * (@bluefox) Added error details when adding the same state twice to a bridge or device
 * (@Apollon77) Fixes discovery start in UI

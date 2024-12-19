@@ -404,6 +404,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
             {
                 data: { debugInfos },
+                maxWidth: 'md',
                 title: this.#adapter.getText('Debug Infos'),
                 buttons: [
                     {
@@ -411,7 +412,6 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                         label: this.#adapter.getText('Close'),
                     },
                 ],
-                maxWidth: 'lg',
             },
         );
 

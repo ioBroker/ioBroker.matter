@@ -270,7 +270,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
             .catch(e => this.props.showToast(`Cannot reset: ${e}`));
     }
 
-    renderMessageDialog() {
+    renderMessageDialog(): React.JSX.Element | null {
         if (!this.state.message) {
             return null;
         }

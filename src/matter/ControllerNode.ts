@@ -115,7 +115,7 @@ class Controller implements GeneralNode {
                     // Discover for Matter devices in the IP and potentially BLE network
                     // Response is handled by method and runs asynchronous
                     await this.#discovery(obj);
-                    break;
+                    return;
                 case 'controllerDiscoveryStop':
                     // Stop Discovery
                     if (this.#discovering) {

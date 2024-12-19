@@ -220,6 +220,12 @@ TBD
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (@bluefox) Makes the Adapter UI also available as standalone tab
+* (@bluefox) Added error details when adding the same state twice to a bridge or device
+* (@Apollon77) Fixes discovery start in UI
+
 ### 0.2.9 (2024-12-18)
 * (@Apollon77) When Get and set states are separated then also update set state with new values
 * (@Apollon77) Node details dialog in controller now exposes some more Battery information

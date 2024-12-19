@@ -614,7 +614,7 @@ export abstract class GenericDeviceToIoBroker {
                 if (typeof voltage === 'number') {
                     states.batteryVoltage = `${(voltage / 1_000).toFixed(2)} V${typeof percentRemaining === 'number' ? ` (${percentRemaining}%)` : ''}`;
                 } else if (typeof percentRemaining === 'number') {
-                    states.batteryVoltage = `${percentRemaining}%`;
+                    states.batteryVoltage = `${Math.round(percentRemaining / 2)}%`;
                 }
             }
         }

@@ -21,7 +21,6 @@ export function convertDataToJsonConfig(data: StructuredJsonFormData): JsonFormS
     for (const key in data) {
         panelCount++;
         const tabItems: Record<string, ConfigItemAny> = {};
-        let lastControl: null | 'state';
 
         for (const subKey in data[key]) {
             const flatKey = `${key}_${subKey}`;

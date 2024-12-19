@@ -159,6 +159,7 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                                 'To commission/connect matter devices with ioBroker controller use better ioBroker.visu app:',
                             )}
                         </span>
+                        <br />
                         <Button
                             style={{ marginRight: 8 }}
                             variant="outlined"

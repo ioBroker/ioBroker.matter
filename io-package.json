@@ -134,8 +134,13 @@
     "icon": "matter.png",
     "connectionType": "local",
     "dataSource": "push",
+    "adminTab": {
+      "singleton": false,
+      "name": "Matter"
+    },
     "adminUI": {
-      "config": "materialize"
+      "config": "materialize",
+      "tab": "materialize"
     },
     "tier": 3,
     "keywords": [

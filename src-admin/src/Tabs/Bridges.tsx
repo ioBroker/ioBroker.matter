@@ -275,6 +275,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
     async addDevicesToBridge(devices: DetectedDevice[], bridgeIndex: number, isAutoDetected: boolean): Promise<void> {
         const matter = clone(this.props.matter);
         const bridge = matter.bridges[bridgeIndex];
+        const alreadyExist: string[] = [];
+        let anyAdded = false;
+        const becauseOfLicense: string[] = [];
+
         for (let d = 0; d < devices.length; d++) {
             const device = devices[d];
             if (!bridge.list.find(dd => dd.oid === device._id)) {
@@ -295,9 +299,43 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     } else if (device.deviceType === Types.light) {
                         obj.actionAllowedByIdentify = true;
                     }
-
+                    anyAdded = true;
                     bridge.list.push(obj);
+                } else {
+                    becauseOfLicense.push(device._id);
                 }
+            } else {
+                alreadyExist.push(device._id);
+            }
+        }
+
+        if (anyAdded) {
+            if (!alreadyExist.length) {
+                this.setState({
+                    message: `${I18n.t('Following object IDs was not added because of the license')}:${becauseOfLicense.join(', ')}`,
+                });
+            } else if (!becauseOfLicense.length) {
+                this.setState({
+                    message: `${I18n.t('Following object IDs was not added because already exists')}:${alreadyExist.join(', ')}`,
+                });
+            } else {
+                this.setState({
+                    message:
+                        `${I18n.t('Following object IDs was not added because of the license')}:${becauseOfLicense.join(', ')}` +
+                        '\n' +
+                        `${I18n.t('Following object IDs was not added because already exists')}:${alreadyExist.join(', ')}`,
+                });
+            }
+        } else {
+            if (!becauseOfLicense.length) {
+                this.setState({ message: I18n.t('No devices was added, as they are already in the list') });
+            } else if (!alreadyExist.length) {
+                this.setState({ message: I18n.t('No devices was added, as they are not allowed by license') });
+            } else {
+                // Actually this branch could not happen
+                this.setState({
+                    message: I18n.t('No devices was added, as they are already in the list or not allowed by license'),
+                });
             }
         }
 
@@ -851,6 +889,13 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     onClose={() => this.setState({ addDeviceDialog: null })}
                     onOk={async (_oid, name) => {
                         const oid: string | undefined = Array.isArray(_oid) ? _oid[0] : (_oid as string);
+
+                        // Find out if this OID is already in the list
+                        if (this.props.matter.bridges[this.bridgeIndex as number].list.find(dev => dev.oid === oid)) {
+                            this.setState({ message: I18n.t('This object ID is already added') });
+                            return;
+                        }
+
                         // Try to detect ID out of the supported IDs
                         const controls =
                             (await detectDevices(this.props.socket, I18n.getLanguage(), SUPPORTED_DEVICES, [oid])) ??
@@ -1612,6 +1657,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 {this.renderDebugDialog()}
                 {this.renderResetDialog()}
                 {this.renderJsonConfigDialog()}
+                {this.renderMessageDialog()}
                 <InfoBox
                     type="info"
                     closeable
@@ -1620,51 +1666,51 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 >
                     {I18n.t('Matter Bridges Infotext')}
                 </InfoBox>
-                <Tooltip
-                    title={I18n.t('Add bridge')}
-                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
-                >
-                    <Fab
-                        color="primary"
-                        size="small"
-                        onClick={async () => {
-                            const isLicenseOk = await this.props.checkLicenseOnAdd('addBridge');
-                            if (!isLicenseOk) {
-                                this.props.alive &&
-                                    this.props.showToast(
-                                        'You need ioBroker.pro assistant or remote subscription to have more than one bridge',
-                                    );
-                                return;
-                            }
-                            let i = 1;
-                            const name = `${I18n.t('New bridge')} `;
-                            while (this.props.matter.bridges.find(b => b.name === name + i)) {
-                                i++;
-                            }
-                            this.setState({
-                                editBridgeDialog: {
-                                    type: 'bridge',
-                                    name: name + i,
-                                    originalName: '',
-                                    add: true,
-                                    vendorID: '0xFFF1',
-                                    originalVendorID: '0xFFF1',
-                                    productID: '0x8000',
-                                    originalProductID: '0x8000',
-                                },
-                            });
-                        }}
-                        style={{
-                            position: 'absolute',
-                            right: 15,
-                            bottom: 10,
-                        }}
-                    >
-                        <Add />
-                    </Fab>
-                </Tooltip>
                 {this.props.matter.bridges.length ? (
                     <div>
+                        <Tooltip
+                            title={I18n.t('Add bridge')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        >
+                            <Fab
+                                color="primary"
+                                size="small"
+                                onClick={async () => {
+                                    const isLicenseOk = await this.props.checkLicenseOnAdd('addBridge');
+                                    if (!isLicenseOk) {
+                                        this.props.alive &&
+                                            this.props.showToast(
+                                                'You need ioBroker.pro assistant or remote subscription to have more than one bridge',
+                                            );
+                                        return;
+                                    }
+                                    let i = 1;
+                                    const name = `${I18n.t('New bridge')} `;
+                                    while (this.props.matter.bridges.find(b => b.name === name + i)) {
+                                        i++;
+                                    }
+                                    this.setState({
+                                        editBridgeDialog: {
+                                            type: 'bridge',
+                                            name: name + i,
+                                            originalName: '',
+                                            add: true,
+                                            vendorID: '0xFFF1',
+                                            originalVendorID: '0xFFF1',
+                                            productID: '0x8000',
+                                            originalProductID: '0x8000',
+                                        },
+                                    });
+                                }}
+                                style={{
+                                    width: 36,
+                                    height: 36,
+                                    marginBottom: 4,
+                                }}
+                            >
+                                <Add />
+                            </Fab>
+                        </Tooltip>
                         <Tooltip
                             title={I18n.t('Expand all')}
                             slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}

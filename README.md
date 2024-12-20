@@ -220,6 +220,12 @@ TBD
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* BREAKING: Please re-enter your ioBroker Pro Cloud Password!
+* (@Apollon77) Makes sure the adapter is stopped before being updated
+* (@Apollon77) Optimizes device discovery and allows to stop it again
+
 ### 0.2.10 (2024-12-19)
 * (@bluefox) Makes the Adapter UI also available as standalone tab
 * (@bluefox) Added error details when adding the same state twice to a bridge or device

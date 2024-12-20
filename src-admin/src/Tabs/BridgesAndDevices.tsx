@@ -713,8 +713,9 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                             'All information of this device or bridge will be deleted and you must reconnect (with PIN or QR code) again.',
                         )}
                     </p>
-                    {this.props.nodeStates[this.state.showResetDialog.bridgeOrDevice.uuid].status !==
-                    'waitingForCommissioning' ? (
+                    {this.props.nodeStates[this.state.showResetDialog.bridgeOrDevice.uuid] &&
+                    this.props.nodeStates[this.state.showResetDialog.bridgeOrDevice.uuid].status !==
+                        'waitingForCommissioning' ? (
                         <p style={{ color: this.props.themeType === 'dark' ? '#9c0a0a' : '#910000' }}>
                             {I18n.t(
                                 'This device/bridge is linked to some ecosystem. If it is deleted here, you must manually remove it from your ecosystem!',

@@ -146,7 +146,9 @@
     "keywords": [
       "matter"
     ],
+    "eraseOnUpload": true,
     "stopTimeout": 30000,
+    "stopBeforeUpdate": true,
     "enabled": true,
     "compact": false,
     "singletonHost": true,
@@ -167,11 +169,11 @@
     }
   },
   "protectedNative": [
-    "password",
+    "pass",
     "login"
   ],
   "encryptedNative": [
-    "password"
+    "pass"
   ],
   "native": {
     "interface": "",

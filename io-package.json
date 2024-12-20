@@ -169,11 +169,11 @@
     }
   },
   "protectedNative": [
-    "password",
+    "pass",
     "login"
   ],
   "encryptedNative": [
-    "password"
+    "pass"
   ],
   "native": {
     "interface": "",

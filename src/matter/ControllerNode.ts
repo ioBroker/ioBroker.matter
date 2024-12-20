@@ -507,9 +507,9 @@ class Controller implements GeneralNode {
     }
 
     async #discoveryStop(): Promise<void> {
-        this.#discovering = false;
-        await this.#adapter.setState('controller.info.discovering', false, true);
         if (this.#commissioningController && this.#discovering) {
+            this.#discovering = false;
+            await this.#adapter.setState('controller.info.discovering', false, true);
             this.#adapter.log.info(`Stop the discovering...`);
             this.#commissioningController.cancelCommissionableDeviceDiscovery(
                 {},

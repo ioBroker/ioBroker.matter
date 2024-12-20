@@ -220,8 +220,7 @@ TBD
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.3.0 (2024-12-20)
 * BREAKING: Please re-enter your ioBroker Pro Cloud Password!
 * (@Apollon77) Makes sure the adapter is stopped before being updated
 * (@Apollon77) Optimizes device discovery and allows to stop it again

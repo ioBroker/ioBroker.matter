@@ -956,9 +956,9 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 devicesInBridge={this.props.matter.bridges[this.state.addDeviceDialog.bridgeIndex].list.length}
                 checkAddedDevices={
                     this.props.nodeStates[this.props.matter.bridges[this.state.addDeviceDialog.bridgeIndex].uuid]
-                        .status === 'waitingForCommissioning'
-                        ? MAX_UN_COMMISSIONED_DEVICES
-                        : 0
+                        ?.status !== 'waitingForCommissioning'
+                        ? 0
+                        : MAX_UN_COMMISSIONED_DEVICES
                 }
                 matter={this.props.matter}
                 socket={this.props.socket}

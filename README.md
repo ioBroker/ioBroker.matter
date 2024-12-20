@@ -220,8 +220,7 @@ TBD
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.3.1 (2024-12-20)
 * (@Apollon77) Fixes bridge/device icon display in UI
 * (@Apollon77) Prevents displaying warning dialogs when nothing is wrong
 * (@Apollon77) Adjusts some logs

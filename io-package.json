@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.2.10",
+    "version": "0.3.0",
     "news": {
+      "0.3.0": {
+        "en": "BREAKING: Please re-enter your ioBroker Pro Cloud Password!\nMakes sure the adapter is stopped before being updated\nOptimizes device discovery and allows to stop it again",
+        "de": "BREAKING: Bitte geben Sie Ihr ioBroker Pro Cloud-Passwort erneut ein!\nStellen Sie sicher, dass der Adapter gestoppt wird, bevor er aktualisiert wird\nOptimiert die Geräteentdeckung und ermöglicht es, sie wieder zu stoppen",
+        "ru": "Пожалуйста, перейдите в свой ioBroker Pro Cloud Password!\nУбедитесь, что адаптер был остановлен перед обновлением\nОптимизирует обнаружение устройства и позволяет остановить его снова",
+        "pt": "BREAKING: Por favor, re-enter seu ioBroker Pro Cloud Password!\nCertifica-se de que o adaptador é interrompido antes de ser atualizado\nOtimiza a descoberta do dispositivo e permite impedi-lo novamente",
+        "nl": "Voer uw ioBroker Pro Cloud-wachtwoord opnieuw in!\nZorgt ervoor dat de adapter gestopt is voordat deze bijgewerkt wordt\nOptimaliseer de ontdekking van het apparaat en laat toe om het opnieuw te stoppen",
+        "fr": "Veuillez entrer de nouveau votre mot de passe ioBroker Pro Cloud !\nS'assure que l'adaptateur est arrêté avant d'être mis à jour\nOptimise la découverte du périphérique et permet de l'arrêter à nouveau",
+        "it": "BREAKING: Si prega di ri-inserire il tuo ioBroker Pro Cloud Password!\nAssicurarsi che l'adattatore venga interrotto prima di essere aggiornato\nOttimizza la scoperta del dispositivo e permette di fermarlo di nuovo",
+        "es": "¡Por favor vuelva a entrar en su ioBroker Pro Cloud Contraseña!\nAsegura que el adaptador se detenga antes de ser actualizado\nOptimiza el descubrimiento de dispositivos y permite detenerlo de nuevo",
+        "pl": "BREAKING: Proszę ponownie wprowadzić swoje hasło joBroker Pro Cloud!\nZapewnia zatrzymanie adaptera przed aktualizacją\nOptymalizuje wykrywanie urządzeń i pozwala je ponownie zatrzymać",
+        "uk": "Будь ласка, зв'яжіться з нами!\nПереконайтеся, що адаптер припиняється до оновлення\nОптимізуйте відкриття пристрою і дозволяє знову зупинити його",
+        "zh-cn": "请重新输入你的ioBroker Pro Cloud密码!\n确保适配器在更新前被停止\n优化设备发现并允许再次停止"
+      },
       "0.2.10": {
         "en": "Makes the Adapter UI also available as standalone tab\nAdded error details when adding the same state twice to a bridge or device\nFixes discovery start in UI",
         "de": "Stellt den Adapter UI auch als Standalone Tab zur Verfügung\nFehlerdetails hinzugefügt, wenn derselbe Zustand zweimal einer Brücke oder einem Gerät hinzugefügt wird\nBehebt Entdeckungsstart in UI",
@@ -80,19 +93,6 @@
         "pl": "Ustawia flagę \"no- composite\" poprawnie, aby normalnie używać skomponowanego w razie potrzeby i dodaje ją do brakującego okna dialogowego\nPozwala na użycie wartości zerowych w razie potrzeby\nFixes UNREACH obsługi urządzeń\nUstawia obsługę zmiany obiektu dla kontrolera\nPozwól Mostkom na ujawnienie nazwy urządzenia\nUmożliwia zmianę nazwy węzłów i urządzeń sterownika",
         "uk": "Встановіть прапорець \"no-compose\" правильно, щоб зазвичай використовувати, що складається, якщо потрібно і додає його до відсутній діалог\nДозволяє використовувати значення null, якщо потрібно\nВиправлення роботи UNREACH для пристроїв\nВиправлення управління змінами об'єкта для контролера\nДозволяє мостів, щоб виставити ім'я пристрою\nДозволяє перейменувати вузли контролера і пристрої",
         "zh-cn": "设置“ 无编解” 旗帜, 以便在必要时正常使用编解, 并将其添加到缺少的对话框中\n需要时允许使用无效值\n修复设备的UNREACH处理\n修正控制器对象更改处理\n允许 Bridges 将其名称曝光为设备名称\n允许重命名控制器节点和设备"
-      },
-      "0.2.4": {
-        "en": "Shows a progress indicator when deleting controller nodes\nCuts names and labels to 32 or 64 characters as needed by Matter\nImproves error handling on devices and bridges\nClear storage when removing a bridged device\nProcesses changed objects with a 5s delay to prevent too many changes at once\nFixes version determination\nInitializes Device objects more lazily",
-        "de": "Zeigt einen Fortschrittsindikator beim Löschen von Controller-Knoten\nSchneidet Namen und Labels auf 32 oder 64 Zeichen nach Bedarf von Matter\nVerbessert die Fehlerbehandlung auf Geräten und Brücken\nLöschen Sie die Speicherung beim Entfernen eines überbrückten Geräts\nProzesse veränderten Objekte mit einer Verzögerung von 5s, um zu viele Änderungen auf einmal zu verhindern\nBehebt die Versionsbestimmung\nInitialisiert Geräteobjekte mehr lazily",
-        "ru": "Показывает индикатор прогресса при удалении узлов контроллера\nОтрезает имена и этикетки до 32 или 64 символов по мере необходимости от Matter\nУлучшает обработку ошибок на устройствах и мостах\nЧистое хранение при удалении мостового устройства\nПроцессы изменили объекты с задержкой 5s, чтобы предотвратить слишком много изменений сразу\nОпределение версии\nИнициализировать объекты устройства более лениво",
-        "pt": "Mostra um indicador de progresso ao excluir nós do controlador\nCorta nomes e rótulos para 32 ou 64 caracteres conforme necessário pela Matter\nMelhora o manuseio de erros em dispositivos e pontes\nLimpar armazenamento ao remover um dispositivo ponte\nProcessos mudou objetos com um atraso de 5s para evitar muitas mudanças ao mesmo tempo\nCorrige a determinação da versão\nInicializa objetos de dispositivo mais preguiçosamente",
-        "nl": "Toont een voortgangsindicator bij het verwijderen van controllerknooppunten\nKnipt namen en labels tot 32 of 64 tekens naar behoefte door Matter\nVerbetert de foutafhandeling op apparaten en bruggen\nBewaarruimte wissen bij het verwijderen van een gebrugd apparaat\nProcessen veranderden objecten met een 5s vertraging om te veel veranderingen tegelijk te voorkomen\nRepareert versiebepaling\nInitialiseert apparaat objecten luier",
-        "fr": "Affiche un indicateur de progression lors de la suppression des nœuds du contrôleur\nCoupe les noms et les étiquettes à 32 ou 64 caractères selon les besoins de la matière\nAméliore la gestion des erreurs sur les appareils et les ponts\nEffacer le stockage lors de l'enlèvement d'un dispositif ponté\nLes processus ont changé des objets avec un retard de 5s pour éviter trop de changements à la fois\nCorrige la détermination de la version\nInitialise les objets du périphérique plus paresseusement",
-        "it": "Mostra un indicatore di progresso quando si eliminano i nodi del controller\nTagli nomi ed etichette a 32 o 64 caratteri come necessario da Matter\nMigliora la gestione degli errori su dispositivi e ponti\nConservazione chiara quando si rimuove un dispositivo pontificato\nProcessi modificati oggetti con un ritardo di 5s per prevenire troppe modifiche contemporaneamente\nFissa la determinazione della versione\nInizialmente gli oggetti del dispositivo più pigramente",
-        "es": "Muestra un indicador de progreso al eliminar los nodos del controlador\nCorta nombres y etiquetas a 32 o 64 caracteres según sea necesario por Matter\nMejora el manejo de errores en dispositivos y puentes\nDespejado el almacenamiento cuando se quita un dispositivo puente\nProcesos cambiaron objetos con un retraso de 5s para prevenir demasiados cambios a la vez\nDeterminación de la versión fija\nInicia objetos de dispositivo más lazily",
-        "pl": "Pokazuje wskaźnik postępu podczas usuwania węzłów sterownika\nWycina nazwy i etykiety do 32 lub 64 znaków według potrzeb Matter\nPoprawia obsługę błędów na urządzeniach i mostach\nPrzezroczysta pamięć masowa podczas usuwania zaokrąglonego urządzenia\nProcesy zmieniały obiekty z opóźnieniem 5s, aby zapobiec zbyt wielu zmian naraz\nUstalanie wersji filtrów\nInicjuje obiekty urządzenia bardziej leniwie",
-        "uk": "Показує індикатор прогресу при видаленні вузлів контролера\nНарізки імен і етикеток до 32 або 64 символів, як це потрібно за допомогою Matter\nПокращує обробку помилок на пристроях і мостах\nПрозоре зберігання при видаленні мостового пристрою\nПроцеси змінилися об'єкти з затримкою 5-х, щоб запобігти занадто багато змін одночасно\nВизначення виправлень\nНавігація Пристрої об'єктів більш лляною",
-        "zh-cn": "删除控制器节点时显示进度指标\n根据 Matter 的需要将名称和标签剪切为 32 或 64 个字符\n改进设备和桥梁的错误处理\n删除桥式设备时清除存储\n用5s延迟来防止太多更改的处理对象\n修复版本确定\n初始化设备对象更加懒散"
       }
     },
     "title": "Matter",

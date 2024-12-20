@@ -612,7 +612,7 @@ export abstract class GenericDeviceToIoBroker {
                 const voltage = await powerSource.getBatVoltageAttribute();
                 const percentRemaining = await powerSource.getBatPercentRemainingAttribute();
                 if (typeof voltage === 'number') {
-                    states.batteryVoltage = `${(voltage / 1_000).toFixed(2)} V${typeof percentRemaining === 'number' ? ` (${percentRemaining}%)` : ''}`;
+                    states.batteryVoltage = `${(voltage / 1_000).toFixed(2)} V${typeof percentRemaining === 'number' ? ` (${Math.round(percentRemaining / 2)}%)` : ''}`;
                 } else if (typeof percentRemaining === 'number') {
                     states.batteryVoltage = `${Math.round(percentRemaining / 2)}%`;
                 }

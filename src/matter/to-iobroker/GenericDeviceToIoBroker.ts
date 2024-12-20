@@ -569,7 +569,9 @@ export abstract class GenericDeviceToIoBroker {
             this.#adapter.log.debug(`Node ${this.#node.nodeId} is not connected, do not poll attributes`);
         }
 
-        this.#pollTimeout = setTimeout(() => this.#pollAttributes(attributes), this.#pollInterval);
+        if (!this.#destroyed) {
+            this.#pollTimeout = setTimeout(() => this.#pollAttributes(attributes), this.#pollInterval);
+        }
     }
 
     async destroy(): Promise<void> {

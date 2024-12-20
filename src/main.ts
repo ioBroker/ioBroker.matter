@@ -162,6 +162,10 @@ export class MatterAdapter extends utils.Adapter {
         };
     }
 
+    get matterEnvironment(): Environment {
+        return this.#matterEnvironment;
+    }
+
     async shutDownMatterNodes(): Promise<void> {
         for (const { device } of this.#devices.values()) {
             await device?.destroy();
@@ -1085,7 +1089,6 @@ export class MatterAdapter extends utils.Adapter {
         const matterController = new MatterController({
             adapter: this,
             controllerOptions,
-            matterEnvironment: this.#matterEnvironment,
             updateCallback: () => this.#refreshControllerDevices(),
         });
         matterController.init(); // add bridge to server

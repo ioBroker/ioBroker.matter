@@ -310,15 +310,15 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         }
 
         if (anyAdded) {
-            if (!alreadyExist.length) {
+            if (!alreadyExist.length && becauseOfLicense.length) {
                 this.setState({
                     message: `${I18n.t('Following object IDs was not added because of the license')}:${becauseOfLicense.join(', ')}`,
                 });
-            } else if (!becauseOfLicense.length) {
+            } else if (!becauseOfLicense.length && alreadyExist.length) {
                 this.setState({
                     message: `${I18n.t('Following object IDs was not added because already exists')}:${alreadyExist.join(', ')}`,
                 });
-            } else {
+            } else if (becauseOfLicense.length && alreadyExist.length) {
                 this.setState({
                     message:
                         `${I18n.t('Following object IDs was not added because of the license')}:${becauseOfLicense.join(', ')}` +
@@ -327,12 +327,11 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 });
             }
         } else {
-            if (!becauseOfLicense.length) {
+            if (!becauseOfLicense.length && alreadyExist.length) {
                 this.setState({ message: I18n.t('No devices was added, as they are already in the list') });
-            } else if (!alreadyExist.length) {
+            } else if (!alreadyExist.length && becauseOfLicense.length) {
                 this.setState({ message: I18n.t('No devices was added, as they are not allowed by license') });
             } else {
-                // Actually this branch could not happen
                 this.setState({
                     message: I18n.t('No devices was added, as they are already in the list or not allowed by license'),
                 });

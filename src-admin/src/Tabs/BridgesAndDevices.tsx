@@ -333,7 +333,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         ) : null;
 
         if (qrCode) {
-            result[2] = qrCode;
+            result[1] = qrCode;
         }
 
         const hasError = !!this.props.nodeStates[deviceOrBridge.uuid].error;
@@ -361,10 +361,13 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
             </Tooltip>
         );
 
-        if (qrCode) {
-            result[2] = extendedInfo;
-        }
-        if (this.props.nodeStates[deviceOrBridge.uuid].status) {
+        result[2] = extendedInfo;
+
+        if (
+            this.props.nodeStates[deviceOrBridge.uuid].status &&
+            this.props.nodeStates[deviceOrBridge.uuid].status !== 'waitingForCommissioning' &&
+            this.props.nodeStates[deviceOrBridge.uuid].status !== 'creating'
+        ) {
             result[0] = (
                 <Tooltip
                     key="status"

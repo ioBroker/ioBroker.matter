@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "news": {
+      "0.3.1": {
+        "en": "Fixes bridge/device icon display in UI\nPrevents displaying warning dialogs when nothing is wrong\nAdjusts some logs",
+        "de": "Behebt Brücken-/Gerät-Symbolanzeige in UI\nVerhindert die Anzeige von Warndialogen, wenn nichts falsch ist\nPasst einige Protokolle an",
+        "ru": "Фиксирует значок моста/устройства в UI\nПредотвращает отображение предупреждающих диалогов, когда нет ничего неправильного\nНастройка некоторых журналов",
+        "pt": "Corrige exibição de ícone de ponte / dispositivo na interface do usuário\nImpede exibir diálogos de aviso quando nada está errado\nAjuste alguns logs",
+        "nl": "Herstelt bridge/device pictogramweergave in UI\nVoorkomt het weergeven van waarschuwingsdialoogvensters wanneer er niets mis is\nPast sommige logs aan",
+        "fr": "Correction de l'affichage de l'icône bridge/device dans l'interface utilisateur\nEmpêche l'affichage des dialogues d'avertissement lorsque rien n'est mal\nAjuste certains journaux",
+        "it": "Fissa l'esposizione dell'icona del ponte/dispositivo in UI\nImpedisce la visualizzazione di finestre di dialogo di avviso quando nulla è sbagliato\nRegola alcuni registri",
+        "es": "Fija puente/dispositivo de visualización de iconos en UI\nImpide mostrar diálogos de advertencia cuando nada está mal\nAjuste algunos registros",
+        "pl": "Fixes mostek / ikona urządzenia wyświetlacz w UI\nZapobiega wyświetlaniu dialogów ostrzegawczych, gdy nic nie jest złe\nDostosuje niektóre logi",
+        "uk": "Виправлення відображення іконок міст /device в UI\nЗапобігає відображення діалогів попередження, коли нічого не неправильно\nНалаштування деяких журналів",
+        "zh-cn": "在 UI 中修复桥/ 设备图标显示\n防止在无问题时显示警告对话框\n调整一些日志"
+      },
       "0.3.0": {
         "en": "BREAKING: Please re-enter your ioBroker Pro Cloud Password!\nMakes sure the adapter is stopped before being updated\nOptimizes device discovery and allows to stop it again",
         "de": "BREAKING: Bitte geben Sie Ihr ioBroker Pro Cloud-Passwort erneut ein!\nStellen Sie sicher, dass der Adapter gestoppt wird, bevor er aktualisiert wird\nOptimiert die Geräteentdeckung und ermöglicht es, sie wieder zu stoppen",
@@ -80,19 +93,6 @@
         "pl": "Fixes ColorTemperatura inicjalizacja światła z powodu materii. Aktualizacja js",
         "uk": "Фіксує колірТемпературна ініціалізація світла через матерію. оновлення js",
         "zh-cn": "修补颜色Temperature光因物质而初始化. js 更新"
-      },
-      "0.2.5": {
-        "en": "Sets the \"no-compose\" flag correctly to normally use composed if needed and adds it to a missing dialog\nAllows to use null values if needed\nFixes UNREACH handling for devices\nFixes object change handling for controller\nAllow Bridges to expose its name as a device name\nAllows to rename controller nodes and devices",
-        "de": "Setzt das \"no-compose\"-Flag richtig ein, um normalerweise komponiert zu verwenden und fügt es zu einem fehlenden Dialog hinzu\nErlaubt, bei Bedarf Nullwerte zu verwenden\nBehebt UNREACH-Handling für Geräte\nFixes Objektänderungshandling für Controller\nErlaubt Bridges, seinen Namen als Gerätenamen zu entlarven\nErmöglicht die Umbenennung von Controller-Knoten und -Geräten",
-        "ru": "Установить флаг «без композиций» правильно, чтобы обычно использовать его, если это необходимо, и добавить его в недостающий диалог\nПозволяет использовать нулевые значения в случае необходимости\nFixes UNREACH для устройств\nИсправление изменения объекта для контроллера\nПозволяет Bridges разоблачить свое имя как имя устройства\nПозволяет переименовать узлы и устройства контроллера",
-        "pt": "Define a bandeira \"não compor\" corretamente para usar normalmente composta se necessário e adiciona-a a uma caixa de diálogo ausente\nPermite usar valores nulos se necessário\nCorrige o manuseio UNREACH para dispositivos\nCorrige o manuseio de alterações de objetos para o controlador\nPermitir que Bridges exponha seu nome como um nome de dispositivo\nPermite renomear nós de controlador e dispositivos",
-        "nl": "Stelt de \"no-compose\"-vlag correct in om gecomposed te gebruiken indien nodig en voegt deze toe aan een ontbrekend dialoogvenster\nHiermee kunt u zo nodig nulwaarden gebruiken\nBevestigt UNREACH-afhandeling voor apparaten\nHerstelt object verandering behandeling voor controller\nBruggen toestaan om haar naam als apparaatnaam te ontmaskeren\nHiermee kunt u controllerknooppunten en -apparaten hernoemen",
-        "fr": "Définit le drapeau \"non-composant\" correctement pour utiliser normalement composé si nécessaire et l'ajoute à une boîte de dialogue manquante\nPermet d'utiliser des valeurs null si nécessaire\nCorrige la manipulation d'UNREACH pour les appareils\nCorrection de la manipulation du changement d'objet pour le contrôleur\nPermettre à Bridges d'exposer son nom comme un nom d'appareil\nPermet de renommer les nœuds et les périphériques du contrôleur",
-        "it": "Imposta la bandiera \"no-compose\" correttamente per utilizzare normalmente composta se necessario e aggiungerla a una finestra di dialogo mancante\nConsente di utilizzare valori null se necessario\nFissa la gestione UNREACH per dispositivi\nRisolve la gestione del cambiamento degli oggetti per il controller\nConsente a Bridges di esporre il suo nome come nome di un dispositivo\nConsente di rinominare nodi e dispositivi del controller",
-        "es": "Establece la bandera \"no-compos\" correctamente para usar normalmente compuesta si es necesario y la añade a un diálogo perdido\nPermite utilizar valores nulos si es necesario\nFija el manejo UNREACH para dispositivos\nArregla el manejo del cambio de objeto para el controlador\nPermitir a Bridges exponer su nombre como un nombre de dispositivo\nPermite renombrar nodos y dispositivos controlador",
-        "pl": "Ustawia flagę \"no- composite\" poprawnie, aby normalnie używać skomponowanego w razie potrzeby i dodaje ją do brakującego okna dialogowego\nPozwala na użycie wartości zerowych w razie potrzeby\nFixes UNREACH obsługi urządzeń\nUstawia obsługę zmiany obiektu dla kontrolera\nPozwól Mostkom na ujawnienie nazwy urządzenia\nUmożliwia zmianę nazwy węzłów i urządzeń sterownika",
-        "uk": "Встановіть прапорець \"no-compose\" правильно, щоб зазвичай використовувати, що складається, якщо потрібно і додає його до відсутній діалог\nДозволяє використовувати значення null, якщо потрібно\nВиправлення роботи UNREACH для пристроїв\nВиправлення управління змінами об'єкта для контролера\nДозволяє мостів, щоб виставити ім'я пристрою\nДозволяє перейменувати вузли контролера і пристрої",
-        "zh-cn": "设置“ 无编解” 旗帜, 以便在必要时正常使用编解, 并将其添加到缺少的对话框中\n需要时允许使用无效值\n修复设备的UNREACH处理\n修正控制器对象更改处理\n允许 Bridges 将其名称曝光为设备名称\n允许重命名控制器节点和设备"
       }
     },
     "title": "Matter",

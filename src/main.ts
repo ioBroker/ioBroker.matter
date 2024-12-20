@@ -381,6 +381,7 @@ export class MatterAdapter extends utils.Adapter {
             return;
         }
         if (this.sendToUI) {
+            this.log.debug(`Send to GUI: ${JSON.stringify(data)}`);
             for (let i = 0; i < this.#_guiSubscribes.length; i++) {
                 await this.sendToUI({ clientId: this.#_guiSubscribes[i].clientId, data });
             }

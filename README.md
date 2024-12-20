@@ -220,6 +220,12 @@ TBD
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (@Apollon77) Fixes bridge/device icon display in UI
+* (@Apollon77) Prevents displaying warning dialogs when nothing is wrong
+* (@Apollon77) Adjusts some logs
+
 ### 0.3.0 (2024-12-20)
 * BREAKING: Please re-enter your ioBroker Pro Cloud Password!
 * (@Apollon77) Makes sure the adapter is stopped before being updated

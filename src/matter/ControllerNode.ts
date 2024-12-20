@@ -1,4 +1,4 @@
-import { type Environment, Logger, NodeId, singleton, VendorId, type ServerAddressIp } from '@matter/main';
+import { Logger, NodeId, singleton, VendorId, type ServerAddressIp } from '@matter/main';
 import { GeneralCommissioning } from '@matter/main/clusters';
 import {
     Ble,
@@ -19,7 +19,6 @@ import { inspect } from 'util';
 export interface ControllerCreateOptions {
     adapter: MatterAdapter;
     controllerOptions: MatterControllerConfig;
-    matterEnvironment: Environment;
     updateCallback: () => void;
 }
 
@@ -39,7 +38,6 @@ type EndUserCommissioningOptions = (
 class Controller implements GeneralNode {
     #parameters: MatterControllerConfig;
     readonly #adapter: MatterAdapter;
-    readonly #matterEnvironment: Environment;
     readonly #updateCallback: () => void;
     #commissioningController?: CommissioningController;
     #nodes = new Map<string, GeneralMatterNode>();
@@ -51,7 +49,6 @@ class Controller implements GeneralNode {
     constructor(options: ControllerCreateOptions) {
         this.#adapter = options.adapter;
         this.#parameters = options.controllerOptions;
-        this.#matterEnvironment = options.matterEnvironment;
         this.#updateCallback = options.updateCallback;
     }
 
@@ -244,7 +241,7 @@ class Controller implements GeneralNode {
         this.#commissioningController = new CommissioningController({
             autoConnect: false,
             environment: {
-                environment: this.#matterEnvironment,
+                environment: this.#adapter.matterEnvironment,
                 id: 'controller',
             },
         });

@@ -100,6 +100,7 @@ class Device extends BaseServerNode {
                     NetworkCommissioningServer.withFeatures(NetworkCommissioning.Feature.EthernetNetworkInterface),
                 ),
                 {
+                    environment: this.adapter.matterEnvironment,
                     id: this.#parameters.uuid,
                     network: {
                         port: this.#parameters.port,

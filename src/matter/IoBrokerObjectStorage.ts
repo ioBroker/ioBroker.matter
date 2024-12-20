@@ -71,7 +71,7 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
     }
 
     async clear(): Promise<void> {
-        this.#adapter.log.warn(`[STORAGE] Clearing all storage for ${this.#storageRootOid}`);
+        this.#adapter.log.info(`[STORAGE] Clearing all storage for ${this.#storageRootOid}`);
         try {
             await this.#adapter.delObjectAsync(this.#storageRootOid, { recursive: true });
         } catch (error) {
@@ -89,7 +89,7 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
             return;
         }
         if (this.#localStorageManager && this.#isLocallyStored(contexts)) {
-            this.#adapter.log.warn(`[STORAGE] Clearing all storage for ${contexts.join('$$')} in local storage`);
+            this.#adapter.log.info(`[STORAGE] Clearing all storage for ${contexts.join('$$')} in local storage`);
             return this.#localStorageManager.clearAll(contexts);
         }
 
@@ -98,7 +98,7 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
             startkey: `${contextKey}`,
             endkey: `${contextKey}\u9999`,
         });
-        this.#adapter.log.warn(`[STORAGE] Clearing all storage (${objs.rows.length} keys found) for ${contextKey}`);
+        this.#adapter.log.info(`[STORAGE] Clearing all storage (${objs.rows.length} keys found) for ${contextKey}`);
         const namespaceLen = this.#adapter.namespace.length + 1;
         for (const state of objs.rows) {
             if (state.value) {
@@ -250,7 +250,6 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
         }
 
         const oid = this.buildKey(contexts, key);
-        this.#adapter.log.warn(`[STORAGE] Deleting key "${key}" as "${oid}"`);
 
         try {
             await this.#adapter.delObjectAsync(oid);

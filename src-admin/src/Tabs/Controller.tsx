@@ -909,7 +909,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                 this.setState({ discovered: [] }, async () => {
                                     const result: {
                                         error?: string;
-                                        result: CommissionableDevice[];
+                                        result?: CommissionableDevice[];
                                     } = await this.props.socket.sendTo(
                                         `matter.${this.props.instance}`,
                                         'controllerDiscovery',
@@ -917,8 +917,8 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                     );
 
                                     if (result.error) {
-                                        window.alert(`Cannot discover: ${result.error}`);
-                                    } else {
+                                        window.alert(`Error on discovery: ${result.error}`);
+                                    } else if (result.result) {
                                         this.setState({
                                             discovered: result.result,
                                             discoveryDone: true,

@@ -493,7 +493,7 @@ class Controller implements GeneralNode {
                         .catch(error => this.#adapter.log.info(`Error setting state: ${error}`));
                     this.#discovering = false;
                     if (obj.callback) {
-                        this.#adapter.sendTo(obj.from, obj.command, result, obj.callback);
+                        this.#adapter.sendTo(obj.from, obj.command, { result }, obj.callback);
                     }
                 }
             })

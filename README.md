@@ -220,8 +220,7 @@ TBD
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.3.2 (2024-12-21)
 * (@Apollon77) Fixes several discovery issues
 
 ### 0.3.1 (2024-12-20)

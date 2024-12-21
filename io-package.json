@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.3.1",
+    "version": "0.3.2",
     "news": {
+      "0.3.2": {
+        "en": "Fixes several discovery issues",
+        "de": "Behebt mehrere Entdeckungsprobleme",
+        "ru": "Исправление нескольких проблем обнаружения",
+        "pt": "Corrige vários problemas de descoberta",
+        "nl": "Repareert verschillende ontdekkingsproblemen",
+        "fr": "Corrige plusieurs problèmes de découverte",
+        "it": "Risolve diversi problemi di scoperta",
+        "es": "Arregla varios problemas de descubrimiento",
+        "pl": "Naprawia kilka problemów z odkryciem",
+        "uk": "Виправлення декількох питань відкриття",
+        "zh-cn": "解决了几个发现问题"
+      },
       "0.3.1": {
         "en": "Fixes bridge/device icon display in UI\nPrevents displaying warning dialogs when nothing is wrong\nAdjusts some logs",
         "de": "Behebt Brücken-/Gerät-Symbolanzeige in UI\nVerhindert die Anzeige von Warndialogen, wenn nichts falsch ist\nPasst einige Protokolle an",
@@ -80,19 +93,6 @@
         "pl": "Oczyszcza obiekty po usunięciu węzła kontrolera\nZapobiega zmianom konfiguracji sterownika, które mają być wykonywane równolegle",
         "uk": "Очищення об'єктів при видаленні вузла контролера\nЗапобігає зміни конфігурації контролера, які будуть виконуватися паралельно",
         "zh-cn": "删除控制节点时清理对象\n防止同时执行控制器配置更改"
-      },
-      "0.2.6": {
-        "en": "Fixes ColorTemperature light initialization because of matter.js update",
-        "de": "Behebt die ColorTemperatur Licht Initialisierung aufgrund der Materie. js update",
-        "ru": "Исправляет инициализацию цвета температуры из-за материи. js обновление",
-        "pt": "Corrige a inicialização de luz ColorTemperature por causa da matéria. js update",
-        "nl": "Bevestigt kleurTemperatuur licht initialisatie vanwege materie. js update",
-        "fr": "Corrige l'initialisation de la lumière ColorTemperature à cause de la matière. Mise à jour de js",
-        "it": "Fissa l'inizializzazione della luce ColorTemperature a causa della materia. aggiornamento js",
-        "es": "Arreglos ColorTemperatura inicialización de la luz debido a la materia. js update",
-        "pl": "Fixes ColorTemperatura inicjalizacja światła z powodu materii. Aktualizacja js",
-        "uk": "Фіксує колірТемпературна ініціалізація світла через матерію. оновлення js",
-        "zh-cn": "修补颜色Temperature光因物质而初始化. js 更新"
       }
     },
     "title": "Matter",

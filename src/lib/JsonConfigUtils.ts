@@ -97,7 +97,7 @@ export function convertDataToJsonConfig(data: StructuredJsonFormData): JsonFormS
     }
 
     if (panelCount === 1) {
-        return items[`_tab_${Object.keys(data)[0]}`];
+        return Object.values(items)[0];
     }
 
     return {

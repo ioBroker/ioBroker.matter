@@ -263,10 +263,10 @@ export class MatterAdapter extends utils.Adapter {
                             }
                         }
                     } else if (error) {
-                        if (obj.message === 'deviceExtendedInfo') {
+                        if (obj.command === 'deviceExtendedInfo') {
                             const result = this.getGenericErrorDetails('bridge', uuid, error);
                             if (result !== undefined && obj.callback) {
-                                this.sendTo(obj.from, obj.command, result, obj.callback);
+                                this.sendTo(obj.from, obj.command, { result }, obj.callback);
                             }
                         }
                     }
@@ -291,10 +291,10 @@ export class MatterAdapter extends utils.Adapter {
                             }
                         }
                     } else if (error) {
-                        if (obj.message === 'deviceExtendedInfo') {
+                        if (obj.command === 'deviceExtendedInfo') {
                             const result = this.getGenericErrorDetails('device', uuid, error);
                             if (result !== undefined && obj.callback) {
-                                this.sendTo(obj.from, obj.command, result, obj.callback);
+                                this.sendTo(obj.from, obj.command, { result }, obj.callback);
                             }
                         }
                     }

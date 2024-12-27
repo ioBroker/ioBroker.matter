@@ -359,12 +359,12 @@ class Controller implements GeneralNode {
         let productId: number | undefined = undefined;
         let vendorId: VendorId | undefined = undefined;
         let knownAddress: ServerAddressIp | undefined = undefined;
-        if ('manualCode' in data) {
+        if ('manualCode' in data && data.manualCode.length > 0) {
             const pairingCodeCodec = ManualPairingCodeCodec.decode(data.manualCode);
             shortDiscriminator = pairingCodeCodec.shortDiscriminator;
             longDiscriminator = undefined;
             passcode = pairingCodeCodec.passcode;
-        } else if ('qrCode' in data) {
+        } else if ('qrCode' in data && data.qrCode.length > 0) {
             const pairingCodeCodec = QrPairingCodeCodec.decode(data.qrCode);
             // TODO handle the case where multiple devices are included
             longDiscriminator = pairingCodeCodec[0].discriminator;

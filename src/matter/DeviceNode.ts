@@ -10,6 +10,7 @@ import { BaseServerNode } from './BaseServerNode';
 import matterDeviceFactory from './to-matter/matterFactory';
 import type { GenericDeviceToMatter } from './to-matter/GenericDeviceToMatter';
 import type { StructuredJsonFormData } from '../lib/JsonConfigUtils';
+import { IoBrokerCommissioningServer } from './behaviors/IoBrokerCommissioningServer';
 
 export interface DeviceCreateOptions {
     parameters: DeviceOptions;
@@ -103,6 +104,7 @@ class Device extends BaseServerNode {
             this.serverNode = await ServerNode.create(
                 ServerNode.RootEndpoint.with(
                     NetworkCommissioningServer.withFeatures(NetworkCommissioning.Feature.EthernetNetworkInterface),
+                    IoBrokerCommissioningServer,
                 ),
                 {
                     environment: this.adapter.matterEnvironment,

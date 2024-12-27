@@ -71,12 +71,9 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
 
     registerMatterHandlers(): void {
         if (this.ioBrokerDevice.hasPower()) {
-            this.#matterEndpoint.events.ioBrokerEvents.onOffControlled.on(async on => {
-                const currentValue = !!this.#ioBrokerDevice.getPower();
-                if (on !== currentValue) {
-                    await this.#ioBrokerDevice.setPower(on);
-                }
-            });
+            this.#matterEndpoint.events.ioBrokerEvents.onOffControlled.on(
+                async on => await this.#ioBrokerDevice.setPower(on),
+            );
         } else {
             this.#ioBrokerDevice.adapter.log.info(
                 `Device ${this.#ioBrokerDevice.deviceType} (${this.ioBrokerDevice.uuid}) has no mapped power state`,
@@ -90,8 +87,7 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
                     await this.#ioBrokerDevice.setTransitionTime(transitionTime * 1000);
                 }
 
-                const currentValue = this.#ioBrokerDevice.getDimmer();
-                if (level !== currentValue && level !== null) {
+                if (level !== null) {
                     await this.#ioBrokerDevice.setDimmer(Math.round((level / 254) * 100));
                 }
             });
@@ -106,12 +102,8 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
                 await this.#ioBrokerDevice.setTransitionTime(transitionTime * 1000);
             }
 
-            const currentValue = this.#ioBrokerDevice.getTemperature();
-
             const kelvin = miredsToKelvin(mireds);
-            if (kelvin !== currentValue) {
-                await this.#ioBrokerDevice.setTemperature(kelvin);
-            }
+            await this.#ioBrokerDevice.setTemperature(kelvin);
         });
 
         if (this.ioBrokerDevice.hasPower()) {

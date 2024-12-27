@@ -68,17 +68,11 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
                     if (this.ioBrokerDevice.hasOpen()) {
                         await this.#ioBrokerDevice.setOpen();
                     } else {
-                        // Adjust state to get it handled by default logic
-                        state = DoorLock.LockState.Unlocked;
-                        if (state !== currentState) {
-                            await this.#ioBrokerDevice.setLockState(state === DoorLock.LockState.Unlocked);
-                        }
+                        await this.#ioBrokerDevice.setLockState(true); // Unlocked
                     }
                     break;
                 default:
-                    if (state !== currentState) {
-                        await this.#ioBrokerDevice.setLockState(state === DoorLock.LockState.Unlocked);
-                    }
+                    await this.#ioBrokerDevice.setLockState(state === DoorLock.LockState.Unlocked);
                     break;
             }
         });

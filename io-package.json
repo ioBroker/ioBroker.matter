@@ -180,7 +180,8 @@
     "debug": false,
     "login": "",
     "pass": "",
-    "defaultBridge": ""
+    "defaultBridge": "",
+    "controllerFabricLabel": ""
   },
   "objects": [],
   "instanceObjects": [

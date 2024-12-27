@@ -20,6 +20,7 @@ export interface ControllerCreateOptions {
     adapter: MatterAdapter;
     controllerOptions: MatterControllerConfig;
     updateCallback: () => void;
+    fabricLabel: string;
 }
 
 interface AddDeviceResult {
@@ -39,6 +40,7 @@ class Controller implements GeneralNode {
     #parameters: MatterControllerConfig;
     readonly #adapter: MatterAdapter;
     readonly #updateCallback: () => void;
+    #fabricLabel: string;
     #commissioningController?: CommissioningController;
     #nodes = new Map<string, GeneralMatterNode>();
     #connected: { [nodeId: string]: boolean } = {};
@@ -50,6 +52,7 @@ class Controller implements GeneralNode {
         this.#adapter = options.adapter;
         this.#parameters = options.controllerOptions;
         this.#updateCallback = options.updateCallback;
+        this.#fabricLabel = options.fabricLabel;
     }
 
     get nodes(): Map<string, GeneralMatterNode> {
@@ -244,6 +247,7 @@ class Controller implements GeneralNode {
                 environment: this.#adapter.matterEnvironment,
                 id: 'controller',
             },
+            adminFabricLabel: this.#fabricLabel,
         });
 
         await this.#adapter.extendObjectAsync('controller.info', {

@@ -1086,11 +1086,12 @@ export class MatterAdapter extends utils.Adapter {
         return null;
     }
 
-    createMatterController(controllerOptions: MatterControllerConfig): MatterController {
+    createMatterController(controllerOptions: MatterControllerConfig, fabricLabel: string): MatterController {
         const matterController = new MatterController({
             adapter: this,
             controllerOptions,
             updateCallback: () => this.#refreshControllerDevices(),
+            fabricLabel,
         });
         matterController.init(); // add bridge to server
 
@@ -1325,7 +1326,10 @@ export class MatterAdapter extends utils.Adapter {
                     return { result: true };
                 }
 
-                this.#controller = this.createMatterController(config);
+                this.#controller = this.createMatterController(
+                    config,
+                    (this.config as MatterAdapterConfig).controllerFabricLabel || `ioBroker ${this.namespace}`,
+                );
 
                 if (handleStart) {
                     await this.#controller.start();

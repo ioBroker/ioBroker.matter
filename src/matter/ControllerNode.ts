@@ -9,7 +9,11 @@ import {
 import { ManualPairingCodeCodec, QrPairingCodeCodec } from '@matter/main/types';
 import { NodeJsBle } from '@matter/nodejs-ble';
 import { CommissioningController, type NodeCommissioningOptions } from '@project-chip/matter.js';
-import type { CommissioningControllerNodeOptions, PairedNode } from '@project-chip/matter.js/device';
+import {
+    NodeStates as PairedNodeStates,
+    type CommissioningControllerNodeOptions,
+    type PairedNode,
+} from '@project-chip/matter.js/device';
 import type { MatterControllerConfig } from '../../src-admin/src/types';
 import type { MatterAdapter } from '../main';
 import { GeneralMatterNode, type PairedNodeConfig } from './GeneralMatterNode';
@@ -194,7 +198,7 @@ class Controller implements GeneralNode {
         node.events.eventTriggered.on(data => {
             void this.#nodes.get(node.nodeId.toString())?.handleTriggeredEvent(data);
         });
-        node.events.stateChanged.on(async info => {
+        node.events.stateChanged.on(async (info: PairedNodeStates) => {
             const nodeDetails = (this.#commissioningController?.getCommissionedNodesDetails() ?? []).find(
                 n => n.nodeId === node.nodeId,
             );
@@ -213,7 +217,11 @@ class Controller implements GeneralNode {
             if (deviceNode) {
                 await deviceNode.handleStateChange(info, nodeDetails);
             } else {
-                this.#adapter.log.info(`Matter node "${nodeIdStr}" not yet initialized ...`);
+                if (info !== PairedNodeStates.Disconnected) {
+                    this.#adapter.log.info(
+                        `Matter node "${nodeIdStr}" not initialized ... Got State change to ${info}`,
+                    );
+                }
             }
             this.#updateCallback();
         });
@@ -480,11 +488,13 @@ class Controller implements GeneralNode {
                 },
                 device => {
                     this.#adapter.log.debug(`Discovered Device: ${Logger.toJSON(device)}`);
-                    if (!this.#discovering) {
-                        void this.#adapter.sendToGui({
-                            command: 'discoveredDevice',
-                            device,
-                        });
+                    if (this.#discovering) {
+                        this.#adapter
+                            .sendToGui({
+                                command: 'discoveredDevice',
+                                device,
+                            })
+                            .catch(error => this.#adapter.log.info(`Error sending to GUI: ${error}`));
                     }
                 },
                 60, // timeoutSeconds
@@ -540,12 +550,13 @@ class Controller implements GeneralNode {
     }
 
     async stop(): Promise<void> {
+        this.#adapter.log.info(`Stopping Controller...`);
         if (this.#discovering) {
             await this.#discoveryStop();
         }
 
-        for (const device of this.#nodes.values()) {
-            await device.destroy();
+        for (const node of this.#nodes.values()) {
+            await node.destroy();
         }
 
         this.#nodes.clear();

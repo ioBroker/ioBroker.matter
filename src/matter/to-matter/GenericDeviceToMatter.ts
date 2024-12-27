@@ -1,4 +1,4 @@
-import { Observable, type Endpoint, ObserverGroup, type MaybePromise } from '@matter/main';
+import { capitalize, Observable, type Endpoint, ObserverGroup, type MaybePromise } from '@matter/main';
 import type { GenericDevice } from '../../lib';
 import type { StructuredJsonFormData } from '../../lib/JsonConfigUtils';
 
@@ -128,10 +128,9 @@ export abstract class GenericDeviceToMatter {
 
         details.detectedStates = {
             __header__device: 'Detected ioBroker Device type',
-            deviceType: this.ioBrokerDevice.deviceType,
+            deviceType: capitalize(this.ioBrokerDevice.deviceType ?? 'unknown'),
             __header__states: 'Detected device states',
             __text__info: 'The following states were detected for this device:',
-            __divider__info: true,
             ...this.ioBrokerDevice.getStates(true, true),
         };
 
@@ -140,11 +139,10 @@ export abstract class GenericDeviceToMatter {
             details.endpoints = {
                 __header__endpoints: 'Device Endpoints',
                 __text__info: 'The following Matter endpoints are mapped for this device.',
-                __divider__info: true,
             };
             endpoints.forEach(endpoint => {
                 details.endpoints[`__header__endpoint${endpoint.number}`] = `Endpoint ${endpoint.number}`;
-                details.endpoints[`dt${endpoint.number}__deviceType`] = endpoint.type.name;
+                details.endpoints[`dt${endpoint.number}__deviceType`] = capitalize(endpoint.type.name);
                 // TODO expose potentially more
             });
         }

@@ -105,6 +105,7 @@ export class MatterAdapter extends utils.Adapter {
     #objectProcessQueueTimeout?: NodeJS.Timeout;
     #currentObjectProcessPromise?: Promise<void>;
     #controllerActionQueue = new PromiseQueue();
+    #blockGuiUpdates = false;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -168,16 +169,28 @@ export class MatterAdapter extends utils.Adapter {
 
     async shutDownMatterNodes(): Promise<void> {
         for (const { device } of this.#devices.values()) {
-            await device?.destroy();
+            try {
+                await device?.destroy();
+            } catch (error) {
+                this.log.warn(`Error while destroying device ${device?.uuid}: ${error.stack}`);
+            }
         }
         this.#devices.clear();
         for (const { bridge } of this.#bridges.values()) {
-            await bridge?.destroy();
+            try {
+                await bridge?.destroy();
+            } catch (error) {
+                this.log.warn(`Error while destroying bridge ${bridge?.uuid}: ${error.stack}`);
+            }
         }
         this.#bridges.clear();
         // TODO with next matter.js : if (this.#controllerActionQueue.count)
         this.#controllerActionQueue.clear(false);
-        await this.#controller?.stop();
+        try {
+            await this.#controller?.stop();
+        } catch (error) {
+            this.log.warn(`Error while stopping controller: ${error.stack}`);
+        }
         this.#controller = undefined;
     }
 
@@ -377,7 +390,7 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     sendToGui = async (data: any): Promise<void> => {
-        if (!this.#_guiSubscribes) {
+        if (!this.#_guiSubscribes || this.#blockGuiUpdates) {
             return;
         }
         if (this.sendToUI) {
@@ -572,16 +585,22 @@ export class MatterAdapter extends utils.Adapter {
         try {
             // inform GUI about stop
             await this.sendToGui({ command: 'stopped' });
+        } catch {
+            // ignore
+        }
+        this.#blockGuiUpdates = true;
 
-            if (this.#deviceManagement) {
-                await this.#deviceManagement.close();
-            }
+        if (this.#deviceManagement) {
+            await this.#deviceManagement.close();
+        }
 
+        try {
             await this.shutDownMatterNodes();
             // close Environment/MDNS?
         } catch {
             // ignore
         }
+
         callback();
     }
 

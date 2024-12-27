@@ -27,6 +27,11 @@ TODO
 
 ## Prerequisites to use this adapter
 
+### Used adapters and apps
+If you want to use the iobroker Visu App for device pairing you need:
+* ioBroker Visu App at least v1.3.1
+* iot Adapter at least v3.4.4
+
 ### General prerequisites
 * One instance of the adapter is bound to one host (aka IP). Multiple instances require a multi-host setup.
 * Make sure IPv6 is enabled in your network and the host you use this adapter on has an IPv6 address
@@ -220,6 +225,17 @@ TBD
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (@Apollon77) Allows to trigger commands via matter also when state already matches the value
+* (@Apollon77) Sets and updates the fabric label for paired devices (default is "ioBroker matter.X")
+* (@Apollon77) Detects state deletion for ioBroker devices and updates device in UI to show device state
+* (@Apollon77) Several optimizations on commissioning
+* (@Apollon77) Do not show commissioning QR codes in ioBroker log
+* (@Apollon77) Use Fabric label to try to detect if ioBroker is the controller
+* (@Apollon77) Fixes displaying error details for devices and bridges
+* (@Apollon77) Fixes the device and type detection logic
+
 ### 0.3.2 (2024-12-21)
 * (@Apollon77) Fixes several discovery issues
 

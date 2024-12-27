@@ -45,6 +45,10 @@ class Device extends BaseServerNode {
         return this.#parameters.port;
     }
 
+    get error(): boolean {
+        return !this.#device.isValid;
+    }
+
     async init(): Promise<void> {
         this.adapter.log.info(`Adding device ${this.#parameters.uuid} "${this.#parameters.deviceName}"`);
 
@@ -84,6 +88,7 @@ class Device extends BaseServerNode {
             throw new Error(`ioBroker Device "${this.#device.deviceType}" is not supported`);
         }
 
+        mappingDevice.validChanged.on(() => this.updateUiState());
         this.#mappingDevice = mappingDevice;
         const endpoints = mappingDevice.matterEndpoints;
 

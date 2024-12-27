@@ -688,7 +688,7 @@ export class GeneralMatterNode {
 
                 if (attribute.attribute.writable) {
                     const handler: SubscribeCallback = async state => {
-                        if (state.ack) {
+                        if (!state || state.ack) {
                             return;
                         } // Only controls are processed
                         try {
@@ -779,7 +779,7 @@ export class GeneralMatterNode {
 
                 const handler: SubscribeCallback = async state => {
                     // Only controls are processed
-                    if (state.ack) {
+                    if (!state || state.ack) {
                         return;
                     }
 

@@ -1,5 +1,6 @@
 import type { DetectorState, StateType } from '@iobroker/type-detector';
 import SubscribeManager from '../SubscribeManager';
+import { EventEmitter } from 'events';
 
 export enum ValueType {
     String = 'string',
@@ -146,7 +147,7 @@ function asCommonType(type: StateType | undefined): ioBroker.CommonType {
     return 'mixed';
 }
 
-export class DeviceStateObject<T> {
+export class DeviceStateObject<T> extends EventEmitter {
     value?: T;
     updateHandler?: (object: DeviceStateObject<T>) => Promise<void>;
     isEnum = false;
@@ -161,6 +162,7 @@ export class DeviceStateObject<T> {
 
     #isIoBrokerState: boolean;
     #id: string;
+    #valid: boolean = true;
 
     static async create<T>(
         adapter: ioBroker.Adapter,
@@ -183,6 +185,7 @@ export class DeviceStateObject<T> {
         protected readonly isEnabled: () => boolean,
         protected readonly unitConversionMap: { [key: string]: (value: number, toDefaultUnit: boolean) => number } = {},
     ) {
+        super();
         this.isEnum = valueType === ValueType.Enum;
         this.#isIoBrokerState = state.isIoBrokerState;
         this.#id = state.id;
@@ -264,6 +267,10 @@ export class DeviceStateObject<T> {
 
     get role(): string {
         return this.object?.common.role ?? 'state';
+    }
+
+    get isValid(): boolean {
+        return this.#valid;
     }
 
     protected parseMinMax(percent = false): void {
@@ -460,7 +467,22 @@ export class DeviceStateObject<T> {
         }
     }
 
-    updateState = async (state: ioBroker.State, ignoreEnabledStatus = false): Promise<void> => {
+    updateState = async (state: ioBroker.State | null | undefined, ignoreEnabledStatus = false): Promise<void> => {
+        if (!state) {
+            if (this.#isIoBrokerState) {
+                // State expired or object got deleted, verify if the object still exists
+                const obj = await this.adapter.getForeignObjectAsync(this.#id);
+                if (!obj) {
+                    this.#valid = false;
+                    this.emit('validChanged');
+                }
+            }
+            return;
+        } else if (!this.#valid) {
+            this.#valid = true;
+            this.emit('validChanged');
+        }
+
         if (state.ack !== this.#isIoBrokerState || (!this.isEnabled() && !ignoreEnabledStatus)) {
             // For Device implementation only acked values are considered to be forwarded to the controllers
             return;

@@ -718,7 +718,9 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     #onStateChange(id: string, state: ioBroker.State | null | undefined): void {
-        SubscribeManager.observer(id, state).catch(e => this.log.error(`Error while observing state ${id}: ${e}`));
+        SubscribeManager.observer(id, state).catch(e =>
+            this.log.error(`Error while observing state ${id}: ${e.stack}`),
+        );
     }
 
     async findDeviceFromId(id: string, searchDeviceComingFromLevel?: number): Promise<string | null> {

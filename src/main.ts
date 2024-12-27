@@ -804,7 +804,7 @@ export class MatterAdapter extends utils.Adapter {
             );
             if (controlsToCheck.length) {
                 this.log.debug(
-                    `Found ${controlsToCheck?.length} device types for ${id} in ${deviceId}: ${JSON.stringify(controls)}`,
+                    `Found ${controlsToCheck?.length} device types for ${id} in ${deviceId}: ${JSON.stringify(controlsToCheck)}`,
                 );
             } else {
                 controlsToCheck = controls;
@@ -825,20 +825,20 @@ export class MatterAdapter extends utils.Adapter {
             this.log.debug(
                 `Found ${controlsWithType?.length} device types for ${deviceId} : ${JSON.stringify(controlsWithType)}`,
             );
-            const mainState = controls[0].states.find((state: DetectorState) => state.id);
+            const mainState = controlsWithType[0].states.find((state: DetectorState) => state.id);
             if (mainState) {
                 const id = mainState.id;
                 if (id) {
-                    if (preferredType && controls[0].type !== preferredType) {
+                    if (preferredType && controlsWithType[0].type !== preferredType) {
                         this.log.warn(
-                            `Type detection mismatch for state ${id}: ${controls[0].type} !== ${preferredType}.`,
+                            `Type detection mismatch for state ${id}: ${controlsWithType[0].type} !== ${preferredType}.`,
                         );
                     }
                     // console.log(`In ${options.id} was detected "${controls[0].type}" with following states:`);
-                    controls[0].states = controls[0].states.filter((state: DetectorState) => state.id);
+                    controlsWithType[0].states = controlsWithType[0].states.filter((state: DetectorState) => state.id);
 
                     return {
-                        ...controls[0],
+                        ...controlsWithType[0],
                         isIoBrokerDevice: true,
                     } as DetectedDevice;
                 }

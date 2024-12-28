@@ -45,12 +45,9 @@ export class LightToMatter extends GenericElectricityDataDeviceToMatter {
     registerMatterHandlers(): void {
         // install matter listeners
         // here we can react on changes from the matter side for onOff
-        this.#matterEndpoint.events.ioBrokerEvents.onOffControlled.on(async on => {
-            const currentValue = !!this.#ioBrokerDevice.getPower();
-            if (on !== currentValue) {
-                await this.#ioBrokerDevice.setPower(on);
-            }
-        });
+        this.#matterEndpoint.events.ioBrokerEvents.onOffControlled.on(
+            async on => await this.#ioBrokerDevice.setPower(on),
+        );
 
         let isIdentifying = false;
         const identifyOptions: IdentifyOptions = {};

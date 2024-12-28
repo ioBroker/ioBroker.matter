@@ -4,6 +4,7 @@ export interface MatterAdapterConfig extends ioBroker.AdapterConfig {
     login: string;
     pass: string;
     defaultBridge: string;
+    controllerFabricLabel: string;
 }
 
 export interface BridgeDeviceDescription {

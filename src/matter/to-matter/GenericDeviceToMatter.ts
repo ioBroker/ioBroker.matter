@@ -1,4 +1,4 @@
-import { type Endpoint, ObserverGroup, type MaybePromise } from '@matter/main';
+import { capitalize, Observable, type Endpoint, ObserverGroup, type MaybePromise } from '@matter/main';
 import type { GenericDevice } from '../../lib';
 import type { StructuredJsonFormData } from '../../lib/JsonConfigUtils';
 
@@ -14,6 +14,8 @@ export abstract class GenericDeviceToMatter {
     #name: string;
     #uuid: string;
     #observers = new ObserverGroup();
+    #validChanged = Observable();
+    #valid = true;
 
     protected constructor(name: string, uuid: string) {
         this.#name = name;
@@ -22,6 +24,10 @@ export abstract class GenericDeviceToMatter {
 
     get matterEvents(): ObserverGroup {
         return this.#observers;
+    }
+
+    get validChanged(): Observable {
+        return this.#validChanged;
     }
 
     /**
@@ -83,6 +89,10 @@ export abstract class GenericDeviceToMatter {
         return this.#uuid;
     }
 
+    get isValid(): boolean {
+        return this.ioBrokerDevice.isValid;
+    }
+
     /**
      * Registers all device Matter change handlers relevant for this device to handle changes by Matter controllers to
      * control the device.
@@ -96,6 +106,14 @@ export abstract class GenericDeviceToMatter {
     async init(): Promise<void> {
         this.registerMatterHandlers();
         await this.registerIoBrokerHandlersAndInitialize();
+        this.ioBrokerDevice.on('validChanged', () => {
+            const valid = this.ioBrokerDevice.isValid;
+            if (valid === this.#valid) {
+                return;
+            }
+            this.#valid = valid;
+            this.#validChanged.emit();
+        });
     }
 
     async destroy(): Promise<void> {
@@ -110,10 +128,9 @@ export abstract class GenericDeviceToMatter {
 
         details.detectedStates = {
             __header__device: 'Detected ioBroker Device type',
-            deviceType: this.ioBrokerDevice.deviceType,
+            deviceType: capitalize(this.ioBrokerDevice.deviceType ?? 'unknown'),
             __header__states: 'Detected device states',
             __text__info: 'The following states were detected for this device:',
-            __divider__info: true,
             ...this.ioBrokerDevice.getStates(true, true),
         };
 
@@ -122,11 +139,10 @@ export abstract class GenericDeviceToMatter {
             details.endpoints = {
                 __header__endpoints: 'Device Endpoints',
                 __text__info: 'The following Matter endpoints are mapped for this device.',
-                __divider__info: true,
             };
             endpoints.forEach(endpoint => {
                 details.endpoints[`__header__endpoint${endpoint.number}`] = `Endpoint ${endpoint.number}`;
-                details.endpoints[`dt${endpoint.number}__deviceType`] = endpoint.type.name;
+                details.endpoints[`dt${endpoint.number}__deviceType`] = capitalize(endpoint.type.name);
                 // TODO expose potentially more
             });
         }

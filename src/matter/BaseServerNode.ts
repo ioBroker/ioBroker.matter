@@ -108,7 +108,7 @@ export abstract class BaseServerNode implements GeneralNode {
 
         result.connectionInfo = fabrics.map(fabric => ({
             vendorId: fabric?.rootVendorId,
-            vendorName: 'TODO', // TODO: Get vendor name from Clusters
+            vendorName: fabric.label.toLowerCase().includes('iobroker') ? 'iobroker' : 'unknown',
             connected: activeSessions
                 .filter(session => session.fabric?.fabricId === fabric.fabricId)
                 .some(({ numberOfActiveSubscriptions }) => !!numberOfActiveSubscriptions),

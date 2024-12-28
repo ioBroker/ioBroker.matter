@@ -10,6 +10,7 @@ import { BaseServerNode } from './BaseServerNode';
 import matterDeviceFactory from './to-matter/matterFactory';
 import type { GenericDeviceToMatter } from './to-matter/GenericDeviceToMatter';
 import type { StructuredJsonFormData } from '../lib/JsonConfigUtils';
+import { IoBrokerCommissioningServer } from './behaviors/IoBrokerCommissioningServer';
 
 export interface DeviceCreateOptions {
     parameters: DeviceOptions;
@@ -43,6 +44,10 @@ class Device extends BaseServerNode {
 
     get port(): number {
         return this.#parameters.port;
+    }
+
+    get error(): boolean {
+        return !this.#device.isValid;
     }
 
     async init(): Promise<void> {
@@ -84,6 +89,7 @@ class Device extends BaseServerNode {
             throw new Error(`ioBroker Device "${this.#device.deviceType}" is not supported`);
         }
 
+        mappingDevice.validChanged.on(() => this.updateUiState());
         this.#mappingDevice = mappingDevice;
         const endpoints = mappingDevice.matterEndpoints;
 
@@ -98,6 +104,7 @@ class Device extends BaseServerNode {
             this.serverNode = await ServerNode.create(
                 ServerNode.RootEndpoint.with(
                     NetworkCommissioningServer.withFeatures(NetworkCommissioning.Feature.EthernetNetworkInterface),
+                    IoBrokerCommissioningServer,
                 ),
                 {
                     environment: this.adapter.matterEnvironment,

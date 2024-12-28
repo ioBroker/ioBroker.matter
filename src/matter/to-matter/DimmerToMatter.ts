@@ -50,12 +50,9 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
 
     registerMatterHandlers(): void {
         if (this.ioBrokerDevice.hasPower()) {
-            this.#matterEndpoint.events.ioBrokerEvents.onOffControlled.on(async on => {
-                const currentValue = !!this.#ioBrokerDevice.getPower();
-                if (on !== currentValue) {
-                    await this.#ioBrokerDevice.setPower(on);
-                }
-            });
+            this.#matterEndpoint.events.ioBrokerEvents.onOffControlled.on(
+                async on => await this.#ioBrokerDevice.setPower(on),
+            );
         } else {
             this.#ioBrokerDevice.adapter.log.info(
                 `Device ${this.#ioBrokerDevice.deviceType} (${this.ioBrokerDevice.uuid}) has no mapped power state`,
@@ -68,8 +65,7 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
                 await this.#ioBrokerDevice.setTransitionTime(transitionTime * 1000);
             }
 
-            const currentValue = this.#ioBrokerDevice.getLevel();
-            if (level !== currentValue && level !== null) {
+            if (level !== null) {
                 await this.#ioBrokerDevice.setLevel(Math.round((level / 254) * 100));
             }
         });

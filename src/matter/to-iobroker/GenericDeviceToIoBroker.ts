@@ -604,6 +604,8 @@ export abstract class GenericDeviceToIoBroker {
 
         const powerSource = this.appEndpoint.getClusterClient(PowerSource.Complete);
         if (powerSource !== undefined) {
+            states.__header__powersourcedetails = 'Power Source Details';
+
             if (
                 powerSource.isAttributeSupportedByName('batQuantity') &&
                 powerSource.isAttributeSupportedByName('batReplacementDescription')
@@ -618,6 +620,10 @@ export abstract class GenericDeviceToIoBroker {
                 } else if (typeof percentRemaining === 'number') {
                     states.batteryVoltage = `${Math.round(percentRemaining / 2)}%`;
                 }
+            }
+
+            if (!states.includedBattery && !states.batteryVoltage) {
+                delete states.__header__powersourcedetails;
             }
         }
 
@@ -644,7 +650,6 @@ export abstract class GenericDeviceToIoBroker {
                 .map(({ name, code }) => `${name} (${toHex(code)})`)
                 .join(', '),
             endpoint: this.appEndpoint.number,
-            __divider__matterdata: true,
             ...(await this.getMatterStates()),
         } as Record<string, unknown>;
 

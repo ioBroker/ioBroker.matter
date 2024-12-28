@@ -11,6 +11,7 @@ import { BaseServerNode } from './BaseServerNode';
 import matterDeviceFactory from './to-matter/matterFactory';
 import type { GenericDeviceToMatter } from './to-matter/GenericDeviceToMatter';
 import type { StructuredJsonFormData } from '../lib/JsonConfigUtils';
+import { IoBrokerCommissioningServer } from './behaviors/IoBrokerCommissioningServer';
 
 export interface BridgeCreateOptions {
     parameters: BridgeOptions;
@@ -154,6 +155,7 @@ class BridgedDevices extends BaseServerNode {
                 this.#deviceEndpoints.set(deviceOptions.uuid, [composedEndpoint]);
             }
             await mappingDevice.init();
+            mappingDevice.validChanged.on(() => this.updateUiState());
             this.#mappingDevices.set(deviceOptions.uuid, mappingDevice);
 
             const addedEndpoints = this.#deviceEndpoints.get(deviceOptions.uuid) as Endpoint<BridgedNodeEndpoint>[];
@@ -199,6 +201,7 @@ class BridgedDevices extends BaseServerNode {
         this.serverNode = await ServerNode.create(
             ServerNode.RootEndpoint.with(
                 NetworkCommissioningServer.withFeatures(NetworkCommissioning.Feature.EthernetNetworkInterface),
+                IoBrokerCommissioningServer,
             ),
             {
                 environment: this.adapter.matterEnvironment,
@@ -380,10 +383,11 @@ class BridgedDevices extends BaseServerNode {
                 ([
                     uuid,
                     {
+                        device,
                         error,
                         options: { enabled },
                     },
-                ]) => (error && enabled ? uuid : undefined),
+                ]) => ((error || !device?.isValid) && enabled ? uuid : undefined),
             )
             .filter(uuid => uuid !== undefined);
         return errors.length > 0 ? errors : false;

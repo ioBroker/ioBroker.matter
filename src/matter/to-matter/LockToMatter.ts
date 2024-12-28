@@ -55,9 +55,6 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
         // install matter listeners
         // here we can react on changes from the matter side for onOff
         this.#matterEndpoint.events.ioBrokerEvents.doorLockStateControlled.on(async state => {
-            const currentState = this.#ioBrokerDevice.getLockState()
-                ? DoorLock.LockState.Locked
-                : DoorLock.LockState.Unlocked;
             switch (state) {
                 case null:
                     return;
@@ -68,17 +65,11 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
                     if (this.ioBrokerDevice.hasOpen()) {
                         await this.#ioBrokerDevice.setOpen();
                     } else {
-                        // Adjust state to get it handled by default logic
-                        state = DoorLock.LockState.Unlocked;
-                        if (state !== currentState) {
-                            await this.#ioBrokerDevice.setLockState(state === DoorLock.LockState.Unlocked);
-                        }
+                        await this.#ioBrokerDevice.setLockState(true); // Unlocked
                     }
                     break;
                 default:
-                    if (state !== currentState) {
-                        await this.#ioBrokerDevice.setLockState(state === DoorLock.LockState.Unlocked);
-                    }
+                    await this.#ioBrokerDevice.setLockState(state === DoorLock.LockState.Unlocked);
                     break;
             }
         });

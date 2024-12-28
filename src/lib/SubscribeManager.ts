@@ -1,4 +1,4 @@
-export type SubscribeCallback = (state: ioBroker.State) => Promise<void>;
+export type SubscribeCallback = (state: ioBroker.State | null | undefined) => Promise<void>;
 
 class SubscribeManager {
     /** List of all registered subscribed state ids. */
@@ -14,7 +14,7 @@ class SubscribeManager {
 
     static async observer(id: string, state: ioBroker.State | null | undefined): Promise<void> {
         const callbacks = SubscribeManager.subscribes.get(id);
-        if (callbacks !== undefined && state) {
+        if (callbacks !== undefined) {
             for (const callback of callbacks) {
                 await callback(state);
             }

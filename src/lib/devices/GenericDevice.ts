@@ -3,6 +3,7 @@
 import type { DetectorState, Types } from '@iobroker/type-detector';
 import type { BridgeDeviceDescription } from '../../ioBrokerStorageTypes';
 import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import { EventEmitter } from 'events';
 
 // take here https://github.com/ioBroker/ioBroker.type-detector/blob/master/DEVICES.md#temperature-temperature
 // export enum DeviceType {
@@ -88,7 +89,7 @@ interface StateDescription {
     role?: string;
 }
 
-abstract class GenericDevice {
+abstract class GenericDevice extends EventEmitter {
     #properties: { [id: string]: StateDescription } = {};
     #possibleProperties: { [id: string]: StateDescription } = {};
     #adapter: ioBroker.Adapter;
@@ -96,6 +97,7 @@ abstract class GenericDevice {
     #deviceType: Types;
     #detectedDevice: DetectedDevice;
     #isIoBrokerDevice: boolean;
+    #valid = true;
     #handlers: ((event: { property: PropertyType; value: any; device: GenericDevice }) => Promise<void>)[] = [];
     protected _construction = new Array<() => Promise<void>>();
 
@@ -112,6 +114,7 @@ abstract class GenericDevice {
         adapter: ioBroker.Adapter,
         protected options?: DeviceOptions,
     ) {
+        super();
         this.#adapter = adapter;
         this.#deviceType = detectedDevice.type;
         this.#detectedDevice = detectedDevice;
@@ -183,6 +186,18 @@ abstract class GenericDevice {
 
     get enabled(): boolean {
         return !!this.options?.enabled;
+    }
+
+    get isValid(): boolean {
+        return !this.#subscribeObjects.some(obj => !obj.isValid);
+    }
+
+    #handleValidChange(): void {
+        const isValid = this.isValid;
+        if (this.#valid !== isValid) {
+            this.#valid = isValid;
+            this.emit('validChanged');
+        }
     }
 
     isActionAllowedByIdentify(): boolean {
@@ -290,6 +305,7 @@ abstract class GenericDevice {
                 if (stateId && !this.#subscribeObjects.find(obj => obj.state.id === stateId)) {
                     await object.subscribe(this.updateState);
                     this.#subscribeObjects.push(object);
+                    object.on('validChanged', () => this.#handleValidChange());
                 }
             }
             callback(object);

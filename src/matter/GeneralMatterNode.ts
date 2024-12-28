@@ -688,7 +688,7 @@ export class GeneralMatterNode {
 
                 if (attribute.attribute.writable) {
                     const handler: SubscribeCallback = async state => {
-                        if (state.ack) {
+                        if (!state || state.ack) {
                             return;
                         } // Only controls are processed
                         try {
@@ -779,7 +779,7 @@ export class GeneralMatterNode {
 
                 const handler: SubscribeCallback = async state => {
                     // Only controls are processed
-                    if (state.ack) {
+                    if (!state || state.ack) {
                         return;
                     }
 
@@ -957,7 +957,7 @@ export class GeneralMatterNode {
     async destroy(): Promise<void> {
         await this.adapter.setState(this.connectionStateId, false, true);
         await this.adapter.setState(this.connectionStatusId, NodeStates.Disconnected, true);
-        return this.clear();
+        await this.clear();
     }
 
     async remove(): Promise<void> {
@@ -966,7 +966,7 @@ export class GeneralMatterNode {
         }
         await this.adapter.controllerNode.decommissionNode(this.nodeId);
         await this.clear();
-        this.adapter.log.warn(`Node "${this.nodeId}" removed. Removing Storage in ${this.nodeBaseId}`);
+        this.adapter.log.info(`Node "${this.nodeId}" removed. Removing Storage in ${this.nodeBaseId}`);
         await this.adapter.delObjectAsync(this.nodeBaseId, { recursive: true });
     }
 

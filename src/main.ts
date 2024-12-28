@@ -105,6 +105,7 @@ export class MatterAdapter extends utils.Adapter {
     #objectProcessQueueTimeout?: NodeJS.Timeout;
     #currentObjectProcessPromise?: Promise<void>;
     #controllerActionQueue = new PromiseQueue();
+    #blockGuiUpdates = false;
 
     public constructor(options: Partial<utils.AdapterOptions> = {}) {
         super({
@@ -168,16 +169,28 @@ export class MatterAdapter extends utils.Adapter {
 
     async shutDownMatterNodes(): Promise<void> {
         for (const { device } of this.#devices.values()) {
-            await device?.destroy();
+            try {
+                await device?.destroy();
+            } catch (error) {
+                this.log.warn(`Error while destroying device ${device?.uuid}: ${error.stack}`);
+            }
         }
         this.#devices.clear();
         for (const { bridge } of this.#bridges.values()) {
-            await bridge?.destroy();
+            try {
+                await bridge?.destroy();
+            } catch (error) {
+                this.log.warn(`Error while destroying bridge ${bridge?.uuid}: ${error.stack}`);
+            }
         }
         this.#bridges.clear();
         // TODO with next matter.js : if (this.#controllerActionQueue.count)
         this.#controllerActionQueue.clear(false);
-        await this.#controller?.stop();
+        try {
+            await this.#controller?.stop();
+        } catch (error) {
+            this.log.warn(`Error while stopping controller: ${error.stack}`);
+        }
         this.#controller = undefined;
     }
 
@@ -250,10 +263,10 @@ export class MatterAdapter extends utils.Adapter {
                             }
                         }
                     } else if (error) {
-                        if (obj.message === 'deviceExtendedInfo') {
+                        if (obj.command === 'deviceExtendedInfo') {
                             const result = this.getGenericErrorDetails('bridge', uuid, error);
                             if (result !== undefined && obj.callback) {
-                                this.sendTo(obj.from, obj.command, result, obj.callback);
+                                this.sendTo(obj.from, obj.command, { result }, obj.callback);
                             }
                         }
                     }
@@ -278,10 +291,10 @@ export class MatterAdapter extends utils.Adapter {
                             }
                         }
                     } else if (error) {
-                        if (obj.message === 'deviceExtendedInfo') {
+                        if (obj.command === 'deviceExtendedInfo') {
                             const result = this.getGenericErrorDetails('device', uuid, error);
                             if (result !== undefined && obj.callback) {
-                                this.sendTo(obj.from, obj.command, result, obj.callback);
+                                this.sendTo(obj.from, obj.command, { result }, obj.callback);
                             }
                         }
                     }
@@ -377,7 +390,7 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     sendToGui = async (data: any): Promise<void> => {
-        if (!this.#_guiSubscribes) {
+        if (!this.#_guiSubscribes || this.#blockGuiUpdates) {
             return;
         }
         if (this.sendToUI) {
@@ -572,16 +585,22 @@ export class MatterAdapter extends utils.Adapter {
         try {
             // inform GUI about stop
             await this.sendToGui({ command: 'stopped' });
+        } catch {
+            // ignore
+        }
+        this.#blockGuiUpdates = true;
 
-            if (this.#deviceManagement) {
-                await this.#deviceManagement.close();
-            }
+        if (this.#deviceManagement) {
+            await this.#deviceManagement.close();
+        }
 
+        try {
             await this.shutDownMatterNodes();
             // close Environment/MDNS?
         } catch {
             // ignore
         }
+
         callback();
     }
 
@@ -699,7 +718,9 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     #onStateChange(id: string, state: ioBroker.State | null | undefined): void {
-        SubscribeManager.observer(id, state).catch(e => this.log.error(`Error while observing state ${id}: ${e}`));
+        SubscribeManager.observer(id, state).catch(e =>
+            this.log.error(`Error while observing state ${id}: ${e.stack}`),
+        );
     }
 
     async findDeviceFromId(id: string, searchDeviceComingFromLevel?: number): Promise<string | null> {
@@ -783,7 +804,7 @@ export class MatterAdapter extends utils.Adapter {
             );
             if (controlsToCheck.length) {
                 this.log.debug(
-                    `Found ${controlsToCheck?.length} device types for ${id} in ${deviceId}: ${JSON.stringify(controls)}`,
+                    `Found ${controlsToCheck?.length} device types for ${id} in ${deviceId}: ${JSON.stringify(controlsToCheck)}`,
                 );
             } else {
                 controlsToCheck = controls;
@@ -804,20 +825,20 @@ export class MatterAdapter extends utils.Adapter {
             this.log.debug(
                 `Found ${controlsWithType?.length} device types for ${deviceId} : ${JSON.stringify(controlsWithType)}`,
             );
-            const mainState = controls[0].states.find((state: DetectorState) => state.id);
+            const mainState = controlsWithType[0].states.find((state: DetectorState) => state.id);
             if (mainState) {
                 const id = mainState.id;
                 if (id) {
-                    if (preferredType && controls[0].type !== preferredType) {
+                    if (preferredType && controlsWithType[0].type !== preferredType) {
                         this.log.warn(
-                            `Type detection mismatch for state ${id}: ${controls[0].type} !== ${preferredType}.`,
+                            `Type detection mismatch for state ${id}: ${controlsWithType[0].type} !== ${preferredType}.`,
                         );
                     }
                     // console.log(`In ${options.id} was detected "${controls[0].type}" with following states:`);
-                    controls[0].states = controls[0].states.filter((state: DetectorState) => state.id);
+                    controlsWithType[0].states = controlsWithType[0].states.filter((state: DetectorState) => state.id);
 
                     return {
-                        ...controls[0],
+                        ...controlsWithType[0],
                         isIoBrokerDevice: true,
                     } as DetectedDevice;
                 }
@@ -1086,11 +1107,12 @@ export class MatterAdapter extends utils.Adapter {
         return null;
     }
 
-    createMatterController(controllerOptions: MatterControllerConfig): MatterController {
+    createMatterController(controllerOptions: MatterControllerConfig, fabricLabel: string): MatterController {
         const matterController = new MatterController({
             adapter: this,
             controllerOptions,
             updateCallback: () => this.#refreshControllerDevices(),
+            fabricLabel,
         });
         matterController.init(); // add bridge to server
 
@@ -1325,7 +1347,10 @@ export class MatterAdapter extends utils.Adapter {
                     return { result: true };
                 }
 
-                this.#controller = this.createMatterController(config);
+                this.#controller = this.createMatterController(
+                    config,
+                    (this.config as MatterAdapterConfig).controllerFabricLabel || `ioBroker ${this.namespace}`,
+                );
 
                 if (handleStart) {
                     await this.#controller.start();

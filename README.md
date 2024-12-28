@@ -225,8 +225,7 @@ TBD
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.3.3 (2024-12-28)
 * (@Apollon77) Allows to trigger commands via matter also when state already matches the value
 * (@Apollon77) Sets and updates the fabric label for paired devices (default is "ioBroker matter.X")
 * (@Apollon77) Detects state deletion for ioBroker devices and updates device in UI to show device state

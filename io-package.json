@@ -221,14 +221,6 @@
       "native": {}
     },
     {
-      "_id": "info",
-      "type": "channel",
-      "common": {
-        "name": "Information"
-      },
-      "native": {}
-    },
-    {
       "_id": "info.welcomeDialog",
       "type": "state",
       "common": {

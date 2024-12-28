@@ -18,76 +18,76 @@ export function convertDataToJsonConfig(data: StructuredJsonFormData): JsonFormS
     const items: Record<string, ConfigItemPanel> = {};
 
     let panelCount = 0;
-    for (const key in data) {
+    for (const tab in data) {
         panelCount++;
         const tabItems: Record<string, ConfigItemAny> = {};
 
-        for (const subKey in data[key]) {
-            const flatKey = `${key}_${subKey}`;
-            if (subKey.startsWith('__header__')) {
+        for (const tabItem in data[tab]) {
+            const flatKey = `${tab}_${tabItem}`;
+            if (tabItem.startsWith('__header__')) {
                 tabItems[flatKey] = {
                     type: 'header',
-                    text: String(data[key][subKey]),
+                    text: String(data[tab][tabItem]),
                     noTranslation: true,
                 };
                 continue;
             }
-            if (subKey.startsWith('__text__')) {
+            if (tabItem.startsWith('__text__')) {
                 tabItems[flatKey] = {
                     type: 'staticText',
-                    text: String(data[key][subKey]),
+                    text: String(data[tab][tabItem]),
                 };
                 continue;
             }
-            if (subKey.startsWith('__smalltext__')) {
+            if (tabItem.startsWith('__smalltext__')) {
                 tabItems[flatKey] = {
                     type: 'staticText',
-                    text: String(data[key][subKey]),
+                    text: String(data[tab][tabItem]),
                     style: { fontSize: 10, fontStyle: 'italic', marginTop: -8 },
                 };
                 continue;
             }
-            if (subKey.startsWith('__divider__')) {
+            if (tabItem.startsWith('__divider__')) {
                 tabItems[flatKey] = {
                     type: 'divider',
                 };
                 continue;
             }
-            if (subKey.startsWith('__iobstate__')) {
-                if (data[key][subKey] && typeof data[key][subKey] === 'object') {
+            if (tabItem.startsWith('__iobstate__')) {
+                if (data[tab][tabItem] && typeof data[tab][tabItem] === 'object') {
                     tabItems[flatKey] = {
                         type: 'state',
                         foreign: true,
-                        label: subKey.substring(12),
+                        label: tabItem.substring(12),
                         addColon: true,
                         controlDelay: 500,
                         oid: '', // oid will be overwritten by data[key][subKey]
-                        ...data[key][subKey],
+                        ...data[tab][tabItem],
                     };
                 }
                 continue;
             }
 
-            if (data[key][subKey] === undefined) {
+            if (data[tab][tabItem] === undefined) {
                 continue;
             }
 
-            const subKeyShortenerIndex = subKey.indexOf('__');
+            const subKeyShortenerIndex = tabItem.indexOf('__');
             const subKeyLabel = decamelize(
-                subKeyShortenerIndex !== -1 ? subKey.substring(subKeyShortenerIndex + 2) : subKey,
+                subKeyShortenerIndex !== -1 ? tabItem.substring(subKeyShortenerIndex + 2) : tabItem,
             );
             tabItems[flatKey] = {
                 type: 'staticInfo',
                 label: subKeyLabel,
                 newLine: true,
                 noTranslation: true,
-                data: data[key][subKey] as number | string | boolean,
+                data: data[tab][tabItem] as number | string | boolean,
             };
         }
 
-        items[`_tab_${key}`] = {
+        items[`_tab_${tab}`] = {
             type: 'panel',
-            label: decamelize(key),
+            label: decamelize(tab),
             noTranslation: true,
             items: tabItems,
             style: {

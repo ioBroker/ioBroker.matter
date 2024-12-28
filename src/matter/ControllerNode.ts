@@ -28,7 +28,7 @@ export interface ControllerCreateOptions {
 }
 
 interface AddDeviceResult {
-    result: string | false;
+    result: boolean;
     /** The error message */
     error?: string;
     nodeId?: string;
@@ -433,7 +433,7 @@ class Controller implements GeneralNode {
 
         await this.registerCommissionedNode(nodeId);
 
-        return { result: 'Ok', nodeId: nodeId.toString() };
+        return { result: true, nodeId: nodeId.toString() };
     }
 
     async completeCommissioningForNode(nodeId: NodeId, discoveryData?: DiscoveryData): Promise<AddDeviceResult> {
@@ -448,7 +448,7 @@ class Controller implements GeneralNode {
 
         await this.registerCommissionedNode(nodeId);
 
-        return { result: 'Ok', nodeId: nodeId.toString() };
+        return { result: true, nodeId: nodeId.toString() };
     }
 
     async registerCommissionedNode(nodeId: NodeId): Promise<void> {

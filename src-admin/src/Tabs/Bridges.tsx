@@ -912,7 +912,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                     addDeviceDialog: null,
                                     addCustomDeviceDialog: {
                                         oid,
-                                        name,
+                                        name: name || '',
                                         deviceType: '',
                                         bridgeIndex: this.bridgeIndex as number,
                                         noComposed: false,
@@ -930,7 +930,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                 addDeviceDialog: null,
                                 addCustomDeviceDialog: {
                                     oid,
-                                    name,
+                                    name: name || '',
                                     deviceType,
                                     bridgeIndex: this.bridgeIndex as number,
                                     hasOnState: controls[0].devices[0].hasOnState,
@@ -945,6 +945,8 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
             );
         }
 
+        const nodeState = this.props.nodeStates[this.props.matter.bridges[this.state.addDeviceDialog.bridgeIndex].uuid];
+
         return (
             <DeviceDialog
                 onClose={() => this.setState({ addDeviceDialog: null })}
@@ -954,11 +956,9 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 }
                 devicesInBridge={this.props.matter.bridges[this.state.addDeviceDialog.bridgeIndex].list.length}
                 checkAddedDevices={
-                    this.props.nodeStates[this.props.matter.bridges[this.state.addDeviceDialog.bridgeIndex].uuid]
-                        ?.status !== 'waitingForCommissioning'
-                        ? 0
-                        : MAX_UN_COMMISSIONED_DEVICES
+                    nodeState && nodeState?.status !== 'waitingForCommissioning' ? 0 : MAX_UN_COMMISSIONED_DEVICES
                 }
+                themeType={this.props.themeType}
                 matter={this.props.matter}
                 socket={this.props.socket}
                 detectedDevices={this.props.detectedDevices}

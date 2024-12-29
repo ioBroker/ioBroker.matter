@@ -911,6 +911,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 addDevices={(devices: DetectedDevice[]) => this.addDevices(devices, true)}
                 matter={this.props.matter}
                 socket={this.props.socket}
+                themeType={this.props.themeType}
                 detectedDevices={this.props.detectedDevices}
                 setDetectedDevices={detectedDevices => this.props.setDetectedDevices(detectedDevices)}
                 type="device"

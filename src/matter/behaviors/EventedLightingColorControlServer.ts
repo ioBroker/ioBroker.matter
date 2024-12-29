@@ -8,7 +8,9 @@ export class EventedColorTemperatureColorControlServer extends ColorTemperatureL
         const result = super.moveToColorTemperatureLogic(targetMireds, transitionTime);
         return MaybePromise.then(result, () =>
             this.endpoint.act(agent =>
-                agent.get(IoBrokerEvents).events.colorTemperatureControlled.emit(this.state.colorTemperatureMireds),
+                agent
+                    .get(IoBrokerEvents)
+                    .events.colorTemperatureControlled.emit(this.state.colorTemperatureMireds, transitionTime),
             ),
         );
     }
@@ -48,7 +50,9 @@ export class EventedColorTemperatureColorControlServer extends ColorTemperatureL
         );
         return MaybePromise.then(result, () =>
             this.endpoint.act(agent =>
-                agent.get(IoBrokerEvents).events.colorTemperatureControlled.emit(this.state.colorTemperatureMireds),
+                agent
+                    .get(IoBrokerEvents)
+                    .events.colorTemperatureControlled.emit(this.state.colorTemperatureMireds, transitionTime),
             ),
         );
     }

@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import QrScanner from 'qr-scanner';
 
-import { IconButton, InfoBox } from '@foxriver76/iob-component-lib';
+import { IconButton } from '@foxriver76/iob-component-lib';
 
 import { Add, Bluetooth, BluetoothDisabled, Close, Save, Search, SearchOff } from '@mui/icons-material';
 
@@ -31,6 +31,7 @@ import DeviceManager from '@iobroker/dm-gui-components';
 
 import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
 import { clone, getVendorName } from '../Utils';
+import InfoBox from '../components/InfoBox';
 
 const styles: Record<string, React.CSSProperties> = {
     panel: {
@@ -372,7 +373,14 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 <DialogTitle>{I18n.t('BLE Commissioning information')}</DialogTitle>
                 <DialogContent>
                     <div>
-                        <InfoBox type="info">{I18n.t('Matter Controller BLE Dialog Infotext')}</InfoBox>
+                        <InfoBox
+                            type="info"
+                            iconPosition="top"
+                            closeable
+                            storeId="matter.ble"
+                        >
+                            {I18n.t('Matter Controller BLE Dialog Infotext')}
+                        </InfoBox>
 
                         <Typography sx={styles.header}>{I18n.t('Bluetooth configuration')}</Typography>
                         <TextField
@@ -588,13 +596,28 @@ class Controller extends Component<ComponentProps, ComponentState> {
             <Dialog
                 open={!0}
                 onClose={() => this.setState({ showQrCodeDialog: { open: false } }, () => this.destroyQrCode())}
+                maxWidth="lg"
+                fullWidth
             >
-                <DialogTitle>{I18n.t('QR Code')}</DialogTitle>
+                <DialogTitle>{I18n.t('Add device by pairing code or QR Code')}</DialogTitle>
                 <DialogContent>
+                    <div style={{ marginBottom: 10 }}>{I18n.t('Add via QR Code')}</div>
+                    <InfoBox
+                        iconPosition="top"
+                        type="info"
+                    >
+                        {I18n.t('Requirements: add via QR Code')}
+                        <div style={{ color: this.props.themeType === 'dark' ? '#ff6363' : '#800000', marginTop: 10 }}>
+                            {I18n.t(
+                                ' Please DO NOT use the QR code / pairing code that is printed on the Matter device.',
+                            )}
+                        </div>
+                    </InfoBox>
                     <TextField
                         variant="standard"
                         label={I18n.t('Manual pairing code')}
                         fullWidth
+                        style={{ maxWidth: 400 }}
                         value={this.state.manualCode}
                         onChange={e => this.setState({ manualCode: e.target.value })}
                     />
@@ -617,6 +640,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                 },
                             }}
                             fullWidth
+                            style={{ maxWidth: 400 }}
                             value={this.state.qrCode || ''}
                             error={!!this.state.qrError}
                             helperText={this.state.qrError}
@@ -624,6 +648,8 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     </div>
                     {this.state.camera.length ? (
                         <Select
+                            fullWidth
+                            style={{ maxWidth: 400 }}
                             variant="standard"
                             value={this.state.camera}
                             onChange={async e => {
@@ -711,7 +737,11 @@ class Controller extends Component<ComponentProps, ComponentState> {
             >
                 <DialogTitle>{I18n.t('Discovered devices to pair')}</DialogTitle>
                 <DialogContent>
-                    <InfoBox type="info">
+                    <InfoBox
+                        type="info"
+                        closeable
+                        storeId="matter.pairing"
+                    >
                         {I18n.t(this.props.matter.controller.ble ? 'Pairing Info Text BLE' : 'Pairing Info Text')}
                     </InfoBox>
                     {this.state.discoveryRunning ? <LinearProgress /> : null}
@@ -836,7 +866,14 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
         return (
             <div style={styles.panel}>
-                <InfoBox type="info">{I18n.t('Matter Controller Infotext')}</InfoBox>
+                <InfoBox
+                    type="info"
+                    closeable
+                    storeId="matter.controller.info"
+                    iconPosition="top"
+                >
+                    {I18n.t('Matter Controller Infotext')}
+                </InfoBox>
                 {this.renderLoadingSpinner()}
                 {this.renderShowDiscoveredDevices()}
                 {this.renderQrCodeDialog()}
@@ -862,7 +899,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     />
                     {I18n.t('On')}
                 </div>
-                <div>
+                <div style={{ display: 'flex', width: '100%', flexFlow: 'wrap', gap: 9 }}>
                     {this.props.matter.controller.enabled && this.props.alive ? (
                         <Button
                             variant="contained"
@@ -872,7 +909,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                 this.setState({ discovered: [] }, async () => {
                                     const result: {
                                         error?: string;
-                                        result: CommissionableDevice[];
+                                        result?: CommissionableDevice[];
                                     } = await this.props.socket.sendTo(
                                         `matter.${this.props.instance}`,
                                         'controllerDiscovery',
@@ -880,8 +917,8 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                     );
 
                                     if (result.error) {
-                                        window.alert(`Cannot discover: ${result.error}`);
-                                    } else {
+                                        window.alert(`Error on discovery: ${result.error}`);
+                                    } else if (result.result) {
                                         this.setState({
                                             discovered: result.result,
                                             discoveryDone: true,

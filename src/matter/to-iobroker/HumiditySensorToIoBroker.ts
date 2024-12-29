@@ -19,8 +19,18 @@ export class HumiditySensorToIoBroker extends GenericElectricityDataDeviceToIoBr
         endpointDeviceBaseId: string,
         deviceTypeName: string,
         defaultConnectionStateId: string,
+        defaultName: string,
     ) {
-        super(adapter, node, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName, defaultConnectionStateId);
+        super(
+            adapter,
+            node,
+            endpoint,
+            rootEndpoint,
+            endpointDeviceBaseId,
+            deviceTypeName,
+            defaultConnectionStateId,
+            defaultName,
+        );
 
         this.#ioBrokerDevice = new Humidity(
             { ...ChannelDetector.getPatterns().humidity, isIoBrokerDevice: false } as DetectedDevice,
@@ -30,7 +40,7 @@ export class HumiditySensorToIoBroker extends GenericElectricityDataDeviceToIoBr
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
-        this.enableDeviceTypeState(PropertyType.Humidity, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.Humidity, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: RelativeHumidityMeasurement.Cluster.id,
             attributeName: 'measuredValue',

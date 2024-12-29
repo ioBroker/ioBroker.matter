@@ -11,16 +11,26 @@
 
 **This adapter uses Sentry libraries to automatically report exceptions and code errors to the developers.** For more details and for information how to disable the error reporting see [Sentry-Plugin Documentation](https://github.com/ioBroker/plugin-sentry#plugin-sentry)! Sentry reporting is used starting with js-controller 3.0.
 
+> [!IMPORTANT]  
+> This adapter can only be installed from npm. A GitHub install is not possible!
+> For more important information please read the [Important Information](#important-information-read-first) section!
+
 ## Description
 TODO
 
 ## Important Information (READ FIRST!)
+* **Not installable via GitHub**: This adapter can only be installed via npm.
 * **Never delete partial matter instance objects or object trees!** The configuration for this adapter is **not** contained in just one central object like in other ore simple adapters. This means that deleting instance objects or object trees can lead to a broken configuration, and you might need to reconfigure the adapter from scratch.
 * **Never reinstall the adapter by deleting the instance** if you want to keep paired devices (e.g. on Controller) or paired Controllers (e.g. on Bridges). If you delete the instance all paired devices will be deleted, and you need to pair them again.
 * **Use an ioBroker Backup to back up the configuration** and restore the backup to restore it. If really needed without backup then export the whole object tree of the adapter instance (e.g. matter.0) and import it back if needed. These can be a high number of objects depending on the number of devices and controllers you have paired.
 * Some objects are not shown by default because they are irrelevant for normal operation. If you need to see them you can enable the "Expert Mode" in the adapter settings. This mainly is about the "storage" objects. Please **do not** change them unless you really, really know what you are doing!
 
 ## Prerequisites to use this adapter
+
+### Used adapters and apps
+If you want to use the iobroker Visu App for device pairing you need:
+* ioBroker Visu App at least v1.3.1
+* iot Adapter at least v3.4.4
 
 ### General prerequisites
 * One instance of the adapter is bound to one host (aka IP). Multiple instances require a multi-host setup.
@@ -48,38 +58,44 @@ Important: In order to expose more than 5 Bridged devices or to expose additiona
 
 ### Supported ioBroker device types
 
-| ioBroker Device Type | Mapped to Matter Device Type |
-|----------------------|------------------------------|
-| Ct                   | Color Temperature Light      |
-| Dimmer               | Dimmable Light               |
-| Door                 | Contact Sensor               |
-| Flood Alarm          | Water Leak Detector          |
-| Humidity             | Humidity Sensor              |
-| Light                | OnOff Light                  |
-| Lock                 | Door Lock                    |
-| Motion               | Occupancy Sensor             |
-| Socket               | OnOff PlugIn                 |
-| Temperature          | Temperature Sensor           |
-| Window               | Contact Sensor               |
+| ioBroker Device Type | Mapped to Matter Device Type | Comments                                                                                                                            |
+|----------------------|------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
+| Button               | GenericSwitch                | Reports multi-presses when the time between single presses is maximum 300ms.                                                        |
+| ButtonSensor         | GenericSwitch                | Reports multi-presses when the time between single presses is maximum 300ms. Reports Long-presses when the PRESS_LONG state is used |
+| Ct                   | Color Temperature Light      |                                                                                                                                     |
+| Dimmer               | Dimmable Light               |                                                                                                                                     |
+| Door                 | Contact Sensor               |                                                                                                                                     |
+| Flood Alarm          | Water Leak Detector          |                                                                                                                                     |
+| Humidity             | Humidity Sensor              |                                                                                                                                     |
+| Illumunance          | Illuminance Sensor           |                                                                                                                                     |
+| Light                | OnOff Light                  |                                                                                                                                     |
+| Lock                 | Door Lock                    |                                                                                                                                     |
+| Motion               | Occupancy Sensor             |                                                                                                                                     |
+| Socket               | OnOff PlugIn                 |                                                                                                                                     |
+| Temperature          | Temperature Sensor           |                                                                                                                                     |
+| Window               | Contact Sensor               |                                                                                                                                     |
 
 ... more to come
 
 ### Supported Matter device types
 
-| Matter Device Type      | Mapped to ioBroker Device Type |
-|-------------------------|--------------------------------|
-| Color Temperature Light | Ct                             |
-| Dimmable Light          | Dimmer                         |
-| Dimmable PlugIn Unit    | Dimmer                         |
-| Contact Sensor          | Window                         |
-| Energy Sensor           | Light with only energy states  |
-| Humidity Sensor         | Humidity                       |
-| OnOff Light             | Light                          |
-| Door Lock               | Lock                           |
-| Occupancy Sensor        | Motion                         |
-| OnOff PlugIn Unit       | Socket                         |
-| Temperature Sensor      | Temperature                    |
-| Water Leak Detector     | Flood Alarm                    |
+| Matter Device Type                   | Mapped to ioBroker Device Type |
+|--------------------------------------|--------------------------------|
+| Color Temperature Light              | Ct                             |
+| Dimmable Light                       | Dimmer                         |
+| Dimmable PlugIn Unit                 | Dimmer                         |
+| Contact Sensor                       | Window                         |
+| Energy Sensor                        | Light with only energy states  |
+| Generic Switch (as Latching Switch)  | Socket (state ACTUAL only)     |
+| Generic Switch (as Momentary Switch) | ButtonSensor                   |
+| Humidity Sensor                      | Humidity                       |
+| Illuminance Sensor                   | Illuminance                    |
+| OnOff Light                          | Light                          |
+| Door Lock                            | Lock                           |
+| Occupancy Sensor                     | Motion                         |
+| OnOff PlugIn Unit                    | Socket                         |
+| Temperature Sensor                   | Temperature                    |
+| Water Leak Detector                  | Flood Alarm                    |
 
 ... more to come
 
@@ -159,8 +175,6 @@ TBD
     * hue
   * (8) blinds + blindButtons
   * (-8) thermostat
-  * (5+2) button
-  * (5+2) buttonSensor?
   * (3+) vacuumCleaner
   * (3) volume, volumeGroup
   * (-3) airCondition
@@ -174,9 +188,7 @@ TBD
   * (9) Enhanced Color Light -> rgb/rgbw/cie/hue/...
   * (8) Thermostat -> thermostat
   * (8) Window Covering -> blinds / blindButtons
-  * (7+) Light Sensor -> ??? DEF
   * (7) Fan -> thermostat?
-  * (5+2) Generic Switch -> button? buttonSensor?
   * (4+) Air Quality Sensor -> ???
   * (4+) Air Purifier -> ???
   * (4) Pump -> ???
@@ -213,6 +225,92 @@ TBD
 -->
 
 ## Changelog
+### 0.3.3 (2024-12-28)
+* (@Apollon77) Allows to trigger commands via matter also when state already matches the value
+* (@Apollon77) Sets and updates the fabric label for paired devices (default is "ioBroker matter.X")
+* (@Apollon77) Detects state deletion for ioBroker devices and updates device in UI to show device state
+* (@Apollon77) Several optimizations on commissioning
+* (@Apollon77) Do not show commissioning QR codes in ioBroker log
+* (@Apollon77) Use Fabric label to try to detect if ioBroker is the controller
+* (@Apollon77) Fixes displaying error details for devices and bridges
+* (@Apollon77) Fixes the device and type detection logic
+
+### 0.3.2 (2024-12-21)
+* (@Apollon77) Fixes several discovery issues
+
+### 0.3.1 (2024-12-20)
+* (@Apollon77) Fixes bridge/device icon display in UI
+* (@Apollon77) Prevents displaying warning dialogs when nothing is wrong
+* (@Apollon77) Adjusts some logs
+
+### 0.3.0 (2024-12-20)
+* BREAKING: Please re-enter your ioBroker Pro Cloud Password!
+* (@Apollon77) Makes sure the adapter is stopped before being updated
+* (@Apollon77) Optimizes device discovery and allows to stop it again
+
+### 0.2.10 (2024-12-19)
+* (@bluefox) Makes the Adapter UI also available as standalone tab
+* (@bluefox) Added error details when adding the same state twice to a bridge or device
+* (@Apollon77) Fixes discovery start in UI
+
+### 0.2.9 (2024-12-18)
+* (@Apollon77) When Get and set states are separated then also update set state with new values
+* (@Apollon77) Node details dialog in controller now exposes some more Battery information
+* (@Apollon77) Also exposes the battery states when features are set wrong on the device
+* (@Apollon77) Fixes LightSensor state mapping
+* (@Apollon77) Prevents errors when only some energy states exist
+* (@Apollon77) Uses the IP provided by Android when commissioning devices if possible
+* (@Apollon77) Restructure discovery to run in background and not block the UI
+* (@Apollon77) Exposes States for Enums for Matter nodes
+* (@Apollon77) Prevent storage to delete wrong data when a node gets removed
+
+### 0.2.8 (2024-12-17)
+* (@bluefox) Fixes progress dialog for DM - used when deleting a node
+* (@bluefox) Synchronizes the "do not ask again on delete" time with admin and set to 5 minutes
+* (@bluefox) Optimizes bridges display for different color schemes
+* (@bluefox) Allows to collapse the information blocks at the top of the pages
+* (@bluefox) Adds an ioBroker Logo when display commissioned controllers
+* (@bluefox/@apollon77) Adds additional details and error state also for devices and bridged devices
+* (@bluefox/@apollon77) Always display QR code to allow additional pairing for device and bridges from adapter UI
+* (@bluefox) Optimizes several messages nd approval dialogs
+* (@bluefox) Adds a welcome dialog for new users
+* (@bluefox) Adds user guidance for big unpaired bridges
+* (@Apollon77) Adds Illuminance and Button/ButtonSensor (Switch) device type
+* (@Apollon77) Changes/Optimizes naming structure for paired devices and sub-endpoints
+* (@Apollon77) Adds information when Matter device types are not yet supported to look into objects for details
+* (@Apollon77) Resets connection status when a controller node is disconnected, also on adapter stop
+* (@Apollon77) Cleans up internal data structures when a node gets deleted for controller
+* (@Apollon77) Uses the configured device type when finding multiple types in the backend
+* (@Apollon77) Adjusts UI device type detection to differentiate between supported and other types
+* (@Apollon77) Makes sure that controller configuration changes are executed sequentially
+* (@Apollon77) Added Transition Time handling for Dimmer and Ct device types in both directions
+* (@Apollon77) Added Low-Battery and Battery-percent for all device types in both directions
+* (@Apollon77) Added Ethernet Network Commissioning Cluster to prevent issues with Tuya
+
+### 0.2.7 (2024-12-08)
+* (@Apollon77) Cleans up objects when a controller node is deleted
+* (@Apollon77) Prevents controller configuration changes to be executed in parallel
+
+### 0.2.6 (2024-12-06)
+* (@Apollon77) Fixes ColorTemperature light initialization because of matter.js update
+
+### 0.2.5 (2024-12-06)
+* (@Apollon77) Sets the "no-compose" flag correctly to normally use composed if needed and adds it to a missing dialog
+* (@Apollon77) Allows to use null values if needed
+* (@Apollon77) Fixes UNREACH handling for devices
+* (@Apollon77) Fixes object change handling for controller
+* (@Apollon77) Allows Bridges to expose its name as a device name
+* (@Apollon77) Allows to rename controller nodes and devices
+
+### 0.2.4 (2024-12-04)
+* (@Apollon77) Shows a progress indicator when deleting controller nodes
+* (@Apollon77) Cuts names and labels to 32 or 64 characters as needed by Matter
+* (@Apollon77) Improves error handling on devices and bridges
+* (@Apollon77) Clear storage when removing a bridged device
+* (@Apollon77) Processes changed objects with a 5s delay to prevent too many changes at once
+* (@Apollon77) Fixes version determination
+* (@Apollon77) Initializes Device objects more lazily
+
 ### 0.2.3 (2024-11-30)
 * (@Apollon77) Makes sure to delete all objects and stop device when a device is deleted in UI
 * (@Apollon77) When a devices/bridge object is deleted and adapter runs we try to detect this and stop the device/bridge

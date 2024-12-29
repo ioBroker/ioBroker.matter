@@ -12,39 +12,72 @@ import { SocketToMatter } from './SocketToMatter';
 import { TemperatureToMatter } from './TemperatureToMatter';
 import { WindowToMatter } from './WindowToMatter';
 import { CtToMatter } from './CtToMatter';
+import type { ClassExtends } from '@matter/main';
+import { ButtonToMatter } from './ButtonToMatter';
+import { ButtonSensorToMatter } from './ButtonSensorToMatter';
+import { IlluminanceToMatter } from './IlluminanceToMatter';
 
 /**
  * Factory function to create a Matter device from an ioBroker device.
  */
-function matterDeviceFabric(ioBrokerDevice: GenericDevice, name: string, uuid: string): GenericDeviceToMatter | null {
+async function matterDeviceFabric(
+    ioBrokerDevice: GenericDevice,
+    name: string,
+    uuid: string,
+): Promise<GenericDeviceToMatter | null> {
     const ioBrokerDeviceType = ioBrokerDevice.deviceType;
 
+    let ToMatter: ClassExtends<GenericDeviceToMatter>;
+
     switch (ioBrokerDeviceType) {
+        case Types.button:
+            ToMatter = ButtonToMatter;
+            break;
+        case Types.buttonSensor:
+            ToMatter = ButtonSensorToMatter;
+            break;
         case Types.ct:
-            return new CtToMatter(ioBrokerDevice, name, uuid);
+            ToMatter = CtToMatter;
+            break;
         case Types.dimmer:
-            return new DimmerToMatter(ioBrokerDevice, name, uuid);
+            ToMatter = DimmerToMatter;
+            break;
         case Types.door:
-            return new DoorToMatter(ioBrokerDevice, name, uuid);
+            ToMatter = DoorToMatter;
+            break;
         case Types.floodAlarm:
-            return new FloodAlarmToMatter(ioBrokerDevice, name, uuid);
+            ToMatter = FloodAlarmToMatter;
+            break;
         case Types.humidity:
-            return new HumidityToMatter(ioBrokerDevice, name, uuid);
+            ToMatter = HumidityToMatter;
+            break;
+        case Types.illuminance:
+            ToMatter = IlluminanceToMatter;
+            break;
         case Types.light:
-            return new LightToMatter(ioBrokerDevice, name, uuid);
+            ToMatter = LightToMatter;
+            break;
         case Types.lock:
-            return new LockToMatter(ioBrokerDevice, name, uuid);
+            ToMatter = LockToMatter;
+            break;
         case Types.motion:
-            return new MotionToMatter(ioBrokerDevice, name, uuid);
+            ToMatter = MotionToMatter;
+            break;
         case Types.socket:
-            return new SocketToMatter(ioBrokerDevice, name, uuid);
+            ToMatter = SocketToMatter;
+            break;
         case Types.temperature:
-            return new TemperatureToMatter(ioBrokerDevice, name, uuid);
+            ToMatter = TemperatureToMatter;
+            break;
         case Types.window:
-            return new WindowToMatter(ioBrokerDevice, name, uuid);
+            ToMatter = WindowToMatter;
+            break;
+        default:
+            return null;
     }
 
-    return null;
+    await ioBrokerDevice.init();
+    return new ToMatter(ioBrokerDevice, name, uuid);
 }
 
 export default matterDeviceFabric;

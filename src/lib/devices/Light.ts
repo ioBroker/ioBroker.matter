@@ -41,12 +41,8 @@ class Light extends ElectricityDataDevice {
         if (!this.#getPowerState && !this.#setPowerState) {
             throw new Error('On state not found');
         }
-        if (this.#getPowerState) {
-            await this.#getPowerState.updateValue(value);
-        }
-        if (this.#setPowerState) {
-            await this.#setPowerState.updateValue(value);
-        }
+        await this.#getPowerState?.updateValue(value);
+        await this.#setPowerState?.updateValue(value);
     }
 
     async setPower(value: boolean): Promise<void> {
@@ -68,6 +64,7 @@ class Light extends ElectricityDataDevice {
             throw new Error('On Actual state not found');
         }
         await this.#getPowerState.updateValue(value);
+        await this.#setPowerState?.updateValue(value);
     }
 }
 

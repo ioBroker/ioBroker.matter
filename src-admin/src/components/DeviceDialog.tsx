@@ -16,93 +16,23 @@ import {
     TextField,
 } from '@mui/material';
 
-import {
-    AcUnit,
-    Add,
-    Air,
-    Blinds,
-    Close,
-    DirectionsRun,
-    ExpandMore,
-    Gradient,
-    Image,
-    Lightbulb,
-    LocationOn,
-    Lock,
-    Palette,
-    PlayArrowRounded,
-    Power,
-    QuestionMark,
-    SensorDoor,
-    Thermostat,
-    Timeline,
-    TipsAndUpdates,
-    Tune,
-    Videocam,
-    VolumeUp,
-    Water,
-    WaterDrop,
-    WbSunny,
-    Whatshot,
-    Window,
-} from '@mui/icons-material';
+import { Add, Close, ExpandMore } from '@mui/icons-material';
 
-import { type AdminConnection, I18n, Icon, type IobTheme } from '@iobroker/adapter-react-v5';
+import { type AdminConnection, I18n, Icon, IconDeviceType, type IobTheme } from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 
 import { clone, detectDevices, getText } from '../Utils';
 import type { DetectedDevice, DetectedRoom, MatterConfig } from '../types';
 
-export const DEVICE_ICONS: Record<Types, React.JSX.Element> = {
-    airCondition: <AcUnit />,
-    blind: <Blinds />,
-    camera: <Videocam />,
-    chart: <Timeline />,
-    ct: <Gradient />,
-    dimmer: <TipsAndUpdates />,
-    door: <SensorDoor />,
-    fireAlarm: <Whatshot />,
-    floodAlarm: <Water />,
-    humidity: <WaterDrop />,
-    image: <Image />,
-    light: <Lightbulb />,
-    lock: <Lock />,
-    location: <LocationOn />,
-    media: <PlayArrowRounded />,
-    motion: <DirectionsRun />,
-    rgb: <Palette />,
-    rgbSingle: <Palette />,
-    rgbwSingle: <Palette />,
-    slider: <Tune />,
-    socket: <Power />,
-    temperature: <Thermostat />,
-    thermostat: <Thermostat />,
-    volume: <VolumeUp />,
-    volumeGroup: <VolumeUp />,
-    weatherCurrent: <Air />,
-    weatherForecast: <WbSunny />,
-    window: <Window />,
-    windowTilt: <Window />,
-
-    blindButtons: <QuestionMark />,
-    button: <QuestionMark />,
-    buttonSensor: <QuestionMark />,
-    cie: <QuestionMark />,
-    gate: <QuestionMark />,
-    hue: <QuestionMark />,
-    info: <QuestionMark />,
-    instance: <QuestionMark />,
-    unknown: <QuestionMark />,
-    vacuumCleaner: <QuestionMark />,
-    warning: <QuestionMark />,
-};
-
 export const SUPPORTED_DEVICES: Types[] = [
+    Types.button,
+    Types.buttonSensor,
     Types.ct,
     Types.dimmer,
     Types.door,
     Types.floodAlarm,
     Types.humidity,
+    Types.illuminance,
     Types.light,
     Types.lock,
     Types.motion,
@@ -191,6 +121,9 @@ interface DeviceDialogProps {
     onClose: () => void;
     type: 'bridge' | 'device';
     name?: ioBroker.StringOrTranslated;
+    devicesInBridge?: number;
+    /** If dialog should check the number of devices */
+    checkAddedDevices?: number;
 }
 
 interface DeviceDialogState {
@@ -204,6 +137,7 @@ interface DeviceDialogState {
     deviceNames: Record<string, string>;
     deviceRoomTypeNames: Record<string, string>;
     expanded: string[];
+    showCommissioningHint: DetectedDevice[] | null;
 }
 
 class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
@@ -222,11 +156,12 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
             devicesChecked: {},
             roomsChecked: {},
             usedDevices: {},
-            ignoreUsedDevices: window.localStorage.getItem('matter.ignoreUsedDevices') === 'true',
+            ignoreUsedDevices: window.localStorage.getItem('matter.ignoreUsedDevices') !== 'false',
             useRoomNames: window.localStorage.getItem('matter.useRoomNames') !== 'false',
             showUnsupported: window.localStorage.getItem('matter.showUnsupported') === 'true',
             deviceNames: {},
             deviceRoomTypeNames: {},
+            showCommissioningHint: null,
             expanded,
         };
     }
@@ -303,9 +238,60 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                 }
             });
         });
-        this.props.addDevices(devices);
-        this.props.onClose();
+
+        if (
+            this.props.checkAddedDevices &&
+            devices.length &&
+            (this.props.devicesInBridge || 0) + devices.length > this.props.checkAddedDevices
+        ) {
+            this.setState({ showCommissioningHint: devices });
+        } else {
+            this.props.addDevices(devices);
+            this.props.onClose();
+        }
     };
+
+    renderCommissioningHintDialog(): React.JSX.Element | null {
+        if (!this.state.showCommissioningHint) {
+            return null;
+        }
+
+        return (
+            <Dialog
+                onClose={() => this.setState({ showCommissioningHint: null })}
+                open={!0}
+            >
+                <DialogTitle>{I18n.t('Warning')}</DialogTitle>
+                <DialogContent>{I18n.t('Warning about 15 devices')}</DialogContent>
+                <DialogActions>
+                    <Button
+                        onClick={() => {
+                            if (this.state.showCommissioningHint) {
+                                const devices: DetectedDevice[] = this.state.showCommissioningHint;
+                                this.setState({ showCommissioningHint: null }, () => {
+                                    this.props.addDevices(devices);
+                                    this.props.onClose();
+                                });
+                            }
+                        }}
+                        startIcon={<Add />}
+                        color="primary"
+                        variant="contained"
+                    >
+                        {I18n.t('Add')}
+                    </Button>
+                    <Button
+                        onClick={() => this.setState({ showCommissioningHint: null })}
+                        startIcon={<Close />}
+                        color="grey"
+                        variant="contained"
+                    >
+                        {I18n.t('Cancel')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        );
+    }
 
     renderDevice(
         roomIndex: number,
@@ -335,7 +321,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                     }}
                 >
                     <Checkbox
-                        checked={!!this.state.devicesChecked[device._id]}
+                        checked={this.state.devicesChecked[device._id]}
                         disabled={!supported}
                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                             const devicesChecked = clone(this.state.devicesChecked);
@@ -344,7 +330,9 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                         }}
                         onClick={e => e.stopPropagation()}
                     />
-                    <span style={{ marginRight: 8 }}>{DEVICE_ICONS[device.deviceType] || <QuestionMark />}</span>
+                    <span style={{ marginRight: 8 }}>
+                        <IconDeviceType src={device.deviceType} />
+                    </span>
                     <TextField
                         variant="standard"
                         disabled={!supported}
@@ -455,16 +443,36 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                 return room.devices.filter(device => SUPPORTED_DEVICES.includes(device.deviceType)).length;
             }) || [];
 
+        const devices: DetectedDevice[] = [];
+        this.state.rooms?.forEach(room => {
+            room.devices.forEach(device => {
+                if (this.state.devicesChecked[device._id]) {
+                    devices.push(device);
+                }
+            });
+        });
+
+        let showHint: React.JSX.Element | null = null;
+        if (
+            this.props.checkAddedDevices &&
+            devices.length &&
+            (this.props.devicesInBridge || 0) + devices.length > this.props.checkAddedDevices
+        ) {
+            showHint = <div style={{ color: '#FF0000', fontSize: 10 }}>{I18n.t('Warning about 15 devices')}</div>;
+        }
+
         return (
             <Dialog
                 open={!0}
                 onClose={this.props.onClose}
                 fullWidth
             >
+                {this.renderCommissioningHintDialog()}
                 <DialogTitle>
                     {`${I18n.t('Add devices')}${this.props.type === 'bridge' ? ` ${I18n.t('to bridge')} ${getText(this.props.name)}` : ''}`}
                 </DialogTitle>
                 <DialogContent style={styles.dialogContent}>
+                    {showHint}
                     {this.state.rooms ? (
                         <div style={styles.header}>
                             <div style={styles.flex}>

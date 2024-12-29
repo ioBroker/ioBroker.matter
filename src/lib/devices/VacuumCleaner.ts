@@ -31,7 +31,6 @@ class VacuumCleaner extends GenericDevice {
     #workModeState?: DeviceStateObject<VacuumCleanerWorkMode>;
     #getWaterState?: DeviceStateObject<number>;
     #getWasteState?: DeviceStateObject<number>;
-    #getBatteryState?: DeviceStateObject<number>;
     #getStateState?: DeviceStateObject<VacuumCleanerState>;
     #pauseState?: DeviceStateObject<boolean>;
     #getWasteAlarmState?: DeviceStateObject<boolean>;
@@ -94,13 +93,6 @@ class VacuumCleaner extends GenericDevice {
                     accessType: StateAccessType.Read,
                     type: PropertyType.Waste,
                     callback: state => (this.#getWasteState = state),
-                },
-                {
-                    name: 'BATTERY',
-                    valueType: ValueType.NumberPercent,
-                    accessType: StateAccessType.Read,
-                    type: PropertyType.Battery,
-                    callback: state => (this.#getBatteryState = state),
                 },
                 {
                     name: 'STATE',
@@ -244,13 +236,6 @@ class VacuumCleaner extends GenericDevice {
             throw new Error('Waste state not found');
         }
         return this.#getWasteState.value;
-    }
-
-    getBattery(): number | undefined {
-        if (!this.#getBatteryState) {
-            throw new Error('Battery state not found');
-        }
-        return this.#getBatteryState.value;
     }
 
     getState(): VacuumCleanerState | undefined {

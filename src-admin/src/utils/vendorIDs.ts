@@ -1,4 +1,4 @@
-const VENDOR_IDS: Record<string, string> = {
+export const VendorIds: Record<string, string> = {
     0x0000: '[Matter Standard]',
     0x0001: 'Panasonic',
     0x0002: 'Sony',
@@ -912,4 +912,7 @@ const VENDOR_IDS: Record<string, string> = {
     0xffff: '[Reserved]',
 };
 
-export default VENDOR_IDS;
+export const VendorIdsAmazon = [0x1217];
+export const VendorIdsGoogle = [0x6006];
+export const VendorIdsApple = [0x1349, 0x1384];
+export const VendorIdsSamsung = [0x110a, 0x10e1];

@@ -1,12 +1,10 @@
 import type { MatterAdapter } from '../main';
-
 import {
     type ActionContext,
     type ApiVersion,
     type ConfigItemAny,
     type DeviceDetails,
     type DeviceInfo,
-    type ConfigItemPanel,
     type DeviceRefresh,
     type DeviceStatus,
     type InstanceDetails,
@@ -16,10 +14,10 @@ import {
 } from '@iobroker/dm-utils';
 import type { GeneralMatterNode, NodeDetails } from '../matter/GeneralMatterNode';
 import { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIoBroker';
-
-import { decamelize } from './utils';
 import type { DeviceAction } from '@iobroker/dm-utils/build/types/base';
 import { logEndpoint } from '../matter/EndpointStructureInspector';
+import { inspect } from 'util';
+import { convertDataToJsonConfig } from './JsonConfigUtils';
 
 function strToBool(str: string): boolean | null {
     if (str === 'true') {
@@ -171,7 +169,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const res = new Array<DeviceInfo>();
         const node: DeviceInfo = {
             id,
-            name: `Node ${ioNode.nodeId}`,
+            name: `Node ${ioNode.name}`,
             icon: undefined,
             ...details,
             status,
@@ -210,7 +208,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     ): DeviceInfo {
         const data: DeviceInfo = {
             id: `${nodeId}-${device.number}`,
-            name: `Device ${device.name}`,
+            name: device.name,
             icon: device.ioBrokerDevice.deviceType,
             ...nodeDetails,
             status,
@@ -266,12 +264,39 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             }
         }
 
-        await this.adapter.controllerNode?.decommissionNode(node.nodeId);
+        await this.#adapter.sendToGui({
+            command: 'progress',
+            progress: {
+                title: this.#adapter.t('Unpairing node...'),
+                indeterminate: true,
+                value: 0,
+            },
+        });
+
+        // Start an interval that normally covers 30s and with each update the number gets slower increased for the percentage
+        let errorHappened = false;
+        try {
+            await node.remove();
+        } catch (error) {
+            const errorText = inspect(error, { depth: 10 });
+            this.adapter.log.error(`Error during unpairing for node ${node.nodeId}: ${errorText}`);
+            errorHappened = true;
+        }
+
+        await this.#adapter.sendToGui({
+            command: 'progress',
+            progress: {
+                close: true,
+            },
+        });
+
+        if (errorHappened) {
+            await context.showMessage(this.#adapter.t('Error happened during unpairing. Please check the log.'));
+        }
         return { refresh: true };
     }
 
     async #handleRenameNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        this.adapter.log.info(`Rename node ${node.nodeId}`);
         const result = await context.showForm(
             {
                 type: 'panel',
@@ -279,6 +304,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     name: {
                         type: 'text',
                         label: this.#adapter.getText('Name'),
+                        allowEmpty: false,
                         sm: 12,
                     },
                 },
@@ -288,13 +314,14 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
             {
                 data: {
-                    name: node.nodeId,
+                    name: node.name,
                 },
                 title: this.#adapter.getText('Rename node'),
             },
         );
 
-        if (result?.name !== undefined) {
+        if (result?.name !== undefined && result.name !== node.name) {
+            this.adapter.log.info(`Rename node ${node.nodeId} to "${result.name}"`);
             await node.rename(result.name);
             return { refresh: true };
         }
@@ -336,7 +363,11 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 };
             }
 
-            await context.showForm(schema, { title: this.#adapter.getText('Pair with Device'), buttons: ['cancel'] });
+            await context.showForm(schema, {
+                title: this.#adapter.getText('Pair with Device'),
+                buttons: ['cancel'],
+                maxWidth: 'md',
+            });
         } else {
             await context.showMessage(this.#adapter.t('No paring code received'));
         }
@@ -373,6 +404,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
             {
                 data: { debugInfos },
+                maxWidth: 'md',
                 title: this.#adapter.getText('Debug Infos'),
                 buttons: [
                     {
@@ -380,7 +412,6 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                         label: this.#adapter.getText('Close'),
                     },
                 ],
-                maxWidth: 'lg',
             },
         );
 
@@ -395,7 +426,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     ): Promise<{ refresh: DeviceRefresh }> {
         const obj = await this.adapter.getObjectAsync(baseId);
 
-        //const node = nodeOrDevice instanceof GeneralMatterNode ? nodeOrDevice : undefined;
+        // const node = nodeOrDevice instanceof GeneralMatterNode ? nodeOrDevice : undefined;
         const device = nodeOrDevice instanceof GenericDeviceToIoBroker ? nodeOrDevice : undefined;
 
         const items: Record<string, ConfigItemAny> = {
@@ -541,7 +572,6 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         device: GenericDeviceToIoBroker,
         context: ActionContext,
     ): Promise<{ refresh: DeviceRefresh }> {
-        this.adapter.log.info(`Rename device ${device.name}`);
         const result = await context.showForm(
             {
                 type: 'panel',
@@ -549,6 +579,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     name: {
                         type: 'text',
                         label: this.#adapter.getText('Name'),
+                        allowEmpty: false,
                         sm: 12,
                     },
                 },
@@ -564,15 +595,16 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
         );
 
-        if (result?.name !== undefined) {
+        if (result?.name !== undefined && result.name !== device.name) {
+            this.adapter.log.info(`Rename device ${device.name} to "${result.name}"`);
             await device.rename(result.name);
-            return { refresh: 'device' };
+            return { refresh: true };
         }
         return { refresh: false };
     }
 
     async getDeviceDetails(id: string): Promise<DeviceDetails | null | { error: string }> {
-        this.adapter.log.info(`Get details ${id}`);
+        this.adapter.log.debug(`Get details ${id}`);
 
         const idParts = id.split('-');
         const nodeId = idParts[0];
@@ -586,7 +618,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         if (endpointId === undefined) {
             // Get Node details
-            const schema = this.#convertDataToJsonConfig(await node.getNodeDetails());
+            const schema = convertDataToJsonConfig(await node.getNodeDetails());
             return { id, schema, data: {} };
         }
 
@@ -596,98 +628,13 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             return { error: 'Device not found' };
         }
 
-        const schema = this.#convertDataToJsonConfig(device.getDeviceDetails());
+        const schema = convertDataToJsonConfig(await device.getDeviceDetails());
 
         return { id, schema, data: {} };
     }
 
     async close(): Promise<void> {
         // do nothing
-    }
-
-    /**
-     * Convert a generic object data model into JSON Config data forms
-     * Keys are expected to be camel-case strings and will be used as field name too  in de-camel-cased form
-     * If needed for uniqueness "__" can be used as splitter and anything after this is used as field name
-     * "__header__*" entries are converted into a headline with the value as text
-     * "__divider__*" entries are converted into a divider
-     * The logic expects a two level object structure. By default, it returns a tabs structure. If only one key is used on first level only one panel is returned
-     */
-    #convertDataToJsonConfig(data: Record<string, Record<string, unknown>>): JsonFormSchema {
-        const items: Record<string, ConfigItemPanel> = {};
-
-        let panelCount = 0;
-        for (const key in data) {
-            panelCount++;
-            const tabItems: Record<string, ConfigItemAny> = {};
-
-            for (const subKey in data[key]) {
-                const flatKey = `${key}_${subKey}`;
-                if (subKey.startsWith('__header__')) {
-                    tabItems[flatKey] = {
-                        type: 'header',
-                        text: String(data[key][subKey]),
-                        noTranslation: true,
-                    };
-                    continue;
-                }
-                if (subKey.startsWith('__divider__')) {
-                    tabItems[flatKey] = {
-                        type: 'divider',
-                    };
-                    continue;
-                }
-                if (subKey.startsWith('__iobstate__')) {
-                    if (data[key][subKey] && typeof data[key][subKey] === 'object') {
-                        tabItems[flatKey] = {
-                            type: 'state',
-                            foreign: true,
-                            label: subKey.substring(12),
-                            addColon: true,
-                            controlDelay: 500,
-                            oid: '', // oid will be overwritten by data[key][subKey]
-                            ...data[key][subKey],
-                        };
-                    }
-                    continue;
-                }
-
-                if (data[key][subKey] === undefined) {
-                    continue;
-                }
-
-                const subKeyShortenerIndex = subKey.indexOf('__');
-                const subKeyLabel = decamelize(
-                    subKeyShortenerIndex !== -1 ? subKey.substring(subKeyShortenerIndex + 2) : subKey,
-                );
-                tabItems[flatKey] = {
-                    type: 'staticInfo',
-                    label: subKeyLabel,
-                    newLine: true,
-                    noTranslation: true,
-                    data: data[key][subKey] as number | string | boolean,
-                };
-            }
-
-            items[`_tab_${key}`] = {
-                type: 'panel',
-                label: decamelize(key),
-                noTranslation: true,
-                items: tabItems,
-                style: {
-                    minWidth: 200,
-                },
-            };
-        }
-
-        if (panelCount === 1) {
-            return items[`_tab_${Object.keys(data)[0]}`];
-        }
-
-        return {
-            type: 'tabs',
-            items,
-        };
     }
 }
 

@@ -37,16 +37,19 @@ class Socket extends ElectricityDataDevice {
         return (this.#getPowerState || this.#setPowerState)?.value;
     }
 
+    async setPower(value: boolean): Promise<void> {
+        if (!this.#setPowerState) {
+            throw new Error('Level state not found');
+        }
+        await this.#setPowerState.setValue(value);
+    }
+
     async updatePower(value: boolean): Promise<void> {
         if (!this.#getPowerState && !this.#setPowerState) {
             throw new Error('Level state not found');
         }
-        if (this.#getPowerState) {
-            await this.#getPowerState.updateValue(value);
-        }
-        if (this.#setPowerState) {
-            await this.#setPowerState.updateValue(value);
-        }
+        await this.#getPowerState?.updateValue(value);
+        await this.#setPowerState?.updateValue(value);
     }
 
     getPowerActual(): boolean | undefined {
@@ -61,13 +64,7 @@ class Socket extends ElectricityDataDevice {
             throw new Error('Level state not found');
         }
         await this.#getPowerState.updateValue(value);
-    }
-
-    async setPower(value: boolean): Promise<void> {
-        if (!this.#setPowerState) {
-            throw new Error('Level state not found');
-        }
-        await this.#setPowerState.setValue(value);
+        await this.#setPowerState?.updateValue(value);
     }
 }
 

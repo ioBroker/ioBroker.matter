@@ -75,6 +75,7 @@ class Lock extends GenericDevice {
             throw new Error('Level state not found');
         }
         await this.#getLockState.updateValue(value);
+        await this.#setLockState?.updateValue(value);
     }
 
     async setOpen(): Promise<void> {
@@ -85,7 +86,7 @@ class Lock extends GenericDevice {
     }
 
     hasOpen(): boolean {
-        return this.propertyNames.includes(PropertyType.Open);
+        return !!this.#setOpenState;
     }
 }
 

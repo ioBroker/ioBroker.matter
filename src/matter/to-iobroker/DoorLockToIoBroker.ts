@@ -20,8 +20,18 @@ export class DoorLockToIoBroker extends GenericElectricityDataDeviceToIoBroker {
         endpointDeviceBaseId: string,
         deviceTypeName: string,
         defaultConnectionStateId: string,
+        defaultName: string,
     ) {
-        super(adapter, node, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName, defaultConnectionStateId);
+        super(
+            adapter,
+            node,
+            endpoint,
+            rootEndpoint,
+            endpointDeviceBaseId,
+            deviceTypeName,
+            defaultConnectionStateId,
+            defaultName,
+        );
 
         this.#unboltingSupported =
             this.appEndpoint.getClusterClient(DoorLock.Complete)?.supportedFeatures.unbolting ?? false;
@@ -34,7 +44,7 @@ export class DoorLockToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
-        this.enableDeviceTypeState(PropertyType.LockState, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.LockState, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: DoorLock.Cluster.id,
             attributeName: 'lockState',
@@ -53,14 +63,14 @@ export class DoorLockToIoBroker extends GenericElectricityDataDeviceToIoBroker {
             },
             convertValue: value => value === DoorLock.LockState.Unlocked,
         });
-        this.enableDeviceTypeState(PropertyType.LockStateActual, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.LockStateActual, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: DoorLock.Cluster.id,
             attributeName: 'lockState',
             convertValue: value => value === DoorLock.LockState.Unlocked,
         });
         if (this.#unboltingSupported) {
-            this.enableDeviceTypeState(PropertyType.Open, {
+            this.enableDeviceTypeStateForAttribute(PropertyType.Open, {
                 changeHandler: async () => {
                     await this.appEndpoint.getClusterClient(DoorLock.Complete)?.unlockDoor({});
                 },

@@ -1,5 +1,6 @@
 import type { DetectorState, StateType } from '@iobroker/type-detector';
 import SubscribeManager from '../SubscribeManager';
+import { EventEmitter } from 'events';
 
 export enum ValueType {
     String = 'string',
@@ -110,6 +111,7 @@ export enum PropertyType {
     TimeSunset = 'timeSunset',
     Title = 'title',
     Track = 'track',
+    TransitionTime = 'transitionTime',
     Uv = 'uv',
     Unreachable = 'unreachable',
     Url = 'url',
@@ -145,7 +147,7 @@ function asCommonType(type: StateType | undefined): ioBroker.CommonType {
     return 'mixed';
 }
 
-export class DeviceStateObject<T> {
+export class DeviceStateObject<T> extends EventEmitter {
     value?: T;
     updateHandler?: (object: DeviceStateObject<T>) => Promise<void>;
     isEnum = false;
@@ -160,6 +162,7 @@ export class DeviceStateObject<T> {
 
     #isIoBrokerState: boolean;
     #id: string;
+    #valid: boolean = true;
 
     static async create<T>(
         adapter: ioBroker.Adapter,
@@ -182,6 +185,7 @@ export class DeviceStateObject<T> {
         protected readonly isEnabled: () => boolean,
         protected readonly unitConversionMap: { [key: string]: (value: number, toDefaultUnit: boolean) => number } = {},
     ) {
+        super();
         this.isEnum = valueType === ValueType.Enum;
         this.#isIoBrokerState = state.isIoBrokerState;
         this.#id = state.id;
@@ -265,6 +269,10 @@ export class DeviceStateObject<T> {
         return this.object?.common.role ?? 'state';
     }
 
+    get isValid(): boolean {
+        return this.#valid;
+    }
+
     protected parseMinMax(percent = false): void {
         if (!this.object) {
             throw new Error(`Object not initialized`);
@@ -317,7 +325,7 @@ export class DeviceStateObject<T> {
             if (this.unitConversionMap[this.unit]) {
                 const convertedValue = this.unitConversionMap[this.unit](value, toDefaultUnit);
                 this.adapter.log.debug(
-                    `Converted value ${value} with ${this.unit} (to default: ${toDefaultUnit}): ${convertedValue}`,
+                    `Converted value ${value} with ${this.unit} (to default: ${toDefaultUnit}): ${convertedValue} ${this.state.defaultUnit}`,
                 );
                 return convertedValue;
             }
@@ -343,7 +351,7 @@ export class DeviceStateObject<T> {
 
     /** Used for ioBroker states to update the value */
     async setValue(value: T, isUpdate = false): Promise<void> {
-        if (value === null || value === undefined) {
+        if (value === undefined) {
             throw new Error(`Value ${JSON.stringify(value)} is not valid`);
         }
         if (!this.object) {
@@ -459,7 +467,22 @@ export class DeviceStateObject<T> {
         }
     }
 
-    updateState = async (state: ioBroker.State, ignoreEnabledStatus = false): Promise<void> => {
+    updateState = async (state: ioBroker.State | null | undefined, ignoreEnabledStatus = false): Promise<void> => {
+        if (!state) {
+            if (this.#isIoBrokerState) {
+                // State expired or object got deleted, verify if the object still exists
+                const obj = await this.adapter.getForeignObjectAsync(this.#id);
+                if (!obj) {
+                    this.#valid = false;
+                    this.emit('validChanged');
+                }
+            }
+            return;
+        } else if (!this.#valid) {
+            this.#valid = true;
+            this.emit('validChanged');
+        }
+
         if (state.ack !== this.#isIoBrokerState || (!this.isEnabled() && !ignoreEnabledStatus)) {
             // For Device implementation only acked values are considered to be forwarded to the controllers
             return;

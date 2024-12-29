@@ -5,7 +5,6 @@ import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type Dimmer from '../../lib/devices/Dimmer';
 import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
-import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 import { EventedOnOffLightOnOffServer } from '../behaviors/EventedOnOffLightOnOffServer';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { EventedLightingLevelControlServer } from '../behaviors/EventedLightingLevelControlServer';
@@ -21,6 +20,7 @@ type IoBrokerDimmableLightDevice = typeof IoBrokerDimmableLightDevice;
 export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
     readonly #ioBrokerDevice: Dimmer;
     readonly #matterEndpoint: Endpoint<IoBrokerDimmableLightDevice>;
+    #hasTransitionTime = false;
 
     constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
         super(name, uuid);
@@ -40,7 +40,7 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
         return this.#ioBrokerDevice.setPower(identifyOptions.initialState as boolean);
     }
 
-    getMatterEndpoints(): Endpoint[] {
+    get matterEndpoints(): Endpoint[] {
         return [this.#matterEndpoint];
     }
 
@@ -50,21 +50,22 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
 
     registerMatterHandlers(): void {
         if (this.ioBrokerDevice.hasPower()) {
-            this.#matterEndpoint.events.ioBrokerEvents.onOffControlled.on(async on => {
-                const currentValue = !!this.#ioBrokerDevice.getPower();
-                if (on !== currentValue) {
-                    await this.#ioBrokerDevice.setPower(on);
-                }
-            });
+            this.#matterEndpoint.events.ioBrokerEvents.onOffControlled.on(
+                async on => await this.#ioBrokerDevice.setPower(on),
+            );
         } else {
             this.#ioBrokerDevice.adapter.log.info(
                 `Device ${this.#ioBrokerDevice.deviceType} (${this.ioBrokerDevice.uuid}) has no mapped power state`,
             );
         }
 
-        this.#matterEndpoint.events.ioBrokerEvents.dimmerLevelControlled.on(async level => {
-            const currentValue = this.#ioBrokerDevice.getLevel();
-            if (level !== currentValue && level !== null) {
+        this.#hasTransitionTime = this.#ioBrokerDevice.hasTransitionTime();
+        this.#matterEndpoint.events.ioBrokerEvents.dimmerLevelControlled.on(async (level, transitionTime) => {
+            if (this.#hasTransitionTime && transitionTime !== null && transitionTime !== undefined) {
+                await this.#ioBrokerDevice.setTransitionTime(transitionTime * 1000);
+            }
+
+            if (level !== null) {
                 await this.#ioBrokerDevice.setLevel(Math.round((level / 254) * 100));
             }
         });
@@ -72,7 +73,7 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
         if (this.ioBrokerDevice.hasPower()) {
             let isIdentifying = false;
             const identifyOptions: IdentifyOptions = {};
-            this.#matterEndpoint.events.identify.identifyTime$Changed.on(async value => {
+            this.matterEvents.on(this.#matterEndpoint.events.identify.identifyTime$Changed, async value => {
                 // identifyTime is set when an identify command is called and then decreased every second while indentify logic runs.
                 if (value > 0 && !isIdentifying) {
                     isIdentifying = true;
@@ -127,7 +128,6 @@ export class DimmerToMatter extends GenericElectricityDataDeviceToMatter {
             },
         });
 
-        await initializeMaintenanceStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
         await this.initializeElectricityStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
     }
 }

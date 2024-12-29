@@ -53,6 +53,7 @@ export interface DetectedDevice {
     vendorID?: string;
     productID?: string;
     auto?: boolean;
+    noComposed?: boolean;
 }
 
 export interface DetectedRoom {
@@ -135,12 +136,14 @@ export enum NodeStates {
 
 export interface ConnectionInfo {
     vendorId: number;
+    vendorName: string;
     connected: boolean;
     label?: string;
 }
 
 export interface NodeStateResponse {
     status: NodeStates;
+    error?: boolean | string[];
     qrPairingCode?: string;
     manualPairingCode?: string;
     connectionInfo?: ConnectionInfo[];
@@ -154,9 +157,18 @@ export interface GUIMessage {
         | 'updateStates'
         | 'discoveredDevice'
         | 'reconnect'
+        | 'progress'
         | 'updateController';
     states?: { [uuid: string]: NodeStateResponse };
     device?: CommissionableDevice;
+
+    progress?: {
+        close?: boolean;
+        title?: string;
+        text?: string;
+        indeterminate?: boolean;
+        value?: number;
+    };
 }
 
 export interface CommissioningInfo {

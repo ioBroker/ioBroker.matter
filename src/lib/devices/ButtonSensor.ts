@@ -13,14 +13,14 @@ class ButtonSensor extends GenericDevice {
                 {
                     name: 'PRESS',
                     valueType: ValueType.Button,
-                    accessType: StateAccessType.Write,
+                    accessType: StateAccessType.Read,
                     type: PropertyType.Press,
                     callback: state => (this.#setPressState = state),
                 },
                 {
                     name: 'PRESS_LONG',
                     valueType: ValueType.Button,
-                    accessType: StateAccessType.Write,
+                    accessType: StateAccessType.Read,
                     type: PropertyType.PressLong,
                     callback: state => (this.#setPressLongState = state),
                 },
@@ -28,18 +28,36 @@ class ButtonSensor extends GenericDevice {
         );
     }
 
-    async setPress(): Promise<void> {
+    getPress(): boolean | undefined {
         if (!this.#setPressState) {
             throw new Error('Press state not found');
         }
-        await this.#setPressState.setValue(true);
+        return this.#setPressState.value;
     }
 
-    async setPressLong(): Promise<void> {
+    async updatePress(): Promise<void> {
+        if (!this.#setPressState) {
+            throw new Error('Press state not found');
+        }
+        await this.#setPressState.updateValue(true);
+    }
+
+    hasPressLong(): boolean {
+        return !!this.#setPressLongState;
+    }
+
+    getPressLong(): boolean | undefined {
         if (!this.#setPressLongState) {
             throw new Error('PressLong state not found');
         }
-        await this.#setPressLongState.setValue(true);
+        return this.#setPressLongState.value;
+    }
+
+    async updatePressLong(): Promise<void> {
+        if (!this.#setPressLongState) {
+            throw new Error('PressLong state not found');
+        }
+        await this.#setPressLongState.updateValue(true);
     }
 }
 

@@ -19,8 +19,18 @@ export class OnOffLightToIoBroker extends GenericElectricityDataDeviceToIoBroker
         endpointDeviceBaseId: string,
         deviceTypeName: string,
         defaultConnectionStateId: string,
+        defaultName: string,
     ) {
-        super(adapter, node, endpoint, rootEndpoint, endpointDeviceBaseId, deviceTypeName, defaultConnectionStateId);
+        super(
+            adapter,
+            node,
+            endpoint,
+            rootEndpoint,
+            endpointDeviceBaseId,
+            deviceTypeName,
+            defaultConnectionStateId,
+            defaultName,
+        );
 
         this.#ioBrokerDevice = new Light(
             { ...ChannelDetector.getPatterns().light, isIoBrokerDevice: false } as DetectedDevice,
@@ -30,7 +40,7 @@ export class OnOffLightToIoBroker extends GenericElectricityDataDeviceToIoBroker
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
-        this.enableDeviceTypeState(PropertyType.Power, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.Power, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: OnOff.Cluster.id,
             attributeName: 'onOff',
@@ -42,7 +52,7 @@ export class OnOffLightToIoBroker extends GenericElectricityDataDeviceToIoBroker
                 }
             },
         });
-        this.enableDeviceTypeState(PropertyType.PowerActual, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.PowerActual, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: OnOff.Cluster.id,
             attributeName: 'onOff',

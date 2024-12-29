@@ -1,4 +1,6 @@
 import { ServerNode, VendorId } from '@matter/main';
+import { NetworkCommissioningServer } from '@matter/main/behaviors';
+import { NetworkCommissioning } from '@matter/main/clusters';
 import { inspect } from 'util';
 import type { DeviceDescription } from '../ioBrokerStorageTypes';
 import type { GenericDevice } from '../lib';
@@ -6,8 +8,9 @@ import { md5 } from '../lib/utils';
 import type { MatterAdapter } from '../main';
 import { BaseServerNode } from './BaseServerNode';
 import matterDeviceFactory from './to-matter/matterFactory';
-import { initializeUnreachableStateHandler } from './to-matter/SharedStateHandlers';
 import type { GenericDeviceToMatter } from './to-matter/GenericDeviceToMatter';
+import type { StructuredJsonFormData } from '../lib/JsonConfigUtils';
+import { IoBrokerCommissioningServer } from './behaviors/IoBrokerCommissioningServer';
 
 export interface DeviceCreateOptions {
     parameters: DeviceOptions;
@@ -43,7 +46,13 @@ class Device extends BaseServerNode {
         return this.#parameters.port;
     }
 
+    get error(): boolean {
+        return !this.#device.isValid;
+    }
+
     async init(): Promise<void> {
+        this.adapter.log.info(`Adding device ${this.#parameters.uuid} "${this.#parameters.deviceName}"`);
+
         await this.adapter.extendObjectAsync(`devices.${this.#parameters.uuid}.commissioned`, {
             type: 'state',
             common: {
@@ -66,60 +75,86 @@ class Device extends BaseServerNode {
 
         const uniqueId = this.#parameters.uuid.replace(/-/g, '').split('.').pop();
         if (uniqueId === undefined) {
-            this.adapter.log.warn(`Could not determine device unique id from ${this.#parameters.uuid}`);
-            return;
+            throw new Error(`Could not determine device unique id from ${this.#parameters.uuid}`);
         }
 
         const ioBrokerDevice = this.#device;
-        const mappingDevice = matterDeviceFactory(ioBrokerDevice, this.#deviceOptions.name, this.#parameters.uuid);
+        const mappingDevice = await matterDeviceFactory(
+            ioBrokerDevice,
+            this.#deviceOptions.name,
+            this.#parameters.uuid,
+        );
 
         if (!mappingDevice) {
-            this.adapter.log.error(`ioBroker Device "${this.#device.deviceType}" is not supported`);
-            return;
+            throw new Error(`ioBroker Device "${this.#device.deviceType}" is not supported`);
         }
 
+        mappingDevice.validChanged.on(() => this.updateUiState());
         this.#mappingDevice = mappingDevice;
-        const endpoints = mappingDevice.getMatterEndpoints();
+        const endpoints = mappingDevice.matterEndpoints;
 
         // The device type to announce we use from the first returned endpoint of the device
         const deviceType = endpoints[0].type.deviceType;
 
         const versions = this.adapter.versions;
+        const matterName = productName.substring(0, 32);
+
+        const networkId = new Uint8Array(32);
         try {
-            this.serverNode = await ServerNode.create({
-                id: this.#parameters.uuid,
-                network: {
-                    port: this.#parameters.port,
+            this.serverNode = await ServerNode.create(
+                ServerNode.RootEndpoint.with(
+                    NetworkCommissioningServer.withFeatures(NetworkCommissioning.Feature.EthernetNetworkInterface),
+                    IoBrokerCommissioningServer,
+                ),
+                {
+                    environment: this.adapter.matterEnvironment,
+                    id: this.#parameters.uuid,
+                    network: {
+                        port: this.#parameters.port,
+                    },
+                    productDescription: {
+                        name: deviceName.substring(0, 32),
+                        deviceType,
+                    },
+                    basicInformation: {
+                        vendorName,
+                        vendorId: VendorId(vendorId),
+                        nodeLabel: matterName,
+                        productName: matterName,
+                        productLabel: productName.substring(0, 64),
+                        productId,
+                        serialNumber: uniqueId,
+                        uniqueId: md5(uniqueId),
+                        hardwareVersion: versions.versionNum,
+                        hardwareVersionString: versions.versionStr,
+                        softwareVersion: versions.versionNum,
+                        softwareVersionString: versions.versionStr,
+                        reachable: true,
+                    },
+                    networkCommissioning: {
+                        maxNetworks: 1,
+                        interfaceEnabled: true,
+                        lastConnectErrorValue: 0,
+                        lastNetworkId: networkId,
+                        lastNetworkingStatus: NetworkCommissioning.NetworkCommissioningStatus.Success,
+                        networks: [{ networkId: networkId, connected: true }],
+                    },
                 },
-                productDescription: {
-                    name: deviceName,
-                    deviceType,
-                },
-                basicInformation: {
-                    vendorName,
-                    vendorId: VendorId(vendorId),
-                    nodeLabel: productName,
-                    productName,
-                    productLabel: productName,
-                    productId,
-                    serialNumber: uniqueId,
-                    uniqueId: md5(uniqueId),
-                    hardwareVersion: versions.versionNum,
-                    hardwareVersionString: versions.versionStr,
-                    softwareVersion: versions.versionNum,
-                    softwareVersionString: versions.versionStr,
-                },
-            });
+            );
+            this.registerMaintenanceClusters(this.serverNode, ioBrokerDevice);
         } catch (error) {
-            const errorText = inspect(error, { depth: 10 });
-            this.adapter.log.error(`Error creating device ${this.#parameters.uuid}: ${errorText}`);
-            return;
+            await mappingDevice.destroy();
+            throw error;
         }
 
-        if (this.#deviceOptions?.noComposed) {
+        if (endpoints.length > 1 && this.#deviceOptions?.noComposed) {
+            this.adapter.log.info(
+                `Device ${this.#parameters.uuid} should not be build composed, so only use first endpoint`,
+            );
             // No composed means we remove all beside first returned endpoint
             endpoints.splice(1, endpoints.length - 1);
         }
+        let erroredCount = 0;
         for (const endpoint of endpoints) {
             try {
                 await this.serverNode.add(endpoint);
@@ -127,10 +162,17 @@ class Device extends BaseServerNode {
                 // MatterErrors might contain nested information so make sure we see all of this
                 const errorText = inspect(error, { depth: 10 });
                 this.adapter.log.error(`Error adding endpoint ${endpoint.id} to bridge: ${errorText}`);
+                erroredCount++;
             }
         }
+        if (erroredCount === endpoints.length) {
+            await mappingDevice.destroy();
+            await this.destroy();
+            throw new Error(`Could not add any endpoint to device`);
+        }
         await mappingDevice.init();
-        await initializeUnreachableStateHandler(this.serverNode, ioBrokerDevice);
+        await this.initializeUnreachableStateHandler(this.serverNode, ioBrokerDevice);
+        this.initializeMaintenanceStateHandlers(this.serverNode, ioBrokerDevice);
 
         this.registerServerNodeHandlers();
     }
@@ -140,7 +182,9 @@ class Device extends BaseServerNode {
         this.adapter.log.debug('Apply new configuration!!');
 
         if (!this.serverNode) {
-            this.adapter.log.error('ServerNode not initialized. Should never happen');
+            this.adapter.log.error(
+                `ServerNode for device ${this.#parameters.uuid} not initialized. Should never happen`,
+            );
             return;
         }
         if (this.serverNode.lifecycle.isCommissioned) {
@@ -150,7 +194,7 @@ class Device extends BaseServerNode {
 
         // Shut down the device
         const wasStarted = this.#started;
-        await this.stop();
+        await this.destroy();
 
         // Reinitialize
         this.#parameters = options.parameters;
@@ -179,7 +223,7 @@ class Device extends BaseServerNode {
         await this.updateUiState();
     }
 
-    async stop(): Promise<void> {
+    async destroy(): Promise<void> {
         try {
             await this.serverNode?.close();
         } catch (error) {
@@ -187,10 +231,29 @@ class Device extends BaseServerNode {
             this.adapter.log.error(`Error stopping device ${this.#parameters.uuid}: ${errorText}`);
         }
         await this.#mappingDevice?.destroy();
+        this.#mappingDevice = undefined;
         await this.#device.destroy();
         this.serverNode = undefined;
         this.#started = false;
         await this.updateUiState();
+    }
+
+    getDeviceDetails(_message: ioBroker.MessagePayload): StructuredJsonFormData {
+        const details: StructuredJsonFormData = {};
+
+        details.overview = {
+            __header__info: 'Device Overview',
+            uuid: this.uuid,
+            port: this.port,
+            deviceName: this.#parameters.deviceName,
+            productName: this.#parameters.productName,
+            vendorId: this.#parameters.vendorId,
+            productId: this.#parameters.productId,
+        };
+        return {
+            ...details,
+            ...this.#mappingDevice?.getDeviceDetails(),
+        };
     }
 }
 

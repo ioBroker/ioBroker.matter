@@ -4,7 +4,6 @@ import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type FloodAlarm from '../../lib/devices/FloodAlarm';
 import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
-import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 
 /** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */
 export class FloodAlarmToMatter extends GenericDeviceToMatter {
@@ -25,7 +24,7 @@ export class FloodAlarmToMatter extends GenericDeviceToMatter {
     async doIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
     async resetIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
 
-    getMatterEndpoints(): Endpoint[] {
+    get matterEndpoints(): Endpoint[] {
         return [this.#matterEndpoint];
     }
 
@@ -63,6 +62,5 @@ export class FloodAlarmToMatter extends GenericDeviceToMatter {
                 stateValue: this.convertContactValue(value),
             },
         });
-        await initializeMaintenanceStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
     }
 }

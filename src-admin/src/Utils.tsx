@@ -2,7 +2,7 @@ import { I18n, type AdminConnection } from '@iobroker/adapter-react-v5';
 import ChannelDetector, { Types, type DetectOptions } from '@iobroker/type-detector';
 
 import type { DetectedDevice, DetectedRoom } from './types';
-import VENDOR_IDS from './utils/vendorIDs';
+import { VendorIds } from './utils/vendorIDs';
 
 function getObjectIcon(
     obj: ioBroker.Object | DetectedDevice,
@@ -114,6 +114,7 @@ async function allObjects(socket: AdminConnection): Promise<Record<string, ioBro
 export async function detectDevices(
     socket: AdminConnection,
     lang: ioBroker.Languages,
+    allowedTypes?: Types[],
     list?: string[],
 ): Promise<DetectedRoom[]> {
     const devicesObject = await allObjects(socket);
@@ -163,6 +164,7 @@ export async function detectDevices(
         _keysOptional: keys,
         _usedIdsOptional: usedIds,
         ignoreIndicators,
+        allowedTypes,
         excludedTypes,
     };
 
@@ -301,8 +303,26 @@ export async function detectDevices(
     return result;
 }
 
+/**
+ * Get text from object or just a string without trying to translate it
+ */
 export function getText(text?: ioBroker.StringOrTranslated): string {
     return typeof text === 'object' ? text?.[I18n.getLanguage()] || '' : text || '';
+}
+
+/**
+ * Get Translation and try to translate given string
+ */
+export function getTranslation(
+    /** Text to translate */
+    text: ioBroker.StringOrTranslated,
+    noTranslation?: boolean,
+): string {
+    if (typeof text === 'object') {
+        return text[I18n.getLanguage()] || text.en;
+    }
+
+    return noTranslation ? text : I18n.t(text);
 }
 
 /**
@@ -333,5 +353,5 @@ export function getVendorName(vendorId?: number): string {
         return '-';
     }
 
-    return VENDOR_IDS[vendorId] || `0x${vendorId.toString(16)}`;
+    return VendorIds[vendorId] || `0x${vendorId.toString(16)}`;
 }

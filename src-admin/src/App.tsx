@@ -2,9 +2,20 @@ import { StyledEngineProvider, ThemeProvider } from '@mui/material/styles';
 import React from 'react';
 
 import { IconButton } from '@foxriver76/iob-component-lib';
-import { AppBar, Tab, Tabs, Tooltip } from '@mui/material';
+import {
+    AppBar,
+    Dialog,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
+    Fab,
+    LinearProgress,
+    Tab,
+    Tabs,
+    Tooltip,
+} from '@mui/material';
 
-import { SignalCellularOff as IconNotAlive } from '@mui/icons-material';
+import { Help as IconHelp, SignalCellularOff as IconNotAlive } from '@mui/icons-material';
 
 import {
     AdminConnection,
@@ -15,13 +26,14 @@ import {
     type GenericAppState,
     type IobTheme,
 } from '@iobroker/adapter-react-v5';
-import { clone } from './Utils';
+import { clone, getText } from './Utils';
 
 import ConfigHandler from './components/ConfigHandler';
 import BridgesTab from './Tabs/Bridges';
 import ControllerTab from './Tabs/Controller';
 import DevicesTab from './Tabs/Devices';
 import OptionsTab from './Tabs/Options';
+import WelcomeDialog from './components/WelcomeDialog';
 
 import type {
     CommissioningInfo,
@@ -83,6 +95,14 @@ interface AppState extends GenericAppState {
     /** Undefined if no detection ran yet */
     detectedDevices?: DetectedRoom[];
     ready: boolean;
+    showWelcomeDialog: boolean;
+    progress: {
+        title?: ioBroker.StringOrTranslated;
+        text?: ioBroker.StringOrTranslated;
+        indeterminate?: boolean;
+        value?: number;
+    } | null;
+    welcomeDialogShowed: boolean;
 }
 
 class App extends GenericApp<GenericAppProps, AppState> {
@@ -99,6 +119,9 @@ class App extends GenericApp<GenericAppProps, AppState> {
     private alert: null | ((_message?: string) => void);
 
     private controllerMessageHandler: ((_message: GUIMessage | null) => void) | null = null;
+
+    private readonly isTab: boolean =
+        window.location.pathname.includes('tab_m.html') || window.location.search.includes('tab=');
 
     constructor(props: GenericAppProps) {
         const extendedProps: GenericAppProps = { ...props };
@@ -127,9 +150,14 @@ class App extends GenericApp<GenericAppProps, AppState> {
 
         super(props, extendedProps);
 
+        let selectedTab =
+            window.localStorage.getItem(`${this.adapterName}.${this.instance}.selectedTab`) || 'controller';
+        if (this.isTab && selectedTab === 'options') {
+            selectedTab = 'controller';
+        }
+
         Object.assign(this.state, {
-            selectedTab:
-                window.localStorage.getItem(`${this.adapterName}.${this.instance}.selectedTab`) || 'controller',
+            selectedTab,
             alive: false,
             backendRunning: false,
             nodeStates: {},
@@ -138,6 +166,9 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 devices: {},
             },
             ready: false,
+            progress: null,
+            showWelcomeDialog: false,
+            welcomeDialogShowed: false,
         });
 
         this.alert = window.alert;
@@ -236,6 +267,10 @@ class App extends GenericApp<GenericAppProps, AppState> {
 
         const alive = await this.socket.getState(`system.adapter.matter.${this.instance}.alive`);
 
+        const welcomeDialog = this.isTab
+            ? null
+            : await this.socket.getState(`matter.${this.instance}.info.welcomeDialog`);
+
         if (alive?.val) {
             this.refreshBackendSubscription(true);
         }
@@ -245,6 +280,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
             commissioning,
             ready: true,
             alive: !!alive?.val,
+            showWelcomeDialog: this.isTab ? false : !welcomeDialog?.val,
+            welcomeDialogShowed: !!welcomeDialog?.val,
         });
     }
 
@@ -253,18 +290,67 @@ class App extends GenericApp<GenericAppProps, AppState> {
             this.setState({ alive: true });
             this.refreshBackendSubscription(true);
         } else if (!state?.val && this.state.alive) {
-            this.refreshTimer && clearTimeout(this.refreshTimer);
-            this.refreshTimer = null;
-            this.setState({ alive: false });
+            if (this.refreshTimer) {
+                clearTimeout(this.refreshTimer);
+                this.refreshTimer = null;
+            }
+            this.setState({ alive: false, progress: null });
         }
     };
+
+    renderWelcomeDialog(): React.JSX.Element | null {
+        if (!this.state.showWelcomeDialog) {
+            return null;
+        }
+
+        return (
+            <WelcomeDialog
+                common={this.common}
+                instance={this.instance}
+                socket={this.socket}
+                onClose={async () => {
+                    if (!this.state.welcomeDialogShowed) {
+                        await this.socket.setState(`matter.${this.instance}.info.welcomeDialog`, true, true);
+                    }
+                    this.setState({ showWelcomeDialog: false, welcomeDialogShowed: true });
+                }}
+                login={this.state.native.login}
+                pass={this.state.native.pass}
+            />
+        );
+    }
 
     onBackendUpdates = (update: GUIMessage | null): void => {
         if (!update) {
             return;
         }
 
-        if (update.command === 'bridgeStates') {
+        if (update.command === 'progress') {
+            if (update.progress) {
+                if (update.progress.close) {
+                    if (this.state.progress) {
+                        this.setState({ progress: null });
+                    }
+                } else {
+                    const progress = { ...this.state.progress };
+                    if (update.progress.title !== undefined) {
+                        progress.title = update.progress.title;
+                    }
+                    if (update.progress.value !== undefined) {
+                        progress.value = update.progress.value;
+                    }
+                    if (update.progress.text !== undefined) {
+                        progress.text = update.progress.text;
+                    }
+                    if (update.progress.indeterminate !== undefined) {
+                        progress.indeterminate = update.progress.indeterminate;
+                    }
+                    this.setState({ progress });
+                }
+            } else if (this.state.progress) {
+                this.setState({ progress: null });
+            }
+        } else if (update.command === 'bridgeStates') {
             // all states at once
             const nodeStates: { [uuid: string]: NodeStateResponse } = {};
             if (update.states) {
@@ -396,6 +482,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                         this.updateNativeValue(id, value, resolve);
                     });
                 }}
+                onShowWelcomeDialog={() => this.setState({ showWelcomeDialog: true })}
                 onLoad={(native: Record<string, any>) => this.onLoadConfig(native)}
                 socket={this.socket}
                 common={this.common}
@@ -420,6 +507,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                     this.setState({ nodeStates: _nodeStates });
                 }}
                 nodeStates={this.state.nodeStates}
+                themeName={this.state.themeName}
                 themeType={this.state.themeType}
                 theme={this.state.theme}
                 detectedDevices={this.state.detectedDevices}
@@ -454,6 +542,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 nodeStates={this.state.nodeStates}
                 commissioning={this.state.commissioning?.devices || {}}
                 socket={this.socket}
+                themeName={this.state.themeName}
                 themeType={this.state.themeType}
                 theme={this.state.theme}
                 detectedDevices={this.state.detectedDevices}
@@ -538,6 +627,31 @@ class App extends GenericApp<GenericAppProps, AppState> {
         }
     }
 
+    renderProgressDialog(): React.JSX.Element | null {
+        if (!this.state.progress) {
+            return null;
+        }
+
+        return (
+            <Dialog
+                open={!0}
+                onClose={() => {}}
+                maxWidth="md"
+            >
+                {this.state.progress.title ? <DialogTitle>{getText(this.state.progress.title)}</DialogTitle> : null}
+                <DialogContent>
+                    <LinearProgress
+                        variant={this.state.progress.indeterminate ? 'indeterminate' : 'determinate'}
+                        value={this.state.progress.value}
+                    />
+                    {this.state.progress.text ? (
+                        <DialogContentText>{getText(this.state.progress.text)}</DialogContentText>
+                    ) : null}
+                </DialogContent>
+            </Dialog>
+        );
+    }
+
     render(): React.JSX.Element {
         if (!this.state.ready) {
             return (
@@ -553,6 +667,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
             <StyledEngineProvider injectFirst>
                 <ThemeProvider theme={this.state.theme}>
                     {this.renderToast()}
+                    {this.renderProgressDialog()}
+                    {this.renderWelcomeDialog()}
                     <div
                         className="App"
                         style={{
@@ -573,11 +689,13 @@ class App extends GenericApp<GenericAppProps, AppState> {
                                 scrollButtons="auto"
                                 sx={{ '& .MuiTabs-indicator': styles.indicator }}
                             >
-                                <Tab
-                                    sx={{ '&.Mui-selected': styles.selected }}
-                                    label={I18n.t('General')}
-                                    value="options"
-                                />
+                                {this.isTab ? null : (
+                                    <Tab
+                                        sx={{ '&.Mui-selected': styles.selected }}
+                                        label={I18n.t('General')}
+                                        value="options"
+                                    />
+                                )}
                                 <Tab
                                     sx={{ '&.Mui-selected': styles.selected }}
                                     label={I18n.t('Controller')}
@@ -625,6 +743,28 @@ class App extends GenericApp<GenericAppProps, AppState> {
                                         </div>
                                     </Tooltip>
                                 )}
+                                {this.common && this.state.selectedTab !== 'options' ? (
+                                    <Tooltip
+                                        title={I18n.t('Show readme page')}
+                                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                                    >
+                                        <Fab
+                                            size="small"
+                                            color="primary"
+                                            style={{
+                                                marginRight: 5,
+                                                marginTop: 5,
+                                                float: 'right',
+                                            }}
+                                            onClick={() => {
+                                                const win = window.open(this.common?.readme, '_blank');
+                                                win?.focus();
+                                            }}
+                                        >
+                                            <IconHelp />
+                                        </Fab>
+                                    </Tooltip>
+                                ) : null}
                             </Tabs>
                         </AppBar>
 

@@ -1,4 +1,4 @@
-import { type Environment, Logger, NodeId, singleton, VendorId } from '@matter/main';
+import { Logger, NodeId, singleton, VendorId, type ServerAddressIp } from '@matter/main';
 import { GeneralCommissioning } from '@matter/main/clusters';
 import {
     Ble,
@@ -9,7 +9,11 @@ import {
 import { ManualPairingCodeCodec, QrPairingCodeCodec } from '@matter/main/types';
 import { NodeJsBle } from '@matter/nodejs-ble';
 import { CommissioningController, type NodeCommissioningOptions } from '@project-chip/matter.js';
-import type { CommissioningControllerNodeOptions, PairedNode } from '@project-chip/matter.js/device';
+import {
+    NodeStates as PairedNodeStates,
+    type CommissioningControllerNodeOptions,
+    type PairedNode,
+} from '@project-chip/matter.js/device';
 import type { MatterControllerConfig } from '../../src-admin/src/types';
 import type { MatterAdapter } from '../main';
 import { GeneralMatterNode, type PairedNodeConfig } from './GeneralMatterNode';
@@ -19,8 +23,8 @@ import { inspect } from 'util';
 export interface ControllerCreateOptions {
     adapter: MatterAdapter;
     controllerOptions: MatterControllerConfig;
-    matterEnvironment: Environment;
     updateCallback: () => void;
+    fabricLabel: string;
 }
 
 interface AddDeviceResult {
@@ -39,8 +43,8 @@ type EndUserCommissioningOptions = (
 class Controller implements GeneralNode {
     #parameters: MatterControllerConfig;
     readonly #adapter: MatterAdapter;
-    readonly #matterEnvironment: Environment;
-    readonly updateCallback: () => void;
+    readonly #updateCallback: () => void;
+    #fabricLabel: string;
     #commissioningController?: CommissioningController;
     #nodes = new Map<string, GeneralMatterNode>();
     #connected: { [nodeId: string]: boolean } = {};
@@ -51,8 +55,8 @@ class Controller implements GeneralNode {
     constructor(options: ControllerCreateOptions) {
         this.#adapter = options.adapter;
         this.#parameters = options.controllerOptions;
-        this.#matterEnvironment = options.matterEnvironment;
-        this.updateCallback = options.updateCallback;
+        this.#updateCallback = options.updateCallback;
+        this.#fabricLabel = options.fabricLabel;
     }
 
     get nodes(): Map<string, GeneralMatterNode> {
@@ -61,13 +65,6 @@ class Controller implements GeneralNode {
 
     init(): void {
         this.applyConfiguration(this.#parameters);
-        this.#commissioningController = new CommissioningController({
-            autoConnect: false,
-            environment: {
-                environment: this.#matterEnvironment,
-                id: 'controller',
-            },
-        });
     }
 
     applyConfiguration(config: MatterControllerConfig): MessageResponse {
@@ -111,15 +108,18 @@ class Controller implements GeneralNode {
         return node.applyConfiguration(config, forcedUpdate);
     }
 
-    async handleCommand(command: string, message: ioBroker.MessagePayload): Promise<MessageResponse> {
+    async handleCommand(obj: ioBroker.Message): Promise<MessageResponse> {
         if (this.#commissioningController === undefined) {
             return { error: 'Controller is not initialized.' };
         }
+        const { command, message } = obj;
         try {
             switch (command) {
                 case 'controllerDiscovery':
                     // Discover for Matter devices in the IP and potentially BLE network
-                    return { result: await this.discovery() };
+                    // Response is handled by method and runs asynchronous
+                    await this.#discovery(obj);
+                    return;
                 case 'controllerDiscoveryStop':
                     // Stop Discovery
                     if (this.#discovering) {
@@ -143,12 +143,7 @@ class Controller implements GeneralNode {
                                     result: { error: error.message },
                                 }),
                             )
-                            .finally(() =>
-                                this.#adapter.setTimeout(
-                                    () => this.#commissioningStatus.delete(pollingId),
-                                    60 * 60_000,
-                                ),
-                            );
+                            .finally(() => setTimeout(() => this.#commissioningStatus.delete(pollingId), 60 * 60_000));
                         return { result: { pollingId } };
                     }
                     return await this.commissionDevice(options);
@@ -159,7 +154,7 @@ class Controller implements GeneralNode {
                     const status = this.#commissioningStatus.get(pollingId);
                     if (status === undefined) {
                         this.#adapter.log.warn(`No commissioning process with pollingId ${pollingId} found`);
-                        return { error: `No commissioning process with pollingId ${pollingId} found` };
+                        return { error: `No commissioning process with pollingId ${pollingId} found.` };
                     }
                     const { status: statusText, result } = status;
                     this.#adapter.log.debug(
@@ -203,7 +198,7 @@ class Controller implements GeneralNode {
         node.events.eventTriggered.on(data => {
             void this.#nodes.get(node.nodeId.toString())?.handleTriggeredEvent(data);
         });
-        node.events.stateChanged.on(async info => {
+        node.events.stateChanged.on(async (info: PairedNodeStates) => {
             const nodeDetails = (this.#commissioningController?.getCommissionedNodesDetails() ?? []).find(
                 n => n.nodeId === node.nodeId,
             );
@@ -222,17 +217,23 @@ class Controller implements GeneralNode {
             if (deviceNode) {
                 await deviceNode.handleStateChange(info, nodeDetails);
             } else {
-                this.#adapter.log.info(`Matter node "${nodeIdStr}" not yet initialized ...`);
+                if (info !== PairedNodeStates.Disconnected) {
+                    this.#adapter.log.info(
+                        `Matter node "${nodeIdStr}" not initialized ... Got State change to ${info}`,
+                    );
+                }
             }
-            this.updateCallback();
+            this.#updateCallback();
         });
         node.events.structureChanged.on(async () => {
-            this.#adapter.log.debug(`Node "${node.nodeId}" structure changed`);
+            this.#adapter.log.info(`Node "${node.nodeId}" structure changed`);
             await this.nodeToIoBrokerStructure(node);
+            this.#updateCallback();
         });
         node.events.decommissioned.on(() => {
-            this.#adapter.log.debug(`Node "${node.nodeId}" decommissioned`);
+            this.#adapter.log.info(`Node "${node.nodeId}" decommissioned`);
             // TODO Delete the node from config and objects
+            this.#updateCallback();
         });
     }
 
@@ -244,9 +245,18 @@ class Controller implements GeneralNode {
     }
 
     async start(): Promise<void> {
-        if (!this.#commissioningController) {
-            throw new Error('CommissioningController not initialized');
+        if (this.#commissioningController) {
+            throw new Error('CommissioningController already started!');
         }
+
+        this.#commissioningController = new CommissioningController({
+            autoConnect: false,
+            environment: {
+                environment: this.#adapter.matterEnvironment,
+                id: 'controller',
+            },
+            adminFabricLabel: this.#fabricLabel,
+        });
 
         await this.#adapter.extendObjectAsync('controller.info', {
             type: 'channel',
@@ -356,12 +366,13 @@ class Controller implements GeneralNode {
         let longDiscriminator: number | undefined = undefined;
         let productId: number | undefined = undefined;
         let vendorId: VendorId | undefined = undefined;
-        if ('manualCode' in data) {
+        let knownAddress: ServerAddressIp | undefined = undefined;
+        if ('manualCode' in data && data.manualCode.length > 0) {
             const pairingCodeCodec = ManualPairingCodeCodec.decode(data.manualCode);
             shortDiscriminator = pairingCodeCodec.shortDiscriminator;
             longDiscriminator = undefined;
             passcode = pairingCodeCodec.passcode;
-        } else if ('qrCode' in data) {
+        } else if ('qrCode' in data && data.qrCode.length > 0) {
             const pairingCodeCodec = QrPairingCodeCodec.decode(data.qrCode);
             // TODO handle the case where multiple devices are included
             longDiscriminator = pairingCodeCodec[0].discriminator;
@@ -373,6 +384,21 @@ class Controller implements GeneralNode {
             // TODO also try ip/port once matter.js can use this without a full discoverableDevice
             vendorId = VendorId(data.vendorId);
             productId = data.productId;
+            if (data.ip && data.port) {
+                // Mainly Android
+                if (data.ip.startsWith('/')) {
+                    // Sometimes strange character is there
+                    data.ip = data.ip.substring(1);
+                }
+                // Link local addresses from Mobile devices are not really useful
+                if (!data.ip.startsWith('fe80')) {
+                    knownAddress = {
+                        type: 'udp',
+                        ip: data.ip,
+                        port: data.port,
+                    };
+                }
+            }
         }
         const { device } = data;
         if (device) {
@@ -389,6 +415,7 @@ class Controller implements GeneralNode {
             ...this.nodeConnectSettings,
             commissioning: commissioningOptions,
             discovery: {
+                knownAddress,
                 commissionableDevice: device || undefined,
                 identifierData:
                     longDiscriminator !== undefined
@@ -442,40 +469,61 @@ class Controller implements GeneralNode {
         );
 
         this.#adapter.log.debug(`Commissioning successfully completed with nodeId "${nodeId}"`);
+        this.#updateCallback();
     }
 
-    async discovery(): Promise<CommissionableDevice[] | null> {
+    async #discovery(obj: ioBroker.Message): Promise<void> {
         if (!this.#commissioningController) {
-            return null;
+            return;
         }
         await this.#adapter.setState('controller.info.discovering', true, true);
         this.#discovering = true;
         this.#adapter.log.info(`Start the discovering...`);
-        const result = await this.#commissioningController.discoverCommissionableDevices(
-            {},
-            {
-                ble: this.#useBle,
-                onIpNetwork: true,
-            },
-            device => {
-                this.#adapter.log.debug(`Found: ${Logger.toJSON(device)}`);
-                void this.#adapter.sendToGui({
-                    command: 'discoveredDevice',
-                    device,
-                });
-            },
-            60, // timeoutSeconds
-        );
-        this.#adapter.log.info(`Discovering stopped. Found ${result.length} devices.`);
-        await this.#adapter.setState('controller.info.discovering', false, true);
-        this.#discovering = false;
-        return result;
+        this.#commissioningController
+            .discoverCommissionableDevices(
+                {},
+                {
+                    ble: this.#useBle,
+                    onIpNetwork: true,
+                },
+                device => {
+                    this.#adapter.log.debug(`Discovered Device: ${Logger.toJSON(device)}`);
+                    if (this.#discovering) {
+                        this.#adapter
+                            .sendToGui({
+                                command: 'discoveredDevice',
+                                device,
+                            })
+                            .catch(error => this.#adapter.log.info(`Error sending to GUI: ${error}`));
+                    }
+                },
+                60, // timeoutSeconds
+            )
+            .then(result => {
+                this.#adapter.log.info(`Discovering stopped. Found ${result.length} devices.`);
+                if (this.#discovering) {
+                    this.#adapter
+                        .setState('controller.info.discovering', false, true)
+                        .catch(error => this.#adapter.log.info(`Error setting state: ${error}`));
+                    this.#discovering = false;
+                    if (obj.callback) {
+                        this.#adapter.sendTo(obj.from, obj.command, { result }, obj.callback);
+                    }
+                }
+            })
+            .catch(error => {
+                const errorText = inspect(error, { depth: 10 });
+                this.#adapter.log.warn(`Error while handling command "${obj.command}" for controller: ${errorText}`);
+                if (obj.callback) {
+                    this.#adapter.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
+                }
+            });
     }
 
     async #discoveryStop(): Promise<void> {
-        this.#discovering = false;
-        await this.#adapter.setState('controller.info.discovering', false, true);
         if (this.#commissioningController && this.#discovering) {
+            this.#discovering = false;
+            await this.#adapter.setState('controller.info.discovering', false, true);
             this.#adapter.log.info(`Stop the discovering...`);
             this.#commissioningController.cancelCommissionableDeviceDiscovery(
                 {},
@@ -502,12 +550,13 @@ class Controller implements GeneralNode {
     }
 
     async stop(): Promise<void> {
+        this.#adapter.log.info(`Stopping Controller...`);
         if (this.#discovering) {
             await this.#discoveryStop();
         }
 
-        for (const device of this.#nodes.values()) {
-            await device.destroy();
+        for (const node of this.#nodes.values()) {
+            await node.destroy();
         }
 
         this.#nodes.clear();
@@ -523,6 +572,9 @@ class Controller implements GeneralNode {
             throw new Error(`Can not decommission NodeId "${nodeId}" because controller not initialized.`);
         }
         await this.#commissioningController.removeNode(NodeId(BigInt(nodeId)), this.#connected[nodeId]);
+        delete this.#connected[nodeId];
+        this.#nodes.delete(nodeId);
+        this.#updateCallback();
     }
 }
 

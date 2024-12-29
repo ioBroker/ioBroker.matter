@@ -5,7 +5,6 @@ import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type Socket from '../../lib/devices/Socket';
 import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
-import { initializeMaintenanceStateHandlers } from './SharedStateHandlers';
 import { EventedOnOffPlugInUnitOnOffServer } from '../behaviors/EventedOnOffPlugInUnitOnOffServer';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 
@@ -35,7 +34,7 @@ export class SocketToMatter extends GenericElectricityDataDeviceToMatter {
         return this.#ioBrokerDevice.setPower(!!identifyOptions.initialState);
     }
 
-    getMatterEndpoints(): Endpoint[] {
+    get matterEndpoints(): Endpoint[] {
         return [this.#matterEndpoint];
     }
 
@@ -46,16 +45,13 @@ export class SocketToMatter extends GenericElectricityDataDeviceToMatter {
     registerMatterHandlers(): void {
         // install matter listeners
         // here we can react on changes from the matter side for onOff
-        this.#matterEndpoint.events.ioBrokerEvents.onOffControlled.on(async on => {
-            const currentValue = !!this.#ioBrokerDevice.getPower();
-            if (on !== currentValue) {
-                await this.#ioBrokerDevice.setPower(on);
-            }
-        });
+        this.#matterEndpoint.events.ioBrokerEvents.onOffControlled.on(
+            async on => await this.#ioBrokerDevice.setPower(on),
+        );
 
         let isIdentifying = false;
         const identifyOptions: IdentifyOptions = {};
-        this.#matterEndpoint.events.identify.identifyTime$Changed.on(async value => {
+        this.matterEvents.on(this.#matterEndpoint.events.identify.identifyTime$Changed, async value => {
             // identifyTime is set when an identify command is called and then decreased every second while identify logic runs.
             if (value > 0 && !isIdentifying) {
                 isIdentifying = true;
@@ -94,7 +90,6 @@ export class SocketToMatter extends GenericElectricityDataDeviceToMatter {
             },
         });
 
-        await initializeMaintenanceStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
         await this.initializeElectricityStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
     }
 }

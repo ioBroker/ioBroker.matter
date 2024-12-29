@@ -1,26 +1,50 @@
 import { type AttributeId, type ClusterId, Diagnostic, EndpointNumber, type EventId } from '@matter/main';
-import { BasicInformation, BridgedDeviceBasicInformation, Identify } from '@matter/main/clusters';
+import { BasicInformation, BridgedDeviceBasicInformation, Identify, PowerSource } from '@matter/main/clusters';
 import type { DecodedEventData } from '@matter/main/protocol';
 import type { Endpoint, PairedNode, DeviceBasicInformation } from '@project-chip/matter.js/device';
 import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DeviceOptions } from '../../lib/devices/GenericDevice';
 import { decamelize, toHex } from '../../lib/utils';
+import type { StructuredJsonFormData } from '../../lib/JsonConfigUtils';
 
-export type EnabledProperty = {
+export interface EnabledProperty {
     common?: Partial<ioBroker.StateCommon>;
     endpointId?: EndpointNumber;
     clusterId?: ClusterId;
+}
+
+export interface EnabledAttributeProperty extends EnabledProperty {
+    type: 'attribute';
     attributeId?: AttributeId;
     attributeName?: string;
     convertValue?: (value: any) => any;
     changeHandler?: (value: any) => Promise<void>;
     pollAttribute?: boolean;
-};
+}
+
+export interface EnabledEventProperty extends EnabledProperty {
+    type: 'event';
+    eventId?: EventId;
+    eventName?: string;
+    convertValue: (property: PropertyType, event: DecodedEventData<any>) => any;
+}
 
 export type GenericDeviceConfiguration = {
     pollInterval?: number;
 };
+
+function attributePathToString(path: {
+    endpointId: EndpointNumber;
+    clusterId: ClusterId;
+    attributeName: string;
+}): string {
+    return `A:${path.endpointId}-${path.clusterId}-${path.attributeName}`;
+}
+
+function eventPathToString(path: { endpointId: EndpointNumber; clusterId: ClusterId; eventName: string }): string {
+    return `E:${path.endpointId}-${path.clusterId}-${path.eventName}`;
+}
 
 /** Base class to map an ioBroker device to a matter device. */
 export abstract class GenericDeviceToIoBroker {
@@ -29,13 +53,16 @@ export abstract class GenericDeviceToIoBroker {
     readonly #node: PairedNode;
     protected readonly appEndpoint: Endpoint;
     readonly #rootEndpoint: Endpoint;
-    #name: string;
+    #name?: string;
+    #defaultName: string;
     readonly deviceType: string;
     readonly #deviceOptions: DeviceOptions;
-    #enabledProperties = new Map<PropertyType, EnabledProperty>();
+    #enabledAttributeProperties = new Map<PropertyType, EnabledAttributeProperty>();
+    #enabledEventProperties = new Map<PropertyType, EnabledEventProperty[]>();
+    #matterMappings = new Map<string, PropertyType>();
     #connectionStateId: string;
     #hasBridgedReachabilityAttribute = false;
-    #pollTimeout?: ioBroker.Timeout;
+    #pollTimeout?: NodeJS.Timeout;
     #destroyed = false;
     #initialized = false;
     #pollInterval = 60_000;
@@ -49,13 +76,14 @@ export abstract class GenericDeviceToIoBroker {
         endpointDeviceBaseId: string,
         deviceTypeName: string,
         defaultConnectionStateId: string,
+        defaultName: string,
     ) {
         this.#adapter = adapter;
         this.#node = node;
         this.appEndpoint = endpoint;
         this.#rootEndpoint = rootEndpoint;
         this.baseId = endpointDeviceBaseId;
-        this.#name = deviceTypeName;
+        this.#defaultName = defaultName;
         this.deviceType = deviceTypeName;
         this.#connectionStateId = defaultConnectionStateId;
 
@@ -63,7 +91,7 @@ export abstract class GenericDeviceToIoBroker {
             additionalStateData: {},
             uuid: '',
             enabled: true,
-            name: this.#name,
+            name: this.#name || deviceTypeName,
             oid: this.baseId,
             type: '...',
             auto: true,
@@ -75,7 +103,7 @@ export abstract class GenericDeviceToIoBroker {
     abstract ioBrokerDevice: GenericDevice;
 
     get name(): string {
-        return this.#name;
+        return this.#name ?? this.#defaultName ?? this.deviceType;
     }
 
     get number(): EndpointNumber {
@@ -95,33 +123,71 @@ export abstract class GenericDeviceToIoBroker {
      * This method is called by the constructor.
      */
     protected enableDeviceTypeStates(): DeviceOptions {
-        this.enableDeviceTypeState(PropertyType.Unreachable, {
+        this.enableDeviceTypeStateForAttribute(PropertyType.Unreachable, {
             endpointId: EndpointNumber(0),
             clusterId: BasicInformation.Cluster.id,
             attributeName: 'reachable',
             convertValue: value => !value,
         });
-        if (!this.#enabledProperties.has(PropertyType.Unreachable)) {
-            this.enableDeviceTypeState(PropertyType.Unreachable, {
-                endpointId: this.appEndpoint.number,
+        if (!this.#enabledAttributeProperties.has(PropertyType.Unreachable)) {
+            this.enableDeviceTypeStateForAttribute(PropertyType.Unreachable, {
+                endpointId: this.appEndpoint.number!,
                 clusterId: BridgedDeviceBasicInformation.Cluster.id,
                 attributeName: 'reachable',
                 convertValue: value => !value,
             });
-            if (this.#enabledProperties.has(PropertyType.Unreachable)) {
+            if (this.#enabledAttributeProperties.has(PropertyType.Unreachable)) {
                 this.#hasBridgedReachabilityAttribute = true;
             }
         }
+        // Check for PowerSource
+        this.#enablePowerSourceStates();
+
         return this.#deviceOptions;
+    }
+
+    #enablePowerSourceStates(): void {
+        const powerSource = this.appEndpoint.getClusterClient(PowerSource.Complete);
+        if (powerSource !== undefined) {
+            const endpointId = this.appEndpoint.getNumber();
+            this.enableDeviceTypeStateForAttribute(PropertyType.LowBattery, {
+                endpointId,
+                clusterId: PowerSource.Cluster.id,
+                attributeName: 'batChargeLevel',
+                convertValue: value => value !== PowerSource.BatChargeLevel.Ok,
+            });
+            this.enableDeviceTypeStateForAttribute(PropertyType.Battery, {
+                endpointId,
+                clusterId: PowerSource.Cluster.id,
+                attributeName: 'batPercentRemaining',
+                convertValue: value => Math.round(value / 2),
+            });
+        } else {
+            const rootPowerSource = this.#rootEndpoint.getClusterClient(PowerSource.Complete);
+            if (rootPowerSource !== undefined && rootPowerSource.supportedFeatures.battery) {
+                this.enableDeviceTypeStateForAttribute(PropertyType.LowBattery, {
+                    endpointId: EndpointNumber(0),
+                    clusterId: PowerSource.Cluster.id,
+                    attributeName: 'batChargeLevel',
+                    convertValue: value => value !== PowerSource.BatChargeLevel.Ok,
+                });
+                this.enableDeviceTypeStateForAttribute(PropertyType.Battery, {
+                    endpointId: EndpointNumber(0),
+                    clusterId: PowerSource.Cluster.id,
+                    attributeName: 'batPercentRemaining',
+                    convertValue: value => Math.round(value / 2),
+                });
+            }
+        }
     }
 
     /**
      * Enable a state for a Matter attribute if it exists and the property type is supported.
      * Important: provide attributeName for all standard Matter properties OR provide attributeId for vendor specific properties.
      */
-    protected enableDeviceTypeState(
+    protected enableDeviceTypeStateForAttribute(
         type: PropertyType,
-        data: {
+        data?: {
             endpointId?: EndpointNumber;
             clusterId?: ClusterId;
             convertValue?: (value: any) => any;
@@ -129,46 +195,106 @@ export abstract class GenericDeviceToIoBroker {
             pollAttribute?: boolean;
         } & ({ vendorSpecificAttributeId: AttributeId } | { attributeName?: string }),
     ): void {
-        const { endpointId, clusterId, convertValue, changeHandler, pollAttribute } = data;
         const stateData = this.#deviceOptions.additionalStateData![type] ?? {};
         if (stateData.id !== undefined) {
             console.log(`State ${type} already enabled`);
             return;
         }
 
-        let attributeId: AttributeId | undefined;
-        const attributeName =
-            'vendorSpecificAttributeId' in data
-                ? `unknownAttribute_${Diagnostic.hex(data.vendorSpecificAttributeId)}`
-                : data.attributeName;
-        if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
+        if (data !== undefined) {
+            const { endpointId, clusterId, convertValue, changeHandler, pollAttribute } = data;
+            let attributeId: AttributeId | undefined;
+            const attributeName =
+                'vendorSpecificAttributeId' in data
+                    ? `unknownAttribute_${Diagnostic.hex(data.vendorSpecificAttributeId)}`
+                    : data.attributeName;
+            if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
+                const cluster =
+                    endpointId === 0
+                        ? this.#rootEndpoint.getClusterClientById(clusterId)
+                        : this.appEndpoint.getClusterClientById(clusterId);
+                if (!cluster || !cluster.isAttributeSupportedByName(attributeName)) {
+                    return;
+                }
+
+                attributeId = cluster.attributes[attributeName].id;
+            }
+
+            if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
+                const pathId = attributePathToString({ endpointId, clusterId, attributeName });
+                this.#matterMappings.set(pathId, type);
+            }
+            this.#enabledAttributeProperties.set(type, {
+                type: 'attribute',
+                endpointId,
+                clusterId,
+                attributeId,
+                attributeName,
+                convertValue,
+                changeHandler,
+                pollAttribute,
+            });
+        }
+        stateData.id = `${this.baseId}.`;
+        this.#deviceOptions.additionalStateData![type] = stateData;
+    }
+
+    /**
+     * Enable a state for a Matter attribute if it exists and the property type is supported.
+     * Important: provide attributeName for all standard Matter properties OR provide attributeId for vendor specific properties.
+     */
+    protected enableDeviceTypeStateForEvent(
+        type: PropertyType,
+        data: {
+            endpointId: EndpointNumber;
+            clusterId: ClusterId;
+            convertValue: (property: PropertyType, event: DecodedEventData<any>) => any;
+        } & ({ vendorSpecificEventId: EventId } | { eventName: string }),
+    ): void {
+        const { endpointId, clusterId, convertValue } = data;
+        const stateData = this.#deviceOptions.additionalStateData![type] ?? {};
+
+        let eventId: EventId | undefined;
+        const eventName =
+            'vendorSpecificEventId' in data
+                ? `unknownEvent_${Diagnostic.hex(data.vendorSpecificEventId)}`
+                : data.eventName;
+        if (endpointId !== undefined && clusterId !== undefined && eventName !== undefined) {
             const cluster =
                 endpointId === 0
                     ? this.#rootEndpoint.getClusterClientById(clusterId)
                     : this.appEndpoint.getClusterClientById(clusterId);
-            if (!cluster || !cluster.isAttributeSupportedByName(attributeName)) {
+            if (!cluster) {
                 return;
             }
 
-            attributeId = cluster.attributes[attributeName].id;
+            eventId = cluster.events[eventName].id;
         }
 
-        stateData.id = `${this.baseId}.`;
+        if (stateData.id !== undefined) {
+            stateData.id = `${this.baseId}.`;
+        }
+        const pathId = eventPathToString({ endpointId, clusterId, eventName });
         this.#deviceOptions.additionalStateData![type] = stateData;
-        this.#enabledProperties.set(type, {
+        if (this.#matterMappings.get(pathId)) {
+            console.log(`State path ${pathId} already enabled, overwriting`);
+        }
+        this.#matterMappings.set(pathId, type);
+        const knownEvents = this.#enabledEventProperties.get(type) ?? [];
+        knownEvents.push({
+            type: 'event',
             endpointId,
             clusterId,
-            attributeId,
-            attributeName,
+            eventId,
+            eventName,
             convertValue,
-            changeHandler,
-            pollAttribute,
         });
+        this.#enabledEventProperties.set(type, knownEvents);
     }
 
     async getMatterState(property: PropertyType): Promise<any> {
-        const matterLocation = this.#enabledProperties.get(property);
-        if (matterLocation === undefined) {
+        const matterLocation = this.#enabledAttributeProperties.get(property);
+        if (matterLocation === undefined || matterLocation.type !== 'attribute') {
             return;
         }
         const { endpointId, clusterId, attributeName } = matterLocation;
@@ -189,8 +315,8 @@ export abstract class GenericDeviceToIoBroker {
     }
 
     async updateIoBrokerState(property: PropertyType, value: any): Promise<void> {
-        const properties = this.#enabledProperties.get(property);
-        if (properties === undefined) {
+        const properties = this.#enabledAttributeProperties.get(property);
+        if (properties === undefined || properties.type !== 'attribute') {
             return;
         }
         const { convertValue } = properties;
@@ -198,10 +324,14 @@ export abstract class GenericDeviceToIoBroker {
             value = convertValue(value);
         }
         if (value !== undefined) {
-            await this.ioBrokerDevice.updatePropertyValue(property, value);
+            try {
+                await this.ioBrokerDevice.updatePropertyValue(property, value);
+            } catch (e) {
+                this.#adapter.log.error(`Error updating property ${property} with value ${value}: ${e}`);
+            }
 
             if (property === PropertyType.Unreachable && this.#hasBridgedReachabilityAttribute) {
-                await this.#adapter.setStateAsync(this.#connectionStateId, { val: !value, ack: true });
+                await this.#adapter.setState(this.#connectionStateId, { val: !value, ack: true });
             }
         }
     }
@@ -213,25 +343,38 @@ export abstract class GenericDeviceToIoBroker {
         attributeName: string;
         value: any;
     }): Promise<void> {
-        for (const [property, matterLocation] of this.#enabledProperties) {
-            if (
-                matterLocation.clusterId === data.clusterId &&
-                matterLocation.endpointId === data.endpointId &&
-                matterLocation.attributeId === data.attributeId
-            ) {
-                return this.updateIoBrokerState(property, data.value);
-            }
+        const pathId = attributePathToString(data);
+        const pathProperty = this.#matterMappings.get(pathId);
+        if (pathProperty === undefined) {
+            return;
         }
+        return this.updateIoBrokerState(pathProperty, data.value);
     }
 
-    async handleTriggeredEvent(_data: {
+    async handleTriggeredEvent(data: {
         clusterId: ClusterId;
         endpointId: EndpointNumber;
         eventId: EventId;
         eventName: string;
         events: DecodedEventData<any>[];
     }): Promise<void> {
-        // TODO if relevant
+        const pathId = eventPathToString(data);
+        const pathProperty = this.#matterMappings.get(pathId);
+        if (pathProperty === undefined) {
+            return;
+        }
+        const propertyHandlers = this.#enabledEventProperties.get(pathProperty);
+        if (propertyHandlers === undefined) {
+            return;
+        }
+        for (const { convertValue } of propertyHandlers) {
+            for (const event of data.events) {
+                const value = convertValue(pathProperty, event);
+                if (value !== undefined) {
+                    await this.updateIoBrokerState(pathProperty, value);
+                }
+            }
+        }
     }
 
     /** Initialization Logic for the device. makes sure all handlers are registered for both sides. */
@@ -252,6 +395,10 @@ export abstract class GenericDeviceToIoBroker {
         await this.ioBrokerDevice.init();
         this.#registerIoBrokerHandlersAndInitialize();
         await this.#initializeStates();
+
+        if (this.#name === undefined) {
+            this.#name = this.#defaultName;
+        }
 
         if (this.#hasBridgedReachabilityAttribute) {
             await this.#adapter.setObjectNotExists(`${this.baseId}.info`, {
@@ -284,13 +431,15 @@ export abstract class GenericDeviceToIoBroker {
             });
         }
 
-        await this.#adapter.extendObjectAsync(this.baseId, {
-            common: {
-                statusStates: {
-                    onlineId: `${this.#connectionStateId}`,
+        if (!existingObject || existingObject.common.statusStates?.onlineId !== this.#connectionStateId) {
+            await this.#adapter.extendObjectAsync(this.baseId, {
+                common: {
+                    statusStates: {
+                        onlineId: `${this.#connectionStateId}`,
+                    },
                 },
-            },
-        });
+            });
+        }
 
         this.#initialized = true;
     }
@@ -299,8 +448,8 @@ export abstract class GenericDeviceToIoBroker {
         // install ioBroker listeners
         // here we react on changes from the ioBroker side for onOff and current lamp level
         this.ioBrokerDevice.onChange(async (event: { property: PropertyType; value: unknown }) => {
-            const matterLocation = this.#enabledProperties.get(event.property);
-            if (matterLocation === undefined) {
+            const matterLocation = this.#enabledAttributeProperties.get(event.property);
+            if (matterLocation === undefined || matterLocation.type !== 'attribute') {
                 return;
             }
             const { changeHandler } = matterLocation;
@@ -314,7 +463,7 @@ export abstract class GenericDeviceToIoBroker {
 
     /** Initialize the states of the ioBroker device with the current values from the matter device. */
     async #initializeStates(): Promise<void> {
-        for (const property of this.#enabledProperties.keys()) {
+        for (const property of this.#enabledAttributeProperties.keys()) {
             const value = await this.getMatterState(property);
             if (value !== undefined) {
                 await this.updateIoBrokerState(property, value);
@@ -325,7 +474,7 @@ export abstract class GenericDeviceToIoBroker {
 
     #initAttributePolling(): void {
         if (this.#pollTimeout !== undefined) {
-            this.#adapter.clearTimeout(this.#pollTimeout);
+            clearTimeout(this.#pollTimeout);
             this.#pollTimeout = undefined;
         }
         const pollingAttributes = new Array<{
@@ -333,8 +482,9 @@ export abstract class GenericDeviceToIoBroker {
             clusterId: ClusterId;
             attributeId: AttributeId;
         }>();
-        for (const { endpointId, clusterId, attributeId, pollAttribute } of this.#enabledProperties.values()) {
-            if (pollAttribute) {
+        for (const property of this.#enabledAttributeProperties.values()) {
+            if (property.type === 'attribute' && property.pollAttribute) {
+                const { endpointId, clusterId, attributeId } = property;
                 if (endpointId !== undefined && clusterId !== undefined && attributeId !== undefined) {
                     pollingAttributes.push({ endpointId, clusterId, attributeId });
                 }
@@ -342,10 +492,7 @@ export abstract class GenericDeviceToIoBroker {
         }
         if (pollingAttributes.length) {
             this.#hasAttributesToPoll = true;
-            this.#pollTimeout = this.#adapter.setTimeout(
-                () => this.#pollAttributes(pollingAttributes),
-                this.#pollInterval,
-            );
+            this.#pollTimeout = setTimeout(() => this.#pollAttributes(pollingAttributes), this.#pollInterval);
         }
     }
 
@@ -422,14 +569,19 @@ export abstract class GenericDeviceToIoBroker {
             this.#adapter.log.debug(`Node ${this.#node.nodeId} is not connected, do not poll attributes`);
         }
 
-        this.#pollTimeout = this.#adapter.setTimeout(() => this.#pollAttributes(attributes), this.#pollInterval);
+        if (!this.#destroyed) {
+            this.#pollTimeout = setTimeout(() => this.#pollAttributes(attributes), this.#pollInterval);
+        }
     }
 
-    destroy(): Promise<void> {
+    async destroy(): Promise<void> {
         this.#destroyed = true;
         if (this.#pollTimeout !== undefined) {
-            this.#adapter.clearTimeout(this.#pollTimeout);
+            clearTimeout(this.#pollTimeout);
             this.#pollTimeout = undefined;
+        }
+        if (this.#hasBridgedReachabilityAttribute) {
+            await this.#adapter.setState(this.#connectionStateId, { val: false, ack: true });
         }
         return this.ioBrokerDevice.destroy();
     }
@@ -447,15 +599,50 @@ export abstract class GenericDeviceToIoBroker {
         await this.#adapter.extendObjectAsync(this.baseId, { common: { name } });
     }
 
-    getDeviceDetails(): Record<string, Record<string, unknown>> {
-        const result: Record<string, Record<string, unknown>> = {};
+    async getMatterStates(): Promise<Record<string, unknown>> {
+        const states: Record<string, unknown> = {};
 
-        const states = this.ioBrokerDevice.states;
+        const powerSource = this.appEndpoint.getClusterClient(PowerSource.Complete);
+        if (powerSource !== undefined) {
+            states.__header__powersourcedetails = 'Power Source Details';
+
+            if (
+                powerSource.isAttributeSupportedByName('batQuantity') &&
+                powerSource.isAttributeSupportedByName('batReplacementDescription')
+            ) {
+                states.includedBattery = `${await powerSource.getBatQuantityAttribute()} x ${await powerSource.getBatReplacementDescriptionAttribute()}`;
+            }
+            if (powerSource.isAttributeSupportedByName('batVoltage')) {
+                const voltage = await powerSource.getBatVoltageAttribute();
+                const percentRemaining = await powerSource.getBatPercentRemainingAttribute();
+                if (typeof voltage === 'number') {
+                    states.batteryVoltage = `${(voltage / 1_000).toFixed(2)} V${typeof percentRemaining === 'number' ? ` (${Math.round(percentRemaining / 2)}%)` : ''}`;
+                } else if (typeof percentRemaining === 'number') {
+                    states.batteryVoltage = `${Math.round(percentRemaining / 2)}%`;
+                }
+            }
+
+            if (!states.includedBattery && !states.batteryVoltage) {
+                delete states.__header__powersourcedetails;
+            }
+        }
+
+        return states;
+    }
+
+    async getDeviceDetails(): Promise<StructuredJsonFormData> {
+        const result: StructuredJsonFormData = {};
+
+        const states = this.ioBrokerDevice.getStates();
         if (Object.keys(states).length) {
-            result.states = states;
+            result.states = {
+                __header__details: 'Mapped ioBroker States',
+                ...states,
+            };
         }
 
         result.details = {
+            __header__details: 'Device Details',
             name: this.#name,
             primaryDeviceType: this.deviceType,
             deviceTypes: this.appEndpoint
@@ -463,6 +650,7 @@ export abstract class GenericDeviceToIoBroker {
                 .map(({ name, code }) => `${name} (${toHex(code)})`)
                 .join(', '),
             endpoint: this.appEndpoint.number,
+            ...(await this.getMatterStates()),
         } as Record<string, unknown>;
 
         result.matterClusters = {} as Record<string, unknown>;

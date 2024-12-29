@@ -18,6 +18,7 @@
     "All information of this device or bridge will be deleted and you must reconnect (with PIN or QR code) again.": "Se eliminará toda la información de este dispositivo o puente y deberás volver a conectarte (con PIN o código QR) nuevamente.",
     "All interfaces": "Todas las interfaces",
     "All state information of matter controller and devices will be deleted. You cannot undo it.": "El controlador y todos los dispositivos y puentes volverán a los valores predeterminados de fábrica. \nEsto elimina el emparejamiento y los valores actuales de todos los dispositivos, puentes y también los dispositivos emparejados en el controlador. No puedes deshacerlo.\nLa configuración general del controlador y los estados de ioBroker asignados para los puentes y dispositivos permanecerán sin cambios.",
+    "Announcement will stop automatically after 15 minutes": "El anuncio se detendrá automáticamente después de 15 minutos.",
     "Apply": "Aplicar",
     "Are you sure?": "¿Está seguro?",
     "At least one bridge must be enabled": "Al menos un puente debe estar habilitado.",

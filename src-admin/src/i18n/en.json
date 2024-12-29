@@ -18,6 +18,7 @@
     "All information of this device or bridge will be deleted and you must reconnect (with PIN or QR code) again.": "All information of this device or bridge will be deleted and you must reconnect (with PIN or QR code) again.",
     "All interfaces": "All interfaces",
     "All state information of matter controller and devices will be deleted. You cannot undo it.": "The Controller and all devices and bridges will be rest to factory defaults. \nThis deletes the pairing and current values for all devices, bridges and also paired devices in the controller. You cannot undo it.\nThe general configuration of the controller, and the assigned ioBroker states for the bridges and devices will stay unchanged.",
+    "Announcement will stop automatically after 15 minutes": "Announcement will stop automatically after 15 minutes",
     "Apply": "Apply",
     "Are you sure?": "Are you sure?",
     "At least one bridge must be enabled": "At least one bridge must be enabled",

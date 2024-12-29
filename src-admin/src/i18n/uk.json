@@ -18,6 +18,7 @@
     "All information of this device or bridge will be deleted and you must reconnect (with PIN or QR code) again.": "Усю інформацію про цей пристрій або міст буде видалено, і вам доведеться знову підключитися (за допомогою PIN-коду або QR-коду).",
     "All interfaces": "Всі інтерфейси",
     "All state information of matter controller and devices will be deleted. You cannot undo it.": "Контролер, усі пристрої та мости будуть відновлені до заводських налаштувань. \nЦе видаляє сполучення та поточні значення для всіх пристроїв, мостів, а також сполучених пристроїв у контролері. Ви не можете скасувати це.\nЗагальна конфігурація контролера та призначені стани ioBroker для мостів і пристроїв залишаться незмінними.",
+    "Announcement will stop automatically after 15 minutes": "Оголошення автоматично припиниться через 15 хвилин",
     "Apply": "Застосувати",
     "Are you sure?": "Ти впевнений?",
     "At least one bridge must be enabled": "Принаймні один міст має бути ввімкнено",

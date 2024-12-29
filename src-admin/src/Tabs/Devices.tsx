@@ -871,7 +871,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                     addDeviceDialog: null,
                                     addCustomDeviceDialog: {
                                         oid,
-                                        name,
+                                        name: name || '',
                                         deviceType: '',
                                         noComposed: false,
                                         vendorID: '0xFFF1',
@@ -890,7 +890,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 addDeviceDialog: null,
                                 addCustomDeviceDialog: {
                                     oid,
-                                    name,
+                                    name: name || '',
                                     deviceType,
                                     hasOnState: controls[0].devices[0].hasOnState,
                                     vendorID: '0xFFF1',

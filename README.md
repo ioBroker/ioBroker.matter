@@ -35,7 +35,7 @@ If you want to use the iobroker Visu App for device pairing you need:
 ### General prerequisites
 * One instance of the adapter is bound to one host (aka IP). Multiple instances require a multi-host setup.
 * Make sure IPv6 is enabled in your network and the host you use this adapter on has an IPv6 address
-  * If you use LXC containers in Proxmox this is like **not** given because Proxmox hosts are normally not configured for IPv6!
+  * If you use LXC containers in Proxmox this is like **not** given because Proxmox hosts are normally not configured for IPv6! A solution you can try is described in the [Wiki](https://github.com/ioBroker/ioBroker.matter/wiki/Troubleshooting)
 * Make sure that UDP packages can flow between the devices, your mobile app, the hubs and the host you use this adapter on!
   * Mainly make sure to **not** use VLANs, because UDP is usually not routed between VLANs! Or find out how to configure your router to allow this (Fritzbox does not work with this!)
   * If you use Docker containers make sure to use **Host Mode** to allow UDP packages to flow between the containers and the host. Bridged network mode does not work with UDP packages!

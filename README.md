@@ -225,8 +225,7 @@ TBD
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.3.4 (2024-12-31)
 * (@Apollon77) Updates matter.js to address several issues
 * (@bluefox) Optimized UI
 

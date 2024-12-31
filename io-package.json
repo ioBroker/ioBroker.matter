@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.3.3",
+    "version": "0.3.4",
     "news": {
+      "0.3.4": {
+        "en": "Updates matter.js to address several issues\nOptimized UI",
+        "de": "Aktualisiert matter.js, um mehrere Probleme zu lösen\nOptimierte UI",
+        "ru": "Обновления matter.js для решения нескольких вопросов\nОптимизированный UI",
+        "pt": "Updates matter.js para resolver vários problemas\nIU otimizada",
+        "nl": "Updates matter.js om verschillende problemen aan te pakken\nGeoptimaliseerde UI",
+        "fr": "Mise à jour matter.js pour aborder plusieurs questions\nUI optimisé",
+        "it": "Aggiornamenti importa.js per affrontare diversi problemi\nUI ottimizzato",
+        "es": "Actualizaciones matter.js para abordar varias cuestiones\nUI optimizada",
+        "pl": "Aktualizuje mater.js, aby rozwiązać kilka problemów\nZoptymalizowany interfejs użytkownika",
+        "uk": "Оновлення питання.js для вирішення декількох питань\nОптимізований UI",
+        "zh-cn": "处理若干问题的更新事项.js\n优化 UI"
+      },
       "0.3.3": {
         "en": "Allows to trigger commands via matter also when state already matches the value\nSets and updates the fabric label for paired devices (default is \"ioBroker matter.X\")\nDetects state deletion for ioBroker devices and updates device in UI to show device state\nSeveral optimizations on commissioning\nDo not show commissioning QR codes in ioBroker log\nUse Fabric label to try to detect if ioBroker is the controller\nFixes displaying error details for devices and bridges\nFixes the device and type detection logic",
         "de": "Erlaubt, Befehle über Materie auszulösen, auch wenn der Zustand bereits dem Wert entspricht\nSetzt und aktualisiert das Stofflabel für gepaarte Geräte (Standard ist \"ioBroker matter.X\")\nErkennt Zustandslöschung für ioBroker Geräte und Updates Gerät in UI, um Gerätezustand anzuzeigen\nMehrere Optimierungen bei der Inbetriebnahme\nKeine QR-Codes in ioBroker log anzeigen\nVerwenden Sie Stofflabel, um herauszufinden, ob ioBroker der Controller ist\nFehlerdetails für Geräte und Brücken anzeigen\nBehebt die Geräte- und Typerkennungslogik",
@@ -80,19 +93,6 @@
         "pl": "Kiedy Get i set stany są oddzielone, a następnie aktualizować stan ustawiony z nowymi wartościami\nOkno szczegółów węzła w sterowniku ujawnia teraz kilka więcej informacji o baterii\nEksponuje również stany baterii, gdy funkcje są ustawione źle na urządzeniu\nMapowanie stanu LightSensor\nZapobiega błędom, gdy istnieją tylko niektóre stany energetyczne\nUżywa IP dostarczonego przez Androida podczas uruchamiania urządzeń, jeśli to możliwe\nOdkrycie restrukturyzacji w tle, a nie blokowanie interfejsu\nEkspozycja stanów dla Enums dla węzłów materii\nZapobieganie kasowaniu niewłaściwych danych po usunięciu węzła",
         "uk": "При отриманні та встановлених станах відокремлюються, а також оновлення встановленого стану з новими значеннями\nNode Подробиці діалогове вікно в контролері тепер виводить більше інформації про акумулятор\nТакож виставляє стани акумулятора, коли функції встановлюють неправильно на пристрої\nВиправлення LightSensor державного картування\nЗапобігає помилкам, коли існують лише деякі енергетичні стани\nВикористовуйте IP, надану Android при введенні пристроїв, якщо це можливо\nВідновлення структури для запуску на фоні і не блокувати UI\nЕкспози США для Enums для Matter nodes\nЗапобігти зберіганню видалити неправильні дані при видаленні вузла",
         "zh-cn": "当 Get 和 set 状态分离后, 也会用新值更新 set 状态\n控制器中的节点详细对话框现在会显示一些更多的电池信息\n当设备上的特性设定错误时, 也会暴露电池状态\n修正灯传感器状态映射\n仅存在一些能量状态时防止错误\n如果可能,在启用设备时使用Android提供的IP\n调整发现结构以在背景中运行,而不屏蔽 UI\n物质节点的元素曝光状态\n在节点被移除时防止存储删除错误的数据"
-      },
-      "0.2.8": {
-        "en": "Contains many changes in Frontend and Backend including updates and new Feature. Please check the Changelog.",
-        "de": "Enthält viele Änderungen in Frontend und Backend einschließlich Updates und neue Feature. Bitte überprüfen Sie das Changelog.",
-        "ru": "Содержит много изменений в Frontend и Backend, включая обновления и новую функцию. Пожалуйста, проверьте Изменлог.",
-        "pt": "Contém muitas mudanças no Frontend e Backend, incluindo atualizações e novos recursos. Por favor, verifique o Changelog.",
-        "nl": "Bevat veel wijzigingen in Frontend en Backend inclusief updates en nieuwe feature. Controleer de Changelog.",
-        "fr": "Contient de nombreux changements dans Frontend et Backend, y compris des mises à jour et une nouvelle fonctionnalité. Veuillez consulter le Changelog.",
-        "it": "Contiene molte modifiche in Frontend e Backend tra cui aggiornamenti e nuova funzionalità. Controlla il Changelog.",
-        "es": "Contiene muchos cambios en Frontend y Backend incluyendo actualizaciones y nuevas características. Por favor, compruebe el Changelog.",
-        "pl": "Zawiera wiele zmian w Frontend i Backend w tym aktualizacje i nowe funkcje. Proszę sprawdzić Changelog.",
-        "uk": "Містить багато змін у Frontend і Backend, включаючи оновлення та нову функцію. Будь ласка, перевірте Логін.",
-        "zh-cn": "包含许多前端和后端的修改,包括更新和新的特性. 请检查date=中的日期值 (帮助) Changelog."
       }
     },
     "title": "Matter",

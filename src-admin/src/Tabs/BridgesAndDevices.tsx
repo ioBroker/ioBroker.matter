@@ -677,6 +677,9 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                         variant="standard"
                         sx={{ marginTop: 1 }}
                     />
+                    <div style={{ fontStyle: 'italic', fontSize: 14, width: '100%' }}>
+                        {I18n.t('Announcement will stop automatically after 15 minutes')}
+                    </div>
                 </DialogContent>
                 <DialogActions>
                     <Button

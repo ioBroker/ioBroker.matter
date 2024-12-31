@@ -18,7 +18,14 @@ import {
 
 import { Add, Close, ExpandMore } from '@mui/icons-material';
 
-import { type AdminConnection, I18n, Icon, IconDeviceType, type IobTheme } from '@iobroker/adapter-react-v5';
+import {
+    type AdminConnection,
+    I18n,
+    Icon,
+    IconDeviceType,
+    type IobTheme,
+    type ThemeType,
+} from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 
 import { clone, detectDevices, getText } from '../Utils';
@@ -124,6 +131,7 @@ interface DeviceDialogProps {
     devicesInBridge?: number;
     /** If dialog should check the number of devices */
     checkAddedDevices?: number;
+    themeType: ThemeType;
 }
 
 interface DeviceDialogState {
@@ -458,7 +466,11 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
             devices.length &&
             (this.props.devicesInBridge || 0) + devices.length > this.props.checkAddedDevices
         ) {
-            showHint = <div style={{ color: '#FF0000', fontSize: 10 }}>{I18n.t('Warning about 15 devices')}</div>;
+            showHint = (
+                <div style={{ color: this.props.themeType === 'dark' ? '#ff5555' : '#980000', fontSize: 14 }}>
+                    {I18n.t('Warning about 15 devices')}
+                </div>
+            );
         }
 
         return (
@@ -612,15 +624,15 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                                                         <Checkbox
                                                             title={I18n.t('Select/Unselect all devices in room')}
                                                             indeterminate={
-                                                                counters[roomIndex] !== room.devices.length &&
+                                                                counters[roomIndex] !== lengths[roomIndex] &&
                                                                 !!counters[roomIndex]
                                                             }
-                                                            checked={counters[roomIndex] === room.devices.length}
+                                                            checked={counters[roomIndex] === lengths[roomIndex]}
                                                             onClick={e => {
                                                                 e.stopPropagation();
                                                                 e.preventDefault();
                                                                 const devicesChecked = clone(this.state.devicesChecked);
-                                                                if (counters[roomIndex] === room.devices.length) {
+                                                                if (counters[roomIndex] === lengths[roomIndex]) {
                                                                     room.devices.forEach(
                                                                         device => (devicesChecked[device._id] = false),
                                                                     );
@@ -629,7 +641,9 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                                                                         if (
                                                                             SUPPORTED_DEVICES.includes(
                                                                                 device.deviceType,
-                                                                            )
+                                                                            ) &&
+                                                                            (!this.state.ignoreUsedDevices ||
+                                                                                !this.state.usedDevices[device._id])
                                                                         ) {
                                                                             devicesChecked[device._id] = true;
                                                                         }

@@ -1091,9 +1091,9 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                     </Fab>
                 </Tooltip>
                 {!this.props.matter.devices.length ? (
-                    I18n.t(
-                        'No one device created. Create one, by clicking on the "+" button in the bottom right corner.',
-                    )
+                    <div style={{ marginLeft: 16 }}>
+                        {I18n.t('No one device created. Create one, by clicking on the "+" button on the left.')}
+                    </div>
                 ) : (
                     <Table
                         size="small"

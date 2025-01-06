@@ -177,7 +177,7 @@
     "image": "Изображение",
     "invalid_password_warning": "Пароль выглядит недействительным",
     "ioBroker received \"%s\". You can now close this window by clicking on this text.": "ioBroker получил \"%s\". Теперь вы можете закрыть это окно, нажав на этот текст.",
-    "ioBroker.pro Login": "ioBroker.pro Вход",
+    "ioBroker.pro Login": "ioBroker.pro Логин",
     "ioBroker.pro Password": "ioBroker.pro Пароль",
     "light": "Свет",
     "lock": "Замок",

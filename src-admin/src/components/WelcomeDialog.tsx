@@ -224,7 +224,7 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                             variant="outlined"
                             onClick={() =>
                                 window.open(
-                                    `https://apps.apple.com/${I18n.getLanguage()}/app/iobroker/id1449564305`,
+                                    `https://apps.apple.com/${I18n.getLanguage()}/app/iobroker-visu/id1673095774`,
                                     '_blank',
                                 )
                             }

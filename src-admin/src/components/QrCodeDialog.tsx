@@ -49,10 +49,12 @@ export default class QrCodeDialog extends Component<QrCodeDialogProps, QrCodeDia
                     this.setState({ iframe: null });
                 } else {
                     this.setState({ qrCode: event.data });
-                    this.state.iframe?.postMessage(
-                        `close:${I18n.t('ioBroker received "%s". You can now close this window by clicking on this text.', event.data)}`,
-                        '*',
-                    );
+                    if (event.data.startsWith('MT:')) {
+                        this.state.iframe?.postMessage(
+                            `close:${I18n.t('ioBroker received "%s". You can now close this window by clicking on this text.', event.data)}`,
+                            '*',
+                        );
+                    }
                 }
             }
         }
@@ -98,7 +100,7 @@ export default class QrCodeDialog extends Component<QrCodeDialogProps, QrCodeDia
                             )}
                         </div>
                     </InfoBox>
-                    {this.state.qrCode ? (
+                    {!this.state.qrCode ? (
                         <TextField
                             variant="standard"
                             label={I18n.t('Manual pairing code')}

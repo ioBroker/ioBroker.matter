@@ -580,6 +580,9 @@ class Controller extends Component<ComponentProps, ComponentState> {
             >
                 <DialogTitle>{I18n.t('Discovered devices to pair')}</DialogTitle>
                 <DialogContent>
+                    <div style={{ fontWeight: 'bold', width: '100%', marginBottom: 16 }}>
+                        {I18n.t('Pairing requirement')}
+                    </div>
                     <InfoBox
                         type="info"
                         closeable

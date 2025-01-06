@@ -111,6 +111,7 @@
     "Options": "Opções",
     "Pairing Info Text": "Descobrindo dispositivos em sua rede IP. \nCertifique-se de que o host ioBroker possa enviar e receber livremente mensagens UDP na rede e na rede dos dispositivos a serem descobertos. \nSe necessário, redefina os dispositivos para as configurações de fábrica ou desligue-os.",
     "Pairing Info Text BLE": "Descobrindo dispositivos na sua rede IP e via BLE. \nCertifique-se de que o host ioBroker possa enviar e receber livremente mensagens UDP na rede e na rede dos dispositivos a serem descobertos. \nSe necessário, redefina os dispositivos para as configurações de fábrica ou desligue-os.",
+    "Pairing requirement": "Os dispositivos devem estar em modo de pareamento. Dispositivos que ainda não estão vinculados são melhor vinculados por meio do aplicativo ioBroker Visu. Caso contrário, coloque o dispositivo em modo de pareamento por meio do ecossistema já vinculado.",
     "Password repeat": "Repetição de senha",
     "Password repeat is not equal to password": "A repetição da senha não é igual à senha",
     "Please DO NOT use the QR code / pairing code that is printed on the Matter device.": "NÃO use o código QR/código de pareamento impresso no dispositivo Matter.",

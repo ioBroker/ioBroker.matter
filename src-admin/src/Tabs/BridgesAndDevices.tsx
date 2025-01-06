@@ -347,12 +347,16 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                     style={{
                         height: 40,
                         color: hasError
-                            ? '#FF0000'
+                            ? this.props.themeType === 'dark'
+                                ? '#ff5a5a'
+                                : '#980000'
                             : this.isDevice
                               ? this.props.themeType === 'dark'
                                   ? 'white'
                                   : '#00000080'
-                              : 'white',
+                              : this.props.themeType === 'dark'
+                                ? 'white'
+                                : '#00000080',
                     }}
                     onClick={e => this.requestAdditionalInformation(e, deviceOrBridge.uuid)}
                 >

@@ -13,6 +13,7 @@
         "@types/react-dom": "^18.3.5",
         "@types/uuid": "^10.0.0",
         "@vitejs/plugin-react": "^4.3.4",
+        "@yudiel/react-qr-scanner": "^2.1.0",
         "qr-scanner": "^1.4.2",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
@@ -21,7 +22,7 @@
         "uuid": "^11.0.3"
     },
     "scripts": {
-        "start": "vite",
+        "start": "vite --host",
         "build": "vite build",
         "lint": "eslint -c eslint.config.mjs",
         "check-ts": "tsc --noEmit --checkJS false",

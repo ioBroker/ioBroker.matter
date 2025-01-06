@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import QrScanner from 'qr-scanner';
 
 import { IconButton } from '@foxriver76/iob-component-lib';
 
@@ -14,8 +13,6 @@ import {
     DialogContent,
     DialogTitle,
     LinearProgress,
-    MenuItem,
-    Select,
     Switch,
     Table,
     TableBody,
@@ -32,6 +29,7 @@ import DeviceManager from '@iobroker/dm-gui-components';
 import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
 import { clone, getVendorName } from '../Utils';
 import InfoBox from '../components/InfoBox';
+import QrCodeDialog from '../components/QrCodeDialog';
 
 const styles: Record<string, React.CSSProperties> = {
     panel: {
@@ -118,29 +116,17 @@ interface ComponentState {
     discovered: CommissionableDevice[];
     discoveryRunning: boolean;
     discoveryDone: boolean;
-    qrCode: string | null;
-    manualCode: string;
-    cameras: QrScanner.Camera[];
-    camera: string;
-    hideVideo: boolean;
     nodes: Record<string, ioBroker.Object>;
     states: Record<string, ioBroker.State>;
     /** If qr code dialog should be shown (optional a device can be provided) */
-    showQrCodeDialog: { device?: CommissionableDevice; open: boolean };
+    showQrCodeDialog: CommissionableDevice | null | true;
     /* increase this number to reload the devices */
     triggerControllerLoad: number;
-    /** qr scan error */
-    qrError: string;
 }
 
 class Controller extends Component<ComponentProps, ComponentState> {
-    /** Reference object to call methods on QR Scanner */
-    private readonly refQrScanner: React.RefObject<HTMLVideoElement> = React.createRef();
-
     /** Reference object to call methods on DM */
     private readonly refDeviceManager: React.RefObject<DeviceManager> = React.createRef();
-
-    private qrScanner: QrScanner | null | true = null;
 
     constructor(props: ComponentProps) {
         super(props);
@@ -149,18 +135,12 @@ class Controller extends Component<ComponentProps, ComponentState> {
             discovered: [],
             discoveryRunning: false,
             discoveryDone: false,
-            qrCode: null,
-            manualCode: '',
-            cameras: [],
-            camera: '',
-            hideVideo: false,
             nodes: {},
             states: {},
-            showQrCodeDialog: { open: false },
+            showQrCodeDialog: null,
             backendProcessingActive: false,
             bleDialogOpen: false,
             triggerControllerLoad: 0,
-            qrError: '',
         };
     }
 
@@ -269,48 +249,8 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
     async componentWillUnmount(): Promise<void> {
         this.props.registerMessageHandler(null);
-        this.destroyQrCode();
         await this.props.socket.unsubscribeObject(`matter.${this.props.instance}.controller.*`, this.onObjectChange);
         this.props.socket.unsubscribeState(`matter.${this.props.instance}.controller.*`, this.onStateChange);
-    }
-
-    async initQrCode(): Promise<void> {
-        if (!this.qrScanner && this.refQrScanner.current) {
-            this.qrScanner = true;
-
-            this.qrScanner = new QrScanner(
-                this.refQrScanner.current,
-                (result: QrScanner.ScanResult): void => {
-                    if (result?.data && result.data !== this.state.qrCode) {
-                        this.setState({ qrCode: result.data, qrError: '' });
-                    }
-                },
-                {
-                    returnDetailedScanResult: true,
-                    highlightCodeOutline: true,
-                    highlightScanRegion: true,
-                    maxScansPerSecond: 5,
-                    alsoTryWithoutScanRegion: true,
-                    onDecodeError: error => {
-                        if (!this.state.qrCode && this.state.qrError !== error.toString()) {
-                            this.setState({ qrError: I18n.t(error.toString()) });
-                        }
-                    },
-                },
-            );
-
-            const cameras: QrScanner.Camera[] = await QrScanner.listCameras(true);
-
-            const camera = window.localStorage.getItem('camera') || (cameras.length ? cameras[0].id : '');
-
-            await this.qrScanner.setCamera(camera);
-
-            this.setState({ cameras, camera, hideVideo: !cameras.length });
-        }
-
-        if (this.qrScanner && this.qrScanner !== true) {
-            await this.qrScanner.start();
-        }
     }
 
     onMessage = (message: GUIMessage | null): void => {
@@ -334,13 +274,6 @@ class Controller extends Component<ComponentProps, ComponentState> {
             console.log(`Unknown update: ${JSON.stringify(message)}`);
         }
     };
-
-    destroyQrCode(): void {
-        if (this.qrScanner && this.qrScanner !== true) {
-            this.qrScanner.destroy();
-        }
-        this.qrScanner = null;
-    }
 
     /**
      * Render the loading spinner if backend processing is active
@@ -588,140 +521,50 @@ class Controller extends Component<ComponentProps, ComponentState> {
     }
 
     renderQrCodeDialog(): React.JSX.Element | null {
-        if (!this.state.showQrCodeDialog.open) {
+        if (!this.state.showQrCodeDialog) {
             return null;
         }
 
         return (
-            <Dialog
-                open={!0}
-                onClose={() => this.setState({ showQrCodeDialog: { open: false } }, () => this.destroyQrCode())}
-                maxWidth="lg"
-                fullWidth
-            >
-                <DialogTitle>{I18n.t('Add device by pairing code or QR Code')}</DialogTitle>
-                <DialogContent>
-                    <div style={{ marginBottom: 10 }}>{I18n.t('Add via QR Code')}</div>
-                    <InfoBox
-                        iconPosition="top"
-                        type="info"
-                    >
-                        {I18n.t('Requirements: add via QR Code')}
-                        <div style={{ color: this.props.themeType === 'dark' ? '#ff6363' : '#800000', marginTop: 10 }}>
-                            {I18n.t(
-                                ' Please DO NOT use the QR code / pairing code that is printed on the Matter device.',
-                            )}
-                        </div>
-                    </InfoBox>
-                    <TextField
-                        variant="standard"
-                        label={I18n.t('Manual pairing code')}
-                        fullWidth
-                        style={{ maxWidth: 400 }}
-                        value={this.state.manualCode}
-                        onChange={e => this.setState({ manualCode: e.target.value })}
-                    />
-                    <div id="video-container">
-                        <video
-                            ref={this.refQrScanner}
-                            style={{
-                                ...styles.qrScanner,
-                                display: this.state.hideVideo ? 'none' : 'block',
-                            }}
-                        />
-                    </div>
-                    <div style={{ width: '100%', height: 71 }}>
-                        <TextField
-                            variant="standard"
-                            label={I18n.t('QR Code')}
-                            slotProps={{
-                                htmlInput: {
-                                    readOnly: true,
-                                },
-                            }}
-                            fullWidth
-                            style={{ maxWidth: 400 }}
-                            value={this.state.qrCode || ''}
-                            error={!!this.state.qrError}
-                            helperText={this.state.qrError}
-                        />
-                    </div>
-                    {this.state.camera.length ? (
-                        <Select
-                            fullWidth
-                            style={{ maxWidth: 400 }}
-                            variant="standard"
-                            value={this.state.camera}
-                            onChange={async e => {
-                                if (this.qrScanner && this.qrScanner !== true) {
-                                    await this.qrScanner.setCamera(e.target.value);
-                                }
-                                window.localStorage.setItem('camera', e.target.value);
-                                this.setState({ camera: e.target.value });
-                            }}
-                        >
-                            {this.state.cameras.map((camera, i) => (
-                                <MenuItem
-                                    key={i}
-                                    value={camera.id}
-                                >
-                                    {camera.label}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    ) : null}
-                </DialogContent>
-                <DialogActions>
-                    <Button
-                        variant="contained"
-                        disabled={!this.state.qrCode && !this.state.manualCode}
-                        color="primary"
-                        onClick={async () => {
-                            const device = this.state.showQrCodeDialog.device;
-                            this.setState({ showQrCodeDialog: { open: false }, backendProcessingActive: true }, () =>
-                                this.destroyQrCode(),
+            <QrCodeDialog
+                onClose={async (manualCode?: string, qrCode?: string): Promise<void> => {
+                    if (manualCode || qrCode) {
+                        const device: CommissionableDevice | null =
+                            typeof this.state.showQrCodeDialog !== 'boolean' ? this.state.showQrCodeDialog : null;
+
+                        this.setState({ showQrCodeDialog: null, backendProcessingActive: true });
+
+                        const result = await this.props.socket.sendTo(
+                            `matter.${this.props.instance}`,
+                            'controllerCommissionDevice',
+                            {
+                                device,
+                                qrCode,
+                                manualCode,
+                            },
+                        );
+
+                        this.setState({ backendProcessingActive: false });
+
+                        if (result.error || !result.result) {
+                            window.alert(`Cannot connect: ${result.error || 'Unknown error'}`);
+                        } else {
+                            window.alert(I18n.t('Connected'));
+                            const deviceId = device?.deviceIdentifier;
+                            const discovered = this.state.discovered.filter(
+                                commDevice => commDevice.deviceIdentifier !== deviceId,
                             );
 
-                            const result = await this.props.socket.sendTo(
-                                `matter.${this.props.instance}`,
-                                'controllerCommissionDevice',
-                                {
-                                    device,
-                                    qrCode: this.state.qrCode,
-                                    manualCode: this.state.manualCode,
-                                },
-                            );
-
-                            this.setState({ backendProcessingActive: false });
-
-                            if (result.error || !result.result) {
-                                window.alert(`Cannot connect: ${result.error || 'Unknown error'}`);
-                            } else {
-                                window.alert(I18n.t('Connected'));
-                                const deviceId = device?.deviceIdentifier;
-                                const discovered = this.state.discovered.filter(
-                                    commDevice => commDevice.deviceIdentifier !== deviceId,
-                                );
-
-                                this.setState({ discovered }, () => {
-                                    this.refDeviceManager.current?.loadData();
-                                });
-                            }
-                        }}
-                        startIcon={<Add />}
-                    >
-                        {I18n.t('Add')}
-                    </Button>
-                    <Button
-                        variant="contained"
-                        color="grey"
-                        onClick={() => this.setState({ showQrCodeDialog: { open: false } }, () => this.destroyQrCode())}
-                        startIcon={<Close />}
-                    >
-                        {I18n.t('Close')}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                            this.setState({ discovered }, () => {
+                                this.refDeviceManager.current?.loadData();
+                            });
+                        }
+                    } else {
+                        this.setState({ showQrCodeDialog: null });
+                    }
+                }}
+                themeType={this.props.themeType}
+            />
         );
     }
 
@@ -765,18 +608,8 @@ class Controller extends Component<ComponentProps, ComponentState> {
                                             onClick={async () => {
                                                 await this.stopDiscovery();
                                                 this.setState({
-                                                    showQrCodeDialog: { device, open: true },
-                                                    manualCode: '',
-                                                    qrCode: '',
-                                                    qrError: '',
+                                                    showQrCodeDialog: device,
                                                 });
-                                                setTimeout(async () => {
-                                                    try {
-                                                        await this.initQrCode();
-                                                    } catch (e) {
-                                                        console.warn(`Cannot provide QR Code scanning: ${e}`);
-                                                    }
-                                                }, 500);
                                             }}
                                         />
                                     </TableCell>
@@ -935,16 +768,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             sx={{ marginX: 1 }}
                             variant="contained"
                             color="primary"
-                            onClick={() => {
-                                this.setState({ showQrCodeDialog: { open: true }, qrError: '', qrCode: '' });
-                                setTimeout(async () => {
-                                    try {
-                                        await this.initQrCode();
-                                    } catch (e) {
-                                        console.warn(`Cannot provide QR Code scanning: ${e}`);
-                                    }
-                                }, 200);
-                            }}
+                            onClick={() => this.setState({ showQrCodeDialog: true })}
                             startIcon={<Add />}
                         >
                             {I18n.t('Add device by pairing code or QR Code')}

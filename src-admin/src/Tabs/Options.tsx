@@ -75,7 +75,7 @@ interface OptionsProps {
     instance: number;
     onChange: (attr: string, value: boolean | string) => Promise<void>;
     showToast: (text: string) => void;
-    onLoad: (native: Record<string, any>) => void;
+    onLoad: (native: MatterAdapterConfig) => void;
     /** The current matter config */
     matter: MatterConfig;
     onShowWelcomeDialog: () => void;

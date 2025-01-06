@@ -182,7 +182,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             heartbeat?: number;
         } | null,
     ): void => {
-        // backend is alive, so stop connection interval
+        // backend is alive, so stop a connection interval
         if (this.connectToBackEndInterval) {
             console.log(`Connected after ${this.connectToBackEndCounter} attempts`);
             this.connectToBackEndCounter = 0;
@@ -303,19 +303,34 @@ class App extends GenericApp<GenericAppProps, AppState> {
             return null;
         }
 
+        const adapterSettings: MatterAdapterConfig = this.state.native as MatterAdapterConfig;
+
         return (
             <WelcomeDialog
                 common={this.common}
                 instance={this.instance}
                 socket={this.socket}
-                onClose={async () => {
+                onClose={async (
+                    login?: string,
+                    password?: string,
+                    navigateTo?: 'controller' | 'bridges',
+                ): Promise<void> => {
+                    if (login && password) {
+                        if (adapterSettings.login !== login || adapterSettings.pass !== password) {
+                            this.updateNativeValue('login', login, () => this.updateNativeValue('pass', password));
+                        }
+                    }
                     if (!this.state.welcomeDialogShowed) {
                         await this.socket.setState(`matter.${this.instance}.info.welcomeDialog`, true, true);
                     }
-                    this.setState({ showWelcomeDialog: false, welcomeDialogShowed: true });
+                    this.setState({ showWelcomeDialog: false, welcomeDialogShowed: true }, () => {
+                        if (navigateTo) {
+                            this.setState({ selectedTab: navigateTo });
+                        }
+                    });
                 }}
-                login={this.state.native.login}
-                pass={this.state.native.pass}
+                login={adapterSettings.login}
+                pass={adapterSettings.pass}
             />
         );
     }
@@ -483,7 +498,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                     });
                 }}
                 onShowWelcomeDialog={() => this.setState({ showWelcomeDialog: true })}
-                onLoad={(native: Record<string, any>) => this.onLoadConfig(native)}
+                onLoad={(native: MatterAdapterConfig) => this.onLoadConfig(native)}
                 socket={this.socket}
                 common={this.common}
                 native={this.state.native as MatterAdapterConfig}
@@ -565,12 +580,14 @@ class App extends GenericApp<GenericAppProps, AppState> {
     }
 
     async getLicense(): Promise<string | false> {
-        if (this.state.native.login && this.state.native.pass) {
+        const adapterSettings: MatterAdapterConfig = this.state.native as MatterAdapterConfig;
+
+        if (adapterSettings.login && adapterSettings.pass) {
             if (this.state.alive) {
                 // ask the instance
                 const result = await this.socket.sendTo(`matter.${this.instance}`, 'getLicense', {
-                    login: this.state.native.login,
-                    pass: this.state.native.pass,
+                    login: adapterSettings.login,
+                    pass: adapterSettings.pass,
                 });
                 if (result.error) {
                     this.showToast(result.error);

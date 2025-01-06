@@ -1,8 +1,10 @@
 import React from 'react';
-import { type AdminConnection, I18n } from '@iobroker/adapter-react-v5';
+
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField } from '@mui/material';
-import { Clear, Close, Visibility, VisibilityOff } from '@mui/icons-material';
+import { Check, Clear, Close } from '@mui/icons-material';
 import { FaApple, FaAndroid } from 'react-icons/fa';
+
+import { type AdminConnection, I18n, DialogConfirm } from '@iobroker/adapter-react-v5';
 
 import InfoBox from './InfoBox';
 
@@ -33,6 +35,7 @@ interface WelcomeDialogState {
     iotLogin?: string;
     iotPassword?: string;
     ipV6found: boolean | null;
+    notSavedConfirm: '' | 'close' | 'bridges' | 'controller';
 }
 
 class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogState> {
@@ -46,8 +49,8 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
             login: this.props.login || '',
             password: this.props.pass || '',
             passwordRepeat: this.props.pass || '',
-            passVisible: false,
             ipV6found: null,
+            notSavedConfirm: '',
         };
     }
 
@@ -132,13 +135,57 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
         }
     }
 
+    renderConfirmDialog(): React.JSX.Element | null {
+        if (!this.state.notSavedConfirm) {
+            return null;
+        }
+
+        return (
+            <DialogConfirm
+                title={I18n.t('Please confirm')}
+                text={I18n.t('Login and password will not be taken as incomplete. Discard changes?')}
+                ok={I18n.t('Yes')}
+                cancel={I18n.t('Stay here')}
+                onClose={(result: boolean) => {
+                    if (result) {
+                        const navigateTo = this.state.notSavedConfirm;
+                        this.setState(
+                            {
+                                notSavedConfirm: '',
+                            },
+                            () => {
+                                if (!navigateTo || navigateTo === 'close') {
+                                    this.props.onClose();
+                                } else {
+                                    this.props.onClose(undefined, undefined, navigateTo);
+                                }
+                            },
+                        );
+                    } else {
+                        this.setState({ notSavedConfirm: '' });
+                    }
+                }}
+            />
+        );
+    }
+
     render(): React.JSX.Element {
         return (
             <Dialog
                 open={!0}
                 maxWidth="lg"
-                onClose={() => this.props.onClose()}
+                onClose={() => {
+                    if (
+                        !!this.state.login &&
+                        (!this.state.password || this.state.password !== this.state.passwordRepeat)
+                    ) {
+                        this.setState({ notSavedConfirm: 'close' });
+                    } else {
+                        this.props.onClose();
+                    }
+                }}
             >
+                {this.renderConfirmDialog()}
                 <DialogTitle>{I18n.t('Welcome to Matter!')}</DialogTitle>
                 <DialogContent>
                     {this.state.ipV6found !== null ? (
@@ -201,6 +248,7 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                                 input: {
                                     endAdornment: this.state.login ? (
                                         <IconButton
+                                            tabIndex={-1}
                                             size="small"
                                             onClick={() => this.setState({ login: '' })}
                                         >
@@ -226,10 +274,11 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                                 input: {
                                     endAdornment: this.state.password ? (
                                         <IconButton
+                                            tabIndex={-1}
                                             size="small"
-                                            onClick={() => this.setState({ passVisible: !this.state.passVisible })}
+                                            onClick={() => this.setState({ password: '' })}
                                         >
-                                            {this.state.passVisible ? <VisibilityOff /> : <Visibility />}
+                                            <Clear />
                                         </IconButton>
                                     ) : null,
                                 },
@@ -248,6 +297,7 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                             type={this.state.passVisible ? 'text' : 'password'}
                             label={I18n.t('Password repeat')}
                             value={this.state.passwordRepeat}
+                            error={!!this.state.password && this.state.password !== this.state.passwordRepeat}
                             onChange={e => this.setState({ passwordRepeat: e.target.value })}
                             sx={theme => ({
                                 [theme.breakpoints.up('lg')]: { width: 'calc(30% - 8px)', marginRight: 1 },
@@ -256,12 +306,13 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                             })}
                             slotProps={{
                                 input: {
-                                    endAdornment: this.state.password ? (
+                                    endAdornment: this.state.passwordRepeat ? (
                                         <IconButton
+                                            tabIndex={-1}
                                             size="small"
-                                            onClick={() => this.setState({ passVisible: !this.state.passVisible })}
+                                            onClick={() => this.setState({ passwordRepeat: '' })}
                                         >
-                                            {this.state.passVisible ? <VisibilityOff /> : <Visibility />}
+                                            <Clear />
                                         </IconButton>
                                     ) : null,
                                 },
@@ -290,23 +341,60 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                 <DialogActions>
                     <Button
                         variant="contained"
-                        onClick={() => this.props.onClose(undefined, undefined, 'bridges')}
+                        onClick={() => {
+                            if (
+                                !!this.state.login &&
+                                (!this.state.password || this.state.password !== this.state.passwordRepeat)
+                            ) {
+                                this.setState({ notSavedConfirm: 'bridges' });
+                            } else {
+                                this.props.onClose(this.state.login, this.state.password, 'bridges');
+                            }
+                        }}
                     >
                         {I18n.t('Connect Matter devices with ioBroker')}
                     </Button>
                     <Button
                         variant="contained"
-                        onClick={() => this.props.onClose(undefined, undefined, 'controller')}
+                        onClick={() => {
+                            if (
+                                !!this.state.login &&
+                                (!this.state.password || this.state.password !== this.state.passwordRepeat)
+                            ) {
+                                this.setState({ notSavedConfirm: 'controller' });
+                            } else {
+                                this.props.onClose(this.state.login, this.state.password, 'controller');
+                            }
+                        }}
                     >
                         {I18n.t('Expose ioBroker devices as Matter bridge')}
                     </Button>
                     <Button
                         variant="contained"
                         color="grey"
-                        onClick={() => this.props.onClose()}
-                        startIcon={<Close />}
+                        onClick={() => {
+                            if (
+                                !!this.state.login &&
+                                (!this.state.password || this.state.password !== this.state.passwordRepeat)
+                            ) {
+                                this.setState({ notSavedConfirm: 'close' });
+                            } else {
+                                this.props.onClose();
+                            }
+                        }}
+                        startIcon={
+                            this.state.login &&
+                            this.state.password &&
+                            this.state.password === this.state.passwordRepeat ? (
+                                <Check />
+                            ) : (
+                                <Close />
+                            )
+                        }
                     >
-                        {I18n.t('Close')}
+                        {this.state.login && this.state.password && this.state.password === this.state.passwordRepeat
+                            ? I18n.t('Apply')
+                            : I18n.t('Close')}
                     </Button>
                 </DialogActions>
             </Dialog>

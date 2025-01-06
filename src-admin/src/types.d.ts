@@ -7,6 +7,7 @@ export interface MatterAdapterConfig extends ioBroker.AdapterConfig {
     pass: string;
     /** UUID of the default (alexa-compatible - port 5540)bridge */
     defaultBridge: string;
+    controllerFabricLabel: string;
 }
 
 export interface BridgeDeviceDescription {

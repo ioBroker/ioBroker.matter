@@ -109,6 +109,7 @@
     "Pairing Info Text": "Rilevamento dei dispositivi nella tua rete IP. \nAssicurati che l'host ioBroker possa inviare e ricevere liberamente messaggi UDP nella rete e nella rete dei dispositivi da rilevare. \nSe necessario, ripristina i dispositivi alle impostazioni di fabbrica o spegnili e spegnili.",
     "Pairing Info Text BLE": "Rilevamento dei dispositivi nella tua rete IP e tramite BLE. \nAssicurati che l'host ioBroker possa inviare e ricevere liberamente messaggi UDP nella rete e nella rete dei dispositivi da rilevare. \nSe necessario, ripristina i dispositivi alle impostazioni di fabbrica o spegnili e spegnili.",
     "Password repeat": "Ripetizione password",
+    "Password repeat is not equal to password": "La ripetizione della password non è uguale alla password",
     "Please DO NOT use the QR code / pairing code that is printed on the Matter device.": "Si prega di NON utilizzare il codice QR/codice di associazione stampato sul dispositivo Matter.",
     "Please confirm": "Per favore conferma",
     "Please scan this QR-Code with the App of the ecosystem you want to pair it to or use the below printed setup code.": "Scansiona questo codice QR con l'app dell'ecosistema a cui desideri associarlo o utilizza il codice di configurazione stampato di seguito.",

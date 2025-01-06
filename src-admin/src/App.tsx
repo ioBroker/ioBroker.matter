@@ -25,6 +25,8 @@ import {
     type GenericAppProps,
     type GenericAppState,
     type IobTheme,
+    SaveCloseButtons,
+    DialogConfirm,
 } from '@iobroker/adapter-react-v5';
 import { clone, getText } from './Utils';
 
@@ -505,6 +507,9 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 instance={this.instance}
                 matter={this.state.matter}
                 showToast={(text: string) => this.showToast(text)}
+                onError={(errorText: string): void => {
+                    this.setConfigurationError(errorText);
+                }}
             />
         );
     }
@@ -666,6 +671,47 @@ class App extends GenericApp<GenericAppProps, AppState> {
                     ) : null}
                 </DialogContent>
             </Dialog>
+        );
+    }
+
+    renderSaveCloseButtons(): React.JSX.Element | null {
+        if (!this.state.confirmClose && !this.state.bottomButtons) {
+            return null;
+        }
+
+        return (
+            <>
+                {this.state.bottomButtons ? (
+                    <SaveCloseButtons
+                        theme={this.state.theme}
+                        newReact={this.newReact}
+                        noTextOnButtons={
+                            this.state.width === 'xs' || this.state.width === 'sm' || this.state.width === 'md'
+                        }
+                        changed={this.state.changed}
+                        onSave={(isClose: boolean): Promise<void> => this.onSave(isClose)}
+                        onClose={() => {
+                            if (this.state.changed) {
+                                this.setState({ confirmClose: true });
+                            } else {
+                                GenericApp.onClose();
+                            }
+                        }}
+                        error={!!this.state.isConfigurationError}
+                    />
+                ) : null}
+                {this.state.confirmClose ? (
+                    <DialogConfirm
+                        title={I18n.t('ra_Please confirm')}
+                        text={I18n.t('ra_Some data are not stored. Discard?')}
+                        ok={I18n.t('ra_Discard')}
+                        cancel={I18n.t('ra_Cancel')}
+                        onClose={(isYes: boolean): void =>
+                            this.setState({ confirmClose: false }, () => isYes && GenericApp.onClose())
+                        }
+                    />
+                ) : null}
+            </>
         );
     }
 

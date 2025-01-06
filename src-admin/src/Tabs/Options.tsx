@@ -20,7 +20,7 @@ import {
     Typography,
 } from '@mui/material';
 
-import { Check, Close, LayersClear, AutoAwesome, Clear, VisibilityOff, Visibility } from '@mui/icons-material';
+import { Check, Close, LayersClear, AutoAwesome, Clear } from '@mui/icons-material';
 
 import { type AdminConnection, I18n, Logo } from '@iobroker/adapter-react-v5';
 
@@ -43,7 +43,7 @@ const styles: Record<string, React.CSSProperties> = {
         marginTop: 2,
         marginBottom: 1,
         width: '100%',
-        maxWidth: 500,
+        maxWidth: 250,
     },
     inputLong: {
         marginTop: 2,
@@ -79,6 +79,7 @@ interface OptionsProps {
     /** The current matter config */
     matter: MatterConfig;
     onShowWelcomeDialog: () => void;
+    onError: (errorText: string) => void;
 }
 
 interface OptionsState {
@@ -86,9 +87,9 @@ interface OptionsState {
     dialogLevel: number;
     iotLogin: string;
     iotPassword: string;
+    passwordRepeat: string;
     iotInstance: string;
     interfaces?: { value: string; address?: string; address6?: string }[];
-    passVisible?: boolean;
 }
 
 function cutIpV6(address: string, length?: number): string {
@@ -111,6 +112,7 @@ class Options extends Component<OptionsProps, OptionsState> {
             dialogLevel: 0,
             iotLogin: '',
             iotPassword: '',
+            passwordRepeat: this.props.native.pass,
             iotInstance: '',
         };
     }
@@ -261,7 +263,10 @@ class Options extends Component<OptionsProps, OptionsState> {
 
     render(): React.JSX.Element {
         const item = this.state.interfaces?.find(it => it.value === (this.props.native.interface || '_'));
-        const passwordError = Options.checkPassword(this.props.native.pass);
+        const passwordError =
+            this.props.native.pass !== this.state.passwordRepeat
+                ? I18n.t('Password repeat is not equal to password')
+                : Options.checkPassword(this.props.native.pass);
 
         const bridge = this.props.matter.bridges.find(bridge => bridge.uuid === this.props.native.defaultBridge) || {
             uuid: '_',
@@ -425,7 +430,7 @@ class Options extends Component<OptionsProps, OptionsState> {
                         )}
                     </InfoBox>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'baseline' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
                     <TextField
                         variant="standard"
                         label={I18n.t('ioBroker.pro Login')}
@@ -448,14 +453,14 @@ class Options extends Component<OptionsProps, OptionsState> {
                                 ) : null,
                             },
                         }}
-                        style={{ ...styles.input, marginRight: 16 }}
+                        style={styles.input}
                     />
                     <TextField
                         variant="standard"
                         label={I18n.t('ioBroker.pro Password')}
                         error={!!passwordError}
-                        autoComplete="current-password"
                         style={styles.input}
+                        autoComplete="current-password"
                         slotProps={{
                             htmlInput: {
                                 autocomplete: 'new-password',
@@ -464,29 +469,88 @@ class Options extends Component<OptionsProps, OptionsState> {
                                 endAdornment: this.props.native.pass ? (
                                     <IconButton
                                         size="small"
-                                        onClick={() => this.setState({ passVisible: !this.state.passVisible })}
+                                        onClick={() => {
+                                            void this.props.onChange('pass', '');
+                                            if (this.state.passwordRepeat !== '') {
+                                                this.props.onError(I18n.t('Password repeat is not equal to password'));
+                                            } else {
+                                                this.props.onError('');
+                                            }
+                                        }}
                                     >
-                                        {this.state.passVisible ? <VisibilityOff /> : <Visibility />}
+                                        <Clear />
                                     </IconButton>
                                 ) : null,
                             },
                         }}
                         value={this.props.native.pass}
-                        type={this.state.passVisible ? 'text' : 'password'}
+                        type="password"
                         helperText={passwordError || ''}
-                        onChange={e => this.props.onChange('pass', e.target.value)}
+                        onChange={e => {
+                            void this.props.onChange('pass', e.target.value);
+                            if (this.state.passwordRepeat !== e.target.value) {
+                                this.props.onError(I18n.t('Password repeat is not equal to password'));
+                            } else {
+                                this.props.onError('');
+                            }
+                        }}
                         margin="normal"
                     />
+                    <TextField
+                        variant="standard"
+                        label={I18n.t('Password repeat')}
+                        error={!!passwordError}
+                        autoComplete="current-password"
+                        style={styles.input}
+                        slotProps={{
+                            htmlInput: {
+                                autocomplete: 'new-password',
+                            },
+                            input: {
+                                endAdornment: this.state.passwordRepeat ? (
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => {
+                                            this.setState({ passwordRepeat: '' });
+                                            if (this.props.native.pass !== '') {
+                                                this.props.onError(I18n.t('Password repeat is not equal to password'));
+                                            } else {
+                                                this.props.onError('');
+                                            }
+                                        }}
+                                    >
+                                        <Clear />
+                                    </IconButton>
+                                ) : null,
+                            },
+                        }}
+                        value={this.state.passwordRepeat}
+                        type="password"
+                        helperText={passwordError || ''}
+                        onChange={e => {
+                            if (this.props.native.pass !== e.target.value) {
+                                this.props.onError(I18n.t('Password repeat is not equal to password'));
+                            } else {
+                                this.props.onError('');
+                            }
+                            this.setState({ passwordRepeat: e.target.value });
+                        }}
+                        margin="normal"
+                    />
+                </div>
+                <div>
                     {this.state.iotInstance &&
                     (this.state.iotPassword !== this.props.native.pass ||
+                        this.state.iotPassword !== this.state.passwordRepeat ||
                         this.state.iotLogin !== this.props.native.login) ? (
                         <Button
-                            style={{ marginLeft: 16 }}
                             variant="contained"
                             color="primary"
                             onClick={async () => {
-                                await this.props.onChange('login', this.state.iotLogin);
-                                await this.props.onChange('pass', this.state.iotPassword);
+                                void this.props.onChange('login', this.state.iotLogin);
+                                void this.props.onChange('pass', this.state.iotPassword);
+                                this.props.onError('');
+                                this.setState({ passwordRepeat: this.state.iotPassword });
                             }}
                         >
                             {I18n.t('Sync credentials with %s', this.state.iotInstance.replace('system.adapter.', ''))}

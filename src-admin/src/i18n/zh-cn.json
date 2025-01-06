@@ -109,6 +109,7 @@
     "Pairing Info Text": "在您的 IP 网络中发现设备。\n请确保 ioBroker 主机可以在网络和要发现的设备的网络中自由发送和接收 UDP 消息。\n如果需要，请将设备重置为出厂设置或关闭电源循环。",
     "Pairing Info Text BLE": "在您的 IP 网络中和通过 BLE 发现设备。\n请确保 ioBroker 主机可以在网络和要发现的设备的网络中自由发送和接收 UDP 消息。\n如果需要，请将设备重置为出厂设置或关闭电源循环。",
     "Password repeat": "密码重复",
+    "Password repeat is not equal to password": "密码重复不等于密码",
     "Please DO NOT use the QR code / pairing code that is printed on the Matter device.": "请不要使用印刷在 Matter 设备上的二维码/配对码。",
     "Please confirm": "请确认",
     "Please scan this QR-Code with the App of the ecosystem you want to pair it to or use the below printed setup code.": "请使用您想要配对的生态系统的应用程序扫描此二维码，或使用下面打印的设置代码。",

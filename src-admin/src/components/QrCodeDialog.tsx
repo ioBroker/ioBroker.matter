@@ -2,8 +2,8 @@ import React, { Component } from 'react';
 
 import { Scanner } from '@yudiel/react-qr-scanner';
 
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from '@mui/material';
-import { Add, Close, QrCode } from '@mui/icons-material';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField } from '@mui/material';
+import { Add, Clear, Close, QrCode } from '@mui/icons-material';
 
 import { I18n, type ThemeType } from '@iobroker/adapter-react-v5';
 
@@ -71,10 +71,14 @@ export default class QrCodeDialog extends Component<QrCodeDialogProps, QrCodeDia
     }
 
     render(): React.JSX.Element {
+        const qrCodeError = !!this.state.qrCode && !this.state.qrCode.startsWith('MT:');
+        const manualCodeError =
+            !!this.state.manualCode && this.state.manualCode.length !== 11 && this.state.manualCode.length !== 21;
+
         return (
             <Dialog
                 open={!0}
-                onClose={() => this.props.onClose(this.state.manualCode)}
+                onClose={() => this.props.onClose()}
                 maxWidth="lg"
                 fullWidth
             >
@@ -94,15 +98,33 @@ export default class QrCodeDialog extends Component<QrCodeDialogProps, QrCodeDia
                             )}
                         </div>
                     </InfoBox>
-                    <TextField
-                        variant="standard"
-                        label={I18n.t('Manual pairing code')}
-                        fullWidth
-                        style={{ maxWidth: 400 }}
-                        value={this.state.manualCode}
-                        onChange={e => this.setState({ manualCode: e.target.value })}
-                    />
-                    {!this.state.hideQrCode ? (
+                    {this.state.qrCode ? (
+                        <TextField
+                            variant="standard"
+                            label={I18n.t('Manual pairing code')}
+                            fullWidth
+                            style={{ maxWidth: 400 }}
+                            value={this.state.manualCode}
+                            onChange={e => this.setState({ manualCode: e.target.value })}
+                            slotProps={{
+                                input: {
+                                    endAdornment: this.state.manualCode ? (
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => this.setState({ manualCode: '' })}
+                                        >
+                                            <Clear />
+                                        </IconButton>
+                                    ) : null,
+                                },
+                            }}
+                            error={manualCodeError}
+                            helperText={
+                                manualCodeError ? I18n.t('Length of manual code must be 11 or 21 characters') : ''
+                            }
+                        />
+                    ) : null}
+                    {!this.state.manualCode && !this.state.hideQrCode ? (
                         <div
                             style={{
                                 width: '100%',
@@ -136,7 +158,7 @@ export default class QrCodeDialog extends Component<QrCodeDialogProps, QrCodeDia
                             </div>
                         </div>
                     ) : null}
-                    {this.state.hideQrCode && !this.state.qrCode ? null : (
+                    {this.state.manualCode || (this.state.hideQrCode && !this.state.qrCode) ? null : (
                         <div style={{ width: '100%', marginTop: this.state.hideQrCode ? 20 : 10 }}>
                             <TextField
                                 variant="standard"
@@ -149,12 +171,14 @@ export default class QrCodeDialog extends Component<QrCodeDialogProps, QrCodeDia
                                 fullWidth
                                 style={{ maxWidth: 400 }}
                                 value={this.state.qrCode || ''}
-                                error={!!this.state.qrError && !this.state.hideQrCode}
-                                helperText={this.state.qrError && !this.state.hideQrCode}
+                                error={!!this.state.qrError || qrCodeError}
+                                helperText={
+                                    this.state.qrError || (qrCodeError ? I18n.t('Code must start with "MT:"') : '')
+                                }
                             />
                         </div>
                     )}
-                    {this.state.hideQrCode && !this.state.qrCode ? (
+                    {!this.state.manualCode && this.state.hideQrCode && !this.state.qrCode ? (
                         <div
                             style={{
                                 width: '100%',
@@ -167,7 +191,7 @@ export default class QrCodeDialog extends Component<QrCodeDialogProps, QrCodeDia
                             <div>{this.state.qrError}</div>
                         </div>
                     ) : null}
-                    {this.state.hideQrCode && !this.state.iframe ? (
+                    {!this.state.manualCode && this.state.hideQrCode && !this.state.iframe ? (
                         <Button
                             style={{ marginTop: 16 }}
                             variant="contained"
@@ -193,7 +217,7 @@ export default class QrCodeDialog extends Component<QrCodeDialogProps, QrCodeDia
                 <DialogActions>
                     <Button
                         variant="contained"
-                        disabled={!this.state.qrCode && !this.state.manualCode}
+                        disabled={(!this.state.qrCode && !this.state.manualCode) || qrCodeError || manualCodeError}
                         color="primary"
                         onClick={(): void => this.props.onClose(this.state.manualCode, this.state.qrCode)}
                         startIcon={<Add />}

@@ -312,6 +312,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 common={this.common}
                 instance={this.instance}
                 socket={this.socket}
+                themeType={this.state.themeType}
                 onClose={async (
                     login?: string,
                     password?: string,

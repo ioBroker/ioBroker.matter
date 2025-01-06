@@ -1,12 +1,12 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { Info, Warning, Close, Visibility, type SvgIconComponent } from '@mui/icons-material';
+import { Info, Warning, Close, Visibility, type SvgIconComponent, Check } from '@mui/icons-material';
 
 interface InfoBoxProps {
     /** Text to display in the info box */
     children: string | (string | React.JSX.Element | null)[] | React.JSX.Element;
     /** The type determines the color and symbol */
-    type: 'warning' | 'info' | 'error';
+    type: 'warning' | 'info' | 'error' | 'ok';
     /** If the Box is closeable */
     closeable?: boolean;
     /** Use together with `closeable: true`. You can specify in which variable in local storage the state of this info box could be stored */
@@ -17,7 +17,7 @@ interface InfoBoxProps {
     style?: React.CSSProperties;
     /** Icon position */
     iconPosition?: 'top' | 'middle';
-    /** Use together with `closeable: true`. If the box is closed or not. In this case it will be controlled from outside */
+    /** Use together with `closeable: true`. If the box is closed or not. In this case, it will be controlled from outside */
     closed?: boolean;
 }
 
@@ -114,9 +114,18 @@ export default class InfoBox extends React.Component<InfoBoxProps, InfoBoxState>
                     position: 'relative',
                     ...this.props.style,
                 }}
-                sx={{ borderColor: theme => theme.palette[this.props.type].main }}
+                sx={{
+                    borderColor: theme =>
+                        this.props.type === 'ok' ? theme.palette.info.main : theme.palette[this.props.type].main,
+                }}
             >
-                {this.props.type === 'info' ? <Info color={'primary'} /> : <Warning color={this.props.type} />}
+                {this.props.type === 'ok' ? (
+                    <Check style={{ color: '#0F0' }} />
+                ) : this.props.type === 'info' ? (
+                    <Info color="primary" />
+                ) : (
+                    <Warning color={this.props.type} />
+                )}
                 <Typography ref={this.refTypo}>{this.props.children}</Typography>
                 {this.props.closeable ? (
                     <Icon
@@ -137,9 +146,12 @@ export default class InfoBox extends React.Component<InfoBoxProps, InfoBoxState>
                     <Box
                         // This is a shadow box at the bottom of the InfoBox when it closed
                         component="div"
-                        sx={theme => ({
-                            background: `linear-gradient(${theme.palette[this.props.type].main}00 0%, ${theme.palette[this.props.type].main}10 60%, ${theme.palette[this.props.type].main}90 100%)`,
-                        })}
+                        sx={theme => {
+                            const color = theme.palette[this.props.type === 'ok' ? 'info' : this.props.type].main;
+                            return {
+                                background: `linear-gradient(${color}00 0%, ${color}10 60%, ${color}90 100%)`,
+                            };
+                        }}
                         style={{
                             bottom: 0,
                             position: 'absolute',

@@ -622,16 +622,18 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     </Table>
                 </DialogContent>
                 <DialogActions>
-                    <Button
-                        disabled={!this.state.discoveryRunning}
-                        variant="contained"
-                        onClick={async () => {
-                            await this.stopDiscovery();
-                        }}
-                        startIcon={<SearchOff />}
-                    >
-                        {I18n.t('Stop')}
-                    </Button>
+                    {!this.state.discoveryDone ? (
+                        <Button
+                            disabled={!this.state.discoveryRunning}
+                            variant="contained"
+                            onClick={async () => {
+                                await this.stopDiscovery();
+                            }}
+                            startIcon={<SearchOff />}
+                        >
+                            {I18n.t('Stop')}
+                        </Button>
+                    ) : null}
                     <Button
                         disabled={this.state.discoveryRunning}
                         variant="contained"
@@ -652,7 +654,9 @@ class Controller extends Component<ComponentProps, ComponentState> {
     async stopDiscovery(): Promise<void> {
         console.log('Stop discovery');
         await this.props.socket.sendTo(`matter.${this.props.instance}`, 'controllerDiscoveryStop', {});
-        this.setState({ discoveryDone: false });
+        if (!this.state.discovered.length) {
+            this.setState({ discoveryDone: false });
+        }
     }
 
     /**

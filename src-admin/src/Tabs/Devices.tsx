@@ -3,7 +3,7 @@ import React from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
 import { IconButton } from '@foxriver76/iob-component-lib';
-import { Add, AutoMode, Close, Delete, DeviceHub, FormatListBulleted, Save } from '@mui/icons-material';
+import { Add, AutoMode, Close, Delete, DeviceHub, FormatListBulleted } from '@mui/icons-material';
 import {
     Button,
     Checkbox,
@@ -37,6 +37,7 @@ import BridgesAndDevices, {
     type BridgesAndDevicesState,
     STYLES,
 } from './BridgesAndDevices';
+import DeviceEditDialog, { type DeviceData } from '../components/DeviceEditDialog';
 
 const styles: Record<string, React.CSSProperties> = {
     ...STYLES,
@@ -98,24 +99,9 @@ interface DevicesState extends BridgesAndDevicesState {
     } | null;
     editDeviceDialog: {
         type: 'device';
-        originalDeviceType: Types | '';
-        deviceType: Types | '';
         deviceIndex: number;
-        name: string;
-        originalName: string;
+        data: DeviceData;
         auto: boolean;
-        vendorID: string;
-        productID: string;
-        originalVendorID: string;
-        originalProductID: string;
-        originalNoComposed: boolean;
-        noComposed: boolean;
-        dimmerOnLevel: number;
-        originalDimmerOnLevel: number;
-        dimmerUseLastLevelForOn: boolean;
-        originalDimmerUseLastLevelForOn: boolean;
-        actionAllowedByIdentify: boolean;
-        originalActionAllowedByIdentify: boolean;
         hasOnState: boolean;
     } | null;
     deleteDialog: {
@@ -217,280 +203,46 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
             return null;
         }
 
-        const isCommissioned =
-            this.props.commissioning[this.props.matter.devices[this.state.editDeviceDialog.deviceIndex].uuid];
-
-        const save = (): void => {
-            if (!this.state.editDeviceDialog) {
-                return;
-            }
-            const matter = clone(this.props.matter);
-            const device: DeviceDescription = matter.devices[this.state.editDeviceDialog.deviceIndex];
-            device.name = this.state.editDeviceDialog.name;
-            device.productID = this.state.editDeviceDialog.productID;
-            device.vendorID = this.state.editDeviceDialog.vendorID;
-            device.noComposed = this.state.editDeviceDialog.noComposed;
-            if (!device.auto) {
-                device.type = this.state.editDeviceDialog.deviceType as Types;
-            }
-
-            delete device.dimmerUseLastLevelForOn;
-            delete device.dimmerOnLevel;
-            device.actionAllowedByIdentify = this.state.editDeviceDialog.actionAllowedByIdentify;
-
-            if (device.type === 'dimmer') {
-                if (!device.hasOnState) {
-                    device.dimmerUseLastLevelForOn = this.state.editDeviceDialog.dimmerUseLastLevelForOn;
-                    if (!device.dimmerUseLastLevelForOn) {
-                        device.dimmerOnLevel = this.state.editDeviceDialog.dimmerOnLevel;
-                    }
-                }
-            }
-
-            this.setState({ editDeviceDialog: null }, () => this.props.updateConfig(matter));
-        };
-
-        const isDisabled =
-            (this.state.editDeviceDialog.name === this.state.editDeviceDialog.originalName &&
-                this.state.editDeviceDialog?.vendorID === this.state.editDeviceDialog?.originalVendorID &&
-                this.state.editDeviceDialog?.productID === this.state.editDeviceDialog?.originalProductID &&
-                this.state.editDeviceDialog.deviceType === this.state.editDeviceDialog.originalDeviceType &&
-                this.state.editDeviceDialog.dimmerOnLevel === this.state.editDeviceDialog.originalDimmerOnLevel &&
-                this.state.editDeviceDialog.dimmerUseLastLevelForOn ===
-                    this.state.editDeviceDialog.originalDimmerUseLastLevelForOn &&
-                this.state.editDeviceDialog.actionAllowedByIdentify ===
-                    this.state.editDeviceDialog.originalActionAllowedByIdentify &&
-                this.state.editDeviceDialog.noComposed === this.state.editDeviceDialog.originalNoComposed) ||
-            (!this.state.editDeviceDialog.dimmerUseLastLevelForOn && !this.state.editDeviceDialog.dimmerOnLevel) ||
-            !this.state.editDeviceDialog.deviceType;
-
         return (
-            <Dialog
-                onClose={() => this.setState({ editDeviceDialog: null })}
-                open={!0}
-            >
-                <DialogTitle>{`${I18n.t('Edit device')} ${this.state.editDeviceDialog?.originalName}`}</DialogTitle>
-                <DialogContent>
-                    <TextField
-                        label={I18n.t('Name')}
-                        disabled={isCommissioned}
-                        value={this.state.editDeviceDialog.name}
-                        onChange={e => {
-                            if (!this.state.editDeviceDialog) {
-                                return;
-                            }
-
-                            const editDeviceDialog = clone(this.state.editDeviceDialog);
-                            editDeviceDialog.name = e.target.value;
-                            this.setState({ editDeviceDialog });
-                        }}
-                        onKeyUp={e => e.key === 'Enter' && !isDisabled && save()}
-                        variant="standard"
-                        fullWidth
-                    />
-                    <TextField
-                        select
-                        disabled={isCommissioned}
-                        style={{ width: 'calc(50% - 8px)', marginRight: 16, marginTop: 16 }}
-                        value={this.state.editDeviceDialog.vendorID}
-                        onChange={e => {
-                            if (!this.state.editDeviceDialog) {
-                                return;
-                            }
-
-                            const editDeviceDialog = clone(this.state.editDeviceDialog);
-                            editDeviceDialog.vendorID = e.target.value;
-                            this.setState({ editDeviceDialog });
-                        }}
-                        label={I18n.t('Vendor ID')}
-                        variant="standard"
-                    >
-                        {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorID => (
-                            <MenuItem
-                                key={vendorID}
-                                value={vendorID}
-                            >
-                                {vendorID}
-                            </MenuItem>
-                        ))}
-                    </TextField>
-                    <TextField
-                        select
-                        disabled={isCommissioned}
-                        style={{ width: 'calc(50% - 8px)', marginTop: 16 }}
-                        value={this.state.editDeviceDialog.productID}
-                        onChange={e => {
-                            if (!this.state.editDeviceDialog) {
-                                return;
-                            }
-
-                            const editDeviceDialog = clone(this.state.editDeviceDialog);
-                            editDeviceDialog.productID = e.target.value;
-                            this.setState({ editDeviceDialog });
-                        }}
-                        label={I18n.t('Product ID')}
-                        variant="standard"
-                    >
-                        {this.props.productIDs.map(productID => (
-                            <MenuItem
-                                key={productID}
-                                value={productID}
-                            >
-                                {productID}
-                            </MenuItem>
-                        ))}
-                    </TextField>
-                    <FormControlLabel
-                        control={
-                            <Checkbox
-                                checked={this.state.editDeviceDialog.noComposed}
-                                disabled={isCommissioned}
-                                onChange={e => {
-                                    if (!this.state.editDeviceDialog) {
-                                        return;
-                                    }
-
-                                    const editDeviceDialog = clone(this.state.editDeviceDialog);
-                                    editDeviceDialog.noComposed = e.target.checked;
-                                    this.setState({ editDeviceDialog });
-                                }}
-                            />
+            <DeviceEditDialog
+                isCommissioned={
+                    this.props.commissioning[this.props.matter.devices[this.state.editDeviceDialog.deviceIndex].uuid]
+                }
+                productIDs={this.props.productIDs}
+                auto={this.state.editDeviceDialog.auto}
+                hasOnState={this.state.editDeviceDialog.hasOnState}
+                data={this.state.editDeviceDialog.data}
+                onClose={(data?: DeviceData): void => {
+                    if (!data) {
+                        this.setState({ editDeviceDialog: null });
+                    } else if (this.state.editDeviceDialog) {
+                        const matter = clone(this.props.matter);
+                        const device: DeviceDescription = matter.devices[this.state.editDeviceDialog.deviceIndex];
+                        device.name = data.name;
+                        device.productID = data.productID;
+                        device.vendorID = data.vendorID;
+                        device.noComposed = data.noComposed;
+                        if (!device.auto) {
+                            device.type = data.deviceType as Types;
                         }
-                        label={
-                            <span style={{ fontSize: 'smaller' }}>
-                                {I18n.t('Do not compose devices (Alexa does not support composed devices yet)')}
-                            </span>
-                        }
-                    />
-                    <FormControl style={{ width: '100%', marginTop: 30 }}>
-                        <InputLabel>{I18n.t('Device type')}</InputLabel>
-                        <Select
-                            variant="standard"
-                            disabled={isCommissioned || this.state.editDeviceDialog.auto}
-                            value={this.state.editDeviceDialog.deviceType}
-                            onChange={e => {
-                                if (!this.state.editDeviceDialog) {
-                                    return;
+
+                        delete device.dimmerUseLastLevelForOn;
+                        delete device.dimmerOnLevel;
+                        device.actionAllowedByIdentify = data.actionAllowedByIdentify;
+
+                        if (device.type === 'dimmer') {
+                            if (!device.hasOnState) {
+                                device.dimmerUseLastLevelForOn = data.dimmerUseLastLevelForOn;
+                                if (!device.dimmerUseLastLevelForOn) {
+                                    device.dimmerOnLevel = data.dimmerOnLevel;
                                 }
-
-                                const editDeviceDialog = clone(this.state.editDeviceDialog);
-                                editDeviceDialog.deviceType = e.target.value as Types;
-                                this.setState({ editDeviceDialog });
-                            }}
-                            renderValue={value => (
-                                <span>
-                                    <IconDeviceType src={value} />
-                                    {I18n.t(value)}
-                                </span>
-                            )}
-                        >
-                            {Object.keys(Types)
-                                .filter(key => SUPPORTED_DEVICES.includes(key as Types))
-                                .map(type => (
-                                    <MenuItem
-                                        key={type}
-                                        value={type}
-                                    >
-                                        <IconDeviceType src={type} />
-                                        {I18n.t(type)}
-                                    </MenuItem>
-                                ))}
-                        </Select>
-                    </FormControl>
-                    <FormControlLabel
-                        style={{ width: '100%', marginTop: 30 }}
-                        label={I18n.t('Allow action by identify')}
-                        control={
-                            <Checkbox
-                                checked={this.state.editDeviceDialog.actionAllowedByIdentify}
-                                onChange={e => {
-                                    if (!this.state.editDeviceDialog) {
-                                        return;
-                                    }
-
-                                    const editDeviceDialog = clone(this.state.editDeviceDialog);
-                                    editDeviceDialog.actionAllowedByIdentify = e.target.checked;
-                                    this.setState({ editDeviceDialog });
-                                }}
-                            />
-                        }
-                    />
-                    {this.state.editDeviceDialog.deviceType === 'dimmer' && !this.state.editDeviceDialog.hasOnState ? (
-                        <FormControlLabel
-                            style={{ marginTop: 20 }}
-                            label={I18n.t('Use last value for ON')}
-                            control={
-                                <Checkbox
-                                    checked={this.state.editDeviceDialog.dimmerUseLastLevelForOn}
-                                    onChange={e => {
-                                        if (!this.state.editDeviceDialog) {
-                                            return;
-                                        }
-
-                                        const editDeviceDialog = clone(this.state.editDeviceDialog);
-                                        editDeviceDialog.dimmerUseLastLevelForOn = e.target.checked;
-                                        this.setState({ editDeviceDialog });
-                                    }}
-                                />
                             }
-                        />
-                    ) : null}
-                    {this.state.editDeviceDialog.deviceType === 'dimmer' &&
-                    !this.state.editDeviceDialog.hasOnState &&
-                    !this.state.editDeviceDialog.dimmerUseLastLevelForOn ? (
-                        <FormControl style={{ width: '100%', marginTop: 30 }}>
-                            <InputLabel>{I18n.t('Brightness by ON')}</InputLabel>
-                            <Select
-                                variant="standard"
-                                error={!this.state.editDeviceDialog.dimmerOnLevel}
-                                value={this.state.editDeviceDialog.dimmerOnLevel}
-                                onChange={e => {
-                                    if (!this.state.editDeviceDialog) {
-                                        return;
-                                    }
+                        }
 
-                                    const editDeviceDialog = clone(this.state.editDeviceDialog);
-
-                                    editDeviceDialog.dimmerOnLevel = e.target.value as number;
-                                    this.setState({ editDeviceDialog });
-                                }}
-                                renderValue={value => `${value}%`}
-                            >
-                                {[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(type => (
-                                    <MenuItem
-                                        key={type}
-                                        value={type}
-                                    >
-                                        {`${type}%`}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                    ) : null}
-                    {isCommissioned
-                        ? I18n.t('Device is already commissioned. You cannot change the name or the vendor/product ID.')
-                        : null}
-                </DialogContent>
-                <DialogActions>
-                    <Button
-                        onClick={() => save()}
-                        startIcon={<Save />}
-                        disabled={isDisabled}
-                        color="primary"
-                        variant="contained"
-                    >
-                        {I18n.t('Apply')}
-                    </Button>
-                    <Button
-                        onClick={() => this.setState({ editDeviceDialog: null })}
-                        startIcon={<Close />}
-                        color="grey"
-                        variant="contained"
-                    >
-                        {I18n.t('Cancel')}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+                        this.setState({ editDeviceDialog: null }, () => this.props.updateConfig(matter));
+                    }
+                }}
+            />
         );
     }
 
@@ -987,24 +739,18 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 this.setState({
                                     editDeviceDialog: {
                                         type: 'device',
-                                        name: getText(device.name),
-                                        originalName: getText(device.name),
+                                        data: {
+                                            name: getText(device.name),
+                                            deviceType: device.type,
+                                            vendorID: device.vendorID || '',
+                                            productID: device.productID || '',
+                                            noComposed: !!device.noComposed,
+                                            dimmerOnLevel: Number(device.dimmerOnLevel) || 0,
+                                            dimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
+                                            actionAllowedByIdentify: !!device.actionAllowedByIdentify,
+                                        },
                                         deviceIndex: index,
                                         auto: !!device.auto,
-                                        deviceType: device.type,
-                                        originalDeviceType: device.type,
-                                        vendorID: device.vendorID || '',
-                                        productID: device.productID || '',
-                                        originalVendorID: device.vendorID || '',
-                                        originalProductID: device.productID || '',
-                                        originalNoComposed: !!device.noComposed,
-                                        noComposed: !!device.noComposed,
-                                        dimmerOnLevel: Number(device.dimmerOnLevel) || 0,
-                                        originalDimmerOnLevel: Number(device.dimmerOnLevel) || 0,
-                                        dimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
-                                        originalDimmerUseLastLevelForOn: !!device.dimmerUseLastLevelForOn,
-                                        actionAllowedByIdentify: !!device.actionAllowedByIdentify,
-                                        originalActionAllowedByIdentify: !!device.actionAllowedByIdentify,
                                         hasOnState: !!device.hasOnState,
                                     },
                                 });

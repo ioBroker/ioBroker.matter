@@ -17,6 +17,7 @@
     "All information of this device or bridge will be deleted and you must reconnect (with PIN or QR code) again.": "Alle gegevens van dit apparaat of deze brug worden verwijderd en u moet opnieuw verbinding maken (met pincode of QR-code).",
     "All interfaces": "Alle interfaces",
     "All state information of matter controller and devices will be deleted. You cannot undo it.": "De controller en alle apparaten en bruggen worden teruggezet naar de fabrieksinstellingen. \nHierdoor worden de koppelings- en huidige waarden voor alle apparaten, bruggen en ook gekoppelde apparaten in de controller verwijderd. Je kunt het niet ongedaan maken.\nDe algemene configuratie van de controller en de toegewezen ioBroker-statussen voor de bruggen en apparaten blijven ongewijzigd.",
+    "Allow action by identify": "Actie toestaan door identificatie",
     "Announcement will stop automatically after 15 minutes": "De aankondiging stopt automatisch na 15 minuten",
     "Apply": "Toepassen",
     "Are you sure?": "Weet je het zeker?",

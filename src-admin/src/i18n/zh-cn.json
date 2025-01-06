@@ -17,6 +17,7 @@
     "All information of this device or bridge will be deleted and you must reconnect (with PIN or QR code) again.": "此设备或网桥的所有信息将被删除，您必须重新连接（使用 PIN 或二维码）。",
     "All interfaces": "所有接口",
     "All state information of matter controller and devices will be deleted. You cannot undo it.": "控制器和所有设备和桥接器将恢复为出厂默认设置。\n这将删除控制器中所有设备、桥接器和配对设备的配对和当前值。您无法撤消此操作。\n控制器的一般配置以及桥接器和设备的指定 ioBroker 状态将保持不变。",
+    "Allow action by identify": "通过识别允许操作",
     "Announcement will stop automatically after 15 minutes": "15分钟后播报自动停止",
     "Apply": "申请",
     "Are you sure?": "你确定吗？",

@@ -17,6 +17,7 @@
     "All information of this device or bridge will be deleted and you must reconnect (with PIN or QR code) again.": "Alle Informationen dieses Geräts oder dieser Bridge werden gelöscht und Sie müssen die Verbindung (mit PIN oder QR-Code) erneut herstellen.",
     "All interfaces": "Alle Schnittstellen",
     "All state information of matter controller and devices will be deleted. You cannot undo it.": "Der Controller und alle Geräte und Bridges werden auf die Werkseinstellungen zurückgesetzt. \nDadurch werden die Pairing- und aktuellen Werte für alle Geräte, Bridges und auch gepaarten Geräte im Controller gelöscht. Sie können dies nicht rückgängig machen.\nDie allgemeine Konfiguration des Controllers und die zugewiesenen ioBroker-Zustände für die Bridges und Geräte bleiben unverändert.",
+    "Allow action by identify": "Aktion durch Identifizierung zulassen",
     "Announcement will stop automatically after 15 minutes": "Pairingmodus wird nach 15 Minuten automatisch beendet",
     "Apply": "Anwenden",
     "Are you sure?": "Bist du sicher?",

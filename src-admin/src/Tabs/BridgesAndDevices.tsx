@@ -33,6 +33,7 @@ import {
     DialogTitle,
     IconButton,
     InputAdornment,
+    LinearProgress,
     Table,
     TableBody,
     TableCell,
@@ -54,6 +55,7 @@ import type {
     MatterConfig,
     NodeStateResponse,
     NodeStates,
+    Processing,
 } from '../types';
 import { formatPairingCode, getTranslation } from '../Utils';
 import type { ActionButton, BackEndCommandJsonFormOptions, JsonFormSchema } from '@iobroker/dm-utils';
@@ -85,6 +87,7 @@ export interface BridgesAndDevicesProps {
     themeName: ThemeName;
     updateConfig: (config: MatterConfig) => void;
     updateNodeStates: (states: { [uuid: string]: NodeStateResponse }) => void;
+    inProcessing: Processing;
 }
 
 export interface BridgesAndDevicesState {
@@ -510,6 +513,41 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
             >
                 {getTranslation(button?.label || 'okButtonText', button?.noTranslation)}
             </Button>
+        );
+    }
+
+    getInProcessing(uuid: string): false | 'inQueue' | 'processing' {
+        if (!this.props.inProcessing) {
+            return false;
+        }
+        const uuidWithPoint = `.${uuid}`;
+        const item = this.props.inProcessing.find(it => it.id.endsWith(uuidWithPoint));
+        if (item) {
+            return item.inProgress ? 'processing' : 'inQueue';
+        }
+        return false;
+    }
+
+    // eslint-disable-next-line react/no-unused-class-component-methods
+    renderProcessOverlay(uuid: string): React.JSX.Element | null {
+        const processing = this.getInProcessing(uuid);
+        if (!processing) {
+            return null;
+        }
+        return (
+            <div
+                style={{
+                    zIndex: 1,
+                    position: 'absolute',
+                    top: 0,
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    backgroundImage: `repeating-linear-gradient(325deg, ${this.props.themeType === 'dark' ? '#00000080' : '#FFFFFF80'}, ${this.props.themeType === 'dark' ? '#00000080' : '#FFFFFF80'} 20px, #00000000 20px, #00000000 40px)`,
+                }}
+            >
+                {processing === 'processing' ? <LinearProgress /> : null}
+            </div>
         );
     }
 

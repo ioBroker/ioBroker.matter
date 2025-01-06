@@ -44,6 +44,7 @@ import type {
     MatterAdapterConfig,
     MatterConfig,
     NodeStateResponse,
+    Processing,
 } from './types';
 
 import enLang from './i18n/en.json';
@@ -94,6 +95,8 @@ interface AppState extends GenericAppState {
     matter: MatterConfig;
     commissioning: CommissioningInfo | null;
     nodeStates: { [uuid: string]: NodeStateResponse };
+    /** Information about nodes being processed */
+    inProcessing: Processing;
     /** Undefined if no detection ran yet */
     detectedDevices?: DetectedRoom[];
     ready: boolean;
@@ -171,6 +174,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             progress: null,
             showWelcomeDialog: false,
             welcomeDialogShowed: false,
+            inProcessing: null,
         });
 
         this.alert = window.alert;
@@ -343,7 +347,9 @@ class App extends GenericApp<GenericAppProps, AppState> {
             return;
         }
 
-        if (update.command === 'progress') {
+        if (update.command === 'processing') {
+            this.setState({ inProcessing: update.processing || null });
+        } else if (update.command === 'progress') {
             if (update.progress) {
                 if (update.progress.close) {
                     if (this.state.progress) {
@@ -528,6 +534,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                     this.setState({ nodeStates: _nodeStates });
                 }}
                 nodeStates={this.state.nodeStates}
+                inProcessing={this.state.inProcessing}
                 themeName={this.state.themeName}
                 themeType={this.state.themeType}
                 theme={this.state.theme}
@@ -561,6 +568,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                     this.setState({ nodeStates: _nodeStates });
                 }}
                 nodeStates={this.state.nodeStates}
+                inProcessing={this.state.inProcessing}
                 commissioning={this.state.commissioning?.devices || {}}
                 socket={this.socket}
                 themeName={this.state.themeName}

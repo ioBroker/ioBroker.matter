@@ -15,6 +15,7 @@ import {
     FormControl,
     FormControlLabel,
     InputLabel,
+    LinearProgress,
     MenuItem,
     Select,
     Switch,
@@ -685,8 +686,9 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         return (
             <TableRow
                 key={index}
-                style={{ opacity: device.enabled ? 1 : 0.4 }}
+                style={{ opacity: device.enabled ? 1 : 0.4, position: 'relative' }}
             >
+                {this.renderProcessOverlay(device.uuid)}
                 <TableCell>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                         <span

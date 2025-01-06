@@ -546,7 +546,7 @@ class Options extends Component<OptionsProps, OptionsState> {
                         <Button
                             variant="contained"
                             color="primary"
-                            onClick={async () => {
+                            onClick={() => {
                                 void this.props.onChange('login', this.state.iotLogin);
                                 void this.props.onChange('pass', this.state.iotPassword);
                                 this.props.onError('');
@@ -569,6 +569,31 @@ class Options extends Component<OptionsProps, OptionsState> {
                             />
                         }
                         label={I18n.t('Enable enhanced debug logging for the Matter protocol')}
+                    />
+                </div>
+
+                <div style={{ marginTop: 50 }}>
+                    <Typography sx={styles.header}>{I18n.t('Controller Settings')}</Typography>
+                    <TextField
+                        variant="standard"
+                        label={I18n.t('Controller fabric label')}
+                        value={this.props.native.controllerFabricLabel}
+                        type="text"
+                        onChange={e => this.props.onChange('controllerFabricLabel', e.target.value)}
+                        margin="normal"
+                        slotProps={{
+                            input: {
+                                endAdornment: this.props.native.controllerFabricLabel ? (
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => this.props.onChange('controllerFabricLabel', '')}
+                                    >
+                                        <Clear />
+                                    </IconButton>
+                                ) : null,
+                            },
+                        }}
+                        style={styles.input}
                     />
                 </div>
 

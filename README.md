@@ -217,7 +217,6 @@ TBD
   * (0) Solar Power -> ???
   * (0) Battery Storage -> ???
   * (0) Heat Pump -> ???
- 
 
 <!--
 	Placeholder for the next version (at the beginning of the line):
@@ -225,6 +224,11 @@ TBD
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (@GermanBluefox) Fixed GUI errors
+* (@GermanBluefox) Added `Controller fabric label` to configuration
+* (@GermanBluefox) Solution for QR-Code scanning on non HTTPS pages
+
 ### 0.3.4 (2024-12-31)
 * (@Apollon77) Updates matter.js to address several issues
 * (@bluefox) Optimized UI

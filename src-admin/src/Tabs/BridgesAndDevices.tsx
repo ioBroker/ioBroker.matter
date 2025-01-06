@@ -633,6 +633,10 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         if (!nodeState) {
             return null;
         }
+        const name: string =
+            typeof this.state.showQrCode.name === 'object'
+                ? this.state.showQrCode.name[I18n.getLanguage()] || this.state.showQrCode.name.en
+                : this.state.showQrCode.name;
 
         return (
             <Dialog
@@ -640,7 +644,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 open={!0}
                 maxWidth="md"
             >
-                <DialogTitle>{I18n.t('QR Code to connect')}</DialogTitle>
+                <DialogTitle>{I18n.t('QR Code to connect for %s', name)}</DialogTitle>
                 <DialogContent>
                     <InfoBox
                         type="info"

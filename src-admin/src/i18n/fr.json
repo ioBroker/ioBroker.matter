@@ -120,7 +120,7 @@
     "Provide your Thread or WiFi information or both!": "Fournissez vos informations Thread ou WiFi, ou les deux !",
     "QR Code": "Code QR",
     "QR Code scan is not possible": "La numérisation du code QR n'est pas possible",
-    "QR Code to connect": "QR Code pour se connecter",
+    "QR Code to connect for %s": "Code QR pour se connecter pour « %s »",
     "Re-Announce": "Re-announce",
     "Reconnect to backend": "Se reconnecter au backend",
     "Required": "Requis",

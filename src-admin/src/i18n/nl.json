@@ -120,7 +120,7 @@
     "Provide your Thread or WiFi information or both!": "Geef uw Thread- of WiFi-informatie op, of beide!",
     "QR Code": "QR-code",
     "QR Code scan is not possible": "QR-code scannen is niet mogelijk",
-    "QR Code to connect": "QR-code om verbinding te maken",
+    "QR Code to connect for %s": "QR-code om verbinding te maken voor \"%s\"",
     "Re-Announce": "Re-announce",
     "Reconnect to backend": "Opnieuw verbinden met backend",
     "Required": "Vereist",

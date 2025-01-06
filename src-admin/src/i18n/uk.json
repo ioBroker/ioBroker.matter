@@ -120,7 +120,7 @@
     "Provide your Thread or WiFi information or both!": "Надайте інформацію про свій ланцюжок або Wi-Fi або те й інше!",
     "QR Code": "QR-код",
     "QR Code scan is not possible": "Сканування QR-коду неможливе",
-    "QR Code to connect": "QR-код для підключення",
+    "QR Code to connect for %s": "QR-код для підключення до \"%s\"",
     "Re-Announce": "Re-announce",
     "Reconnect to backend": "Повторно підключіться до сервера",
     "Required": "Обов'язковий",

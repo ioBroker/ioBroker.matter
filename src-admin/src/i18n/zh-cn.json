@@ -120,7 +120,7 @@
     "Provide your Thread or WiFi information or both!": "提供您的 Thread 或 WiFi 信息或两者！",
     "QR Code": "二维码",
     "QR Code scan is not possible": "无法扫描二维码",
-    "QR Code to connect": "二维码连接",
+    "QR Code to connect for %s": "用于连接“%s”的二维码",
     "Re-Announce": "Re-announce",
     "Reconnect to backend": "重新连接到后端",
     "Required": "必需的",

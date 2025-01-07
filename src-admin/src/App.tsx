@@ -698,7 +698,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                             this.state.width === 'xs' || this.state.width === 'sm' || this.state.width === 'md'
                         }
                         changed={this.state.changed}
-                        onSave={(isClose: boolean): Promise<void> => this.onSave(isClose)}
+                        onSave={async (isClose: boolean): Promise<void> => await this.onSave(isClose)}
                         onClose={() => {
                             if (this.state.changed) {
                                 this.setState({ confirmClose: true });

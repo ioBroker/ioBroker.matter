@@ -661,7 +661,7 @@ export class MatterAdapter extends utils.Adapter {
             // inform GUI that the processing is finished
             this.sendToGui({
                 command: 'processing',
-                processing: null,
+                processing: this.#objectProcessQueue.map(item => ({ id: item.id, inProgress: item.inProgress })),
             }).catch((error): void => this.log.error(`Cannot send to GUI: ${error}`));
             return;
         }

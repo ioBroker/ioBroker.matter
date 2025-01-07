@@ -31,7 +31,6 @@ import {
     FormControlLabel,
     IconButton,
     InputLabel,
-    LinearProgress,
     MenuItem,
     Select,
     Switch,

@@ -25,6 +25,8 @@ import {
     type GenericAppProps,
     type GenericAppState,
     type IobTheme,
+    SaveCloseButtons,
+    DialogConfirm,
 } from '@iobroker/adapter-react-v5';
 import { clone, getText } from './Utils';
 
@@ -42,6 +44,7 @@ import type {
     MatterAdapterConfig,
     MatterConfig,
     NodeStateResponse,
+    Processing,
 } from './types';
 
 import enLang from './i18n/en.json';
@@ -92,6 +95,8 @@ interface AppState extends GenericAppState {
     matter: MatterConfig;
     commissioning: CommissioningInfo | null;
     nodeStates: { [uuid: string]: NodeStateResponse };
+    /** Information about nodes being processed */
+    inProcessing: Processing;
     /** Undefined if no detection ran yet */
     detectedDevices?: DetectedRoom[];
     ready: boolean;
@@ -169,6 +174,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             progress: null,
             showWelcomeDialog: false,
             welcomeDialogShowed: false,
+            inProcessing: null,
         });
 
         this.alert = window.alert;
@@ -182,7 +188,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             heartbeat?: number;
         } | null,
     ): void => {
-        // backend is alive, so stop connection interval
+        // backend is alive, so stop a connection interval
         if (this.connectToBackEndInterval) {
             console.log(`Connected after ${this.connectToBackEndCounter} attempts`);
             this.connectToBackEndCounter = 0;
@@ -303,19 +309,35 @@ class App extends GenericApp<GenericAppProps, AppState> {
             return null;
         }
 
+        const adapterSettings: MatterAdapterConfig = this.state.native as MatterAdapterConfig;
+
         return (
             <WelcomeDialog
                 common={this.common}
                 instance={this.instance}
                 socket={this.socket}
-                onClose={async () => {
+                themeType={this.state.themeType}
+                onClose={async (
+                    login?: string,
+                    password?: string,
+                    navigateTo?: 'controller' | 'bridges',
+                ): Promise<void> => {
+                    if (login && password) {
+                        if (adapterSettings.login !== login || adapterSettings.pass !== password) {
+                            this.updateNativeValue('login', login, () => this.updateNativeValue('pass', password));
+                        }
+                    }
                     if (!this.state.welcomeDialogShowed) {
                         await this.socket.setState(`matter.${this.instance}.info.welcomeDialog`, true, true);
                     }
-                    this.setState({ showWelcomeDialog: false, welcomeDialogShowed: true });
+                    this.setState({ showWelcomeDialog: false, welcomeDialogShowed: true }, () => {
+                        if (navigateTo) {
+                            this.setState({ selectedTab: navigateTo });
+                        }
+                    });
                 }}
-                login={this.state.native.login}
-                pass={this.state.native.pass}
+                login={adapterSettings.login}
+                pass={adapterSettings.pass}
             />
         );
     }
@@ -325,7 +347,9 @@ class App extends GenericApp<GenericAppProps, AppState> {
             return;
         }
 
-        if (update.command === 'progress') {
+        if (update.command === 'processing') {
+            this.setState({ inProcessing: update.processing || null });
+        } else if (update.command === 'progress') {
             if (update.progress) {
                 if (update.progress.close) {
                     if (this.state.progress) {
@@ -483,13 +507,16 @@ class App extends GenericApp<GenericAppProps, AppState> {
                     });
                 }}
                 onShowWelcomeDialog={() => this.setState({ showWelcomeDialog: true })}
-                onLoad={(native: Record<string, any>) => this.onLoadConfig(native)}
+                onLoad={(native: MatterAdapterConfig) => this.onLoadConfig(native)}
                 socket={this.socket}
                 common={this.common}
                 native={this.state.native as MatterAdapterConfig}
                 instance={this.instance}
                 matter={this.state.matter}
                 showToast={(text: string) => this.showToast(text)}
+                onError={(errorText: string): void => {
+                    this.setConfigurationError(errorText);
+                }}
             />
         );
     }
@@ -507,6 +534,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                     this.setState({ nodeStates: _nodeStates });
                 }}
                 nodeStates={this.state.nodeStates}
+                inProcessing={this.state.inProcessing}
                 themeName={this.state.themeName}
                 themeType={this.state.themeType}
                 theme={this.state.theme}
@@ -540,6 +568,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                     this.setState({ nodeStates: _nodeStates });
                 }}
                 nodeStates={this.state.nodeStates}
+                inProcessing={this.state.inProcessing}
                 commissioning={this.state.commissioning?.devices || {}}
                 socket={this.socket}
                 themeName={this.state.themeName}
@@ -565,12 +594,14 @@ class App extends GenericApp<GenericAppProps, AppState> {
     }
 
     async getLicense(): Promise<string | false> {
-        if (this.state.native.login && this.state.native.pass) {
+        const adapterSettings: MatterAdapterConfig = this.state.native as MatterAdapterConfig;
+
+        if (adapterSettings.login && adapterSettings.pass) {
             if (this.state.alive) {
                 // ask the instance
                 const result = await this.socket.sendTo(`matter.${this.instance}`, 'getLicense', {
-                    login: this.state.native.login,
-                    pass: this.state.native.pass,
+                    login: adapterSettings.login,
+                    pass: adapterSettings.pass,
                 });
                 if (result.error) {
                     this.showToast(result.error);
@@ -649,6 +680,47 @@ class App extends GenericApp<GenericAppProps, AppState> {
                     ) : null}
                 </DialogContent>
             </Dialog>
+        );
+    }
+
+    renderSaveCloseButtons(): React.JSX.Element | null {
+        if (!this.state.confirmClose && !this.state.bottomButtons) {
+            return null;
+        }
+
+        return (
+            <>
+                {this.state.bottomButtons ? (
+                    <SaveCloseButtons
+                        theme={this.state.theme}
+                        newReact={this.newReact}
+                        noTextOnButtons={
+                            this.state.width === 'xs' || this.state.width === 'sm' || this.state.width === 'md'
+                        }
+                        changed={this.state.changed}
+                        onSave={async (isClose: boolean): Promise<void> => await this.onSave(isClose)}
+                        onClose={() => {
+                            if (this.state.changed) {
+                                this.setState({ confirmClose: true });
+                            } else {
+                                GenericApp.onClose();
+                            }
+                        }}
+                        error={!!this.state.isConfigurationError}
+                    />
+                ) : null}
+                {this.state.confirmClose ? (
+                    <DialogConfirm
+                        title={I18n.t('ra_Please confirm')}
+                        text={I18n.t('ra_Some data are not stored. Discard?')}
+                        ok={I18n.t('ra_Discard')}
+                        cancel={I18n.t('ra_Cancel')}
+                        onClose={(isYes: boolean): void =>
+                            this.setState({ confirmClose: false }, () => isYes && GenericApp.onClose())
+                        }
+                    />
+                ) : null}
+            </>
         );
     }
 

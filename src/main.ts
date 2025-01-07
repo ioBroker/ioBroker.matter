@@ -395,6 +395,7 @@ export class MatterAdapter extends utils.Adapter {
         }
         if (this.sendToUI) {
             this.log.debug(`Send to GUI: ${JSON.stringify(data)}`);
+
             for (let i = 0; i < this.#_guiSubscribes.length; i++) {
                 await this.sendToUI({ clientId: this.#_guiSubscribes[i].clientId, data });
             }
@@ -616,7 +617,7 @@ export class MatterAdapter extends utils.Adapter {
         if (
             ((objParts[0] === 'devices' && objPartsLength === 2) ||
                 (objParts[0] === 'bridges' && objPartsLength === 2)) &&
-            obj === undefined
+            !obj
         ) {
             this.log.warn(`Object ${id} deleted ... trying to also remove it from matter`);
             // We try to restore a minimum object that we can handle the deletion
@@ -657,6 +658,11 @@ export class MatterAdapter extends utils.Adapter {
 
     #processObjectChangeQueue(): void {
         if (this.#objectProcessQueue.length === 0 || this.#objectProcessQueue.some(e => e.inProgress)) {
+            // inform GUI that the processing is finished
+            this.sendToGui({
+                command: 'processing',
+                processing: this.#objectProcessQueue.map(item => ({ id: item.id, inProgress: item.inProgress })),
+            }).catch((error): void => this.log.error(`Cannot send to GUI: ${error}`));
             return;
         }
 
@@ -679,6 +685,12 @@ export class MatterAdapter extends utils.Adapter {
 
         const entry = this.#objectProcessQueue[0];
         entry.inProgress = true;
+
+        // inform GUI about processing
+        this.sendToGui({
+            command: 'processing',
+            processing: this.#objectProcessQueue.map(item => ({ id: item.id, inProgress: item.inProgress })),
+        }).catch((error): void => this.log.error(`Cannot send to GUI: ${error}`));
 
         this.#currentObjectProcessPromise = entry.func();
         this.#currentObjectProcessPromise

@@ -1,10 +1,72 @@
 import React from 'react';
-import { type AdminConnection, I18n } from '@iobroker/adapter-react-v5';
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField } from '@mui/material';
-import { Clear, Close, Visibility, VisibilityOff } from '@mui/icons-material';
+
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField, Link } from '@mui/material';
+import { Check, Clear, Close } from '@mui/icons-material';
 import { FaApple, FaAndroid } from 'react-icons/fa';
 
+import { type AdminConnection, I18n, DialogConfirm, type ThemeType } from '@iobroker/adapter-react-v5';
+
 import InfoBox from './InfoBox';
+
+type Platform =
+    | 'aix'
+    | 'android'
+    | 'darwin'
+    | 'freebsd'
+    | 'haiku'
+    | 'linux'
+    | 'openbsd'
+    | 'sunos'
+    | 'win32'
+    | 'cygwin'
+    | 'netbsd';
+
+type DockerInformation =
+    | {
+          /** If it is a Docker installation */
+          isDocker: boolean;
+          /** If it is the official Docker image */
+          isOfficial: true;
+          /** Semver string for official Docker image */
+          officialVersion: string;
+      }
+    | {
+          /** If it is a Docker installation */
+          isDocker: boolean;
+          /** If it is the official Docker image */
+          isOfficial: false;
+      };
+
+type HostInfo = {
+    /** Converted OS for human readability */
+    Platform: Platform | 'docker' | 'Windows' | 'OSX';
+    /** The underlying OS */
+    os: Platform;
+    /** Information about the docker installation */
+    dockerInformation?: DockerInformation;
+    /** Host architecture */
+    Architecture: string;
+    /** Number of CPUs */
+    CPUs: number | null;
+    /** CPU speed */
+    Speed: number | null;
+    /** CPU model */
+    Model: string | null;
+    /** Total RAM of host */
+    RAM: number;
+    /** System uptime in seconds */
+    'System uptime': number;
+    /** Node.JS version */
+    'Node.js': string;
+    /** Current time to compare to local time */
+    time: number;
+    /** Timezone offset to compare to local time */
+    timeOffset: number;
+    /** Number of available adapters */
+    'adapters count': number;
+    /** NPM version */
+    NPM: string;
+};
 
 interface NetworkInterface {
     address: string;
@@ -21,6 +83,7 @@ interface WelcomeDialogProps {
     onClose: (login?: string, password?: string, navigateTo?: 'controller' | 'bridges') => void;
     socket: AdminConnection;
     instance: number;
+    themeType: ThemeType;
     common: ioBroker.InstanceCommon | null;
 }
 
@@ -33,6 +96,8 @@ interface WelcomeDialogState {
     iotLogin?: string;
     iotPassword?: string;
     ipV6found: boolean | null;
+    notSavedConfirm: '' | 'close' | 'bridges' | 'controller';
+    docker: boolean;
 }
 
 class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogState> {
@@ -46,8 +111,9 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
             login: this.props.login || '',
             password: this.props.pass || '',
             passwordRepeat: this.props.pass || '',
-            passVisible: false,
             ipV6found: null,
+            notSavedConfirm: '',
+            docker: false,
         };
     }
 
@@ -130,6 +196,51 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
         } catch (e) {
             window.alert(`Cannot read interfaces: ${e}`);
         }
+
+        if (this.props.common?.host) {
+            const hostData: HostInfo & { 'Active instances': number; location: string; Uptime: number } =
+                await this.props.socket.getHostInfo(this.props.common.host, false, 10000).catch((e: unknown): void => {
+                    window.alert(`Cannot getHostInfo for "${this.props.common?.host}": ${e as Error}`);
+                });
+
+            if (hostData) {
+                this.setState({ docker: !!hostData.dockerInformation?.isDocker });
+            }
+        }
+    }
+
+    renderConfirmDialog(): React.JSX.Element | null {
+        if (!this.state.notSavedConfirm) {
+            return null;
+        }
+
+        return (
+            <DialogConfirm
+                title={I18n.t('Please confirm')}
+                text={I18n.t('Login and password will not be taken as incomplete. Discard changes?')}
+                ok={I18n.t('Yes')}
+                cancel={I18n.t('Stay here')}
+                onClose={(result: boolean) => {
+                    if (result) {
+                        const navigateTo = this.state.notSavedConfirm;
+                        this.setState(
+                            {
+                                notSavedConfirm: '',
+                            },
+                            () => {
+                                if (!navigateTo || navigateTo === 'close') {
+                                    this.props.onClose();
+                                } else {
+                                    this.props.onClose(undefined, undefined, navigateTo);
+                                }
+                            },
+                        );
+                    } else {
+                        this.setState({ notSavedConfirm: '' });
+                    }
+                }}
+            />
+        );
     }
 
     render(): React.JSX.Element {
@@ -137,12 +248,35 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
             <Dialog
                 open={!0}
                 maxWidth="lg"
-                onClose={() => this.props.onClose()}
+                onClose={() => {
+                    if (
+                        !!this.state.login &&
+                        (!this.state.password || this.state.password !== this.state.passwordRepeat)
+                    ) {
+                        this.setState({ notSavedConfirm: 'close' });
+                    } else {
+                        this.props.onClose();
+                    }
+                }}
             >
+                {this.renderConfirmDialog()}
                 <DialogTitle>{I18n.t('Welcome to Matter!')}</DialogTitle>
                 <DialogContent>
+                    <div style={{ width: '100%', marginBottom: 8 }}>{I18n.t('Welcome explanation')}</div>
+                    <div style={{ width: '100%', marginBottom: 16 }}>
+                        {I18n.t('To make all this work, the following requirements should be considered')}:
+                    </div>
                     {this.state.ipV6found !== null ? (
-                        <InfoBox type={this.state.ipV6found ? 'info' : 'error'}>
+                        <InfoBox
+                            type={this.state.ipV6found ? 'ok' : 'error'}
+                            style={{
+                                color: this.state.ipV6found
+                                    ? undefined
+                                    : this.props.themeType === 'dark'
+                                      ? '#b31010'
+                                      : '#9f0000',
+                            }}
+                        >
                             {this.state.ipV6found
                                 ? I18n.t(
                                       'Matter requires enabled IPv6 protocol on selected interface. Some IPv6 was found on your system.',
@@ -150,6 +284,20 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                                 : I18n.t(
                                       'Matter requires enabled IPv6 protocol on selected interface. No IPv6 was found on your system!',
                                   )}
+                        </InfoBox>
+                    ) : null}
+                    {this.state.docker ? (
+                        <InfoBox type="info">
+                            {I18n.t('Docker information')}
+                            <div>
+                                <Link
+                                    href="https://google.com"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                >
+                                    {I18n.t('More details in the Troubleshooting Guide')}
+                                </Link>
+                            </div>
                         </InfoBox>
                     ) : null}
                     <InfoBox type="info">{I18n.t('Be sure, that UDP is enabled and working')}</InfoBox>
@@ -177,7 +325,7 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                             variant="outlined"
                             onClick={() =>
                                 window.open(
-                                    `https://apps.apple.com/${I18n.getLanguage()}/app/iobroker/id1449564305`,
+                                    `https://apps.apple.com/${I18n.getLanguage()}/app/iobroker-visu/id1673095774`,
                                     '_blank',
                                 )
                             }
@@ -185,6 +333,18 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                         >
                             iPhone
                         </Button>
+                    </InfoBox>
+                    <InfoBox type="info">
+                        {I18n.t('Read for problems')}
+                        <div>
+                            <Link
+                                href="https://google.com"
+                                target="_blank"
+                                rel="noreferrer"
+                            >
+                                {I18n.t('More details in the Troubleshooting Guide')}
+                            </Link>
+                        </div>
                     </InfoBox>
                     {this.showLogin ? (
                         <TextField
@@ -201,6 +361,7 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                                 input: {
                                     endAdornment: this.state.login ? (
                                         <IconButton
+                                            tabIndex={-1}
                                             size="small"
                                             onClick={() => this.setState({ login: '' })}
                                         >
@@ -226,10 +387,11 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                                 input: {
                                     endAdornment: this.state.password ? (
                                         <IconButton
+                                            tabIndex={-1}
                                             size="small"
-                                            onClick={() => this.setState({ passVisible: !this.state.passVisible })}
+                                            onClick={() => this.setState({ password: '' })}
                                         >
-                                            {this.state.passVisible ? <VisibilityOff /> : <Visibility />}
+                                            <Clear />
                                         </IconButton>
                                     ) : null,
                                 },
@@ -248,6 +410,7 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                             type={this.state.passVisible ? 'text' : 'password'}
                             label={I18n.t('Password repeat')}
                             value={this.state.passwordRepeat}
+                            error={!!this.state.password && this.state.password !== this.state.passwordRepeat}
                             onChange={e => this.setState({ passwordRepeat: e.target.value })}
                             sx={theme => ({
                                 [theme.breakpoints.up('lg')]: { width: 'calc(30% - 8px)', marginRight: 1 },
@@ -256,12 +419,13 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                             })}
                             slotProps={{
                                 input: {
-                                    endAdornment: this.state.password ? (
+                                    endAdornment: this.state.passwordRepeat ? (
                                         <IconButton
+                                            tabIndex={-1}
                                             size="small"
-                                            onClick={() => this.setState({ passVisible: !this.state.passVisible })}
+                                            onClick={() => this.setState({ passwordRepeat: '' })}
                                         >
-                                            {this.state.passVisible ? <VisibilityOff /> : <Visibility />}
+                                            <Clear />
                                         </IconButton>
                                     ) : null,
                                 },
@@ -290,23 +454,63 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                 <DialogActions>
                     <Button
                         variant="contained"
-                        onClick={() => this.props.onClose(undefined, undefined, 'bridges')}
+                        onClick={() => {
+                            if (
+                                !!this.state.login &&
+                                (!this.state.password || this.state.password !== this.state.passwordRepeat)
+                            ) {
+                                this.setState({ notSavedConfirm: 'bridges' });
+                            } else {
+                                this.props.onClose(this.state.login, this.state.password, 'bridges');
+                            }
+                        }}
                     >
                         {I18n.t('Connect Matter devices with ioBroker')}
                     </Button>
                     <Button
                         variant="contained"
-                        onClick={() => this.props.onClose(undefined, undefined, 'controller')}
+                        onClick={() => {
+                            if (
+                                !!this.state.login &&
+                                (!this.state.password || this.state.password !== this.state.passwordRepeat)
+                            ) {
+                                this.setState({ notSavedConfirm: 'controller' });
+                            } else {
+                                this.props.onClose(this.state.login, this.state.password, 'controller');
+                            }
+                        }}
                     >
                         {I18n.t('Expose ioBroker devices as Matter bridge')}
                     </Button>
                     <Button
                         variant="contained"
                         color="grey"
-                        onClick={() => this.props.onClose()}
-                        startIcon={<Close />}
+                        onClick={() => {
+                            if (
+                                !!this.state.login &&
+                                (!this.state.password || this.state.password !== this.state.passwordRepeat)
+                            ) {
+                                this.setState({ notSavedConfirm: 'close' });
+                            } else {
+                                this.props.onClose();
+                            }
+                        }}
+                        startIcon={
+                            this.state.login &&
+                            this.state.password &&
+                            this.state.password === this.state.passwordRepeat ? (
+                                <Check />
+                            ) : (
+                                <Close />
+                            )
+                        }
                     >
-                        {I18n.t('Close')}
+                        {this.showLogin &&
+                        this.state.login &&
+                        this.state.password &&
+                        this.state.password === this.state.passwordRepeat
+                            ? I18n.t('Apply')
+                            : I18n.t('Close')}
                     </Button>
                 </DialogActions>
             </Dialog>

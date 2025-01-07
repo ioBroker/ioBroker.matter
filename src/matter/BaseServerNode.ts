@@ -136,7 +136,7 @@ export abstract class BaseServerNode implements GeneralNode {
         });
     }
 
-    /** Handles device specific Messages from the UI. */
+    /** Handles the device specific Messages from the UI. */
     async handleCommand(obj: ioBroker.Message): Promise<MessageResponse> {
         const { command, message } = obj;
         switch (command) {

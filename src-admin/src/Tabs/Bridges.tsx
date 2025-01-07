@@ -1366,9 +1366,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
         return (
             <React.Fragment key={bridgeIndex}>
                 <TableRow
-                    style={{ opacity: bridge.enabled ? 1 : 0.4 }}
+                    style={{ opacity: bridge.enabled ? 1 : 0.4, position: 'relative' }}
                     sx={styles.bridgeButtonsAndTitle}
                 >
+                    {this.renderProcessOverlay(bridge.uuid)}
                     <TableCell
                         style={{
                             width: 0,

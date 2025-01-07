@@ -7,6 +7,7 @@ export interface MatterAdapterConfig extends ioBroker.AdapterConfig {
     pass: string;
     /** UUID of the default (alexa-compatible - port 5540)bridge */
     defaultBridge: string;
+    controllerFabricLabel: string;
 }
 
 export interface BridgeDeviceDescription {
@@ -134,6 +135,8 @@ export enum NodeStates {
     ConnectedWithController = 'connected',
 }
 
+export type Processing = { id: string; inProgress: boolean }[] | null;
+
 export interface ConnectionInfo {
     vendorId: number;
     vendorName: string;
@@ -158,9 +161,11 @@ export interface GUIMessage {
         | 'discoveredDevice'
         | 'reconnect'
         | 'progress'
+        | 'processing'
         | 'updateController';
     states?: { [uuid: string]: NodeStateResponse };
     device?: CommissionableDevice;
+    processing?: { id: string; inProgress: boolean }[] | null;
 
     progress?: {
         close?: boolean;

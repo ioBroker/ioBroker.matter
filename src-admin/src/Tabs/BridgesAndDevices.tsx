@@ -33,6 +33,7 @@ import {
     DialogTitle,
     IconButton,
     InputAdornment,
+    LinearProgress,
     Table,
     TableBody,
     TableCell,
@@ -54,6 +55,7 @@ import type {
     MatterConfig,
     NodeStateResponse,
     NodeStates,
+    Processing,
 } from '../types';
 import { formatPairingCode, getTranslation } from '../Utils';
 import type { ActionButton, BackEndCommandJsonFormOptions, JsonFormSchema } from '@iobroker/dm-utils';
@@ -85,6 +87,7 @@ export interface BridgesAndDevicesProps {
     themeName: ThemeName;
     updateConfig: (config: MatterConfig) => void;
     updateNodeStates: (states: { [uuid: string]: NodeStateResponse }) => void;
+    inProcessing: Processing;
 }
 
 export interface BridgesAndDevicesState {
@@ -347,12 +350,16 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                     style={{
                         height: 40,
                         color: hasError
-                            ? '#FF0000'
+                            ? this.props.themeType === 'dark'
+                                ? '#ff5a5a'
+                                : '#980000'
                             : this.isDevice
                               ? this.props.themeType === 'dark'
                                   ? 'white'
                                   : '#00000080'
-                              : 'white',
+                              : this.props.themeType === 'dark'
+                                ? 'white'
+                                : '#00000080',
                     }}
                     onClick={e => this.requestAdditionalInformation(e, deviceOrBridge.uuid)}
                 >
@@ -509,6 +516,41 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         );
     }
 
+    getInProcessing(uuid: string): false | 'inQueue' | 'processing' {
+        if (!this.props.inProcessing) {
+            return false;
+        }
+        const uuidWithPoint = `.${uuid}`;
+        const item = this.props.inProcessing.find(it => it.id.endsWith(uuidWithPoint));
+        if (item) {
+            return item.inProgress ? 'processing' : 'inQueue';
+        }
+        return false;
+    }
+
+    // eslint-disable-next-line react/no-unused-class-component-methods
+    renderProcessOverlay(uuid: string): React.JSX.Element | null {
+        const processing = this.getInProcessing(uuid);
+        if (!processing) {
+            return null;
+        }
+        return (
+            <div
+                style={{
+                    zIndex: 1,
+                    position: 'absolute',
+                    top: 0,
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    backgroundImage: `repeating-linear-gradient(325deg, ${this.props.themeType === 'dark' ? '#00000080' : '#FFFFFF80'}, ${this.props.themeType === 'dark' ? '#00000080' : '#FFFFFF80'} 20px, #00000000 20px, #00000000 40px)`,
+                }}
+            >
+                {processing === 'processing' ? <LinearProgress /> : null}
+            </div>
+        );
+    }
+
     getCancelButton(button?: ActionButton | 'apply' | 'cancel' | 'close'): React.JSX.Element {
         let isClose = false;
         if (typeof button === 'string') {
@@ -629,6 +671,10 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         if (!nodeState) {
             return null;
         }
+        const name: string =
+            typeof this.state.showQrCode.name === 'object'
+                ? this.state.showQrCode.name[I18n.getLanguage()] || this.state.showQrCode.name.en
+                : this.state.showQrCode.name;
 
         return (
             <Dialog
@@ -636,7 +682,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 open={!0}
                 maxWidth="md"
             >
-                <DialogTitle>{I18n.t('QR Code to connect')}</DialogTitle>
+                <DialogTitle>{I18n.t('QR Code to connect for %s', name)}</DialogTitle>
                 <DialogContent>
                     <InfoBox
                         type="info"

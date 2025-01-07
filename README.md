@@ -159,7 +159,7 @@ TBD
 * Check that you are using the latest version available - or if not, if the changelog for the versions since your version contains information about your issue. Then try updating first, please.
 * Check existing open GitHub issues. If yours is also listed, there vote for it by adding a thumbs up on the first comment. This helps to prioritize the issues. "Me Too" posts are not needed.
 * Create a GitHub issue if your issue is not existing
-* Turn on Debug logs fpr the matter instance, and additionally "Matter Debug" logs on the main page of the adapter settings. Include the logs (as a Text file please, Logfile location usually `/opt/iobroker/logs/...`) as text file attachment in your issue report. Please do not cut only the error but also add some minutes of log before and after the error to get some more context. Please also include information on what exactly is seen there, what was done and such. The more context you can provide, the better.
+* Turn on Debug logs for the matter instance, and additionally "Matter Debug" logs on the main page of the adapter settings. Include the logs (as a Text file please, Logfile location usually `/opt/iobroker/logs/...`) as text file attachment in your issue report. Please do not cut only the error but also add some minutes of log before and after the error to get some more context. Please also include information on what exactly is seen there, what was done and such. The more context you can provide, the better.
 
 
 ## ToDo

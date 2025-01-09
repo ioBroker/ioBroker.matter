@@ -79,7 +79,7 @@
     "Expose ioBroker devices as Matter bridge": "Предоставить устройства ioBroker в качестве моста Matter",
     "Following object IDs was not added because already exists": "Следующие идентификаторы объектов не были добавлены, поскольку уже существуют",
     "Following object IDs was not added because of the license": "Следующие идентификаторы объектов не были добавлены из-за лицензии",
-    "General": "Общий",
+    "General": "Основные",
     "Generate new pairing code": "Создать новый код сопряжения",
     "Hide unsupported devices": "Скрыть неподдерживаемые устройства",
     "If your device has more then one active network interface and you have issues try limiting it to one interface": "Если на вашем устройстве имеется более одного активного сетевого интерфейса и у вас возникли проблемы, попробуйте ограничить его одним интерфейсом.",

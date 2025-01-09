@@ -11,6 +11,7 @@ import {
     type JsonFormSchema,
     type JsonFormData,
     DeviceManagement,
+    ACTIONS,
 } from '@iobroker/dm-utils';
 import type { GeneralMatterNode, NodeDetails } from '../matter/GeneralMatterNode';
 import { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIoBroker';
@@ -18,12 +19,6 @@ import type { DeviceAction } from '@iobroker/dm-utils/build/types/base';
 import { logEndpoint } from '../matter/EndpointStructureInspector';
 import { inspect } from 'util';
 import { convertDataToJsonConfig } from './JsonConfigUtils';
-
-export const ACTIONS = {
-    STATUS: 'status',
-    DISABLE: 'disable',
-    ENABLE: 'enable',
-};
 
 function strToBool(str: string): boolean | null {
     if (str === 'true') {
@@ -141,11 +136,12 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
             isEnabled
                 ? {
-                      // This is a special action when the user clicks on the status icon
+                      // This is a special action when the user clicks on the enabled icon
                       id: ACTIONS.DISABLE,
                       handler: (_ignored, context) => this.#handleEnableNode(ioNode, context, false),
                   }
                 : {
+                      // This is a special action when the user clicks on the disabled icon
                       id: ACTIONS.ENABLE,
                       handler: (_ignored, context) => this.#handleEnableNode(ioNode, context, true),
                   },

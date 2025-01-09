@@ -324,7 +324,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
             >
                 <IconButton
-                    style={{ height: 40 }}
+                    style={{ height: 40, color: this.isDevice ? undefined : '#FFFFFF' }}
                     onClick={() => {
                         this.reAnnounceDevice(deviceOrBridge.uuid).catch(e => window.alert(`Cannot re-announce: ${e}`));
                         this.setState({ showQrCode: deviceOrBridge });
@@ -355,11 +355,9 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                                 : '#980000'
                             : this.isDevice
                               ? this.props.themeType === 'dark'
-                                  ? 'white'
+                                  ? '#FFFFFF'
                                   : '#00000080'
-                              : this.props.themeType === 'dark'
-                                ? 'white'
-                                : '#00000080',
+                              : '#FFFFFF',
                     }}
                     onClick={e => this.requestAdditionalInformation(e, deviceOrBridge.uuid)}
                 >

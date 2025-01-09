@@ -653,10 +653,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
      */
     async stopDiscovery(): Promise<void> {
         console.log('Stop discovery');
+
         await this.props.socket.sendTo(`matter.${this.props.instance}`, 'controllerDiscoveryStop', {});
-        if (!this.state.discovered.length) {
-            this.setState({ discoveryDone: false });
-        }
+
+        this.setState({ discoveryDone: !!this.state.discovered.length });
     }
 
     /**

@@ -1258,7 +1258,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                         color: hasError
                                             ? '#FF0000'
                                             : this.props.themeType === 'dark'
-                                              ? 'white'
+                                              ? '#FFFFFF'
                                               : '#00000080',
                                     }}
                                     onClick={e => this.requestAdditionalInformation(e, bridge.uuid, device.uuid)}
@@ -1498,9 +1498,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         >
                             <span>
                                 <IconButton
-                                    style={{
-                                        color: this.props.themeType === 'dark' ? 'white' : '#00000080',
-                                    }}
+                                    style={{ color: '#FFF'}}
                                     disabled={bridge.enabled && !allowDisable}
                                     onClick={e => {
                                         e.stopPropagation();

@@ -459,9 +459,9 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                                 !!this.state.login &&
                                 (!this.state.password || this.state.password !== this.state.passwordRepeat)
                             ) {
-                                this.setState({ notSavedConfirm: 'bridges' });
+                                this.setState({ notSavedConfirm: 'controller' });
                             } else {
-                                this.props.onClose(this.state.login, this.state.password, 'bridges');
+                                this.props.onClose(this.state.login, this.state.password, 'controller');
                             }
                         }}
                     >
@@ -474,9 +474,9 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                                 !!this.state.login &&
                                 (!this.state.password || this.state.password !== this.state.passwordRepeat)
                             ) {
-                                this.setState({ notSavedConfirm: 'controller' });
+                                this.setState({ notSavedConfirm: 'bridges' });
                             } else {
-                                this.props.onClose(this.state.login, this.state.password, 'controller');
+                                this.props.onClose(this.state.login, this.state.password, 'bridges');
                             }
                         }}
                     >

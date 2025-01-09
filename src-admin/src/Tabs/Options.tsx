@@ -574,6 +574,11 @@ class Options extends Component<OptionsProps, OptionsState> {
 
                 <div style={{ marginTop: 50 }}>
                     <Typography sx={styles.header}>{I18n.t('Controller Settings')}</Typography>
+                    <InfoBox type="info">
+                        {I18n.t(
+                            'The label set here is used as Label when ioBroker connects to a device as device and might be shown by other Controllers in their overviews about other connected ecosystems.',
+                        )}
+                    </InfoBox>
                     <TextField
                         variant="standard"
                         label={I18n.t('Controller fabric label')}
@@ -582,6 +587,9 @@ class Options extends Component<OptionsProps, OptionsState> {
                         onChange={e => this.props.onChange('controllerFabricLabel', e.target.value)}
                         margin="normal"
                         slotProps={{
+                            htmlInput: {
+                                maxLength: 32,
+                            },
                             input: {
                                 endAdornment: this.props.native.controllerFabricLabel ? (
                                     <IconButton
@@ -593,7 +601,11 @@ class Options extends Component<OptionsProps, OptionsState> {
                                 ) : null,
                             },
                         }}
-                        style={styles.input}
+                        helperText={I18n.t('Max 32 characters')}
+                        style={{
+                            ...styles.input,
+                            maxWidth: 350,
+                        }}
                     />
                 </div>
 

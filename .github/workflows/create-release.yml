@@ -6,7 +6,7 @@ on:
             versionBump:
                 description: 'Type of version bump'
                 required: true
-                default: 'prerelease'
+                default: 'patch'
                 type: choice
                 options:
                     - prerelease

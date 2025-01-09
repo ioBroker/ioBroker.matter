@@ -241,7 +241,10 @@ TBD
 ### **WORK IN PROGRESS**
 * (@GermanBluefox) Fixed GUI errors
 * (@GermanBluefox) Added `Controller fabric label` to configuration
-* (@GermanBluefox) Solution for QR-Code scanning on non HTTPS pages
+* (@GermanBluefox) Added solution for QR-Code scanning on non HTTPS pages
+* (@Apollon77) Fixed Generic Switch Device type for controller
+* (@Apollon77) Fixed Controller BLE initialization and activation
+* (@Apollon77) Added serialNumber to all devices and bridges for better device re-detection by controllers
 
 ### 0.3.4 (2024-12-31)
 * (@Apollon77) Updates matter.js to address several issues

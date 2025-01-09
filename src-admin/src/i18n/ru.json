@@ -95,7 +95,7 @@
     "Matter Controller BLE Dialog Infotext": "Для сопряжения устройств, которые используют WLAN или Thread для связи, вам необходимо предоставить свои учетные данные WLAN или Thread.\nЭти учетные данные затем передаются на устройство во время ввода в эксплуатацию. \nЕсли устройство уже было введено в эксплуатацию в другой экосистеме и уже находится в сети, в этом нет необходимости.",
     "Matter Controller Infotext": "Используйте функции «Контроллер» для интеграции совместимых с Matter устройств в ioBroker. \nВы можете обнаружить и ввести в эксплуатацию устройство, а затем управлять им. Данные устройств будут доступны в виде состояний на вкладке «Объекты ioBroker». \nФункция контроллера по умолчанию отключена, но ее можно включить с помощью переключателя ниже.",
     "Matter requires enabled IPv6 protocol on selected interface. No IPv6 was found on your system!": "Matter требует включенного протокола IPv6 на выбранном интерфейсе. IPv6 не найден в вашей системе!",
-    "Matter requires enabled IPv6 protocol on selected interface. Some IPv6 was found on your system.": "Matter требует включенного протокола IPv6 на выбранном интерфейсе. В вашей системе обнаружен какой-то IPv6.",
+    "Matter requires enabled IPv6 protocol on selected interface. Some IPv6 was found on your system.": "Matter требует включенного протокола IPv6 на выбранном интерфейсе. В вашей системе обнаружен IPv6.",
     "More details in the Troubleshooting Guide": "Более подробную информацию см. в Руководстве по устранению неполадок.",
     "Name": "Имя",
     "Network configuration": "Конфигурация сети",

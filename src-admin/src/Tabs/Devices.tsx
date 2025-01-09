@@ -797,7 +797,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
 
     render(): React.JSX.Element {
         return (
-            <div>
+            <div style={{ width: '100%' }}>
                 {this.renderDeleteDialog()}
                 {this.renderEditDeviceDialog()}
                 {this.renderAddDevicesPreDialog()}
@@ -818,31 +818,34 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         'Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.',
                     )}
                 </InfoBox>
-                <Tooltip
-                    title={I18n.t('Add device')}
-                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
-                >
-                    <Fab
-                        color="primary"
-                        size="small"
-                        onClick={() =>
-                            this.setState({
-                                addDevicePreDialog: true,
-                            })
-                        }
-                        style={{
-                            width: 36,
-                            height: 36,
-                        }}
+                <div style={{ width: '100%' }}>
+                    <Tooltip
+                        title={I18n.t('Add device')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                     >
-                        <Add />
-                    </Fab>
-                </Tooltip>
-                {!this.props.matter.devices.length ? (
-                    <div style={{ marginLeft: 16 }}>
-                        {I18n.t('No one device created. Create one, by clicking on the "+" button on the left.')}
-                    </div>
-                ) : (
+                        <Fab
+                            color="primary"
+                            size="small"
+                            onClick={() =>
+                                this.setState({
+                                    addDevicePreDialog: true,
+                                })
+                            }
+                            style={{
+                                width: 36,
+                                height: 36,
+                            }}
+                        >
+                            <Add />
+                        </Fab>
+                    </Tooltip>
+                    {!this.props.matter.devices.length ? (
+                        <span style={{ marginLeft: 16 }}>
+                            {I18n.t('No one device created. Create one, by clicking on the "+" button on the left.')}
+                        </span>
+                    ) : null}
+                </div>
+                {this.props.matter.devices.length ? (
                     <Table
                         size="small"
                         style={{ width: '100%' }}
@@ -852,7 +855,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                             {this.props.matter.devices.map((device, index) => this.renderDevice(device, index))}
                         </TableBody>
                     </Table>
-                )}
+                ) : null}
             </div>
         );
     }

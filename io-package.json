@@ -99,15 +99,15 @@
     "titleLang": {
       "en": "Matter protocol",
       "de": "Matter Protokoll",
-      "ru": "Мэттерный протокол",
-      "pt": "Protocolo de matéria",
+      "ru": "Протокол Matter",
+      "pt": "Protocolo de Matter",
       "nl": "Matter protocol",
       "fr": "Matter protocol",
-      "it": "Protocollo della materia",
-      "es": "Protocolo de la materia",
+      "it": "Protocollo della Matter",
+      "es": "Protocolo de la Matter",
       "pl": "Protokół Matter",
       "uk": "Протокол Маттер",
-      "zh-cn": "马特议定书"
+      "zh-cn": "Matter"
     },
     "desc": {
       "en": "Controlling and simulation of matter devices",

@@ -1498,7 +1498,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         >
                             <span>
                                 <IconButton
-                                    style={{ color: '#FFF'}}
+                                    style={{ color: '#FFF' }}
                                     disabled={bridge.enabled && !allowDisable}
                                     onClick={e => {
                                         e.stopPropagation();

@@ -9,7 +9,9 @@
 [![Translation status](https://weblate.iobroker.net/widgets/adapters/-/matter/svg-badge.svg)](https://weblate.iobroker.net/engage/adapters/?utm_source=widget)
 [![Downloads](https://img.shields.io/npm/dm/iobroker.matter.svg)](https://www.npmjs.com/package/iobroker.matter)
 
-**This adapter uses Sentry libraries to automatically report exceptions and code errors to the developers.** For more details and for information how to disable the error reporting see [Sentry-Plugin Documentation](https://github.com/ioBroker/plugin-sentry#plugin-sentry)! Sentry reporting is used starting with js-controller 3.0.
+**This adapter uses Sentry libraries to automatically report exceptions and code errors to the developers.**
+For more details and for information how to disable the error reporting see [Sentry-Plugin Documentation](https://github.com/ioBroker/plugin-sentry#plugin-sentry)!
+Sentry reporting is used starting with js-controller 3.0.
 
 > [!IMPORTANT]  
 > This adapter can only be installed from npm. A GitHub installation is not possible!
@@ -41,13 +43,13 @@ If you want to use the iobroker Visu App for device pairing you need:
   * If you use Docker containers, make sure to use **Host Mode** to allow UDP packages to flow between the containers and the host. Bridged network mode does not work with UDP packages!
 
 ### Prerequisites to Expose ioBroker devices as Matter Bridges or Devices
-Important: In order to expose more than 5 Bridged devices or to expose additional separate Devices or Bridges, you need to have a Matter Pro Account with an active Assistant or Remote Control License and entering this into the adapter configuration! Please support our team with the efforts we invest in Matter with this. Controller usage is not limited by this.
+Important: In order to expose more than 5 Bridged devices or to expose additional separate Devices or Bridges, you need to have a Matter Pro Account with an active Assistant or Remote Control License and enter this into the adapter configuration! Please support our team with the efforts we invest in Matter with this. Controller usage is not limited by this.
 
 * The Bridges and devices that the ioBroker Adapter exposes are not officially certified by the Matter organization. This means they only work in Ecosystems that allow this.
   * For Google additional steps might be needed - see https://github.com/project-chip/matter.js/blob/main/docs/ECOSYSTEMS.md#google-home-ecosystem
   * **Aqara Hub M3** and **Yandex** are currently (as of November 2024) not allow "uncertified devices" to be paired!
 * Each Ecosystem has different limits about devices per Bridge and such. So if a high number of devices (there are test results up to 64 which should work at least in Apple, Google and - a bit wonky - Amazon) one bridge makes issues. please try splitting it up to multiple bridges. I would also be happy to find out the practical limits, so please report your experiences.
-* For Alexa currently only the "Default Bridge" can be used on a host. Multiple Bridges to use with Alexa are only possible on different hosts.
+* For Alexa, currently, only the "Default Bridge" can be used on a host. Multiple Bridges to use with Alexa are only possible on different hosts.
 
 ### Prerequisites to use Matter devices in ioBroker (aka "Matter Controller")
 * If you plan to use Thread-based devices (check the package for information), you need to have a Thread Border Router (TBR) in your network. Check https://github.com/project-chip/matter.js/blob/main/docs/ECOSYSTEMS.md for more information about the ecosystems and their Thread support. More information on Thread and also on how to add an own TBR can be found at https://github.com/project-chip/matter.js/blob/main/docs/USAGE_THREAD.md
@@ -118,22 +120,34 @@ TBD
 TBD
 
 #### Using the devices (ioBroker Device compatible states)
-This is the default mode for all supported device types where ioBroker has a matching own device type. In this case the functionality is conveniently abstracted as defined in ioBroker and how it is mapped for many other adapter states. The exposed functionality is limited to what ioBroker defines for the device type and should allow all normal operations.
+This is the default mode for all supported device types where ioBroker has a matching own device type.
+In this case, the functionality is conveniently abstracted as defined in ioBroker and how it is mapped for many other adapter states.
+The exposed functionality is limited to what ioBroker defines for the device type and should allow all normal operations.
 
-If you need more granularity and access to device specific functionality or settings you can enable the "Application Cluster states" for this node or device to gain access (see below).
+If you need more granularity and access to device-specific functionality or settings, you can enable the "Application Cluster states" for this node or device to gain access (see below).
 
 #### Using the Application Cluster states (needs to be enabled!)
 Note: This is considered Advanced Usage!
 
-Sometimes it might be handy to also see more internal details of the device or to access more specific functionality of the device. In this case you can enable the "Application Cluster states" for the node or device. This e.g., allows setting the sensitivity for a motion sensor. When enabled for a node (valid then for all devices exposed by the node) or a device, you will see a lot of additional states in an object's folder "data". 
+Sometimes it might be handy to also see more internal details of the device or to access more specific functionality of the device.
+In this case, you can enable the "Application Cluster states" for the node or device.
+This, e.g., allows setting the sensitivity for a motion sensor.
+When enabled for a node (valid then for all devices exposed by the node) or a device, you will see a lot of additional states in an object's folder `data`. 
 
-The details are structured by the application cluster and separated in attributes (data states) and commands. The exact meaning, units and allowed values and ranges for the data can be taken from the Matter Application Specification document.
-When commands are exposed as a "button" then the action can be triggered by just setting a boolean value to the state. But most commands require more data (these are "json" strings) and require that a JSON string with all command fields are provided. The exact definition of the command fields can be taken from the Matter Application Specification document.
+The details are structured by the application cluster and separated in attributes (data states) and commands.
+The exact meaning, units and allowed values and ranges for the data can be taken from the Matter Application Specification document.
+When commands are exposed as a "button" then the action can be triggered by just setting a boolean value to the state.
+But most commands require more data (these are "json" strings) and require that a JSON string with all command fields are provided.
+The exact definition of the command fields can be taken from the Matter Application Specification document.
 
 #### Using the System Cluster states (needs to be enabled!)
 Note: This is considered Professional Usage!
 
-In all normal end user cases, you should not need to use the System Cluster states. They are only needed for special cases and for debugging or to deeply explore the Matter cluster data. If you enable them, you will see a lot of additional states that are not needed for normal operation. Any changes to the writable states can break the functionality of the devices. So please only use them if you know what you are doing!
+In all normal end user cases, you should not need to use the System Cluster states.
+They are only needed for special cases and for debugging or to deeply explore the Matter cluster data.
+If you enable them, you will see a lot of additional states that are not needed for normal operation.
+Any changes to the writable states can break the functionality of the devices.
+So please only use them if you know what you are doing!
 
 ### Using the Matter Bridges
 

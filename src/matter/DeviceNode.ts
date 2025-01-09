@@ -73,7 +73,7 @@ class Device extends BaseServerNode {
         const productName = this.#deviceOptions.name || this.#parameters.productName;
         const productId = this.#parameters.productId; // 0x8000;
 
-        const uniqueId = this.#parameters.uuid.replace(/-/g, '').split('.').pop();
+        const uniqueId = this.#parameters.uuid.replace(/-/g, '');
         if (uniqueId === undefined) {
             throw new Error(`Could not determine device unique id from ${this.#parameters.uuid}`);
         }

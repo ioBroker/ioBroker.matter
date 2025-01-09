@@ -64,10 +64,32 @@ class Controller implements GeneralNode {
     }
 
     init(): void {
-        this.applyConfiguration(this.#parameters);
+        if (this.#parameters.ble) {
+            if (
+                (this.#parameters.wifiSSID && this.#parameters.wifiPassword) ||
+                (this.#parameters.threadNetworkName !== undefined &&
+                    this.#parameters.threadOperationalDataSet !== undefined)
+            ) {
+                try {
+                    const hciId = this.#parameters.hciId === undefined ? undefined : parseInt(this.#parameters.hciId);
+                    Ble.get = singleton(() => new NodeJsBle({ hciId }));
+                    this.#useBle = true;
+                } catch (error) {
+                    this.#adapter.log.warn(`Failed to initialize BLE: ${error.message}`);
+                    this.#parameters.ble = false;
+                    return;
+                }
+            } else {
+                this.#adapter.log.warn(
+                    `BLE enabled but no WiFi or Thread configuration provided. BLE will stay disabled.`,
+                );
+                this.#parameters.ble = false;
+            }
+        }
+        this.applyConfiguration(this.#parameters, true);
     }
 
-    applyConfiguration(config: MatterControllerConfig): MessageResponse {
+    applyConfiguration(config: MatterControllerConfig, isInit = false): MessageResponse {
         const currentConfig: MatterControllerConfig = {
             enabled: true,
             defaultExposeMatterApplicationClusterData: false,
@@ -75,25 +97,12 @@ class Controller implements GeneralNode {
             ...(this.#parameters as Partial<MatterControllerConfig>),
         };
 
-        this.#useBle = false;
-        if (config.ble !== currentConfig.ble || config.hciId !== currentConfig.hciId) {
-            if (
-                config.ble &&
-                ((config.wifiSSID && config.wifiPassword) ||
-                    (config.threadNetworkName !== undefined && config.threadOperationalDataSet !== undefined))
-            ) {
-                try {
-                    const hciId = config.hciId === undefined ? undefined : parseInt(config.hciId);
-                    Ble.get = singleton(() => new NodeJsBle({ hciId }));
-                    this.#useBle = true;
-                } catch (error) {
-                    this.#adapter.log.warn(`Failed to initialize BLE: ${error.message}`);
-                    config.ble = false;
-                    return {
-                        error: `Can not adjust configuration and enable BLE because of error: ${error.message}`,
-                    };
-                }
-            }
+        if (!isInit && (config.ble !== currentConfig.ble || config.hciId !== currentConfig.hciId)) {
+            this.#adapter.setTimeout(() => this.#adapter.restart(), 5000);
+            // Restart of the adapter needed
+            return {
+                error: `BLE configuration adjusted. The adapter will restart in 5 seconds.`,
+            };
         }
         this.#parameters = config;
         return { result: true };

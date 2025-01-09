@@ -73,6 +73,7 @@ class BridgedDevices extends BaseServerNode {
         if (mappingDevice) {
             const name = mappingDevice.name;
             const endpoints = mappingDevice.matterEndpoints;
+            const serialNumber = deviceOptions.uuid.replace(/-/g, '');
             if (endpoints.length === 1 || deviceOptions.noComposed) {
                 let erroredCount = 0;
                 // When only one endpoint or non-composed we simply add all endpoints for itself to the bridge
@@ -94,6 +95,7 @@ class BridgedDevices extends BaseServerNode {
                         nodeLabel: matterName,
                         productName: matterName,
                         productLabel: name.substring(0, 64),
+                        serialNumber,
                         uniqueId: md5(endpoint.id),
                         reachable: true,
                     });
@@ -133,6 +135,7 @@ class BridgedDevices extends BaseServerNode {
                         nodeLabel: matterName,
                         productName: matterName,
                         productLabel: name.substring(0, 64),
+                        serialNumber,
                         uniqueId: md5(id),
                         reachable: true,
                     },
@@ -189,7 +192,7 @@ class BridgedDevices extends BaseServerNode {
         const vendorId = this.#parameters.vendorId; // 0xfff1;
         const productId = this.#parameters.productId; // 0x8000;
 
-        const uniqueId = this.#parameters.uuid.replace(/-/g, '').split('.').pop();
+        const uniqueId = this.#parameters.uuid.replace(/-/g, '');
         if (uniqueId === undefined) {
             throw new Error(`Could not determine device unique id from ${this.#parameters.uuid}`);
         }

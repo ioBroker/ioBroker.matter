@@ -38,51 +38,52 @@ export class GenericSwitchToIoBroker extends GenericDeviceToIoBroker {
             this.#ioBrokerDevice = new ButtonSensor(
                 { ...ChannelDetector.getPatterns().buttonSensor, isIoBrokerDevice: false } as DetectedDevice,
                 adapter,
-                this.enableDeviceTypeStates(),
+                this.enableMomentarySwitchDeviceTypeStates(),
             );
         } else {
             // A Latching Switch (only other option) is mapped to a Socket
             this.#ioBrokerDevice = new Socket(
                 { ...ChannelDetector.getPatterns().socket, isIoBrokerDevice: false } as DetectedDevice,
                 adapter,
-                this.enableDeviceTypeStates(),
+                this.enableLatchingSwitchDeviceTypeStates(),
             );
         }
     }
 
-    protected enableDeviceTypeStates(): DeviceOptions {
-        if (this.#ioBrokerDevice instanceof ButtonSensor) {
-            this.enableDeviceTypeStateForAttribute(PropertyType.Press, {
-                endpointId: this.appEndpoint.getNumber(),
-                clusterId: Switch.Cluster.id,
-                attributeName: 'currentPosition',
-                convertValue: value => value !== 0,
-            });
+    protected enableMomentarySwitchDeviceTypeStates(): DeviceOptions {
+        this.enableDeviceTypeStateForAttribute(PropertyType.Press, {
+            endpointId: this.appEndpoint.getNumber(),
+            clusterId: Switch.Cluster.id,
+            attributeName: 'currentPosition',
+            convertValue: value => value !== 0,
+        });
 
-            const hasLongPress = this.appEndpoint.getClusterClient(Switch.Complete)?.supportedFeatures
-                .momentarySwitchLongPress;
-            if (hasLongPress) {
-                this.enableDeviceTypeStateForEvent(PropertyType.PressLong, {
-                    endpointId: this.appEndpoint.getNumber(),
-                    clusterId: Switch.Cluster.id,
-                    eventName: 'longPress',
-                    convertValue: () => true,
-                });
-                this.enableDeviceTypeStateForEvent(PropertyType.PressLong, {
-                    endpointId: this.appEndpoint.getNumber(),
-                    clusterId: Switch.Cluster.id,
-                    eventName: 'longRelease',
-                    convertValue: () => false,
-                });
-            }
-        } else {
-            this.enableDeviceTypeStateForAttribute(PropertyType.PowerActual, {
+        const hasLongPress = this.appEndpoint.getClusterClient(Switch.Complete)?.supportedFeatures
+            .momentarySwitchLongPress;
+        if (hasLongPress) {
+            this.enableDeviceTypeStateForEvent(PropertyType.PressLong, {
                 endpointId: this.appEndpoint.getNumber(),
                 clusterId: Switch.Cluster.id,
-                attributeName: 'currentPosition',
-                convertValue: value => value !== 0,
+                eventName: 'longPress',
+                convertValue: () => true,
+            });
+            this.enableDeviceTypeStateForEvent(PropertyType.PressLong, {
+                endpointId: this.appEndpoint.getNumber(),
+                clusterId: Switch.Cluster.id,
+                eventName: 'longRelease',
+                convertValue: () => false,
             });
         }
+        return super.enableDeviceTypeStates();
+    }
+
+    protected enableLatchingSwitchDeviceTypeStates(): DeviceOptions {
+        this.enableDeviceTypeStateForAttribute(PropertyType.PowerActual, {
+            endpointId: this.appEndpoint.getNumber(),
+            clusterId: Switch.Cluster.id,
+            attributeName: 'currentPosition',
+            convertValue: value => value !== 0,
+        });
 
         return super.enableDeviceTypeStates();
     }

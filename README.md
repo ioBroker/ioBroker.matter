@@ -238,7 +238,7 @@ TBD
 -->
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 0.3.5 (2025-01-09)
 * (@GermanBluefox) Fixed GUI errors
 * (@GermanBluefox) Added `Controller fabric label` to configuration
 * (@GermanBluefox) Added solution for QR-Code scanning on non HTTPS pages

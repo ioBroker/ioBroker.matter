@@ -1257,11 +1257,9 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                         height: 40,
                                         color: hasError
                                             ? '#FF0000'
-                                            : this.isDevice
-                                              ? this.props.themeType === 'dark'
-                                                  ? 'white'
-                                                  : '#00000080'
-                                              : 'white',
+                                            : this.props.themeType === 'dark'
+                                              ? 'white'
+                                              : '#00000080',
                                     }}
                                     onClick={e => this.requestAdditionalInformation(e, bridge.uuid, device.uuid)}
                                 >
@@ -1501,11 +1499,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             <span>
                                 <IconButton
                                     style={{
-                                        color: this.isDevice
-                                            ? this.props.themeType === 'dark'
-                                                ? 'white'
-                                                : '#00000080'
-                                            : 'white',
+                                        color: this.props.themeType === 'dark' ? 'white' : '#00000080',
                                     }}
                                     disabled={bridge.enabled && !allowDisable}
                                     onClick={e => {

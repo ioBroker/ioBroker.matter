@@ -880,6 +880,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
             this.bridgeIndex = this.state.addDeviceDialog.bridgeIndex;
             return (
                 <SelectID
+                    imagePrefix="../.."
                     dialogName="matter"
                     types={addDeviceDialog.detectionType === 'device' ? ['device', 'channel'] : ['state']}
                     themeType={this.props.themeType}

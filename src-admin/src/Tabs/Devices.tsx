@@ -591,6 +591,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         if (addDeviceDialog.detectionType !== 'auto') {
             return (
                 <SelectID
+                    imagePrefix="../.."
                     types={addDeviceDialog.detectionType === 'device' ? ['device', 'channel'] : ['state']}
                     dialogName="matter"
                     themeType={this.props.themeType}

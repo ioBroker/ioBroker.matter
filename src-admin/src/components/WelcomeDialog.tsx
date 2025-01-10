@@ -386,7 +386,7 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                                 this.props.onClose(
                                     'controller',
                                     this.state.originalData.login !== this.props.native.login ||
-                                    this.state.originalData.password !== this.props.native.pass,
+                                        this.state.originalData.password !== this.props.native.pass,
                                 );
                             }
                         }}

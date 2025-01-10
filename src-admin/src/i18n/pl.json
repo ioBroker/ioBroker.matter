@@ -126,7 +126,7 @@
     "QR Code": "Kod QR",
     "QR Code scan is not possible": "Skanowanie kodu QR nie jest możliwe",
     "QR Code to connect for %s": "Kod QR do połączenia dla \"%s\"",
-    "Re-Announce": "Re-announce",
+    "Re-announce": "Re-announce",
     "Read for problems": "Jeśli masz problemy ze znalezieniem urządzeń lub nawiązaniem połączenia z ekosystemami, może być konieczne wprowadzenie dodatkowych ustawień protokołu IPv6 na hoście ioBroker.",
     "Reconnect to backend": "Ponowne połączenie z zapleczem",
     "Required": "Wymagany",

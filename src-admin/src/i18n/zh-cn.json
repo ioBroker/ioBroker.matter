@@ -126,7 +126,7 @@
     "QR Code": "二维码",
     "QR Code scan is not possible": "无法扫描二维码",
     "QR Code to connect for %s": "用于连接“%s”的二维码",
-    "Re-Announce": "Re-announce",
+    "Re-announce": "Re-announce",
     "Read for problems": "如果您在查找设备或连接生态系统时遇到问题，则可能需要在 ioBroker 主机上进行额外的 IPv6 设置。",
     "Reconnect to backend": "重新连接到后端",
     "Required": "必需的",

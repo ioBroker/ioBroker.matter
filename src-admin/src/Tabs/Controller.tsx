@@ -739,7 +739,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     />
                     {I18n.t('On')}
                 </div>
-                <div style={{ display: 'flex', width: '100%', flexFlow: 'wrap', gap: 9 }}>
+                <div style={{ display: 'flex', width: '100%', flexFlow: 'wrap', gap: 8 }}>
                     {this.props.matter.controller.enabled && this.props.alive ? (
                         <Button
                             variant="contained"
@@ -772,7 +772,6 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     ) : null}
                     {this.props.matter.controller.enabled && this.props.alive ? (
                         <Button
-                            sx={{ marginX: 1 }}
                             variant="contained"
                             color="primary"
                             onClick={() => this.setState({ showQrCodeDialog: true })}

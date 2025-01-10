@@ -126,7 +126,7 @@
     "QR Code": "Code QR",
     "QR Code scan is not possible": "La numérisation du code QR n'est pas possible",
     "QR Code to connect for %s": "Code QR pour se connecter pour « %s »",
-    "Re-Announce": "Re-announce",
+    "Re-announce": "Re-announce",
     "Read for problems": "Si vous rencontrez des problèmes pour trouver des appareils ou vous connecter à des écosystèmes, vous devrez peut-être définir des paramètres IPv6 supplémentaires sur l'hôte ioBroker.",
     "Reconnect to backend": "Se reconnecter au backend",
     "Required": "Requis",

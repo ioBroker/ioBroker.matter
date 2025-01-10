@@ -126,7 +126,7 @@
     "QR Code": "QR-Code",
     "QR Code scan is not possible": "QR-Code-Scan ist nicht möglich",
     "QR Code to connect for %s": "QR-Code zum Verbinden für „%s“",
-    "Re-Announce": "Pairing neu starten",
+    "Re-announce": "Pairing neu starten",
     "Read for problems": "Wenn Sie Probleme beim Auffinden von Geräten oder beim Herstellen einer Verbindung zu Ökosystemen haben, müssen Sie möglicherweise zusätzliche IPv6-Einstellungen auf dem ioBroker-Host vornehmen.",
     "Reconnect to backend": "Erneute Verbindung zum Backend herstellen",
     "Required": "Erforderlich",

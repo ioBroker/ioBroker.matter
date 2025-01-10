@@ -595,7 +595,7 @@ class Options extends Component<OptionsProps, OptionsState> {
                     <Typography sx={styles.header}>{I18n.t('Controller Settings')}</Typography>
                     <InfoBox type="info">
                         {I18n.t(
-                            'The label set here is used as Label when ioBroker connects to a device as device and might be shown by other Controllers in their overviews about other connected ecosystems.',
+                            'The label set here is used as Label when ioBroker connects to a device as controller and might be shown by other Controllers in their overviews about other connected ecosystems.',
                         )}
                     </InfoBox>
                     <TextField

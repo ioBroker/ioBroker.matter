@@ -154,7 +154,7 @@
     "Successfully re-announced": "Successfully re-announced!",
     "Suppress question for 5 minutes": "Suppress question for 5 minutes",
     "Sync credentials with %s": "Sync credentials with %s",
-    "The label set here is used as Label when ioBroker connects to a device as device and might be shown by other Controllers in their overviews about other connected ecosystems.": "The label set here is used as Label when ioBroker connects to a device as device and might be shown by other Controllers in their overviews about other connected ecosystems.",
+    "The label set here is used as Label when ioBroker connects to a device as controller and might be shown by other Controllers in their overviews about other connected ecosystems.": "The label set here is used as label when ioBroker connects to a device as controller and might be shown by other Controllers in their overviews about other connected ecosystems.",
     "This cannot be undone!": "This cannot be undone!",
     "This device/bridge is linked to some ecosystem. If it is deleted here, you must manually remove it from your ecosystem!": "This device/bridge is linked to some ecosystem. If it is deleted here, you must manually remove it from your ecosystem!",
     "This object ID is already added": "This object ID is already added",

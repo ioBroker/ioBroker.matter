@@ -154,7 +154,7 @@
     "Successfully re-announced": "Успешно выполнено!",
     "Suppress question for 5 minutes": "Не задавать вопрос 5 минут",
     "Sync credentials with %s": "Синхронизировать учетные данные с %s",
-    "The label set here is used as Label when ioBroker connects to a device as device and might be shown by other Controllers in their overviews about other connected ecosystems.": "Заданная здесь метка используется в качестве метки, когда ioBroker подключается к устройству как к устройству, и может отображаться другими контроллерами в их обзорах других подключенных экосистем.",
+    "The label set here is used as Label when ioBroker connects to a device as controller and might be shown by other Controllers in their overviews about other connected ecosystems.": "Установленная здесь метка используется в качестве метки, когда ioBroker подключается к устройству в качестве контроллера, и может отображаться другими контроллерами в их обзорах других подключенных экосистем.",
     "This cannot be undone!": "Это не может быть отменено!",
     "This device/bridge is linked to some ecosystem. If it is deleted here, you must manually remove it from your ecosystem!": "Это устройство/мост привязано к какой-то экосистеме. Если оно удалено здесь, вам необходимо вручную удалить его из вашей экосистемы!",
     "This object ID is already added": "Этот идентификатор объекта уже добавлен",

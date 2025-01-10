@@ -1,12 +1,15 @@
 import React from 'react';
 
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField, Link } from '@mui/material';
-import { Check, Clear, Close } from '@mui/icons-material';
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Link } from '@mui/material';
+import { Close } from '@mui/icons-material';
 import { FaApple, FaAndroid } from 'react-icons/fa';
 
-import { type AdminConnection, I18n, DialogConfirm, type ThemeType } from '@iobroker/adapter-react-v5';
+import { type AdminConnection, I18n, type ThemeType, DialogMessage } from '@iobroker/adapter-react-v5';
 
 import InfoBox from './InfoBox';
+import NetworkSelector, { type NetworkInterface } from './NetworkSelector';
+import LoginPassword from './LoginPassword';
+import type { MatterAdapterConfig } from '../types';
 
 type Platform =
     | 'aix'
@@ -68,36 +71,28 @@ type HostInfo = {
     NPM: string;
 };
 
-interface NetworkInterface {
-    address: string;
-    netmask: string;
-    family: string;
-    mac: string;
-    internal: boolean;
-    cidr: string;
-}
-
 interface WelcomeDialogProps {
-    login?: string;
-    pass?: string;
-    onClose: (login?: string, password?: string, navigateTo?: 'controller' | 'bridges') => void;
+    onClose: (navigateTo?: 'controller' | 'bridges', updateRepeat?: boolean) => void;
     socket: AdminConnection;
     instance: number;
     themeType: ThemeType;
-    common: ioBroker.InstanceCommon | null;
+    host: string;
+    native: MatterAdapterConfig;
+    changed: boolean;
+    onChange: (attr: string, value: string) => Promise<void>;
 }
 
 interface WelcomeDialogState {
-    login?: string;
-    password?: string;
-    passwordRepeat?: string;
-    passVisible?: boolean;
-    iotInstance?: string;
-    iotLogin?: string;
-    iotPassword?: string;
-    ipV6found: boolean | null;
-    notSavedConfirm: '' | 'close' | 'bridges' | 'controller';
     docker: boolean;
+    networkInterfaces: Record<string, NetworkInterface[]> | null;
+    showNetwork: boolean;
+    originalData: {
+        login: string;
+        password: string;
+        networkInterface: string;
+    };
+    credentialsError: boolean;
+    showSaveDialog: 'close' | 'controller' | 'bridges' | '';
 }
 
 class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogState> {
@@ -105,16 +100,52 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
 
     constructor(props: WelcomeDialogProps) {
         super(props);
-        this.showLogin = !this.props.login || !this.props.pass;
+        this.showLogin = !this.props.native.login || !this.props.native.pass;
 
         this.state = {
-            login: this.props.login || '',
-            password: this.props.pass || '',
-            passwordRepeat: this.props.pass || '',
-            ipV6found: null,
-            notSavedConfirm: '',
             docker: false,
+            networkInterfaces: {},
+            showNetwork: false,
+            credentialsError: false,
+            originalData: {
+                login: this.props.native.login,
+                password: this.props.native.pass,
+                networkInterface: this.props.native.interface,
+            },
+            showSaveDialog: '',
         };
+    }
+
+    checkIps(
+        networkInterfaces?: Record<string, NetworkInterface[]> | null,
+        networkInterface?: string,
+    ): {
+        ipV6found: boolean;
+        selectedIpV6found: boolean;
+    } {
+        networkInterfaces = networkInterfaces || this.state.networkInterfaces;
+        networkInterface = networkInterface === undefined ? this.props.native.interface : networkInterface;
+        const result = { selectedIpV6found: false, ipV6found: false };
+        // Try to find IPv6 address
+        if (networkInterfaces) {
+            const list: Record<string, NetworkInterface[]> = networkInterfaces;
+
+            if (networkInterface && list[networkInterface]) {
+                result.selectedIpV6found = !!list[networkInterface].find(_ip => _ip.family === 'IPv6');
+            }
+
+            Object.keys(list).forEach(inter => {
+                // ignore internal interfaces
+                if (list[inter].find(_ip => _ip.internal)) {
+                    return;
+                }
+
+                // find ipv4 address
+                result.ipV6found = result.ipV6found || !!list[inter].find(_ip => _ip.family === 'IPv6');
+            });
+        }
+
+        return result;
     }
 
     async componentDidMount(): Promise<void> {
@@ -141,66 +172,28 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
             });
         }
 
-        // detect if any iot or cloud with pro-account are available
-        const instancesIot = await this.props.socket.getAdapterInstances('iot');
-        let instance: ioBroker.InstanceObject | null = null;
-        if (instancesIot) {
-            instance = instancesIot.find(it => it?.native?.login && it?.native?.pass) || null;
-            if (instance) {
-                // encode
-                const pass = await this.props.socket.decrypt(instance.native.pass);
-
-                this.setState({
-                    iotInstance: instance._id,
-                    iotPassword: pass,
-                    iotLogin: instance.native.login,
-                });
-            }
-        }
-        if (!instance) {
-            const instancesCloud = await this.props.socket.getAdapterInstances('cloud');
-            instance = instancesCloud.find(it => it?.native?.login && it?.native?.pass) || null;
-            if (instance) {
-                // encode
-                const pass = await this.props.socket.decrypt(instance.native.pass);
-
-                this.setState({
-                    iotInstance: instance._id,
-                    iotPassword: pass,
-                    iotLogin: instance.native.login,
-                });
-            }
-        }
-
         try {
-            const hostObj: ioBroker.HostObject | null | undefined =
-                this.props.common && (await this.props.socket.getObject(`system.host.${this.props.common.host}`));
-            let ipV6found = false;
-            // Try to find IPv6 address
-            if (hostObj?.native?.hardware?.networkInterfaces) {
-                const list: Record<string, NetworkInterface[]> = hostObj.native.hardware.networkInterfaces as Record<
-                    string,
-                    NetworkInterface[]
-                >;
-                Object.keys(list).forEach(inter => {
-                    // ignore internal interfaces
-                    if (list[inter].find(_ip => _ip.internal)) {
-                        return;
-                    }
+            const hostObj: ioBroker.HostObject | null | undefined = this.props.host
+                ? await this.props.socket.getObject(`system.host.${this.props.host}`)
+                : null;
+            if (hostObj) {
+                const verify = this.checkIps(
+                    hostObj.native.hardware.networkInterfaces as Record<string, NetworkInterface[]>,
+                );
 
-                    // find ipv4 address
-                    ipV6found = ipV6found || !!list[inter].find(_ip => _ip.family === 'IPv6');
+                this.setState({
+                    showNetwork: verify.ipV6found && !verify.selectedIpV6found,
+                    networkInterfaces: hostObj.native.hardware.networkInterfaces as Record<string, NetworkInterface[]>,
                 });
             }
-            this.setState({ ipV6found });
         } catch (e) {
             window.alert(`Cannot read interfaces: ${e}`);
         }
 
-        if (this.props.common?.host) {
+        if (this.props.host) {
             const hostData: HostInfo & { 'Active instances': number; location: string; Uptime: number } =
-                await this.props.socket.getHostInfo(this.props.common.host, false, 10000).catch((e: unknown): void => {
-                    window.alert(`Cannot getHostInfo for "${this.props.common?.host}": ${e as Error}`);
+                await this.props.socket.getHostInfo(this.props.host, false, 10000).catch((e: unknown): void => {
+                    window.alert(`Cannot getHostInfo for "${this.props.host}": ${e as Error}`);
                 });
 
             if (hostData) {
@@ -209,83 +202,105 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
         }
     }
 
-    renderConfirmDialog(): React.JSX.Element | null {
-        if (!this.state.notSavedConfirm) {
+    renderSaveDialog(): React.JSX.Element | null {
+        if (!this.state.showSaveDialog) {
             return null;
         }
-
         return (
-            <DialogConfirm
-                title={I18n.t('Please confirm')}
-                text={I18n.t('Login and password will not be taken as incomplete. Discard changes?')}
-                ok={I18n.t('Yes')}
-                cancel={I18n.t('Stay here')}
-                onClose={(result: boolean) => {
-                    if (result) {
-                        const navigateTo = this.state.notSavedConfirm;
-                        this.setState(
-                            {
-                                notSavedConfirm: '',
-                            },
-                            () => {
-                                if (!navigateTo || navigateTo === 'close') {
-                                    this.props.onClose();
-                                } else {
-                                    this.props.onClose(undefined, undefined, navigateTo);
-                                }
-                            },
+            <DialogMessage
+                text={I18n.t('Do not forget to save changed settings')}
+                onClose={() => {
+                    const navigate: 'close' | 'bridges' | 'controller' | '' = this.state.showSaveDialog;
+                    this.setState({ showSaveDialog: '' }, () => {
+                        this.props.onClose(
+                            !navigate || navigate === 'close' ? undefined : navigate,
+                            this.state.originalData.login !== this.props.native.login ||
+                                this.state.originalData.password !== this.props.native.pass,
                         );
-                    } else {
-                        this.setState({ notSavedConfirm: '' });
-                    }
+                    });
                 }}
             />
         );
     }
 
     render(): React.JSX.Element {
+        let ip6text: React.JSX.Element | undefined;
+        const validate = this.checkIps();
+
+        if (validate.ipV6found !== null) {
+            if (this.props.native.interface && !this.state.showNetwork && validate.selectedIpV6found) {
+                ip6text = (
+                    <InfoBox type="ok">
+                        {I18n.t(
+                            'Matter requires enabled IPv6 protocol on selected interface. Some IPv6 was found on your system.',
+                        )}
+                    </InfoBox>
+                );
+            } else if (validate.ipV6found && (this.state.showNetwork || this.props.native.interface)) {
+                ip6text = (
+                    <>
+                        <InfoBox
+                            type={!this.props.native.interface || validate.selectedIpV6found ? 'ok' : 'warning'}
+                            style={{
+                                color: this.props.themeType === 'dark' ? '#ff9c2c' : '#9f5000',
+                            }}
+                        >
+                            {I18n.t(
+                                'Matter requires enabled IPv6 protocol on selected interface. Some IPv6 was found on your system. But your currently selected interface does not support it. Please select another one below:',
+                            )}
+                        </InfoBox>
+                        <NetworkSelector
+                            interface={this.props.native.interface}
+                            onChange={newInterface => this.props.onChange('interface', newInterface)}
+                            socket={this.props.socket}
+                            host={this.props.host}
+                        />
+                    </>
+                );
+            } else if (validate.ipV6found) {
+                ip6text = (
+                    <InfoBox type="ok">
+                        {I18n.t(
+                            'Matter requires enabled IPv6 protocol on selected interface. Some IPv6 was found on your system.',
+                        )}
+                    </InfoBox>
+                );
+            } else {
+                ip6text = (
+                    <InfoBox
+                        type="error"
+                        style={{
+                            color: this.props.themeType === 'dark' ? '#b31010' : '#9f0000',
+                        }}
+                    >
+                        {I18n.t(
+                            'Matter requires enabled IPv6 protocol on selected interface. No IPv6 was found on your system!',
+                        )}
+                    </InfoBox>
+                );
+            }
+        }
+
         return (
             <Dialog
                 open={!0}
                 maxWidth="lg"
                 onClose={() => {
-                    if (
-                        !!this.state.login &&
-                        (!this.state.password || this.state.password !== this.state.passwordRepeat)
-                    ) {
-                        this.setState({ notSavedConfirm: 'close' });
-                    } else {
-                        this.props.onClose();
-                    }
+                    this.props.onClose(
+                        undefined,
+                        this.props.native.pass !== this.state.originalData.password ||
+                            this.props.native.login !== this.state.originalData.login,
+                    );
                 }}
             >
-                {this.renderConfirmDialog()}
+                {this.renderSaveDialog()}
                 <DialogTitle>{I18n.t('Welcome to Matter!')}</DialogTitle>
                 <DialogContent>
                     <div style={{ width: '100%', marginBottom: 8 }}>{I18n.t('Welcome explanation')}</div>
                     <div style={{ width: '100%', marginBottom: 16 }}>
                         {I18n.t('To make all this work, the following requirements should be considered')}:
                     </div>
-                    {this.state.ipV6found !== null ? (
-                        <InfoBox
-                            type={this.state.ipV6found ? 'ok' : 'error'}
-                            style={{
-                                color: this.state.ipV6found
-                                    ? undefined
-                                    : this.props.themeType === 'dark'
-                                      ? '#b31010'
-                                      : '#9f0000',
-                            }}
-                        >
-                            {this.state.ipV6found
-                                ? I18n.t(
-                                      'Matter requires enabled IPv6 protocol on selected interface. Some IPv6 was found on your system.',
-                                  )
-                                : I18n.t(
-                                      'Matter requires enabled IPv6 protocol on selected interface. No IPv6 was found on your system!',
-                                  )}
-                        </InfoBox>
-                    ) : null}
+                    {ip6text || null}
                     {this.state.docker ? (
                         <InfoBox type="info">
                             {I18n.t('Docker information')}
@@ -347,122 +362,32 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                         </div>
                     </InfoBox>
                     {this.showLogin ? (
-                        <TextField
-                            style={{ marginBottom: 8, marginTop: 8 }}
-                            variant="standard"
-                            label={I18n.t('ioBroker.pro Login')}
-                            value={this.state.login}
-                            onChange={e => this.setState({ login: e.target.value })}
-                            fullWidth
-                            slotProps={{
-                                htmlInput: {
-                                    autocomplete: 'new-password',
-                                },
-                                input: {
-                                    endAdornment: this.state.login ? (
-                                        <IconButton
-                                            tabIndex={-1}
-                                            size="small"
-                                            onClick={() => this.setState({ login: '' })}
-                                        >
-                                            <Clear />
-                                        </IconButton>
-                                    ) : null,
-                                },
+                        <LoginPassword
+                            native={this.props.native}
+                            onChange={(id: string, value: string): Promise<void> => this.props.onChange(id, value)}
+                            onError={(error: string) => {
+                                if (this.state.credentialsError !== !!error) {
+                                    this.setState({ credentialsError: !!error });
+                                }
                             }}
+                            socket={this.props.socket}
+                            updatePassTrigger={1}
                         />
-                    ) : null}
-                    {this.showLogin ? (
-                        <TextField
-                            style={{ marginBottom: 8 }}
-                            variant="standard"
-                            type={this.state.passVisible ? 'text' : 'password'}
-                            label={I18n.t('ioBroker.pro Password')}
-                            value={this.state.password}
-                            onChange={e => this.setState({ password: e.target.value })}
-                            slotProps={{
-                                htmlInput: {
-                                    autocomplete: 'new-password',
-                                },
-                                input: {
-                                    endAdornment: this.state.password ? (
-                                        <IconButton
-                                            tabIndex={-1}
-                                            size="small"
-                                            onClick={() => this.setState({ password: '' })}
-                                        >
-                                            <Clear />
-                                        </IconButton>
-                                    ) : null,
-                                },
-                            }}
-                            sx={theme => ({
-                                [theme.breakpoints.down('md')]: { width: '100%' },
-                                [theme.breakpoints.up('md')]: { width: 'calc(50% - 8px)', marginRight: 1 },
-                                [theme.breakpoints.up('lg')]: { width: 'calc(30% - 8px)', marginRight: 1 },
-                            })}
-                        />
-                    ) : null}
-                    {this.showLogin ? (
-                        <TextField
-                            style={{ marginBottom: 16 }}
-                            variant="standard"
-                            type={this.state.passVisible ? 'text' : 'password'}
-                            label={I18n.t('Password repeat')}
-                            value={this.state.passwordRepeat}
-                            error={!!this.state.password && this.state.password !== this.state.passwordRepeat}
-                            onChange={e => this.setState({ passwordRepeat: e.target.value })}
-                            sx={theme => ({
-                                [theme.breakpoints.up('lg')]: { width: 'calc(30% - 8px)', marginRight: 1 },
-                                [theme.breakpoints.down('md')]: { width: '100%' },
-                                [theme.breakpoints.up('md')]: { width: 'calc(50% - 8px)', marginRight: 1 },
-                            })}
-                            slotProps={{
-                                input: {
-                                    endAdornment: this.state.passwordRepeat ? (
-                                        <IconButton
-                                            tabIndex={-1}
-                                            size="small"
-                                            onClick={() => this.setState({ passwordRepeat: '' })}
-                                        >
-                                            <Clear />
-                                        </IconButton>
-                                    ) : null,
-                                },
-                                htmlInput: {
-                                    autocomplete: 'new-password',
-                                },
-                            }}
-                        />
-                    ) : null}
-                    {this.state.iotInstance && this.showLogin ? (
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            onClick={() => {
-                                this.setState({
-                                    login: this.state.iotLogin,
-                                    password: this.state.iotPassword,
-                                    passwordRepeat: this.state.iotPassword,
-                                });
-                            }}
-                        >
-                            {I18n.t('Sync credentials with %s', this.state.iotInstance.replace('system.adapter.', ''))}
-                        </Button>
                     ) : null}
                 </DialogContent>
                 <DialogActions>
                     <Button
                         variant="contained"
+                        disabled={this.state.credentialsError}
                         onClick={() => {
-                            if (
-                                this.showLogin &&
-                                !!this.state.login &&
-                                (!this.state.password || this.state.password !== this.state.passwordRepeat)
-                            ) {
-                                this.setState({ notSavedConfirm: 'controller' });
+                            if (this.props.changed) {
+                                this.setState({ showSaveDialog: 'controller' });
                             } else {
-                                this.props.onClose(this.state.login, this.state.password, 'controller');
+                                this.props.onClose(
+                                    'controller',
+                                    this.state.originalData.login !== this.props.native.login ||
+                                    this.state.originalData.password !== this.props.native.pass,
+                                );
                             }
                         }}
                     >
@@ -470,15 +395,16 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                     </Button>
                     <Button
                         variant="contained"
+                        disabled={this.state.credentialsError}
                         onClick={() => {
-                            if (
-                                this.showLogin &&
-                                !!this.state.login &&
-                                (!this.state.password || this.state.password !== this.state.passwordRepeat)
-                            ) {
-                                this.setState({ notSavedConfirm: 'bridges' });
+                            if (this.props.changed) {
+                                this.setState({ showSaveDialog: 'bridges' });
                             } else {
-                                this.props.onClose(this.state.login, this.state.password, 'bridges');
+                                this.props.onClose(
+                                    'bridges',
+                                    this.state.originalData.login !== this.props.native.login ||
+                                        this.state.originalData.password !== this.props.native.pass,
+                                );
                             }
                         }}
                     >
@@ -487,36 +413,21 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                     <Button
                         variant="contained"
                         color="grey"
+                        disabled={this.state.credentialsError}
                         onClick={() => {
-                            if (this.showLogin) {
-                                if (
-                                    !!this.state.login &&
-                                    (!this.state.password || this.state.password !== this.state.passwordRepeat)
-                                ) {
-                                    this.setState({ notSavedConfirm: 'close' });
-                                } else {
-                                    this.props.onClose(this.state.login, this.state.password);
-                                }
+                            if (this.props.changed) {
+                                this.setState({ showSaveDialog: 'close' });
                             } else {
-                                this.props.onClose();
+                                this.props.onClose(
+                                    undefined,
+                                    this.state.originalData.login !== this.props.native.login ||
+                                        this.state.originalData.password !== this.props.native.pass,
+                                );
                             }
                         }}
-                        startIcon={
-                            this.state.login &&
-                            this.state.password &&
-                            this.state.password === this.state.passwordRepeat ? (
-                                <Check />
-                            ) : (
-                                <Close />
-                            )
-                        }
+                        startIcon={<Close />}
                     >
-                        {this.showLogin &&
-                        this.state.login &&
-                        this.state.password &&
-                        this.state.password === this.state.passwordRepeat
-                            ? I18n.t('Apply')
-                            : I18n.t('Close')}
+                        {I18n.t('Close')}
                     </Button>
                 </DialogActions>
             </Dialog>

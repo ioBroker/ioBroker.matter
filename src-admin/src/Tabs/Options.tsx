@@ -91,7 +91,6 @@ interface OptionsState {
     passwordRepeat: string;
     iotInstance: string;
     interfaces?: { value: string; address?: string; address6?: string }[];
-    updatePassTrigger: number;
 }
 
 function cutIpV6(address: string, length?: number): string {

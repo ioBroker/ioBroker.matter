@@ -108,6 +108,7 @@ interface AppState extends GenericAppState {
         value?: number;
     } | null;
     welcomeDialogShowed: boolean;
+    updatePassTrigger: number;
 }
 
 class App extends GenericApp<GenericAppProps, AppState> {
@@ -175,6 +176,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             showWelcomeDialog: false,
             welcomeDialogShowed: false,
             inProcessing: null,
+            updatePassTrigger: 1,
         });
 
         this.alert = window.alert;
@@ -324,7 +326,11 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 ): Promise<void> => {
                     if (login && password) {
                         if (adapterSettings.login !== login || adapterSettings.pass !== password) {
-                            this.updateNativeValue('login', login, () => this.updateNativeValue('pass', password));
+                            this.updateNativeValue('login', login, () =>
+                                this.updateNativeValue('pass', password, () =>
+                                    this.setState({ updatePassTrigger: this.state.updatePassTrigger + 1 }),
+                                ),
+                            );
                         }
                     }
                     if (!this.state.welcomeDialogShowed) {
@@ -517,6 +523,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 onError={(errorText: string): void => {
                     this.setConfigurationError(errorText);
                 }}
+                updatePassTrigger={this.state.updatePassTrigger}
             />
         );
     }

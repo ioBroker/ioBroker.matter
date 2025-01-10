@@ -154,6 +154,7 @@
     "Successfully re-announced": "Ré-annoncé avec succès !",
     "Suppress question for 5 minutes": "Supprimer la question pendant 5 minutes",
     "Sync credentials with %s": "Synchroniser les identifiants avec %s",
+    "The label set here is used as Label when ioBroker connects to a device as device and might be shown by other Controllers in their overviews about other connected ecosystems.": "L'étiquette définie ici est utilisée comme étiquette lorsque ioBroker se connecte à un appareil en tant qu'appareil et peut être affichée par d'autres contrôleurs dans leurs aperçus sur d'autres écosystèmes connectés.",
     "This cannot be undone!": "Ça ne peut pas être annulé!",
     "This device/bridge is linked to some ecosystem. If it is deleted here, you must manually remove it from your ecosystem!": "Cet appareil/pont est lié à un écosystème. S'il est supprimé ici, vous devez le supprimer manuellement de votre écosystème !",
     "This object ID is already added": "Cet ID d'objet est déjà ajouté",

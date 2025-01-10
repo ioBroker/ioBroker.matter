@@ -291,7 +291,7 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                             {I18n.t('Docker information')}
                             <div>
                                 <Link
-                                    href="https://google.com"
+                                    href="https://github.com/ioBroker/ioBroker.matter/wiki/Troubleshooting"
                                     target="_blank"
                                     rel="noreferrer"
                                 >
@@ -338,7 +338,7 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                         {I18n.t('Read for problems')}
                         <div>
                             <Link
-                                href="https://google.com"
+                                href="https://github.com/ioBroker/ioBroker.matter/wiki/Troubleshooting"
                                 target="_blank"
                                 rel="noreferrer"
                             >
@@ -456,6 +456,7 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                         variant="contained"
                         onClick={() => {
                             if (
+                                this.showLogin &&
                                 !!this.state.login &&
                                 (!this.state.password || this.state.password !== this.state.passwordRepeat)
                             ) {
@@ -471,6 +472,7 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                         variant="contained"
                         onClick={() => {
                             if (
+                                this.showLogin &&
                                 !!this.state.login &&
                                 (!this.state.password || this.state.password !== this.state.passwordRepeat)
                             ) {
@@ -486,11 +488,15 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                         variant="contained"
                         color="grey"
                         onClick={() => {
-                            if (
-                                !!this.state.login &&
-                                (!this.state.password || this.state.password !== this.state.passwordRepeat)
-                            ) {
-                                this.setState({ notSavedConfirm: 'close' });
+                            if (this.showLogin) {
+                                if (
+                                    !!this.state.login &&
+                                    (!this.state.password || this.state.password !== this.state.passwordRepeat)
+                                ) {
+                                    this.setState({ notSavedConfirm: 'close' });
+                                } else {
+                                    this.props.onClose(this.state.login, this.state.password);
+                                }
                             } else {
                                 this.props.onClose();
                             }

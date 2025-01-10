@@ -80,6 +80,7 @@ interface OptionsProps {
     matter: MatterConfig;
     onShowWelcomeDialog: () => void;
     onError: (errorText: string) => void;
+    updatePassTrigger: number;
 }
 
 interface OptionsState {
@@ -90,6 +91,7 @@ interface OptionsState {
     passwordRepeat: string;
     iotInstance: string;
     interfaces?: { value: string; address?: string; address6?: string }[];
+    updatePassTrigger: number;
 }
 
 function cutIpV6(address: string, length?: number): string {
@@ -105,6 +107,8 @@ function cutIpV6(address: string, length?: number): string {
 }
 
 class Options extends Component<OptionsProps, OptionsState> {
+    private updatePassTrigger: number;
+
     constructor(props: OptionsProps) {
         super(props);
         this.state = {
@@ -115,6 +119,8 @@ class Options extends Component<OptionsProps, OptionsState> {
             passwordRepeat: this.props.native.pass,
             iotInstance: '',
         };
+
+        this.updatePassTrigger = this.props.updatePassTrigger;
     }
 
     renderConfirmDialog(): React.JSX.Element | null {
@@ -272,6 +278,15 @@ class Options extends Component<OptionsProps, OptionsState> {
             uuid: '_',
             name: I18n.t('Unknown'),
         };
+
+        if (this.props.updatePassTrigger !== this.updatePassTrigger) {
+            this.updatePassTrigger = this.props.updatePassTrigger;
+            if (this.state.passwordRepeat !== this.props.native.pass) {
+                setTimeout(() => {
+                    this.setState({ passwordRepeat: this.props.native.pass });
+                }, 50);
+            }
+        }
 
         return (
             <div style={styles.panel}>
@@ -538,7 +553,7 @@ class Options extends Component<OptionsProps, OptionsState> {
                         margin="normal"
                     />
                 </div>
-                <div>
+                <div style={{ marginTop: 8 }}>
                     {this.state.iotInstance &&
                     (this.state.iotPassword !== this.props.native.pass ||
                         this.state.iotPassword !== this.state.passwordRepeat ||
@@ -546,9 +561,14 @@ class Options extends Component<OptionsProps, OptionsState> {
                         <Button
                             variant="contained"
                             color="primary"
-                            onClick={() => {
-                                void this.props.onChange('login', this.state.iotLogin);
-                                void this.props.onChange('pass', this.state.iotPassword);
+                            onClick={async (): Promise<void> => {
+                                if (this.state.iotLogin !== this.props.native.login) {
+                                    await this.props.onChange('login', this.state.iotLogin);
+                                }
+                                if (this.state.iotPassword !== this.props.native.pass) {
+                                    await this.props.onChange('pass', this.state.iotPassword);
+                                }
+
                                 this.props.onError('');
                                 this.setState({ passwordRepeat: this.state.iotPassword });
                             }}

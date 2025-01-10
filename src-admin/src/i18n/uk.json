@@ -159,6 +159,7 @@
     "The label set here is used as Label when ioBroker connects to a device as controller and might be shown by other Controllers in their overviews about other connected ecosystems.": "Встановлена тут мітка використовується як мітка, коли ioBroker підключається до пристрою як контролера, і може бути показана іншими контролерами в їхніх оглядах інших підключених екосистем.",
     "This cannot be undone!": "Це не може бути скасоване!",
     "This device/bridge is linked to some ecosystem. If it is deleted here, you must manually remove it from your ecosystem!": "Цей пристрій/міст пов’язаний з певною екосистемою. Якщо його буде видалено тут, ви повинні вручну видалити його зі своєї екосистеми!",
+    "This entry is being modified actually": "Фактично цей запис змінюється",
     "This object ID is already added": "Цей ідентифікатор об’єкта вже додано",
     "Thread credentials": "Облікові дані ланцюжка",
     "Thread network name": "Thread network name",

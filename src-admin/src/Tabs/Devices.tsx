@@ -155,7 +155,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
             >
                 <DialogTitle>{I18n.t('Delete')}</DialogTitle>
                 <DialogContent>
-                    {`${I18n.t('Do you want to delete device')} ${this.state.deleteDialog.name}?`}
+                    <div>{`${I18n.t('Do you want to delete device')} ${this.state.deleteDialog.name}?`}</div>
                     <FormControlLabel
                         control={
                             <Checkbox
@@ -679,17 +679,13 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
      * @param index table index
      */
     renderDevice(device: DeviceDescription, index: number): React.JSX.Element | null {
-        if (device.deleted) {
-            return null;
-        }
-
         return (
             <TableRow
                 key={index}
                 style={{ opacity: device.enabled ? 1 : 0.4, position: 'relative' }}
             >
-                {this.renderProcessOverlay(device.uuid)}
                 <TableCell>
+                    {this.renderProcessOverlay(device.uuid, device.deleted)}
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                         <span
                             style={{ marginRight: 8 }}

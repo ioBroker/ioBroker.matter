@@ -527,13 +527,14 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
     }
 
     // eslint-disable-next-line react/no-unused-class-component-methods
-    renderProcessOverlay(uuid: string): React.JSX.Element | null {
+    renderProcessOverlay(uuid: string, deleted?: boolean): React.JSX.Element | null {
         const processing = this.getInProcessing(uuid);
-        if (!processing) {
+        if (!processing && !deleted) {
             return null;
         }
         return (
             <div
+                title={I18n.t('This entry is being modified actually')}
                 style={{
                     zIndex: 1,
                     position: 'absolute',
@@ -541,7 +542,12 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                     bottom: 0,
                     left: 0,
                     right: 0,
-                    backgroundImage: `repeating-linear-gradient(325deg, ${this.props.themeType === 'dark' ? '#00000080' : '#FFFFFF80'}, ${this.props.themeType === 'dark' ? '#00000080' : '#FFFFFF80'} 20px, #00000000 20px, #00000000 40px)`,
+                    backgroundImage:
+                        'repeating-linear-gradient(325deg, ' +
+                        `${this.props.themeType === 'dark' ? '#00000090' : '#FFFFFF90'}, ` +
+                        `${this.props.themeType === 'dark' ? '#00000090' : '#FFFFFF90'} 20px, ` +
+                        `${this.props.themeType === 'dark' ? '#00000050' : '#FFFFFF50'} 20px, ` +
+                        `${this.props.themeType === 'dark' ? '#00000050' : '#FFFFFF50'} 40px)`,
                 }}
             >
                 {processing === 'processing' ? <LinearProgress /> : null}

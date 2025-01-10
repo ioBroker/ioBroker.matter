@@ -99,44 +99,51 @@ class ConfigHandler {
                         changed = true;
                         this.config.devices.splice(this.config.devices.indexOf(device), 1);
                     } else {
+                        const native: DeviceDescription = obj.native as DeviceDescription;
                         // detect changes
-                        if (device.enabled !== obj.native.enabled) {
+                        if (device.enabled !== native.enabled) {
                             changed = true;
-                            device.enabled = obj.native.enabled;
+                            device.enabled = native.enabled;
                         }
 
                         if (device.name !== obj.common.name) {
                             changed = true;
                             device.name = obj.common.name;
                         }
-                        if (device.oid !== obj.native.oid) {
+                        if (device.oid !== native.oid) {
                             changed = true;
-                            device.oid = obj.native.oid;
+                            device.oid = native.oid;
                         }
-                        if (device.type !== obj.native.type) {
+                        if (device.type !== native.type) {
                             changed = true;
-                            device.type = obj.native.type;
+                            device.type = native.type;
                         }
-                        if (device.productID !== obj.native.productID) {
+                        if (device.productID !== native.productID) {
                             changed = true;
-                            device.productID = obj.native.productID;
+                            device.productID = native.productID;
                         }
-                        if (device.vendorID !== obj.native.vendorID) {
+                        if (device.vendorID !== native.vendorID) {
                             changed = true;
-                            device.vendorID = obj.native.vendorID;
+                            device.vendorID = native.vendorID;
+                        }
+                        if (device.deleted !== native.deleted) {
+                            changed = true;
+                            device.deleted = native.deleted;
                         }
                     }
                 } else if (obj && uuid) {
+                    const native: DeviceDescription = obj.native as DeviceDescription;
                     console.log(`Detected new device: ${uuid}`);
                     changed = true;
                     this.config.devices.push({
                         uuid,
                         name: obj.common.name,
-                        oid: obj.native.oid,
-                        type: obj.native.type,
-                        productID: obj.native.productID,
-                        vendorID: obj.native.vendorID,
-                        enabled: obj.native.enabled,
+                        oid: native.oid,
+                        type: native.type,
+                        productID: native.productID,
+                        vendorID: native.vendorID,
+                        enabled: native.enabled,
+                        deleted: native.deleted,
                     });
                 }
                 if (changed) {
@@ -155,28 +162,34 @@ class ConfigHandler {
                         changed = true;
                         this.config.bridges.splice(this.config.bridges.indexOf(bridge), 1);
                     } else {
-                        if (bridge.enabled !== obj.native.enabled) {
+                        const native: BridgeDescription = obj.native as BridgeDescription;
+                        if (bridge.enabled !== native.enabled) {
                             changed = true;
-                            bridge.enabled = obj.native.enabled;
+                            bridge.enabled = native.enabled;
                         }
                         if (typeof obj.common.name === 'string' && bridge.name !== obj.common.name) {
                             changed = true;
                             bridge.name = obj.common.name;
                         }
-                        if (JSON.stringify(bridge.list) !== JSON.stringify(obj.native.list)) {
+                        if (JSON.stringify(bridge.list) !== JSON.stringify(native.list)) {
                             changed = true;
-                            bridge.list = obj.native.list;
+                            bridge.list = native.list;
                         }
-                        if (bridge.productID !== obj.native.productID) {
+                        if (bridge.productID !== native.productID) {
                             changed = true;
-                            bridge.productID = obj.native.productID;
+                            bridge.productID = native.productID;
                         }
-                        if (bridge.vendorID !== obj.native.vendorID) {
+                        if (bridge.vendorID !== native.vendorID) {
                             changed = true;
-                            bridge.vendorID = obj.native.vendorID;
+                            bridge.vendorID = native.vendorID;
+                        }
+                        if (bridge.deleted !== native.deleted) {
+                            changed = true;
+                            bridge.deleted = native.deleted;
                         }
                     }
                 } else if (obj && uuid) {
+                    const native: BridgeDescription = obj.native as BridgeDescription;
                     console.log(`Detected new bridge: ${uuid}`);
                     changed = true;
 
@@ -189,10 +202,11 @@ class ConfigHandler {
                     this.config.bridges.push({
                         uuid,
                         name: obj.common.name,
-                        list: obj.native.list,
-                        productID: obj.native.productID,
-                        vendorID: obj.native.vendorID,
-                        enabled: obj.native.enabled,
+                        list: native.list,
+                        productID: native.productID,
+                        vendorID: native.vendorID,
+                        enabled: native.enabled,
+                        deleted: native.deleted,
                     });
                 }
                 if (changed) {
@@ -270,25 +284,29 @@ class ConfigHandler {
         // List devices
         Object.keys(devicesAndBridges).forEach(id => {
             if (id.substring(len).startsWith('devices.')) {
+                const native: DeviceDescription = devicesAndBridges[id].native as DeviceDescription;
                 const obj: DeviceDescription = {
                     uuid: id.substring(len + 8),
                     name: this.getText(devicesAndBridges[id].common.name),
-                    oid: devicesAndBridges[id].native.oid,
-                    type: devicesAndBridges[id].native.type,
-                    productID: devicesAndBridges[id].native.productID,
-                    vendorID: devicesAndBridges[id].native.vendorID,
-                    enabled: devicesAndBridges[id].native.enabled,
+                    oid: native.oid,
+                    type: native.type,
+                    productID: native.productID,
+                    vendorID: native.vendorID,
+                    enabled: native.enabled,
+                    deleted: native.deleted,
                 };
 
                 devices.push(obj);
             } else if (id.substring(len).startsWith('bridges.')) {
+                const native: BridgeDescription = devicesAndBridges[id].native as BridgeDescription;
                 const obj: BridgeDescription = {
                     uuid: id.substring(len + 8),
                     name: this.getText(devicesAndBridges[id].common.name),
-                    list: devicesAndBridges[id].native.list,
-                    productID: devicesAndBridges[id].native.productID,
-                    vendorID: devicesAndBridges[id].native.vendorID,
-                    enabled: devicesAndBridges[id].native.enabled,
+                    list: native.list,
+                    productID: native.productID,
+                    vendorID: native.vendorID,
+                    enabled: native.enabled,
+                    deleted: native.deleted,
                 };
                 bridges.push(obj);
             }

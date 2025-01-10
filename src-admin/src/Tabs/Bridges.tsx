@@ -748,11 +748,13 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
             >
                 <DialogTitle>{I18n.t('Delete')}</DialogTitle>
                 <DialogContent>
-                    {`${
-                        this.state.deleteDialog.type === 'bridge'
-                            ? I18n.t('Do you want to delete bridge')
-                            : I18n.t('Do you want to delete device')
-                    } ${this.state.deleteDialog.name}?`}
+                    <div>
+                        {`${
+                            this.state.deleteDialog.type === 'bridge'
+                                ? I18n.t('Do you want to delete bridge')
+                                : I18n.t('Do you want to delete device')
+                        } ${this.state.deleteDialog.name}?`}
+                    </div>
                     <FormControlLabel
                         control={
                             <Checkbox
@@ -1346,10 +1348,6 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
     }
 
     renderBridge(bridge: BridgeDescription, bridgeIndex: number): React.JSX.Element | null {
-        if (bridge.deleted) {
-            return null;
-        }
-
         const enabledDevices = bridge.list.filter(d => d.enabled).length;
         let countText: string | null;
         if (!bridge.list.length) {
@@ -1368,7 +1366,6 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     style={{ opacity: bridge.enabled ? 1 : 0.4, position: 'relative' }}
                     sx={styles.bridgeButtonsAndTitle}
                 >
-                    {this.renderProcessOverlay(bridge.uuid)}
                     <TableCell
                         style={{
                             width: 0,
@@ -1377,6 +1374,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         }}
                         sx={styles.bridgeButtonsAndTitle}
                     >
+                        {this.renderProcessOverlay(bridge.uuid, bridge.deleted)}
                         <IconButton
                             size="small"
                             sx={styles.bridgeButtonsAndTitleColor}

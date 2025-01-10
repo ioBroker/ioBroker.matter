@@ -159,6 +159,7 @@
     "The label set here is used as Label when ioBroker connects to a device as controller and might be shown by other Controllers in their overviews about other connected ecosystems.": "O rótulo definido aqui é usado quando o ioBroker se conecta a um dispositivo como controlador e pode ser exibido por outros controladores em suas visões gerais sobre outros ecossistemas conectados.",
     "This cannot be undone!": "Isto não pode ser desfeito!",
     "This device/bridge is linked to some ecosystem. If it is deleted here, you must manually remove it from your ecosystem!": "Este dispositivo/ponte está vinculado a algum ecossistema. Se ele for excluído aqui, você deve removê-lo manualmente do seu ecossistema!",
+    "This entry is being modified actually": "Esta entrada está sendo modificada atualmente",
     "This object ID is already added": "Este ID de objeto já foi adicionado",
     "Thread credentials": "Credenciais de thread",
     "Thread network name": "Thread network name",

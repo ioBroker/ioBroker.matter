@@ -159,6 +159,7 @@
     "The label set here is used as Label when ioBroker connects to a device as controller and might be shown by other Controllers in their overviews about other connected ecosystems.": "当 ioBroker 作为控制器连接到设备时，此处设置的标签将用作标签，并且其他控制器可能会在其有关其他连接的生态系统的概述中显示该标签。",
     "This cannot be undone!": "这不能被撤消！",
     "This device/bridge is linked to some ecosystem. If it is deleted here, you must manually remove it from your ecosystem!": "此设备/桥接器已链接到某个生态系统。如果在此处删除，则必须手动将其从生态系统中移除！",
+    "This entry is being modified actually": "此条目实际上正在被修改",
     "This object ID is already added": "此对象 ID 已添加",
     "Thread credentials": "线程凭据",
     "Thread network name": "Thread network name",

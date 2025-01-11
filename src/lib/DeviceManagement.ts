@@ -125,8 +125,6 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const status: DeviceStatus = ioNode.node.isConnected ? 'connected' : 'disconnected';
         const id = ioNode.nodeId;
         const details = ioNode.details;
-        // TODO: Read here the valid enabled status
-        const isEnabled = true;
 
         let actions: (DeviceAction<'adapter'> | null)[] = [
             {
@@ -134,17 +132,11 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 id: ACTIONS.STATUS,
                 handler: (_ignored, context) => this.#handleOnStatusNode(ioNode, context),
             },
-            isEnabled
-                ? {
-                      // This is a special action when the user clicks on the enabled icon
-                      id: ACTIONS.DISABLE,
-                      handler: (_ignored, context) => this.#handleEnableNode(ioNode, context, false),
-                  }
-                : {
-                      // This is a special action when the user clicks on the disabled icon
-                      id: ACTIONS.ENABLE,
-                      handler: (_ignored, context) => this.#handleEnableNode(ioNode, context, true),
-                  },
+            {
+                // This is a special action when the user clicks on the enabled icon
+                id: ACTIONS.ENABLE_DISABLE,
+                handler: (_ignored, context) => this.#handleEnableNode(ioNode, context),
+            },
             {
                 id: 'deleteNode',
                 icon: 'delete',
@@ -192,6 +184,8 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             icon: undefined,
             ...details,
             status,
+            // TODO: Provide here the valid value
+            enabled: true,
             hasDetails: true,
             actions: actions.length ? (actions as DeviceAction<'adapter'>[]) : undefined,
             color: 'secondary',
@@ -265,13 +259,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         return data;
     }
 
-    #handleEnableNode(
-        node: GeneralMatterNode,
-        context: ActionContext,
-        enable: boolean,
-    ): Promise<{ refresh: DeviceRefresh }> {
-        // TODO
-        this.#adapter.log.info(`${enable ? 'Enable' : 'Disable'} node ${node.nodeId}`);
+    #handleEnableNode(node: GeneralMatterNode, _context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
+        // TODO: implement real handler for enable/disable
+        this.#adapter.log.info(`Change enabled/disabled of node ${node.nodeId}`);
 
         return Promise.resolve({ refresh: false });
     }

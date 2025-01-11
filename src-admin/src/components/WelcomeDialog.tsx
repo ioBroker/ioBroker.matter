@@ -231,9 +231,9 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
             if (this.props.native.interface && !this.state.showNetwork && validate.selectedIpV6found) {
                 ip6text = (
                     <InfoBox type="ok">
-                        {I18n.t(
-                            'Matter requires enabled IPv6 protocol on selected interface. Some IPv6 was found on your system.',
-                        )}
+                        {`${I18n.t('Matter requires enabled IPv6 protocol on selected interface.')} ${I18n.t(
+                            'Some IPv6 was found on your system.',
+                        )}`}
                     </InfoBox>
                 );
             } else if (validate.ipV6found && (this.state.showNetwork || this.props.native.interface)) {
@@ -245,9 +245,9 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                                 color: this.props.themeType === 'dark' ? '#ff9c2c' : '#9f5000',
                             }}
                         >
-                            {I18n.t(
-                                'Matter requires enabled IPv6 protocol on selected interface. Some IPv6 was found on your system. But your currently selected interface does not support it. Please select another one below:',
-                            )}
+                            {`${I18n.t('Matter requires enabled IPv6 protocol on selected interface.')} ${I18n.t(
+                                'Some IPv6 was found on your system. But your currently selected interface does not support it. Please select another one below:',
+                            )}`}
                         </InfoBox>
                         <NetworkSelector
                             interface={this.props.native.interface}
@@ -260,9 +260,9 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
             } else if (validate.ipV6found) {
                 ip6text = (
                     <InfoBox type="ok">
-                        {I18n.t(
-                            'Matter requires enabled IPv6 protocol on selected interface. Some IPv6 was found on your system.',
-                        )}
+                        {`${I18n.t('Matter requires enabled IPv6 protocol on selected interface.')} ${I18n.t(
+                            'Some IPv6 was found on your system.',
+                        )}`}
                     </InfoBox>
                 );
             } else {
@@ -273,9 +273,9 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                             color: this.props.themeType === 'dark' ? '#b31010' : '#9f0000',
                         }}
                     >
-                        {I18n.t(
-                            'Matter requires enabled IPv6 protocol on selected interface. No IPv6 was found on your system!',
-                        )}
+                        {`${I18n.t('Matter requires enabled IPv6 protocol on selected interface.')} ${I18n.t(
+                            'No IPv6 was found on your system!',
+                        )}`}
                     </InfoBox>
                 );
             }

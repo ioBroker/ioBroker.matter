@@ -25,6 +25,8 @@ import { Check, Close, LayersClear, AutoAwesome, Clear } from '@mui/icons-materi
 import { type AdminConnection, I18n, Logo } from '@iobroker/adapter-react-v5';
 
 import InfoBox from '../components/InfoBox';
+import LoginPassword from '../components/LoginPassword';
+import NetworkSelector from '../components/NetworkSelector';
 import type { MatterAdapterConfig, MatterConfig } from '../types';
 
 const styles: Record<string, React.CSSProperties> = {
@@ -57,15 +59,6 @@ const styles: Record<string, React.CSSProperties> = {
         marginBottom: 1,
     },
 };
-
-interface NetworkInterface {
-    address: string;
-    netmask: string;
-    family: string;
-    mac: string;
-    internal: boolean;
-    cidr: string;
-}
 
 interface OptionsProps {
     alive: boolean;

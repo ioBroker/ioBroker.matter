@@ -1,6 +1,6 @@
 {
   "name": "iobroker.matter",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "Controlling and simulation of matter devices",
   "author": {
     "name": "Denis Haev",
@@ -23,16 +23,16 @@
     "url": "https://github.com/ioBroker/ioBroker.matter"
   },
   "optionalDependencies": {
-    "@matter/nodejs-ble": "0.12.0-alpha.0-20241231-9ac20db97"
+    "@matter/nodejs-ble": "0.12.0-alpha.0-20250108-7ae2a767d"
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.2.3",
     "@iobroker/i18n": "^0.3.1",
     "@iobroker/dm-utils": "^1.0.5",
     "@iobroker/type-detector": "^4.1.1",
-    "@matter/main": "0.12.0-alpha.0-20241231-9ac20db97",
-    "@matter/nodejs": "0.12.0-alpha.0-20241231-9ac20db97",
-    "@project-chip/matter.js": "0.12.0-alpha.0-20241231-9ac20db97",
+    "@matter/main": "0.12.0-alpha.0-20250108-7ae2a767d",
+    "@matter/nodejs": "0.12.0-alpha.0-20250108-7ae2a767d",
+    "@project-chip/matter.js": "0.12.0-alpha.0-20250108-7ae2a767d",
     "axios": "^1.7.9",
     "jsonwebtoken": "^9.0.2"
   },

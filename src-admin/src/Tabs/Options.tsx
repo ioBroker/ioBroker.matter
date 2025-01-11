@@ -26,8 +26,6 @@ import { type AdminConnection, I18n, Logo } from '@iobroker/adapter-react-v5';
 
 import InfoBox from '../components/InfoBox';
 import type { MatterAdapterConfig, MatterConfig } from '../types';
-import NetworkSelector from '../components/NetworkSelector';
-import LoginPassword from '../components/LoginPassword';
 
 const styles: Record<string, React.CSSProperties> = {
     address: {
@@ -59,6 +57,15 @@ const styles: Record<string, React.CSSProperties> = {
         marginBottom: 1,
     },
 };
+
+interface NetworkInterface {
+    address: string;
+    netmask: string;
+    family: string;
+    mac: string;
+    internal: boolean;
+    cidr: string;
+}
 
 interface OptionsProps {
     alive: boolean;
@@ -244,6 +251,31 @@ class Options extends Component<OptionsProps, OptionsState> {
                 </Box>
 
                 <div style={{ marginTop: 50 }}>
+                    <Typography sx={styles.header}>{I18n.t('Controller Settings')}</Typography>
+                    <TextField
+                        variant="standard"
+                        label={I18n.t('Controller fabric label')}
+                        value={this.props.native.controllerFabricLabel}
+                        type="text"
+                        onChange={e => this.props.onChange('controllerFabricLabel', e.target.value)}
+                        margin="normal"
+                        slotProps={{
+                            input: {
+                                endAdornment: this.props.native.controllerFabricLabel ? (
+                                    <IconButton
+                                        size="small"
+                                        onClick={() => this.props.onChange('controllerFabricLabel', '')}
+                                    >
+                                        <Clear />
+                                    </IconButton>
+                                ) : null,
+                            },
+                        }}
+                        style={styles.input}
+                    />
+                </div>
+
+                <div style={{ marginTop: 50 }}>
                     <Typography sx={styles.header}>{I18n.t('Cloud Account')}</Typography>
                     <InfoBox type="info">
                         {I18n.t(
@@ -270,43 +302,6 @@ class Options extends Component<OptionsProps, OptionsState> {
                             />
                         }
                         label={I18n.t('Enable enhanced debug logging for the Matter protocol')}
-                    />
-                </div>
-
-                <div style={{ marginTop: 50 }}>
-                    <Typography sx={styles.header}>{I18n.t('Controller Settings')}</Typography>
-                    <InfoBox type="info">
-                        {I18n.t(
-                            'The label set here is used as Label when ioBroker connects to a device as controller and might be shown by other Controllers in their overviews about other connected ecosystems.',
-                        )}
-                    </InfoBox>
-                    <TextField
-                        variant="standard"
-                        label={I18n.t('Controller fabric label')}
-                        value={this.props.native.controllerFabricLabel}
-                        type="text"
-                        onChange={e => this.props.onChange('controllerFabricLabel', e.target.value)}
-                        margin="normal"
-                        slotProps={{
-                            htmlInput: {
-                                maxLength: 32,
-                            },
-                            input: {
-                                endAdornment: this.props.native.controllerFabricLabel ? (
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => this.props.onChange('controllerFabricLabel', '')}
-                                    >
-                                        <Clear />
-                                    </IconButton>
-                                ) : null,
-                            },
-                        }}
-                        helperText={I18n.t('Max 32 characters')}
-                        style={{
-                            ...styles.input,
-                            maxWidth: 350,
-                        }}
                     />
                 </div>
 

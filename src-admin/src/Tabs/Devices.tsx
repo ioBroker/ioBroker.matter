@@ -155,7 +155,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
             >
                 <DialogTitle>{I18n.t('Delete')}</DialogTitle>
                 <DialogContent>
-                    {`${I18n.t('Do you want to delete device')} ${this.state.deleteDialog.name}?`}
+                    <div>{`${I18n.t('Do you want to delete device')} ${this.state.deleteDialog.name}?`}</div>
                     <FormControlLabel
                         control={
                             <Checkbox
@@ -591,6 +591,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
         if (addDeviceDialog.detectionType !== 'auto') {
             return (
                 <SelectID
+                    imagePrefix="../.."
                     types={addDeviceDialog.detectionType === 'device' ? ['device', 'channel'] : ['state']}
                     dialogName="matter"
                     themeType={this.props.themeType}
@@ -678,17 +679,13 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
      * @param index table index
      */
     renderDevice(device: DeviceDescription, index: number): React.JSX.Element | null {
-        if (device.deleted) {
-            return null;
-        }
-
         return (
             <TableRow
                 key={index}
                 style={{ opacity: device.enabled ? 1 : 0.4, position: 'relative' }}
             >
-                {this.renderProcessOverlay(device.uuid)}
                 <TableCell>
+                    {this.renderProcessOverlay(device.uuid, device.deleted)}
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                         <span
                             style={{ marginRight: 8 }}
@@ -796,7 +793,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
 
     render(): React.JSX.Element {
         return (
-            <div>
+            <div style={{ width: '100%' }}>
                 {this.renderDeleteDialog()}
                 {this.renderEditDeviceDialog()}
                 {this.renderAddDevicesPreDialog()}
@@ -817,31 +814,34 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         'Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.',
                     )}
                 </InfoBox>
-                <Tooltip
-                    title={I18n.t('Add device')}
-                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
-                >
-                    <Fab
-                        color="primary"
-                        size="small"
-                        onClick={() =>
-                            this.setState({
-                                addDevicePreDialog: true,
-                            })
-                        }
-                        style={{
-                            width: 36,
-                            height: 36,
-                        }}
+                <div style={{ width: '100%' }}>
+                    <Tooltip
+                        title={I18n.t('Add device')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                     >
-                        <Add />
-                    </Fab>
-                </Tooltip>
-                {!this.props.matter.devices.length ? (
-                    <div style={{ marginLeft: 16 }}>
-                        {I18n.t('No one device created. Create one, by clicking on the "+" button on the left.')}
-                    </div>
-                ) : (
+                        <Fab
+                            color="primary"
+                            size="small"
+                            onClick={() =>
+                                this.setState({
+                                    addDevicePreDialog: true,
+                                })
+                            }
+                            style={{
+                                width: 36,
+                                height: 36,
+                            }}
+                        >
+                            <Add />
+                        </Fab>
+                    </Tooltip>
+                    {!this.props.matter.devices.length ? (
+                        <span style={{ marginLeft: 16 }}>
+                            {I18n.t('No one device created. Create one, by clicking on the "+" button on the left.')}
+                        </span>
+                    ) : null}
+                </div>
+                {this.props.matter.devices.length ? (
                     <Table
                         size="small"
                         style={{ width: '100%' }}
@@ -851,7 +851,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                             {this.props.matter.devices.map((device, index) => this.renderDevice(device, index))}
                         </TableBody>
                     </Table>
-                )}
+                ) : null}
             </div>
         );
     }

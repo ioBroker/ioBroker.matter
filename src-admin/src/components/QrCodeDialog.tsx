@@ -75,7 +75,9 @@ export default class QrCodeDialog extends Component<QrCodeDialogProps, QrCodeDia
     render(): React.JSX.Element {
         const qrCodeError = !!this.state.qrCode && !this.state.qrCode.startsWith('MT:');
         const manualCodeError =
-            !!this.state.manualCode && this.state.manualCode.length !== 11 && this.state.manualCode.length !== 21;
+            !!this.state.manualCode &&
+            this.state.manualCode.replace(/[-\s]/g, '').length !== 11 &&
+            this.state.manualCode.replace(/[-\s]/g, '').length !== 21;
 
         return (
             <Dialog

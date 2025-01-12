@@ -11,6 +11,7 @@ import {
     type JsonFormSchema,
     type JsonFormData,
     DeviceManagement,
+    ACTIONS,
 } from '@iobroker/dm-utils';
 import type { GeneralMatterNode, NodeDetails } from '../matter/GeneralMatterNode';
 import { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIoBroker';
@@ -127,24 +128,34 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         let actions: (DeviceAction<'adapter'> | null)[] = [
             {
+                // This is a special action when the user clicks on the status icon
+                id: ACTIONS.STATUS,
+                handler: (_ignored, context) => this.#handleOnStatusNode(ioNode, context),
+            },
+            {
+                // This is a special action when the user clicks on the enabled icon
+                id: ACTIONS.ENABLE_DISABLE,
+                handler: (_ignored, context) => this.#handleEnableNode(ioNode, context),
+            },
+            {
                 id: 'deleteNode',
                 icon: 'delete',
                 description: this.#adapter.getText('Unpair this node'),
-                handler: (id, context) => this.#handleDeleteNode(ioNode, context),
+                handler: (_ignored, context) => this.#handleDeleteNode(ioNode, context),
             },
             {
                 id: 'renameNode',
                 icon: 'edit',
                 description: this.#adapter.getText('Rename this node'),
-                handler: (id, context) => this.#handleRenameNode(ioNode, context),
+                handler: (_ignored, context) => this.#handleRenameNode(ioNode, context),
             },
-            // this command is not available if device is offline
+            // this command is not available if a device is offline
             ioNode.node.isConnected
                 ? {
                       id: 'pairingCodeNode',
                       icon: 'qrcode',
                       description: this.#adapter.getText('Generate new pairing code'),
-                      handler: (id, context) => this.#handlePairingCode(ioNode, context),
+                      handler: (_ignored, context) => this.#handlePairingCode(ioNode, context),
                   }
                 : null,
             ioNode.node.isConnected
@@ -152,14 +163,14 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                       id: 'configureNode',
                       icon: 'settings',
                       description: this.#adapter.getText('Configure this node'),
-                      handler: (id, context) => this.#handleConfigureNode(ioNode, context),
+                      handler: (_ignored, context) => this.#handleConfigureNode(ioNode, context),
                   }
                 : null,
             {
                 id: 'logNodeDebug',
                 icon: 'lines',
                 description: this.#adapter.getText('Output Debug details this node'),
-                handler: (id, context) => this.#handleLogDebugNode(ioNode, context),
+                handler: (_ignored, context) => this.#handleLogDebugNode(ioNode, context),
             },
         ];
 
@@ -173,6 +184,8 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             icon: undefined,
             ...details,
             status,
+            // TODO: Provide here the valid value
+            enabled: true,
             hasDetails: true,
             actions: actions.length ? (actions as DeviceAction<'adapter'>[]) : undefined,
             color: 'secondary',
@@ -191,7 +204,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             res.push(deviceInfo);
             deviceCount++;
         }
-        // define the icon depends on number of sub-devices
+        // define the icon depends on the number of sub-devices
         node.icon = ioNode.hasAggregatorEndpoint ? 'hub5' : deviceCount > 1 ? 'hub3' : 'node';
 
         return res;
@@ -246,6 +259,44 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         return data;
     }
 
+    #handleEnableNode(node: GeneralMatterNode, _context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
+        // TODO: implement real handler for enable/disable
+        this.#adapter.log.info(`Change enabled/disabled of node ${node.nodeId}`);
+
+        return Promise.resolve({ refresh: false });
+    }
+
+    async #handleOnStatusNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
+        // This is only an example how to react on clicking on Status
+        await context.showForm(
+            {
+                type: 'panel',
+                items: {
+                    connected: {
+                        type: 'checkbox',
+                        label: this.#adapter.getText('Connected'),
+                        sm: 12,
+                        readOnly: true,
+                        default: node.node.isConnected,
+                    },
+                },
+            },
+            {
+                data: {},
+                maxWidth: 'md',
+                title: this.#adapter.getText('Status of Node'),
+                buttons: [
+                    {
+                        type: 'cancel',
+                        label: this.#adapter.getText('Close'),
+                    },
+                ],
+            },
+        );
+
+        return { refresh: false };
+    }
+
     async #handleDeleteNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
         this.adapter.log.info(`Delete node ${node.nodeId}`);
         if (!(await context.showConfirmation(this.#adapter.t('Are you sure?')))) {
@@ -273,7 +324,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
         });
 
-        // Start an interval that normally covers 30s and with each update the number gets slower increased for the percentage
+        // Start an interval that normally covers 30 seconds, and with each update the number gets slower increased for the percentage
         let errorHappened = false;
         try {
             await node.remove();

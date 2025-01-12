@@ -108,6 +108,7 @@ interface AppState extends GenericAppState {
         value?: number;
     } | null;
     welcomeDialogShowed: boolean;
+    updatePassTrigger: number;
 }
 
 class App extends GenericApp<GenericAppProps, AppState> {
@@ -175,6 +176,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             showWelcomeDialog: false,
             welcomeDialogShowed: false,
             inProcessing: null,
+            updatePassTrigger: 1,
         });
 
         this.alert = window.alert;
@@ -313,20 +315,14 @@ class App extends GenericApp<GenericAppProps, AppState> {
 
         return (
             <WelcomeDialog
-                common={this.common}
                 instance={this.instance}
                 socket={this.socket}
                 themeType={this.state.themeType}
-                onClose={async (
-                    login?: string,
-                    password?: string,
-                    navigateTo?: 'controller' | 'bridges',
-                ): Promise<void> => {
-                    if (login && password) {
-                        if (adapterSettings.login !== login || adapterSettings.pass !== password) {
-                            this.updateNativeValue('login', login, () => this.updateNativeValue('pass', password));
-                        }
+                onClose={async (navigateTo?: 'controller' | 'bridges', updateRepeat?: boolean): Promise<void> => {
+                    if (updateRepeat) {
+                        this.setState({ updatePassTrigger: this.state.updatePassTrigger + 1 });
                     }
+
                     if (!this.state.welcomeDialogShowed) {
                         await this.socket.setState(`matter.${this.instance}.info.welcomeDialog`, true, true);
                     }
@@ -336,8 +332,14 @@ class App extends GenericApp<GenericAppProps, AppState> {
                         }
                     });
                 }}
-                login={adapterSettings.login}
-                pass={adapterSettings.pass}
+                host={this.common?.host || ''}
+                native={adapterSettings}
+                changed={this.state.changed}
+                onChange={(id: string, value: string): Promise<void> => {
+                    return new Promise<void>(resolve => {
+                        this.updateNativeValue(id, value, resolve);
+                    });
+                }}
             />
         );
     }
@@ -517,6 +519,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 onError={(errorText: string): void => {
                     this.setConfigurationError(errorText);
                 }}
+                updatePassTrigger={this.state.updatePassTrigger}
             />
         );
     }

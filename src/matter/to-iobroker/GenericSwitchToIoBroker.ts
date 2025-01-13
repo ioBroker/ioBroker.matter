@@ -74,7 +74,7 @@ export class GenericSwitchToIoBroker extends GenericDeviceToIoBroker {
                 convertValue: () => false,
             });
         }
-        return super.enableDeviceTypeStates();
+        return this.enableDeviceTypeStates();
     }
 
     protected enableLatchingSwitchDeviceTypeStates(): DeviceOptions {
@@ -85,7 +85,7 @@ export class GenericSwitchToIoBroker extends GenericDeviceToIoBroker {
             convertValue: value => value !== 0,
         });
 
-        return super.enableDeviceTypeStates();
+        return this.enableDeviceTypeStates();
     }
 
     get ioBrokerDevice(): GenericDevice {

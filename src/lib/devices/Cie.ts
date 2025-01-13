@@ -29,11 +29,76 @@ class Cie extends Ct {
         return this.#cie.value;
     }
 
+    getXy(): { x: number; y: number } | undefined {
+        if (!this.#cie) {
+            throw new Error('CIE state not found');
+        }
+        const value = this.#cie.value;
+        if (value?.startsWith('[') && value?.endsWith(']')) {
+            try {
+                const xy = value.substring(1, value.length - 1).split(',');
+                return { x: parseFloat(xy[0]), y: parseFloat(xy[1]) };
+            } catch {
+                return undefined;
+            }
+        }
+        return undefined;
+    }
+
     async setCie(value: string): Promise<void> {
         if (!this.#cie) {
             throw new Error('CIE state not found');
         }
         return this.#cie.setValue(value);
+    }
+
+    setXy(x: number, y: number): Promise<void> {
+        if (!this.#cie) {
+            throw new Error('CIE state not found');
+        }
+        return this.#cie.setValue(`[${x},${y}]`);
+    }
+
+    setX(x: number): Promise<void> {
+        if (!this.#cie) {
+            throw new Error('CIE state not found');
+        }
+        return this.#cie.setValue(`[${x},${this.getXy()?.y}]`);
+    }
+
+    setY(y: number): Promise<void> {
+        if (!this.#cie) {
+            throw new Error('CIE state not found');
+        }
+        return this.#cie.setValue(`[${this.getXy()?.x},${y}]`);
+    }
+
+    async updateCie(value: string): Promise<void> {
+        if (!this.#cie) {
+            throw new Error('CIE state not found');
+        }
+        return this.#cie.updateValue(value);
+    }
+
+    async updateXy(x: number, y: number): Promise<void> {
+        if (!this.#cie) {
+            throw new Error('CIE state not found');
+        }
+        return this.#cie.updateValue(`[${x},${y}]`);
+    }
+
+    async updateX(x: number): Promise<void> {
+        if (!this.#cie) {
+            throw new Error('CIE state not found');
+        }
+        return this.#cie.updateValue(`[${x},${this.getXy()?.y}]`);
+    }
+
+    async updateY(y: number): Promise<void> {
+        if (!this.#cie) {
+            throw new Error('CIE state not found');
+        }
+        return this.#cie.updateValue(`[${this.getXy()?.x},${y}]`);
     }
 }
 

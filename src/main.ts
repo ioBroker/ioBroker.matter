@@ -1120,11 +1120,12 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     createMatterController(controllerOptions: MatterControllerConfig, fabricLabel: string): MatterController {
+        this.log.info(`Creating controller with Fabric Label: ${fabricLabel}`);
         const matterController = new MatterController({
             adapter: this,
             controllerOptions,
             updateCallback: () => this.#refreshControllerDevices(),
-            fabricLabel,
+            fabricLabel: fabricLabel.substring(0, 32),
         });
         matterController.init(); // add bridge to server
 

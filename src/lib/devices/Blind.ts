@@ -59,6 +59,13 @@ class Blind extends BlindButtons {
         return this.#getLevelState.value;
     }
 
+    async setLevelActual(value: number): Promise<void> {
+        if (!this.#setLevelState) {
+            throw new Error('Level state not found');
+        }
+        await this.#setLevelState.setValue(value);
+    }
+
     async updateLevelActual(value: number): Promise<void> {
         if (!this.#getLevelState) {
             throw new Error('Level state not found');

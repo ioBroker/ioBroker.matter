@@ -143,8 +143,22 @@ export default class QrCodeDialog extends Component<QrCodeDialogProps, QrCodeDia
                                 id="video-container"
                                 style={{ width: 250, height: 250 }}
                             >
+                                <style>
+                                    {`
+                                    .qrscan {
+                                        svg {
+                                            height: 100%;
+                                            width: 100%;
+                                        }
+                                    }
+                                    `}
+                                </style>
                                 <Scanner
                                     formats={['qr_code', 'rm_qr_code', 'micro_qr_code']}
+                                    classNames={{
+                                        container: 'qrscan',
+                                        video: 'aspect-square w-full h-full object-cover',
+                                    }}
                                     onScan={result => this.setState({ qrCode: result[0].rawValue, qrError: '' })}
                                     onError={(error: unknown): void => {
                                         if ((error as Error)?.message.includes('secure context')) {

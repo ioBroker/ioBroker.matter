@@ -17,6 +17,10 @@ import { WaterLeakDetectorToIoBroker } from './WaterLeakDetectorToIoBroker';
 import { ColorTemperatureLightToIoBroker } from './ColorTemperatureLightToIoBroker';
 import { GenericSwitchToIoBroker } from './GenericSwitchToIoBroker';
 import { LightSensorToIoBroker } from './LightSensorToIoBroker';
+import { ExtendedColorLightToIoBroker } from './ExtendedColorLightToIoBroker';
+import { WindowCoveringToIoBroker } from './WindowCoveringToIoBroker';
+import { SpeakerToIoBroker } from './SpeakerToIoBroker';
+import { ThermostatToIoBroker } from './ThermostatToIoBroker';
 
 export function identifyDeviceTypes(endpoint: Endpoint): {
     utilityTypes: { deviceType: DeviceTypeModel; revision: number }[];
@@ -65,7 +69,6 @@ async function ioBrokerDeviceFabric(
     let DeviceType: ClassExtends<GenericDeviceToIoBroker>;
     let isSupportedDeviceType = true;
     switch (primaryDeviceType?.deviceType.id) {
-        case Devices.ExtendedColorLightDeviceDefinition.deviceType:
         case Devices.ColorTemperatureLightDeviceDefinition.deviceType:
             DeviceType = ColorTemperatureLightToIoBroker;
             break;
@@ -78,6 +81,9 @@ async function ioBrokerDeviceFabric(
             break;
         case Devices.DoorLockDeviceDefinition.deviceType:
             DeviceType = DoorLockToIoBroker;
+            break;
+        case Devices.ExtendedColorLightDeviceDefinition.deviceType:
+            DeviceType = ExtendedColorLightToIoBroker;
             break;
         case Devices.GenericSwitchDeviceDefinition.deviceType:
             DeviceType = GenericSwitchToIoBroker;
@@ -97,11 +103,20 @@ async function ioBrokerDeviceFabric(
         case Devices.OnOffPlugInUnitDeviceDefinition.deviceType:
             DeviceType = OnOffPlugInUnitToIoBroker;
             break;
+        case Devices.SpeakerDeviceDefinition.deviceType:
+            DeviceType = SpeakerToIoBroker;
+            break;
         case Devices.TemperatureSensorDeviceDefinition.deviceType:
             DeviceType = TemperatureSensorToIoBroker;
             break;
+        case Devices.ThermostatDeviceDefinition.deviceType:
+            DeviceType = ThermostatToIoBroker;
+            break;
         case Devices.WaterLeakDetectorDeviceDefinition.deviceType:
             DeviceType = WaterLeakDetectorToIoBroker;
+            break;
+        case Devices.WindowCoveringDeviceDefinition.deviceType:
+            DeviceType = WindowCoveringToIoBroker;
             break;
         case Endpoints.ElectricalSensorEndpointDefinition.deviceType:
         case Endpoints.PowerSourceEndpointDefinition.deviceType:

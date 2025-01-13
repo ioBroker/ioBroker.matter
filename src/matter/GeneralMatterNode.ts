@@ -3,6 +3,7 @@ import {
     BasicInformationCluster,
     BridgedDeviceBasicInformation,
     GeneralDiagnosticsCluster,
+    WiFiNetworkDiagnosticsCluster,
 } from '@matter/main/clusters';
 import { AttributeModel, ClusterModel, CommandModel, MatterModel } from '@matter/main/model';
 import {
@@ -12,7 +13,7 @@ import {
     SupportedAttributeClient,
     UnknownSupportedAttributeClient,
 } from '@matter/main/protocol';
-import { GlobalAttributes } from '@matter/main/types';
+import { GlobalAttributes, SpecificationVersion } from '@matter/main/types';
 import { AggregatorEndpointDefinition, BridgedNodeEndpointDefinition } from '@matter/main/endpoints';
 import {
     type Endpoint,
@@ -1090,7 +1091,11 @@ export class GeneralMatterNode {
             if (details.dataModelVersion) {
                 result.specification.dataModelVersion = details.dataModelVersion;
             }
-            if (details.specificationVersion) {
+            if (typeof details.specificationVersion === 'number') {
+                result.specification.specificationVersion = SpecificationVersion.decode(details.specificationVersion);
+            } else if (details.specificationVersion === undefined) {
+                result.specification.specificationVersion = '< 1.3.0';
+            } else {
                 result.specification.specificationVersion = details.specificationVersion;
             }
             if (details.maxPathsPerInvoke) {

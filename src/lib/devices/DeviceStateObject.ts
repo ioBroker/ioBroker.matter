@@ -105,6 +105,7 @@ export enum PropertyType {
     Temperature = 'temperature',
     TiltClose = 'tiltClose',
     TiltLevel = 'tiltLevel',
+    TiltLevelActual = 'tiltLevelActual',
     TiltOpen = 'tiltOpen',
     TiltStop = 'tiltStop',
     TimeSunrise = 'timeSunrise',

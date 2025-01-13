@@ -105,8 +105,8 @@ abstract class GenericDevice extends EventEmitter {
     #maintenanceState?: DeviceStateObject<boolean>;
     #unreachState?: DeviceStateObject<boolean>;
     #lowbatState?: DeviceStateObject<boolean>;
-    #workingState?: DeviceStateObject<string>;
-    #directionState?: DeviceStateObject<string>;
+    #workingState?: DeviceStateObject<boolean>;
+    #directionState?: DeviceStateObject<boolean>;
     #batteryState?: DeviceStateObject<number>;
 
     constructor(
@@ -532,14 +532,14 @@ abstract class GenericDevice extends EventEmitter {
         return this.propertyNames.includes(PropertyType.LowBattery);
     }
 
-    getWorking(): string | undefined {
+    getWorking(): boolean | undefined {
         if (!this.#workingState) {
             throw new Error('Working state not found');
         }
         return this.#workingState.value;
     }
 
-    updateWorking(value: string): Promise<void> {
+    updateWorking(value: boolean): Promise<void> {
         if (!this.#workingState) {
             throw new Error('Working state not found');
         }
@@ -550,14 +550,14 @@ abstract class GenericDevice extends EventEmitter {
         return this.propertyNames.includes(PropertyType.Working);
     }
 
-    getDirection(): string | undefined {
+    getDirection(): boolean | undefined {
         if (!this.#directionState) {
             throw new Error('Direction state not found');
         }
         return this.#directionState.value;
     }
 
-    updateDirection(value: string): Promise<void> {
+    updateDirection(value: boolean): Promise<void> {
         if (!this.#directionState) {
             throw new Error('Direction state not found');
         }

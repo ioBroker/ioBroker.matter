@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-enum ThermostatMode {
+export enum ThermostatMode {
     // MANUAL, VACATION, COOL, DRY, ECO, FAN_ONLY, HEAT, OFF
     Auto = 'AUTO',
     Manual = 'MANUAL',
@@ -14,10 +14,21 @@ enum ThermostatMode {
     Off = 'OFF',
 }
 
+export enum ThermostatModeNumbers {
+    AUTO = 0,
+    MANUAL = 1,
+    VACATION = 2,
+    COOL = 3,
+    DRY = 4,
+    ECO = 5,
+    FAN_ONLY = 6,
+    HEAT = 7,
+    OFF = 8,
+}
+
 class Thermostat extends GenericDevice {
     #levelState?: DeviceStateObject<number>;
     #getTemperatureState?: DeviceStateObject<number>;
-
     #powerState?: DeviceStateObject<boolean | number>;
     #getHumidityState?: DeviceStateObject<number>;
     #boostState?: DeviceStateObject<number>;
@@ -89,6 +100,13 @@ class Thermostat extends GenericDevice {
         return this.#modeState.getModes();
     }
 
+    async updateModes(modes: { [key: string]: ThermostatMode }): Promise<void> {
+        if (!this.#modeState) {
+            throw new Error('Mode state not found');
+        }
+        await this.#modeState.updateModes(modes);
+    }
+
     async setMode(mode: ThermostatMode): Promise<void> {
         if (!this.#modeState) {
             throw new Error('Mode state not found');
@@ -103,6 +121,13 @@ class Thermostat extends GenericDevice {
         return this.#modeState.value;
     }
 
+    async updateSetpointMinMax(min: number | undefined, max: number | undefined): Promise<void> {
+        if (!this.#levelState) {
+            throw new Error('Level state not found');
+        }
+        await this.#levelState.updateMinMax({ min, max });
+    }
+
     getLevel(): number | undefined {
         if (!this.#levelState) {
             throw new Error('Level state not found');
@@ -115,6 +140,13 @@ class Thermostat extends GenericDevice {
             throw new Error('Level state not found');
         }
         return this.#levelState.setValue(value);
+    }
+
+    async updateLevel(value: number): Promise<void> {
+        if (!this.#levelState) {
+            throw new Error('Level state not found');
+        }
+        return this.#levelState.updateValue(value);
     }
 
     getTemperature(): number | undefined {
@@ -136,6 +168,13 @@ class Thermostat extends GenericDevice {
             throw new Error('Power state not found');
         }
         return this.#powerState.setValue(value);
+    }
+
+    async updatePower(value: boolean | number): Promise<void> {
+        if (!this.#powerState) {
+            throw new Error('Power state not found');
+        }
+        return this.#powerState.updateValue(value);
     }
 
     getHumidity(): number | undefined {

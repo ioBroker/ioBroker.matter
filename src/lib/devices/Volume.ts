@@ -16,7 +16,7 @@ class Volume extends GenericDevice {
                     name: 'ACTUAL',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.Read,
-                    type: PropertyType.Level,
+                    type: PropertyType.LevelActual,
                     callback: state => (this.#getLevelState = state),
                 },
                 {
@@ -49,6 +49,29 @@ class Volume extends GenericDevice {
             throw new Error('Level state not found');
         }
         return this.#setLevelState.setValue(value);
+    }
+
+    async updateLevel(value: number): Promise<void> {
+        if (!this.#setLevelState && !this.#getLevelState) {
+            throw new Error('Level state not found');
+        }
+        await this.#setLevelState?.updateValue(value);
+        await this.#getLevelState?.updateValue(value);
+    }
+
+    getLevelActual(): number | undefined {
+        if (!this.#getLevelState) {
+            throw new Error('Level state not found');
+        }
+        return this.#getLevelState.value;
+    }
+
+    async updateLevelActual(value: number): Promise<void> {
+        if (!this.#getLevelState) {
+            throw new Error('Level state not found');
+        }
+        await this.#getLevelState.updateValue(value);
+        await this.#setLevelState?.updateValue(value);
     }
 
     getMute(): boolean | undefined {

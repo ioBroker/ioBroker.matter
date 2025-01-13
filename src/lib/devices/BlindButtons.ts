@@ -61,7 +61,7 @@ class BlindButtons extends GenericDevice {
                     name: 'TILT_ACTUAL',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.Read,
-                    type: PropertyType.TiltLevel,
+                    type: PropertyType.TiltLevelActual,
                     callback: state => (this.#getTiltState = state),
                 },
                 {
@@ -121,7 +121,7 @@ class BlindButtons extends GenericDevice {
         if (!this.#getTiltState) {
             throw new Error('Tilt state not found');
         }
-        return this.#getTiltState.value;
+        return (this.#getTiltState || this.#setTiltState)?.value;
     }
 
     async setTiltLevel(value: number): Promise<void> {
@@ -129,6 +129,29 @@ class BlindButtons extends GenericDevice {
             throw new Error('Tilt state not found');
         }
         return this.#setTiltState.setValue(value);
+    }
+
+    async updateTiltLevel(value: number): Promise<void> {
+        if (!this.#setTiltState && !this.#getTiltState) {
+            throw new Error('Level state not found');
+        }
+        await this.#setTiltState?.updateValue(value);
+        await this.#getTiltState?.updateValue(value);
+    }
+
+    getTiltLevelActual(): number | undefined {
+        if (!this.#setTiltState) {
+            throw new Error('Level state not found');
+        }
+        return this.#setTiltState.value;
+    }
+
+    async updateTiltLevelActual(value: number): Promise<void> {
+        if (!this.#setTiltState) {
+            throw new Error('Level state not found');
+        }
+        await this.#setTiltState.updateValue(value);
+        await this.#setTiltState?.updateValue(value);
     }
 
     async setTiltStop(): Promise<void> {

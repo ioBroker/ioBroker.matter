@@ -92,7 +92,7 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
                 const transitionTime = this.ioBrokerDevice.getTransitionTime() ?? null;
                 await this.appEndpoint.getClusterClient(LevelControl.Complete)?.moveToLevel({
                     level,
-                    transitionTime: transitionTime !== null ? Math.round(transitionTime / 1000) : null,
+                    transitionTime: transitionTime !== null ? Math.round(transitionTime / 100) : null,
                     optionsMask: {},
                     optionsOverride: {},
                 });

@@ -105,7 +105,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
 
                 await this.appEndpoint.getClusterClient(LevelControl.Complete)?.moveToLevel({
                     level,
-                    transitionTime: transitionTime !== null ? Math.round(transitionTime / 1000) : null,
+                    transitionTime: transitionTime !== null ? Math.round(transitionTime / 100) : null,
                     optionsMask: {},
                     optionsOverride: {},
                 });
@@ -124,7 +124,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                 } else if (colorTemperatureMireds > this.#colorTemperatureMaxMireds) {
                     colorTemperatureMireds = this.#colorTemperatureMaxMireds;
                 }
-                const transitionTime = Math.round((this.ioBrokerDevice.getTransitionTime() ?? 0) / 1000);
+                const transitionTime = Math.round((this.ioBrokerDevice.getTransitionTime() ?? 0) / 100);
                 await this.appEndpoint.getClusterClient(ColorControl.Complete)?.moveToColorTemperature({
                     colorTemperatureMireds,
                     transitionTime,

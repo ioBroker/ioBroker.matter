@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.3.5",
+    "version": "0.3.6",
     "news": {
+      "0.3.6": {
+        "en": "Fixed GUI errors\nAdded possibility to enable/disable controlled nodes\nAdded Information on battery and rssi for DM tile\nAdded controller support for Color Lights, Speaker, Thermostats and Window coverings\nOptimized an fixed multiple things",
+        "de": "Fehler behoben\nZusätzliche Möglichkeit, gesteuerte Knoten zu aktivieren / zu deaktivieren\nZusatzinformationen zu Batterie und Rssi für DM-Fliese\nUnterstützung für Farblichter, Lautsprecher, Thermostate und Fensterverkleidungen\nOptimiert ein festes Vielfaches",
+        "ru": "Исправленные ошибки GUI\nДобавить возможность включения/отключения управляемых узлов\nДобавлена информация о батареях и rssi для DM плитки\nДобавлена поддержка контроллера для цветовых фонарей, спикеров, термостатов и оконных покрытий\nОптимизация фиксированных нескольких вещей",
+        "pt": "Corrigido erros GUI\nAdicionado possibilidade de permitir/desativar nós controlados\nInformaÃ§Ãμes adicionais sobre a bateria e rssi para a telha DM\nAdicionado suporte ao controlador para luzes de cor, alto-falante, termostatos e coberturas de janela\nOtimizou várias coisas fixas",
+        "nl": "Vaste GUI-fouten\nToegevoegde mogelijkheid om gecontroleerde knooppunten in/uit te schakelen\nToegevoegd Informatie over batterij en rssi voor DM tegel\nToegevoegde controller ondersteuning voor kleurenverlichting, luidspreker, thermostaat en raambekleding\nOptimaliseerde een vaste meerdere dingen",
+        "fr": "Erreurs d'interface graphique corrigées\nPossibilité d'activer/désactiver les nœuds contrôlés\nAjout d'informations sur la batterie et rssi pour la tuile DM\nAjout de la prise en charge des contrôleurs pour les lumières de couleur, le haut-parleur, les thermostats et les revêtements de fenêtres\nOptimisé un multiple de choses fixes",
+        "it": "Corretti errori GUI\nAggiunta possibilità di abilitare/disabilitare nodi controllati\nInformazioni aggiuntive su batteria e rssi per piastrella DM\nAggiunto supporto del controller per luci di colore, altoparlante, termostati e rivestimenti della finestra\nOttimizzato un fisso più cose",
+        "es": "Errores de GUI fijos\nPosibilidad de habilitar o deshabilitar los nodos controlados\nInformación adicional sobre la batería y rssi para la baldosa DM\nSoporte de controlador añadido para luces de color, altavoz, termostatos y cubiertas de ventana\nOptimizado unas múltiples cosas fijas",
+        "pl": "Naprawiono błędy GUI\nDodano możliwość włączenia / wyłączenia sterowanych węzłów\nDodano informacje na temat baterii i rssi dla płytek DM\nDodano obsługę kontrolera dla kolorowych świateł, głośników, termostatów i pokryć okiennych\nZoptymalizowane stałe wiele rzeczy",
+        "uk": "Виправлені помилки інтерфейсу\nДодана можливість увімкнути / вимкнути керовані вузли\nДодано інформацію про акумулятор і rssi для плитки DM\nДодано підтримку контролера для кольорових світильників, спікерів, термостатів та віконних покриттів\nОптимізований фіксований кілька речей",
+        "zh-cn": "固定图形用户界面错误\n添加启用/ 失效控制节点的可能性\n为DM瓦增加电池和rssi信息\n添加色彩灯、 扬声器、 自动调温器和窗口覆盖的控制器支持\n优化固定的多件东西"
+      },
       "0.3.5": {
         "en": "Fixed GUI errors\nAdded `Controller fabric label` to configuration\nAdded solution for QR-Code scanning on non HTTPS pages\nFixed Generic Switch Device type for controller\nFixed Controller BLE initialization and activation\nAdded serialNumber to all devices and bridges for better device re-detection by controllers",
         "de": "Fehler behoben\n'Controller Stofflabel' zur Konfiguration hinzugefügt\nLösung für QR-Code-Scannen auf nicht HTTPS-Seiten hinzugefügt\nFixed Generic Switch Gerätetyp für die Steuerung\nFixed Controller BLE Initialisierung und Aktivierung\nSerialNumber zu allen Geräten und Brücken für eine bessere Geräte-Wiedererkennung durch Controller hinzugefügt",
@@ -80,19 +93,6 @@
         "pl": "BREAKING: Proszę ponownie wprowadzić swoje hasło joBroker Pro Cloud!\nZapewnia zatrzymanie adaptera przed aktualizacją\nOptymalizuje wykrywanie urządzeń i pozwala je ponownie zatrzymać",
         "uk": "Будь ласка, зв'яжіться з нами!\nПереконайтеся, що адаптер припиняється до оновлення\nОптимізуйте відкриття пристрою і дозволяє знову зупинити його",
         "zh-cn": "请重新输入你的ioBroker Pro Cloud密码!\n确保适配器在更新前被停止\n优化设备发现并允许再次停止"
-      },
-      "0.2.10": {
-        "en": "Makes the Adapter UI also available as standalone tab\nAdded error details when adding the same state twice to a bridge or device\nFixes discovery start in UI",
-        "de": "Stellt den Adapter UI auch als Standalone Tab zur Verfügung\nFehlerdetails hinzugefügt, wenn derselbe Zustand zweimal einer Brücke oder einem Gerät hinzugefügt wird\nBehebt Entdeckungsstart in UI",
-        "ru": "Делает интерфейс адаптера также доступным как отдельная вкладка\nДобавлена информация об ошибке при добавлении одного и того же состояния дважды на мост или устройство\nОткрытие Fixes начинается в UI",
-        "pt": "Torna a interface do usuário do adaptador também disponível como aba standalone\nAdicionados detalhes de erro ao adicionar o mesmo estado duas vezes a uma ponte ou dispositivo\nCorrige o início da descoberta na interface do usuário",
-        "nl": "Maakt de Adapter UI ook beschikbaar als standalone tab\nFoutgegevens toegevoegd bij het twee keer toevoegen van dezelfde status aan een brug of apparaat\nHerstelt ontdekking beginnen in UI",
-        "fr": "Rendre l'interface utilisateur adaptateur également disponible sous forme d'onglet autonome\nAjout de détails d'erreur lors de l'ajout du même état deux fois sur un pont ou un périphérique\nFixe le début de la découverte en UI",
-        "it": "Rende disponibile anche l'adattatore UI come scheda standalone\nDettagli di errore aggiunti quando si aggiunge lo stesso stato due volte a un ponte o dispositivo\nFissa l'inizio della scoperta in UI",
-        "es": "Hace que el adaptador UI también disponible como pestaña independiente\nAñadido detalles de error al añadir el mismo estado dos veces a un puente o dispositivo\nEmpieza el descubrimiento de correcciones en UI",
-        "pl": "Sprawia, że interfejs Adapter jest również dostępny jako karta standalone\nDodano szczegóły błędu podczas dodawania tego samego stanu dwa razy do mostu lub urządzenia\nFixes discovery start in UI",
-        "uk": "Виготовляє адаптер UI також доступний як самостійна вкладка\nДодана інформація про помилки при додаванні однакового стану двічі на міст або пристрій\nПочати відкриття виправлень в UI",
-        "zh-cn": "使适配器 UI 也作为独立标签可用\n在桥或设备上两次添加相同状态时添加错误细节\n在UI中修复发现"
       }
     },
     "title": "Matter",

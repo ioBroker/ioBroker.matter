@@ -5,7 +5,6 @@ import { type DetectedDevice, type DeviceOptions, StateAccessType } from './Gene
 class Ct extends ElectricityDataDevice {
     #dimmerState?: DeviceStateObject<number>;
     #brightnessState?: DeviceStateObject<number>;
-    //#saturationState?: DeviceStateObject<number>; //Makes no sense!
     #temperatureState?: DeviceStateObject<number>;
     #setPowerState?: DeviceStateObject<boolean>;
     #getPowerState?: DeviceStateObject<boolean>;
@@ -30,14 +29,6 @@ class Ct extends ElectricityDataDevice {
                     type: PropertyType.Brightness,
                     callback: state => (this.#brightnessState = state),
                 },
-                /* Even if this state is defined for the device type it makes no sense on a Color Temperature Light, so ignore it
-                {
-                    name: 'SATURATION',
-                    valueType: ValueType.NumberPercent,
-                    accessType: StateAccessType.ReadWrite,
-                    type: PropertyType.Saturation,
-                    callback: state => (this.#saturationState = state),
-                },*/
                 {
                     name: 'TEMPERATURE',
                     valueType: ValueType.NumberMinMax,
@@ -133,22 +124,6 @@ class Ct extends ElectricityDataDevice {
         }
         return this.#brightnessState.setValue(value);
     }
-
-    /*
-    getSaturation(): number | undefined {
-        if (!this.#saturationState) {
-            throw new Error('Saturation state not found');
-        }
-        return this.#saturationState.value;
-    }
-
-    async setSaturation(value: number): Promise<void> {
-        if (!this.#saturationState) {
-            throw new Error('Saturation state not found');
-        }
-        return this.#saturationState.setValue(value);
-    }
-    */
 
     getTemperature(): number | undefined {
         if (!this.#temperatureState) {

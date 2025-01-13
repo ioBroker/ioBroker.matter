@@ -1,4 +1,4 @@
-import { type AttributeId, type ClusterId, Diagnostic, EndpointNumber, type EventId } from '@matter/main';
+import { type AttributeId, type ClusterId, Diagnostic, EndpointNumber, type EventId, MaybePromise } from '@matter/main';
 import { BasicInformation, BridgedDeviceBasicInformation, Identify, PowerSource } from '@matter/main/clusters';
 import type { DecodedEventData } from '@matter/main/protocol';
 import type { Endpoint, PairedNode, DeviceBasicInformation } from '@project-chip/matter.js/device';
@@ -7,6 +7,7 @@ import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DeviceOptions } from '../../lib/devices/GenericDevice';
 import { decamelize, toHex } from '../../lib/utils';
 import type { StructuredJsonFormData } from '../../lib/JsonConfigUtils';
+import type { DeviceStatus } from '@iobroker/dm-utils';
 
 export interface EnabledProperty {
     common?: Partial<ioBroker.StateCommon>;
@@ -18,8 +19,8 @@ export interface EnabledAttributeProperty extends EnabledProperty {
     type: 'attribute';
     attributeId?: AttributeId;
     attributeName?: string;
-    convertValue?: (value: any) => any;
-    changeHandler?: (value: any) => Promise<void>;
+    convertValue?: (value: any) => MaybePromise<any>;
+    changeHandler?: (value: any) => Promise<void> | void;
     pollAttribute?: boolean;
 }
 
@@ -27,7 +28,7 @@ export interface EnabledEventProperty extends EnabledProperty {
     type: 'event';
     eventId?: EventId;
     eventName?: string;
-    convertValue: (property: PropertyType, event: DecodedEventData<any>) => any;
+    convertValue: (property: PropertyType, event: DecodedEventData<any>) => MaybePromise<any>;
 }
 
 export type GenericDeviceConfiguration = {
@@ -59,7 +60,7 @@ export abstract class GenericDeviceToIoBroker {
     readonly #deviceOptions: DeviceOptions;
     #enabledAttributeProperties = new Map<PropertyType, EnabledAttributeProperty>();
     #enabledEventProperties = new Map<PropertyType, EnabledEventProperty[]>();
-    #matterMappings = new Map<string, PropertyType>();
+    #matterMappings = new Map<string, PropertyType | ((value: any) => MaybePromise<any>)>();
     #connectionStateId: string;
     #hasBridgedReachabilityAttribute = false;
     #pollTimeout?: NodeJS.Timeout;
@@ -181,6 +182,38 @@ export abstract class GenericDeviceToIoBroker {
         }
     }
 
+    protected registerStateChangeHandlerForAttribute(
+        data: {
+            endpointId: EndpointNumber;
+            clusterId: ClusterId;
+            matterValueChanged: (value: any) => MaybePromise<any>;
+        } & ({ vendorSpecificAttributeId: AttributeId } | { attributeName?: string }),
+    ): void {
+        const { endpointId, clusterId, matterValueChanged } = data;
+        const attributeName =
+            'vendorSpecificAttributeId' in data
+                ? `unknownAttribute_${Diagnostic.hex(data.vendorSpecificAttributeId)}`
+                : data.attributeName;
+        if (attributeName !== undefined) {
+            const cluster =
+                endpointId === 0
+                    ? this.#rootEndpoint.getClusterClientById(clusterId)
+                    : this.appEndpoint.getClusterClientById(clusterId);
+            if (!cluster || !cluster.isAttributeSupportedByName(attributeName)) {
+                return;
+            }
+        }
+
+        if (attributeName === undefined) {
+            this.#adapter.log.warn(
+                `No attribute name cound be determined for change handler for ${endpointId}/${clusterId}`,
+            );
+            return;
+        }
+        const pathId = attributePathToString({ endpointId, clusterId, attributeName });
+        this.#matterMappings.set(pathId, matterValueChanged);
+    }
+
     /**
      * Enable a state for a Matter attribute if it exists and the property type is supported.
      * Important: provide attributeName for all standard Matter properties OR provide attributeId for vendor specific properties.
@@ -190,8 +223,8 @@ export abstract class GenericDeviceToIoBroker {
         data?: {
             endpointId?: EndpointNumber;
             clusterId?: ClusterId;
-            convertValue?: (value: any) => any;
-            changeHandler?: (value: any) => Promise<void>;
+            convertValue?: (value: any) => MaybePromise<any>;
+            changeHandler?: (value: any) => Promise<void> | void;
             pollAttribute?: boolean;
         } & ({ vendorSpecificAttributeId: AttributeId } | { attributeName?: string }),
     ): void {
@@ -235,6 +268,7 @@ export abstract class GenericDeviceToIoBroker {
                 pollAttribute,
             });
         }
+
         stateData.id = `${this.baseId}.`;
         this.#deviceOptions.additionalStateData![type] = stateData;
     }
@@ -248,7 +282,7 @@ export abstract class GenericDeviceToIoBroker {
         data: {
             endpointId: EndpointNumber;
             clusterId: ClusterId;
-            convertValue: (property: PropertyType, event: DecodedEventData<any>) => any;
+            convertValue: (property: PropertyType, event: DecodedEventData<any>) => MaybePromise<any>;
         } & ({ vendorSpecificEventId: EventId } | { eventName: string }),
     ): void {
         const { endpointId, clusterId, convertValue } = data;
@@ -322,6 +356,9 @@ export abstract class GenericDeviceToIoBroker {
         const { convertValue } = properties;
         if (convertValue !== undefined) {
             value = convertValue(value);
+            if (MaybePromise.is(value)) {
+                value = await value;
+            }
         }
         if (value !== undefined) {
             try {
@@ -348,6 +385,13 @@ export abstract class GenericDeviceToIoBroker {
         if (pathProperty === undefined) {
             return;
         }
+        if (typeof pathProperty === 'function') {
+            const result = pathProperty(data.value);
+            if (MaybePromise.is(result)) {
+                await result;
+            }
+            return;
+        }
         return this.updateIoBrokerState(pathProperty, data.value);
     }
 
@@ -363,14 +407,26 @@ export abstract class GenericDeviceToIoBroker {
         if (pathProperty === undefined) {
             return;
         }
+        if (typeof pathProperty === 'function') {
+            for (const event of data.events) {
+                const result = pathProperty(event);
+                if (MaybePromise.is(result)) {
+                    await result;
+                }
+            }
+            return;
+        }
         const propertyHandlers = this.#enabledEventProperties.get(pathProperty);
         if (propertyHandlers === undefined) {
             return;
         }
         for (const { convertValue } of propertyHandlers) {
             for (const event of data.events) {
-                const value = convertValue(pathProperty, event);
+                let value = convertValue(pathProperty, event);
                 if (value !== undefined) {
+                    if (MaybePromise.is(value)) {
+                        value = await value;
+                    }
                     await this.updateIoBrokerState(pathProperty, value);
                 }
             }
@@ -612,14 +668,17 @@ export abstract class GenericDeviceToIoBroker {
             ) {
                 states.includedBattery = `${await powerSource.getBatQuantityAttribute()} x ${await powerSource.getBatReplacementDescriptionAttribute()}`;
             }
-            if (powerSource.isAttributeSupportedByName('batVoltage')) {
-                const voltage = await powerSource.getBatVoltageAttribute();
-                const percentRemaining = await powerSource.getBatPercentRemainingAttribute();
-                if (typeof voltage === 'number') {
-                    states.batteryVoltage = `${(voltage / 1_000).toFixed(2)} V${typeof percentRemaining === 'number' ? ` (${Math.round(percentRemaining / 2)}%)` : ''}`;
-                } else if (typeof percentRemaining === 'number') {
-                    states.batteryVoltage = `${Math.round(percentRemaining / 2)}%`;
-                }
+            const voltage = powerSource.isAttributeSupportedByName('batVoltage')
+                ? await powerSource.getBatVoltageAttribute()
+                : undefined;
+            const percentRemaining = powerSource.isAttributeSupportedByName('batPercentRemaining')
+                ? await powerSource.getBatPercentRemainingAttribute()
+                : undefined;
+
+            if (typeof voltage === 'number') {
+                states.batteryVoltage = `${(voltage / 1_000).toFixed(2)} V${typeof percentRemaining === 'number' ? ` (${Math.round(percentRemaining / 2)}%)` : ''}`;
+            } else if (typeof percentRemaining === 'number') {
+                states.batteryVoltage = `${Math.round(percentRemaining / 2)}%`;
             }
 
             if (!states.includedBattery && !states.batteryVoltage) {
@@ -688,5 +747,37 @@ export abstract class GenericDeviceToIoBroker {
                 this.#initAttributePolling();
             }
         }
+    }
+
+    async getStatus(nodeStatus: DeviceStatus): Promise<DeviceStatus> {
+        const status: DeviceStatus = {
+            connection: typeof nodeStatus === 'object' ? nodeStatus.connection : nodeStatus,
+        };
+
+        if (status.connection === 'connected') {
+            const powerSource = this.appEndpoint.getClusterClient(PowerSource.Complete);
+            if (powerSource !== undefined) {
+                if (
+                    powerSource.isAttributeSupportedByName('BatChargeState') &&
+                    (await powerSource.getBatChargeStateAttribute(false)) === PowerSource.BatChargeState.IsCharging
+                ) {
+                    status.battery = 'charging';
+                } else {
+                    const voltage = powerSource.isAttributeSupportedByName('batVoltage')
+                        ? await powerSource.getBatVoltageAttribute(false)
+                        : undefined;
+                    const percentRemaining = powerSource.isAttributeSupportedByName('batPercentRemaining')
+                        ? await powerSource.getBatPercentRemainingAttribute(false)
+                        : undefined;
+
+                    if (typeof percentRemaining === 'number') {
+                        status.battery = Math.round(percentRemaining / 2);
+                    } else if (typeof voltage === 'number') {
+                        status.battery = `${voltage}mV`;
+                    }
+                }
+            }
+        }
+        return status;
     }
 }

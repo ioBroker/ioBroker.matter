@@ -105,6 +105,7 @@ export enum PropertyType {
     Temperature = 'temperature',
     TiltClose = 'tiltClose',
     TiltLevel = 'tiltLevel',
+    TiltLevelActual = 'tiltLevelActual',
     TiltOpen = 'tiltOpen',
     TiltStop = 'tiltStop',
     TimeSunrise = 'timeSunrise',
@@ -257,6 +258,27 @@ export class DeviceStateObject<T> extends EventEmitter {
         return { min: Math.min(min, max), max: Math.max(min, max) };
     }
 
+    async updateMinMax(minMax: { min?: number; max?: number }): Promise<void> {
+        if (!this.object) {
+            throw new Error(`Object not initialized`);
+        }
+
+        const changes: Partial<ioBroker.StateCommon> = {};
+        if (minMax.min !== undefined && minMax.min !== this.min) {
+            this.min = minMax.min;
+            this.object.common.min = minMax.min;
+            changes.min = minMax.min;
+        }
+        if (minMax.max !== undefined && minMax.max !== this.max) {
+            this.max = minMax.max;
+            this.object.common.max = minMax.max;
+            changes.max = minMax.max;
+        }
+        if (Object.keys(changes).length > 0) {
+            await this.adapter.extendObjectAsync(this.#id, { common: changes });
+        }
+    }
+
     getUnit(): string | undefined {
         return this.unit;
     }
@@ -319,6 +341,31 @@ export class DeviceStateObject<T> extends EventEmitter {
         }
     }
 
+    getModes(): T[] {
+        if (!this.object) {
+            throw new Error(`Object not initialized`);
+        }
+        const modes = this.modes;
+        if (!modes) {
+            return [];
+        }
+        return Object.keys(modes).map(key => modes[key]);
+    }
+
+    async updateModes(modes: { [key: string]: T }): Promise<void> {
+        if (!this.object) {
+            throw new Error(`Object not initialized`);
+        }
+        this.modes = modes;
+        this.object.common.states = modes;
+
+        await this.adapter.extendObjectAsync(this.#id, {
+            common: {
+                states: modes,
+            },
+        });
+    }
+
     /** Convert the value from the unit of the state to the Default unit ("toDefaultUnit"===true) or from default unit */
     convertValue(value: number, toDefaultUnit = false): number {
         if (this.unit && this.state.defaultUnit && this.unit !== this.state.defaultUnit) {
@@ -331,17 +378,6 @@ export class DeviceStateObject<T> extends EventEmitter {
             }
         }
         return value;
-    }
-
-    getModes(): T[] {
-        if (!this.object) {
-            throw new Error(`Object not initialized`);
-        }
-        const modes = this.modes;
-        if (!modes) {
-            return [];
-        }
-        return Object.keys(modes).map(key => modes[key]);
     }
 
     /** Used for Matter devices to update the value */
@@ -458,7 +494,11 @@ export class DeviceStateObject<T> extends EventEmitter {
                 }
 
                 if (typeof value === 'number') {
-                    value = parseFloat(value.toFixed(4)) as T;
+                    const valueStr = (value as number).toString();
+                    const numberOfDigits = valueStr.includes('.') ? valueStr.split('.')[1].length : 0;
+                    if (numberOfDigits > 4) {
+                        value = parseFloat(value.toFixed(4)) as T;
+                    }
                 }
             }
 

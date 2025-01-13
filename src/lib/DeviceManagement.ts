@@ -67,7 +67,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     // contents see in the next chapters
-    listDevices(): DeviceInfo[] {
+    async listDevices(): Promise<DeviceInfo[]> {
         if (!this.#adapter.controllerNode) {
             return []; // TODO How to return that no controller is started?
         }
@@ -76,7 +76,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         const arrDevices: DeviceInfo[] = [];
         for (const ioNode of nodes.values()) {
-            const devices = this.#getNodeEntry(ioNode);
+            const devices = await this.#getNodeEntry(ioNode);
             arrDevices.push(...devices);
         }
 
@@ -121,8 +121,10 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     /**
      * Create the "Node" device entry and also add all Endpoint-"Devices" for Device-Manager
      */
-    #getNodeEntry(ioNode: GeneralMatterNode): DeviceInfo[] {
-        const status: DeviceStatus = ioNode.node.isConnected ? 'connected' : 'disconnected';
+    async #getNodeEntry(ioNode: GeneralMatterNode): Promise<DeviceInfo[]> {
+        const status: DeviceStatus = await ioNode.getStatus();
+        const isEnabled = ioNode.isEnabled;
+        const isConnected = ioNode.isConnected;
         const id = ioNode.nodeId;
         const details = ioNode.details;
 
@@ -130,47 +132,47 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             {
                 // This is a special action when the user clicks on the status icon
                 id: ACTIONS.STATUS,
-                handler: (_ignored, context) => this.#handleOnStatusNode(ioNode, context),
+                handler: (_id, context) => this.#handleOnStatusNode(ioNode, context),
             },
             {
                 // This is a special action when the user clicks on the enabled icon
                 id: ACTIONS.ENABLE_DISABLE,
-                handler: (_ignored, context) => this.#handleEnableNode(ioNode, context),
+                handler: (_id, context) => this.#handleEnableOrDisableNode(ioNode, context),
             },
             {
                 id: 'deleteNode',
                 icon: 'delete',
                 description: this.#adapter.getText('Unpair this node'),
-                handler: (_ignored, context) => this.#handleDeleteNode(ioNode, context),
+                handler: (_id, context) => this.#handleDeleteNode(ioNode, context),
             },
             {
                 id: 'renameNode',
                 icon: 'edit',
                 description: this.#adapter.getText('Rename this node'),
-                handler: (_ignored, context) => this.#handleRenameNode(ioNode, context),
+                handler: (_id, context) => this.#handleRenameNode(ioNode, context),
             },
             // this command is not available if a device is offline
-            ioNode.node.isConnected
+            isConnected
                 ? {
                       id: 'pairingCodeNode',
                       icon: 'qrcode',
                       description: this.#adapter.getText('Generate new pairing code'),
-                      handler: (_ignored, context) => this.#handlePairingCode(ioNode, context),
+                      handler: (_id, context) => this.#handlePairingCode(ioNode, context),
                   }
                 : null,
-            ioNode.node.isConnected
+            isConnected
                 ? {
                       id: 'configureNode',
                       icon: 'settings',
                       description: this.#adapter.getText('Configure this node'),
-                      handler: (_ignored, context) => this.#handleConfigureNode(ioNode, context),
+                      handler: (_id, context) => this.#handleConfigureNode(ioNode, context),
                   }
                 : null,
             {
                 id: 'logNodeDebug',
                 icon: 'lines',
                 description: this.#adapter.getText('Output Debug details this node'),
-                handler: (_ignored, context) => this.#handleLogDebugNode(ioNode, context),
+                handler: (_id, context) => this.#handleLogDebugNode(ioNode, context),
             },
         ];
 
@@ -184,8 +186,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             icon: undefined,
             ...details,
             status,
-            // TODO: Provide here the valid value
-            enabled: true,
+            enabled: isEnabled,
             hasDetails: true,
             actions: actions.length ? (actions as DeviceAction<'adapter'>[]) : undefined,
             color: 'secondary',
@@ -198,14 +199,18 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         res.push(node);
 
-        let deviceCount = 0;
-        for (const device of ioNode.devices.values()) {
-            const deviceInfo = this.#getNodeDeviceEntries(device, id, details, status);
-            res.push(deviceInfo);
-            deviceCount++;
+        if (isEnabled) {
+            let deviceCount = 0;
+            for (const device of ioNode.devices.values()) {
+                const deviceInfo = await this.#getNodeDeviceEntries(device, id, details, isConnected);
+                res.push(deviceInfo);
+                deviceCount++;
+            }
+            // define the icon depends on the number of sub-devices
+            node.icon = ioNode.hasAggregatorEndpoint ? 'hub5' : deviceCount > 1 ? 'hub3' : 'node';
+        } else {
+            node.icon = 'node';
         }
-        // define the icon depends on the number of sub-devices
-        node.icon = ioNode.hasAggregatorEndpoint ? 'hub5' : deviceCount > 1 ? 'hub3' : 'node';
 
         return res;
     }
@@ -213,18 +218,20 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     /**
      * Create one Endpoint-"Device" for Device-Manager
      */
-    #getNodeDeviceEntries(
+    async #getNodeDeviceEntries(
         device: GenericDeviceToIoBroker,
         nodeId: string,
         nodeDetails: NodeDetails,
-        status: DeviceStatus,
-    ): DeviceInfo {
+        nodeConnected: boolean,
+    ): Promise<DeviceInfo> {
         const data: DeviceInfo = {
             id: `${nodeId}-${device.number}`,
             name: device.name,
             icon: device.ioBrokerDevice.deviceType,
             ...nodeDetails,
-            status,
+            status: await device.getStatus({
+                connection: nodeConnected ? 'connected' : 'disconnected',
+            }),
             hasDetails: true,
             actions: [
                 {
@@ -247,7 +254,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
         };
 
-        if (device.hasIdentify() && status === 'connected') {
+        if (device.hasIdentify() && nodeConnected) {
             data.actions!.push({
                 id: 'identify',
                 icon: 'identify',
@@ -259,11 +266,30 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         return data;
     }
 
-    #handleEnableNode(node: GeneralMatterNode, _context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        // TODO: implement real handler for enable/disable
-        this.#adapter.log.info(`Change enabled/disabled of node ${node.nodeId}`);
+    async #handleEnableOrDisableNode(
+        node: GeneralMatterNode,
+        context: ActionContext,
+    ): Promise<{ refresh: DeviceRefresh }> {
+        if (node.isEnabled) {
+            if (
+                !(await context.showConfirmation(
+                    this.#adapter.t('Are you sure you want to disable and disconnect the node?'),
+                ))
+            ) {
+                return { refresh: false };
+            }
+        }
+        await node.setEnabled(!node.isEnabled);
 
-        return Promise.resolve({ refresh: false });
+        if (node.isEnabled) {
+            await context.showMessage(
+                this.#adapter.t(
+                    'Node enabled and will be connected now. It might take a moment until the devices of this node are shown.',
+                ),
+            );
+        }
+
+        return { refresh: true };
     }
 
     async #handleOnStatusNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {

@@ -47,16 +47,16 @@ class Controller implements GeneralNode {
     #fabricLabel: string;
     #commissioningController?: CommissioningController;
     #nodes = new Map<string, GeneralMatterNode>();
-    #connected: { [nodeId: string]: boolean } = {};
     #discovering = false;
     #useBle = false;
     #commissioningStatus = new Map<number, { status: 'finished' | 'error' | 'inprogress'; result?: MessageResponse }>();
 
     constructor(options: ControllerCreateOptions) {
-        this.#adapter = options.adapter;
-        this.#parameters = options.controllerOptions;
-        this.#updateCallback = options.updateCallback;
-        this.#fabricLabel = options.fabricLabel;
+        const { adapter, controllerOptions, updateCallback, fabricLabel } = options;
+        this.#adapter = adapter;
+        this.#parameters = controllerOptions;
+        this.#updateCallback = updateCallback;
+        this.#fabricLabel = fabricLabel;
     }
 
     get nodes(): Map<string, GeneralMatterNode> {
@@ -212,16 +212,6 @@ class Controller implements GeneralNode {
                 n => n.nodeId === node.nodeId,
             );
             const nodeIdStr = node.nodeId.toString();
-            if (this.#connected[nodeIdStr] !== undefined) {
-                if (node.isConnected && !this.#connected[nodeIdStr]) {
-                    this.#connected[nodeIdStr] = true;
-                    // Rebuild node structure
-                    await this.nodeToIoBrokerStructure(node, nodeDetails);
-                } else if (!node.isConnected && this.#connected[nodeIdStr]) {
-                    this.#connected[nodeIdStr] = false;
-                }
-            }
-
             const deviceNode = this.#nodes.get(nodeIdStr);
             if (deviceNode) {
                 await deviceNode.handleStateChange(info, nodeDetails);
@@ -306,12 +296,13 @@ class Controller implements GeneralNode {
         // attach all nodes to the controller
         for (const nodeId of nodes) {
             try {
-                this.#adapter.log.info(`Connecting to node "${nodeId}" ...`);
-                const node = await this.#commissioningController.connectNode(nodeId, this.nodeConnectSettings);
+                this.#adapter.log.info(`Initializing to node "${nodeId}" ...`);
+                const node = await this.#commissioningController.getNode(nodeId);
                 this.#registerNodeHandlers(node);
                 await this.nodeToIoBrokerStructure(
                     node,
                     nodesDetails.find(n => n.nodeId === nodeId),
+                    this.nodeConnectSettings,
                 );
             } catch (error) {
                 this.#adapter.log.info(`Failed to connect to node "${nodeId}": ${error.stack}`);
@@ -319,7 +310,11 @@ class Controller implements GeneralNode {
         }
     }
 
-    async nodeToIoBrokerStructure(node: PairedNode, nodeDetails?: { operationalAddress?: string }): Promise<void> {
+    async nodeToIoBrokerStructure(
+        node: PairedNode,
+        nodeDetails?: { operationalAddress?: string },
+        connectOptions?: CommissioningControllerNodeOptions,
+    ): Promise<void> {
         if (!node.initialized) {
             await node.events.initialized; // eslint is wrong, can be awaited
         }
@@ -333,6 +328,7 @@ class Controller implements GeneralNode {
         const device = new GeneralMatterNode(this.#adapter, node, this.#parameters);
         this.#nodes.set(nodeIdStr, device);
         await device.initialize(nodeDetails);
+        device.connect(connectOptions);
     }
 
     async getState(): Promise<void> {
@@ -580,8 +576,10 @@ class Controller implements GeneralNode {
         if (!this.#commissioningController) {
             throw new Error(`Can not decommission NodeId "${nodeId}" because controller not initialized.`);
         }
-        await this.#commissioningController.removeNode(NodeId(BigInt(nodeId)), this.#connected[nodeId]);
-        delete this.#connected[nodeId];
+        await this.#commissioningController.removeNode(
+            NodeId(BigInt(nodeId)),
+            !!this.#nodes.get(nodeId)?.node.isConnected,
+        );
         this.#nodes.delete(nodeId);
         this.#updateCallback();
     }

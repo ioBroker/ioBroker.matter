@@ -69,7 +69,7 @@ Important: In order to expose more than 5 Bridged devices or to expose additiona
 | Door                 | Contact Sensor               |                                                                                                                                     |
 | Flood Alarm          | Water Leak Detector          |                                                                                                                                     |
 | Humidity             | Humidity Sensor              |                                                                                                                                     |
-| Illumunance          | Illuminance Sensor           |                                                                                                                                     |
+| Illuminance          | Illuminance Sensor           |                                                                                                                                     |
 | Light                | OnOff Light                  |                                                                                                                                     |
 | Lock                 | Door Lock                    |                                                                                                                                     |
 | Motion               | Occupancy Sensor             |                                                                                                                                     |
@@ -81,23 +81,27 @@ Important: In order to expose more than 5 Bridged devices or to expose additiona
 
 ### Supported Matter device types
 
-| Matter Device Type                   | Mapped to ioBroker Device Type |
-|--------------------------------------|--------------------------------|
-| Color Temperature Light              | Ct                             |
-| Dimmable Light                       | Dimmer                         |
-| Dimmable PlugIn Unit                 | Dimmer                         |
-| Contact Sensor                       | Window                         |
-| Energy Sensor                        | Light with only energy states  |
-| Generic Switch (as Latching Switch)  | Socket (state ACTUAL only)     |
-| Generic Switch (as Momentary Switch) | ButtonSensor                   |
-| Humidity Sensor                      | Humidity                       |
-| Illuminance Sensor                   | Illuminance                    |
-| OnOff Light                          | Light                          |
-| Door Lock                            | Lock                           |
-| Occupancy Sensor                     | Motion                         |
-| OnOff PlugIn Unit                    | Socket                         |
-| Temperature Sensor                   | Temperature                    |
-| Water Leak Detector                  | Flood Alarm                    |
+| Matter Device Type                   | Mapped to ioBroker Device Type                    |
+|--------------------------------------|---------------------------------------------------|
+| Color Temperature Light              | Ct                                                |
+| Contact Sensor                       | Window                                            |
+| Dimmable Light                       | Dimmer                                            |
+| Dimmable PlugIn Unit                 | Dimmer                                            |
+| Door Lock                            | Lock                                              |
+| Energy Sensor                        | Light with only energy states                     |
+| Extended Color Light                 | Hue or Cie based on supported features            |
+| Generic Switch (as Latching Switch)  | Socket (state ACTUAL only)                        |
+| Generic Switch (as Momentary Switch) | ButtonSensor                                      |
+| Humidity Sensor                      | Humidity                                          |
+| Illuminance Sensor                   | Illuminance                                       |
+| Occupancy Sensor                     | Motion                                            |
+| OnOff Light                          | Light                                             |
+| OnOff PlugIn Unit                    | Socket                                            |
+| Speaker                              | Volume                                            |
+| Temperature Sensor                   | Temperature                                       |
+| Thermostat                           | Thermostat                                        |
+| Water Leak Detector                  | Flood Alarm                                       |
+| Window Covering                      | Blind or BlindButtons based on supported features |
 
 ... more to come
 
@@ -199,9 +203,6 @@ TBD
   * windowTilt - how?
   * levelSlider - how?
 * Matter device types
-  * (9) Enhanced Color Light -> rgb/rgbw/cie/hue/...
-  * (8) Thermostat -> thermostat
-  * (8) Window Covering -> blinds / blindButtons
   * (7) Fan -> thermostat?
   * (4+) Air Quality Sensor -> ???
   * (4+) Air Purifier -> ???
@@ -211,7 +212,6 @@ TBD
   * (3) Flow Sensor -> ??? DEF
   * (3) Room Air Conditioner -> airCondition
   * (2+) Smoke & CO Alarm -> fireAlarm? warning? 
-  * (2+) Speaker -> volume, volumeGroup
   * (2+) Dishwasher-> ???
   * (2) Basic Video Player -> mediaPlayer
   * (2) Laundry Washer -> ???
@@ -238,6 +238,14 @@ TBD
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (@GermanBluefox) Fixed GUI errors
+* (@GermanBluefox/@Apollon77) Added possibility to enable/disable controlled nodes
+* (@Apollon77) Added Information on battery and rssi for DM tile
+* (@Apollon77) Added controller support for Color Lights, Speaker, Thermostats and Window coverings
+* (@Apollon77) Optimized an fixed multiple things
+
 ### 0.3.5 (2025-01-09)
 * (@GermanBluefox) Fixed GUI errors
 * (@GermanBluefox) Added `Controller fabric label` to configuration

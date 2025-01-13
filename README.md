@@ -238,8 +238,7 @@ TBD
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.3.6 (2025-01-13)
 * (@GermanBluefox) Fixed GUI errors
 * (@GermanBluefox/@Apollon77) Added possibility to enable/disable controlled nodes
 * (@Apollon77) Added Information on battery and rssi for DM tile

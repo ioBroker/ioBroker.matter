@@ -52,10 +52,11 @@ class Controller implements GeneralNode {
     #commissioningStatus = new Map<number, { status: 'finished' | 'error' | 'inprogress'; result?: MessageResponse }>();
 
     constructor(options: ControllerCreateOptions) {
-        this.#adapter = options.adapter;
-        this.#parameters = options.controllerOptions;
-        this.#updateCallback = options.updateCallback;
-        this.#fabricLabel = options.fabricLabel;
+        const { adapter, controllerOptions, updateCallback, fabricLabel } = options;
+        this.#adapter = adapter;
+        this.#parameters = controllerOptions;
+        this.#updateCallback = updateCallback;
+        this.#fabricLabel = fabricLabel;
     }
 
     get nodes(): Map<string, GeneralMatterNode> {

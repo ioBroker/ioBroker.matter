@@ -494,7 +494,11 @@ export class DeviceStateObject<T> extends EventEmitter {
                 }
 
                 if (typeof value === 'number') {
-                    value = parseFloat(value.toFixed(4)) as T;
+                    const valueStr = (value as number).toString();
+                    const numberOfDigits = valueStr.includes('.') ? valueStr.split('.')[1].length : 0;
+                    if (numberOfDigits > 4) {
+                        value = parseFloat(value.toFixed(4)) as T;
+                    }
                 }
             }
 

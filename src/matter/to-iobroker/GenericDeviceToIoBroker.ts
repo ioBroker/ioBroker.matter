@@ -748,4 +748,36 @@ export abstract class GenericDeviceToIoBroker {
             }
         }
     }
+
+    async getStatus(nodeStatus: DeviceStatus): Promise<DeviceStatus> {
+        const status: DeviceStatus = {
+            connection: typeof nodeStatus === 'object' ? nodeStatus.connection : nodeStatus,
+        };
+
+        if (status.connection === 'connected') {
+            const powerSource = this.appEndpoint.getClusterClient(PowerSource.Complete);
+            if (powerSource !== undefined) {
+                if (
+                    powerSource.isAttributeSupportedByName('BatChargeState') &&
+                    (await powerSource.getBatChargeStateAttribute(false)) === PowerSource.BatChargeState.IsCharging
+                ) {
+                    status.battery = 'charging';
+                } else {
+                    const voltage = powerSource.isAttributeSupportedByName('batVoltage')
+                        ? await powerSource.getBatVoltageAttribute(false)
+                        : undefined;
+                    const percentRemaining = powerSource.isAttributeSupportedByName('batPercentRemaining')
+                        ? await powerSource.getBatPercentRemainingAttribute(false)
+                        : undefined;
+
+                    if (typeof percentRemaining === 'number') {
+                        status.battery = Math.round(percentRemaining / 2);
+                    } else if (typeof voltage === 'number') {
+                        status.battery = `${voltage}mV`;
+                    }
+                }
+            }
+        }
+        return status;
+    }
 }

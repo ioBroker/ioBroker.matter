@@ -1069,4 +1069,27 @@ export class GeneralMatterNode {
 
         return result;
     }
+
+    async getStatus(): Promise<DeviceStatus> {
+        const status: DeviceStatus = {
+            connection:
+                this.node.isConnected || this.node.state === NodeStates.Reconnecting ? 'connected' : 'disconnected',
+        };
+
+        if (this.node.state === NodeStates.Reconnecting) {
+            status.warning = 'The Node is currently reconnecting ...';
+        }
+
+        if (this.node.isConnected) {
+            const wifiNetworkDiagnostics = this.node.getRootClusterClient(WiFiNetworkDiagnosticsCluster);
+            if (wifiNetworkDiagnostics !== undefined && wifiNetworkDiagnostics.isAttributeSupportedByName('rssi')) {
+                const rssi = await wifiNetworkDiagnostics.getRssiAttribute(false);
+                if (rssi !== null) {
+                    status.rssi = rssi;
+                }
+            }
+        }
+
+        return status;
+    }
 }

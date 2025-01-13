@@ -14,7 +14,12 @@ import {
 } from '@matter/main/protocol';
 import { GlobalAttributes } from '@matter/main/types';
 import { AggregatorEndpointDefinition, BridgedNodeEndpointDefinition } from '@matter/main/endpoints';
-import { type Endpoint, NodeStates, type PairedNode } from '@project-chip/matter.js/device';
+import {
+    type Endpoint,
+    NodeStates,
+    type PairedNode,
+    type CommissioningControllerNodeOptions,
+} from '@project-chip/matter.js/device';
 import type { MatterControllerConfig } from '../../src-admin/src/types';
 import { SubscribeManager } from '../lib';
 import type { SubscribeCallback } from '../lib/SubscribeManager';
@@ -23,6 +28,7 @@ import type { MatterAdapter } from '../main';
 import type { GenericDeviceToIoBroker } from './to-iobroker/GenericDeviceToIoBroker';
 import ioBrokerDeviceFabric, { identifyDeviceTypes } from './to-iobroker/ioBrokerFactory';
 import type { StructuredJsonFormData } from '../lib/JsonConfigUtils';
+import type { DeviceStatus } from '@iobroker/dm-utils';
 
 export type PairedNodeConfig = {
     nodeId: NodeId;
@@ -83,6 +89,7 @@ export class GeneralMatterNode {
     #details: NodeDetails = {};
     #connectedAddress?: string;
     #hasAggregatorEndpoint = false;
+    #enabled = true;
 
     constructor(
         protected readonly adapter: MatterAdapter,
@@ -123,12 +130,20 @@ export class GeneralMatterNode {
         return this.#hasAggregatorEndpoint;
     }
 
+    connect(connectOptions?: CommissioningControllerNodeOptions): void {
+        if (!this.#enabled) {
+            this.adapter.log.warn(`Node "${this.node.nodeId}" is disabled, so do not connect`);
+            return;
+        }
+        this.node.connect(connectOptions);
+    }
+
     async initialize(nodeDetails?: { operationalAddress?: string }): Promise<void> {
         await this.clear();
 
         const rootEndpoint = this.node.getRootEndpoint();
         if (rootEndpoint === undefined) {
-            this.adapter.log.warn(`Node "${this.node.nodeId}" has not yet been initialized! Should not not happen`);
+            this.adapter.log.warn(`Node "${this.node.nodeId}" has not yet been initialized! Should not happen`);
             return;
         }
 
@@ -139,6 +154,9 @@ export class GeneralMatterNode {
             }
             if (existingObject.native?.exposeMatterSystemClusterData !== undefined) {
                 this.exposeMatterSystemClusterData = existingObject.native.exposeMatterSystemClusterData;
+            }
+            if (existingObject.native?.enabled !== undefined) {
+                this.#enabled = existingObject.native.enabled;
             }
         }
         // create device
@@ -244,6 +262,36 @@ export class GeneralMatterNode {
         await this.#processRootEndpointStructure(rootEndpoint, {
             endpointBaseName: deviceObj.native.nodeLabel || deviceObj.common.name,
         });
+    }
+
+    get isConnected(): boolean {
+        return this.node.isConnected;
+    }
+
+    get isEnabled(): boolean {
+        return this.#enabled;
+    }
+
+    async setEnabled(enabled: boolean): Promise<void> {
+        if (enabled === this.#enabled) {
+            return;
+        }
+        try {
+            if (enabled) {
+                this.node.connect();
+            } else {
+                await this.node.disconnect();
+            }
+            await this.adapter.extendObjectAsync(this.nodeBaseId, {
+                native: {
+                    enabled,
+                },
+            });
+        } catch (error) {
+            this.adapter.log.error(`Error while ${enabled ? 'enabling' : 'disabling'} node: ${error}`);
+            return;
+        }
+        this.#enabled = enabled;
     }
 
     get name(): string {

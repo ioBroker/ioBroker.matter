@@ -43,6 +43,15 @@ export class UtilityOnlyToIoBroker extends GenericElectricityDataDeviceToIoBroke
         );
     }
 
+    override get ioBrokerDeviceType(): string | undefined {
+        return 'ElectricityDataDevice';
+    }
+
+    override get iconDeviceType(): string {
+        // Return a special measurement icon for it
+        return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+DQogICAgPHBhdGggZmlsbD0iY3VycmVudENvbG9yIiBkPSJtMjIgMjAuNTktNC42OS00LjY5QzE4LjM3IDE0LjU1IDE5IDEyLjg1IDE5IDExYzAtNC40Mi0zLjU4LTgtOC04LTQuMDggMC03LjQ0IDMuMDUtNy45MyA3aDIuMDJDNS41NyA3LjE3IDguMDMgNSAxMSA1YzMuMzEgMCA2IDIuNjkgNiA2cy0yLjY5IDYtNiA2Yy0yLjQyIDAtNC41LTEuNDQtNS40NS0zLjVIMy40QzQuNDUgMTYuNjkgNy40NiAxOSAxMSAxOWMxLjg1IDAgMy41NS0uNjMgNC45LTEuNjlMMjAuNTkgMjJ6IiAvPg0KICAgIDxwYXRoIGZpbGw9ImN1cnJlbnRDb2xvciIgZD0iTTguNDMgOS42OSA5LjY1IDE1aDEuNjRsMS4yNi0zLjc4Ljk1IDIuMjhoMlYxMmgtMWwtMS4yNS0zaC0xLjU0bC0xLjEyIDMuMzdMOS4zNSA3SDcuN2wtMS4yNSA0SDF2MS41aDYuNTV6IiAvPg0KPC9zdmc+';
+    }
+
     get ioBrokerDevice(): GenericDevice {
         return this.#ioBrokerDevice;
     }

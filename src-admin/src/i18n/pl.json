@@ -33,7 +33,7 @@
     "Bridge is not commissioned. Show QR Code got commissioning": "Most nie jest oddany do użytku. Pokaż kod QR, który został uruchomiony",
     "Bridges": "Mosty",
     "Brightness by ON": "Jasność po włączeniu",
-    "Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.": "Dostęp do kamery jest dozwolony tylko w bezpiecznym kontekście. Użyj HTTPS lub localhost zamiast HTTP.",
+    "Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.": "Skanowanie lokalnego kodu QR nie jest możliwe, ponieważ ioBroker Admin jest używany bez HTTPS.\nProszę użyć skanera kodów QR iobroker Cloud za pomocą poniższego przycisku lub aktywować HTTPS dla ioBroker Admin.",
     "Cancel": "Anulować",
     "Close": "Zamknąć",
     "Cloud Account": "Konto w chmurze",

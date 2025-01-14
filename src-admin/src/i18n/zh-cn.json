@@ -33,7 +33,7 @@
     "Bridge is not commissioned. Show QR Code got commissioning": "桥梁尚未投入使用。显示二维码 已调试",
     "Bridges": "桥梁",
     "Brightness by ON": "亮度开启",
-    "Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.": "仅允许在安全环境下访问摄像头。请使用 HTTPS 或 localhost，而非 HTTP。",
+    "Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.": "由于 ioBroker Admin 未使用 HTTPS，因此无法进行本地二维码扫描。\n请使用下面的按钮使用 iobroker Cloud 二维码扫描器，或为 ioBroker Admin 激活 HTTPS。",
     "Cancel": "取消",
     "Close": "关闭",
     "Cloud Account": "云帐户",

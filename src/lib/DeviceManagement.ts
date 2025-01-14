@@ -232,6 +232,8 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             status: await device.getStatus({
                 connection: nodeConnected ? 'connected' : 'disconnected',
             }),
+            // TODO: provide here the valid connection type (thread, wifi or bluetooth)
+            connectionType: 'wifi',
             hasDetails: true,
             actions: [
                 {

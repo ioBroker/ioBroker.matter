@@ -234,8 +234,8 @@ class Options extends Component<OptionsProps, OptionsState> {
                                             fontWeight: it.uuid === '_' ? 'bold' : undefined,
                                         }}
                                     >
-                                        {it.uuid}
-                                        <span style={styles.address}>{it.name}</span>
+                                        {it.name}
+                                        <span style={styles.address}>{it.uuid}</span>
                                     </span>
                                 </MenuItem>
                             ))}
@@ -245,6 +245,11 @@ class Options extends Component<OptionsProps, OptionsState> {
 
                 <div style={{ marginTop: 50 }}>
                     <Typography sx={styles.header}>{I18n.t('Controller Settings')}</Typography>
+                    <InfoBox type="info">
+                        {I18n.t(
+                            'The label set here is used as Label when ioBroker connects to a device as controller and might be shown by other Controllers in their overviews about other connected ecosystems.',
+                        )}
+                    </InfoBox>
                     <TextField
                         variant="standard"
                         label={I18n.t('Controller fabric label')}
@@ -253,6 +258,9 @@ class Options extends Component<OptionsProps, OptionsState> {
                         onChange={e => this.props.onChange('controllerFabricLabel', e.target.value)}
                         margin="normal"
                         slotProps={{
+                            htmlInput: {
+                                maxLength: 32,
+                            },
                             input: {
                                 endAdornment: this.props.native.controllerFabricLabel ? (
                                     <IconButton
@@ -264,7 +272,10 @@ class Options extends Component<OptionsProps, OptionsState> {
                                 ) : null,
                             },
                         }}
-                        style={styles.input}
+                        style={{
+                            ...styles.input,
+                            maxWidth: 350,
+                        }}
                     />
                 </div>
 

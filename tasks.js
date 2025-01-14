@@ -1,4 +1,4 @@
-const { existsSync, copyFileSync } = require('node:fs');
+const { existsSync, copyFileSync, readFileSync, statSync, writeFileSync } = require('node:fs');
 const { deleteFoldersRecursive, copyFiles, npmInstall, buildReact, patchHtmlFile } = require('@iobroker/build-tools');
 
 function clean() {
@@ -12,6 +12,20 @@ function copyAllFiles() {
 
 function copyI18n() {
     copyFiles(['src/lib/i18n/**/*'], 'build/lib/i18n');
+}
+
+function sync2files(src, dst) {
+    const srcTxt = readFileSync(src).toString('utf8');
+    const destTxt = readFileSync(dst).toString('utf8');
+    if (srcTxt !== destTxt) {
+        const srcs = statSync(src);
+        const dest = statSync(dst);
+        if (srcs.mtime > dest.mtime) {
+            writeFileSync(dst, srcTxt);
+        } else {
+            writeFileSync(src, destTxt);
+        }
+    }
 }
 
 async function patch() {
@@ -48,6 +62,7 @@ if (process.argv.includes('--0-clean')) {
     });
 } else if (process.argv.includes('--build')) {
     clean();
+    sync2files(`${__dirname}/src/lib/vendorIDs.ts`, `${__dirname}/src-admin/src/utils/vendorIDs.ts`);
     npmInstall(`${__dirname}/src-admin`)
         .then(() =>
             buildReact(`${__dirname}/src-admin/`, {
@@ -65,6 +80,7 @@ if (process.argv.includes('--0-clean')) {
     copyI18n();
 } else {
     clean();
+    sync2files(`${__dirname}/src/lib/vendorIDs.ts`, `${__dirname}/src-admin/src/utils/vendorIDs.ts`);
 
     npmInstall(`${__dirname}/src-admin`)
         .then(() =>

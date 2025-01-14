@@ -12,6 +12,7 @@ import InfoBox from './InfoBox';
 interface QrCodeDialogProps {
     onClose: (manualCode?: string, qrCode?: string) => void;
     themeType: ThemeType;
+    name?: string;
 }
 
 interface QrCodeDialogState {
@@ -86,7 +87,11 @@ export default class QrCodeDialog extends Component<QrCodeDialogProps, QrCodeDia
                 maxWidth="lg"
                 fullWidth
             >
-                <DialogTitle>{I18n.t('Add device by pairing code or QR Code')}</DialogTitle>
+                <DialogTitle>
+                    {this.props.name
+                        ? I18n.t('Add device "%s" by pairing code or QR Code', this.props.name)
+                        : I18n.t('Add device by pairing code or QR Code')}
+                </DialogTitle>
                 <DialogContent>
                     <div style={{ marginBottom: 10 }}>{I18n.t('Add via QR Code')}</div>
                     <InfoBox
@@ -206,7 +211,13 @@ export default class QrCodeDialog extends Component<QrCodeDialogProps, QrCodeDia
                             }}
                         >
                             <div>{I18n.t('QR Code scan is not possible')}:</div>
-                            <div>{this.state.qrError}</div>
+                            <div>
+                                {this.state.qrError
+                                    ? this.state.qrError
+                                          .split('\n')
+                                          .map((part: string, i: number): React.JSX.Element => <p key={i}>{part}</p>)
+                                    : null}
+                            </div>
                         </div>
                     ) : null}
                     {!this.state.manualCode && this.state.hideQrCode && !this.state.iframe ? (

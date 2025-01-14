@@ -238,6 +238,9 @@ TBD
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (@GermanBluefox) Showed the device name in paring dialog  
+
 ### 0.3.6 (2025-01-13)
 * (@GermanBluefox) Fixed GUI errors
 * (@GermanBluefox/@Apollon77) Added possibility to enable/disable controlled nodes

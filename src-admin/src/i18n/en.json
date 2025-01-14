@@ -33,7 +33,7 @@
     "Bridge is not commissioned. Show QR Code got commissioning": "Bridge is not commissioned. Show QR Code got commissioning",
     "Bridges": "Bridges",
     "Brightness by ON": "Brightness by ON",
-    "Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.": "Local QR code scanning is not possible because ioBroker Admin is used without HTTPS.\nPlease use the iobroker Cloud QR code scanner using the button below or activate HTTPS for the ioBroker Admin.",
+    "Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.": "Local QR code scanning is not possible because ioBroker Admin is used without HTTPS.\nPlease use the ioBroker Cloud QR code scanner using the button below or activate HTTPS for the ioBroker Admin.",
     "Cancel": "Cancel",
     "Close": "Close",
     "Cloud Account": "Cloud Account",

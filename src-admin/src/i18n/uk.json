@@ -33,7 +33,7 @@
     "Bridge is not commissioned. Show QR Code got commissioning": "Міст не зданий в експлуатацію. Показати QR-код введено в експлуатацію",
     "Bridges": "Мости",
     "Brightness by ON": "Яскравість на ON",
-    "Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.": "Локальне сканування QR-коду неможливе, оскільки ioBroker Admin використовується без HTTPS.\nСкористайтеся хмарним сканером QR-коду iobroker за допомогою кнопки нижче або активуйте HTTPS для адміністратора ioBroker.",
+    "Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.": "Локальне сканування QR-коду неможливе, оскільки ioBroker Admin використовується без HTTPS.\nСкористайтеся хмарним сканером QR-коду ioBroker за допомогою кнопки нижче або активуйте HTTPS для адміністратора ioBroker.",
     "Cancel": "Скасувати",
     "Close": "Закрити",
     "Cloud Account": "Хмарний обліковий запис",

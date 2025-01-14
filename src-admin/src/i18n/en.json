@@ -5,6 +5,7 @@
     "Add %s device(s)": "Add %s device(s)",
     "Add bridge": "Add bridge",
     "Add device": "Add device",
+    "Add device \"%s\" by pairing code or QR Code": "Add device \"%s\" by pairing code or QR Code",
     "Add device by pairing code or QR Code": "Add device by pairing code or QR Code",
     "Add device from channel or device": "Add device from channel or device",
     "Add device from one state": "Add device from one state",

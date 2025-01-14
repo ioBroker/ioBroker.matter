@@ -527,6 +527,11 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
         return (
             <QrCodeDialog
+                name={
+                    typeof this.state.showQrCodeDialog !== 'boolean'
+                        ? `${this.state.showQrCodeDialog.DN} / ${getVendorName(this.state.showQrCodeDialog.V)}`
+                        : undefined
+                }
                 onClose={async (manualCode?: string, qrCode?: string): Promise<void> => {
                     if (manualCode || qrCode) {
                         const device: CommissionableDevice | null =

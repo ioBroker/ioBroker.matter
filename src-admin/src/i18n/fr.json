@@ -5,6 +5,7 @@
     "Add %s device(s)": "Ajouter %s périphérique(s)",
     "Add bridge": "Ajouter un pont",
     "Add device": "Ajouter un appareil",
+    "Add device \"%s\" by pairing code or QR Code": "Ajoutez l'appareil « %s » par code d'association ou code QR",
     "Add device by pairing code or QR Code": "Ajouter un appareil par code d'association ou code QR",
     "Add device from channel or device": "Ajouter un appareil à partir d'un canal ou d'un appareil",
     "Add device from one state": "Ajouter un appareil à partir d'un état",

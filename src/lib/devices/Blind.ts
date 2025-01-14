@@ -11,19 +11,18 @@ class Blind extends BlindButtons {
 
         this._construction.push(
             this.addDeviceStates([
-                // actual value first, as it will be read first
                 {
                     name: 'ACTUAL',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.Read,
-                    type: PropertyType.Level,
+                    type: PropertyType.LevelActual,
                     callback: state => (this.#getLevelState = state),
                 },
                 {
                     name: 'SET',
                     valueType: ValueType.NumberPercent,
                     accessType: StateAccessType.ReadWrite,
-                    type: PropertyType.LevelActual,
+                    type: PropertyType.Level,
                     callback: state => (this.#setLevelState = state),
                 },
             ]),

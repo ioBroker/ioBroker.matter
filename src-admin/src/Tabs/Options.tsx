@@ -234,8 +234,8 @@ class Options extends Component<OptionsProps, OptionsState> {
                                             fontWeight: it.uuid === '_' ? 'bold' : undefined,
                                         }}
                                     >
-                                        {it.uuid}
-                                        <span style={styles.address}>{it.name}</span>
+                                        {it.name}
+                                        <span style={styles.address}>{it.uuid}</span>
                                     </span>
                                 </MenuItem>
                             ))}

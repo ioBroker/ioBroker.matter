@@ -209,7 +209,7 @@ class AirCondition extends ElectricityDataDevice {
         return this.#modeState.value;
     }
 
-    etMode(mode: AirConditionerMode): Promise<void> {
+    setMode(mode: AirConditionerMode): Promise<void> {
         if (!this.#modeState) {
             throw new Error('Mode state not found');
         }

@@ -211,7 +211,13 @@ export default class QrCodeDialog extends Component<QrCodeDialogProps, QrCodeDia
                             }}
                         >
                             <div>{I18n.t('QR Code scan is not possible')}:</div>
-                            <div>{this.state.qrError}</div>
+                            <div>
+                                {this.state.qrError
+                                    ? this.state.qrError
+                                          .split('\n')
+                                          .map((part: string, i: number): React.JSX.Element => <p key={i}>{part}</p>)
+                                    : null}
+                            </div>
                         </div>
                     ) : null}
                     {!this.state.manualCode && this.state.hideQrCode && !this.state.iframe ? (

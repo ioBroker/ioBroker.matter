@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.3.6",
+    "version": "0.3.7",
     "news": {
+      "0.3.7": {
+        "en": "Showed the device name in paring dialog\nAdjusts connection type icons\nOptimized the discovery dialog handling\nFixed Thermostat for Controller to update temperatures\nGives Energy sensors a dedicated icon\nOptimized an fixed multiple things",
+        "de": "Zeigt den Gerätenamen im Paring-Dialog\nPasst Verbindungstyp-Symbole an\nOptimiert die Erkennungsdialog-Behandlung\nThermostat für Controller, um Temperaturen zu aktualisieren\nGibt Energiesensoren ein eigenes Icon\nOptimiert ein festes Vielfaches",
+        "ru": "Показано имя устройства в диалоге парирования\nНастройка иконок типа подключения\nОптимизация диалогового режима обнаружения\nИсправленный термостат для контроллера для обновления температуры\nДает энергетическим датчикам выделенную икону\nОптимизация фиксированных нескольких вещей",
+        "pt": "Mostrou o nome do dispositivo na caixa de diálogo de análise\nAjusta ícones do tipo de conexão\nOtimizado o manuseio de diálogo de descoberta\nTermóstato Fixo para Controlador para atualizar temperaturas\nDá aos sensores de energia um ícone dedicado\nOtimizou várias coisas fixas",
+        "nl": "De naam van het apparaat tonen in het dialoogvenster\nPast verbindingstype pictogrammen aan\nOptimaliseerde de ontdekkingsdialoog\nVaste thermostaat voor controller om temperaturen bij te werken\nGeeft energiesensoren een speciaal pictogram\nOptimaliseerde een vaste meerdere dingen",
+        "fr": "Affiche le nom du périphérique dans la boîte de dialogue d'analyse\nAjuste les icônes du type de connexion\nOptimisé la gestion du dialogue de découverte\nThermostat fixe pour contrôleur pour mettre à jour les températures\nDonne aux capteurs d'énergie une icône dédiée\nOptimisé un multiple de choses fixes",
+        "it": "Mostrato il nome del dispositivo nella finestra di dialogo di paring\nRegola le icone del tipo di connessione\nOttimizzato la gestione della finestra di dialogo scoperta\nTermostato fisso per controller per aggiornare le temperature\nFornisce ai sensori Energy un'icona dedicata\nOttimizzato un fisso più cose",
+        "es": "Muestra el nombre del dispositivo en el cuadro de diálogo de paring\nAjuste los iconos de tipo de conexión\nOptimizado el manejo del diálogo de descubrimiento\nTermostato fijo para controlador para actualizar temperaturas\nDa sensores de energía un icono dedicado\nOptimizado unas múltiples cosas fijas",
+        "pl": "Pokazał nazwę urządzenia w oknie dialogowym parowania\nDostosuje ikony typu połączenia\nOptymalizacja obsługi okna dialogowego wyszukiwania\nTermostat stały dla kontrolera do aktualizacji temperatury\nDaje czujnikom energii dedykowaną ikonę\nZoptymalizowane stałe wiele rzeczy",
+        "uk": "Показати назву пристрою в діалоговому вікні\nРегульовані іконки типу з'єднання\nОптимізовано діалогове вікно відкриття\nФіксований термостат для контролера для оновлення температур\nПодарує датчикам енергії виділену іконку\nОптимізований фіксований кілька речей",
+        "zh-cn": "在剖析对话框中显示设备名称\n调整连接类型图标\n优化发现对话框处理\n供控制员更新温度的固定自动调温器\n给能量传感器一个专用图标\n优化固定的多件东西"
+      },
       "0.3.6": {
         "en": "Fixed GUI errors\nAdded possibility to enable/disable controlled nodes\nAdded Information on battery and rssi for DM tile\nAdded controller support for Color Lights, Speaker, Thermostats and Window coverings\nOptimized an fixed multiple things",
         "de": "Fehler behoben\nZusätzliche Möglichkeit, gesteuerte Knoten zu aktivieren / zu deaktivieren\nZusatzinformationen zu Batterie und Rssi für DM-Fliese\nUnterstützung für Farblichter, Lautsprecher, Thermostate und Fensterverkleidungen\nOptimiert ein festes Vielfaches",
@@ -80,19 +93,6 @@
         "pl": "Fixes mostek / ikona urządzenia wyświetlacz w UI\nZapobiega wyświetlaniu dialogów ostrzegawczych, gdy nic nie jest złe\nDostosuje niektóre logi",
         "uk": "Виправлення відображення іконок міст /device в UI\nЗапобігає відображення діалогів попередження, коли нічого не неправильно\nНалаштування деяких журналів",
         "zh-cn": "在 UI 中修复桥/ 设备图标显示\n防止在无问题时显示警告对话框\n调整一些日志"
-      },
-      "0.3.0": {
-        "en": "BREAKING: Please re-enter your ioBroker Pro Cloud Password!\nMakes sure the adapter is stopped before being updated\nOptimizes device discovery and allows to stop it again",
-        "de": "BREAKING: Bitte geben Sie Ihr ioBroker Pro Cloud-Passwort erneut ein!\nStellen Sie sicher, dass der Adapter gestoppt wird, bevor er aktualisiert wird\nOptimiert die Geräteentdeckung und ermöglicht es, sie wieder zu stoppen",
-        "ru": "Пожалуйста, перейдите в свой ioBroker Pro Cloud Password!\nУбедитесь, что адаптер был остановлен перед обновлением\nОптимизирует обнаружение устройства и позволяет остановить его снова",
-        "pt": "BREAKING: Por favor, re-enter seu ioBroker Pro Cloud Password!\nCertifica-se de que o adaptador é interrompido antes de ser atualizado\nOtimiza a descoberta do dispositivo e permite impedi-lo novamente",
-        "nl": "Voer uw ioBroker Pro Cloud-wachtwoord opnieuw in!\nZorgt ervoor dat de adapter gestopt is voordat deze bijgewerkt wordt\nOptimaliseer de ontdekking van het apparaat en laat toe om het opnieuw te stoppen",
-        "fr": "Veuillez entrer de nouveau votre mot de passe ioBroker Pro Cloud !\nS'assure que l'adaptateur est arrêté avant d'être mis à jour\nOptimise la découverte du périphérique et permet de l'arrêter à nouveau",
-        "it": "BREAKING: Si prega di ri-inserire il tuo ioBroker Pro Cloud Password!\nAssicurarsi che l'adattatore venga interrotto prima di essere aggiornato\nOttimizza la scoperta del dispositivo e permette di fermarlo di nuovo",
-        "es": "¡Por favor vuelva a entrar en su ioBroker Pro Cloud Contraseña!\nAsegura que el adaptador se detenga antes de ser actualizado\nOptimiza el descubrimiento de dispositivos y permite detenerlo de nuevo",
-        "pl": "BREAKING: Proszę ponownie wprowadzić swoje hasło joBroker Pro Cloud!\nZapewnia zatrzymanie adaptera przed aktualizacją\nOptymalizuje wykrywanie urządzeń i pozwala je ponownie zatrzymać",
-        "uk": "Будь ласка, зв'яжіться з нами!\nПереконайтеся, що адаптер припиняється до оновлення\nОптимізуйте відкриття пристрою і дозволяє знову зупинити його",
-        "zh-cn": "请重新输入你的ioBroker Pro Cloud密码!\n确保适配器在更新前被停止\n优化设备发现并允许再次停止"
       }
     },
     "title": "Matter",

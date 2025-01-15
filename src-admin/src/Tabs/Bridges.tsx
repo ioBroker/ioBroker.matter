@@ -1554,7 +1554,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                 }}
                                 sx={styles.devicesHeader}
                             >
-                                {this.props.alive && bridge.enabled ? (
+                                {this.props.alive && bridge.enabled && bridge.list.length ? (
                                     <Tooltip
                                         title={I18n.t('Reset to factory defaults')}
                                         slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}

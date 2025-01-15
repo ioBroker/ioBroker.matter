@@ -1153,10 +1153,8 @@ export class GeneralMatterNode {
             return 'thread';
         } else if (this.node.deviceInformation?.wifiConnected) {
             return 'wifi';
-        } else if (this.node.deviceInformation?.ethernetConnected) {
-            return 'lan';
         }
-        return 'other';
+        return 'lan';
     }
 
     async getConnectionStatus(): Promise<StructuredJsonFormData> {

@@ -238,7 +238,7 @@ TBD
 -->
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 0.3.7 (2025-01-15)
 * (@GermanBluefox) Showed the device name in paring dialog
 * (@GermanBluefox/Apollon77) Adjusts connection type icons
 * (@Apollon77) Optimized the discovery dialog handling

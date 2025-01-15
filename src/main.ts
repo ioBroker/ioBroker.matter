@@ -303,7 +303,12 @@ export class MatterAdapter extends utils.Adapter {
                 }
             }
             if (obj.callback) {
-                this.sendTo(obj.from, obj.command, { error: 'Device or Bridge not found' }, obj.callback);
+                this.sendTo(
+                    obj.from,
+                    obj.command,
+                    { error: `Device or Bridge ${obj.message.uuid} not found` },
+                    obj.callback,
+                );
             }
             return;
         }

@@ -674,13 +674,13 @@ export abstract class GenericDeviceToIoBroker {
                 powerSource.isAttributeSupportedByName('batQuantity') &&
                 powerSource.isAttributeSupportedByName('batReplacementDescription')
             ) {
-                states.includedBattery = `${await powerSource.getBatQuantityAttribute()} x ${await powerSource.getBatReplacementDescriptionAttribute()}`;
+                states.includedBattery = `${await powerSource.getBatQuantityAttribute(false)} x ${await powerSource.getBatReplacementDescriptionAttribute(false)}`;
             }
             const voltage = powerSource.isAttributeSupportedByName('batVoltage')
-                ? await powerSource.getBatVoltageAttribute()
+                ? await powerSource.getBatVoltageAttribute(false)
                 : undefined;
             const percentRemaining = powerSource.isAttributeSupportedByName('batPercentRemaining')
-                ? await powerSource.getBatPercentRemainingAttribute()
+                ? await powerSource.getBatPercentRemainingAttribute(false)
                 : undefined;
 
             if (typeof voltage === 'number') {
@@ -697,7 +697,7 @@ export abstract class GenericDeviceToIoBroker {
         return states;
     }
 
-    async getDeviceDetails(): Promise<StructuredJsonFormData> {
+    async getDeviceDetails(nodeConnected: boolean): Promise<StructuredJsonFormData> {
         const result: StructuredJsonFormData = {};
 
         const states = this.ioBrokerDevice.getStates();
@@ -717,7 +717,7 @@ export abstract class GenericDeviceToIoBroker {
                 .map(({ name, code }) => `${name} (${toHex(code)})`)
                 .join(', '),
             endpoint: this.appEndpoint.number,
-            ...(await this.getMatterStates()),
+            ...(nodeConnected ? await this.getMatterStates() : {}),
         } as Record<string, unknown>;
 
         result.matterClusters = {} as Record<string, unknown>;

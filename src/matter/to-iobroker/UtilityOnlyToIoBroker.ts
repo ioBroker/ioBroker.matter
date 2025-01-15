@@ -58,10 +58,16 @@ export class UtilityOnlyToIoBroker extends GenericElectricityDataDeviceToIoBroke
             case 'PowerSource': {
                 const powerSource = this.appEndpoint.getClusterClient(PowerSource.Complete);
                 if (powerSource) {
-                    if (powerSource.supportedFeatures.battery) {
+                    if (
+                        powerSource.supportedFeatures.battery ||
+                        powerSource.isAttributeSupportedByName('batChargeLevel')
+                    ) {
                         // Battery icon
                         return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+DQogICAgPHBhdGggZmlsbD0iY3VycmVudENvbG9yIiBkPSJNMTUuNjcgNEgxNFYyaC00djJIOC4zM0M3LjYgNCA3IDQuNiA3IDUuMzN2MTUuMzNDNyAyMS40IDcuNiAyMiA4LjMzIDIyaDcuMzNjLjc0IDAgMS4zNC0uNiAxLjM0LTEuMzNWNS4zM0MxNyA0LjYgMTYuNCA0IDE1LjY3IDQiIC8+DQo8L3N2Zz4=';
-                    } else if (powerSource.supportedFeatures.wired) {
+                    } else if (
+                        powerSource.supportedFeatures.wired ||
+                        powerSource.isAttributeSupportedByName('wiredCurrentType')
+                    ) {
                         // Wired icon
                         return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+DQogICAgPHBhdGggZmlsbD0iY3VycmVudENvbG9yIiBkPSJNMTYuMDEgNyAxNiAzaC0ydjRoLTRWM0g4djRoLS4wMUM3IDYuOTkgNiA3Ljk5IDYgOC45OXY1LjQ5TDkuNSAxOHYzaDV2LTNsMy41LTMuNTF2LTUuNWMwLTEtMS0yLTEuOTktMS45OSIgLz4NCjwvc3ZnPg==';
                     }
@@ -70,11 +76,13 @@ export class UtilityOnlyToIoBroker extends GenericElectricityDataDeviceToIoBroke
             // eslint-disable-next-line no-fallthrough
             default:
                 if (this.#deviceTypeSupported) {
-                    super.iconDeviceType;
-                } else {
-                    // Questionmark icon
-                    return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgPg0KICAgIDxwYXRoIGZpbGw9ImN1cnJlbnRDb2xvciIgZD0iTTExLjA3IDEyLjg1Yy43Ny0xLjM5IDIuMjUtMi4yMSAzLjExLTMuNDQuOTEtMS4yOS40LTMuNy0yLjE4LTMuNy0xLjY5IDAtMi41MiAxLjI4LTIuODcgMi4zNEw2LjU0IDYuOTZDNy4yNSA0LjgzIDkuMTggMyAxMS45OSAzYzIuMzUgMCAzLjk2IDEuMDcgNC43OCAyLjQxLjcgMS4xNSAxLjExIDMuMy4wMyA0LjktMS4yIDEuNzctMi4zNSAyLjMxLTIuOTcgMy40NS0uMjUuNDYtLjM1Ljc2LS4zNSAyLjI0aC0yLjg5Yy0uMDEtLjc4LS4xMy0yLjA1LjQ4LTMuMTVNMTQgMjBjMCAxLjEtLjkgMi0yIDJzLTItLjktMi0yIC45LTIgMi0yIDIgLjkgMiAyIj48L3BhdGg+DQo8L3N2Zz4=';
+                    const icon = super.iconDeviceType;
+                    if (icon) {
+                        return icon;
+                    }
                 }
+                // Questionmark icon
+                return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgPg0KICAgIDxwYXRoIGZpbGw9ImN1cnJlbnRDb2xvciIgZD0iTTExLjA3IDEyLjg1Yy43Ny0xLjM5IDIuMjUtMi4yMSAzLjExLTMuNDQuOTEtMS4yOS40LTMuNy0yLjE4LTMuNy0xLjY5IDAtMi41MiAxLjI4LTIuODcgMi4zNEw2LjU0IDYuOTZDNy4yNSA0LjgzIDkuMTggMyAxMS45OSAzYzIuMzUgMCAzLjk2IDEuMDcgNC43OCAyLjQxLjcgMS4xNSAxLjExIDMuMy4wMyA0LjktMS4yIDEuNzctMi4zNSAyLjMxLTIuOTcgMy40NS0uMjUuNDYtLjM1Ljc2LS4zNSAyLjI0aC0yLjg5Yy0uMDEtLjc4LS4xMy0yLjA1LjQ4LTMuMTVNMTQgMjBjMCAxLjEtLjkgMi0yIDJzLTItLjktMi0yIC45LTIgMi0yIDIgLjkgMiAyIj48L3BhdGg+DQo8L3N2Zz4=';
         }
     }
 
@@ -82,8 +90,8 @@ export class UtilityOnlyToIoBroker extends GenericElectricityDataDeviceToIoBroke
         return this.#ioBrokerDevice;
     }
 
-    override async getDeviceDetails(): Promise<StructuredJsonFormData> {
-        const details = await super.getDeviceDetails();
+    override async getDeviceDetails(nodeConnected: boolean): Promise<StructuredJsonFormData> {
+        const details = await super.getDeviceDetails(nodeConnected);
 
         const unsupportedInfo = {
             __header__UnsupportedNotice: 'This Device type is not automatically mapped to ioBroker!',

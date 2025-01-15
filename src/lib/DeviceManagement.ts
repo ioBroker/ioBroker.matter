@@ -228,10 +228,11 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         nodeConnected: boolean,
         nodeConnectionType: ConfigConnectionType,
     ): Promise<DeviceInfo> {
+        const icon = device.iconDeviceType;
         const data: DeviceInfo = {
             id: `${nodeId}-${device.number}`,
             name: device.name,
-            icon: device.iconDeviceType,
+            icon,
             ...nodeDetails,
             status: await device.getStatus({
                 connection: nodeConnected ? 'connected' : 'disconnected',
@@ -255,7 +256,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             group: {
                 key: `device/${device.deviceType}`,
                 name: this.#adapter.getText(device.deviceType),
-                icon: device.iconDeviceType,
+                icon,
             },
         };
 
@@ -697,7 +698,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             return { error: 'Device not found' };
         }
 
-        const schema = convertDataToJsonConfig(await device.getDeviceDetails());
+        const schema = convertDataToJsonConfig(await device.getDeviceDetails(node.isConnected));
 
         return { id, schema, data: {} };
     }

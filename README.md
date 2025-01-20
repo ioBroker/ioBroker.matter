@@ -17,7 +17,7 @@ Sentry reporting is used starting with js-controller 3.0.
 > [!Important]
 > The adapter can NOT be installed via GitHub: The adapter must be installed via the ioBroker repository (stable or latest).
 > 
-> A detailed description of the configuration and use of the ioBroker Matter adapter is described in the 🇬🇧 [Wiki](https://github.com/ioBroker/ioBroker.matter/wiki).
+> A detailed description of the configuration and use of the ioBroker Matter adapter is described in the 🇩🇪 [german Wiki](https://github.com/ioBroker/ioBroker.matter/wiki) and 🇬🇧 [english Wiki](https://github.com/ioBroker/ioBroker.matter/wiki/Home-%E2%80%90-EN).
 > 
 > Please read the [Important notes](https://github.com/ioBroker/ioBroker.matter/wiki/Einleitung-und-wichtige-Hinweise#wichtige-hinweise-bitte-dringend-beachten) before using the adapter.
 

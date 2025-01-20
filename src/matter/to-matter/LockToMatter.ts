@@ -1,9 +1,8 @@
 import { Endpoint } from '@matter/main';
 import { DoorLock } from '@matter/main/clusters';
 import { DoorLockDevice } from '@matter/main/devices';
-import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import type Lock from '../../lib/devices/Lock';
+import type { Lock } from '../../lib/devices/Lock';
 import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
@@ -19,7 +18,7 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
     readonly #ioBrokerDevice: Lock;
     readonly #matterEndpoint: Endpoint<IoBrokerDoorLockDevice>;
 
-    constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
+    constructor(ioBrokerDevice: Lock, name: string, uuid: string) {
         super(name, uuid);
 
         this.#matterEndpoint = new Endpoint(IoBrokerDoorLockDevice, {
@@ -30,7 +29,7 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
                 lockState: DoorLock.LockState.Locked, // Will be corrected later
             },
         });
-        this.#ioBrokerDevice = ioBrokerDevice as Lock;
+        this.#ioBrokerDevice = ioBrokerDevice;
     }
 
     // Just change the power state every second
@@ -51,10 +50,19 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
         return this.#ioBrokerDevice;
     }
 
-    registerMatterHandlers(): void {
-        // install matter listeners
-        // here we can react on changes from the matter side for onOff
-        this.#matterEndpoint.events.ioBrokerEvents.doorLockStateControlled.on(async state => {
+    async registerHandlersAndInitialize(): Promise<void> {
+        await super.registerHandlersAndInitialize();
+
+        // init current state from ioBroker side
+        await this.#matterEndpoint.set({
+            doorLock: {
+                lockState: this.#ioBrokerDevice.getLockState()
+                    ? DoorLock.LockState.Unlocked
+                    : DoorLock.LockState.Locked,
+            },
+        });
+
+        this.matterEvents.on(this.#matterEndpoint.events.ioBrokerEvents.doorLockStateControlled, async state => {
             switch (state) {
                 case null:
                     return;
@@ -73,11 +81,7 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
                     break;
             }
         });
-    }
 
-    async registerIoBrokerHandlersAndInitialize(): Promise<void> {
-        // install ioBroker listeners
-        // here we react on changes from the ioBroker side for onOff and current lamp level
         this.#ioBrokerDevice.onChange(async event => {
             switch (event.property) {
                 case PropertyType.LockState:
@@ -89,15 +93,6 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
                     });
                     break;
             }
-        });
-
-        // init current state from ioBroker side
-        await this.#matterEndpoint.set({
-            doorLock: {
-                lockState: this.#ioBrokerDevice.getLockState()
-                    ? DoorLock.LockState.Unlocked
-                    : DoorLock.LockState.Locked,
-            },
         });
     }
 }

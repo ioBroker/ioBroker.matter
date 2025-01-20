@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Lock extends GenericDevice {
+export class Lock extends GenericDevice {
     #setLockState?: DeviceStateObject<boolean>;
     #getLockState?: DeviceStateObject<boolean>;
     #setOpenState?: DeviceStateObject<boolean>;
@@ -71,7 +71,6 @@ class Lock extends GenericDevice {
             throw new Error('Level state not found');
         }
         await this.#getLockState.updateValue(value);
-        await this.#setLockState?.updateValue(value);
     }
 
     setOpen(): Promise<void> {
@@ -85,5 +84,3 @@ class Lock extends GenericDevice {
         return !!this.#setOpenState;
     }
 }
-
-export default Lock;

@@ -1,8 +1,7 @@
 import { Endpoint } from '@matter/main';
 import { HumiditySensorDevice, TemperatureSensorDevice } from '@matter/main/devices';
-import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import type Temperature from '../../lib/devices/Temperature';
+import type { Temperature } from '../../lib/devices/Temperature';
 import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
 
 /** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */
@@ -11,12 +10,12 @@ export class TemperatureToMatter extends GenericDeviceToMatter {
     readonly #matterEndpointTemperature: Endpoint<TemperatureSensorDevice>;
     readonly #matterEndpointHumidity?: Endpoint<HumiditySensorDevice>;
 
-    constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
+    constructor(ioBrokerDevice: Temperature, name: string, uuid: string) {
         super(name, uuid);
         this.#matterEndpointTemperature = new Endpoint(TemperatureSensorDevice, {
             id: `${uuid}-Temperature`,
         });
-        this.#ioBrokerDevice = ioBrokerDevice as Temperature;
+        this.#ioBrokerDevice = ioBrokerDevice;
         if (this.#ioBrokerDevice.hasHumidity()) {
             this.#matterEndpointHumidity = new Endpoint(HumiditySensorDevice, { id: `${uuid}-Humidity` });
         }
@@ -33,11 +32,9 @@ export class TemperatureToMatter extends GenericDeviceToMatter {
         return endpoints;
     }
 
-    get ioBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): Temperature {
         return this.#ioBrokerDevice;
     }
-
-    registerMatterHandlers(): void {}
 
     convertHumidityValue(value: number): number {
         return value * 100;
@@ -47,9 +44,25 @@ export class TemperatureToMatter extends GenericDeviceToMatter {
         return value * 100;
     }
 
-    async registerIoBrokerHandlersAndInitialize(): Promise<void> {
-        // install ioBroker listeners
-        // here we react on changes from the ioBroker side for onOff and current lamp level
+    async registerHandlersAndInitialize(): Promise<void> {
+        await super.registerHandlersAndInitialize();
+        const value = this.#ioBrokerDevice.getTemperature();
+        // init current state from ioBroker side
+        await this.#matterEndpointTemperature.set({
+            temperatureMeasurement: {
+                measuredValue: typeof value === 'number' ? this.convertTemperatureValue(value) : null,
+            },
+        });
+
+        if (this.#matterEndpointHumidity && this.#matterEndpointHumidity?.owner !== undefined) {
+            const humidity = this.#ioBrokerDevice.getHumidity();
+            await this.#matterEndpointHumidity.set({
+                relativeHumidityMeasurement: {
+                    measuredValue: typeof humidity === 'number' ? this.convertHumidityValue(humidity) : null,
+                },
+            });
+        }
+
         this.#ioBrokerDevice.onChange(async event => {
             switch (event.property) {
                 case PropertyType.Temperature:
@@ -70,22 +83,5 @@ export class TemperatureToMatter extends GenericDeviceToMatter {
                     break;
             }
         });
-
-        const value = this.#ioBrokerDevice.getTemperature();
-        // init current state from ioBroker side
-        await this.#matterEndpointTemperature.set({
-            temperatureMeasurement: {
-                measuredValue: value === undefined ? null : this.convertTemperatureValue(value),
-            },
-        });
-
-        if (this.#matterEndpointHumidity && this.#matterEndpointHumidity?.owner !== undefined) {
-            const humidity = this.#ioBrokerDevice.getHumidity();
-            await this.#matterEndpointHumidity.set({
-                relativeHumidityMeasurement: {
-                    measuredValue: humidity === undefined ? null : this.convertHumidityValue(humidity),
-                },
-            });
-        }
     }
 }

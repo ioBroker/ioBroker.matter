@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Window extends GenericDevice {
+export class Window extends GenericDevice {
     #getValueState?: DeviceStateObject<boolean>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
@@ -34,5 +34,3 @@ class Window extends GenericDevice {
         return this.#getValueState.updateValue(value);
     }
 }
-
-export default Window;

@@ -2,9 +2,8 @@ import { Endpoint } from '@matter/main';
 import { OccupancySensing } from '@matter/main/clusters';
 import { LightSensorDevice, OccupancySensorDevice } from '@matter/main/devices';
 import type { TypeFromBitSchema } from '@matter/main/types';
-import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import type Motion from '../../lib/devices/Motion';
+import type { Motion } from '../../lib/devices/Motion';
 import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
 
 /** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */
@@ -13,7 +12,7 @@ export class MotionToMatter extends GenericDeviceToMatter {
     readonly #matterEndpointOccupancy: Endpoint<OccupancySensorDevice>;
     readonly #matterEndpointLightSensor?: Endpoint<LightSensorDevice>;
 
-    constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
+    constructor(ioBrokerDevice: Motion, name: string, uuid: string) {
         super(name, uuid);
         this.#matterEndpointOccupancy = new Endpoint(OccupancySensorDevice, {
             id: `${uuid}-Occupancy`,
@@ -23,7 +22,7 @@ export class MotionToMatter extends GenericDeviceToMatter {
                 occupancySensorTypeBitmap: { pir: true },
             },
         });
-        this.#ioBrokerDevice = ioBrokerDevice as Motion;
+        this.#ioBrokerDevice = ioBrokerDevice;
         if (this.#ioBrokerDevice.hasBrightness()) {
             this.#matterEndpointLightSensor = new Endpoint(LightSensorDevice, { id: `${uuid}-LightSensor` });
         }
@@ -40,11 +39,9 @@ export class MotionToMatter extends GenericDeviceToMatter {
         return endpoints;
     }
 
-    get ioBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): Motion {
         return this.#ioBrokerDevice;
     }
-
-    registerMatterHandlers(): void {}
 
     convertMotionValue(value: boolean): TypeFromBitSchema<typeof OccupancySensing.Occupancy> {
         return { occupied: value };
@@ -54,9 +51,24 @@ export class MotionToMatter extends GenericDeviceToMatter {
         return Math.round(10_000 * Math.log10(value) + 1);
     }
 
-    async registerIoBrokerHandlersAndInitialize(): Promise<void> {
-        // install ioBroker listeners
-        // here we react on changes from the ioBroker side for onOff and current lamp level
+    async registerHandlersAndInitialize(): Promise<void> {
+        await super.registerHandlersAndInitialize();
+
+        await this.#matterEndpointOccupancy.set({
+            occupancySensing: {
+                occupancy: this.convertMotionValue(this.#ioBrokerDevice.getMotion() ?? false),
+            },
+        });
+
+        if (this.#matterEndpointLightSensor && this.#matterEndpointLightSensor?.owner !== undefined) {
+            const humidity = this.#ioBrokerDevice.getBrightness();
+            await this.#matterEndpointLightSensor.set({
+                illuminanceMeasurement: {
+                    measuredValue: typeof humidity === 'number' ? this.convertBrightnessValue(humidity) : null,
+                },
+            });
+        }
+
         this.#ioBrokerDevice.onChange(async event => {
             switch (event.property) {
                 case PropertyType.Motion:
@@ -77,22 +89,5 @@ export class MotionToMatter extends GenericDeviceToMatter {
                     break;
             }
         });
-
-        const value = this.#ioBrokerDevice.getMotion();
-        // init current state from ioBroker side
-        await this.#matterEndpointOccupancy.set({
-            occupancySensing: {
-                occupancy: this.convertMotionValue(value ?? false),
-            },
-        });
-
-        if (this.#matterEndpointLightSensor && this.#matterEndpointLightSensor?.owner !== undefined) {
-            const humidity = this.#ioBrokerDevice.getBrightness();
-            await this.#matterEndpointLightSensor.set({
-                illuminanceMeasurement: {
-                    measuredValue: humidity === undefined ? null : this.convertBrightnessValue(humidity),
-                },
-            });
-        }
     }
 }

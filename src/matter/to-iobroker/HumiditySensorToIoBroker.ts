@@ -1,13 +1,11 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { RelativeHumidityMeasurement } from '@matter/main/clusters';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
-import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
-import Humidity from '../../lib/devices/Humidity';
+import { Humidity } from '../../lib/devices/Humidity';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 
-/** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
 export class HumiditySensorToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Humidity;
 
@@ -49,7 +47,7 @@ export class HumiditySensorToIoBroker extends GenericElectricityDataDeviceToIoBr
         return super.enableDeviceTypeStates();
     }
 
-    get ioBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): Humidity {
         return this.#ioBrokerDevice;
     }
 }

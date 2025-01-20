@@ -89,16 +89,17 @@ interface StateDescription {
     role?: string;
 }
 
-abstract class GenericDevice extends EventEmitter {
+export abstract class GenericDevice extends EventEmitter {
     #properties: { [id: string]: StateDescription } = {};
     #possibleProperties: { [id: string]: StateDescription } = {};
     #adapter: ioBroker.Adapter;
-    #subscribeObjects: DeviceStateObject<any>[] = [];
+    #subscribeObjects = new Array<DeviceStateObject<any>>();
+    #registeredStates = new Array<DeviceStateObject<any>>();
     #deviceType: Types;
     #detectedDevice: DetectedDevice;
     #isIoBrokerDevice: boolean;
     #valid = true;
-    #handlers: ((event: { property: PropertyType; value: any; device: GenericDevice }) => Promise<void>)[] = [];
+    #handlers = new Array<(event: { property: PropertyType; value: any; device: GenericDevice }) => Promise<void>>();
     protected _construction = new Array<() => Promise<void>>();
 
     #errorState?: DeviceStateObject<boolean>;
@@ -246,7 +247,7 @@ abstract class GenericDevice extends EventEmitter {
                     },
                     type,
                     valueType,
-                    () => this.enabled,
+                    this.enabled,
                     unitConversionMap,
                 );
             } catch (error) {
@@ -298,16 +299,21 @@ abstract class GenericDevice extends EventEmitter {
             }
             if (
                 this.#properties[type].accessType === StateAccessType.ReadWrite ||
-                this.#properties[type].accessType === StateAccessType.Read
+                (this.#isIoBrokerDevice && this.#properties[type].accessType === StateAccessType.Read) ||
+                (!this.#isIoBrokerDevice && this.#properties[type].accessType === StateAccessType.Write)
             ) {
                 const stateId = object?.ioBrokerState.id;
                 // subscribe and read only if not already subscribed
                 if (stateId && !this.#subscribeObjects.find(obj => obj.state.id === stateId)) {
-                    await object.subscribe(this.updateState);
+                    await object.subscribe(
+                        this.updateState,
+                        this.#isIoBrokerDevice || this.#properties[type].accessType !== StateAccessType.Write,
+                    );
                     this.#subscribeObjects.push(object);
                     object.on('validChanged', () => this.#handleValidChange());
                 }
             }
+            this.#registeredStates.push(object);
             callback(object);
         } else {
             // for tests
@@ -428,6 +434,7 @@ abstract class GenericDevice extends EventEmitter {
             await object.unsubscribe();
         }
         this.#subscribeObjects.length = 0;
+        this.#registeredStates.length = 0;
         this.offChange();
     }
 
@@ -607,7 +614,7 @@ abstract class GenericDevice extends EventEmitter {
         this.#handlers = [];
     }
 
-    applyConfiguration(options?: DeviceOptions): void {
+    async applyConfiguration(options?: DeviceOptions): Promise<void> {
         if (!this.#isIoBrokerDevice) {
             return;
         }
@@ -619,7 +626,10 @@ abstract class GenericDevice extends EventEmitter {
             // Simulate we would have got an unreach update to inform Matter about the change
             this.#adapter.log.info(`${newEnabled ? 'Enabling' : 'Disabling'} device ${this.constructor.name}`);
             const now = Date.now();
-            void this.#unreachState?.updateState(
+            for (const state of this.#registeredStates) {
+                await state.setEnabled(newEnabled);
+            }
+            await this.#unreachState?.updateState(
                 {
                     val: !newEnabled,
                     ack: true,
@@ -685,21 +695,27 @@ abstract class GenericDevice extends EventEmitter {
         return states;
     }
 
-    cropValue(value: number, min: number, max: number): number {
+    cropValue(value: number, min: number, max: number, logMinMaxInfo = true): number {
         if (isNaN(value)) {
-            this.#adapter.log.warn(`${this.#deviceType}: Value ${value} is not a number. Adjusting to ${min}`);
+            this.#adapter.log.info(`${this.#deviceType}: Value ${value} is not a number. Adjusting to ${min}`);
             return min;
         }
         if (value < min) {
-            this.#adapter.log.warn(`${this.#deviceType}: Value ${value} is below minimum ${min}. Adjusting to ${min}`);
+            if (logMinMaxInfo) {
+                this.#adapter.log.info(
+                    `${this.#deviceType}: Value ${value} is below minimum ${min}. Adjusting to ${min}`,
+                );
+            }
             return min;
         }
         if (value > max) {
-            this.#adapter.log.warn(`${this.#deviceType}: Value ${value} is above maximum ${max}. Adjusting to ${max}`);
+            if (logMinMaxInfo) {
+                this.#adapter.log.info(
+                    `${this.#deviceType}: Value ${value} is above maximum ${max}. Adjusting to ${max}`,
+                );
+            }
             return max;
         }
         return value;
     }
 }
-
-export default GenericDevice;

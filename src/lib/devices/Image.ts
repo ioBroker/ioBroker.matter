@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Image extends GenericDevice {
+export class Image extends GenericDevice {
     #getUrlState?: DeviceStateObject<string>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
@@ -27,5 +27,3 @@ class Image extends GenericDevice {
         return this.#getUrlState.value;
     }
 }
-
-export default Image;

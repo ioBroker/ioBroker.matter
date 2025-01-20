@@ -1,14 +1,12 @@
 import ChannelDetector from '@iobroker/type-detector';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
 import { PowerSource } from '@matter/main/clusters';
-import type { GenericDevice } from '../../lib';
-import type ElectricityDataDevice from '../../lib/devices/ElectricityDataDevice';
+import type { ElectricityDataDevice } from '../../lib/devices/ElectricityDataDevice';
 import type { DetectedDevice } from '../../lib/devices/GenericDevice';
-import Light from '../../lib/devices/Light';
+import { Light } from '../../lib/devices/Light';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 import type { StructuredJsonFormData } from '../../lib/JsonConfigUtils';
 
-/** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
 export class UtilityOnlyToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: ElectricityDataDevice;
     readonly #deviceTypeSupported;
@@ -86,7 +84,7 @@ export class UtilityOnlyToIoBroker extends GenericElectricityDataDeviceToIoBroke
         }
     }
 
-    get ioBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): ElectricityDataDevice {
         return this.#ioBrokerDevice;
     }
 

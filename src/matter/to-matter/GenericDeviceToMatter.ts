@@ -93,19 +93,12 @@ export abstract class GenericDeviceToMatter {
         return this.ioBrokerDevice.isValid;
     }
 
-    /**
-     * Registers all device Matter change handlers relevant for this device to handle changes by Matter controllers to
-     * control the device.
-     */
-    abstract registerMatterHandlers(): void;
+    /** Registers all the handlers on ioBroker and Matter side and initialize with current values. */
+    registerHandlersAndInitialize(): MaybePromise<void> {}
 
-    /** Registers all the ioBroker change handlers to update state changes from ioBroker onto the Matter device. */
-    abstract registerIoBrokerHandlersAndInitialize(): MaybePromise<void>;
-
-    /** Initialization Logic for the device. makes sure all handlers are registered for both sides. */
+    /** Initialization Logic for the device. Makes sure all handlers are registered for both sides. */
     async init(): Promise<void> {
-        this.registerMatterHandlers();
-        await this.registerIoBrokerHandlersAndInitialize();
+        await this.registerHandlersAndInitialize();
         this.ioBrokerDevice.on('validChanged', () => {
             const valid = this.ioBrokerDevice.isValid;
             if (valid === this.#valid) {

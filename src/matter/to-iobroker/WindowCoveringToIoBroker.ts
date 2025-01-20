@@ -1,15 +1,13 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { WindowCovering } from '@matter/main/clusters';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
-import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
-import Blind from '../../lib/devices/Blind';
-import BlindButtons from '../../lib/devices/BlindButtons';
+import { Blind } from '../../lib/devices/Blind';
+import { BlindButtons } from '../../lib/devices/BlindButtons';
 import type { TypeFromBitSchema } from '@matter/main/types';
 
-/** Mapping Logic to map a ioBroker Socket device to a Matter OnOffPlugInUnitDevice. */
 export class WindowCoveringToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Blind | BlindButtons;
     #maintenanceState: { operational: boolean; maintenance: boolean } = { operational: false, maintenance: false };
@@ -230,7 +228,7 @@ export class WindowCoveringToIoBroker extends GenericElectricityDataDeviceToIoBr
         }
     }
 
-    get ioBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): Blind | BlindButtons {
         return this.#ioBrokerDevice;
     }
 }

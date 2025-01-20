@@ -2,13 +2,11 @@ import ChannelDetector from '@iobroker/type-detector';
 import { OccupancySensing } from '@matter/main/clusters';
 import type { TypeFromBitSchema } from '@matter/main/types';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
-import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
-import Motion from '../../lib/devices/Motion';
+import { Motion } from '../../lib/devices/Motion';
 import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
 
-/** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
 export class OccupancyToIoBroker extends GenericDeviceToIoBroker {
     readonly #ioBrokerDevice: Motion;
 
@@ -50,7 +48,7 @@ export class OccupancyToIoBroker extends GenericDeviceToIoBroker {
         return super.enableDeviceTypeStates();
     }
 
-    get ioBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): Motion {
         return this.#ioBrokerDevice;
     }
 }

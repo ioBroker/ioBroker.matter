@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Volume extends GenericDevice {
+export class Volume extends GenericDevice {
     #setLevelState?: DeviceStateObject<number>;
     #getLevelState?: DeviceStateObject<number>;
     #muteState?: DeviceStateObject<boolean>;
@@ -71,7 +71,6 @@ class Volume extends GenericDevice {
             throw new Error('Level state not found');
         }
         await this.#getLevelState.updateValue(value);
-        await this.#setLevelState?.updateValue(value);
     }
 
     getMute(): boolean | undefined {
@@ -88,5 +87,3 @@ class Volume extends GenericDevice {
         return this.#muteState.setValue(value);
     }
 }
-
-export default Volume;

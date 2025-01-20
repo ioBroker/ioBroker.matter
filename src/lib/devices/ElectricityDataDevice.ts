@@ -1,5 +1,5 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
 const milliConversion = (value: number, toDefaultUnit: boolean): number =>
     toDefaultUnit ? value * 0.001 : value * 1000;
@@ -8,7 +8,7 @@ const kiloConversion = (value: number, toDefaultUnit: boolean): number =>
 const megaConversion = (value: number, toDefaultUnit: boolean): number =>
     toDefaultUnit ? value * 1000000 : value * 0.000001;
 
-class ElectricityDataDevice extends GenericDevice {
+export class ElectricityDataDevice extends GenericDevice {
     #getElectricPowerState?: DeviceStateObject<number>;
     #getCurrentState?: DeviceStateObject<number>;
     #getVoltageState?: DeviceStateObject<number>;
@@ -179,5 +179,3 @@ class ElectricityDataDevice extends GenericDevice {
         return this.#getFrequencyState.updateValue(value);
     }
 }
-
-export default ElectricityDataDevice;

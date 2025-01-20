@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Button extends GenericDevice {
+export class Button extends GenericDevice {
     #setPressState?: DeviceStateObject<boolean>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
@@ -27,5 +27,3 @@ class Button extends GenericDevice {
         return this.#setPressState.setValue(true);
     }
 }
-
-export default Button;

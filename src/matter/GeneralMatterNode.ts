@@ -4,6 +4,7 @@ import {
     BridgedDeviceBasicInformation,
     GeneralDiagnosticsCluster,
     WiFiNetworkDiagnosticsCluster,
+    ThreadNetworkDiagnostics,
     OperationalCredentialsCluster,
 } from '@matter/main/clusters';
 import { AttributeModel, ClusterModel, CommandModel, MatterModel } from '@matter/main/model';
@@ -1143,9 +1144,83 @@ export class GeneralMatterNode {
                     status.rssi = rssi;
                 }
             }
+            if (status.rssi === undefined) {
+                const threadNetworkDiagnostics = this.node.getRootClusterClient(ThreadNetworkDiagnostics.Cluster);
+                if (
+                    threadNetworkDiagnostics !== undefined &&
+                    threadNetworkDiagnostics.isAttributeSupportedByName('neighborTable')
+                ) {
+                    const neighborTable = await threadNetworkDiagnostics.getNeighborTableAttribute(false);
+                    const routeTable = threadNetworkDiagnostics.isAttributeSupportedByName('routeTable')
+                        ? await threadNetworkDiagnostics.getRouteTableAttribute(false)
+                        : [];
+                    const rssi = this.#calculateThreadRssi(neighborTable, routeTable);
+                    if (rssi !== undefined) {
+                        status.rssi = rssi;
+                    }
+                }
+            }
         }
 
         return status;
+    }
+
+    #calculateThreadRssi(
+        neighborTable: ThreadNetworkDiagnostics.NeighborTable[],
+        routeTable: ThreadNetworkDiagnostics.RouteTable[],
+    ): number | undefined {
+        // Create a lookup for router information
+        const routerLookup = routeTable.reduce(
+            (acc, router) => {
+                acc[router.extAddress.toString()] = router;
+                return acc;
+            },
+            {} as { [key: string]: ThreadNetworkDiagnostics.RouteTable },
+        );
+
+        if (!neighborTable.length) {
+            return undefined;
+        }
+
+        // sort by frameErrorRate
+        neighborTable.sort((a, b) => a.frameErrorRate - b.frameErrorRate);
+
+        // Filter valid neighbors
+        // When the first neighbor has a frame error rate of 0, we filter all error free,
+        // else we use the first neighbor because least errors
+        const validNeighbors =
+            neighborTable[0]?.frameErrorRate === 0
+                ? neighborTable.filter(neighbor => {
+                      const rssi = neighbor.averageRssi ?? neighbor.lastRssi;
+                      return rssi !== null && neighbor.frameErrorRate === 0;
+                  })
+                : [neighborTable[0]];
+
+        if (!validNeighbors.length) {
+            return undefined;
+        } // No valid neighbors
+
+        let weightedRssiSum = 0;
+        let totalWeight = 0;
+
+        validNeighbors.forEach(neighbor => {
+            const rssi = (neighbor.averageRssi ?? neighbor.lastRssi) as number; // null filtered already above
+            const lqi = neighbor.lqi;
+            const routerInfo = routerLookup[neighbor.extAddress.toString()];
+
+            // Determine weight
+            let weight = lqi;
+            if (routerInfo && routerInfo.linkEstablished) {
+                weight *= 2; // Double weight for established router links
+            }
+
+            // Accumulate weighted RSSI
+            weightedRssiSum += rssi * weight;
+            totalWeight += weight;
+        });
+
+        // Compute overall RSSI
+        return totalWeight > 0 ? weightedRssiSum / totalWeight : undefined;
     }
 
     get connectionType(): ConfigConnectionType {

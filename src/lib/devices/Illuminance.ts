@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Illuminance extends GenericDevice {
+export class Illuminance extends GenericDevice {
     #getBrightnessState?: DeviceStateObject<number>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
@@ -34,5 +34,3 @@ class Illuminance extends GenericDevice {
         return this.#getBrightnessState.updateValue(value);
     }
 }
-
-export default Illuminance;

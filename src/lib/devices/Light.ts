@@ -1,8 +1,8 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import ElectricityDataDevice from './ElectricityDataDevice';
+import { ElectricityDataDevice } from './ElectricityDataDevice';
 import { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Light extends ElectricityDataDevice {
+export class Light extends ElectricityDataDevice {
     #setPowerState?: DeviceStateObject<boolean>;
     #getPowerState?: DeviceStateObject<boolean>;
 
@@ -52,6 +52,10 @@ class Light extends ElectricityDataDevice {
         return this.#setPowerState.setValue(value);
     }
 
+    hasPower(): boolean {
+        return !!this.#setPowerState;
+    }
+
     getPowerActual(): boolean | undefined {
         if (!this.#getPowerState) {
             throw new Error('On Actual state not found');
@@ -64,8 +68,9 @@ class Light extends ElectricityDataDevice {
             throw new Error('On Actual state not found');
         }
         await this.#getPowerState.updateValue(value);
-        await this.#setPowerState?.updateValue(value);
+    }
+
+    hasDimmer(): boolean {
+        return false;
     }
 }
-
-export default Light;

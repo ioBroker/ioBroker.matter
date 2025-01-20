@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Location extends GenericDevice {
+export class Location extends GenericDevice {
     #getLongitudeState?: DeviceStateObject<number>;
     #getLatitudeState?: DeviceStateObject<number>;
     #getElevationState?: DeviceStateObject<number>;
@@ -87,5 +87,3 @@ class Location extends GenericDevice {
         return this.#getAccuracyState.value;
     }
 }
-
-export default Location;

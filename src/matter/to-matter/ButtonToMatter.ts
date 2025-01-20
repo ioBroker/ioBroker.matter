@@ -2,9 +2,8 @@ import { Endpoint } from '@matter/main';
 import { GenericSwitchDevice } from '@matter/main/devices';
 import { SwitchServer } from '@matter/main/behaviors';
 import { Switch } from '@matter/main/clusters';
-import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import type Button from '../../lib/devices/Button';
+import type { Button } from '../../lib/devices/Button';
 import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
 
 const SwitchDevice = GenericSwitchDevice.with(
@@ -15,12 +14,11 @@ const SwitchDevice = GenericSwitchDevice.with(
     ),
 );
 
-/** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */
 export class ButtonToMatter extends GenericDeviceToMatter {
     readonly #ioBrokerDevice: Button;
     readonly #matterEndpoint: Endpoint<typeof SwitchDevice>;
 
-    constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
+    constructor(ioBrokerDevice: Button, name: string, uuid: string) {
         super(name, uuid);
         this.#matterEndpoint = new Endpoint(SwitchDevice, {
             id: uuid,
@@ -31,7 +29,7 @@ export class ButtonToMatter extends GenericDeviceToMatter {
                 multiPressDelay: 300,
             },
         });
-        this.#ioBrokerDevice = ioBrokerDevice as Button;
+        this.#ioBrokerDevice = ioBrokerDevice;
     }
 
     async doIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
@@ -41,15 +39,13 @@ export class ButtonToMatter extends GenericDeviceToMatter {
         return [this.#matterEndpoint];
     }
 
-    get ioBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): Button {
         return this.#ioBrokerDevice;
     }
 
-    registerMatterHandlers(): void {}
+    registerHandlersAndInitialize(): void {
+        super.registerHandlersAndInitialize();
 
-    registerIoBrokerHandlersAndInitialize(): void {
-        // install ioBroker listeners
-        // here we react on changes from the ioBroker side for onOff and current lamp level
         this.#ioBrokerDevice.onChange(async event => {
             switch (event.property) {
                 case PropertyType.Press:

@@ -1,13 +1,11 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { IlluminanceMeasurement } from '@matter/main/clusters';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
-import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
-import Illuminance from '../../lib/devices/Illuminance';
+import { Illuminance } from '../../lib/devices/Illuminance';
 
-/** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
 export class LightSensorToIoBroker extends GenericDeviceToIoBroker {
     readonly #ioBrokerDevice: Illuminance;
 
@@ -49,7 +47,7 @@ export class LightSensorToIoBroker extends GenericDeviceToIoBroker {
         return super.enableDeviceTypeStates();
     }
 
-    get ioBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): Illuminance {
         return this.#ioBrokerDevice;
     }
 }

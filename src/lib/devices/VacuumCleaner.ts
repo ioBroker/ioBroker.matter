@@ -1,5 +1,5 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
 enum VacuumCleanerMode {
     AUTO = 'AUTO',
@@ -23,7 +23,7 @@ enum VacuumCleanerState {
     PAUSE = 'PAUSE',
 }
 
-class VacuumCleaner extends GenericDevice {
+export class VacuumCleaner extends GenericDevice {
     #powerState?: DeviceStateObject<boolean>;
     #modeState?: DeviceStateObject<VacuumCleanerMode>;
     #getMapBase64State?: DeviceStateObject<string>;
@@ -301,5 +301,3 @@ class VacuumCleaner extends GenericDevice {
         return this.#getSideBrushState.value;
     }
 }
-
-export default VacuumCleaner;

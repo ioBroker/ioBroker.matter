@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Motion extends GenericDevice {
+export class Motion extends GenericDevice {
     #getMotionState?: DeviceStateObject<boolean>;
     #getBrightnessState?: DeviceStateObject<number>;
 
@@ -60,5 +60,3 @@ class Motion extends GenericDevice {
         return this.#getBrightnessState.updateValue(value);
     }
 }
-
-export default Motion;

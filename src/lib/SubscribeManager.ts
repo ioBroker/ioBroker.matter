@@ -1,6 +1,6 @@
 export type SubscribeCallback = (state: ioBroker.State | null | undefined) => Promise<void>;
 
-class SubscribeManager {
+export class SubscribeManager {
     /** List of all registered subscribed state ids. */
     static subscribes = new Map<string, SubscribeCallback[]>();
 
@@ -64,5 +64,3 @@ class SubscribeManager {
         }
     }
 }
-
-export default SubscribeManager;

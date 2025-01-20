@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class WeatherCurrent extends GenericDevice {
+export class WeatherCurrent extends GenericDevice {
     #getValueState?: DeviceStateObject<number>;
     #getIconState?: DeviceStateObject<string>;
     #getPrecipitationChanceState?: DeviceStateObject<number>;
@@ -207,5 +207,3 @@ class WeatherCurrent extends GenericDevice {
         return this.#getWindSpeedState.value;
     }
 }
-
-export default WeatherCurrent;

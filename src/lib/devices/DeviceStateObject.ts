@@ -1,5 +1,5 @@
 import type { DetectorState, StateType } from '@iobroker/type-detector';
-import SubscribeManager from '../SubscribeManager';
+import { SubscribeManager } from '../SubscribeManager';
 import { EventEmitter } from 'events';
 
 export enum ValueType {
@@ -164,13 +164,15 @@ export class DeviceStateObject<T> extends EventEmitter {
     #isIoBrokerState: boolean;
     #id: string;
     #valid: boolean = true;
+    #enabled = true;
+    #dirty = false;
 
     static async create<T>(
         adapter: ioBroker.Adapter,
         state: StateDefinition,
         propertyType: PropertyType,
         valueType: ValueType,
-        isEnabled: () => boolean,
+        isEnabled: boolean,
         unitConversionMap: { [key: string]: (value: number, toDefaultUnit: boolean) => number } = {},
     ): Promise<DeviceStateObject<T>> {
         const obj = new DeviceStateObject<T>(adapter, state, propertyType, valueType, isEnabled, unitConversionMap);
@@ -183,13 +185,22 @@ export class DeviceStateObject<T> extends EventEmitter {
         public readonly state: StateDefinition,
         public readonly propertyType: PropertyType,
         protected readonly valueType: ValueType,
-        protected readonly isEnabled: () => boolean,
+        isEnabled: boolean,
         protected readonly unitConversionMap: { [key: string]: (value: number, toDefaultUnit: boolean) => number } = {},
     ) {
         super();
         this.isEnum = valueType === ValueType.Enum;
         this.#isIoBrokerState = state.isIoBrokerState;
         this.#id = state.id;
+        this.#enabled = isEnabled;
+    }
+
+    async setEnabled(value: boolean): Promise<void> {
+        this.#enabled = value;
+        if (this.#dirty && this.#enabled && this.updateHandler) {
+            this.#dirty = false;
+            await this.updateHandler(this);
+        }
     }
 
     async init(): Promise<void> {
@@ -396,14 +407,14 @@ export class DeviceStateObject<T> extends EventEmitter {
         if (isUpdate && this.#isIoBrokerState) {
             throw new Error(`Cannot set value for ioBroker state ${this.#id}`);
         }
-        if (!this.isEnabled()) {
+        if (!this.#enabled) {
             return;
         }
 
         const object = this.object;
-        const valueType = object?.common?.type;
+        const valueType = this.valueType === ValueType.Enum ? 'enum' : object?.common?.type;
 
-        if (typeof value === 'number') {
+        if (this.valueType !== ValueType.Enum && typeof value === 'number') {
             // Convert the value from Default unit to the unit of the state
             value = this.convertValue(value, false) as T;
         }
@@ -421,7 +432,9 @@ export class DeviceStateObject<T> extends EventEmitter {
                 throw new Error(`Value ${realValue} is greater than max ${object.common.max}`);
             }
 
-            this.adapter.log.debug(`Set ${this.#id} to "${realValue}" (ack = ${!this.#isIoBrokerState})`);
+            this.adapter.log.debug(
+                `Set ${this.#id} to "${realValue}" after min/max-correction (ack = ${!this.#isIoBrokerState})`,
+            );
             await this.adapter.setForeignStateAsync(this.#id, realValue as ioBroker.StateValue, !this.#isIoBrokerState);
         } else {
             // convert value
@@ -434,7 +447,9 @@ export class DeviceStateObject<T> extends EventEmitter {
                         value === true ||
                         value === 'on' ||
                         value === 'ON';
-                    this.adapter.log.debug(`Set ${this.#id} to "${realValue}" (ack = ${!this.#isIoBrokerState})`);
+                    this.adapter.log.debug(
+                        `Set ${this.#id} to (boolean) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
+                    );
                     await this.adapter.setForeignStateAsync(
                         this.#id,
                         realValue as ioBroker.StateValue,
@@ -450,7 +465,9 @@ export class DeviceStateObject<T> extends EventEmitter {
                         throw new Error(`Value ${JSON.stringify(value)} is greater than max ${object.common.max}`);
                     }
 
-                    this.adapter.log.debug(`Set ${this.#id} to "${realValue}" (ack = ${!this.#isIoBrokerState})`);
+                    this.adapter.log.debug(
+                        `Set ${this.#id} to (number) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
+                    );
                     await this.adapter.setForeignStateAsync(
                         this.#id,
                         realValue as ioBroker.StateValue,
@@ -458,7 +475,9 @@ export class DeviceStateObject<T> extends EventEmitter {
                     );
                 } else if (valueType === 'string') {
                     const realValue = String(value);
-                    this.adapter.log.debug(`Set ${this.#id} to "${realValue}" (ack = ${!this.#isIoBrokerState})`);
+                    this.adapter.log.debug(
+                        `Set ${this.#id} to (string) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
+                    );
                     await this.adapter.setForeignStateAsync(
                         this.#id,
                         realValue as ioBroker.StateValue,
@@ -466,7 +485,9 @@ export class DeviceStateObject<T> extends EventEmitter {
                     );
                 } else if (valueType === 'json') {
                     const realValue: string = JSON.stringify(value);
-                    this.adapter.log.debug(`Set ${this.#id} to "${realValue}" (ack = ${!this.#isIoBrokerState})`);
+                    this.adapter.log.debug(
+                        `Set ${this.#id} to (json) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
+                    );
                     await this.adapter.setForeignStateAsync(
                         this.#id,
                         realValue as ioBroker.StateValue,
@@ -474,11 +495,31 @@ export class DeviceStateObject<T> extends EventEmitter {
                     );
                 } else if (valueType === 'mixed') {
                     this.adapter.log.debug(
-                        `Set ${this.#id} to ${JSON.stringify(value)} (ack = ${!this.#isIoBrokerState})`,
+                        `Set ${this.#id} to (mixed) ${JSON.stringify(value)} (ack = ${!this.#isIoBrokerState})`,
                     );
                     await this.adapter.setForeignStateAsync(
                         this.#id,
                         value as ioBroker.StateValue,
+                        !this.#isIoBrokerState,
+                    );
+                } else if (valueType === 'enum') {
+                    let realValue: string | T = value;
+                    if (this.modes) {
+                        for (const [key, value] of Object.entries(this.modes)) {
+                            if (realValue === value) {
+                                realValue = key;
+                                break;
+                            }
+                        }
+                    } else {
+                        this.adapter.log.info(`Cannot map enum value for ${this.#id} without modes`);
+                    }
+                    this.adapter.log.debug(
+                        `Set ${this.#id} to (enum) "${realValue?.toString()}" (ack = ${!this.#isIoBrokerState})`,
+                    );
+                    await this.adapter.setForeignStateAsync(
+                        this.#id,
+                        realValue as ioBroker.StateValue,
                         !this.#isIoBrokerState,
                     );
                 }
@@ -507,7 +548,11 @@ export class DeviceStateObject<T> extends EventEmitter {
         }
     }
 
-    updateState = async (state: ioBroker.State | null | undefined, ignoreEnabledStatus = false): Promise<void> => {
+    updateState = async (
+        state: ioBroker.State | null | undefined,
+        ignoreEnabledStatus = false,
+        isInitialState = false,
+    ): Promise<void> => {
         if (!state) {
             if (this.#isIoBrokerState) {
                 // State expired or object got deleted, verify if the object still exists
@@ -523,13 +568,15 @@ export class DeviceStateObject<T> extends EventEmitter {
             this.emit('validChanged');
         }
 
-        if (state.ack !== this.#isIoBrokerState || (!this.isEnabled() && !ignoreEnabledStatus)) {
+        if (!isInitialState && state.ack !== this.#isIoBrokerState) {
             // For Device implementation only acked values are considered to be forwarded to the controllers
             return;
         }
 
         let value = state.val;
-        if (typeof value === 'number') {
+        if (this.valueType === ValueType.Enum && this.modes) {
+            value = this.modes[value as string] as ioBroker.StateValue;
+        } else if (typeof value === 'number') {
             // Convert the value from the unit of the state to the Default unit
             value = this.convertValue(value, true);
         }
@@ -542,25 +589,32 @@ export class DeviceStateObject<T> extends EventEmitter {
         } else {
             this.value = value as T;
         }
+        const callUpdateHandler = this.#enabled || ignoreEnabledStatus;
         this.adapter.log.debug(
-            `Received state change for ${this.#id}: ${JSON.stringify(state.val)} (ack=${state.ack}) --> ${JSON.stringify(this.value)}`,
+            `Received state change for ${this.#id}: ${JSON.stringify(state.val)} (ack=${state.ack}) --> ${JSON.stringify(this.value)} (triggerUpdate=${callUpdateHandler})`,
         );
-        if (this.updateHandler) {
+        if (this.updateHandler && callUpdateHandler) {
             await this.updateHandler(this);
+        } else if (this.updateHandler) {
+            this.#dirty = true;
         }
     };
 
-    async subscribe(handler: (object: DeviceStateObject<T>) => Promise<void>): Promise<void> {
+    async subscribe(handler: (object: DeviceStateObject<T>) => Promise<void>, updateState = true): Promise<void> {
         this.updateHandler = handler;
         await SubscribeManager.subscribe(this.#id, this.updateState);
-        // read first time the state
-        try {
-            const value = await this.adapter.getForeignStateAsync(this.#id);
-            if (value) {
-                await this.updateState(value);
+        if (updateState) {
+            // read first time the state
+            try {
+                const state = await this.adapter.getForeignStateAsync(this.#id);
+                if (state) {
+                    await this.updateState(state, false, true);
+                }
+            } catch (e) {
+                this.adapter.log.warn(`Cannot get state ${this.#id}: ${e}`);
             }
-        } catch (e) {
-            this.adapter.log.warn(`Cannot get state ${this.#id}: ${e}`);
+        } else {
+            this.adapter.log.debug(`Subscribed to ${this.#id}`);
         }
     }
 

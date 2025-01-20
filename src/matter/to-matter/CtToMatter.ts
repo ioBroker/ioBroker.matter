@@ -1,21 +1,14 @@
 import { Endpoint } from '@matter/main';
 import { ColorTemperatureLightDevice } from '@matter/main/devices';
-import type { GenericDevice } from '../../lib';
-import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import type { IdentifyOptions } from './GenericDeviceToMatter';
-import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
-import type Ct from '../../lib/devices/Ct';
-import { kelvinToMireds as kToM, miredsToKelvin } from '@matter/main/behaviors';
+import type { Ct } from '../../lib/devices/Ct';
 import { EventedOnOffLightOnOffServer } from '../behaviors/EventedOnOffLightOnOffServer';
 import { EventedLightingLevelControlServer } from '../behaviors/EventedLightingLevelControlServer';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { EventedColorTemperatureColorControlServer } from '../behaviors/EventedLightingColorControlServer';
 import { ColorControl } from '@matter/main/clusters';
-
-// Remove with matter.js > 0.11.5
-function kelvinToMireds(kelvin: number): number {
-    return Math.round(kToM(kelvin));
-}
+import { kelvinToMireds, miredsToKelvin } from '@matter/main/behaviors';
+import { GenericLightingDeviceToMatter } from './GenericLightingDeviceToMatter';
+import { PropertyType } from '../../lib/devices/DeviceStateObject';
 
 const IoBrokerColorTemperatureLightDevice = ColorTemperatureLightDevice.with(
     EventedOnOffLightOnOffServer,
@@ -25,130 +18,67 @@ const IoBrokerColorTemperatureLightDevice = ColorTemperatureLightDevice.with(
 );
 type IoBrokerColorTemperatureLightDevice = typeof IoBrokerColorTemperatureLightDevice;
 
-/** Mapping Logic to map a ioBroker Dimmer device to a Matter DimmableLightDevice. */
-export class CtToMatter extends GenericElectricityDataDeviceToMatter {
+export class CtToMatter extends GenericLightingDeviceToMatter {
     readonly #ioBrokerDevice: Ct;
     readonly #matterEndpoint: Endpoint<IoBrokerColorTemperatureLightDevice>;
-    #hasTransitionTime = false;
 
-    constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
-        super(name, uuid);
-        this.#matterEndpoint = new Endpoint(IoBrokerColorTemperatureLightDevice, {
+    constructor(ioBrokerDevice: Ct, name: string, uuid: string) {
+        const matterEndpoint = new Endpoint(IoBrokerColorTemperatureLightDevice, {
             id: uuid,
             colorControl: {
                 remainingTime: 0,
+                colorMode: ColorControl.ColorMode.ColorTemperatureMireds,
+                enhancedColorMode: ColorControl.EnhancedColorMode.ColorTemperatureMireds,
 
                 // Dummy values, will be better set later
-                colorMode: ColorControl.ColorMode.ColorTemperatureMireds,
                 colorTempPhysicalMinMireds: 0,
                 colorTempPhysicalMaxMireds: 65279,
                 coupleColorTempToLevelMinMireds: 0,
                 startUpColorTemperatureMireds: null,
             },
         });
-        this.#ioBrokerDevice = ioBrokerDevice as Ct;
-        this.addElectricityDataClusters(this.#matterEndpoint, this.#ioBrokerDevice);
+
+        super(ioBrokerDevice, matterEndpoint, name, uuid);
+
+        this.#ioBrokerDevice = ioBrokerDevice;
+        this.#matterEndpoint = matterEndpoint;
     }
 
-    // Just change the power state every second
-    doIdentify(identifyOptions: IdentifyOptions): Promise<void> {
-        identifyOptions.currentState = !identifyOptions.currentState;
-        return this.#ioBrokerDevice.setPower(identifyOptions.currentState as boolean);
-    }
+    async registerHandlersAndInitialize(): Promise<void> {
+        await super.registerHandlersAndInitialize();
 
-    // Restore the given initial state after the identity process is over
-    resetIdentify(identifyOptions: IdentifyOptions): Promise<void> {
-        return this.#ioBrokerDevice.setPower(identifyOptions.initialState as boolean);
-    }
+        await this.initializeOnOffClusterHandlers();
+        await this.initializeLevelControlClusterHandlers();
 
-    get matterEndpoints(): Endpoint[] {
-        return [this.#matterEndpoint];
-    }
-
-    get ioBrokerDevice(): Ct {
-        return this.#ioBrokerDevice;
-    }
-
-    registerMatterHandlers(): void {
-        if (this.ioBrokerDevice.hasPower()) {
-            this.#matterEndpoint.events.ioBrokerEvents.onOffControlled.on(
-                async on => await this.#ioBrokerDevice.setPower(on),
-            );
-        } else {
-            this.#ioBrokerDevice.adapter.log.info(
-                `Device ${this.#ioBrokerDevice.deviceType} (${this.ioBrokerDevice.uuid}) has no mapped power state`,
-            );
-        }
-
-        this.#hasTransitionTime = this.#ioBrokerDevice.hasTransitionTime();
-        if (this.ioBrokerDevice.hasDimmer()) {
-            this.#matterEndpoint.events.ioBrokerEvents.dimmerLevelControlled.on(async (level, transitionTime) => {
-                if (this.#hasTransitionTime && transitionTime !== null && transitionTime !== undefined) {
-                    await this.#ioBrokerDevice.setTransitionTime(transitionTime * 1000);
-                }
-
-                if (level !== null) {
-                    await this.#ioBrokerDevice.setDimmer(Math.round((level / 254) * 100));
-                }
-            });
-        } else {
-            this.#ioBrokerDevice.adapter.log.info(
-                `Device ${this.#ioBrokerDevice.deviceType} (${this.ioBrokerDevice.uuid}) has no mapped dimmer state`,
-            );
-        }
-
-        this.#matterEndpoint.events.ioBrokerEvents.colorTemperatureControlled.on(async (mireds, transitionTime) => {
-            if (this.#hasTransitionTime && transitionTime !== null && transitionTime !== undefined) {
-                await this.#ioBrokerDevice.setTransitionTime(transitionTime * 1000);
-            }
-
-            const kelvin = miredsToKelvin(mireds);
-            await this.#ioBrokerDevice.setTemperature(kelvin);
+        const { min = 2_000, max = 6_536 } = this.#ioBrokerDevice.getTemperatureMinMax() ?? {}; // 153 till 500 mireds
+        const currentTemperature = this.#ioBrokerDevice.cropValue(
+            this.#ioBrokerDevice.getTemperature() ?? min,
+            min,
+            max,
+        );
+        await this.#matterEndpoint.set({
+            colorControl: {
+                colorTempPhysicalMinMireds: kelvinToMireds(max),
+                colorTempPhysicalMaxMireds: kelvinToMireds(min),
+                colorTemperatureMireds: kelvinToMireds(currentTemperature),
+                coupleColorTempToLevelMinMireds: kelvinToMireds(max),
+            },
         });
 
-        if (this.ioBrokerDevice.hasPower()) {
-            let isIdentifying = false;
-            const identifyOptions: IdentifyOptions = {};
-            this.matterEvents.on(this.#matterEndpoint.events.identify.identifyTime$Changed, async value => {
-                // identifyTime is set when an identify command is called and then decreased every second while indentify logic runs.
-                if (value > 0 && !isIdentifying) {
-                    isIdentifying = true;
-                    const identifyInitialState = !!this.#ioBrokerDevice.getPower();
-
-                    identifyOptions.currentState = identifyInitialState;
-                    identifyOptions.initialState = identifyInitialState;
-
-                    this.handleIdentify(identifyOptions);
-                } else if (value === 0) {
-                    isIdentifying = false;
-                    await this.stopIdentify(identifyOptions);
+        this.matterEvents.on(
+            this.#matterEndpoint.eventsOf(IoBrokerEvents).colorTemperatureControlled,
+            async (mireds, transitionTime) => {
+                if (this.#ioBrokerDevice.hasTransitionTime() && typeof transitionTime === 'number') {
+                    await this.#ioBrokerDevice.setTransitionTime(transitionTime * 100);
                 }
-            });
-        }
-    }
 
-    async registerIoBrokerHandlersAndInitialize(): Promise<void> {
-        const { min = 2_000, max = 6_536 } = this.#ioBrokerDevice.getTemperatureMinMax() ?? {}; // 153 till 500 mireds
+                const kelvin = miredsToKelvin(mireds);
+                await this.#ioBrokerDevice.setTemperature(kelvin);
+            },
+        );
 
         this.#ioBrokerDevice.onChange(async event => {
             switch (event.property) {
-                case PropertyType.Power:
-                    await this.#matterEndpoint.set({
-                        onOff: {
-                            onOff: !!event.value,
-                        },
-                    });
-                    break;
-                case PropertyType.Dimmer: {
-                    const value = this.#ioBrokerDevice.cropValue((event.value as number) ?? 0, 0, 100);
-
-                    await this.#matterEndpoint.set({
-                        levelControl: {
-                            currentLevel: Math.round((value / 100) * 254),
-                        },
-                    });
-                    break;
-                }
                 case PropertyType.Temperature: {
                     const value = this.#ioBrokerDevice.cropValue((event.value as number) ?? min, min, max);
                     await this.#matterEndpoint.set({
@@ -160,32 +90,5 @@ export class CtToMatter extends GenericElectricityDataDeviceToMatter {
                 }
             }
         });
-
-        const currentLevel = this.ioBrokerDevice.hasDimmer()
-            ? this.#ioBrokerDevice.cropValue(this.#ioBrokerDevice.getDimmer() ?? 0, 0, 100)
-            : 100;
-        const currentTemperature = this.#ioBrokerDevice.cropValue(
-            this.#ioBrokerDevice.getTemperature() ?? min,
-            min,
-            max,
-        );
-
-        // init current state from ioBroker side
-        await this.#matterEndpoint.set({
-            onOff: {
-                onOff: this.ioBrokerDevice.hasPower() ? !!this.#ioBrokerDevice.getPower() : true,
-            },
-            levelControl: {
-                currentLevel: Math.round((currentLevel / 100) * 254) || 1,
-            },
-            colorControl: {
-                colorTempPhysicalMinMireds: kelvinToMireds(max),
-                colorTempPhysicalMaxMireds: kelvinToMireds(min),
-                colorTemperatureMireds: kelvinToMireds(currentTemperature),
-                coupleColorTempToLevelMinMireds: kelvinToMireds(max),
-            },
-        });
-
-        await this.initializeElectricityStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
     }
 }

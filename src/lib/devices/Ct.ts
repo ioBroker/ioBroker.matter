@@ -1,8 +1,8 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import ElectricityDataDevice from './ElectricityDataDevice';
+import { ElectricityDataDevice } from './ElectricityDataDevice';
 import { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Ct extends ElectricityDataDevice {
+export class Ct extends ElectricityDataDevice {
     #dimmerState?: DeviceStateObject<number>;
     #brightnessState?: DeviceStateObject<number>;
     #temperatureState?: DeviceStateObject<number>;
@@ -104,6 +104,21 @@ class Ct extends ElectricityDataDevice {
         return !!this.#dimmerState || !!this.#brightnessState;
     }
 
+    /** Compatibility function for the level interface */
+    getLevel(): number | undefined {
+        return this.getDimmer();
+    }
+
+    /** Compatibility function for the level interface */
+    updateLevel(value: number): Promise<void> {
+        return this.updateDimmer(value);
+    }
+
+    /** Compatibility function for the level interface */
+    setLevel(value: number): Promise<void> {
+        return this.setDimmer(value);
+    }
+
     getBrightness(): number | undefined {
         if (!this.#brightnessState) {
             throw new Error('Brightness state not found');
@@ -153,6 +168,10 @@ class Ct extends ElectricityDataDevice {
         return this.#temperatureState.setValue(value);
     }
 
+    hasTemperature(): boolean {
+        return !!this.#temperatureState;
+    }
+
     getPower(): boolean | undefined {
         if (!this.#getPowerState && !this.#setPowerState) {
             throw new Error('On state not found');
@@ -176,7 +195,7 @@ class Ct extends ElectricityDataDevice {
     }
 
     hasPower(): boolean {
-        return !!this.#getPowerState;
+        return !!this.#setPowerState;
     }
 
     getPowerActual(): boolean | undefined {
@@ -191,7 +210,6 @@ class Ct extends ElectricityDataDevice {
             throw new Error('PowerActual state not found');
         }
         await this.#getPowerState.updateValue(value);
-        await this.#setPowerState?.updateValue(value);
     }
 
     hasTransitionTime(): boolean {
@@ -219,5 +237,3 @@ class Ct extends ElectricityDataDevice {
         return this.#transitionTimeState.updateValue(value);
     }
 }
-
-export default Ct;

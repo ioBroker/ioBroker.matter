@@ -16,6 +16,10 @@ import type { ClassExtends } from '@matter/main';
 import { ButtonToMatter } from './ButtonToMatter';
 import { ButtonSensorToMatter } from './ButtonSensorToMatter';
 import { IlluminanceToMatter } from './IlluminanceToMatter';
+import { BlindsToMatter } from './BlindsToMatter';
+import { ThermostatToMatter } from './ThermostatToMatter';
+import { HueAndRgbToMatter } from './HueAndRgbToMatter';
+import { CieToMatter } from './CieToMatter';
 
 /**
  * Factory function to create a Matter device from an ioBroker device.
@@ -30,11 +34,18 @@ async function matterDeviceFabric(
     let ToMatter: ClassExtends<GenericDeviceToMatter>;
 
     switch (ioBrokerDeviceType) {
+        case Types.blind:
+        case Types.blindButtons:
+            ToMatter = BlindsToMatter;
+            break;
         case Types.button:
             ToMatter = ButtonToMatter;
             break;
         case Types.buttonSensor:
             ToMatter = ButtonSensorToMatter;
+            break;
+        case Types.cie:
+            ToMatter = CieToMatter;
             break;
         case Types.ct:
             ToMatter = CtToMatter;
@@ -47,6 +58,9 @@ async function matterDeviceFabric(
             break;
         case Types.floodAlarm:
             ToMatter = FloodAlarmToMatter;
+            break;
+        case Types.hue:
+            ToMatter = HueAndRgbToMatter;
             break;
         case Types.humidity:
             ToMatter = HumidityToMatter;
@@ -63,11 +77,19 @@ async function matterDeviceFabric(
         case Types.motion:
             ToMatter = MotionToMatter;
             break;
+        case Types.rgb:
+        case Types.rgbSingle:
+        case Types.rgbwSingle:
+            ToMatter = HueAndRgbToMatter;
+            break;
         case Types.socket:
             ToMatter = SocketToMatter;
             break;
         case Types.temperature:
             ToMatter = TemperatureToMatter;
+            break;
+        case Types.thermostat:
+            ToMatter = ThermostatToMatter;
             break;
         case Types.window:
             ToMatter = WindowToMatter;

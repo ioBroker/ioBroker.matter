@@ -1,5 +1,5 @@
 import { Behavior } from '@matter/main';
-import type GenericDevice from '../../lib/devices/GenericDevice';
+import type { GenericDevice } from '../../lib/devices/GenericDevice';
 import type { MatterAdapter } from '../../main';
 
 export class IoBrokerContextBehavior extends Behavior {

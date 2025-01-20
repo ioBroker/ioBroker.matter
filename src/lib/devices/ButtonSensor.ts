@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class ButtonSensor extends GenericDevice {
+export class ButtonSensor extends GenericDevice {
     #setPressState?: DeviceStateObject<boolean>;
     #setPressLongState?: DeviceStateObject<boolean>;
 
@@ -60,5 +60,3 @@ class ButtonSensor extends GenericDevice {
         return this.#setPressLongState.updateValue(true);
     }
 }
-
-export default ButtonSensor;

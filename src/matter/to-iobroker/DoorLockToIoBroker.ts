@@ -1,13 +1,11 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { DoorLock } from '@matter/main/clusters';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
-import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
-import Lock from '../../lib/devices/Lock';
+import { Lock } from '../../lib/devices/Lock';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 
-/** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
 export class DoorLockToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Lock;
     readonly #unboltingSupported: boolean;
@@ -79,7 +77,7 @@ export class DoorLockToIoBroker extends GenericElectricityDataDeviceToIoBroker {
         return super.enableDeviceTypeStates();
     }
 
-    get ioBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): Lock {
         return this.#ioBrokerDevice;
     }
 }

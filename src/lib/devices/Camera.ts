@@ -1,5 +1,5 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
 /*
 *	FILE	camera	file				/^camera(\.\w+)?$/
@@ -10,7 +10,7 @@ NIGHTMODE	switch.camera.nightmode	boolean	W			/^switch(\.camera)?\.nightmode$/
 PTZ	level.camera.position	number	W			/^level(\.camera)?\.position$｜^level(\.camera)?(\.ptz)$/
 */
 
-class Camera extends GenericDevice {
+export class Camera extends GenericDevice {
     #getFileState?: DeviceStateObject<string>;
     #autoFocusState?: DeviceStateObject<boolean>;
     #autoWhiteBalanceState?: DeviceStateObject<boolean>;
@@ -146,5 +146,3 @@ class Camera extends GenericDevice {
         return this.#ptzState.setValue(value);
     }
 }
-
-export default Camera;

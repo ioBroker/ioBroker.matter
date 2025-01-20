@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class FloodAlarm extends GenericDevice {
+export class FloodAlarm extends GenericDevice {
     #getValueState?: DeviceStateObject<boolean>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
@@ -34,5 +34,3 @@ class FloodAlarm extends GenericDevice {
         return this.#getValueState.updateValue(value);
     }
 }
-
-export default FloodAlarm;

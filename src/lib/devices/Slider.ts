@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Slider extends GenericDevice {
+export class Slider extends GenericDevice {
     #setLevelState?: DeviceStateObject<number>;
     #getLevelState?: DeviceStateObject<number>;
 
@@ -43,5 +43,3 @@ class Slider extends GenericDevice {
         return this.#setLevelState.setValue(value);
     }
 }
-
-export default Slider;

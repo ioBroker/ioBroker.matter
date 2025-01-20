@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Temperature extends GenericDevice {
+export class Temperature extends GenericDevice {
     #getTemperatureState?: DeviceStateObject<number>;
     #getHumidityState?: DeviceStateObject<number>;
 
@@ -63,5 +63,3 @@ class Temperature extends GenericDevice {
         return this.#getHumidityState.updateValue(value);
     }
 }
-
-export default Temperature;

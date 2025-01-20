@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Info extends GenericDevice {
+export class Info extends GenericDevice {
     #getValueState?: DeviceStateObject<string>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
@@ -30,5 +30,3 @@ class Info extends GenericDevice {
         return this.#getValueState.value.toString();
     }
 }
-
-export default Info;

@@ -2,11 +2,10 @@ import ChannelDetector from '@iobroker/type-detector';
 import { LevelControl, OnOff } from '@matter/main/clusters';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import Dimmer from '../../lib/devices/Dimmer';
+import { Dimmer } from '../../lib/devices/Dimmer';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 
-/** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
 export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Dimmer;
     #isLighting = false;

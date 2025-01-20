@@ -5,7 +5,7 @@ import type { GeneralNode, MessageResponse } from './GeneralNode';
 import { type StructuredJsonFormData, convertDataToJsonConfig } from '../lib/JsonConfigUtils';
 import type { BridgedNodeEndpoint, RootEndpoint } from '@matter/main/endpoints';
 import { PowerSource } from '@matter/main/clusters';
-import type GenericDevice from '../lib/devices/GenericDevice';
+import type { GenericDevice } from '../lib/devices/GenericDevice';
 import { PropertyType } from '../lib/devices/DeviceStateObject';
 import { BatteryPowerSourceServer } from './behaviors/PowerSourceServer';
 
@@ -256,7 +256,7 @@ export abstract class BaseServerNode implements GeneralNode {
         batChargeLevel: PowerSource.BatChargeLevel;
         batReplacementNeeded: boolean;
     } {
-        const batteryValue = ioBrokerDevice.hasBattery() ? ioBrokerDevice.getBattery() : null;
+        const batteryValue = ioBrokerDevice.hasBattery() ? (ioBrokerDevice.getBattery() ?? null) : undefined;
         const batPercentRemaining = typeof batteryValue === 'number' ? batteryValue * 2 : batteryValue;
 
         const isLowBattery = ioBrokerDevice.hasLowBattery() ? (ioBrokerDevice.getLowBattery() ?? false) : undefined;

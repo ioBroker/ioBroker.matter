@@ -240,7 +240,7 @@ TBD
 * (@Apollon77) Only exposes remaining battery percentage attribute when value is present
 * (@Apollon77) Corrected error display and pushing to UI in case of initialization errors of bridged devices
 * (@Apollon77) Added RSSI value also for Thread devices
-* (@Apollon77) Optimized an fixed multiple things
+* (@Apollon77) Optimized and fixed multiple things
 
 ### 0.3.7 (2025-01-15)
 * (@GermanBluefox) Showed the device name in paring dialog
@@ -248,14 +248,14 @@ TBD
 * (@Apollon77) Optimized the discovery dialog handling
 * (@Apollon77) Fixed Thermostat for Controller to update temperatures
 * (@Apollon77) Gives Energy sensors a dedicated icon
-* (@Apollon77) Optimized an fixed multiple things
+* (@Apollon77) Optimized and fixed multiple things
 
 ### 0.3.6 (2025-01-13)
 * (@GermanBluefox) Fixed GUI errors
 * (@GermanBluefox/@Apollon77) Added possibility to enable/disable controlled nodes
 * (@Apollon77) Added Information on battery and rssi for DM tile
 * (@Apollon77) Added controller support for Color Lights, Speaker, Thermostats and Window coverings
-* (@Apollon77) Optimized an fixed multiple things
+* (@Apollon77) Optimized and fixed multiple things
 
 ### 0.3.5 (2025-01-09)
 * (@GermanBluefox) Fixed GUI errors

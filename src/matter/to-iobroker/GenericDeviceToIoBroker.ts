@@ -520,7 +520,9 @@ export abstract class GenericDeviceToIoBroker {
             if (changeHandler === undefined) {
                 return;
             }
-            //console.log(`handle change event for ${event.property} with value ${event.value}`);
+            this.#adapter.log.debug(
+                `Handle change event for ${event.property} with value ${JSON.stringify(event.value)}`,
+            );
             await changeHandler(event.value);
         });
     }

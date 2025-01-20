@@ -1,8 +1,7 @@
 import { Endpoint } from '@matter/main';
 import { OnOffPlugInUnitDevice } from '@matter/main/devices';
-import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import type Socket from '../../lib/devices/Socket';
+import type { Socket } from '../../lib/devices/Socket';
 import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
 import { EventedOnOffPlugInUnitOnOffServer } from '../behaviors/EventedOnOffPlugInUnitOnOffServer';
@@ -16,10 +15,10 @@ export class SocketToMatter extends GenericElectricityDataDeviceToMatter {
     readonly #ioBrokerDevice: Socket;
     readonly #matterEndpoint: Endpoint<IoBrokerOnOffPlugInUnitDevice>;
 
-    constructor(ioBrokerDevice: GenericDevice, name: string, uuid: string) {
+    constructor(ioBrokerDevice: Socket, name: string, uuid: string) {
         super(name, uuid);
         this.#matterEndpoint = new Endpoint(IoBrokerOnOffPlugInUnitDevice, { id: uuid });
-        this.#ioBrokerDevice = ioBrokerDevice as Socket;
+        this.#ioBrokerDevice = ioBrokerDevice;
         this.addElectricityDataClusters(this.#matterEndpoint, this.#ioBrokerDevice);
     }
 
@@ -38,14 +37,23 @@ export class SocketToMatter extends GenericElectricityDataDeviceToMatter {
         return [this.#matterEndpoint];
     }
 
-    get ioBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): Socket {
         return this.#ioBrokerDevice;
     }
 
-    registerMatterHandlers(): void {
-        // install matter listeners
-        // here we can react on changes from the matter side for onOff
-        this.#matterEndpoint.events.ioBrokerEvents.onOffControlled.on(
+    async registerHandlersAndInitialize(): Promise<void> {
+        await super.registerHandlersAndInitialize();
+
+        await this.initializeElectricityStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
+
+        await this.#matterEndpoint.set({
+            onOff: {
+                onOff: !!this.#ioBrokerDevice.getPower(),
+            },
+        });
+
+        this.matterEvents.on(
+            this.#matterEndpoint.events.ioBrokerEvents.onOffControlled,
             async on => await this.#ioBrokerDevice.setPower(on),
         );
 
@@ -66,14 +74,11 @@ export class SocketToMatter extends GenericElectricityDataDeviceToMatter {
                 await this.stopIdentify(identifyOptions);
             }
         });
-    }
 
-    async registerIoBrokerHandlersAndInitialize(): Promise<void> {
-        // install ioBroker listeners
-        // here we react on changes from the ioBroker side for onOff and current lamp level
         this.#ioBrokerDevice.onChange(async event => {
             switch (event.property) {
                 case PropertyType.Power:
+                case PropertyType.PowerActual:
                     await this.#matterEndpoint.set({
                         onOff: {
                             onOff: !!event.value,
@@ -82,14 +87,5 @@ export class SocketToMatter extends GenericElectricityDataDeviceToMatter {
                     break;
             }
         });
-
-        // init current state from ioBroker side
-        await this.#matterEndpoint.set({
-            onOff: {
-                onOff: !!this.#ioBrokerDevice.getPower(),
-            },
-        });
-
-        await this.initializeElectricityStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
     }
 }

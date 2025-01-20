@@ -1,5 +1,5 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
 export enum ThermostatMode {
     // MANUAL, VACATION, COOL, DRY, ECO, FAN_ONLY, HEAT, OFF
@@ -26,7 +26,7 @@ export enum ThermostatModeNumbers {
     OFF = 8,
 }
 
-class Thermostat extends GenericDevice {
+export class Thermostat extends GenericDevice {
     #levelState?: DeviceStateObject<number>;
     #getTemperatureState?: DeviceStateObject<number>;
     #powerState?: DeviceStateObject<boolean | number>;
@@ -45,6 +45,9 @@ class Thermostat extends GenericDevice {
                     valueType: ValueType.NumberMinMax,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Level,
+                    unitConversionMap: {
+                        '°F': (value, toDefaultUnit) => (toDefaultUnit ? (value - 32) / 1.8 : value * 1.8 + 32),
+                    },
                     callback: state => (this.#levelState = state),
                 },
                 {
@@ -52,6 +55,9 @@ class Thermostat extends GenericDevice {
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Temperature,
+                    unitConversionMap: {
+                        '°F': (value, toDefaultUnit) => (toDefaultUnit ? (value - 32) / 1.8 : value * 1.8 + 32),
+                    },
                     callback: state => (this.#getTemperatureState = state),
                 },
                 {
@@ -121,6 +127,17 @@ class Thermostat extends GenericDevice {
         return this.#modeState.value;
     }
 
+    hasMode(): boolean {
+        return !!this.#modeState;
+    }
+
+    getSetpointMinMax(): { min: number; max: number } | null {
+        if (!this.#levelState) {
+            throw new Error('Level state not found');
+        }
+        return this.#levelState.getMinMax();
+    }
+
     updateSetpointMinMax(min: number | undefined, max: number | undefined): Promise<void> {
         if (!this.#levelState) {
             throw new Error('Level state not found');
@@ -163,6 +180,10 @@ class Thermostat extends GenericDevice {
         return this.#getTemperatureState.updateValue(value);
     }
 
+    hasTemperature(): boolean {
+        return !!this.#getTemperatureState;
+    }
+
     getPower(): boolean | number | undefined {
         if (!this.#powerState) {
             throw new Error('Power state not found');
@@ -184,6 +205,10 @@ class Thermostat extends GenericDevice {
         return this.#powerState.updateValue(value);
     }
 
+    hasPower(): boolean {
+        return !!this.#powerState;
+    }
+
     getHumidity(): number | undefined {
         if (!this.#getHumidityState) {
             throw new Error('Humidity state not found');
@@ -196,6 +221,10 @@ class Thermostat extends GenericDevice {
             throw new Error('Humidity state not found');
         }
         return this.#getHumidityState.updateValue(value);
+    }
+
+    hasHumidity(): boolean {
+        return !!this.#getHumidityState;
     }
 
     getBoost(): number | undefined {
@@ -212,6 +241,10 @@ class Thermostat extends GenericDevice {
         return this.#boostState.setValue(value);
     }
 
+    hasBoost(): boolean {
+        return !!this.#boostState;
+    }
+
     getParty(): boolean | number | undefined {
         if (!this.#partyState) {
             throw new Error('Party state not found');
@@ -225,6 +258,8 @@ class Thermostat extends GenericDevice {
         }
         return this.#partyState.setValue(value);
     }
-}
 
-export default Thermostat;
+    hasParty(): boolean {
+        return !!this.#partyState;
+    }
+}

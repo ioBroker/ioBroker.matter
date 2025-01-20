@@ -1,5 +1,3 @@
-import Volume from './Volume';
+import { Volume } from './Volume';
 
-class VolumeGroup extends Volume {}
-
-export default VolumeGroup;
+export class VolumeGroup extends Volume {}

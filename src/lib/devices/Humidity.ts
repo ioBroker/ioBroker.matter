@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Humidity extends GenericDevice {
+export class Humidity extends GenericDevice {
     #getHumidityState?: DeviceStateObject<number>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
@@ -34,5 +34,3 @@ class Humidity extends GenericDevice {
         return this.#getHumidityState.updateValue(value);
     }
 }
-
-export default Humidity;

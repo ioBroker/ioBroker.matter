@@ -1059,12 +1059,11 @@ export class MatterAdapter extends utils.Adapter {
 
             try {
                 await bridge.init(); // add bridge to server
-
-                return bridge;
             } catch (error) {
                 const errorText = inspect(error, { depth: 10 });
                 this.log.error(`Error creating bridge ${config.parameters.uuid}: ${errorText}`);
             }
+            return bridge;
         }
 
         return null;
@@ -1261,8 +1260,13 @@ export class MatterAdapter extends utils.Adapter {
                     }
                 } else {
                     this.log.error(`Cannot create bridge for ${bridge._id}`);
+                    const error = 'Cannot create bridge because of an error. Please check the logs.';
                     this.#bridges.set(bridge._id, {
-                        error: 'Cannot create bridge because of an error. Please check the logs.',
+                        error,
+                    });
+                    await this.sendToGui({
+                        command: 'updateStates',
+                        states: { [bridge.native.uuid]: { error } },
                     });
                 }
             } else {

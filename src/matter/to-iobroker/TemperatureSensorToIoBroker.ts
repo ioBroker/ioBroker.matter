@@ -1,13 +1,11 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { TemperatureMeasurement } from '@matter/main/clusters';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
-import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
-import Temperature from '../../lib/devices/Temperature';
+import { Temperature } from '../../lib/devices/Temperature';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 
-/** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
 export class TemperatureSensorToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Temperature;
 
@@ -39,17 +37,21 @@ export class TemperatureSensorToIoBroker extends GenericElectricityDataDeviceToI
         );
     }
 
+    temperatureFromMatter(value: number): number {
+        return parseFloat((value / 100).toFixed(2));
+    }
+
     protected enableDeviceTypeStates(): DeviceOptions {
         this.enableDeviceTypeStateForAttribute(PropertyType.Temperature, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: TemperatureMeasurement.Cluster.id,
             attributeName: 'measuredValue',
-            convertValue: value => value / 100, // TODO Validate
+            convertValue: value => this.temperatureFromMatter(value),
         });
         return super.enableDeviceTypeStates();
     }
 
-    get ioBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): Temperature {
         return this.#ioBrokerDevice;
     }
 }

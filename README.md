@@ -185,14 +185,6 @@ TBD
 * Sync min/max from Matter into ioBroker objects
 * Cleanup objects when devices/states are removed
 * ioBroker device types
-  * (9) Lights:
-    * rgb
-    * rgbwSingle
-    * rgbSingle
-    * cie
-    * hue
-  * (8) blinds + blindButtons
-  * (-8) thermostat
   * (3+) vacuumCleaner
   * (3) volume, volumeGroup
   * (-3) airCondition
@@ -203,7 +195,7 @@ TBD
   * windowTilt - how?
   * levelSlider - how?
 * Matter device types
-  * (7) Fan -> thermostat?
+  * (7) Fan -> airCondition?
   * (4+) Air Quality Sensor -> ???
   * (4+) Air Purifier -> ???
   * (4) Pump -> ???
@@ -238,6 +230,18 @@ TBD
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (@Apollon77) "SET" states are no longer updated when Actual states are present and get updated!
+* (@Apollon77) Initializes states also with "ack=false" states because better than no initial values
+* (@Apollon77) Added Device support for Window Coverings (Blinds, Blindbuttons), Color Lights (Cie, Hie, Rgb, Rgbw, RgbSingle, RgbwSingle) and Thermostats
+* (@Apollon77) Makes sure to track state values also when disabled and update state to Matter when enabled again
+* (@Apollon77) Makes sure to also subscribe to write-only states for controller cases
+* (@Apollon77) Only exposes remaining battery percentage attribute when value is present
+* (@Apollon77) Corrected error display and pushing to UI in case of initialization errors of bridged devices
+* (@Apollon77) Added RSSI value also for Thread devices
+* (@Apollon77) Optimized an fixed multiple things
+
 ### 0.3.7 (2025-01-15)
 * (@GermanBluefox) Showed the device name in paring dialog
 * (@GermanBluefox/Apollon77) Adjusts connection type icons

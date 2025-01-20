@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Media extends GenericDevice {
+export class Media extends GenericDevice {
     #getStateState?: DeviceStateObject<boolean | number>;
     #setPlayState?: DeviceStateObject<boolean>;
     #setPauseState?: DeviceStateObject<boolean>;
@@ -367,5 +367,3 @@ class Media extends GenericDevice {
         return this.#getConnectedState.value;
     }
 }
-
-export default Media;

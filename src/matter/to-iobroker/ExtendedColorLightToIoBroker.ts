@@ -2,13 +2,12 @@ import ChannelDetector from '@iobroker/type-detector';
 import { LevelControl, OnOff, ColorControl } from '@matter/main/clusters';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import Cie from '../../lib/devices/Cie';
-import Hue from '../../lib/devices/Hue';
+import { Cie } from '../../lib/devices/Cie';
+import { Hue } from '../../lib/devices/Hue';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 import { kelvinToMireds, miredsToKelvin } from '@matter/main/behaviors';
 
-/** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
 export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Hue | Cie;
     #hueSaturationTimeout?: ioBroker.Timeout;

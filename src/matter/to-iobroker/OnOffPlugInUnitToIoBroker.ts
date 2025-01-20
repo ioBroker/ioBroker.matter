@@ -1,13 +1,11 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { OnOff } from '@matter/main/clusters';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
-import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
-import Socket from '../../lib/devices/Socket';
+import { Socket } from '../../lib/devices/Socket';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 
-/** Mapping Logic to map a ioBroker Socket device to a Matter OnOffPlugInUnitDevice. */
 export class OnOffPlugInUnitToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Socket;
 
@@ -60,7 +58,7 @@ export class OnOffPlugInUnitToIoBroker extends GenericElectricityDataDeviceToIoB
         return super.enableDeviceTypeStates();
     }
 
-    get ioBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): Socket {
         return this.#ioBrokerDevice;
     }
 }

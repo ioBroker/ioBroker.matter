@@ -1,5 +1,5 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import ElectricityDataDevice from './ElectricityDataDevice';
+import { ElectricityDataDevice } from './ElectricityDataDevice';
 import { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
 enum AirConditionerMode {
@@ -28,7 +28,7 @@ enum AirConditionerSwing {
     Vertical = 'VERTICAL',
 }
 
-class AirCondition extends ElectricityDataDevice {
+export class AirCondition extends ElectricityDataDevice {
     #levelState?: DeviceStateObject<number>;
     #getTemperatureState?: DeviceStateObject<number>;
     #powerState?: DeviceStateObject<boolean>;
@@ -223,5 +223,3 @@ class AirCondition extends ElectricityDataDevice {
         return this.#modeState.getModes();
     }
 }
-
-export default AirCondition;

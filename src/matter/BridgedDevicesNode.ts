@@ -293,7 +293,7 @@ class BridgedDevices extends BaseServerNode {
                 if (existingDevice) {
                     newDeviceList.add(uuid);
                     this.adapter.log.debug(`Device ${uuid} already in bridge. Sync Configuration`);
-                    existingDevice.applyConfiguration(deviceOptions);
+                    await existingDevice.applyConfiguration(deviceOptions);
                     continue;
                 }
                 if (!device || error) {
@@ -400,14 +400,28 @@ class BridgedDevices extends BaseServerNode {
         const bridgedDeviceUuid = message.bridgedDeviceUuid;
         const details: StructuredJsonFormData = {};
 
-        const { error } = this.#devices.get(bridgedDeviceUuid) ?? {};
-        if (error) {
-            details.error = {
-                __header__error: 'Error information',
-                __text__info: `Bridged Device is in error state. Fix the error before enabling it again`,
-                uuid: `${bridgedDeviceUuid} on ${this.uuid}`,
-                __text__error: `Error: ${error}`,
-            };
+        if (bridgedDeviceUuid === undefined) {
+            const error = this.error;
+            if (Array.isArray(error)) {
+                details.error = {
+                    __header__error: 'Error information',
+                    __text__info: `${error.length} Bridged Device(s) are in an error state. Fix the errors before enabling it again.`,
+                    __text__info2: `Please refer to the error details at the bridged device level.`,
+                    uuid: this.uuid,
+                };
+            } else {
+                // The error boolean state should never end here because then this object should have not been created
+            }
+        } else {
+            const { error } = this.#devices.get(bridgedDeviceUuid) ?? {};
+            if (error) {
+                details.error = {
+                    __header__error: 'Error information',
+                    __text__info: `Bridged Device is in an error state. Fix the error before enabling it again.`,
+                    uuid: `${bridgedDeviceUuid} on ${this.uuid}`,
+                    __text__error: `Error: ${error}`,
+                };
+            }
         }
 
         if (bridgedDeviceUuid !== undefined) {

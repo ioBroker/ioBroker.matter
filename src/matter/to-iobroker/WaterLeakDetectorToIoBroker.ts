@@ -1,13 +1,11 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { BooleanState } from '@matter/main/clusters';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
-import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import FloodAlarm from '../../lib/devices/FloodAlarm';
+import { FloodAlarm } from '../../lib/devices/FloodAlarm';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
 
-/** Mapping Logic to map a ioBroker Contact Sensor device to a Matter OnOffLightDevice. */
 export class WaterLeakDetectorToIoBroker extends GenericDeviceToIoBroker {
     readonly #ioBrokerDevice: FloodAlarm;
 
@@ -49,7 +47,7 @@ export class WaterLeakDetectorToIoBroker extends GenericDeviceToIoBroker {
         return super.enableDeviceTypeStates();
     }
 
-    get ioBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): FloodAlarm {
         return this.#ioBrokerDevice;
     }
 }

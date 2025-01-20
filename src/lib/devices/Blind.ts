@@ -1,8 +1,8 @@
-import BlindButtons from './BlindButtons';
+import { BlindButtons } from './BlindButtons';
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Blind extends BlindButtons {
+export class Blind extends BlindButtons {
     #setLevelState?: DeviceStateObject<number>;
     #getLevelState?: DeviceStateObject<number>;
 
@@ -63,8 +63,9 @@ class Blind extends BlindButtons {
             throw new Error('Level state not found');
         }
         await this.#getLevelState.updateValue(value);
-        await this.#setLevelState?.updateValue(value);
+    }
+
+    hasLiftLevel(): boolean {
+        return !!this.#setLevelState;
     }
 }
-
-export default Blind;

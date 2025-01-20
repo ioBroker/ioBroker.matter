@@ -7,7 +7,7 @@ import {
 import { ElectricalEnergyMeasurement, ElectricalPowerMeasurement, PowerTopology } from '@matter/main/clusters';
 import { MeasurementType } from '@matter/main/types';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import type ElectricityDataDevice from '../../lib/devices/ElectricityDataDevice';
+import type { ElectricityDataDevice } from '../../lib/devices/ElectricityDataDevice';
 import { GenericDeviceToMatter } from './GenericDeviceToMatter';
 
 type EnergyValues = { energy: number };

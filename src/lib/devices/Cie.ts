@@ -1,9 +1,9 @@
-import Ct from './Ct';
+import { Ct } from './Ct';
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Cie extends Ct {
-    #cie?: DeviceStateObject<string>;
+export class Cie extends Ct {
+    #cieState?: DeviceStateObject<string>;
 
     // CIE has form lab(29.2345% 39.3825 20.0664);
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
@@ -16,90 +16,95 @@ class Cie extends Ct {
                     valueType: ValueType.String,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Cie,
-                    callback: state => (this.#cie = state),
+                    callback: state => (this.#cieState = state),
                 },
             ]),
         );
     }
 
     getCie(): string | undefined {
-        if (!this.#cie) {
+        if (!this.#cieState) {
             throw new Error('CIE state not found');
         }
-        return this.#cie.value;
+        return this.#cieState.value;
+    }
+
+    parseCieValue(value: string | undefined): { x: number; y: number } | undefined {
+        if (value?.startsWith('[') && value?.endsWith(']')) {
+            try {
+                // JUst get it out of the string for performance reasons
+                const xy = value
+                    .replaceAll(/\s/g, '') // Remove whitespaces to get the pure json data
+                    .substring(1, value.length - 1)
+                    .split(',');
+                return { x: parseFloat(xy[0]), y: parseFloat(xy[1]) };
+            } catch {
+                // Do nothing
+            }
+        }
+        this.adapter.log.info(`${this.uuid} Invalid CIE value: ${value}`);
     }
 
     getXy(): { x: number; y: number } | undefined {
-        if (!this.#cie) {
+        if (!this.#cieState) {
             throw new Error('CIE state not found');
         }
-        const value = this.#cie.value;
-        if (value?.startsWith('[') && value?.endsWith(']')) {
-            try {
-                const xy = value.substring(1, value.length - 1).split(',');
-                return { x: parseFloat(xy[0]), y: parseFloat(xy[1]) };
-            } catch {
-                return undefined;
-            }
-        }
-        return undefined;
+        return this.parseCieValue(this.#cieState.value);
     }
 
     setCie(value: string): Promise<void> {
-        if (!this.#cie) {
+        if (!this.#cieState) {
             throw new Error('CIE state not found');
         }
-        return this.#cie.setValue(value);
+        return this.#cieState.setValue(value);
     }
 
     setXy(x: number, y: number): Promise<void> {
-        if (!this.#cie) {
+        if (!this.#cieState) {
             throw new Error('CIE state not found');
         }
-        return this.#cie.setValue(`[${x},${y}]`);
+        return this.#cieState.setValue(`[${x},${y}]`);
     }
 
     setX(x: number): Promise<void> {
-        if (!this.#cie) {
+        if (!this.#cieState) {
             throw new Error('CIE state not found');
         }
-        return this.#cie.setValue(`[${x},${this.getXy()?.y}]`);
+        return this.#cieState.setValue(`[${x},${this.getXy()?.y}]`);
     }
 
     setY(y: number): Promise<void> {
-        if (!this.#cie) {
+        if (!this.#cieState) {
             throw new Error('CIE state not found');
         }
-        return this.#cie.setValue(`[${this.getXy()?.x},${y}]`);
+        return this.#cieState.setValue(`[${this.getXy()?.x},${y}]`);
     }
 
     updateCie(value: string): Promise<void> {
-        if (!this.#cie) {
+        if (!this.#cieState) {
             throw new Error('CIE state not found');
         }
-        return this.#cie.updateValue(value);
+        return this.#cieState.updateValue(value);
     }
 
     updateXy(x: number, y: number): Promise<void> {
-        if (!this.#cie) {
+        if (!this.#cieState) {
             throw new Error('CIE state not found');
         }
-        return this.#cie.updateValue(`[${x},${y}]`);
+        return this.#cieState.updateValue(`[${x},${y}]`);
     }
 
     updateX(x: number): Promise<void> {
-        if (!this.#cie) {
+        if (!this.#cieState) {
             throw new Error('CIE state not found');
         }
-        return this.#cie.updateValue(`[${x},${this.getXy()?.y}]`);
+        return this.#cieState.updateValue(`[${x},${this.getXy()?.y}]`);
     }
 
     updateY(y: number): Promise<void> {
-        if (!this.#cie) {
+        if (!this.#cieState) {
             throw new Error('CIE state not found');
         }
-        return this.#cie.updateValue(`[${this.getXy()?.x},${y}]`);
+        return this.#cieState.updateValue(`[${this.getXy()?.x},${y}]`);
     }
 }
-
-export default Cie;

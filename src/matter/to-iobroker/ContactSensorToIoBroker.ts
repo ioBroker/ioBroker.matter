@@ -1,13 +1,11 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { BooleanState } from '@matter/main/clusters';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
-import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
-import Window from '../../lib/devices/Window';
+import { Window } from '../../lib/devices/Window';
 import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
 
-/** Mapping Logic to map a ioBroker Contact Sensor device to a Matter OnOffLightDevice. */
 export class ContactSensorToIoBroker extends GenericDeviceToIoBroker {
     readonly #ioBrokerDevice: Window; // TODO That's a hack for now, could also be Door or Generic?
 
@@ -50,7 +48,7 @@ export class ContactSensorToIoBroker extends GenericDeviceToIoBroker {
         return super.enableDeviceTypeStates();
     }
 
-    get ioBrokerDevice(): GenericDevice {
+    get ioBrokerDevice(): Window {
         return this.#ioBrokerDevice;
     }
 }

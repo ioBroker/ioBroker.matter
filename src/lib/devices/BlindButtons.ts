@@ -1,5 +1,5 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
 /*
 Blinds controlled only by buttons [blindButtons]
@@ -20,7 +20,7 @@ MAINTAIN	indicator.maintenance	boolean		X		/^indicator\.maintenance$/
 ERROR	indicator.error			X		/^indicator\.error$/
 */
 
-class BlindButtons extends GenericDevice {
+export class BlindButtons extends GenericDevice {
     #setStopState?: DeviceStateObject<boolean>;
     #setOpenState?: DeviceStateObject<boolean>;
     #setCloseState?: DeviceStateObject<boolean>;
@@ -117,6 +117,22 @@ class BlindButtons extends GenericDevice {
         return this.#setCloseState.setValue(true);
     }
 
+    hasLiftButtons(): boolean {
+        return !!(this.#setOpenState && this.#setCloseState);
+    }
+
+    hasLiftStopButton(): boolean {
+        return !!this.#setStopState;
+    }
+
+    hasLiftLevel(): boolean {
+        return false;
+    }
+
+    hasTiltStopButton(): boolean {
+        return !!this.#setStopState;
+    }
+
     getTiltLevel(): number | undefined {
         if (!this.#getTiltState) {
             throw new Error('Tilt state not found');
@@ -129,6 +145,10 @@ class BlindButtons extends GenericDevice {
             throw new Error('Tilt state not found');
         }
         return this.#setTiltState.setValue(value);
+    }
+
+    hasTiltLevel(): boolean {
+        return !!this.#setTiltState;
     }
 
     async updateTiltLevel(value: number): Promise<void> {
@@ -151,7 +171,6 @@ class BlindButtons extends GenericDevice {
             throw new Error('Level state not found');
         }
         await this.#getTiltState.updateValue(value);
-        await this.#setTiltState?.updateValue(value);
     }
 
     setTiltStop(): Promise<void> {
@@ -174,6 +193,12 @@ class BlindButtons extends GenericDevice {
         }
         return this.#setTiltCloseState.setValue(true);
     }
-}
 
-export default BlindButtons;
+    hasTiltButtons(): boolean {
+        return !!(this.#setTiltOpenState && this.#setTiltCloseState);
+    }
+
+    hastTiltStopButton(): boolean {
+        return !!this.#setTiltStopState;
+    }
+}

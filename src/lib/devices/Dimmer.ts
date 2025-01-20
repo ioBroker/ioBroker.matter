@@ -1,8 +1,8 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import ElectricityDataDevice from './ElectricityDataDevice';
+import { ElectricityDataDevice } from './ElectricityDataDevice';
 import { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Dimmer extends ElectricityDataDevice {
+export class Dimmer extends ElectricityDataDevice {
     #setLevelState?: DeviceStateObject<number>;
     #getLevelState?: DeviceStateObject<number>;
     #setPowerState?: DeviceStateObject<boolean>;
@@ -78,6 +78,10 @@ class Dimmer extends ElectricityDataDevice {
         return this.#setLevelState.setValue(value);
     }
 
+    hasDimmer(): boolean {
+        return !!this.#setLevelState;
+    }
+
     async updateLevel(value: number): Promise<void> {
         if (!this.#setLevelState && !this.#getLevelState) {
             throw new Error('Level state not found');
@@ -98,7 +102,6 @@ class Dimmer extends ElectricityDataDevice {
             throw new Error('Level state not found');
         }
         await this.#getLevelState.updateValue(value);
-        await this.#setLevelState?.updateValue(value);
     }
 
     getPower(): boolean | undefined {
@@ -158,7 +161,6 @@ class Dimmer extends ElectricityDataDevice {
             throw new Error('Power state not found');
         }
         await this.#getPowerState.updateValue(value);
-        await this.#setPowerState?.updateValue(value);
     }
 
     hasTransitionTime(): boolean {
@@ -186,5 +188,3 @@ class Dimmer extends ElectricityDataDevice {
         return this.#transitionTimeState.updateValue(value);
     }
 }
-
-export default Dimmer;

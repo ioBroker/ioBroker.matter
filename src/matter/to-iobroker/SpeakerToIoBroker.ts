@@ -4,9 +4,8 @@ import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
-import Volume from '../../lib/devices/Volume';
+import { Volume } from '../../lib/devices/Volume';
 
-/** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
 export class SpeakerToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Volume;
     #minLevel = 0;

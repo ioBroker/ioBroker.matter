@@ -3,10 +3,9 @@ import { Thermostat as MatterThermostat } from '@matter/main/clusters';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
-import Thermostat, { ThermostatMode, ThermostatModeNumbers } from '../../lib/devices/Thermostat';
+import { Thermostat, ThermostatMode, ThermostatModeNumbers } from '../../lib/devices/Thermostat';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 
-/** Mapping Logic to map a ioBroker Socket device to a Matter OnOffPlugInUnitDevice. */
 export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Thermostat;
     #minHeatSetpointLimit: number | undefined = undefined;
@@ -43,15 +42,22 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
     }
 
     async #handleUpdatedMatterTemperature(forMode: ThermostatMode, value: number): Promise<void> {
-        value = value / 100; // TODO Validate
         const currentMode = this.ioBrokerDevice.getMode();
         if (
             currentMode === ThermostatMode.Auto ||
             (currentMode === ThermostatMode.Heat && forMode === ThermostatMode.Heat) ||
             (currentMode === ThermostatMode.Cool && forMode === ThermostatMode.Cool)
         ) {
-            await this.ioBrokerDevice.updateLevel(value);
+            await this.ioBrokerDevice.updateLevel(this.temperatureFromMatter(value));
         }
+    }
+
+    temperatureToMatter(value: number): number {
+        return Math.round(value * 100);
+    }
+
+    temperatureFromMatter(value: number): number {
+        return parseFloat((value / 100).toFixed(2));
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
@@ -59,7 +65,7 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
             endpointId: this.appEndpoint.getNumber(),
             clusterId: MatterThermostat.Cluster.id,
             attributeName: 'localTemperature',
-            convertValue: value => value / 100, // TODO Validate
+            convertValue: value => this.temperatureFromMatter(value),
         });
         this.enableDeviceTypeStateForAttribute(PropertyType.Level, {
             changeHandler: async value => {
@@ -67,12 +73,12 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
                 if (mode === ThermostatMode.Heat || mode === ThermostatMode.Auto) {
                     await this.appEndpoint
                         .getClusterClient(MatterThermostat.Complete)
-                        ?.setOccupiedHeatingSetpointAttribute(Math.round(value * 100)); // TODO Validate
+                        ?.setOccupiedHeatingSetpointAttribute(this.temperatureToMatter(value));
                 }
                 if (mode === ThermostatMode.Cool || mode === ThermostatMode.Auto) {
                     await this.appEndpoint
                         .getClusterClient(MatterThermostat.Complete)
-                        ?.setOccupiedCoolingSetpointAttribute(Math.round(value * 100)); // TODO Validate
+                        ?.setOccupiedCoolingSetpointAttribute(this.temperatureToMatter(value));
                 }
             },
         });
@@ -106,14 +112,14 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
                             .getClusterClient(MatterThermostat.Complete)
                             ?.getOccupiedHeatingSetpointAttribute();
                         if (heatSetpoint !== undefined) {
-                            await this.ioBrokerDevice.updateLevel(heatSetpoint);
+                            await this.ioBrokerDevice.updateLevel(this.temperatureFromMatter(heatSetpoint));
                         }
                     } else if (ioMode === ThermostatMode.Cool) {
                         const coolSetpoint = await this.appEndpoint
                             .getClusterClient(MatterThermostat.Complete)
                             ?.getOccupiedCoolingSetpointAttribute();
                         if (coolSetpoint !== undefined) {
-                            await this.ioBrokerDevice.updateLevel(coolSetpoint);
+                            await this.ioBrokerDevice.updateLevel(this.temperatureFromMatter(coolSetpoint));
                         }
                     }
                 }
@@ -214,10 +220,10 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
             }
         }
         if (min !== undefined) {
-            min = min / 100; // TODO Validate
+            min = this.temperatureFromMatter(min);
         }
         if (max !== undefined) {
-            max = max / 100; // TODO Validate
+            max = this.temperatureFromMatter(max);
         }
         await this.ioBrokerDevice.updateSetpointMinMax(min, max);
     }

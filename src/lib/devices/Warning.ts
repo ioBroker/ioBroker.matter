@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Warning extends GenericDevice {
+export class Warning extends GenericDevice {
     #getWarningState?: DeviceStateObject<number>;
     #getTitleState?: DeviceStateObject<string>;
     #getInfoState?: DeviceStateObject<string>;
@@ -117,5 +117,3 @@ class Warning extends GenericDevice {
         return this.#getDescState.value;
     }
 }
-
-export default Warning;

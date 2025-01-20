@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import GenericDevice, { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-class Gate extends GenericDevice {
+export class Gate extends GenericDevice {
     #setLevelState?: DeviceStateObject<number>;
     #getLevelState?: DeviceStateObject<number>;
     #setStopState?: DeviceStateObject<boolean>;
@@ -58,5 +58,3 @@ class Gate extends GenericDevice {
         return this.#setStopState.setValue(true);
     }
 }
-
-export default Gate;

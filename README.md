@@ -27,20 +27,6 @@ With the ioBroker Matter Adapter it is possible to map the following use cases:
 * Provision of multiple ioBroker devices as a Matter Bridge: Matter Bridges can contain multiple devices and are the easiest way to integrate ioBroker devices into a Matter-compatible ecosystem.
 * ioBroker provides individual virtual Matter devices based on ioBroker devices / ioBroker states, which can be taught to a Matter-compatible ecosystem (currently only bridges are possible for Amazon Alexa)
 
-## Einleitung
-> [!Important]
-> Der Adapter kann NICHT via GitHub installiert werden: Der Adapter muss über das ioBroker Repository (stable bzw. latest) installiert werden.
-> 
-> Eine detaillierte Beschreibung zur Konfiguration und Anwendung des ioBroker Matter Adapters ist im 🇩🇪 [Wiki](https://github.com/ioBroker/ioBroker.matter/wiki) beschreiben.
-> 
-> Bitte die [Wichtigen Hinweise](https://github.com/ioBroker/ioBroker.matter/wiki/Einleitung-und-wichtige-Hinweise#wichtige-hinweise-bitte-dringend-beachten) vor der Verwendung des Adapters beachten.
-
-## Beschreibung
-Mit dem ioBroker Matter Adapter ist es möglich folgende Anwendungsfälle abzubilden:
-* Matter-basierte Geräte können direkt mit ioBroker verknüpft und somit eingelesen / gesteuert werden
-* Bereitstellung von mehreren ioBroker Geräten als eine Matter Bridge: Matter Bridges können mehrere Geräte enthalten und sind die einfachste Möglichkeit, ioBroker-Geräte in ein Matter-kompatibles Ökosystem zu integrieren.
-* ioBroker stellt auf Basis von ioBroker-Geräten / ioBroker-States einzelne virtuelle Matter Geräte zur Verfügung, welche an einem Matter-kompatiblen Ökosystem angelernt werden können (Für Amazon Alexa sind zur Zeit nur Bridges möglich)
-
 ## ToDo
 * Texts are partially in english
 * Sync min/max from Matter into ioBroker objects

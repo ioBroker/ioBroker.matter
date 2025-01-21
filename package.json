@@ -46,11 +46,11 @@
     "@iobroker/legacy-testing": "^2.0.1",
     "@iobroker/types": "^7.0.6",
     "@types/jsonwebtoken": "^9.0.7",
-    "@types/node": "^22.10.5",
+    "@types/node": "^22.10.7",
     "chai": "^4.5.0",
     "colorette": "^2.0.20",
     "mocha": "^11.0.1",
-    "puppeteer": "^23.11.1",
+    "puppeteer": "^24.1.0",
     "typescript": "~5.7.3"
   },
   "bugs": {

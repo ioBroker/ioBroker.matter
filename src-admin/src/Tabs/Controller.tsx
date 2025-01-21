@@ -1,8 +1,6 @@
 import React, { Component } from 'react';
 
-import { IconButton } from '@foxriver76/iob-component-lib';
-
-import { Add, Bluetooth, BluetoothDisabled, Close, Save, Search, SearchOff } from '@mui/icons-material';
+import { Add, Bluetooth, BluetoothDisabled, Close, Save, Search } from '@mui/icons-material';
 
 import {
     Backdrop,
@@ -12,13 +10,7 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
-    LinearProgress,
     Switch,
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableRow,
     TextField,
     Typography,
 } from '@mui/material';
@@ -27,9 +19,10 @@ import { type AdminConnection, type IobTheme, type ThemeName, type ThemeType, I1
 import DeviceManager from '@iobroker/dm-gui-components';
 
 import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
-import { clone, getVendorName } from '../Utils';
+import { clone } from '../Utils';
 import InfoBox from '../components/InfoBox';
 import QrCodeDialog from '../components/QrCodeDialog';
+import DiscoveredDevicesDialog from '../components/DiscoveredDevicesDialog';
 
 const styles: Record<string, React.CSSProperties> = {
     panel: {
@@ -113,36 +106,34 @@ interface ComponentState {
     bleDialogOpen: boolean;
     /** If we are currently waiting for backend processing */
     backendProcessingActive: boolean;
-    discovered: CommissionableDevice[];
-    /** Discovery process is active in the backend */
-    discoveryRunning: boolean;
-    /** Was a discovery result received which means that the dialog should stay open also after discovery ended */
-    discoveryDone: boolean;
+    showDiscoveryDialog: boolean;
     nodes: Record<string, ioBroker.Object>;
     states: Record<string, ioBroker.State>;
     /** If qr code dialog should be shown (optional a device can be provided) */
-    showQrCodeDialog: CommissionableDevice | null | true;
+    showQrCodeDialog: boolean;
     /* increase this number to reload the devices */
     triggerControllerLoad: number;
+    discoveryRunning: boolean;
 }
 
 class Controller extends Component<ComponentProps, ComponentState> {
     /** Reference object to call methods on DM */
     private readonly refDeviceManager: React.RefObject<DeviceManager> = React.createRef();
 
+    private onDiscoveryMessageHandler: ((device: CommissionableDevice) => void) | null = null;
+
     constructor(props: ComponentProps) {
         super(props);
 
         this.state = {
-            discovered: [],
-            discoveryRunning: false,
-            discoveryDone: false,
             nodes: {},
             states: {},
-            showQrCodeDialog: null,
+            showQrCodeDialog: false,
+            showDiscoveryDialog: false,
             backendProcessingActive: false,
             bleDialogOpen: false,
             triggerControllerLoad: 0,
+            discoveryRunning: false,
         };
     }
 
@@ -195,7 +186,11 @@ class Controller extends Component<ComponentProps, ComponentState> {
             `matter.${this.props.instance}.controller.*`,
         );
 
-        this.setState({ nodes, states });
+        this.setState({
+            nodes,
+            states,
+            discoveryRunning: !!states[`matter.${this.props.instance}.controller.info.discovering`]?.val,
+        });
     }
 
     async componentDidMount(): Promise<void> {
@@ -229,13 +224,8 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
     onStateChange = (id: string, state: ioBroker.State | null | undefined): void => {
         if (id === `matter.${this.props.instance}.controller.info.discovering`) {
-            if (state?.val) {
-                this.setState({ discoveryRunning: true });
-            } else {
-                this.setState({
-                    discoveryRunning: false,
-                    discoveryDone: !!this.state.discovered.length, // Leave dialog open if we found devices
-                });
+            if (!!state?.val !== this.state.discoveryRunning) {
+                this.setState({ discoveryRunning: !!state?.val });
             }
             return;
         }
@@ -268,10 +258,8 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 });
             }, 50);
         } else if (message?.command === 'discoveredDevice') {
-            if (message.device) {
-                const discovered = clone(this.state.discovered);
-                discovered.push(message.device);
-                this.setState({ discovered });
+            if (message.device && this.onDiscoveryMessageHandler) {
+                this.onDiscoveryMessageHandler(message.device);
             } else {
                 console.log(`Invalid message with no device: ${JSON.stringify(message)}`);
             }
@@ -532,23 +520,14 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
         return (
             <QrCodeDialog
-                name={
-                    typeof this.state.showQrCodeDialog !== 'boolean'
-                        ? `${this.state.showQrCodeDialog.DN} / ${getVendorName(this.state.showQrCodeDialog.V)}`
-                        : undefined
-                }
                 onClose={async (manualCode?: string, qrCode?: string): Promise<void> => {
                     if (manualCode || qrCode) {
-                        const device: CommissionableDevice | null =
-                            typeof this.state.showQrCodeDialog !== 'boolean' ? this.state.showQrCodeDialog : null;
-
-                        this.setState({ showQrCodeDialog: null, backendProcessingActive: true });
+                        this.setState({ showQrCodeDialog: false, backendProcessingActive: true });
 
                         const result = await this.props.socket.sendTo(
                             `matter.${this.props.instance}`,
                             'controllerCommissionDevice',
                             {
-                                device,
                                 qrCode,
                                 manualCode,
                             },
@@ -560,17 +539,10 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             window.alert(`Cannot connect: ${result.error || 'Unknown error'}`);
                         } else {
                             window.alert(I18n.t('Connected'));
-                            const deviceId = device?.deviceIdentifier;
-                            const discovered = this.state.discovered.filter(
-                                commDevice => commDevice.deviceIdentifier !== deviceId,
-                            );
-
-                            this.setState({ discovered }, () => {
-                                this.refDeviceManager.current?.loadData();
-                            });
+                            this.refDeviceManager.current?.loadData();
                         }
                     } else {
-                        this.setState({ showQrCodeDialog: null });
+                        this.setState({ showQrCodeDialog: false });
                     }
                 }}
                 themeType={this.props.themeType}
@@ -579,98 +551,22 @@ class Controller extends Component<ComponentProps, ComponentState> {
     }
 
     renderShowDiscoveredDevices(): React.JSX.Element | null {
-        if (!this.state.discoveryRunning && !this.state.discoveryDone) {
+        if (!this.state.showDiscoveryDialog) {
             return null;
         }
         return (
-            <Dialog
-                sx={{ '.MuiDialog-paper': { maxWidth: 800 } }}
-                open={!0}
-                onClose={() => this.setState({ discoveryDone: false })}
-            >
-                <DialogTitle>{I18n.t('Discovered devices to pair')}</DialogTitle>
-                <DialogContent>
-                    <div style={{ fontWeight: 'bold', width: '100%', marginBottom: 16 }}>
-                        {I18n.t('Pairing requirement')}
-                    </div>
-                    <InfoBox
-                        type="info"
-                        closeable
-                        storeId="matter.pairing"
-                    >
-                        {I18n.t(this.props.matter.controller.ble ? 'Pairing Info Text BLE' : 'Pairing Info Text')}
-                    </InfoBox>
-                    {this.state.discoveryRunning ? <LinearProgress /> : null}
-                    <Table style={{ width: '100%' }}>
-                        <TableHead>
-                            <TableCell>{I18n.t('Name')}</TableCell>
-                            <TableCell>{I18n.t('Identifier')}</TableCell>
-                            <TableCell>{I18n.t('Vendor ID')}</TableCell>
-                            <TableCell />
-                        </TableHead>
-                        <TableBody>
-                            {this.state.discovered.map(device => (
-                                <TableRow key={device.deviceIdentifier}>
-                                    <TableCell>{device.DN}</TableCell>
-                                    <TableCell>{device.deviceIdentifier}</TableCell>
-                                    <TableCell>{getVendorName(device.V)}</TableCell>
-                                    <TableCell>
-                                        <IconButton
-                                            icon="leakAdd"
-                                            tooltipText={I18n.t('Connect')}
-                                            onClick={async () => {
-                                                await this.stopDiscovery();
-                                                this.setState({
-                                                    discoveryDone: false,
-                                                    discovered: [],
-                                                    showQrCodeDialog: device,
-                                                });
-                                            }}
-                                        />
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </DialogContent>
-                <DialogActions>
-                    {!this.state.discoveryDone ? (
-                        <Button
-                            disabled={!this.state.discoveryRunning}
-                            variant="contained"
-                            onClick={async () => {
-                                await this.stopDiscovery();
-                            }}
-                            startIcon={<SearchOff />}
-                        >
-                            {I18n.t('Stop')}
-                        </Button>
-                    ) : null}
-                    <Button
-                        disabled={this.state.discoveryRunning}
-                        variant="contained"
-                        color="grey"
-                        onClick={() => this.setState({ discoveryDone: false })}
-                        startIcon={<Close />}
-                    >
-                        {I18n.t('Close')}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            <DiscoveredDevicesDialog
+                socket={this.props.socket}
+                registerDiscoveryMessageHandler={(handler: null | ((device: CommissionableDevice) => void)): void => {
+                    this.onDiscoveryMessageHandler = handler;
+                }}
+                triggerDeviceManagerLoad={() => this.refDeviceManager.current?.loadData()}
+                onClose={(): void => this.setState({ showDiscoveryDialog: false })}
+                ble={!!this.props.matter.controller.ble}
+                instance={this.props.instance}
+                themeType={this.props.themeType}
+            />
         );
-    }
-
-    /**
-     * Stop discovering devices
-     */
-    async stopDiscovery(): Promise<void> {
-        if (!this.state.discoveryRunning) {
-            // Nothing to stop if no Discovery is running
-            return;
-        }
-        console.log('Stop discovery');
-
-        await this.props.socket.sendTo(`matter.${this.props.instance}`, 'controllerDiscoveryStop', {});
     }
 
     /**
@@ -714,8 +610,8 @@ class Controller extends Component<ComponentProps, ComponentState> {
     }
 
     render(): React.JSX.Element {
-        if (!this.props.alive && (this.state.discoveryRunning || this.state.discoveryDone)) {
-            setTimeout(() => this.setState({ discoveryRunning: false, discoveryDone: false }), 100);
+        if (!this.props.alive && this.state.showDiscoveryDialog) {
+            setTimeout(() => this.setState({ showDiscoveryDialog: false }), 100);
         }
 
         return (
@@ -759,27 +655,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             variant="contained"
                             disabled={this.state.discoveryRunning}
                             startIcon={this.state.discoveryRunning ? <CircularProgress size={20} /> : <Search />}
-                            onClick={() => {
-                                this.setState({ discovered: [] }, async () => {
-                                    const result: {
-                                        error?: string;
-                                        result?: CommissionableDevice[];
-                                    } = await this.props.socket.sendTo(
-                                        `matter.${this.props.instance}`,
-                                        'controllerDiscovery',
-                                        {},
-                                    );
-
-                                    if (result.error) {
-                                        window.alert(`Error on discovery: ${result.error}`);
-                                    } else if (result.result) {
-                                        this.setState({
-                                            discoveryDone: !!result.result.length,
-                                            discovered: result.result,
-                                        });
-                                    }
-                                });
-                            }}
+                            onClick={() => this.setState({ showDiscoveryDialog: true })}
                         >
                             {I18n.t('Discovery devices')}
                         </Button>

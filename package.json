@@ -43,7 +43,7 @@
     "@iobroker/build-tools": "^2.0.14",
     "@iobroker/dev-server": "^0.7.3",
     "@iobroker/eslint-config": "^1.0.0",
-    "@iobroker/legacy-testing": "^2.0.1",
+    "@iobroker/legacy-testing": "^2.0.2",
     "@iobroker/types": "^7.0.6",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22.10.7",

@@ -255,6 +255,7 @@ class Options extends Component<OptionsProps, OptionsState> {
                         label={I18n.t('Controller fabric label')}
                         value={this.props.native.controllerFabricLabel}
                         type="text"
+                        placeholder={`ioBroker matter.${this.props.instance}`}
                         onChange={e => this.props.onChange('controllerFabricLabel', e.target.value)}
                         margin="normal"
                         slotProps={{

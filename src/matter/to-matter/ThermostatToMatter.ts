@@ -3,9 +3,11 @@ import { HumiditySensorDevice, ThermostatDevice } from '@matter/main/devices';
 import { Thermostat as MatterThermostat } from '@matter/main/clusters';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { ThermostatMode, type Thermostat } from '../../lib/devices/Thermostat';
-import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
+import { GenericDeviceToMatter } from './GenericDeviceToMatter';
 import { IoThermostatServer } from '../behaviors/ThermostatServer';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
+import { IoIdentifyServer } from '../behaviors/IdentifyServer';
+import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 
 //const HeatingThermostatServer = IoThermostatServer.with(MatterThermostat.Feature.Heating);
 //const CoolingThermostatServer = IoThermostatServer.with(MatterThermostat.Feature.Cooling);
@@ -85,9 +87,18 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
         const hasCooling = clusterModes.includes(MatterThermostat.Feature.Cooling);
 
         this.#matterEndpointThermostat = new Endpoint(
-            ThermostatDevice.with(IoThermostatServer.with(...clusterModes), IoBrokerEvents),
+            ThermostatDevice.with(
+                IoThermostatServer.with(...clusterModes),
+                IoBrokerEvents,
+                IoIdentifyServer,
+                IoBrokerContext,
+            ),
             {
                 id: `${uuid}-Thermostat`,
+                ioBrokerContext: {
+                    device: ioBrokerDevice,
+                    adapter: ioBrokerDevice.adapter,
+                },
                 thermostat: {
                     // Values are potentially corrected later again
                     systemMode: hasHeating ? MatterThermostat.SystemMode.Heat : MatterThermostat.SystemMode.Cool,
@@ -109,9 +120,6 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
             this.#matterEndpointHumidity = new Endpoint(HumiditySensorDevice, { id: `${uuid}-Humidity` });
         }
     }
-
-    async doIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
-    async resetIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
 
     get matterEndpoints(): Endpoint[] {
         const endpoints: Endpoint[] = [this.#matterEndpointThermostat];

@@ -5,6 +5,7 @@ import {
     type CommissionableDevice,
     type ControllerCommissioningFlowOptions,
     type DiscoveryData,
+    CommissioningError,
 } from '@matter/main/protocol';
 import { ManualPairingCodeCodec, QrPairingCodeCodec } from '@matter/main/types';
 import { NodeJsBle } from '@matter/nodejs-ble';
@@ -146,12 +147,19 @@ class Controller implements GeneralNode {
                         // We return the pollingId and execute the commissioning async
                         this.commissionDevice(options)
                             .then(result => this.#commissioningStatus.set(pollingId, { status: 'finished', result }))
-                            .catch(error =>
+                            .catch(error => {
+                                if (error instanceof CommissioningError) {
+                                    // TODO Remove after next matter.js update
+                                    if (error.message.startsWith('Commission error for "addNoc": 9,')) {
+                                        error.message =
+                                            'This device is already paired to this Controller! You can not pair it again.';
+                                    }
+                                }
                                 this.#commissioningStatus.set(pollingId, {
                                     status: 'error',
                                     result: { error: error.message },
-                                }),
-                            )
+                                });
+                            })
                             .finally(() => setTimeout(() => this.#commissioningStatus.delete(pollingId), 60 * 60_000));
                         return { result: { pollingId } };
                     }

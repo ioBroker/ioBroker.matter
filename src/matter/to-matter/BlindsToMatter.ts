@@ -6,8 +6,10 @@ import { WindowCovering } from '@matter/main/clusters';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { BlindButtons } from '../../lib/devices/BlindButtons';
 import type { Blind } from '../../lib/devices/Blind';
-import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
+import { GenericDeviceToMatter } from './GenericDeviceToMatter';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
+import { IoIdentifyServer } from '../behaviors/IdentifyServer';
+import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 
 /*const PosAwareLiftWindowCoveringServer = EventedWindowCoveringServer.with(
     WindowCovering.Feature.Lift,
@@ -17,7 +19,12 @@ const PosAwareTiltWindowCoveringServer = EventedWindowCoveringServer.with(
     WindowCovering.Feature.Tilt,
     WindowCovering.Feature.PositionAwareTilt,
 );*/
-const IoBrokerWindowCoveringDevice = WindowCoveringDevice.with(EventedWindowCoveringServer, IoBrokerEvents);
+const IoBrokerWindowCoveringDevice = WindowCoveringDevice.with(
+    EventedWindowCoveringServer,
+    IoBrokerEvents,
+    IoIdentifyServer,
+    IoBrokerContext,
+);
 type IoBrokerWindowCoveringDevice = typeof IoBrokerWindowCoveringDevice;
 
 export class BlindsToMatter extends GenericDeviceToMatter {
@@ -46,6 +53,10 @@ export class BlindsToMatter extends GenericDeviceToMatter {
             IoBrokerWindowCoveringDevice.with(EventedWindowCoveringServer.with(...this.#supportedFeatures)),
             {
                 id: uuid,
+                ioBrokerContext: {
+                    device: ioBrokerDevice,
+                    adapter: ioBrokerDevice.adapter,
+                },
                 windowCovering: {
                     type:
                         this.#supportedFeatures.includes(WindowCovering.Feature.Lift) &&
@@ -63,9 +74,6 @@ export class BlindsToMatter extends GenericDeviceToMatter {
             },
         );
     }
-
-    async doIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
-    async resetIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
 
     get matterEndpoints(): Endpoint[] {
         return [this.#matterEndpoint];

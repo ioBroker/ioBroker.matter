@@ -155,38 +155,30 @@ export abstract class GenericDeviceToIoBroker {
         return this.#deviceOptions;
     }
 
+    #enablePowerSourceStatesForEndpoint(endpoint: Endpoint): boolean {
+        const powerSource = endpoint.getClusterClient(PowerSource.Complete);
+        if (powerSource === undefined) {
+            return false;
+        }
+        const endpointId = endpoint.getNumber();
+        this.enableDeviceTypeStateForAttribute(PropertyType.LowBattery, {
+            endpointId,
+            clusterId: PowerSource.Cluster.id,
+            attributeName: 'batChargeLevel',
+            convertValue: value => value !== PowerSource.BatChargeLevel.Ok,
+        });
+        this.enableDeviceTypeStateForAttribute(PropertyType.Battery, {
+            endpointId,
+            clusterId: PowerSource.Cluster.id,
+            attributeName: 'batPercentRemaining',
+            convertValue: value => Math.round(value / 2),
+        });
+        return true;
+    }
+
     #enablePowerSourceStates(): void {
-        const powerSource = this.appEndpoint.getClusterClient(PowerSource.Complete);
-        if (powerSource !== undefined) {
-            const endpointId = this.appEndpoint.getNumber();
-            this.enableDeviceTypeStateForAttribute(PropertyType.LowBattery, {
-                endpointId,
-                clusterId: PowerSource.Cluster.id,
-                attributeName: 'batChargeLevel',
-                convertValue: value => value !== PowerSource.BatChargeLevel.Ok,
-            });
-            this.enableDeviceTypeStateForAttribute(PropertyType.Battery, {
-                endpointId,
-                clusterId: PowerSource.Cluster.id,
-                attributeName: 'batPercentRemaining',
-                convertValue: value => Math.round(value / 2),
-            });
-        } else {
-            const rootPowerSource = this.#rootEndpoint.getClusterClient(PowerSource.Complete);
-            if (rootPowerSource !== undefined && rootPowerSource.supportedFeatures.battery) {
-                this.enableDeviceTypeStateForAttribute(PropertyType.LowBattery, {
-                    endpointId: EndpointNumber(0),
-                    clusterId: PowerSource.Cluster.id,
-                    attributeName: 'batChargeLevel',
-                    convertValue: value => value !== PowerSource.BatChargeLevel.Ok,
-                });
-                this.enableDeviceTypeStateForAttribute(PropertyType.Battery, {
-                    endpointId: EndpointNumber(0),
-                    clusterId: PowerSource.Cluster.id,
-                    attributeName: 'batPercentRemaining',
-                    convertValue: value => Math.round(value / 2),
-                });
-            }
+        if (!this.#enablePowerSourceStatesForEndpoint(this.appEndpoint)) {
+            this.#enablePowerSourceStatesForEndpoint(this.#rootEndpoint);
         }
     }
 
@@ -656,7 +648,7 @@ export abstract class GenericDeviceToIoBroker {
         return this.appEndpoint.hasClusterClient(Identify.Cluster);
     }
 
-    async identify(identifyTime = 30): Promise<void> {
+    async identify(identifyTime = 10): Promise<void> {
         await this.appEndpoint.getClusterClient(Identify.Cluster)?.identify({ identifyTime });
     }
 
@@ -665,38 +657,52 @@ export abstract class GenericDeviceToIoBroker {
         await this.#adapter.extendObjectAsync(this.baseId, { common: { name } });
     }
 
-    async getMatterStates(): Promise<Record<string, unknown>> {
+    async #addPowerSourceStates(endpoint: Endpoint): Promise<Record<string, unknown> | undefined> {
         const states: Record<string, unknown> = {};
 
-        const powerSource = this.appEndpoint.getClusterClient(PowerSource.Complete);
-        if (powerSource !== undefined) {
-            states.__header__powersourcedetails = 'Power Source Details';
+        const powerSource = endpoint.getClusterClient(PowerSource.Complete);
+        if (powerSource === undefined) {
+            return undefined;
+        }
+        states.__header__powersourcedetails = 'Power Source Details';
 
-            if (
-                powerSource.isAttributeSupportedByName('batQuantity') &&
-                powerSource.isAttributeSupportedByName('batReplacementDescription')
-            ) {
-                states.includedBattery = `${await powerSource.getBatQuantityAttribute(false)} x ${await powerSource.getBatReplacementDescriptionAttribute(false)}`;
-            }
-            const voltage = powerSource.isAttributeSupportedByName('batVoltage')
-                ? await powerSource.getBatVoltageAttribute(false)
-                : undefined;
-            const percentRemaining = powerSource.isAttributeSupportedByName('batPercentRemaining')
-                ? await powerSource.getBatPercentRemainingAttribute(false)
-                : undefined;
+        if (
+            powerSource.isAttributeSupportedByName('batQuantity') &&
+            powerSource.isAttributeSupportedByName('batReplacementDescription')
+        ) {
+            states.includedBattery = `${await powerSource.getBatQuantityAttribute(false)} x ${await powerSource.getBatReplacementDescriptionAttribute(false)}`;
+        }
+        const voltage = powerSource.isAttributeSupportedByName('batVoltage')
+            ? await powerSource.getBatVoltageAttribute(false)
+            : undefined;
+        const percentRemaining = powerSource.isAttributeSupportedByName('batPercentRemaining')
+            ? await powerSource.getBatPercentRemainingAttribute(false)
+            : undefined;
 
-            if (typeof voltage === 'number') {
-                states.batteryVoltage = `${(voltage / 1_000).toFixed(2)} V${typeof percentRemaining === 'number' ? ` (${Math.round(percentRemaining / 2)}%)` : ''}`;
-            } else if (typeof percentRemaining === 'number') {
-                states.batteryVoltage = `${Math.round(percentRemaining / 2)}%`;
-            }
-
-            if (!states.includedBattery && !states.batteryVoltage) {
-                delete states.__header__powersourcedetails;
-            }
+        if (typeof voltage === 'number') {
+            states.batteryVoltage = `${(voltage / 1_000).toFixed(2)} V${typeof percentRemaining === 'number' ? ` (${Math.round(percentRemaining / 2)}%)` : ''}`;
+        } else if (typeof percentRemaining === 'number') {
+            states.batteryVoltage = `${Math.round(percentRemaining / 2)}%`;
         }
 
+        if (!states.includedBattery && !states.batteryVoltage) {
+            delete states.__header__powersourcedetails;
+        } else if (powerSource.isAttributeSupportedByName('endpointList')) {
+            const endpointList = await powerSource.getEndpointListAttribute(false);
+            if (endpointList) {
+                states.__header__powersourcedetails = 'Power Source Details';
+                states.providesPowerForTheseEndpoints = endpointList.join(', ');
+            }
+        }
         return states;
+    }
+
+    async getMatterStates(): Promise<Record<string, unknown>> {
+        return (
+            (await this.#addPowerSourceStates(this.appEndpoint)) ??
+            (await this.#addPowerSourceStates(this.#rootEndpoint)) ??
+            {}
+        );
     }
 
     async getDeviceDetails(nodeConnected: boolean): Promise<StructuredJsonFormData> {
@@ -759,34 +765,39 @@ export abstract class GenericDeviceToIoBroker {
         }
     }
 
+    async #getBatteryStatus(endpoint: Endpoint): Promise<number | string | undefined> {
+        const powerSource = endpoint.getClusterClient(PowerSource.Complete);
+        if (powerSource === undefined) {
+            return undefined;
+        }
+        if (
+            powerSource.isAttributeSupportedByName('BatChargeState') &&
+            (await powerSource.getBatChargeStateAttribute(false)) === PowerSource.BatChargeState.IsCharging
+        ) {
+            return 'charging';
+        }
+        const voltage = powerSource.isAttributeSupportedByName('batVoltage')
+            ? await powerSource.getBatVoltageAttribute(false)
+            : undefined;
+        const percentRemaining = powerSource.isAttributeSupportedByName('batPercentRemaining')
+            ? await powerSource.getBatPercentRemainingAttribute(false)
+            : undefined;
+
+        if (typeof percentRemaining === 'number') {
+            return Math.round(percentRemaining / 2);
+        } else if (typeof voltage === 'number') {
+            return `${voltage}mV`;
+        }
+    }
+
     async getStatus(nodeStatus: DeviceStatus): Promise<DeviceStatus> {
         const status: DeviceStatus = {
             connection: typeof nodeStatus === 'object' ? nodeStatus.connection : nodeStatus,
         };
 
         if (status.connection === 'connected') {
-            const powerSource = this.appEndpoint.getClusterClient(PowerSource.Complete);
-            if (powerSource !== undefined) {
-                if (
-                    powerSource.isAttributeSupportedByName('BatChargeState') &&
-                    (await powerSource.getBatChargeStateAttribute(false)) === PowerSource.BatChargeState.IsCharging
-                ) {
-                    status.battery = 'charging';
-                } else {
-                    const voltage = powerSource.isAttributeSupportedByName('batVoltage')
-                        ? await powerSource.getBatVoltageAttribute(false)
-                        : undefined;
-                    const percentRemaining = powerSource.isAttributeSupportedByName('batPercentRemaining')
-                        ? await powerSource.getBatPercentRemainingAttribute(false)
-                        : undefined;
-
-                    if (typeof percentRemaining === 'number') {
-                        status.battery = Math.round(percentRemaining / 2);
-                    } else if (typeof voltage === 'number') {
-                        status.battery = `${voltage}mV`;
-                    }
-                }
-            }
+            status.battery =
+                (await this.#getBatteryStatus(this.appEndpoint)) ?? (await this.#getBatteryStatus(this.#rootEndpoint));
         }
         return status;
     }

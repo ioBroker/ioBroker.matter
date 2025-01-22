@@ -201,7 +201,7 @@ export abstract class GenericDevice extends EventEmitter {
         }
     }
 
-    isActionAllowedByIdentify(): boolean {
+    get isActionAllowedByIdentify(): boolean {
         return !!this.options?.actionAllowedByIdentify;
     }
 

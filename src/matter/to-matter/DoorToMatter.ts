@@ -2,7 +2,9 @@ import { Endpoint } from '@matter/main';
 import { ContactSensorDevice } from '@matter/main/devices';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { Door } from '../../lib/devices/Door';
-import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
+import { GenericDeviceToMatter } from './GenericDeviceToMatter';
+import { IoIdentifyServer } from '../behaviors/IdentifyServer';
+import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 
 /** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */
 export class DoorToMatter extends GenericDeviceToMatter {
@@ -11,17 +13,18 @@ export class DoorToMatter extends GenericDeviceToMatter {
 
     constructor(ioBrokerDevice: Door, name: string, uuid: string) {
         super(name, uuid);
-        this.#matterEndpoint = new Endpoint(ContactSensorDevice, {
+        this.#matterEndpoint = new Endpoint(ContactSensorDevice.with(IoIdentifyServer, IoBrokerContext), {
             id: uuid,
+            ioBrokerContext: {
+                device: ioBrokerDevice,
+                adapter: ioBrokerDevice.adapter,
+            },
             booleanState: {
                 stateValue: false, // Will be corrected in registerHandlersAndInitialize
             },
         });
         this.#ioBrokerDevice = ioBrokerDevice;
     }
-
-    async doIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
-    async resetIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
 
     get matterEndpoints(): Endpoint[] {
         return [this.#matterEndpoint];

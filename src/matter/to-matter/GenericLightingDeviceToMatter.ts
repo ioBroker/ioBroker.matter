@@ -7,10 +7,8 @@ import type { RgbSingle } from '../../lib/devices/RgbSingle';
 import type { RgbwSingle } from '../../lib/devices/RgbwSingle';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
 import type { Endpoint } from '@matter/main';
-import { IdentifyServer } from '@matter/main/behaviors';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
-import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { EventedLightingLevelControlServer } from '../behaviors/EventedLightingLevelControlServer';
 import { EventedOnOffLightOnOffServer } from '../behaviors/EventedOnOffLightOnOffServer';
 
@@ -44,28 +42,6 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
         super.registerHandlersAndInitialize();
 
         await this.initializeElectricityStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
-
-        let isIdentifying = false;
-        const identifyOptions: IdentifyOptions = {};
-        this.matterEvents.on(this.#matterEndpoint.eventsOf(IdentifyServer).identifyTime$Changed, async value => {
-            if (!this.#ioBrokerDevice.hasPower()) {
-                return; // TODO
-            }
-
-            // identifyTime is set when an identify command is called and then decreased every second while identify logic runs.
-            if (value > 0 && !isIdentifying) {
-                isIdentifying = true;
-                const identifyInitialState = !!this.#ioBrokerDevice.getPower();
-
-                identifyOptions.currentState = identifyInitialState;
-                identifyOptions.initialState = identifyInitialState;
-
-                this.handleIdentify(identifyOptions);
-            } else if (value === 0) {
-                isIdentifying = false;
-                await this.stopIdentify(identifyOptions);
-            }
-        });
     }
 
     get matterEndpoints(): Endpoint[] {
@@ -74,25 +50,6 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
 
     get ioBrokerDevice(): Light | Dimmer | Ct | Cie | Rgb | RgbSingle | RgbwSingle {
         return this.#ioBrokerDevice;
-    }
-
-    // Just change the power state every second
-    async doIdentify(identifyOptions: IdentifyOptions): Promise<void> {
-        if (!this.#ioBrokerDevice.hasPower()) {
-            return;
-        }
-
-        identifyOptions.currentState = !identifyOptions.currentState;
-        await this.#ioBrokerDevice.setPower(identifyOptions.currentState as boolean);
-    }
-
-    // Restore the given initial state after the identity process is over
-    async resetIdentify(identifyOptions: IdentifyOptions): Promise<void> {
-        if (!this.#ioBrokerDevice.hasPower()) {
-            return;
-        }
-
-        await this.#ioBrokerDevice.setPower(identifyOptions.initialState as boolean);
     }
 
     protected async initializeOnOffClusterHandlers(): Promise<void> {

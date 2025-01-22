@@ -9,12 +9,16 @@ import { ColorControl } from '@matter/main/clusters';
 import { kelvinToMireds, miredsToKelvin } from '@matter/main/behaviors';
 import { GenericLightingDeviceToMatter } from './GenericLightingDeviceToMatter';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
+import { IoBrokerContext } from '../behaviors/IoBrokerContext';
+import { IoLightingIdentifyServer } from '../behaviors/IdentifyServer';
 
 const IoBrokerColorTemperatureLightDevice = ColorTemperatureLightDevice.with(
     EventedOnOffLightOnOffServer,
     EventedLightingLevelControlServer,
     EventedColorTemperatureColorControlServer,
     IoBrokerEvents,
+    IoLightingIdentifyServer,
+    IoBrokerContext,
 );
 type IoBrokerColorTemperatureLightDevice = typeof IoBrokerColorTemperatureLightDevice;
 
@@ -25,6 +29,10 @@ export class CtToMatter extends GenericLightingDeviceToMatter {
     constructor(ioBrokerDevice: Ct, name: string, uuid: string) {
         const matterEndpoint = new Endpoint(IoBrokerColorTemperatureLightDevice, {
             id: uuid,
+            ioBrokerContext: {
+                device: ioBrokerDevice,
+                adapter: ioBrokerDevice.adapter,
+            },
             colorControl: {
                 remainingTime: 0,
                 colorMode: ColorControl.ColorMode.ColorTemperatureMireds,

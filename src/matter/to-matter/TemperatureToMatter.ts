@@ -2,7 +2,9 @@ import { Endpoint } from '@matter/main';
 import { HumiditySensorDevice, TemperatureSensorDevice } from '@matter/main/devices';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { Temperature } from '../../lib/devices/Temperature';
-import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
+import { GenericDeviceToMatter } from './GenericDeviceToMatter';
+import { IoIdentifyServer } from '../behaviors/IdentifyServer';
+import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 
 /** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */
 export class TemperatureToMatter extends GenericDeviceToMatter {
@@ -12,17 +14,21 @@ export class TemperatureToMatter extends GenericDeviceToMatter {
 
     constructor(ioBrokerDevice: Temperature, name: string, uuid: string) {
         super(name, uuid);
-        this.#matterEndpointTemperature = new Endpoint(TemperatureSensorDevice, {
-            id: `${uuid}-Temperature`,
-        });
+        this.#matterEndpointTemperature = new Endpoint(
+            TemperatureSensorDevice.with(IoIdentifyServer, IoBrokerContext),
+            {
+                id: `${uuid}-Temperature`,
+                ioBrokerContext: {
+                    device: ioBrokerDevice,
+                    adapter: ioBrokerDevice.adapter,
+                },
+            },
+        );
         this.#ioBrokerDevice = ioBrokerDevice;
         if (this.#ioBrokerDevice.hasHumidity()) {
             this.#matterEndpointHumidity = new Endpoint(HumiditySensorDevice, { id: `${uuid}-Humidity` });
         }
     }
-
-    async doIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
-    async resetIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
 
     get matterEndpoints(): Endpoint[] {
         const endpoints: Endpoint[] = [this.#matterEndpointTemperature];

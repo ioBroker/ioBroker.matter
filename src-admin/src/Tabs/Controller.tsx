@@ -536,7 +536,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         this.setState({ backendProcessingActive: false });
 
                         if (result.error || !result.result) {
-                            window.alert(`Cannot connect: ${result.error || 'Unknown error'}`);
+                            window.alert(`Cannot pair device: ${result.error || 'Unknown error'}`);
                         } else {
                             window.alert(I18n.t('Connected'));
                             this.refDeviceManager.current?.loadData();

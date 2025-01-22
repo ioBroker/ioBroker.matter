@@ -2,7 +2,9 @@ import { Endpoint } from '@matter/main';
 import { WaterLeakDetectorDevice } from '@matter/main/devices';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { FloodAlarm } from '../../lib/devices/FloodAlarm';
-import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
+import { GenericDeviceToMatter } from './GenericDeviceToMatter';
+import { IoIdentifyServer } from '../behaviors/IdentifyServer';
+import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 
 /** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */
 export class FloodAlarmToMatter extends GenericDeviceToMatter {
@@ -11,17 +13,18 @@ export class FloodAlarmToMatter extends GenericDeviceToMatter {
 
     constructor(ioBrokerDevice: FloodAlarm, name: string, uuid: string) {
         super(name, uuid);
-        this.#matterEndpoint = new Endpoint(WaterLeakDetectorDevice, {
+        this.#matterEndpoint = new Endpoint(WaterLeakDetectorDevice.with(IoIdentifyServer, IoBrokerContext), {
             id: uuid,
+            ioBrokerContext: {
+                device: ioBrokerDevice,
+                adapter: ioBrokerDevice.adapter,
+            },
             booleanState: {
                 stateValue: false, // Will be corrected in registerHandlersAndInitialize
             },
         });
         this.#ioBrokerDevice = ioBrokerDevice;
     }
-
-    async doIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
-    async resetIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
 
     get matterEndpoints(): Endpoint[] {
         return [this.#matterEndpoint];

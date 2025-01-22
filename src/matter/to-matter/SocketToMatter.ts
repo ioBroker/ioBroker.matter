@@ -2,12 +2,18 @@ import { Endpoint } from '@matter/main';
 import { OnOffPlugInUnitDevice } from '@matter/main/devices';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { Socket } from '../../lib/devices/Socket';
-import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
 import { EventedOnOffPlugInUnitOnOffServer } from '../behaviors/EventedOnOffPlugInUnitOnOffServer';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
+import { IoIdentifyServer } from '../behaviors/IdentifyServer';
+import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 
-const IoBrokerOnOffPlugInUnitDevice = OnOffPlugInUnitDevice.with(EventedOnOffPlugInUnitOnOffServer, IoBrokerEvents);
+const IoBrokerOnOffPlugInUnitDevice = OnOffPlugInUnitDevice.with(
+    EventedOnOffPlugInUnitOnOffServer,
+    IoBrokerEvents,
+    IoIdentifyServer,
+    IoBrokerContext,
+);
 type IoBrokerOnOffPlugInUnitDevice = typeof IoBrokerOnOffPlugInUnitDevice;
 
 /** Mapping Logic to map a ioBroker Socket device to a Matter OnOffPlugInUnitDevice. */
@@ -17,20 +23,15 @@ export class SocketToMatter extends GenericElectricityDataDeviceToMatter {
 
     constructor(ioBrokerDevice: Socket, name: string, uuid: string) {
         super(name, uuid);
-        this.#matterEndpoint = new Endpoint(IoBrokerOnOffPlugInUnitDevice, { id: uuid });
+        this.#matterEndpoint = new Endpoint(IoBrokerOnOffPlugInUnitDevice, {
+            id: uuid,
+            ioBrokerContext: {
+                device: ioBrokerDevice,
+                adapter: ioBrokerDevice.adapter,
+            },
+        });
         this.#ioBrokerDevice = ioBrokerDevice;
         this.addElectricityDataClusters(this.#matterEndpoint, this.#ioBrokerDevice);
-    }
-
-    // Just change the power state every second
-    doIdentify(identifyOptions: IdentifyOptions): Promise<void> {
-        identifyOptions.currentState = !identifyOptions.currentState;
-        return this.#ioBrokerDevice.setPower(!!identifyOptions.currentState);
-    }
-
-    // Restore the given initial state after the identity process is over
-    resetIdentify(identifyOptions: IdentifyOptions): Promise<void> {
-        return this.#ioBrokerDevice.setPower(!!identifyOptions.initialState);
     }
 
     get matterEndpoints(): Endpoint[] {
@@ -56,24 +57,6 @@ export class SocketToMatter extends GenericElectricityDataDeviceToMatter {
             this.#matterEndpoint.events.ioBrokerEvents.onOffControlled,
             async on => await this.#ioBrokerDevice.setPower(on),
         );
-
-        let isIdentifying = false;
-        const identifyOptions: IdentifyOptions = {};
-        this.matterEvents.on(this.#matterEndpoint.events.identify.identifyTime$Changed, async value => {
-            // identifyTime is set when an identify command is called and then decreased every second while identify logic runs.
-            if (value > 0 && !isIdentifying) {
-                isIdentifying = true;
-                const identifyInitialState = !!this.#ioBrokerDevice.getPower();
-
-                identifyOptions.currentState = identifyInitialState;
-                identifyOptions.initialState = identifyInitialState;
-
-                this.handleIdentify(identifyOptions);
-            } else if (value === 0) {
-                isIdentifying = false;
-                await this.stopIdentify(identifyOptions);
-            }
-        });
 
         this.#ioBrokerDevice.onChange(async event => {
             switch (event.property) {

@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.4.0",
+    "version": "0.4.1",
     "news": {
+      "0.4.1": {
+        "en": "Optimized UI\nImproved handling for Power Source cluster on root endpoint\nChanged Identify handling - Light will be turned on/off, others just logged",
+        "de": "Optimierte UI\nVerbesserte Handhabung für Power Source Cluster am Wurzelendpunkt\nGeänderte Identifikationshandling - Licht wird ein/ausgeschaltet, andere nur angemeldet",
+        "ru": "Оптимизированный UI\nУлучшена обработка для кластера источника питания на корневой конечной точке\nИзменение Идентификационной обработки - Свет будет включен/выключен, другие только что зарегистрировались",
+        "pt": "IU otimizada\nManuseamento aprimorado para cluster de Fonte de Energia no endpoint raiz\nAlterado Identificar manuseio - Luz será ligada / desligada, outros apenas logado",
+        "nl": "Geoptimaliseerde UI\nVerbeterde handling voor Power Source cluster op root eindpunt\nChanged Identification handling - Licht zal worden ingeschakeld/uit, anderen gewoon ingelogd",
+        "fr": "UI optimisé\nAmélioration de la manipulation du cluster Power Source sur le paramètre racine\nChangement de la manipulation de l'identification - La lumière sera allumée/éteint, d'autres juste enregistré",
+        "it": "UI ottimizzato\nGestione migliorata del cluster Power Source su endpoint root\nCambiato Identificare la gestione - La luce verrà attivata/disattivata, altri appena registrati",
+        "es": "UI optimizada\nMejor manejo para el grupo de fuentes de energía en el punto final raíz\nCambio de Identificar el manejo - La luz se encenderá / apagado, otros acaban de registrarse",
+        "pl": "Zoptymalizowany interfejs użytkownika\nLepsza obsługa klastra Power Source w punkcie końcowym\nZmieniony Identyfikacja obsługi - Światło zostanie włączone / wyłączone, inne po prostu zalogowane",
+        "uk": "Оптимізований UI\nПокращена обробка кластеру джерела живлення на кінцевій точці кореня\nЗмінений Визначте обробку - Світло буде перетворюватися/вимкнено, інші просто записуються",
+        "zh-cn": "优化 UI\n改进对根端点的电源组的处理\n身份识别处理 - Light 将打开/ 关闭, 其他则刚刚登录"
+      },
       "0.4.0": {
         "en": "\"SET\" states are no longer updated when Actual states are present and get updated!\nInitializes states also with \"ack=false\" states because better than no initial values\nAdded Device support for Window Coverings (Blinds, Blindbuttons), Color Lights (Cie, Hie, Rgb, Rgbw, RgbSingle, RgbwSingle) and Thermostats\nMakes sure to track state values also when disabled and update state to Matter when enabled again\nMakes sure to also subscribe to write-only states for controller cases\nOnly exposes remaining battery percentage attribute when value is present\nCorrected error display and pushing to UI in case of initialization errors of bridged devices\nAdded RSSI value also for Thread devices\nOptimized and fixed multiple things",
         "de": "\"SET\"-Staaten werden nicht mehr aktualisiert, wenn aktuelle Zustände vorliegen und aktualisiert werden!\nInitialisiert Zustände auch mit \"ack=false\" Zuständen, weil besser als keine Anfangswerte\nZusätzliche Geräteunterstützung für Fensterabdeckungen (Blinds, Blindbuttons), Farblichter (Cie, Hie, Rgb, Rgbw, RgbSingle, RgbwSingle) und Thermostate\nAchten Sie darauf, Zustandswerte auch bei deaktiviertem und aktualisiertem Zustand wieder auf Matter zu verfolgen\nStellen Sie sicher, dass auch nur Schreibzustände für Controller-Fälle abonnieren\nBelichtet nur das verbleibende Batterieprozentualat, wenn der Wert vorhanden ist\nKorrigierte Fehleranzeige und Push auf UI bei Initialisierungsfehlern von überbrückten Geräten\nRSSI-Wert auch für Thread-Geräte hinzugefügt\nOptimiert und fixiert mehrere Dinge",
@@ -80,19 +93,6 @@
         "pl": "Umożliwia uruchamianie poleceń przez materię również wtedy, gdy stan już pasuje do wartości\nUstawia i aktualizuje etykietę tkaniny dla urządzeń w parze (domyślnie jest \"joBroker matter.X\")\nWykrywa skasowanie stanu urządzeń jOBroker i aktualizacji urządzenia w UI, aby pokazać stan urządzenia\nKilka optymalizacji przy uruchomieniu\nNie pokazuj kodów QR w dzienniku jOBroker\nUżyj etykiety tkaniny, aby spróbować wykryć, czy joBroker jest kontrolerem\nFiltry wyświetlające szczegóły błędów dla urządzeń i mostów\nUstawia logikę wykrywania urządzenia i typu",
         "uk": "Дозволяє запускати команди через матерію, а також якщо держава вже відповідає вартості\nКомплекти та оновлення етикетки для парних пристроїв (default - \"ioBroker матерія.X\")\nДетекти державного видалення для пристроїв іоБрокер і оновлень пристрою в UI для відображення стану пристрою\nКілька оптимізацій з введення в експлуатацію\nНе показувати введення QR-кодів в журналі ioBroker\nВикористовуйте етикетку тканини, щоб спробувати виявити, якщо ioBroker контролер\nВиправлення відображення деталей помилок для пристроїв та міст\nВиправлення логіки виявлення пристрою та типу",
         "zh-cn": "当状态已经匹配值时, 也可以通过物质触发命令\n设置并更新配对设备的布料标签( 默认为“ ioBroker matter. X ”)\n检测到 ioBroker 设备的删除状态, 并在 UI 中更新设备以显示设备状态\n试运行的若干优化\n不在 ioBroker 日志中显示 QR 代码\n使用 Fabric 标签尝试检测 ioBroker 是控制器\n修正显示设备和桥梁错误细节\n修正设备和类型检测逻辑"
-      },
-      "0.3.2": {
-        "en": "Fixes several discovery issues",
-        "de": "Behebt mehrere Entdeckungsprobleme",
-        "ru": "Исправление нескольких проблем обнаружения",
-        "pt": "Corrige vários problemas de descoberta",
-        "nl": "Repareert verschillende ontdekkingsproblemen",
-        "fr": "Corrige plusieurs problèmes de découverte",
-        "it": "Risolve diversi problemi di scoperta",
-        "es": "Arregla varios problemas de descubrimiento",
-        "pl": "Naprawia kilka problemów z odkryciem",
-        "uk": "Виправлення декількох питань відкриття",
-        "zh-cn": "解决了几个发现问题"
       }
     },
     "title": "Matter",

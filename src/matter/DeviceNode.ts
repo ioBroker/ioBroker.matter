@@ -188,7 +188,7 @@ class Device extends BaseServerNode {
             return;
         }
         if (this.serverNode.lifecycle.isCommissioned) {
-            this.adapter.log.error('Device is already commissioned ... what should change? Ignoring changes');
+            this.adapter.log.debug('Device is already commissioned ... Ignoring changes because non allowed');
             return;
         }
 

@@ -77,8 +77,7 @@ With the ioBroker Matter Adapter it is possible to map the following use cases:
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.4.1 (2025-01-22)
 * (@bluefox) Optimized UI
 * (@Apollon77) Improved handling for Power Source cluster on root endpoint
 * (@Apollon77) Changed Identify handling - Light will be turned on/off, others just logged

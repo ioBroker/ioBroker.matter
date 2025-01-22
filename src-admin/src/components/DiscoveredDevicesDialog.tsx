@@ -33,7 +33,6 @@ interface DiscoveredDevicesDialogProps {
 }
 
 interface DiscoveredDevicesDialogState {
-    existing: string[];
     /** Was a discovery result received which means that the dialog should stay open also after discovery ended */
     discoveryDone: boolean;
     /** The discovery process is active in the backend */
@@ -50,7 +49,6 @@ export default class DiscoveredDevicesDialog extends Component<
     constructor(props: DiscoveredDevicesDialogProps) {
         super(props);
         this.state = {
-            existing: [],
             discoveryRunning: false,
             discoveryDone: false,
             discovered: [],
@@ -129,19 +127,6 @@ export default class DiscoveredDevicesDialog extends Component<
     }
 
     async componentDidMount(): Promise<void> {
-        // Read existing devices
-        const folders = await this.props.socket.getObjectViewSystem(
-            'folder',
-            `matter.${this.props.instance}.`,
-            `matter.${this.props.instance}.\u9999`,
-        );
-
-        this.setState({
-            existing: Object.keys(folders)
-                .map(id => id.split('.').pop() || '')
-                .filter(a => a),
-        });
-
         await this.props.socket.subscribeState(
             `matter.${this.props.instance}.controller.info.discovering`,
             this.onStateChange,
@@ -243,7 +228,6 @@ export default class DiscoveredDevicesDialog extends Component<
                                     <TableCell>
                                         <IconButton
                                             icon="leakAdd"
-                                            disabled={this.state.existing.includes(device.deviceIdentifier)}
                                             tooltipText={I18n.t('Connect')}
                                             onClick={() => this.setState({ showQrCodeDialog: device })}
                                         />

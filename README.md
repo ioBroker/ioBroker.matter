@@ -77,6 +77,11 @@ With the ioBroker Matter Adapter it is possible to map the following use cases:
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (@bluefox) Optimized UI
+* (@Apollon77) Improved handling for Power Source cluster on root endpoint
+
 ### 0.4.0 (2025-01-20)
 * (@Apollon77) "SET" states are no longer updated when Actual states are present and get updated!
 * (@Apollon77) Initializes states also with "ack=false" states because better than no initial values

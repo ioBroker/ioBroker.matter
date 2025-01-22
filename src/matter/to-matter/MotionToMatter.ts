@@ -4,7 +4,9 @@ import { LightSensorDevice, OccupancySensorDevice } from '@matter/main/devices';
 import type { TypeFromBitSchema } from '@matter/main/types';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { Motion } from '../../lib/devices/Motion';
-import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
+import { GenericDeviceToMatter } from './GenericDeviceToMatter';
+import { IoIdentifyServer } from '../behaviors/IdentifyServer';
+import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 
 /** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */
 export class MotionToMatter extends GenericDeviceToMatter {
@@ -14,8 +16,12 @@ export class MotionToMatter extends GenericDeviceToMatter {
 
     constructor(ioBrokerDevice: Motion, name: string, uuid: string) {
         super(name, uuid);
-        this.#matterEndpointOccupancy = new Endpoint(OccupancySensorDevice, {
+        this.#matterEndpointOccupancy = new Endpoint(OccupancySensorDevice.with(IoIdentifyServer, IoBrokerContext), {
             id: `${uuid}-Occupancy`,
+            ioBrokerContext: {
+                device: ioBrokerDevice,
+                adapter: ioBrokerDevice.adapter,
+            },
             occupancySensing: {
                 // Deprecated fields but mandatory, so et PIR for now
                 occupancySensorType: OccupancySensing.OccupancySensorType.Pir,
@@ -27,9 +33,6 @@ export class MotionToMatter extends GenericDeviceToMatter {
             this.#matterEndpointLightSensor = new Endpoint(LightSensorDevice, { id: `${uuid}-LightSensor` });
         }
     }
-
-    async doIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
-    async resetIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
 
     get matterEndpoints(): Endpoint[] {
         const endpoints: Endpoint[] = [this.#matterEndpointOccupancy];

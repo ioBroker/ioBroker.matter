@@ -3,12 +3,18 @@ import { DoorLock } from '@matter/main/clusters';
 import { DoorLockDevice } from '@matter/main/devices';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { Lock } from '../../lib/devices/Lock';
-import type { IdentifyOptions } from './GenericDeviceToMatter';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { EventedDoorLockServer } from '../behaviors/EventedDoorLockServer';
+import { IoIdentifyServer } from '../behaviors/IdentifyServer';
+import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 
-const IoBrokerDoorLockDevice = DoorLockDevice.with(EventedDoorLockServer, IoBrokerEvents);
+const IoBrokerDoorLockDevice = DoorLockDevice.with(
+    EventedDoorLockServer,
+    IoBrokerEvents,
+    IoIdentifyServer,
+    IoBrokerContext,
+);
 type IoBrokerDoorLockDevice = typeof IoBrokerDoorLockDevice;
 
 // TODO Add Latching support when "Open" is there!
@@ -23,6 +29,10 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
 
         this.#matterEndpoint = new Endpoint(IoBrokerDoorLockDevice, {
             id: uuid,
+            ioBrokerContext: {
+                device: ioBrokerDevice,
+                adapter: ioBrokerDevice.adapter,
+            },
             doorLock: {
                 lockType: DoorLock.LockType.Other,
                 actuatorEnabled: true,
@@ -30,16 +40,6 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
             },
         });
         this.#ioBrokerDevice = ioBrokerDevice;
-    }
-
-    // Just change the power state every second
-    async doIdentify(_identifyOptions: IdentifyOptions): Promise<void> {
-        // TODO
-    }
-
-    // Restore the given initial state after the identity process is over
-    async resetIdentify(_identifyOptions: IdentifyOptions): Promise<void> {
-        // TODO
     }
 
     get matterEndpoints(): Endpoint[] {

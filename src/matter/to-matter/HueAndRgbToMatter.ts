@@ -12,12 +12,16 @@ import { ColorControl } from '@matter/main/clusters';
 import { rgbToXy, rgbToHsv, hsvToRgb, xyToRgb, kelvinToMireds, miredsToKelvin } from '@matter/main/behaviors';
 import { GenericLightingDeviceToMatter } from './GenericLightingDeviceToMatter';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
+import { IoLightingIdentifyServer } from '../behaviors/IdentifyServer';
+import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 
 const IoBrokerExtendedColorLightDevice = ExtendedColorLightDevice.with(
     EventedOnOffLightOnOffServer,
     EventedLightingLevelControlServer,
     EventedExtendedColorHueSaturationColorControlServer,
     IoBrokerEvents,
+    IoLightingIdentifyServer,
+    IoBrokerContext,
 );
 type IoBrokerExtendedColorLightDevice = typeof IoBrokerExtendedColorLightDevice;
 
@@ -33,6 +37,10 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
     constructor(ioBrokerDevice: Hue | Rgb | RgbSingle | RgbwSingle, name: string, uuid: string) {
         const matterEndpoint = new Endpoint(IoBrokerExtendedColorLightDevice, {
             id: uuid,
+            ioBrokerContext: {
+                device: ioBrokerDevice,
+                adapter: ioBrokerDevice.adapter,
+            },
             colorControl: {
                 remainingTime: 0,
                 colorMode: ColorControl.ColorMode.CurrentHueAndCurrentSaturation,

@@ -2,7 +2,9 @@ import { Endpoint } from '@matter/main';
 import { LightSensorDevice } from '@matter/main/devices';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { Illuminance } from '../../lib/devices/Illuminance';
-import { GenericDeviceToMatter, type IdentifyOptions } from './GenericDeviceToMatter';
+import { GenericDeviceToMatter } from './GenericDeviceToMatter';
+import { IoIdentifyServer } from '../behaviors/IdentifyServer';
+import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 
 /** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */
 export class IlluminanceToMatter extends GenericDeviceToMatter {
@@ -12,11 +14,14 @@ export class IlluminanceToMatter extends GenericDeviceToMatter {
     constructor(ioBrokerDevice: Illuminance, name: string, uuid: string) {
         super(name, uuid);
         this.#ioBrokerDevice = ioBrokerDevice;
-        this.#matterEndpoint = new Endpoint(LightSensorDevice, { id: uuid });
+        this.#matterEndpoint = new Endpoint(LightSensorDevice.with(IoIdentifyServer, IoBrokerContext), {
+            id: uuid,
+            ioBrokerContext: {
+                device: ioBrokerDevice,
+                adapter: ioBrokerDevice.adapter,
+            },
+        });
     }
-
-    async doIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
-    async resetIdentify(_identifyOptions: IdentifyOptions): Promise<void> {}
 
     get matterEndpoints(): Endpoint[] {
         return [this.#matterEndpoint];

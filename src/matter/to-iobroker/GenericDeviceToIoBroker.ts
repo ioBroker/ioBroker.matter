@@ -648,7 +648,7 @@ export abstract class GenericDeviceToIoBroker {
         return this.appEndpoint.hasClusterClient(Identify.Cluster);
     }
 
-    async identify(identifyTime = 30): Promise<void> {
+    async identify(identifyTime = 10): Promise<void> {
         await this.appEndpoint.getClusterClient(Identify.Cluster)?.identify({ identifyTime });
     }
 

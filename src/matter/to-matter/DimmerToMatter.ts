@@ -5,16 +5,26 @@ import { EventedOnOffLightOnOffServer } from '../behaviors/EventedOnOffLightOnOf
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { EventedLightingLevelControlServer } from '../behaviors/EventedLightingLevelControlServer';
 import { GenericLightingDeviceToMatter } from './GenericLightingDeviceToMatter';
+import { IoLightingIdentifyServer } from '../behaviors/IdentifyServer';
+import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 
 const IoBrokerDimmableLightDevice = DimmableLightDevice.with(
     EventedOnOffLightOnOffServer,
     EventedLightingLevelControlServer,
     IoBrokerEvents,
+    IoLightingIdentifyServer,
+    IoBrokerContext,
 );
 
 export class DimmerToMatter extends GenericLightingDeviceToMatter {
     constructor(ioBrokerDevice: Dimmer, name: string, uuid: string) {
-        const matterEndpoint = new Endpoint(IoBrokerDimmableLightDevice, { id: uuid });
+        const matterEndpoint = new Endpoint(IoBrokerDimmableLightDevice, {
+            id: uuid,
+            ioBrokerContext: {
+                device: ioBrokerDevice,
+                adapter: ioBrokerDevice.adapter,
+            },
+        });
 
         super(ioBrokerDevice, matterEndpoint, name, uuid);
     }

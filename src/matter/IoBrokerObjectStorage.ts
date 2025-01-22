@@ -128,8 +128,9 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
         if (this.#localStorageManager && this.#isLocallyStored(contexts)) {
             return this.#localStorageManager.get<T>(contexts, key);
         }
+        const oid = this.buildKey(contexts, key);
         try {
-            const valueState = await this.#adapter.getStateAsync(this.buildKey(contexts, key));
+            const valueState = await this.#adapter.getStateAsync(oid);
             if (valueState === null || valueState === undefined) {
                 return undefined;
             }
@@ -141,7 +142,7 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
             }
             return fromJson(valueState.val) as T;
         } catch (error) {
-            this.#adapter.log.error(`[STORAGE] Cannot read state: ${error.message}`);
+            this.#adapter.log.error(`[STORAGE] Cannot read state ${oid}: ${error.message}`);
         }
     }
 
@@ -219,7 +220,7 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
             }
             await this.#adapter.setState(oid, toJson(value), true);
         } catch (error) {
-            this.#adapter.log.error(`[STORAGE] Cannot save state: ${error.message}`);
+            this.#adapter.log.error(`[STORAGE] Cannot save state ${oid}: ${error.message}`);
         }
     }
 
@@ -254,7 +255,7 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
         try {
             await this.#adapter.delObjectAsync(oid);
         } catch (error) {
-            this.#adapter.log.error(`[STORAGE] Cannot delete state: ${error.message}`);
+            this.#adapter.log.error(`[STORAGE] Cannot delete state ${oid}: ${error.message}`);
         }
         this.#existingObjectIds.delete(oid);
     }

@@ -38,9 +38,9 @@ With the ioBroker Matter Adapter it is possible to map the following use cases:
   * (2+) fireAlarm
   * (-2) mediaPlayer
   * warning - how?
-  * gate - aka blinds?
-  * windowTilt - how?
-  * levelSlider - how?
+  * gate - aka blinds because matter has no other device type?
+  * windowTilt - as discussed as composed device with two contact sensors ... one for open close and one for tilt
+  * levelSlider - ideally as non-lighting dimmed socket?
 * Matter device types
   * (7) Fan -> airCondition?
   * (4+) Air Quality Sensor -> ???
@@ -50,7 +50,6 @@ With the ioBroker Matter Adapter it is possible to map the following use cases:
   * (3+) Robot Vacuum cleaner -> vacuumCleaner
   * (3) Flow Sensor -> ??? DEF
   * (3) Room Air Conditioner -> airCondition
-  * (2+) Smoke & CO Alarm -> fireAlarm? warning? 
   * (2+) Dishwasher-> ???
   * (2) Basic Video Player -> mediaPlayer
   * (2) Laundry Washer -> ???

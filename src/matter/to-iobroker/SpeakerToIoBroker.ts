@@ -83,8 +83,8 @@ export class SpeakerToIoBroker extends GenericElectricityDataDeviceToIoBroker {
                 await this.appEndpoint.getClusterClient(LevelControl.Complete)?.moveToLevel({
                     level,
                     transitionTime: null,
-                    optionsMask: {},
-                    optionsOverride: {},
+                    optionsMask: { executeIfOff: true },
+                    optionsOverride: { executeIfOff: true },
                 });
             },
             convertValue: value => Math.round((value / 254) * 100),

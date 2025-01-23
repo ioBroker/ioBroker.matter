@@ -7,7 +7,7 @@ import {
     type DiscoveryData,
     CommissioningError,
 } from '@matter/main/protocol';
-import { ManualPairingCodeCodec, QrPairingCodeCodec } from '@matter/main/types';
+import { ManualPairingCodeCodec, QrPairingCodeCodec, DiscoveryCapabilitiesSchema } from '@matter/main/types';
 import { NodeJsBle } from '@matter/nodejs-ble';
 import { CommissioningController, type NodeCommissioningOptions } from '@project-chip/matter.js';
 import {
@@ -388,6 +388,12 @@ class Controller implements GeneralNode {
         } else if ('qrCode' in data && data.qrCode.length > 0) {
             const pairingCodeCodec = QrPairingCodeCodec.decode(data.qrCode);
             // TODO handle the case where multiple devices are included
+            const capabilities = DiscoveryCapabilitiesSchema.decode(pairingCodeCodec[0].discoveryCapabilities);
+            if (!capabilities.onIpNetwork && capabilities.ble && !this.#useBle) {
+                throw new Error(
+                    'This device can only be paired using BLE but BLE is disabled. Please use the ioBroker Visu App to pair this device or enable the Host BLE.',
+                );
+            }
             longDiscriminator = pairingCodeCodec[0].discriminator;
             shortDiscriminator = undefined;
             passcode = pairingCodeCodec[0].passcode;

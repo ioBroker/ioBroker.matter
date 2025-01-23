@@ -79,6 +79,7 @@ With the ioBroker Matter Adapter it is possible to map the following use cases:
 ## Changelog
 ### __WORK IN PROGRESS__
 * (@Apollon77) Added SmokeCO2Alarm -> FireAlarm to Controller device types
+* (@Apollon77) Detects BLE only QR codes and respond with error message
 
 ### 0.4.1 (2025-01-22)
 * (@bluefox) Optimized UI

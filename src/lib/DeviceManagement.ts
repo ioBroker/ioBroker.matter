@@ -76,8 +76,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const nodes = this.#adapter.controllerNode.nodes;
 
         const arrDevices: DeviceInfo[] = [];
+        let colorCounter = 0;
         for (const ioNode of nodes.values()) {
-            const devices = await this.#getNodeEntry(ioNode);
+            const devices = await this.#getNodeEntry(ioNode, colorCounter++ % 2 === 0 ? 'primary' : 'secondary');
             arrDevices.push(...devices);
         }
 
@@ -122,7 +123,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     /**
      * Create the "Node" device entry and also add all Endpoint-"Devices" for Device-Manager
      */
-    async #getNodeEntry(ioNode: GeneralMatterNode): Promise<DeviceInfo[]> {
+    async #getNodeEntry(ioNode: GeneralMatterNode, color: 'primary' | 'secondary'): Promise<DeviceInfo[]> {
         const status: DeviceStatus = await ioNode.getStatus();
         const isEnabled = ioNode.isEnabled;
         const isConnected = ioNode.isConnected;
@@ -192,7 +193,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             connectionType,
             hasDetails: true,
             actions: actions.length ? (actions as DeviceAction<'adapter'>[]) : undefined,
-            color: 'secondary',
+            color,
             group: {
                 key: 'node',
                 name: this.#adapter.getText('Node'),
@@ -205,7 +206,14 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         if (isEnabled) {
             let deviceCount = 0;
             for (const device of ioNode.devices.values()) {
-                const deviceInfo = await this.#getNodeDeviceEntries(device, id, details, isConnected, connectionType);
+                const deviceInfo = await this.#getNodeDeviceEntries(
+                    device,
+                    id,
+                    details,
+                    isConnected,
+                    connectionType,
+                    color,
+                );
                 res.push(deviceInfo);
                 deviceCount++;
             }
@@ -227,6 +235,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         nodeDetails: NodeDetails,
         nodeConnected: boolean,
         nodeConnectionType: ConfigConnectionType,
+        color: 'primary' | 'secondary',
     ): Promise<DeviceInfo> {
         const icon = device.iconDeviceType;
         const data: DeviceInfo = {
@@ -234,6 +243,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             name: device.name,
             icon,
             ...nodeDetails,
+            color,
             status: await device.getStatus({
                 connection: nodeConnected ? 'connected' : 'disconnected',
             }),

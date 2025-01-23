@@ -21,6 +21,7 @@ import { ExtendedColorLightToIoBroker } from './ExtendedColorLightToIoBroker';
 import { WindowCoveringToIoBroker } from './WindowCoveringToIoBroker';
 import { SpeakerToIoBroker } from './SpeakerToIoBroker';
 import { ThermostatToIoBroker } from './ThermostatToIoBroker';
+import { SmokeCoAlarmToIoBroker } from './SmokeCoAlarmToIoBroker';
 
 export function identifyDeviceTypes(endpoint: Endpoint): {
     utilityTypes: { deviceType: DeviceTypeModel; revision: number }[];
@@ -102,6 +103,9 @@ async function ioBrokerDeviceFabric(
             break;
         case Devices.OnOffPlugInUnitDeviceDefinition.deviceType:
             DeviceType = OnOffPlugInUnitToIoBroker;
+            break;
+        case Devices.SmokeCoAlarmDeviceDefinition.deviceType:
+            DeviceType = SmokeCoAlarmToIoBroker;
             break;
         case Devices.SpeakerDeviceDefinition.deviceType:
             DeviceType = SpeakerToIoBroker;

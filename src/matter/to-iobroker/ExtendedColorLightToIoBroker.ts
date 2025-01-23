@@ -141,8 +141,8 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
             hue: matterHue,
             saturation: matterSaturation,
             transitionTime,
-            optionsMask: {},
-            optionsOverride: {},
+            optionsMask: { executeIfOff: true },
+            optionsOverride: { executeIfOff: true },
         });
     }
 
@@ -163,8 +163,8 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
                     colorX: matterX,
                     colorY: matterY,
                     transitionTime,
-                    optionsMask: {},
-                    optionsOverride: {},
+                    optionsMask: { executeIfOff: true },
+                    optionsOverride: { executeIfOff: true },
                 });
             },
         });
@@ -231,8 +231,8 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
                 await this.appEndpoint.getClusterClient(LevelControl.Complete)?.moveToLevel({
                     level,
                     transitionTime: transitionTime !== null ? Math.round(transitionTime / 100) : null,
-                    optionsMask: {},
-                    optionsOverride: {},
+                    optionsMask: { executeIfOff: true },
+                    optionsOverride: { executeIfOff: true },
                 });
             },
             convertValue: value => Math.round((value / 254) * 100),
@@ -253,8 +253,8 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
                 await this.appEndpoint.getClusterClient(ColorControl.Complete)?.moveToColorTemperature({
                     colorTemperatureMireds,
                     transitionTime,
-                    optionsMask: {},
-                    optionsOverride: {},
+                    optionsMask: { executeIfOff: true },
+                    optionsOverride: { executeIfOff: true },
                 });
             },
             convertValue: value => Math.round(miredsToKelvin(value)),

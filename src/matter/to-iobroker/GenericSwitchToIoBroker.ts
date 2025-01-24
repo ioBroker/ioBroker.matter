@@ -49,11 +49,18 @@ export class GenericSwitchToIoBroker extends GenericDeviceToIoBroker {
     }
 
     protected enableMomentarySwitchDeviceTypeStates(): DeviceOptions {
-        this.enableDeviceTypeStateForAttribute(PropertyType.Press, {
+        /*this.enableDeviceTypeStateForAttribute(PropertyType.Press, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: Switch.Cluster.id,
             attributeName: 'currentPosition',
             convertValue: value => value !== 0,
+        });*/
+        // Move to event for now
+        this.enableDeviceTypeStateForEvent(PropertyType.Press, {
+            endpointId: this.appEndpoint.getNumber(),
+            clusterId: Switch.Cluster.id,
+            eventName: 'initialPress',
+            convertValue: () => true,
         });
 
         const hasLongPress = this.appEndpoint.getClusterClient(Switch.Complete)?.supportedFeatures

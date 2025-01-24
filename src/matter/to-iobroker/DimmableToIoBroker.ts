@@ -66,6 +66,18 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
             attributeName: 'onOff',
             changeHandler: async value => {
                 if (value) {
+                    if (this.#ioBrokerDevice.hasDimmer()) {
+                        // Check if the Dimmer in ioBroker still matches the Device Dimmer and correct if needed
+                        const currentLevel = await this.appEndpoint
+                            .getClusterClient(LevelControl.Cluster)
+                            ?.getCurrentLevelAttribute();
+                        if (typeof currentLevel === 'number' && currentLevel <= 1) {
+                            const ioLevel = Math.round((currentLevel / 100) * 254);
+                            if (ioLevel !== this.#ioBrokerDevice.getDimmer()) {
+                                await this.#ioBrokerDevice.updateDimmer(ioLevel);
+                            }
+                        }
+                    }
                     await this.appEndpoint.getClusterClient(OnOff.Complete)?.on();
                 } else {
                     await this.appEndpoint.getClusterClient(OnOff.Complete)?.off();
@@ -82,19 +94,32 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
             clusterId: LevelControl.Cluster.id,
             attributeName: 'currentLevel',
             changeHandler: async value => {
+                if (value === 0) {
+                    // ioBroker users expect that it turns off when level is set to 0
+                    await this.#ioBrokerDevice.updateDimmer(0);
+                    await this.appEndpoint.getClusterClient(OnOff.Complete)?.off();
+                    return;
+                }
                 let level = Math.round((value / 100) * 254);
                 if (level < this.#minLevel) {
                     level = this.#minLevel;
                 } else if (level > this.#maxLevel) {
                     level = this.#maxLevel;
                 }
-                const transitionTime = this.ioBrokerDevice.getTransitionTime() ?? null;
+
+                const isOn = this.#ioBrokerDevice.getPower() ?? false;
+                const transitionTime = isOn ? (this.ioBrokerDevice.getTransitionTime() ?? null) : null;
+
                 await this.appEndpoint.getClusterClient(LevelControl.Complete)?.moveToLevel({
                     level,
                     transitionTime: transitionTime !== null ? Math.round(transitionTime / 100) : null,
                     optionsMask: { executeIfOff: true },
                     optionsOverride: { executeIfOff: true },
                 });
+
+                if (!isOn) {
+                    await this.appEndpoint.getClusterClient(OnOff.Complete)?.on();
+                }
             },
             convertValue: value => Math.round((value / 254) * 100),
         });

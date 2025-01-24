@@ -57,7 +57,7 @@ export class UtilityOnlyToIoBroker extends GenericElectricityDataDeviceToIoBroke
                 const powerSource = this.appEndpoint.getClusterClient(PowerSource.Complete);
                 if (powerSource) {
                     if (
-                        powerSource.supportedFeatures.battery ||
+                        (powerSource.supportedFeatures.battery && !powerSource.supportedFeatures.wired) ||
                         powerSource.isAttributeSupportedByName('batChargeLevel')
                     ) {
                         // Battery icon

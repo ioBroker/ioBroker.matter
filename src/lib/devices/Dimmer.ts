@@ -82,6 +82,18 @@ export class Dimmer extends ElectricityDataDevice {
         return !!this.#setLevelState;
     }
 
+    getDimmer(): number | undefined {
+        return this.getLevel();
+    }
+
+    updateDimmer(value: number): Promise<void> {
+        return this.updateLevel(value);
+    }
+
+    setDimmer(value: number): Promise<void> {
+        return this.setLevel(value);
+    }
+
     async updateLevel(value: number): Promise<void> {
         if (!this.#setLevelState && !this.#getLevelState) {
             throw new Error('Level state not found');

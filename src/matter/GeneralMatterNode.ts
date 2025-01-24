@@ -1091,20 +1091,38 @@ export class GeneralMatterNode {
             }
 
             result.specification = {};
-            if (details.dataModelVersion) {
-                result.specification.dataModelVersion = details.dataModelVersion;
+            if (typeof details.dataModelRevision === 'number') {
+                result.specification.dataModelRevision = details.dataModelRevision;
             }
             if (typeof details.specificationVersion === 'number') {
-                result.specification.specificationVersion = SpecificationVersion.decode(details.specificationVersion);
-            } else if (details.specificationVersion === undefined) {
-                result.specification.specificationVersion = '< 1.3.0';
+                const { major, minor, patch } = SpecificationVersion.decode(details.specificationVersion);
+                result.specification.specificationVersion = `${major}.${minor}.${patch}`;
             } else {
-                result.specification.specificationVersion = details.specificationVersion;
+                if (typeof details.dataModelRevision === 'number') {
+                    if (details.dataModelRevision <= 16) {
+                        result.specification.specificationVersion = '<1.2.0';
+                    } else if (details.dataModelRevision === 17) {
+                        result.specification.specificationVersion = '1.2.0';
+                    } else {
+                        result.specification.specificationVersion = 'unknown';
+                    }
+                }
             }
             if (details.maxPathsPerInvoke) {
                 result.specification.maxPathsPerInvoke = details.maxPathsPerInvoke;
             }
-            result.specification.capabilityMinima = JSON.stringify(details.capabilityMinima);
+            if (
+                details.capabilityMinima !== undefined &&
+                details.capabilityMinima !== null &&
+                typeof details.capabilityMinima === 'object'
+            ) {
+                if ('caseSessionsPerFabric' in details.capabilityMinima) {
+                    result.specification.sessionsPerFabric = details.capabilityMinima.caseSessionsPerFabric;
+                }
+                if ('subscriptionsPerFabric' in details.capabilityMinima) {
+                    result.specification.subscriptionsPerFabric = details.capabilityMinima.subscriptionsPerFabric;
+                }
+            }
         }
 
         const rootEndpoint = this.node.getRootEndpoint();

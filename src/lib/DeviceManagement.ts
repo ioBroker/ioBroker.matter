@@ -194,6 +194,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             hasDetails: true,
             actions: actions.length ? (actions as DeviceAction<'adapter'>[]) : undefined,
             color,
+            headerTextColor: '#002346',
             group: {
                 key: 'node',
                 name: this.#adapter.getText('Node'),

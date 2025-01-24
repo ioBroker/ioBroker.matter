@@ -26,7 +26,7 @@
     "Rename node": "Renommer un nœud",
     "Rename this device": "Renommer cet appareil",
     "Rename this node": "Renommer ce nœud",
-    "The device should now identify itself for 30 seconds.": "L'appareil devrait maintenant s'identifier pendant 30 secondes.",
+    "The device should now identify itself for 10 seconds.": "L'appareil devrait maintenant s'identifier pendant 10 secondes.",
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "Le nœud n'est actuellement pas connecté. Lorsque vous le désassemblez, vous devez réinitialiser le nœud pour qu'il soit à nouveau opérationnel. Êtes-vous sûr ?",
     "Unpair this node": "Désappariement de ce nœud",
     "Unpairing node...": "Nœud dissocié...",

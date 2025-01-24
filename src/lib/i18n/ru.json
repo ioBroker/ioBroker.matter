@@ -26,7 +26,7 @@
     "Rename node": "Переименовать узел",
     "Rename this device": "Переименуйте это устройство",
     "Rename this node": "Переименуйте этот узел",
-    "The device should now identify itself for 30 seconds.": "Теперь устройство должно идентифицировать себя в течение 30 секунд.",
+    "The device should now identify itself for 10 seconds.": "Теперь устройство должно идентифицировать себя в течение 10 секунд.",
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "В настоящее время узел не подключен. При снятии сопряжения необходимо выполнить заводской сброс узла, чтобы он снова начал работать. Вы уверены?",
     "Unpair this node": "Отсоедините этот узел",
     "Unpairing node...": "Отсоединение узла...",

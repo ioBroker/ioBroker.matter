@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 
-import { Add, Bluetooth, BluetoothDisabled, Close, Save, Search } from '@mui/icons-material';
+import { Add, Bluetooth, BluetoothDisabled, Close, Save, Search, Warning } from '@mui/icons-material';
 
 import {
     Backdrop,
@@ -15,7 +15,14 @@ import {
     Typography,
 } from '@mui/material';
 
-import { type AdminConnection, type IobTheme, type ThemeName, type ThemeType, I18n } from '@iobroker/adapter-react-v5';
+import {
+    type AdminConnection,
+    type IobTheme,
+    type ThemeName,
+    type ThemeType,
+    I18n,
+    DialogMessage,
+} from '@iobroker/adapter-react-v5';
 import DeviceManager from '@iobroker/dm-gui-components';
 
 import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
@@ -114,6 +121,7 @@ interface ComponentState {
     /* increase this number to reload the devices */
     triggerControllerLoad: number;
     discoveryRunning: boolean;
+    errorText: string;
 }
 
 class Controller extends Component<ComponentProps, ComponentState> {
@@ -134,6 +142,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
             bleDialogOpen: false,
             triggerControllerLoad: 0,
             discoveryRunning: false,
+            errorText: '',
         };
     }
 
@@ -536,7 +545,9 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         this.setState({ backendProcessingActive: false });
 
                         if (result.error || !result.result) {
-                            window.alert(`Cannot pair device: ${result.error || 'Unknown error'}`);
+                            this.setState({
+                                errorText: `${I18n.t('Cannot pair device')}: ${I18n.t(result.error) || I18n.t('Unknown error')}`,
+                            });
                         } else {
                             window.alert(I18n.t('Connected'));
                             this.refDeviceManager.current?.loadData();
@@ -609,6 +620,27 @@ class Controller extends Component<ComponentProps, ComponentState> {
         );
     }
 
+    renderShowErrorDialog(): React.JSX.Element | null {
+        if (!this.state.errorText) {
+            return null;
+        }
+        let errorText = this.state.errorText;
+        if (this.state.errorText.includes('Unknown command')) {
+            errorText = errorText.replace('Unknown command', I18n.t('Unknown command'));
+        } else if (this.state.errorText.includes('Error while executing command')) {
+            errorText = errorText.replace('Error while executing command', I18n.t('Error while executing command'));
+        }
+
+        return (
+            <DialogMessage
+                icon={<Warning style={{ color: this.props.themeType === 'dark' ? '#ff3434' : '#b60000' }} />}
+                text={errorText}
+                title={I18n.t('Error')}
+                onClose={() => this.setState({ errorText: '' })}
+            />
+        );
+    }
+
     render(): React.JSX.Element {
         if (!this.props.alive && this.state.showDiscoveryDialog) {
             setTimeout(() => this.setState({ showDiscoveryDialog: false }), 100);
@@ -628,6 +660,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 {this.renderShowDiscoveredDevices()}
                 {this.renderQrCodeDialog()}
                 {this.renderBleDialog()}
+                {this.renderShowErrorDialog()}
                 <div>
                     {I18n.t('Off')}
                     <Switch

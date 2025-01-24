@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 
-import { Add, Bluetooth, BluetoothDisabled, Close, Save, Search } from '@mui/icons-material';
+import {Add, Bluetooth, BluetoothDisabled, Close, Save, Search, Warning} from '@mui/icons-material';
 
 import {
     Backdrop,
@@ -633,6 +633,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
         return (
             <DialogMessage
+                icon={<Warning style={{ color: this.props.themeType === 'dark' ? '#ff3434' : '#b60000' }} />}
                 text={errorText}
                 title={I18n.t('Error')}
                 onClose={() => this.setState({ errorText: '' })}

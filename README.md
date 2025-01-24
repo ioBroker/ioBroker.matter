@@ -76,8 +76,7 @@ With the ioBroker Matter Adapter it is possible to map the following use cases:
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.4.4 (2025-01-24)
 * (@Apollon77) Added OPEN state for all Door Locks to open door again
 * (@Apollon77) Fixed Thermostat initialization when no AUTO mode is supported
 * (@Apollon77) Enhanced Enum state display in UI

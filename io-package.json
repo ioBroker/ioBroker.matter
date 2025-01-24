@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.4.3",
+    "version": "0.4.4",
     "news": {
+      "0.4.4": {
+        "en": "Added OPEN state for all Door Locks to open door again\nFixed Thermostat initialization when no AUTO mode is supported\nEnhanced Enum state display in UI",
+        "de": "OPEN Zustand für alle Türschlösser hinzugefügt, um die Tür wieder zu öffnen\nFixed Thermostat Initialisierung, wenn kein AUTO-Modus unterstützt wird\nVerbesserte Enum-Zustandsanzeige in UI",
+        "ru": "Добавленное состояние OPEN для всех замков двери, чтобы открыть дверь снова\nИсправлена инициализация термостата, когда не поддерживается режим AUTO\nРасширенный дисплей состояния онума в UI",
+        "pt": "Adicionado estado de OPEN para todos Fechaduras de porta para abrir novamente\nInicialização do termostato fixo quando nenhum modo AUTO é suportado\nExibição de estado Enum aprimorada na interface do usuário",
+        "nl": "Toegevoegd OPEN status voor alle deursloten om de deur weer te openen\nVaste thermostaat initialisatie wanneer geen AUTO-modus wordt ondersteund\nVerbeterde Enum-statusweergave in UI",
+        "fr": "Ajout de l'état OPEN pour toutes les serrures de porte pour ouvrir à nouveau la porte\nInitialisation du thermostat fixe quand aucun mode AUTO n'est pris en charge\nAffichage amélioré de l'état Enum dans l'interface utilisateur",
+        "it": "Aggiunto stato OPEN per tutte le serrature della porta per aprire nuovamente la porta\nInizializzazione del termostato fisso quando nessuna modalità AUTO è supportata\nEnum display migliorato in UI",
+        "es": "Estado abierto para todas las cerraduras de puerta para abrir puerta de nuevo\nIniciación del termostato fijo cuando no se admite ningún modo AUTO\nEnhanced Enum state display in UI",
+        "pl": "Dodano stan OPEN dla wszystkich drzwi Zamki otworzyć drzwi ponownie\nNaprawiona inicjalizacja termostatu, gdy nie jest obsługiwany tryb AUTO\nUlepszony wyświetlacz stanu enum w UI",
+        "uk": "Додано Відкритий стан для всіх дверних замків, щоб відкрити двері знову\nВиправлена ініціалізація термостату при відсутності режиму авто\nПокращений дисплей стану енму в UI",
+        "zh-cn": "为所有门锁添加 OPEN 状态以再次打开门\n不支持 AUTO 模式时的固定自动启动\n在 UI 中增强 Enum 状态显示"
+      },
       "0.4.3": {
         "en": "Optimized UI\nAllows to turn light on/off via the dimming level as Zigbee adapter does\nDetects Switch changes via event which should be more reliable\nOptimizes some Node information",
         "de": "Optimierte UI\nErmöglicht das Ein- und Ausschalten von Licht über die Dimmebene als Zigbee Adapter\nErkennt Switch-Änderungen über Ereignis, die zuverlässiger sein sollten\nOptimiert einige Keine Informationen",
@@ -80,19 +93,6 @@
         "pl": "Naprawiono błędy GUI\nDodano możliwość włączenia / wyłączenia sterowanych węzłów\nDodano informacje na temat baterii i rssi dla płytek DM\nDodano obsługę kontrolera dla kolorowych świateł, głośników, termostatów i pokryć okiennych\nZoptymalizowane stałe wiele rzeczy",
         "uk": "Виправлені помилки інтерфейсу\nДодана можливість увімкнути / вимкнути керовані вузли\nДодано інформацію про акумулятор і rssi для плитки DM\nДодано підтримку контролера для кольорових світильників, спікерів, термостатів та віконних покриттів\nОптимізований фіксований кілька речей",
         "zh-cn": "固定图形用户界面错误\n添加启用/ 失效控制节点的可能性\n为DM瓦增加电池和rssi信息\n添加色彩灯、 扬声器、 自动调温器和窗口覆盖的控制器支持\n优化固定的多件东西"
-      },
-      "0.3.5": {
-        "en": "Fixed GUI errors\nAdded `Controller fabric label` to configuration\nAdded solution for QR-Code scanning on non HTTPS pages\nFixed Generic Switch Device type for controller\nFixed Controller BLE initialization and activation\nAdded serialNumber to all devices and bridges for better device re-detection by controllers",
-        "de": "Fehler behoben\n'Controller Stofflabel' zur Konfiguration hinzugefügt\nLösung für QR-Code-Scannen auf nicht HTTPS-Seiten hinzugefügt\nFixed Generic Switch Gerätetyp für die Steuerung\nFixed Controller BLE Initialisierung und Aktivierung\nSerialNumber zu allen Geräten und Brücken für eine bessere Geräte-Wiedererkennung durch Controller hinzugefügt",
-        "ru": "Исправленные ошибки GUI\nДобавлена \"маркировка контроллерной ткани\" в конфигурацию\nДобавлено решение для сканирования QR-Code на не HTTPS-страницах\nFixed Generic Switch Тип устройства для контроллера\nФиксированный контроллер BLE инициализация и активация\nДобавлен серийный номер для всех устройств и мостов для лучшего обнаружения устройств контроллерами",
-        "pt": "Corrigido erros GUI\nAdicionado rótulo de tecido `Controller` para configuração\nSolução adicional para a digitalização QR-Code em páginas não HTTPS\nInterruptor Genérico Fixo Tipo de dispositivo para controlador\nInicialização e ativação do BLE do controlador fixo\nAdicionado serialNumber a todos os dispositivos e pontes para melhor dispositivo re-detection por controladores",
-        "nl": "Vaste GUI-fouten\nToegevoegd aan configuratie\nToegevoegde oplossing voor QR-Code scannen op niet-HTTPS pagina's\nVaste algemene switch Apparaattype voor controller\nFixed Controller BLE initialisatie en activering\nToegevoegd serialNumber aan alle apparaten en bruggen voor een betere apparaatherdetectie door controllers",
-        "fr": "Erreurs d'interface graphique corrigées\nAjout d'une étiquette de tissu de contrôleur à la configuration\nAjout de la solution pour la numérisation QR-Code sur les pages non HTTPS\nCorrection du commutateur générique Type de périphérique pour contrôleur\nInitialisation et activation du contrôleur fixe BLE\nAjout de serialNumber à tous les appareils et ponts pour une meilleure détection des appareils par les contrôleurs",
-        "it": "Corretti errori GUI\nAggiunto `etichetta di tessuto di controllo` per la configurazione\nSoluzione aggiuntiva per la scansione QR-Code su pagine non HTTPS\nInterruttore generico fisso Tipo di dispositivo per il controller\nRegolatore fisso BLE inizializzazione e attivazione\nAggiunta serialeNumero a tutti i dispositivi e ponti per una migliore re-detection del dispositivo da controller",
-        "es": "Errores de GUI fijos\nAñadido `Etiqueta de tela de control` a la configuración\nSolución agregada para el escaneo QR-Code en páginas no HTTPS\nInterruptor genético fijo Tipo de dispositivo para el controlador\nIniciación y activación del controlador fijo BLE\nAñadido serialNumber a todos los dispositivos y puentes para una mejor detección de dispositivos por los controladores",
-        "pl": "Naprawiono błędy GUI\nDodano 'Etykietkę na tkaninę kontrolera' do konfiguracji\nDodano rozwiązanie do skanowania kodu QR- na stronach innych niż HTTPS\nNaprawiono przełącznik ogólny Typ urządzenia sterującego\nStała inicjalizacja i aktywacja kontrolera BLE\nDodano serialNumer do wszystkich urządzeń i mostów dla lepszego ponownego wykrywania urządzeń przez sterowniki",
-        "uk": "Виправлені помилки інтерфейсу\nДодано `Controller тканину етикетки` для конфігурації\nДодано рішення для сканування QR-коду на не HTTPS-сторінках\nФіксований генеричний перемикач Тип пристрою для контролера\nФіксований контролер BLE ініціалізації\nДодано серійнийКількість на всі пристрої та мости для кращого видалення пристрою контролерами",
-        "zh-cn": "固定图形用户界面错误\n在配置中添加“控制面料标签”\n在非 HTTPS 页面上添加 QR- Code 扫描的解决方案\n固定通用开关 控制器的设备类型\n固定控制器启动和激活\n在所有设备和桥梁中添加序列号,以便控制器进行更好的设备再检测"
       }
     },
     "title": "Matter",

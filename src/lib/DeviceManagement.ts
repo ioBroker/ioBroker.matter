@@ -617,7 +617,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     ): Promise<{ refresh: DeviceRefresh }> {
         await device.identify();
 
-        await context.showMessage(this.#adapter.t(`The device should now identify itself for 30 seconds.`));
+        await context.showMessage(this.#adapter.t(`The device should now identify itself for 10 seconds.`));
 
         return { refresh: false };
     }

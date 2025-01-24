@@ -26,7 +26,7 @@
     "Rename node": "Mudar o nome do nó",
     "Rename this device": "Renomear este dispositivo",
     "Rename this node": "Mudar o nome deste nó",
-    "The device should now identify itself for 30 seconds.": "O dispositivo agora deve se identificar por 30 segundos.",
+    "The device should now identify itself for 10 seconds.": "O dispositivo agora deve se identificar por 10 segundos.",
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "O nó não está atualmente ligado. Quando o desemparelhar, terá de repor as predefinições do nó para o colocar novamente em funcionamento. Tem a certeza?",
     "Unpair this node": "Desemparelhar este nó",
     "Unpairing node...": "Desemparelhando nó...",

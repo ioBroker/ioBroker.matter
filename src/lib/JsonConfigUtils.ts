@@ -60,7 +60,7 @@ export function convertDataToJsonConfig(data: StructuredJsonFormData): JsonFormS
                         foreign: true,
                         label: tabItem.substring(12),
                         addColon: true,
-                        controlDelay: 500,
+                        controlDelay: 1000,
                         oid: '', // oid will be overwritten by data[key][subKey]
                         ...data[tab][tabItem],
                     };

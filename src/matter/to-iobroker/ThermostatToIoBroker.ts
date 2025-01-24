@@ -122,6 +122,7 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
                             await this.ioBrokerDevice.updateLevel(this.temperatureFromMatter(coolSetpoint));
                         }
                     }
+                    return ioMode;
                 }
             },
             changeHandler: async value => {

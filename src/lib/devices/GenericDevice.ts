@@ -663,6 +663,8 @@ export abstract class GenericDevice extends EventEmitter {
                 return 'slider';
             }
             return 'number';
+        } else if (valueType === ValueType.Enum) {
+            return 'number';
         }
         return 'input';
     }
@@ -674,7 +676,7 @@ export abstract class GenericDevice extends EventEmitter {
             keys.reverse();
         }
         keys.forEach(property => {
-            const { name, unit, write, read, min, max } = this.#properties[property];
+            const { valueType, name, unit, write, read, min, max } = this.#properties[property];
             states[`__iobstate__${name}`] = {
                 oid: write ?? read,
                 unit,
@@ -683,6 +685,16 @@ export abstract class GenericDevice extends EventEmitter {
                 readOnly: !write,
                 control: this.#determineControlType(property),
             };
+            // Workaround until "control: select" is supported in JSONConfig
+            if (valueType === ValueType.Enum) {
+                const stateObject = this.#registeredStates.find(obj => obj.propertyType === property);
+                const modes = stateObject?.modes;
+                if (modes) {
+                    states.__smalltext__AllowedValues = `Allowed values: ${Object.entries(modes)
+                        .map(([key, value]) => `${key} (${value})`)
+                        .join(', ')}`;
+                }
+            }
             if (includeObjectIds) {
                 if (write !== read && write && read) {
                     states[`__smalltext__${name}`] = `Write: ${write}, Read: ${read}`;

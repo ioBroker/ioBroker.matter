@@ -67,13 +67,11 @@ export class DoorLockToIoBroker extends GenericElectricityDataDeviceToIoBroker {
             attributeName: 'lockState',
             convertValue: value => value === DoorLock.LockState.Unlocked,
         });
-        if (this.#unboltingSupported) {
-            this.enableDeviceTypeStateForAttribute(PropertyType.Open, {
-                changeHandler: async () => {
-                    await this.appEndpoint.getClusterClient(DoorLock.Complete)?.unlockDoor({});
-                },
-            });
-        }
+        this.enableDeviceTypeStateForAttribute(PropertyType.Open, {
+            changeHandler: async () => {
+                await this.appEndpoint.getClusterClient(DoorLock.Complete)?.unlockDoor({});
+            },
+        });
         return super.enableDeviceTypeStates();
     }
 

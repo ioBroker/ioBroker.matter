@@ -546,7 +546,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
                         if (result.error || !result.result) {
                             this.setState({
-                                errorText: `${I18n.t('Cannot pair device')}: ${result.error || I18n.t('Unknown error')}`,
+                                errorText: `${I18n.t('Cannot pair device')}: ${I18n.t(result.error) || I18n.t('Unknown error')}`,
                             });
                         } else {
                             window.alert(I18n.t('Connected'));
@@ -620,13 +620,20 @@ class Controller extends Component<ComponentProps, ComponentState> {
         );
     }
 
-    renderShowErrorDialog() {
+    renderShowErrorDialog(): React.JSX.Element | null {
         if (!this.state.errorText) {
             return null;
         }
+        let errorText = this.state.errorText;
+        if (this.state.errorText.includes('Unknown command')) {
+            errorText = errorText.replace('Unknown command', I18n.t('Unknown command'));
+        } else if (this.state.errorText.includes('Error while executing command')) {
+            errorText = errorText.replace('Error while executing command', I18n.t('Error while executing command'));
+        }
+
         return (
             <DialogMessage
-                text={this.state.errorText}
+                text={errorText}
                 title={I18n.t('Error')}
                 onClose={() => this.setState({ errorText: '' })}
             />

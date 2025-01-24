@@ -108,7 +108,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                             : hasHeating
                               ? MatterThermostat.ControlSequenceOfOperation.HeatingOnly
                               : MatterThermostat.ControlSequenceOfOperation.CoolingOnly,
-                    minSetpointDeadBand: 0,
+                    minSetpointDeadBand: this.#supportedModes.includes(ThermostatMode.Auto) ? 0 : undefined,
                     absMinHeatSetpointLimit: hasHeating ? this.convertTemperatureValue(7) : undefined,
                     absMaxHeatSetpointLimit: hasHeating ? this.convertTemperatureValue(30) : undefined,
                     absMinCoolSetpointLimit: hasCooling ? this.convertTemperatureValue(16) : undefined,

@@ -76,8 +76,7 @@ With the ioBroker Matter Adapter it is possible to map the following use cases:
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.4.3 (2025-01-24)
 * (@bluefox) Optimized UI
 * (@Apollon77) Allows to turn light on/off via the dimming level as Zigbee adapter does
 * (@Apollon77) Detects Switch changes via event which should be more reliable

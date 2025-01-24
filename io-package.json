@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.4.2",
+    "version": "0.4.3",
     "news": {
+      "0.4.3": {
+        "en": "Optimized UI\nAllows to turn light on/off via the dimming level as Zigbee adapter does\nDetects Switch changes via event which should be more reliable\nOptimizes some Node information",
+        "de": "Optimierte UI\nErmöglicht das Ein- und Ausschalten von Licht über die Dimmebene als Zigbee Adapter\nErkennt Switch-Änderungen über Ereignis, die zuverlässiger sein sollten\nOptimiert einige Keine Informationen",
+        "ru": "Оптимизированный UI\nПозволяет включать/выключать свет через уровень димминга, как делает адаптер Zigbee\nДефекты Переключение изменений через событие, которое должно быть более надежным\nОптимизирует некоторые Информация узла",
+        "pt": "IU otimizada\nPermite ligar/desligar a luz através do nível de escurecimento como o adaptador Zigbee faz\nDetecta alterações de interruptor via evento que deve ser mais confiável\nOtimiza alguns InformaÃ§Ãμes do nó",
+        "nl": "Geoptimaliseerde UI\nHiermee kunt u het licht aan/uit doen via het dimmen niveau zoals Zigbee adapter doet\nDetecteert veranderingen via event die betrouwbaarder moeten zijn\nOptimaliseert sommige Knoopinformatie",
+        "fr": "UI optimisé\nPermet d'allumer/éteindre la lumière via le niveau de gradation comme l'adaptateur Zigbee\nDétecte les changements de commutation par événement qui devraient être plus fiables\nOptimise certains Informations sur le nœud",
+        "it": "UI ottimizzato\nConsente di accendere / spegnere la luce tramite il livello di dimming come adattatore Zigbee fa\nRilevamento Cambiamenti di commutazione tramite evento che dovrebbe essere più affidabile\nOttimizzare alcuni Informazioni sul nodo",
+        "es": "UI optimizada\nPermite encender/apagar la luz a través del nivel de regulación como el adaptador Zigbee\nDetecta cambios de conmutación por evento que debe ser más fiable\nOptimiza algunos Información sobre los nodos",
+        "pl": "Zoptymalizowany interfejs użytkownika\nUmożliwia włączanie / wyłączanie światła przez poziom przyciemniania, tak jak adapter Zigbee\nWykrywa zmiany przełączania poprzez zdarzenie, które powinno być bardziej wiarygodne\nOptymalizuje niektóre Informacje o węźle",
+        "uk": "Оптимізований UI\nДозволяє перетворювати світло / відключати через рівень диммінгу як адаптер Zigbee\nЗменшення змін через захід, який повинен бути більш надійним\nОптимізуйте деякі Немає інформації",
+        "zh-cn": "优化 UI\n允许像 Zigbee 适配器一样通过暗淡的关卡打开/关闭灯光\n通过更可靠的事件切换变化\n优化一些 节点信息"
+      },
       "0.4.2": {
         "en": "Added SmokeCO2Alarm -> FireAlarm to Controller device types\nDetects BLE only QR codes and respond with error message\nFor Dimming and Color changes direct the device to execute the changes also when device is off",
         "de": "Hinzugefügt SmokeCO2Alarm -> FireAlarm auf Controller-Gerätetypen\nErkennt BLE nur QR-Codes und reagiert mit der Fehlermeldung\nFür Dimm- und Farbänderungen richten Sie das Gerät an, um die Änderungen auch dann auszuführen, wenn das Gerät ausgeschaltet ist",
@@ -80,19 +93,6 @@
         "pl": "Naprawiono błędy GUI\nDodano 'Etykietkę na tkaninę kontrolera' do konfiguracji\nDodano rozwiązanie do skanowania kodu QR- na stronach innych niż HTTPS\nNaprawiono przełącznik ogólny Typ urządzenia sterującego\nStała inicjalizacja i aktywacja kontrolera BLE\nDodano serialNumer do wszystkich urządzeń i mostów dla lepszego ponownego wykrywania urządzeń przez sterowniki",
         "uk": "Виправлені помилки інтерфейсу\nДодано `Controller тканину етикетки` для конфігурації\nДодано рішення для сканування QR-коду на не HTTPS-сторінках\nФіксований генеричний перемикач Тип пристрою для контролера\nФіксований контролер BLE ініціалізації\nДодано серійнийКількість на всі пристрої та мости для кращого видалення пристрою контролерами",
         "zh-cn": "固定图形用户界面错误\n在配置中添加“控制面料标签”\n在非 HTTPS 页面上添加 QR- Code 扫描的解决方案\n固定通用开关 控制器的设备类型\n固定控制器启动和激活\n在所有设备和桥梁中添加序列号,以便控制器进行更好的设备再检测"
-      },
-      "0.3.4": {
-        "en": "Updates matter.js to address several issues\nOptimized UI",
-        "de": "Aktualisiert matter.js, um mehrere Probleme zu lösen\nOptimierte UI",
-        "ru": "Обновления matter.js для решения нескольких вопросов\nОптимизированный UI",
-        "pt": "Updates matter.js para resolver vários problemas\nIU otimizada",
-        "nl": "Updates matter.js om verschillende problemen aan te pakken\nGeoptimaliseerde UI",
-        "fr": "Mise à jour matter.js pour aborder plusieurs questions\nUI optimisé",
-        "it": "Aggiornamenti importa.js per affrontare diversi problemi\nUI ottimizzato",
-        "es": "Actualizaciones matter.js para abordar varias cuestiones\nUI optimizada",
-        "pl": "Aktualizuje mater.js, aby rozwiązać kilka problemów\nZoptymalizowany interfejs użytkownika",
-        "uk": "Оновлення питання.js для вирішення декількох питань\nОптимізований UI",
-        "zh-cn": "处理若干问题的更新事项.js\n优化 UI"
       }
     },
     "title": "Matter",

@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 
-import {Add, Bluetooth, BluetoothDisabled, Close, Save, Search, Warning} from '@mui/icons-material';
+import { Add, Bluetooth, BluetoothDisabled, Close, Save, Search, Warning } from '@mui/icons-material';
 
 import {
     Backdrop,

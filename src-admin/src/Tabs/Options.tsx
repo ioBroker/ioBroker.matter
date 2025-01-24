@@ -259,6 +259,9 @@ class Options extends Component<OptionsProps, OptionsState> {
                         onChange={e => this.props.onChange('controllerFabricLabel', e.target.value)}
                         margin="normal"
                         slotProps={{
+                            inputLabel: {
+                                shrink: true,
+                            },
                             htmlInput: {
                                 maxLength: 32,
                             },

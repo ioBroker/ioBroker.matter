@@ -19,6 +19,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
     readonly #matterEndpointHumidity?: Endpoint<HumiditySensorDevice>;
     #supportedModes = new Array<ThermostatMode>();
     #validModes = new Array<ThermostatMode>();
+    #temperatureDebounceTimeout?: ioBroker.Timeout;
 
     constructor(ioBrokerDevice: Thermostat, name: string, uuid: string) {
         super(name, uuid);
@@ -177,6 +178,32 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
         }
     }
 
+    #updateSetPointTemperature(delay = 1500): void {
+        if (this.#temperatureDebounceTimeout !== undefined) {
+            this.#ioBrokerDevice.adapter.clearTimeout(this.#temperatureDebounceTimeout);
+        }
+        this.#temperatureDebounceTimeout = this.#ioBrokerDevice.adapter.setTimeout(() => {
+            const systemMode = this.#matterEndpointThermostat.stateOf(IoThermostatServer).systemMode;
+            if (systemMode === MatterThermostat.SystemMode.Heat || systemMode === MatterThermostat.SystemMode.Auto) {
+                const heatingTemp =
+                    // @ts-expect-error Workaround a matter.js instancing/typing error
+                    this.#matterEndpointThermostat.stateOf(IoThermostatServer).occupiedHeatingSetpoint;
+                this.#ioBrokerDevice.adapter.log.debug(`Setting level to ${heatingTemp / 100} (Heat) after debounce`);
+                this.#ioBrokerDevice
+                    .setLevel(heatingTemp / 100)
+                    .catch(error => this.#ioBrokerDevice.adapter.log.warn(`Error setting level: ${error.message}`));
+            } else if (systemMode === MatterThermostat.SystemMode.Cool) {
+                const coolingTemp =
+                    // @ts-expect-error Workaround a matter.js instancing/typing error
+                    this.#matterEndpointThermostat.stateOf(IoThermostatServer).occupiedCoolingSetpoint;
+                this.#ioBrokerDevice.adapter.log.debug(`Setting level to ${coolingTemp / 100} (Cool) after debounce`);
+                this.#ioBrokerDevice
+                    .setLevel(coolingTemp / 100)
+                    .catch(error => this.#ioBrokerDevice.adapter.log.warn(`Error setting level: ${error.message}`));
+            }
+        }, delay);
+    }
+
     async registerHandlersAndInitialize(): Promise<void> {
         await super.registerHandlersAndInitialize();
 
@@ -237,7 +264,18 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
             async value => {
                 switch (value) {
                     case MatterThermostat.SystemMode.Off:
-                        await this.#ioBrokerDevice.setPower(false);
+                        if (this.#ioBrokerDevice.hasPower()) {
+                            await this.#ioBrokerDevice.setPower(false);
+                        } else if (
+                            this.#supportedModes.includes(ThermostatMode.Off) &&
+                            this.#ioBrokerDevice.hasMode()
+                        ) {
+                            await this.#ioBrokerDevice.setMode(ThermostatMode.Off);
+                        } else {
+                            this.#ioBrokerDevice.adapter.log.info(
+                                `${this.uuid}: SystemMode changed to Off, but no mode available to set`,
+                            );
+                        }
                         break;
                     case MatterThermostat.SystemMode.Heat: {
                         if (this.#ioBrokerDevice.hasMode() && this.#validModes.includes(ThermostatMode.Heat)) {
@@ -286,16 +324,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
             this.matterEvents.on(
                 // @ts-expect-error Workaround a matter.js instancing/typing error
                 this.#matterEndpointThermostat.eventsOf(IoThermostatServer).occupiedHeatingSetpoint$Changed,
-                // @ts-expect-error Workaround a matter.js instancing/typing error
-                async value => {
-                    const systemMode = this.#matterEndpointThermostat.stateOf(IoThermostatServer).systemMode;
-                    if (
-                        systemMode === MatterThermostat.SystemMode.Heat ||
-                        systemMode === MatterThermostat.SystemMode.Auto
-                    ) {
-                        await this.#ioBrokerDevice.setLevel(value / 100);
-                    }
-                },
+                this.#updateSetPointTemperature,
             );
         }
 
@@ -303,16 +332,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
             this.matterEvents.on(
                 // @ts-expect-error Workaround a matter.js instancing/typing error
                 this.#matterEndpointThermostat.eventsOf(IoThermostatServer).occupiedCoolingSetpoint$Changed,
-                // @ts-expect-error Workaround a matter.js instancing/typing error
-                async value => {
-                    const systemMode = this.#matterEndpointThermostat.stateOf(IoThermostatServer).systemMode;
-                    if (
-                        systemMode === MatterThermostat.SystemMode.Cool ||
-                        systemMode === MatterThermostat.SystemMode.Auto
-                    ) {
-                        await this.#ioBrokerDevice.setLevel(value / 100);
-                    }
-                },
+                this.#updateSetPointTemperature,
             );
         }
 

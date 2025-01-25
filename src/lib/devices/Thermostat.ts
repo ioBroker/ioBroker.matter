@@ -138,11 +138,11 @@ export class Thermostat extends GenericDevice {
         return this.#levelState.getMinMax();
     }
 
-    updateSetpointMinMax(min: number | undefined, max: number | undefined): Promise<void> {
+    updateSetpointMinMax(min: number | undefined, max: number | undefined, step = 0.5): Promise<void> {
         if (!this.#levelState) {
             throw new Error('Level state not found');
         }
-        return this.#levelState.updateMinMax({ min, max });
+        return this.#levelState.updateMinMax({ min, max, step });
     }
 
     getLevel(): number | undefined {

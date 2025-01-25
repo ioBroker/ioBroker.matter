@@ -70,4 +70,8 @@ export class Hue extends Ct {
         }
         return this.#saturationState.updateValue(value);
     }
+
+    hasSaturation(): boolean {
+        return !!this.#saturationState;
+    }
 }

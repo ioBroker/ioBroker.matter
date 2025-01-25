@@ -123,7 +123,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     /**
      * Create the "Node" device entry and also add all Endpoint-"Devices" for Device-Manager
      */
-    async #getNodeEntry(ioNode: GeneralMatterNode, color: 'primary' | 'secondary'): Promise<DeviceInfo[]> {
+    async #getNodeEntry(ioNode: GeneralMatterNode, backgroundColor: 'primary' | 'secondary'): Promise<DeviceInfo[]> {
         const status: DeviceStatus = await ioNode.getStatus();
         const isEnabled = ioNode.isEnabled;
         const isConnected = ioNode.isConnected;
@@ -193,8 +193,8 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             connectionType,
             hasDetails: true,
             actions: actions.length ? (actions as DeviceAction<'adapter'>[]) : undefined,
-            color,
-            headerTextColor: '#002346',
+            backgroundColor,
+            color: '#002346',
             group: {
                 key: 'node',
                 name: this.#adapter.getText('Node'),
@@ -213,7 +213,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     details,
                     isConnected,
                     connectionType,
-                    color,
+                    backgroundColor,
                 );
                 res.push(deviceInfo);
                 deviceCount++;
@@ -236,7 +236,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         nodeDetails: NodeDetails,
         nodeConnected: boolean,
         nodeConnectionType: ConfigConnectionType,
-        color: 'primary' | 'secondary',
+        backgroundColor: 'primary' | 'secondary',
     ): Promise<DeviceInfo> {
         const icon = device.iconDeviceType;
         const data: DeviceInfo = {
@@ -244,7 +244,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             name: device.name,
             icon,
             ...nodeDetails,
-            color,
+            backgroundColor,
             status: await device.getStatus({
                 connection: nodeConnected ? 'connected' : 'disconnected',
             }),

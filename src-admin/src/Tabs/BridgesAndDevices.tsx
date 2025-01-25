@@ -60,7 +60,7 @@ import type {
 import { formatPairingCode, getTranslation } from '../Utils';
 import type { ActionButton, BackEndCommandJsonFormOptions, JsonFormSchema } from '@iobroker/dm-utils';
 
-export const STYLES: Record<string, React.CSSProperties> = {
+export const STYLES: Record<string, any> = {
     vendorIcon: {
         width: 24,
         height: 24,
@@ -68,6 +68,18 @@ export const STYLES: Record<string, React.CSSProperties> = {
     tooltip: {
         pointerEvents: 'none',
     },
+    animation: 'blink .5s linear infinite',
+    '@keyframes spin': (theme: IobTheme): any => ({
+        '0%': {
+            backgroundColor: theme.palette.background.paper,
+        },
+        '50%': {
+            backgroundColor: theme.palette.mode === 'dark' ? '#958200' : '#ffe441',
+        },
+        '100%': {
+            backgroundColor: theme.palette.background.paper,
+        },
+    }),
 } as const;
 
 export interface BridgesAndDevicesProps {
@@ -88,6 +100,7 @@ export interface BridgesAndDevicesProps {
     updateConfig: (config: MatterConfig) => void;
     updateNodeStates: (states: { [uuid: string]: NodeStateResponse }) => void;
     inProcessing: Processing;
+    identifyUuids: { uuid: string; ts: number }[];
 }
 
 export interface BridgesAndDevicesState {
@@ -512,6 +525,26 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 {getTranslation(button?.label || 'okButtonText', button?.noTranslation)}
             </Button>
         );
+    }
+
+    // eslint-disable-next-line react/no-unused-class-component-methods
+    getBlinkingSx(uuid: string): Record<string, any> | undefined {
+        return this.props.identifyUuids.find(it => it.uuid === uuid)
+            ? {
+                  animation: 'bd-blink .5s linear infinite',
+                  '@keyframes bd-blink': {
+                      '0%': {
+                          backgroundColor: this.props.theme.palette.background.paper,
+                      },
+                      '50%': {
+                          backgroundColor: this.props.theme.palette.mode === 'dark' ? '#958200' : '#ffe441',
+                      },
+                      '100%': {
+                          backgroundColor: this.props.theme.palette.background.paper,
+                      },
+                  },
+              }
+            : undefined;
     }
 
     getInProcessing(uuid: string): false | 'inQueue' | 'processing' {

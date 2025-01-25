@@ -1,7 +1,7 @@
 import { StyledEngineProvider, ThemeProvider } from '@mui/material/styles';
 import React from 'react';
 
-import { IconButton } from '@foxriver76/iob-component-lib';
+import { IconButton as IconButton76 } from '@foxriver76/iob-component-lib';
 import {
     AppBar,
     Dialog,
@@ -13,9 +13,11 @@ import {
     Tab,
     Tabs,
     Tooltip,
+    Snackbar,
+    IconButton,
 } from '@mui/material';
 
-import { Help as IconHelp, SignalCellularOff as IconNotAlive } from '@mui/icons-material';
+import { Help as IconHelp, SignalCellularOff as IconNotAlive, Close } from '@mui/icons-material';
 
 import {
     AdminConnection,
@@ -107,6 +109,7 @@ interface AppState extends GenericAppState {
     } | null;
     welcomeDialogShowed: boolean;
     updatePassTrigger: number;
+    identifyUuids: { uuid: string; ts: number }[];
 }
 
 class App extends GenericApp<GenericAppProps, AppState> {
@@ -115,6 +118,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
     private intervalSubscribe: ReturnType<typeof setInterval> | null = null;
 
     private refreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+    private readonly identifyTimers: Record<string, ReturnType<typeof setTimeout>> = {};
 
     private connectToBackEndInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -175,7 +180,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
             welcomeDialogShowed: false,
             inProcessing: null,
             updatePassTrigger: 1,
-        });
+            identifyUuids: [],
+        } as Partial<AppState>);
 
         this.alert = window.alert;
         window.alert = text => this.showToast(text);
@@ -407,6 +413,39 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 this.refreshTimer = null;
                 this.refreshBackendSubscription();
             }, 5_000);
+        } else if (update.command === 'identifyPopup') {
+            // Some device in ioBroker should be identified
+            if (update.identifyUuid) {
+                if (this.identifyTimers[update.identifyUuid]) {
+                    clearTimeout(this.identifyTimers[update.identifyUuid]);
+                }
+                const identifyUuids = [...this.state.identifyUuids];
+                if (!identifyUuids.find(it => it.uuid === update.identifyUuid)) {
+                    identifyUuids.push({
+                        uuid: update.identifyUuid,
+                        ts: Date.now() + (update.identifySeconds || 15) * 1000,
+                    });
+                }
+
+                this.setState({ identifyUuids });
+
+                this.identifyTimers[update.identifyUuid || ''] = setTimeout(
+                    () => {
+                        const now = Date.now();
+                        const identifyUuids = [...this.state.identifyUuids];
+                        // Delete all outdated identifies
+                        for (let i = identifyUuids.length - 1; i >= 0; i--) {
+                            if (identifyUuids[i].ts <= now) {
+                                identifyUuids.splice(i, 1);
+                            }
+                        }
+                        this.setState({ identifyUuids });
+                    },
+                    (update.identifySeconds || 15) * 1000,
+                );
+            } else {
+                console.warn('No identifyUuid');
+            }
         } else {
             this.controllerMessageHandler && this.controllerMessageHandler(update);
         }
@@ -450,6 +489,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
             clearInterval(this.refreshTimer);
             this.refreshTimer = null;
         }
+
+        Object.values(this.identifyTimers).forEach(timer => clearTimeout(timer));
 
         try {
             this.socket.unsubscribeState(`system.adapter.matter.${this.instance}.alive`, this.onAlive);
@@ -555,6 +596,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 checkLicenseOnAdd={(type: 'addBridge' | 'addDevice' | 'addDeviceToBridge', matter: MatterConfig) =>
                     this.checkLicenseOnAdd(type, matter)
                 }
+                identifyUuids={this.state.identifyUuids}
             />
         );
     }
@@ -590,6 +632,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 }}
                 showToast={(text: string) => this.showToast(text)}
                 checkLicenseOnAdd={(matter: MatterConfig) => this.checkLicenseOnAdd('addDevice', matter)}
+                identifyUuids={this.state.identifyUuids}
             />
         );
     }
@@ -684,6 +727,88 @@ class App extends GenericApp<GenericAppProps, AppState> {
         );
     }
 
+    renderIdentifyToast(): React.JSX.Element[] | null {
+        if (!this.state.identifyUuids.length) {
+            return null;
+        }
+
+        return this.state.identifyUuids.map(it => {
+            // Try to find information about this device
+            let name;
+            if (this.state.matter?.bridges?.length) {
+                for (const bridge of this.state.matter.bridges) {
+                    if (bridge.uuid === it.uuid) {
+                        name = bridge.name;
+                        break;
+                    } else if (bridge.list?.length) {
+                        for (const device of bridge.list) {
+                            if (device.uuid === it.uuid) {
+                                name =
+                                    typeof device.name === 'object'
+                                        ? device.name[I18n.getLanguage()] || device.name.en
+                                        : device.name;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (!name && this.state.matter?.devices?.length) {
+                for (const device of this.state.matter.devices) {
+                    if (device.uuid === it.uuid) {
+                        name =
+                            typeof device.name === 'object'
+                                ? device.name[I18n.getLanguage()] || device.name.en
+                                : device.name;
+                        break;
+                    }
+                }
+            }
+
+            name = name || it.uuid;
+
+            return (
+                <Snackbar
+                    key={it.uuid}
+                    anchorOrigin={{
+                        vertical: 'bottom',
+                        horizontal: 'left',
+                    }}
+                    open={!0}
+                    onClose={() => {
+                        const identifyUuids = [...this.state.identifyUuids];
+                        const i = identifyUuids.findIndex(id => id.uuid === it.uuid);
+                        if (i !== -1) {
+                            identifyUuids.splice(i, 1);
+                            this.setState({ identifyUuids });
+                        }
+                    }}
+                    message={<span>{I18n.t(`Identifying device %s`, name)}</span>}
+                    action={[
+                        <IconButton
+                            key="close"
+                            aria-label="Close"
+                            color="inherit"
+                            className={this.props.classes?.close}
+                            onClick={() => {
+                                const identifyUuids = [...this.state.identifyUuids];
+                                const i = identifyUuids.findIndex(id => id.uuid === it.uuid);
+                                if (i !== -1) {
+                                    identifyUuids.splice(i, 1);
+                                    this.setState({ identifyUuids });
+                                }
+                            }}
+                            size="large"
+                        >
+                            <Close />
+                        </IconButton>,
+                    ]}
+                />
+            );
+        });
+    }
+
     render(): React.JSX.Element {
         if (!this.state.ready) {
             return (
@@ -699,6 +824,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             <StyledEngineProvider injectFirst>
                 <ThemeProvider theme={this.state.theme}>
                     {this.renderToast()}
+                    {this.renderIdentifyToast()}
                     {this.renderProgressDialog()}
                     {this.renderWelcomeDialog()}
                     <div
@@ -766,7 +892,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                                                 justifyContent: 'center',
                                             }}
                                         >
-                                            <IconButton
+                                            <IconButton76
                                                 iconColor="warning"
                                                 noBackground
                                                 icon="noConnection"

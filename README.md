@@ -22,9 +22,9 @@ Sentry reporting is used starting with js-controller 3.0.
 > Please read the [Important notes](https://github.com/ioBroker/ioBroker.matter/wiki/Einleitung-und-wichtige-Hinweise#wichtige-hinweise-bitte-dringend-beachten) before using the adapter.
 
 ## Description
-With the ioBroker Matter Adapter it is possible to map the following use cases:
+With the ioBroker Matter Adapter, it is possible to map the following use cases:
 * Matter-based devices can be linked directly to ioBroker and thus read in / controlled
-* Provision of multiple ioBroker devices as a Matter Bridge: Matter Bridges can contain multiple devices and are the easiest way to integrate ioBroker devices into a Matter-compatible ecosystem.
+* The provision of multiple ioBroker devices as a Matter Bridge: Matter Bridges can contain multiple devices and are the easiest way to integrate ioBroker devices into a Matter-compatible ecosystem.
 * ioBroker provides individual virtual Matter devices based on ioBroker devices / ioBroker states, which can be taught to a Matter-compatible ecosystem (currently only bridges are possible for Amazon Alexa)
 
 ## ToDo
@@ -76,6 +76,10 @@ With the ioBroker Matter Adapter it is possible to map the following use cases:
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (@GermanBluefox) Optimized UI
+* (@GermanBluefox) Implemented the identify popup in GUI
+
 ### 0.4.5 (2025-01-25)
 * (@Apollon77) Fixed Thermostat initialization logic and added more logging
 * (@Apollon77) Fixed WindowCovering level to match ioBroker definition
@@ -87,18 +91,18 @@ With the ioBroker Matter Adapter it is possible to map the following use cases:
 * (@Apollon77) Enhanced Enum state display in UI
 
 ### 0.4.3 (2025-01-24)
-* (@bluefox) Optimized UI
-* (@Apollon77) Allows to turn light on/off via the dimming level as Zigbee adapter does
+* (@GermanBluefox) Optimized UI
+* (@Apollon77) Allows turning light on/off via the dimming level as Zigbee adapter does
 * (@Apollon77) Detects Switch changes via event which should be more reliable
 * (@Apollon77) Optimizes some Node information
 
 ### 0.4.2 (2025-01-23)
 * (@Apollon77) Added SmokeCO2Alarm -> FireAlarm to Controller device types
-* (@Apollon77) Detects BLE only QR codes and respond with error message
-* (@Apollon77) For Dimming and Color changes direct the device to execute the changes also when device is off
+* (@Apollon77) Detects BLE only QR codes and responds with an error message
+* (@Apollon77) For Dimming and Color changes direct the device to execute the changes also when a device is off
 
 ### 0.4.1 (2025-01-22)
-* (@bluefox) Optimized UI
+* (@GermanBluefox) Optimized UI
 * (@Apollon77) Improved handling for Power Source cluster on root endpoint
 * (@Apollon77) Changed Identify handling - Light will be turned on/off, others just logged
 
@@ -138,7 +142,7 @@ With the ioBroker Matter Adapter it is possible to map the following use cases:
 
 ### 0.3.4 (2024-12-31)
 * (@Apollon77) Updates matter.js to address several issues
-* (@bluefox) Optimized UI
+* (@GermanBluefox) Optimized UI
 
 ### 0.3.3 (2024-12-28)
 * (@Apollon77) Allows triggering commands via matter also when the state already matches the value
@@ -164,8 +168,8 @@ With the ioBroker Matter Adapter it is possible to map the following use cases:
 * (@Apollon77) Optimizes device discovery and allows to stop it again
 
 ### 0.2.10 (2024-12-19)
-* (@bluefox) Makes the Adapter UI also available as standalone tab
-* (@bluefox) Added error details when adding the same state twice to a bridge or device
+* (@GermanBluefox) Makes the Adapter UI also available as standalone tab
+* (@GermanBluefox) Added error details when adding the same state twice to a bridge or device
 * (@Apollon77) Fixes discovery start in UI
 
 ### 0.2.9 (2024-12-18)
@@ -180,16 +184,16 @@ With the ioBroker Matter Adapter it is possible to map the following use cases:
 * (@Apollon77) Prevent storage to delete wrong data when a node gets removed
 
 ### 0.2.8 (2024-12-17)
-* (@bluefox) Fixes progress dialog for DM - used when deleting a node
-* (@bluefox) Synchronizes the "do not ask again on delete" time with admin and set to 5 minutes
-* (@bluefox) Optimizes bridges display for different color schemes
-* (@bluefox) Allows to collapse the information blocks at the top of the pages
-* (@bluefox) Adds an ioBroker Logo when display commissioned controllers
-* (@bluefox/@apollon77) Adds additional details and error state also for devices and bridged devices
-* (@bluefox/@apollon77) Always display QR code to allow additional pairing for device and bridges from adapter UI
-* (@bluefox) Optimizes several messages nd approval dialogs
-* (@bluefox) Adds a welcome dialog for new users
-* (@bluefox) Adds user guidance for big unpaired bridges
+* (@GermanBluefox) Fixes progress dialog for DM - used when deleting a node
+* (@GermanBluefox) Synchronizes the "do not ask again on delete" time with admin and set to 5 minutes
+* (@GermanBluefox) Optimizes bridges display for different color schemes
+* (@GermanBluefox) Allows to collapse the information blocks at the top of the pages
+* (@GermanBluefox) Adds an ioBroker Logo when display commissioned controllers
+* (@GermanBluefox/@apollon77) Adds additional details and error state also for devices and bridged devices
+* (@GermanBluefox/@apollon77) Always display QR code to allow additional pairing for device and bridges from adapter UI
+* (@GermanBluefox) Optimizes several messages nd approval dialogs
+* (@GermanBluefox) Adds a welcome dialog for new users
+* (@GermanBluefox) Adds user guidance for big unpaired bridges
 * (@Apollon77) Adds Illuminance and Button/ButtonSensor (Switch) device type
 * (@Apollon77) Changes/Optimizes naming structure for paired devices and sub-endpoints
 * (@Apollon77) Adds information when Matter device types are not yet supported to look into objects for details

@@ -79,6 +79,7 @@ With the ioBroker Matter Adapter it is possible to map the following use cases:
 
 ### __WORK IN PROGRESS__
 * (@Apollon77) Fixed Thermostat initialization logic and added more logging
+* (@Apollon77) Fixed WindowCovering level to match ioBroker definition
 * (@Apollon77) Updated matter.js for further optimizations
 
 ### 0.4.4 (2025-01-24)

@@ -78,7 +78,9 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 ## Changelog
 ### **WORK IN PROGRESS**
 * (@GermanBluefox) Optimized UI
-* (@GermanBluefox) Implemented the identify popup in GUI
+* (@GermanBluefox) Added user feedback when device or bridged device is identified
+* (@Apollon77) Fixes Thermostat logic for devices
+* (@Apollon77) Ensures information are pushed to the UI when devices are in an error state
 
 ### 0.4.5 (2025-01-25)
 * (@Apollon77) Fixed Thermostat initialization logic and added more logging

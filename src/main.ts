@@ -416,9 +416,9 @@ export class MatterAdapter extends utils.Adapter {
             this.#sendControllerUpdateTimeout ??
             setTimeout(() => {
                 this.#sendControllerUpdateTimeout = undefined;
-                void this.sendToGui({
+                this.sendToGui({
                     command: 'updateController',
-                });
+                }).catch(error => this.log.debug(`Error while sending updateController to GUI: ${error.message}`));
             }, 300);
     }
 
@@ -1316,8 +1316,13 @@ export class MatterAdapter extends utils.Adapter {
                     }
                 } else {
                     this.log.error(`Cannot create device for ${device._id}`);
+                    const error = 'Cannot create device because of an error. Please check logs.';
                     this.#devices.set(device._id, {
-                        error: 'Cannot create device because of an error. Please check logs.',
+                        error,
+                    });
+                    await this.sendToGui({
+                        command: 'updateStates',
+                        states: { [device.native.uuid]: { error } },
                     });
                 }
             } else {

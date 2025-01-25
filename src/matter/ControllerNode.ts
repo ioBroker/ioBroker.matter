@@ -210,10 +210,10 @@ class Controller implements GeneralNode {
 
     #registerNodeHandlers(node: PairedNode): void {
         node.events.attributeChanged.on(data => {
-            void this.#nodes.get(node.nodeId.toString())?.handleChangedAttribute(data);
+            this.#nodes.get(node.nodeId.toString())?.handleChangedAttribute(data);
         });
         node.events.eventTriggered.on(data => {
-            void this.#nodes.get(node.nodeId.toString())?.handleTriggeredEvent(data);
+            this.#nodes.get(node.nodeId.toString())?.handleTriggeredEvent(data);
         });
         node.events.stateChanged.on(async (info: PairedNodeStates) => {
             const nodeDetails = (this.#commissioningController?.getCommissionedNodesDetails() ?? []).find(

@@ -288,7 +288,11 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                 this.#matterEndpointThermostat.eventsOf(IoThermostatServer).occupiedHeatingSetpoint$Changed,
                 // @ts-expect-error Workaround a matter.js instancing/typing error
                 async value => {
-                    if (!this.#ioBrokerDevice.hasMode() || this.#ioBrokerDevice.getMode() === ThermostatMode.Heat) {
+                    const systemMode = this.#matterEndpointThermostat.stateOf(IoThermostatServer).systemMode;
+                    if (
+                        systemMode === MatterThermostat.SystemMode.Heat ||
+                        systemMode === MatterThermostat.SystemMode.Auto
+                    ) {
                         await this.#ioBrokerDevice.setLevel(value / 100);
                     }
                 },
@@ -301,7 +305,11 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                 this.#matterEndpointThermostat.eventsOf(IoThermostatServer).occupiedCoolingSetpoint$Changed,
                 // @ts-expect-error Workaround a matter.js instancing/typing error
                 async value => {
-                    if (this.#ioBrokerDevice.hasMode() && this.#ioBrokerDevice.getMode() === ThermostatMode.Cool) {
+                    const systemMode = this.#matterEndpointThermostat.stateOf(IoThermostatServer).systemMode;
+                    if (
+                        systemMode === MatterThermostat.SystemMode.Cool ||
+                        systemMode === MatterThermostat.SystemMode.Auto
+                    ) {
                         await this.#ioBrokerDevice.setLevel(value / 100);
                     }
                 },

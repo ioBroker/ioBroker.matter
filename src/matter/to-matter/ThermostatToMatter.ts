@@ -18,6 +18,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
     readonly #matterEndpointThermostat: Endpoint<ThermostatDevice>;
     readonly #matterEndpointHumidity?: Endpoint<HumiditySensorDevice>;
     #supportedModes = new Array<ThermostatMode>();
+    #validModes = new Array<ThermostatMode>();
 
     constructor(ioBrokerDevice: Thermostat, name: string, uuid: string) {
         super(name, uuid);
@@ -31,10 +32,12 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
             switch (mode) {
                 case ThermostatMode.Heat:
                     this.#supportedModes.push(ThermostatMode.Heat);
+                    this.#validModes.push(ThermostatMode.Heat);
                     clusterModes.push(MatterThermostat.Feature.Heating);
                     break;
                 case ThermostatMode.Cool:
                     this.#supportedModes.push(ThermostatMode.Cool);
+                    this.#validModes.push(ThermostatMode.Cool);
                     clusterModes.push(MatterThermostat.Feature.Cooling);
                     break;
                 case ThermostatMode.Auto:
@@ -42,12 +45,15 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                     break;
                 case ThermostatMode.Off:
                     this.#supportedModes.push(ThermostatMode.Off);
+                    this.#validModes.push(ThermostatMode.Off);
                     break;
                 case ThermostatMode.FanOnly:
                     this.#supportedModes.push(ThermostatMode.FanOnly);
+                    this.#validModes.push(ThermostatMode.FanOnly);
                     break;
                 case ThermostatMode.Dry:
                     this.#supportedModes.push(ThermostatMode.Dry);
+                    this.#validModes.push(ThermostatMode.Dry);
                     break;
                 default:
                     ignoredModes.push(mode);
@@ -60,6 +66,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
         ) {
             clusterModes.push(MatterThermostat.Feature.AutoMode);
             this.#supportedModes.push(ThermostatMode.Auto);
+            this.#validModes.push(ThermostatMode.Auto);
         } else {
             // Auto mode requires Heating and cooling to be supported too
             this.#ioBrokerDevice.adapter.log.info(
@@ -68,7 +75,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
         }
 
         if (
-            !clusterModes.includes(MatterThermostat.Feature.Heating) ||
+            !clusterModes.includes(MatterThermostat.Feature.Heating) &&
             !clusterModes.includes(MatterThermostat.Feature.Cooling)
         ) {
             // When no mode is there tell that it is a Heating thermostat
@@ -76,12 +83,19 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                 `${uuid}: Matter Thermostats need to either support heating or cooling. Defaulting to Heating`,
             );
             clusterModes.push(MatterThermostat.Feature.Heating);
+            this.#supportedModes.push(ThermostatMode.Heat);
         }
         if (ignoredModes.length > 0) {
             this.#ioBrokerDevice.adapter.log.info(
                 `${uuid}: Ignoring unsupported modes for Thermostat: ${ignoredModes.join(', ')}`,
             );
         }
+        this.#ioBrokerDevice.adapter.log.info(
+            `Mapped Thermostat Modes "${this.#supportedModes.join('","')}" to Matter Features "${clusterModes.map(feature => MatterThermostat.Feature[feature]).join('","')}"`,
+        );
+        this.#ioBrokerDevice.adapter.log.info(
+            `Valid Modes the adapter will react on from ioBroker Device: ${this.#validModes.length ? `"${this.#validModes.join('","')}"` : 'None, Mode state is ignored'}`,
+        );
 
         const hasHeating = clusterModes.includes(MatterThermostat.Feature.Heating);
         const hasCooling = clusterModes.includes(MatterThermostat.Feature.Cooling);
@@ -105,10 +119,10 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                     controlSequenceOfOperation:
                         hasHeating && hasCooling
                             ? MatterThermostat.ControlSequenceOfOperation.CoolingAndHeating
-                            : hasHeating
-                              ? MatterThermostat.ControlSequenceOfOperation.HeatingOnly
-                              : MatterThermostat.ControlSequenceOfOperation.CoolingOnly,
-                    minSetpointDeadBand: this.#supportedModes.includes(ThermostatMode.Auto) ? 0 : undefined,
+                            : hasCooling
+                              ? MatterThermostat.ControlSequenceOfOperation.CoolingOnly
+                              : MatterThermostat.ControlSequenceOfOperation.HeatingOnly,
+                    minSetpointDeadBand: clusterModes.includes(MatterThermostat.Feature.AutoMode) ? 0 : undefined,
                     absMinHeatSetpointLimit: hasHeating ? this.convertTemperatureValue(7) : undefined,
                     absMaxHeatSetpointLimit: hasHeating ? this.convertTemperatureValue(30) : undefined,
                     absMinCoolSetpointLimit: hasCooling ? this.convertTemperatureValue(16) : undefined,
@@ -145,6 +159,24 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
         return parseFloat((value / 100).toFixed(2));
     }
 
+    #mapModeToMatter(mode: ThermostatMode | undefined): MatterThermostat.SystemMode | undefined {
+        if (mode === undefined || !this.#validModes.includes(mode)) {
+            return;
+        }
+        switch (mode) {
+            case ThermostatMode.Heat:
+                return MatterThermostat.SystemMode.Heat;
+            case ThermostatMode.Cool:
+                return MatterThermostat.SystemMode.Cool;
+            case ThermostatMode.Auto:
+                return MatterThermostat.SystemMode.Auto;
+            case ThermostatMode.FanOnly:
+                return MatterThermostat.SystemMode.FanOnly;
+            case ThermostatMode.Dry:
+                return MatterThermostat.SystemMode.Dry;
+        }
+    }
+
     async registerHandlersAndInitialize(): Promise<void> {
         await super.registerHandlersAndInitialize();
 
@@ -154,31 +186,17 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                 ? MatterThermostat.SystemMode.Off
                 : undefined;
         if (systemMode === undefined && this.#ioBrokerDevice.hasMode()) {
-            const mode = this.#ioBrokerDevice.getMode();
-            if (mode && this.#supportedModes.includes(mode)) {
-                switch (this.#ioBrokerDevice.getMode()) {
-                    case ThermostatMode.Heat:
-                        systemMode = MatterThermostat.SystemMode.Heat;
-                        break;
-                    case ThermostatMode.Cool:
-                        systemMode = MatterThermostat.SystemMode.Cool;
-                        break;
-                    case ThermostatMode.Auto:
-                        systemMode = MatterThermostat.SystemMode.Auto;
-                        break;
-                    case ThermostatMode.FanOnly:
-                        systemMode = MatterThermostat.SystemMode.FanOnly;
-                        break;
-                    case ThermostatMode.Dry:
-                        systemMode = MatterThermostat.SystemMode.Dry;
-                        break;
-                }
-            }
+            systemMode = this.#mapModeToMatter(this.#ioBrokerDevice.getMode());
         }
         if (systemMode === undefined) {
             systemMode = this.#supportedModes.includes(ThermostatMode.Heat)
                 ? MatterThermostat.SystemMode.Heat
-                : MatterThermostat.SystemMode.Cool;
+                : this.#supportedModes.includes(ThermostatMode.Cool)
+                  ? MatterThermostat.SystemMode.Cool
+                  : undefined;
+            if (systemMode === undefined) {
+                this.#ioBrokerDevice.adapter.log.error(`${this.uuid}: Could not determine SystemMode`);
+            }
         }
         const controlSequenceOfOperation =
             this.#supportedModes.includes(ThermostatMode.Heat) && this.#supportedModes.includes(ThermostatMode.Cool)
@@ -222,7 +240,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                         await this.#ioBrokerDevice.setPower(false);
                         break;
                     case MatterThermostat.SystemMode.Heat: {
-                        if (this.#ioBrokerDevice.hasMode()) {
+                        if (this.#ioBrokerDevice.hasMode() && this.#validModes.includes(ThermostatMode.Heat)) {
                             await this.#ioBrokerDevice.setMode(ThermostatMode.Heat);
                         }
                         const heatingTemp =
@@ -234,7 +252,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                         break;
                     }
                     case MatterThermostat.SystemMode.Cool: {
-                        if (this.#ioBrokerDevice.hasMode()) {
+                        if (this.#ioBrokerDevice.hasMode() && this.#validModes.includes(ThermostatMode.Cool)) {
                             await this.#ioBrokerDevice.setMode(ThermostatMode.Cool);
                         }
                         const coolingTemp =
@@ -246,20 +264,17 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                         break;
                     }
                     case MatterThermostat.SystemMode.Auto:
-                        if (this.#ioBrokerDevice.hasMode()) {
+                        if (this.#ioBrokerDevice.hasMode() && this.#validModes.includes(ThermostatMode.Auto)) {
                             await this.#ioBrokerDevice.setMode(ThermostatMode.Auto);
                         }
                         break;
                     case MatterThermostat.SystemMode.FanOnly:
-                        if (
-                            this.#ioBrokerDevice.hasMode() &&
-                            this.#ioBrokerDevice.getMode() !== ThermostatMode.FanOnly
-                        ) {
+                        if (this.#ioBrokerDevice.hasMode() && this.#validModes.includes(ThermostatMode.FanOnly)) {
                             await this.#ioBrokerDevice.setMode(ThermostatMode.FanOnly);
                         }
                         break;
                     case MatterThermostat.SystemMode.Dry:
-                        if (this.#ioBrokerDevice.hasMode()) {
+                        if (this.#ioBrokerDevice.hasMode() && this.#validModes.includes(ThermostatMode.Dry)) {
                             await this.#ioBrokerDevice.setMode(ThermostatMode.Dry);
                         }
                         break;
@@ -328,26 +343,11 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                     let systemMode = event.value ? undefined : MatterThermostat.SystemMode.Off;
                     if (event.value && this.#ioBrokerDevice.hasMode()) {
                         const mode = this.#ioBrokerDevice.getMode();
-                        if (!mode || !this.#supportedModes.includes(mode)) {
+                        const mappedMode = this.#mapModeToMatter(mode);
+                        if (mappedMode == undefined) {
                             return;
                         }
-                        switch (mode) {
-                            case ThermostatMode.Heat:
-                                systemMode = MatterThermostat.SystemMode.Heat;
-                                break;
-                            case ThermostatMode.Cool:
-                                systemMode = MatterThermostat.SystemMode.Cool;
-                                break;
-                            case ThermostatMode.Auto:
-                                systemMode = MatterThermostat.SystemMode.Auto;
-                                break;
-                            case ThermostatMode.FanOnly:
-                                systemMode = MatterThermostat.SystemMode.FanOnly;
-                                break;
-                            case ThermostatMode.Dry:
-                                systemMode = MatterThermostat.SystemMode.Dry;
-                                break;
-                        }
+                        systemMode = mappedMode;
                     }
                     if (systemMode !== undefined) {
                         await this.#matterEndpointThermostat.setStateOf(IoThermostatServer, {
@@ -361,31 +361,12 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                         // it is turned off, so do not report any mode changes
                         return;
                     }
-                    if (!this.#supportedModes.includes(event.value as ThermostatMode)) {
+                    if (!this.#validModes.length) {
                         return;
                     }
-                    let systemMode: MatterThermostat.SystemMode;
-                    switch (event.value) {
-                        case ThermostatMode.Heat:
-                            systemMode = MatterThermostat.SystemMode.Heat;
-                            break;
-                        case ThermostatMode.Cool:
-                            systemMode = MatterThermostat.SystemMode.Cool;
-                            break;
-                        case ThermostatMode.Off:
-                            systemMode = MatterThermostat.SystemMode.Off;
-                            break;
-                        case ThermostatMode.Auto:
-                            systemMode = MatterThermostat.SystemMode.Auto;
-                            break;
-                        case ThermostatMode.FanOnly:
-                            systemMode = MatterThermostat.SystemMode.FanOnly;
-                            break;
-                        case ThermostatMode.Dry:
-                            systemMode = MatterThermostat.SystemMode.Dry;
-                            break;
-                        default:
-                            return;
+                    const systemMode = this.#mapModeToMatter(event.value as ThermostatMode);
+                    if (systemMode === undefined) {
+                        return;
                     }
                     await this.#matterEndpointThermostat.setStateOf(IoThermostatServer, {
                         systemMode,

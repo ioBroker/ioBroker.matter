@@ -129,7 +129,7 @@ export class WindowCoveringToIoBroker extends GenericElectricityDataDeviceToIoBr
                     this.updateWorkingStateForLift(value).catch(e =>
                         this.ioBrokerDevice.adapter.log.error(`Failed to update working state: ${e}`),
                     );
-                    return Math.round(value / 100);
+                    return 100 - Math.round(value / 100);
                 },
                 changeHandler: async value => {
                     if (
@@ -138,7 +138,7 @@ export class WindowCoveringToIoBroker extends GenericElectricityDataDeviceToIoBr
                         throw new Error('Position aware lift not supported. Can not set lift target percentage');
                     }
                     await this.appEndpoint.getClusterClient(WindowCovering.Complete)?.goToLiftPercentage({
-                        liftPercent100thsValue: Math.round(value * 100),
+                        liftPercent100thsValue: Math.round(100 - value) * 100,
                     });
                 },
             });
@@ -146,7 +146,7 @@ export class WindowCoveringToIoBroker extends GenericElectricityDataDeviceToIoBr
                 endpointId: this.appEndpoint.getNumber(),
                 clusterId: WindowCovering.Cluster.id,
                 attributeName: 'currentPositionLiftPercent100ths',
-                convertValue: value => Math.round(value / 100),
+                convertValue: value => 100 - Math.round(value / 100),
             });
 
             this.enableDeviceTypeStateForAttribute(PropertyType.Stop, {
@@ -184,7 +184,7 @@ export class WindowCoveringToIoBroker extends GenericElectricityDataDeviceToIoBr
                     this.updateWorkingStateForTilt(value).catch(e =>
                         this.ioBrokerDevice.adapter.log.error(`Failed to update working state: ${e}`),
                     );
-                    return Math.round(value / 100);
+                    return 100 - Math.round(value / 100);
                 },
                 changeHandler: async value => {
                     if (
@@ -193,7 +193,7 @@ export class WindowCoveringToIoBroker extends GenericElectricityDataDeviceToIoBr
                         throw new Error('Position aware tilt not supported. Can not set tilt target percentage');
                     }
                     await this.appEndpoint.getClusterClient(WindowCovering.Complete)?.goToTiltPercentage({
-                        tiltPercent100thsValue: Math.round(value * 100),
+                        tiltPercent100thsValue: Math.round(100 - value) * 100,
                     });
                 },
             });
@@ -201,7 +201,7 @@ export class WindowCoveringToIoBroker extends GenericElectricityDataDeviceToIoBr
                 endpointId: this.appEndpoint.getNumber(),
                 clusterId: WindowCovering.Cluster.id,
                 attributeName: 'currentPositionTiltPercent100ths',
-                convertValue: value => Math.round(value / 100),
+                convertValue: value => 100 - Math.round(value / 100),
             });
         }
 

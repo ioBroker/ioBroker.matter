@@ -76,7 +76,7 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 -->
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 0.4.6 (2025-01-25)
 * (@GermanBluefox) Optimized UI
 * (@GermanBluefox) Added user feedback when device or bridged device is identified
 * (@Apollon77) Fixes Thermostat logic for devices

@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.4.5",
+    "version": "0.4.6",
     "news": {
+      "0.4.6": {
+        "en": "Optimized UI\nAdded user feedback when device or bridged device is identified\nFixes Thermostat logic for devices\nEnsures information are pushed to the UI when devices are in an error state",
+        "de": "Optimierte UI\nBenutzerfeedback hinzugefügt, wenn Gerät oder überbrücktes Gerät identifiziert wird\nFixes Thermostat-Logik für Geräte\nStellt sicher, dass Informationen auf das UI geschoben werden, wenn Geräte in einem Fehlerzustand sind",
+        "ru": "Оптимизированный UI\nДобавить обратную связь пользователя при идентификации устройства или мостового устройства\nЛогика Fixes Thermostat для устройств\nУбедитесь, что информация отталкивается в пользовательский интерфейс, когда устройства находятся в состоянии ошибки",
+        "pt": "IU otimizada\nAdicionado feedback do usuário quando dispositivo ou dispositivo ponte é identificado\nCorrige a lógica termostato para dispositivos\nAssegura que as informações são empurradas para a interface do usuário quando os dispositivos estão em um estado de erro",
+        "nl": "Geoptimaliseerde UI\nToegevoegde gebruikersfeedback wanneer apparaat of apparaat is geïdentificeerd\nFixes Thermostat logica voor apparaten\nZorgt ervoor dat informatie naar de UI wordt geduwd wanneer de apparaten in een fouttoestand verkeren",
+        "fr": "UI optimisé\nAjout de la rétroaction de l'utilisateur lorsque l'appareil est identifié\nCorrection de la logique thermostat pour les appareils\nS'assure que l'information est envoyée à l'interface utilisateur lorsque les appareils sont dans un état d'erreur",
+        "it": "UI ottimizzato\nFeedback utente aggiunto quando dispositivo o dispositivo pontificato è identificato\nFissa la logica del termostato per i dispositivi\nAssicura che le informazioni siano spinte all'interfaccia utente quando i dispositivi sono in stato di errore",
+        "es": "UI optimizada\nComentarios del usuario cuando se identifica el dispositivo o dispositivo puente\nFija la lógica termostato para dispositivos\nAsegura que la información sea empujada a la UI cuando los dispositivos están en estado de error",
+        "pl": "Zoptymalizowany interfejs użytkownika\nDodano sprzężenie zwrotne użytkownika przy identyfikacji urządzenia lub urządzenia pomostowego\nFixes Termostat logika dla urządzeń\nZapewnia wciśnięcie informacji do interfejsu użytkownika, gdy urządzenia znajdują się w stanie błędu",
+        "uk": "Оптимізований UI\nДодано зворотний зв'язок користувача при підключенні пристрою або мостового пристрою\nФіксує логіку термостату для пристроїв\nЗабезпечує інформацію про UI, коли пристрої знаходяться в стані помилки",
+        "zh-cn": "优化 UI\n识别设备或桥梁设备时添加用户反馈\n修正设备的自动调温逻辑\n确保设备处于错误状态时将信息推向 UI"
+      },
       "0.4.5": {
         "en": "Fixed Thermostat initialization logic and added more logging\nFixed WindowCovering level to match ioBroker definition\nUpdated matter.js for further optimizations",
         "de": "Fixed Thermostat Initialisierungslogik und hinzugefügt mehr Protokollierung\nFeste Fenster Erfassungsebene zur ioBroker-Definition\nAktualisierte matter.js für weitere Optimierungen",
@@ -80,19 +93,6 @@
         "pl": "Państwa \"SET\" nie są już aktualizowane, gdy obecne są rzeczywiste państwa i są aktualizowane!\nInicjuje stany również z \"ack = false\" stanów, ponieważ lepsze niż brak wartości początkowych\nDodano obsługę urządzenia do pokrywania okien (Blinds, Blindbottles), kolorowych świateł (Ci, Hie, Rgb, Rgbw, RgbSingle, RgbwSingle) i termostatów\nUpewnia się, że śledzenie wartości stanu również po wyłączeniu i aktualizacji stanu do Matter po włączeniu ponownie\nZapewnia również subskrybowanie tylko stanów dla przypadków kontrolera\nEksponuje tylko pozostałe atrybuty procentowe baterii, gdy wartość jest obecna\nPoprawiony wyświetlacz błędów i wciśnięcie do interfejsu użytkownika w przypadku błędów inicjalizacyjnych urządzeń okrągłych\nDodano wartość RSSI także dla urządzeń z gwintem\nZoptymalizowane i naprawione wiele rzeczy",
         "uk": "\"SET\" штати не оновлено, коли Актуальні держави присутні і отримуються!\nІніціалізація станів також з станами «не=false», оскільки краще, ніж початкові значення\nДодана підтримка пристроїв для віконних покриттів (Блінди, Бліндбуттони), кольорові ліхтарі (див., Хі, Rgb, Rgbw, RgbSingle, RgbwSingle) і термостати\nМи впевнені, що відстеження державних значень також при вимкненні та оновленні стану до Маттера, коли знову ввімкнено\nОбов'язково підпишіться на письмові стани для випадків контролера\nВідсотковий атрибут акумулятора, коли значення присутній\nВиправлено помилку відображення та відштовхування до UI у разі помилки ініціалізації мостових пристроїв\nДодано значення RSSI також для пристроїв Thread\nОптимізований і фіксований кілька речей",
         "zh-cn": "\"SET\"状态在实际状态出现并更新时不再更新!!\n初始化状态还有“ ack=false” 状态, 因为比没有初始值更好\n添加了窗口覆盖( Blinds, Blindbutton), 彩灯( Cie, Hie, Rgb, Rgb, Rgbw, RgbSingle, RgbwSingle) 和热灯的设备支持\n在禁用时确保跟踪状态值, 在再次启用时将状态更新为物质\n确保同时订阅只写入控制器的状态\n仅在值存在时披露剩余电池百分比属性\n校正错误显示, 并在桥设备初始化错误时向 UI 推进\n对线索设备也添加了 RSSI 值\n优化和固定多种事物"
-      },
-      "0.3.7": {
-        "en": "Showed the device name in paring dialog\nAdjusts connection type icons\nOptimized the discovery dialog handling\nFixed Thermostat for Controller to update temperatures\nGives Energy sensors a dedicated icon\nOptimized an fixed multiple things",
-        "de": "Zeigt den Gerätenamen im Paring-Dialog\nPasst Verbindungstyp-Symbole an\nOptimiert die Erkennungsdialog-Behandlung\nThermostat für Controller, um Temperaturen zu aktualisieren\nGibt Energiesensoren ein eigenes Icon\nOptimiert ein festes Vielfaches",
-        "ru": "Показано имя устройства в диалоге парирования\nНастройка иконок типа подключения\nОптимизация диалогового режима обнаружения\nИсправленный термостат для контроллера для обновления температуры\nДает энергетическим датчикам выделенную икону\nОптимизация фиксированных нескольких вещей",
-        "pt": "Mostrou o nome do dispositivo na caixa de diálogo de análise\nAjusta ícones do tipo de conexão\nOtimizado o manuseio de diálogo de descoberta\nTermóstato Fixo para Controlador para atualizar temperaturas\nDá aos sensores de energia um ícone dedicado\nOtimizou várias coisas fixas",
-        "nl": "De naam van het apparaat tonen in het dialoogvenster\nPast verbindingstype pictogrammen aan\nOptimaliseerde de ontdekkingsdialoog\nVaste thermostaat voor controller om temperaturen bij te werken\nGeeft energiesensoren een speciaal pictogram\nOptimaliseerde een vaste meerdere dingen",
-        "fr": "Affiche le nom du périphérique dans la boîte de dialogue d'analyse\nAjuste les icônes du type de connexion\nOptimisé la gestion du dialogue de découverte\nThermostat fixe pour contrôleur pour mettre à jour les températures\nDonne aux capteurs d'énergie une icône dédiée\nOptimisé un multiple de choses fixes",
-        "it": "Mostrato il nome del dispositivo nella finestra di dialogo di paring\nRegola le icone del tipo di connessione\nOttimizzato la gestione della finestra di dialogo scoperta\nTermostato fisso per controller per aggiornare le temperature\nFornisce ai sensori Energy un'icona dedicata\nOttimizzato un fisso più cose",
-        "es": "Muestra el nombre del dispositivo en el cuadro de diálogo de paring\nAjuste los iconos de tipo de conexión\nOptimizado el manejo del diálogo de descubrimiento\nTermostato fijo para controlador para actualizar temperaturas\nDa sensores de energía un icono dedicado\nOptimizado unas múltiples cosas fijas",
-        "pl": "Pokazał nazwę urządzenia w oknie dialogowym parowania\nDostosuje ikony typu połączenia\nOptymalizacja obsługi okna dialogowego wyszukiwania\nTermostat stały dla kontrolera do aktualizacji temperatury\nDaje czujnikom energii dedykowaną ikonę\nZoptymalizowane stałe wiele rzeczy",
-        "uk": "Показати назву пристрою в діалоговому вікні\nРегульовані іконки типу з'єднання\nОптимізовано діалогове вікно відкриття\nФіксований термостат для контролера для оновлення температур\nПодарує датчикам енергії виділену іконку\nОптимізований фіксований кілька речей",
-        "zh-cn": "在剖析对话框中显示设备名称\n调整连接类型图标\n优化发现对话框处理\n供控制员更新温度的固定自动调温器\n给能量传感器一个专用图标\n优化固定的多件东西"
       }
     },
     "titleLang": {

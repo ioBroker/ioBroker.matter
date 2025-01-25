@@ -125,7 +125,6 @@
     "authors": [
       "Denis Haev <dogafox@gmail.com>"
     ],
-    "license": "Apache-2.0",
     "platform": "Javascript/Node.js",
     "mode": "daemon",
     "nogit": true,

@@ -1,4 +1,4 @@
-![Logo](admin/matter.png)
+![Logo](admin/matter.svg)
 # ioBroker Matter Adapter
 
 ![Number of Installations](http://iobroker.live/badges/matter-installed.svg)

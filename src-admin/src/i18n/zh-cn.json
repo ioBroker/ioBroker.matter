@@ -89,6 +89,7 @@
     "General": "一般的",
     "Generate new pairing code": "生成新的配对码",
     "Hide unsupported devices": "隐藏不支持的设备",
+    "Identifying device %s": "正在识别设备 \"%s\"",
     "If your device has more then one active network interface and you have issues try limiting it to one interface": "如果您的设备具有多个活动网络接口并且您遇到问题，请尝试将其限制为一个接口。",
     "Info about Alexa Bridge": "请注意：由于 Amazon Alexa 系统的限制，每个 ioBroker 主机只能将一个桥接器或设备与 Alexa 配对！此选择决定哪个桥接器将与 Alexa 系统配对。",
     "Instance is not alive": "实例不存在",

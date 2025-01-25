@@ -89,6 +89,7 @@
     "General": "Основные",
     "Generate new pairing code": "Создать новый код сопряжения",
     "Hide unsupported devices": "Скрыть неподдерживаемые устройства",
+    "Identifying device %s": "Идентификация устройства \"%s\"",
     "If your device has more then one active network interface and you have issues try limiting it to one interface": "Если на вашем устройстве имеется более одного активного сетевого интерфейса и у вас возникли проблемы, попробуйте ограничить его одним интерфейсом.",
     "Info about Alexa Bridge": "Обратите внимание: из-за ограничений системы Amazon Alexa, только один мост или устройство может быть сопряжено с Alexa на один хост ioBroker! Этот выбор определяет, какой мост будет сопряжен с системой Alexa.",
     "Instance is not alive": "Экземпляр не выполняется",

@@ -89,6 +89,7 @@
     "General": "Algemeen",
     "Generate new pairing code": "Genereer een nieuwe koppelingscode",
     "Hide unsupported devices": "Verberg niet-ondersteunde apparaten",
+    "Identifying device %s": "Identificatie apparaat \"%s\"",
     "If your device has more then one active network interface and you have issues try limiting it to one interface": "Als uw apparaat meer dan één actieve netwerkinterface heeft en u problemen ondervindt, probeer het dan te beperken tot één interface.",
     "Info about Alexa Bridge": "Let op: Vanwege beperkingen van het Amazon Alexa-systeem kan er slechts één bridge of apparaat worden gekoppeld aan Alexa per ioBroker-host! Deze selectie bepaalt welke bridge wordt gekoppeld aan het Alexa-systeem.",
     "Instance is not alive": "Instantie is niet levend",

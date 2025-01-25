@@ -683,6 +683,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
             <TableRow
                 key={index}
                 style={{ opacity: device.enabled ? 1 : 0.4, position: 'relative' }}
+                sx={this.getBlinkingSx(device.uuid)}
             >
                 <TableCell>
                     {this.renderProcessOverlay(device.uuid, device.deleted)}

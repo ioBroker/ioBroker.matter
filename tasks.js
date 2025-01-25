@@ -2,7 +2,7 @@ const { existsSync, copyFileSync, readFileSync, statSync, writeFileSync } = requ
 const { deleteFoldersRecursive, copyFiles, npmInstall, buildReact, patchHtmlFile } = require('@iobroker/build-tools');
 
 function clean() {
-    deleteFoldersRecursive(`${__dirname}/admin`, ['matter.png']);
+    deleteFoldersRecursive(`${__dirname}/admin`, ['matter.png', 'matter.svg']);
     deleteFoldersRecursive(`${__dirname}/src-admin/build`);
 }
 

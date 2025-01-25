@@ -152,6 +152,7 @@ export abstract class BaseServerNode implements GeneralNode {
                         schema: convertDataToJsonConfig(this.getDeviceDetails(message)),
                         options: {
                             maxWidth: 'md',
+                            minWidth: 610,
                             data: {},
                             title: `${this.type === 'bridges' && !('bridgedDeviceUuid' in message) ? 'Bridge' : 'Device'} Detail information`,
                             buttons: ['close'],

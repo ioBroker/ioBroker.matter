@@ -193,8 +193,8 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             connectionType,
             hasDetails: true,
             actions: actions.length ? (actions as DeviceAction<'adapter'>[]) : undefined,
-            color,
-            headerTextColor: '#002346',
+            backgroundColor: color,
+            color: '#002346',
             group: {
                 key: 'node',
                 name: this.#adapter.getText('Node'),
@@ -244,7 +244,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             name: device.name,
             icon,
             ...nodeDetails,
-            color,
+            backgroundColor: color,
             status: await device.getStatus({
                 connection: nodeConnected ? 'connected' : 'disconnected',
             }),
@@ -488,6 +488,11 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 maxWidth: 'md',
                 title: this.#adapter.getText('Debug Infos'),
                 buttons: [
+                    {
+                        type: 'copyToClipboard',
+                        label: this.#adapter.getText('Copy to clipboard'),
+                        copyToClipboardAttr: 'debugInfos',
+                    },
                     {
                         type: 'cancel',
                         label: this.#adapter.getText('Close'),

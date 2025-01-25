@@ -42,7 +42,7 @@ import {
     Tooltip,
 } from '@mui/material';
 
-import { I18n, SelectID, type IobTheme, IconDeviceType } from '@iobroker/adapter-react-v5';
+import { I18n, SelectID, type IobTheme, IconDeviceType, Utils } from '@iobroker/adapter-react-v5';
 
 import InfoBox from '../components/InfoBox';
 import DeviceDialog, { SUPPORTED_DEVICES } from '../components/DeviceDialog';
@@ -1231,6 +1231,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
             <TableRow
                 key={devIndex}
                 style={{ opacity: device.enabled && bridge.enabled ? 1 : 0.4 }}
+                sx={this.getBlinkingSx(device.uuid)}
             >
                 <TableCell style={{ border: 0, borderBottomLeftRadius: isLast ? 4 : 0 }} />
                 <TableCell>
@@ -1364,7 +1365,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
             <React.Fragment key={bridgeIndex}>
                 <TableRow
                     style={{ opacity: bridge.enabled ? 1 : 0.4, position: 'relative' }}
-                    sx={styles.bridgeButtonsAndTitle}
+                    sx={Utils.getStyle(this.props.theme, styles.bridgeButtonsAndTitle, this.getBlinkingSx(bridge.uuid))}
                 >
                     <TableCell
                         style={{
@@ -1378,7 +1379,8 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         <IconButton
                             size="small"
                             sx={styles.bridgeButtonsAndTitleColor}
-                            onClick={() => {
+                            onClick={e => {
+                                e.stopPropagation();
                                 const bridgesOpened = clone(this.state.bridgesOpened);
                                 bridgesOpened[bridgeIndex] = !bridgesOpened[bridgeIndex];
                                 window.localStorage.setItem(
@@ -1394,7 +1396,8 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     <TableCell
                         style={styles.bridgeHeader}
                         sx={styles.bridgeButtonsAndTitle}
-                        onClick={() => {
+                        onClick={e => {
+                            e.stopPropagation();
                             const bridgesOpened = clone(this.state.bridgesOpened);
                             bridgesOpened[bridgeIndex] = !bridgesOpened[bridgeIndex];
                             window.localStorage.setItem(

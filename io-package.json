@@ -125,13 +125,12 @@
     "authors": [
       "Denis Haev <dogafox@gmail.com>"
     ],
-    "license": "Apache-2.0",
     "platform": "Javascript/Node.js",
     "mode": "daemon",
     "nogit": true,
     "loglevel": "info",
     "readme": "https://github.com/ioBroker/ioBroker.matter/blob/master/README.md",
-    "icon": "matter.png",
+    "icon": "matter.svg",
     "connectionType": "local",
     "dataSource": "push",
     "adminTab": {
@@ -152,7 +151,7 @@
     "enabled": true,
     "compact": false,
     "singletonHost": true,
-    "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.matter/master/admin/matter.png",
+    "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.matter/master/admin/matter.svg",
     "type": "iot-systems",
     "messagebox": true,
     "plugins": {

@@ -89,6 +89,7 @@
     "General": "Em geral",
     "Generate new pairing code": "Gerar novo código de pareamento",
     "Hide unsupported devices": "Ocultar dispositivos não suportados",
+    "Identifying device %s": "Identificando o dispositivo \"%s\"",
     "If your device has more then one active network interface and you have issues try limiting it to one interface": "Se o seu dispositivo tiver mais de uma interface de rede ativa e você tiver problemas, tente limitá-lo a uma interface.",
     "Info about Alexa Bridge": "Observação: devido às limitações do sistema Amazon Alexa, apenas uma ponte ou dispositivo pode ser pareado com Alexa por host ioBroker! Esta seleção determina qual ponte será pareada com o sistema Alexa.",
     "Instance is not alive": "A instância não está viva",

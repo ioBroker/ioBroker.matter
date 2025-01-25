@@ -89,6 +89,7 @@
     "General": "Загальний",
     "Generate new pairing code": "Створіть новий код сполучення",
     "Hide unsupported devices": "Приховати непідтримувані пристрої",
+    "Identifying device %s": "Ідентифікація пристрою \"%s\"",
     "If your device has more then one active network interface and you have issues try limiting it to one interface": "Якщо ваш пристрій має більше ніж один активний мережевий інтерфейс і у вас є проблеми, спробуйте обмежити його одним інтерфейсом.",
     "Info about Alexa Bridge": "Будь ласка, зверніть увагу: через обмеження системи Amazon Alexa лише один міст або пристрій можна поєднати з Alexa на одному хості ioBroker! Цей вибір визначає, який міст буде сполучено з системою Alexa.",
     "Instance is not alive": "Примірник не живий",

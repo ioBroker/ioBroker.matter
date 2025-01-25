@@ -1379,7 +1379,8 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         <IconButton
                             size="small"
                             sx={styles.bridgeButtonsAndTitleColor}
-                            onClick={() => {
+                            onClick={e => {
+                                e.stopPropagation();
                                 const bridgesOpened = clone(this.state.bridgesOpened);
                                 bridgesOpened[bridgeIndex] = !bridgesOpened[bridgeIndex];
                                 window.localStorage.setItem(
@@ -1395,7 +1396,8 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     <TableCell
                         style={styles.bridgeHeader}
                         sx={styles.bridgeButtonsAndTitle}
-                        onClick={() => {
+                        onClick={e => {
+                            e.stopPropagation();
                             const bridgesOpened = clone(this.state.bridgesOpened);
                             bridgesOpened[bridgeIndex] = !bridgesOpened[bridgeIndex];
                             window.localStorage.setItem(

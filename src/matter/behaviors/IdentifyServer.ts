@@ -58,10 +58,14 @@ export class IoIdentifyServer extends IdentifyServer {
         if (startToIdentify) {
             // push info to UI and show popup, ideally get the name from the device
             //  or when using uuid be aware it could also be a bridged uuid
-            void this.internal.adapter.sendToGui({
-                command: 'identifyPopup',
-                identifyUuid: this.internal.device.uuid,
-            });
+            this.internal.adapter
+                .sendToGui({
+                    command: 'identifyPopup',
+                    identifyUuid: this.internal.device.uuid,
+                })
+                .catch(e => {
+                    this.internal.adapter.log.info(`Error sending identifyPopup: ${e.message}`);
+                });
             this.internal.adapter.log.info(`Identify started for ${this.internal.device.uuid}`);
         } else {
             this.internal.adapter.log.info(`Identify continues for ${this.internal.device.uuid}`);

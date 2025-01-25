@@ -338,7 +338,8 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
             >
                 <IconButton
                     style={{ height: 40, color: this.isDevice ? undefined : '#FFFFFF' }}
-                    onClick={() => {
+                    onClick={e => {
+                        e.stopPropagation();
                         this.reAnnounceDevice(deviceOrBridge.uuid).catch(e => window.alert(`Cannot re-announce: ${e}`));
                         this.setState({ showQrCode: deviceOrBridge });
                     }}
@@ -372,7 +373,10 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                                   : '#00000080'
                               : '#FFFFFF',
                     }}
-                    onClick={e => this.requestAdditionalInformation(e, deviceOrBridge.uuid)}
+                    onClick={e => {
+                        e.stopPropagation();
+                        this.requestAdditionalInformation(e, deviceOrBridge.uuid);
+                    }}
                 >
                     {hasError ? <Warning /> : <Info />}
                 </IconButton>

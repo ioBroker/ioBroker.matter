@@ -1,6 +1,6 @@
 {
     "name": "iobroker.matter",
-    "version": "0.4.4",
+    "version": "0.4.5",
     "private": true,
     "optionalDependencies": {
         "@rollup/rollup-linux-x64-gnu": "*"

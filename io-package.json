@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.4.4",
+    "version": "0.4.5",
     "news": {
+      "0.4.5": {
+        "en": "Fixed Thermostat initialization logic and added more logging\nFixed WindowCovering level to match ioBroker definition\nUpdated matter.js for further optimizations",
+        "de": "Fixed Thermostat Initialisierungslogik und hinzugefügt mehr Protokollierung\nFeste Fenster Erfassungsebene zur ioBroker-Definition\nAktualisierte matter.js für weitere Optimierungen",
+        "ru": "Исправлена логика инициализации Thermostat и добавлена больше блогов\nФиксированное окно Уровень охвата соответствует определению ioBroker\nUpdated matter.js для дальнейшей оптимизации",
+        "pt": "Lógica de inicialização do termostato fixo e adicionou mais log\nJanela fixa Nível de cobertura para corresponder a definição ioBroker\nAtualizado matter.js para mais otimizações",
+        "nl": "Vaste thermostat initialisatie logica en toegevoegd meer logging\nVast venster Dekkingsniveau van ioBroker-definitie\nBijgewerkte materie.js voor verdere optimalisaties",
+        "fr": "Logique d'initialisation de Thermostat fixe et ajout de l'enregistrement\nFenêtre fixe Niveau de couverture correspondant à la définition ioBroker\nMatière mise à jour.js pour d'autres optimisations",
+        "it": "Fisso Termostato inizializzazione logica e aggiunto più logging\nFinestra fissa Livello di copertura per corrispondere la definizione di ioBroker\nQuestion.js aggiornato per ulteriori ottimizzazioni",
+        "es": "Lógica de inicialización del termostato fijo y agrega más logging\nVentana fija Nivel de cobertura para igualar la definición de ioBroker\nActualizado matter.js para nuevas optimizaciones",
+        "pl": "Naprawiono logikę inicjalizacji termostatu i dodano więcej logowania\nNaprawiono okno Poziom pokrycia odpowiadający definicji joBrokera\nAktualizacja mater.js dla dalszych optymalizacji",
+        "uk": "Фіксована логіка для ініціалізації термостату та додано більше\nФіксоване вікно Рівень покриття для визначення ioBroker\nОновлена справа.js для подальших оптимізації",
+        "zh-cn": "固定热源初始化逻辑并添加更多记录\n固定窗口 覆盖级别以匹配ioBroker定义\n更新事项.js供进一步优化"
+      },
       "0.4.4": {
         "en": "Added OPEN state for all Door Locks to open door again\nFixed Thermostat initialization when no AUTO mode is supported\nEnhanced Enum state display in UI",
         "de": "OPEN Zustand für alle Türschlösser hinzugefügt, um die Tür wieder zu öffnen\nFixed Thermostat Initialisierung, wenn kein AUTO-Modus unterstützt wird\nVerbesserte Enum-Zustandsanzeige in UI",
@@ -80,19 +93,6 @@
         "pl": "Pokazał nazwę urządzenia w oknie dialogowym parowania\nDostosuje ikony typu połączenia\nOptymalizacja obsługi okna dialogowego wyszukiwania\nTermostat stały dla kontrolera do aktualizacji temperatury\nDaje czujnikom energii dedykowaną ikonę\nZoptymalizowane stałe wiele rzeczy",
         "uk": "Показати назву пристрою в діалоговому вікні\nРегульовані іконки типу з'єднання\nОптимізовано діалогове вікно відкриття\nФіксований термостат для контролера для оновлення температур\nПодарує датчикам енергії виділену іконку\nОптимізований фіксований кілька речей",
         "zh-cn": "在剖析对话框中显示设备名称\n调整连接类型图标\n优化发现对话框处理\n供控制员更新温度的固定自动调温器\n给能量传感器一个专用图标\n优化固定的多件东西"
-      },
-      "0.3.6": {
-        "en": "Fixed GUI errors\nAdded possibility to enable/disable controlled nodes\nAdded Information on battery and rssi for DM tile\nAdded controller support for Color Lights, Speaker, Thermostats and Window coverings\nOptimized an fixed multiple things",
-        "de": "Fehler behoben\nZusätzliche Möglichkeit, gesteuerte Knoten zu aktivieren / zu deaktivieren\nZusatzinformationen zu Batterie und Rssi für DM-Fliese\nUnterstützung für Farblichter, Lautsprecher, Thermostate und Fensterverkleidungen\nOptimiert ein festes Vielfaches",
-        "ru": "Исправленные ошибки GUI\nДобавить возможность включения/отключения управляемых узлов\nДобавлена информация о батареях и rssi для DM плитки\nДобавлена поддержка контроллера для цветовых фонарей, спикеров, термостатов и оконных покрытий\nОптимизация фиксированных нескольких вещей",
-        "pt": "Corrigido erros GUI\nAdicionado possibilidade de permitir/desativar nós controlados\nInformaÃ§Ãμes adicionais sobre a bateria e rssi para a telha DM\nAdicionado suporte ao controlador para luzes de cor, alto-falante, termostatos e coberturas de janela\nOtimizou várias coisas fixas",
-        "nl": "Vaste GUI-fouten\nToegevoegde mogelijkheid om gecontroleerde knooppunten in/uit te schakelen\nToegevoegd Informatie over batterij en rssi voor DM tegel\nToegevoegde controller ondersteuning voor kleurenverlichting, luidspreker, thermostaat en raambekleding\nOptimaliseerde een vaste meerdere dingen",
-        "fr": "Erreurs d'interface graphique corrigées\nPossibilité d'activer/désactiver les nœuds contrôlés\nAjout d'informations sur la batterie et rssi pour la tuile DM\nAjout de la prise en charge des contrôleurs pour les lumières de couleur, le haut-parleur, les thermostats et les revêtements de fenêtres\nOptimisé un multiple de choses fixes",
-        "it": "Corretti errori GUI\nAggiunta possibilità di abilitare/disabilitare nodi controllati\nInformazioni aggiuntive su batteria e rssi per piastrella DM\nAggiunto supporto del controller per luci di colore, altoparlante, termostati e rivestimenti della finestra\nOttimizzato un fisso più cose",
-        "es": "Errores de GUI fijos\nPosibilidad de habilitar o deshabilitar los nodos controlados\nInformación adicional sobre la batería y rssi para la baldosa DM\nSoporte de controlador añadido para luces de color, altavoz, termostatos y cubiertas de ventana\nOptimizado unas múltiples cosas fijas",
-        "pl": "Naprawiono błędy GUI\nDodano możliwość włączenia / wyłączenia sterowanych węzłów\nDodano informacje na temat baterii i rssi dla płytek DM\nDodano obsługę kontrolera dla kolorowych świateł, głośników, termostatów i pokryć okiennych\nZoptymalizowane stałe wiele rzeczy",
-        "uk": "Виправлені помилки інтерфейсу\nДодана можливість увімкнути / вимкнути керовані вузли\nДодано інформацію про акумулятор і rssi для плитки DM\nДодано підтримку контролера для кольорових світильників, спікерів, термостатів та віконних покриттів\nОптимізований фіксований кілька речей",
-        "zh-cn": "固定图形用户界面错误\n添加启用/ 失效控制节点的可能性\n为DM瓦增加电池和rssi信息\n添加色彩灯、 扬声器、 自动调温器和窗口覆盖的控制器支持\n优化固定的多件东西"
       }
     },
     "title": "Matter",

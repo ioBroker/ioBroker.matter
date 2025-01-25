@@ -76,6 +76,12 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (@Apollon77) Added debouncing when controllers change temperature value to makle sure not to overload the device
+* (@Apollon77) Added support for step and use 0.5 for Setpoint temperatures
+* (@Apollon77) Added support fur Hue lights without saturation state
+
 ### 0.4.6 (2025-01-25)
 * (@GermanBluefox) Optimized UI
 * (@GermanBluefox) Added user feedback when device or bridged device is identified

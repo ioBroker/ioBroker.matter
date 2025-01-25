@@ -66,8 +66,9 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
     #colorAsXy(): { x: number; y: number } {
         if (this.#ioBrokerDevice instanceof Hue) {
             const h = this.#ioBrokerDevice.getHue() ?? 0;
-            const s = (this.#ioBrokerDevice.getSaturation() ?? 100) / 100;
-            const v = this.#ioBrokerDevice.hasDimmer() ? (this.#ioBrokerDevice.getLevel() ?? 100) / 100 : 1;
+            const s =
+                (this.#ioBrokerDevice.hasSaturation() ? (this.#ioBrokerDevice.getSaturation() ?? 100) : 100) / 100;
+            const v = this.#ioBrokerDevice.hasDimmer() ? (this.#ioBrokerDevice.getDimmer() ?? 100) / 100 : 1;
             const [r, g, b] = hsvToRgb(h, s, v);
             const [x, y] = rgbToXy(r, g, b);
             return {
@@ -90,8 +91,8 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
     #colorAsHsv(): { h: number; s: number; v: number } {
         if (this.#ioBrokerDevice instanceof Hue) {
             const h = this.#ioBrokerDevice.getHue() ?? 0;
-            const s = this.#ioBrokerDevice.getSaturation() ?? 100;
-            const v = this.#ioBrokerDevice.hasDimmer() ? (this.#ioBrokerDevice.getLevel() ?? 100) : 100;
+            const s = this.#ioBrokerDevice.hasSaturation() ? (this.#ioBrokerDevice.getSaturation() ?? 100) : 100;
+            const v = this.#ioBrokerDevice.hasDimmer() ? (this.#ioBrokerDevice.getDimmer() ?? 100) : 100;
             return { h, s, v };
         }
 
@@ -242,8 +243,12 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                     const [r, g, b] = xyToRgb(x, y);
                     const [h, s, v] = rgbToHsv(r, g, b);
                     await this.#ioBrokerDevice.setHue(h);
-                    await this.#ioBrokerDevice.setSaturation(Math.round(s * 100));
-                    await this.#ioBrokerDevice.setLevel(Math.round(v * 100));
+                    if (this.#ioBrokerDevice.hasSaturation()) {
+                        await this.#ioBrokerDevice.setSaturation(Math.round(s * 100));
+                    }
+                    if (this.#ioBrokerDevice.hasDimmer()) {
+                        await this.#ioBrokerDevice.setDimmer(Math.round(v * 100));
+                    }
                 } else if (
                     (this.#ioBrokerDevice instanceof RgbwSingle || this.#ioBrokerDevice instanceof Rgb) &&
                     this.#ioBrokerDevice.isRgbw()
@@ -313,7 +318,15 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                 }
 
                 if (this.#ioBrokerDevice instanceof Hue) {
-                    await this.#ioBrokerDevice.setSaturation(Math.round(saturation * 100));
+                    if (this.#ioBrokerDevice.hasSaturation()) {
+                        await this.#ioBrokerDevice.setSaturation(Math.round(saturation * 100));
+                    } else {
+                        await this.#matterEndpoint.set({
+                            colorControl: {
+                                currentSaturation: 254,
+                            },
+                        });
+                    }
                 } else if (
                     (this.#ioBrokerDevice instanceof RgbwSingle || this.#ioBrokerDevice instanceof Rgb) &&
                     this.#ioBrokerDevice.isRgbw()
@@ -353,7 +366,15 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
 
                 if (this.#ioBrokerDevice instanceof Hue) {
                     await this.#ioBrokerDevice.setHue(Math.round(hue));
-                    await this.#ioBrokerDevice.setSaturation(Math.round(saturation * 100));
+                    if (this.#ioBrokerDevice.hasSaturation()) {
+                        await this.#ioBrokerDevice.setSaturation(Math.round(saturation * 100));
+                    } else {
+                        await this.#matterEndpoint.set({
+                            colorControl: {
+                                currentSaturation: 254,
+                            },
+                        });
+                    }
                 } else if (
                     (this.#ioBrokerDevice instanceof RgbwSingle || this.#ioBrokerDevice instanceof Rgb) &&
                     this.#ioBrokerDevice.isRgbw()

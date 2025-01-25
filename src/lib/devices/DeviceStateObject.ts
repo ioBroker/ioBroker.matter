@@ -157,6 +157,7 @@ export class DeviceStateObject<T> extends EventEmitter {
 
     protected min?: number;
     protected max?: number;
+    protected step?: number;
     protected realMin?: number;
     protected realMax?: number;
     protected unit?: string;
@@ -229,13 +230,20 @@ export class DeviceStateObject<T> extends EventEmitter {
                 type: asCommonType(type ?? this.state.defaultType),
                 write: this.state.write ?? false,
                 read: this.state.read ?? true,
-                // enums?
                 role: this.state.defaultRole ?? 'state',
                 unit: this.state.defaultUnit,
                 states: this.state.defaultStates,
             },
             native: {},
         };
+        if (this.valueType === ValueType.NumberPercent) {
+            if (currentObject?.common?.min === undefined) {
+                obj.common.min = 0;
+            }
+            if (currentObject?.common?.max === undefined) {
+                obj.common.max = 100;
+            }
+        }
         if (currentObject !== undefined) {
             // When common matches the important fields then consider same object
             if (
@@ -245,7 +253,9 @@ export class DeviceStateObject<T> extends EventEmitter {
                 currentObject.common.read === obj.common.read &&
                 currentObject.common.role === obj.common.role &&
                 currentObject.common.unit === obj.common.unit &&
-                currentObject.common.states === obj.common.states
+                currentObject.common.states === obj.common.states &&
+                currentObject.common.min === obj.common.min &&
+                currentObject.common.max === obj.common.max
             ) {
                 return currentObject;
             }
@@ -258,7 +268,7 @@ export class DeviceStateObject<T> extends EventEmitter {
         return obj;
     }
 
-    getMinMax(): { min: number; max: number } | null {
+    getMinMax(): { min: number; max: number; step?: number } | null {
         if (this.min === undefined || this.max === undefined) {
             return null;
         }
@@ -266,10 +276,10 @@ export class DeviceStateObject<T> extends EventEmitter {
         const min = this.convertValue(this.min, true);
         const max = this.convertValue(this.max, true);
 
-        return { min: Math.min(min, max), max: Math.max(min, max) };
+        return { min: Math.min(min, max), max: Math.max(min, max), step: this.step };
     }
 
-    async updateMinMax(minMax: { min?: number; max?: number }): Promise<void> {
+    async updateMinMax(minMax: { min?: number; max?: number; step?: number }): Promise<void> {
         if (!this.object) {
             throw new Error(`Object not initialized`);
         }
@@ -284,6 +294,11 @@ export class DeviceStateObject<T> extends EventEmitter {
             this.max = minMax.max;
             this.object.common.max = minMax.max;
             changes.max = minMax.max;
+        }
+        if (minMax.step !== undefined && minMax.step !== this.step) {
+            this.step = minMax.step;
+            this.object.common.step = minMax.step;
+            changes.step = minMax.step;
         }
         if (Object.keys(changes).length > 0) {
             await this.adapter.extendObjectAsync(this.#id, { common: changes });
@@ -330,6 +345,7 @@ export class DeviceStateObject<T> extends EventEmitter {
             }
             this.unit = obj?.common?.unit;
         }
+        this.step = obj?.common?.step;
     }
 
     protected parseMode(): void {

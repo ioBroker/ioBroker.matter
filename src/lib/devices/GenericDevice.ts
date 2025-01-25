@@ -643,8 +643,8 @@ export abstract class GenericDevice extends EventEmitter {
         this.options = options;
     }
 
-    #determineControlType(property: string): string {
-        const { valueType, write, read, role, min, max } = this.#properties[property];
+    #determineControlType(property: string, hasMinMax: boolean): string {
+        const { valueType, write, read, role } = this.#properties[property];
         if (valueType === ValueType.Boolean) {
             if (role) {
                 if (role.startsWith('switch')) {
@@ -658,13 +658,15 @@ export abstract class GenericDevice extends EventEmitter {
                 return 'button';
             }
             return 'switch';
-        } else if (valueType === ValueType.Number) {
-            if (min !== undefined || max !== undefined) {
+        } else if (valueType === ValueType.Number || valueType === ValueType.NumberPercent || ValueType.NumberMinMax) {
+            if (hasMinMax) {
                 return 'slider';
             }
             return 'number';
         } else if (valueType === ValueType.Enum) {
-            return 'number';
+            return 'select';
+        } else if (valueType === ValueType.String && property === PropertyType.Rgb) {
+            //return 'color'; // Add again once works in DM
         }
         return 'input';
     }
@@ -676,18 +678,20 @@ export abstract class GenericDevice extends EventEmitter {
             keys.reverse();
         }
         keys.forEach(property => {
-            const { valueType, name, unit, write, read, min, max } = this.#properties[property];
+            const stateObject = this.#registeredStates.find(obj => obj.propertyType === property);
+            const { valueType, name, unit, write, read } = this.#properties[property];
+            const { min, max, step } = stateObject?.getMinMax() ?? {};
             states[`__iobstate__${name}`] = {
                 oid: write ?? read,
                 unit,
                 min,
                 max,
+                step,
                 readOnly: !write,
-                control: this.#determineControlType(property),
+                control: this.#determineControlType(property, min !== undefined && max !== undefined),
             };
             // Workaround until "control: select" is supported in JSONConfig
             if (valueType === ValueType.Enum) {
-                const stateObject = this.#registeredStates.find(obj => obj.propertyType === property);
                 const modes = stateObject?.modes;
                 if (modes) {
                     states.__smalltext__AllowedValues = `Allowed values: ${Object.entries(modes)

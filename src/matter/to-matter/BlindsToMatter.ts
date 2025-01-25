@@ -92,8 +92,8 @@ export class BlindsToMatter extends GenericDeviceToMatter {
         ) {
             await this.#matterEndpoint.setStateOf(EventedWindowCoveringServer, {
                 // @ts-expect-error Workaround a matter.js instancing/typing error
-                currentPositionTiltPercent100ths: (this.#ioBrokerDevice.getTiltLevel() ?? 0) * 100,
-                targetPositionTiltPercent100ths: (this.#ioBrokerDevice.getTiltLevel() ?? 0) * 100,
+                currentPositionTiltPercent100ths: Math.round(100 - (this.#ioBrokerDevice.getTiltLevel() ?? 0)) * 100,
+                targetPositionTiltPercent100ths: Math.round(100 - (this.#ioBrokerDevice.getTiltLevel() ?? 0)) * 100,
             });
         }
         if (
@@ -102,8 +102,10 @@ export class BlindsToMatter extends GenericDeviceToMatter {
         ) {
             await this.#matterEndpoint.setStateOf(EventedWindowCoveringServer, {
                 // @ts-expect-error Workaround a matter.js instancing/typing error
-                currentPositionLiftPercent100ths: ((this.#ioBrokerDevice as Blind).getLevel() ?? 0) * 100,
-                targetPositionLiftPercent100ths: ((this.#ioBrokerDevice as Blind).getLevel() ?? 0) * 100,
+                currentPositionLiftPercent100ths:
+                    Math.round(100 - ((this.#ioBrokerDevice as Blind).getLevel() ?? 0)) * 100,
+                targetPositionLiftPercent100ths:
+                    Math.round(100 - ((this.#ioBrokerDevice as Blind).getLevel() ?? 0)) * 100,
             });
         }
 
@@ -121,19 +123,19 @@ export class BlindsToMatter extends GenericDeviceToMatter {
                         targetPercent100ths !== undefined &&
                         this.#ioBrokerDevice.hasLiftLevel()
                     ) {
-                        await (this.#ioBrokerDevice as Blind).setLevel(Math.round(targetPercent100ths / 100));
+                        await (this.#ioBrokerDevice as Blind).setLevel(100 - Math.round(targetPercent100ths / 100));
                     } else {
                         if (direction === MovementDirection.Open || reversed) {
                             if (this.#ioBrokerDevice.hasLiftButtons()) {
                                 await (this.#ioBrokerDevice as BlindButtons).setOpen();
                             } else if (this.#ioBrokerDevice.hasLiftLevel()) {
-                                await (this.#ioBrokerDevice as Blind).setLevel(reversed ? 100 : 0);
+                                await (this.#ioBrokerDevice as Blind).setLevel(reversed ? 0 : 100);
                             }
                         } else {
                             if (this.#ioBrokerDevice.hasLiftButtons()) {
                                 await (this.#ioBrokerDevice as BlindButtons).setClose();
                             } else if (this.#ioBrokerDevice.hasLiftLevel()) {
-                                await (this.#ioBrokerDevice as Blind).setLevel(reversed ? 0 : 100);
+                                await (this.#ioBrokerDevice as Blind).setLevel(reversed ? 100 : 0);
                             }
                         }
                     }
@@ -146,19 +148,19 @@ export class BlindsToMatter extends GenericDeviceToMatter {
                         targetPercent100ths !== undefined &&
                         this.#ioBrokerDevice.hasTiltLevel()
                     ) {
-                        await this.#ioBrokerDevice.setTiltLevel(Math.round(targetPercent100ths / 100));
+                        await this.#ioBrokerDevice.setTiltLevel(100 - Math.round(targetPercent100ths / 100));
                     } else {
                         if (direction === MovementDirection.Open || reversed) {
                             if (this.#ioBrokerDevice.hasTiltButtons()) {
                                 await (this.#ioBrokerDevice as BlindButtons).setTiltOpen();
                             } else if (this.#ioBrokerDevice.hasTiltLevel()) {
-                                await (this.#ioBrokerDevice as Blind).setLevel(reversed ? 100 : 0);
+                                await (this.#ioBrokerDevice as Blind).setLevel(reversed ? 0 : 100);
                             }
                         } else {
                             if (this.#ioBrokerDevice.hasTiltButtons()) {
                                 await (this.#ioBrokerDevice as BlindButtons).setTiltClose();
                             } else if (this.#ioBrokerDevice.hasTiltLevel()) {
-                                await (this.#ioBrokerDevice as Blind).setLevel(reversed ? 0 : 100);
+                                await (this.#ioBrokerDevice as Blind).setLevel(reversed ? 100 : 0);
                             }
                         }
                     }
@@ -199,12 +201,12 @@ export class BlindsToMatter extends GenericDeviceToMatter {
                     ) {
                         await this.#matterEndpoint.setStateOf(EventedWindowCoveringServer, {
                             // @ts-expect-error Workaround a matter.js instancing/typing error
-                            currentPositionTiltPercent100ths: (event.value as number) * 100,
+                            currentPositionTiltPercent100ths: Math.round(100 - event.value) * 100,
                         });
                         if (event.property === PropertyType.TiltLevel) {
                             await this.#matterEndpoint.setStateOf(EventedWindowCoveringServer, {
                                 // @ts-expect-error Workaround a matter.js instancing/typing error
-                                targetPositionTiltPercent100ths: (event.value as number) * 100,
+                                targetPositionTiltPercent100ths: Math.round(100 - event.value) * 100,
                             });
                         }
                     }
@@ -217,12 +219,12 @@ export class BlindsToMatter extends GenericDeviceToMatter {
                     ) {
                         await this.#matterEndpoint.setStateOf(EventedWindowCoveringServer, {
                             // @ts-expect-error Workaround a matter.js instancing/typing error
-                            currentPositionLiftPercent100ths: (event.value as number) * 100,
+                            currentPositionLiftPercent100ths: Math.round(100 - event.value) * 100,
                         });
                         if (event.property === PropertyType.Level) {
                             await this.#matterEndpoint.setStateOf(EventedWindowCoveringServer, {
                                 // @ts-expect-error Workaround a matter.js instancing/typing error
-                                targetPositionLiftPercent100ths: (event.value as number) * 100,
+                                targetPositionLiftPercent100ths: Math.round(100 - event.value) * 100,
                             });
                         }
                     }

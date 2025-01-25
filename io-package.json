@@ -95,7 +95,6 @@
         "zh-cn": "在剖析对话框中显示设备名称\n调整连接类型图标\n优化发现对话框处理\n供控制员更新温度的固定自动调温器\n给能量传感器一个专用图标\n优化固定的多件东西"
       }
     },
-    "title": "Matter",
     "titleLang": {
       "en": "Matter protocol",
       "de": "Matter Protokoll",
@@ -165,7 +164,12 @@
     },
     "supportedMessages": {
       "deviceManager": true
-    }
+    },
+    "dependencies": [
+      {
+        "js-controller": ">=5.0.19"
+      }
+    ]
   },
   "protectedNative": [
     "pass",

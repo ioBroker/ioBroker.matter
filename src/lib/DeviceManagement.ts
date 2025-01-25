@@ -489,6 +489,11 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 title: this.#adapter.getText('Debug Infos'),
                 buttons: [
                     {
+                        type: 'copyToClipboard',
+                        label: this.#adapter.getText('Copy to clipboard'),
+                        copyToClipboardAttr: 'debugInfos',
+                    },
+                    {
                         type: 'cancel',
                         label: this.#adapter.getText('Close'),
                     },

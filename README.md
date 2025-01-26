@@ -76,8 +76,7 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.4.8 (2025-01-26)
 * (@Apollon77) Acknowledges Power states also on SET states
 * (@Apollon77) Fixed Color Temperature handling for devices
 * (@Apollon77) Fixed Thermostat setpoint logic

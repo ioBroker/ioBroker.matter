@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.4.8",
+    "version": "0.4.9",
     "news": {
+      "0.4.9": {
+        "en": "Enhanced error and invalid devices display for UI\nFixed Button Press Controller support\nAdded support to also select folders when adding devices\nFixed Illuminance State type min/max",
+        "de": "Verbesserte Fehler- und ungültige Geräteanzeige für UI\nBefestigte Knopfdruckregler-Unterstützung\nUnterstützung hinzugefügt, um auch Ordner auszuwählen, wenn Geräte hinzugefügt werden\nFeste Beleuchtungsstärke Typ min/max",
+        "ru": "Усиленная ошибка и неправильные устройства отображения для UI\nФиксированная поддержка Кнопка\nДобавлена поддержка для выбора папок при добавлении устройств\nФиксированная иллюминация Тип min/max",
+        "pt": "Erro aprimorado e dispositivos inválidos exibir para UI\nSuporte do controlador de pressão do botão fixo\nAdicionado suporte para também selecionar pastas ao adicionar dispositivos\nIluminação fixa Tipo de estado min/max",
+        "nl": "Verbeterde fout en ongeldige apparaten tonen voor UI\nOndersteuning voor vaste knop-perscontroller\nOndersteuning toegevoegd om ook mappen te selecteren bij het toevoegen van apparaten\nVaste verlichtingssterkte Status min/max",
+        "fr": "Erreur améliorée et affichage des périphériques invalides pour l'interface utilisateur\nSupport du contrôleur de presse bouton fixe\nAjout de la prise en charge pour également sélectionner les dossiers lors de l'ajout de périphériques\nIlluminance fixe État du type min/max",
+        "it": "Visualizzazione di errori e dispositivi non validi per l'interfaccia utente\nSupporto del regolatore di pressione del pulsante fisso\nAggiunto supporto per selezionare anche le cartelle quando si aggiungono i dispositivi\nIlluminazione fissa Tipo di stato min/max",
+        "es": "Error mejorado y pantalla de dispositivos inválidos para UI\nSoporte de control de presión de botón fijo\nAñadido soporte para seleccionar también carpetas al agregar dispositivos\nIluminación fija Tipo de Estado min/max",
+        "pl": "Ulepszony wyświetlacz błędów i niepoprawnych urządzeń dla interfejsu użytkownika\nNaprawiono obsługę Kontrolera Prasy Przycisków\nDodano obsługę do wyboru folderów przy dodawaniu urządzeń\nNaprawiono iluminację Typ państwa min / max",
+        "uk": "Розширений дисплей помилок та недійсних пристроїв для UI\nВиправлена підтримка кнопки Прес контролер\nДодано підтримку також виберіть папки при додаванні пристроїв\nФіксована ілюстрація Тип держави min/max",
+        "zh-cn": "用于 UI 的增强错误和无效设备显示\n固定按钮新闻控制器支持\n添加设备时添加支持以选择文件夹\n固定的光辉 状态类型 分钟/最大"
+      },
       "0.4.8": {
         "en": "Acknowledges Power states also on SET states\nFixed Color Temperature handling for devices\nFixed Thermostat setpoint logic",
         "de": "Erkennt Power-Staaten auch auf SET-Staaten\nFeste Farbtemperaturbehandlung für Geräte\nFeste Thermostat-Solllogik",
@@ -80,19 +93,6 @@
         "pl": "Zoptymalizowany interfejs użytkownika\nUmożliwia włączanie / wyłączanie światła przez poziom przyciemniania, tak jak adapter Zigbee\nWykrywa zmiany przełączania poprzez zdarzenie, które powinno być bardziej wiarygodne\nOptymalizuje niektóre Informacje o węźle",
         "uk": "Оптимізований UI\nДозволяє перетворювати світло / відключати через рівень диммінгу як адаптер Zigbee\nЗменшення змін через захід, який повинен бути більш надійним\nОптимізуйте деякі Немає інформації",
         "zh-cn": "优化 UI\n允许像 Zigbee 适配器一样通过暗淡的关卡打开/关闭灯光\n通过更可靠的事件切换变化\n优化一些 节点信息"
-      },
-      "0.4.2": {
-        "en": "Added SmokeCO2Alarm -> FireAlarm to Controller device types\nDetects BLE only QR codes and respond with error message\nFor Dimming and Color changes direct the device to execute the changes also when device is off",
-        "de": "Hinzugefügt SmokeCO2Alarm -> FireAlarm auf Controller-Gerätetypen\nErkennt BLE nur QR-Codes und reagiert mit der Fehlermeldung\nFür Dimm- und Farbänderungen richten Sie das Gerät an, um die Änderungen auch dann auszuführen, wenn das Gerät ausgeschaltet ist",
-        "ru": "Добавлено SmokeCO2Alarm -> Типы устройств контроллера\nОтражает BLE только QR-коды и отвечает сообщением об ошибке\nДля димминга и изменения цвета направляют устройство для выполнения изменений также, когда устройство отключено",
-        "pt": "Adicionado SmokeCO2Alarm -> FireAlarm para tipos de dispositivo de controlador\nDetecta somente códigos QR BLE e responda com mensagem de erro\nPara Dimming e Color muda o dispositivo para executar as alterações também quando o dispositivo está desligado",
-        "nl": "Toegevoegd SmokeCO2Alarm -> FireAlarm naar Controller apparaat types\nDetecteert BLE alleen QR codes en antwoord met foutmelding\nVoor wijzigingen in dimmen en kleuren het apparaat direct om de wijzigingen ook uit te voeren wanneer het apparaat is uitgeschakeld",
-        "fr": "Ajout de SmokeCO2Alarm -> FireAlarm to Controller types d'appareils\nDétecte uniquement les codes QR et répond par message d'erreur\nPour Dimming et les changements de couleur dirigent le périphérique pour exécuter les changements aussi quand le périphérique est éteint",
-        "it": "Aggiunta SmokeCO2Alarm -> Tipo di dispositivo FireAlarm to Controller\nRileva BLE solo codici QR e risponde con il messaggio di errore\nPer le modifiche Dimming e Color dirigere il dispositivo per eseguire le modifiche anche quando il dispositivo è spento",
-        "es": "Añadido SmokeCO2Alarm - título Tipos de dispositivo FireAlarm a Controller\nDetecta BLE solamente códigos QR y responde con mensaje de error\nPara Dimming y los cambios de color dirijan el dispositivo para ejecutar los cambios también cuando el dispositivo está apagado",
-        "pl": "Dodano SmokeCO2Alarm - > Typy urządzeń FireAlarm do sterownika\nWykrywa tylko kody QR BLE i reaguje z komunikatem błędu\nDla Dimming i zmiany kolorów nakierować urządzenie do wykonania zmian również po wyłączeniu urządzenia",
-        "uk": "Додано SmokeCO2Alarm -> FireAlarm для типів пристроїв контролера\nОзнайомитися з повідомленням про помилку\nДля Dimming і кольорів зміни безпосередньо пристрою для виконання змін також при вимкненні пристрою",
-        "zh-cn": "添加SmokeCO2警报 - > FireAlmar 到控制器设备类型\n检测 BLE 只检测 QR 代码, 用错误消息回复\n对于 Dimming 和 Color 更改, 当设备关闭时, 设备也会执行更改"
       }
     },
     "titleLang": {

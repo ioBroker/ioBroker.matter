@@ -884,7 +884,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 <SelectID
                     imagePrefix="../.."
                     dialogName="matter"
-                    types={addDeviceDialog.detectionType === 'device' ? ['device', 'channel'] : ['state']}
+                    types={addDeviceDialog.detectionType === 'device' ? ['device', 'channel', 'folder'] : ['state']}
                     themeType={this.props.themeType}
                     socket={this.props.socket}
                     theme={this.props.theme}

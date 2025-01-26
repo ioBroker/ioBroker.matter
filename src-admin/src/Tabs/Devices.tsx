@@ -592,7 +592,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
             return (
                 <SelectID
                     imagePrefix="../.."
-                    types={addDeviceDialog.detectionType === 'device' ? ['device', 'channel'] : ['state']}
+                    types={addDeviceDialog.detectionType === 'device' ? ['device', 'channel', 'folder'] : ['state']}
                     dialogName="matter"
                     themeType={this.props.themeType}
                     socket={this.props.socket}

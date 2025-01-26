@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.4.7",
+    "version": "0.4.8",
     "news": {
+      "0.4.8": {
+        "en": "Acknowledges Power states also on SET states\nFixed Color Temperature handling for devices\nFixed Thermostat setpoint logic",
+        "de": "Erkennt Power-Staaten auch auf SET-Staaten\nFeste Farbtemperaturbehandlung für Geräte\nFeste Thermostat-Solllogik",
+        "ru": "Признает, что в государствах SET есть также\nФиксированная обработка температуры цвета для устройств\nЛогика фиксированной точки",
+        "pt": "Agradece que os estados do poder também em estados do SET\nManuseio de temperatura de cor fixa para dispositivos\nLógica fixa de setpoint termostato",
+        "nl": "Bekent machtstaten ook op SET-staten\nVaste kleurtemperatuurbehandeling voor apparaten\nVaste thermostaat setpoint logica",
+        "fr": "Reconnaît les états de pouvoir aussi sur les états SET\nManipulation de température de couleur fixe pour les appareils\nLogique de réglage du thermostat fixe",
+        "it": "Riconosce gli stati di potenza anche sugli stati SET\nMovimentazione a temperatura fissa per dispositivi\nLogica a punto fisso del termostato",
+        "es": "Reconoce que el poder también está en los estados de SET\nManejo de temperatura de color fijo para dispositivos\nLógica de punto termostato fijo",
+        "pl": "Przyjmuje do wiadomości państwa władzy również w państwach EPSTE\nStała obsługa temperatury kolorów dla urządzeń\nNaprawiona logika ustawiania termostatu",
+        "uk": "Стани живлення Acknowledges також на SET\nФіксована обробка температури кольору для пристроїв\nФіксована логіка термостату",
+        "zh-cn": "也承认SET州的电力公司\n设备的固定颜色温度处理\n固定的定点逻辑"
+      },
       "0.4.7": {
         "en": "Added debouncing when controllers change temperature value to makle sure not to overload the device\nAdded support for step and use 0.5 for Setpoint temperatures\nAdded support fur Hue lights without saturation state",
         "de": "Debouncing hinzugefügt, wenn die Steuerungen den Temperaturwert auf makle ändern, um das Gerät nicht zu überlasten\nUnterstützung für Schritt und Einsatz 0,5 für Solltemperaturen\nUnterstützung Pelz Hue Lichter ohne Sättigung Zustand",
@@ -80,19 +93,6 @@
         "pl": "Dodano SmokeCO2Alarm - > Typy urządzeń FireAlarm do sterownika\nWykrywa tylko kody QR BLE i reaguje z komunikatem błędu\nDla Dimming i zmiany kolorów nakierować urządzenie do wykonania zmian również po wyłączeniu urządzenia",
         "uk": "Додано SmokeCO2Alarm -> FireAlarm для типів пристроїв контролера\nОзнайомитися з повідомленням про помилку\nДля Dimming і кольорів зміни безпосередньо пристрою для виконання змін також при вимкненні пристрою",
         "zh-cn": "添加SmokeCO2警报 - > FireAlmar 到控制器设备类型\n检测 BLE 只检测 QR 代码, 用错误消息回复\n对于 Dimming 和 Color 更改, 当设备关闭时, 设备也会执行更改"
-      },
-      "0.4.1": {
-        "en": "Optimized UI\nImproved handling for Power Source cluster on root endpoint\nChanged Identify handling - Light will be turned on/off, others just logged",
-        "de": "Optimierte UI\nVerbesserte Handhabung für Power Source Cluster am Wurzelendpunkt\nGeänderte Identifikationshandling - Licht wird ein/ausgeschaltet, andere nur angemeldet",
-        "ru": "Оптимизированный UI\nУлучшена обработка для кластера источника питания на корневой конечной точке\nИзменение Идентификационной обработки - Свет будет включен/выключен, другие только что зарегистрировались",
-        "pt": "IU otimizada\nManuseamento aprimorado para cluster de Fonte de Energia no endpoint raiz\nAlterado Identificar manuseio - Luz será ligada / desligada, outros apenas logado",
-        "nl": "Geoptimaliseerde UI\nVerbeterde handling voor Power Source cluster op root eindpunt\nChanged Identification handling - Licht zal worden ingeschakeld/uit, anderen gewoon ingelogd",
-        "fr": "UI optimisé\nAmélioration de la manipulation du cluster Power Source sur le paramètre racine\nChangement de la manipulation de l'identification - La lumière sera allumée/éteint, d'autres juste enregistré",
-        "it": "UI ottimizzato\nGestione migliorata del cluster Power Source su endpoint root\nCambiato Identificare la gestione - La luce verrà attivata/disattivata, altri appena registrati",
-        "es": "UI optimizada\nMejor manejo para el grupo de fuentes de energía en el punto final raíz\nCambio de Identificar el manejo - La luz se encenderá / apagado, otros acaban de registrarse",
-        "pl": "Zoptymalizowany interfejs użytkownika\nLepsza obsługa klastra Power Source w punkcie końcowym\nZmieniony Identyfikacja obsługi - Światło zostanie włączone / wyłączone, inne po prostu zalogowane",
-        "uk": "Оптимізований UI\nПокращена обробка кластеру джерела живлення на кінцевій точці кореня\nЗмінений Визначте обробку - Світло буде перетворюватися/вимкнено, інші просто записуються",
-        "zh-cn": "优化 UI\n改进对根端点的电源组的处理\n身份识别处理 - Light 将打开/ 关闭, 其他则刚刚登录"
       }
     },
     "titleLang": {

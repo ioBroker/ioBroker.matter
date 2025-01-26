@@ -324,7 +324,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
             this.matterEvents.on(
                 // @ts-expect-error Workaround a matter.js instancing/typing error
                 this.#matterEndpointThermostat.eventsOf(IoThermostatServer).occupiedHeatingSetpoint$Changed,
-                this.#updateSetPointTemperature,
+                () => this.#updateSetPointTemperature(),
             );
         }
 
@@ -332,7 +332,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
             this.matterEvents.on(
                 // @ts-expect-error Workaround a matter.js instancing/typing error
                 this.#matterEndpointThermostat.eventsOf(IoThermostatServer).occupiedCoolingSetpoint$Changed,
-                this.#updateSetPointTemperature,
+                () => this.#updateSetPointTemperature(),
             );
         }
 

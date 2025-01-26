@@ -76,6 +76,13 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (@Apollon77) Enhanced error and invalid devices display for UI
+* (@Apollon77) Fixed Button Press Controller support
+* (@Apollon77) Added support to also select folders when adding devices
+* (@Apollon77) Fixed Illuminance State type min/max
+
 ### 0.4.8 (2025-01-26)
 * (@Apollon77) Acknowledges Power states also on SET states
 * (@Apollon77) Fixed Color Temperature handling for devices

@@ -11,7 +11,7 @@ export class Illuminance extends GenericDevice {
             this.addDeviceStates([
                 {
                     name: 'ACTUAL',
-                    valueType: ValueType.NumberPercent,
+                    valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Brightness,
                     callback: state => (this.#getBrightnessState = state),

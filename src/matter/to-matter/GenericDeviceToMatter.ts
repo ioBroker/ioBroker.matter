@@ -49,6 +49,9 @@ export abstract class GenericDeviceToMatter {
         await this.registerHandlersAndInitialize();
         this.ioBrokerDevice.on('validChanged', () => {
             const valid = this.ioBrokerDevice.isValid;
+            this.ioBrokerDevice.adapter.log.info(
+                `Device ${this.name} is now ${valid ? 'valid' : 'invalid'} (before: ${this.#valid ? 'valid' : 'invalid'})`,
+            );
             if (valid === this.#valid) {
                 return;
             }

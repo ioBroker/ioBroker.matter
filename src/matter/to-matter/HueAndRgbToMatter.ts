@@ -213,7 +213,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
         this.matterEvents.on(
             this.#matterEndpoint.eventsOf(IoBrokerEvents).colorTemperatureControlled,
             async (mireds, transitionTime) => {
-                if (!this.#ioBrokerDevice.hasTemperature()) {
+                if (this.#ioBrokerDevice.hasTemperature()) {
                     if (this.#ioBrokerDevice.hasTransitionTime() && typeof transitionTime === 'number') {
                         await this.#ioBrokerDevice.setTransitionTime(transitionTime * 100);
                     }

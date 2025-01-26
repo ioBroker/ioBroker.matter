@@ -227,6 +227,10 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
             endpointId: this.appEndpoint.getNumber(),
             clusterId: OnOff.Cluster.id,
             attributeName: 'onOff',
+            convertValue: async value => {
+                await this.#ioBrokerDevice.updatePower(value); // Also Ack Power Set State
+                return value;
+            },
         });
 
         this.enableDeviceTypeStateForAttribute(PropertyType.Dimmer, {

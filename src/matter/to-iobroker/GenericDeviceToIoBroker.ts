@@ -1,4 +1,11 @@
-import { type AttributeId, type ClusterId, Diagnostic, EndpointNumber, type EventId, MaybePromise } from '@matter/main';
+import {
+    type MaybePromise,
+    type AttributeId,
+    type ClusterId,
+    type EventId,
+    Diagnostic,
+    EndpointNumber,
+} from '@matter/main';
 import { BasicInformation, BridgedDeviceBasicInformation, Identify, PowerSource } from '@matter/main/clusters';
 import type { DecodedEventData } from '@matter/main/protocol';
 import type { Endpoint, PairedNode, DeviceBasicInformation } from '@project-chip/matter.js/device';
@@ -355,10 +362,7 @@ export abstract class GenericDeviceToIoBroker {
         }
         const { convertValue } = properties;
         if (convertValue !== undefined) {
-            value = convertValue(value);
-            if (MaybePromise.is(value)) {
-                value = await value;
-            }
+            value = await convertValue(value);
         }
         if (value !== undefined) {
             try {
@@ -386,13 +390,10 @@ export abstract class GenericDeviceToIoBroker {
             return;
         }
         if (typeof pathProperty === 'function') {
-            const result = pathProperty(data.value);
-            if (MaybePromise.is(result)) {
-                await result;
-            }
+            await pathProperty(data.value);
             return;
         }
-        return this.updateIoBrokerState(pathProperty, data.value);
+        await this.updateIoBrokerState(pathProperty, data.value);
     }
 
     async handleTriggeredEvent(data: {
@@ -404,15 +405,15 @@ export abstract class GenericDeviceToIoBroker {
     }): Promise<void> {
         const pathId = eventPathToString(data);
         const pathProperty = this.#matterMappings.get(pathId);
+        this.#adapter.log.debug(
+            `Handle event ${pathId} with property type ${typeof pathProperty === 'function' ? 'function' : pathProperty}`,
+        );
         if (pathProperty === undefined) {
             return;
         }
         if (typeof pathProperty === 'function') {
             for (const event of data.events) {
-                const result = pathProperty(event);
-                if (MaybePromise.is(result)) {
-                    await result;
-                }
+                await pathProperty(event);
             }
             return;
         }
@@ -422,12 +423,14 @@ export abstract class GenericDeviceToIoBroker {
         }
         for (const { convertValue } of propertyHandlers) {
             for (const event of data.events) {
-                let value = convertValue(pathProperty, event);
+                const value = await convertValue(pathProperty, event);
                 if (value !== undefined) {
-                    if (MaybePromise.is(value)) {
-                        value = await value;
+                    this.#adapter.log.debug(`Update state for ${pathId} and type ${pathProperty} with value ${value}`);
+                    try {
+                        await this.ioBrokerDevice.updatePropertyValue(pathProperty, value);
+                    } catch (e) {
+                        this.#adapter.log.error(`Error updating property ${pathProperty} with value ${value}: ${e}`);
                     }
-                    await this.updateIoBrokerState(pathProperty, value);
                 }
             }
         }

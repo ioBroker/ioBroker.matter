@@ -624,7 +624,7 @@ export class MatterAdapter extends utils.Adapter {
                 (objParts[0] === 'bridges' && objPartsLength === 2)) &&
             !obj
         ) {
-            this.log.warn(`Object ${id} deleted ... trying to also remove it from matter`);
+            this.log.debug(`Object ${id} deleted ... trying to also remove it from matter`);
             // We try to restore a minimum object that we can handle the deletion
             obj = {
                 _id: id,

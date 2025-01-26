@@ -402,10 +402,12 @@ class BridgedDevices extends BaseServerNode {
 
         if (bridgedDeviceUuid === undefined) {
             const error = this.error;
-            if (Array.isArray(error)) {
+            if (error) {
                 details.error = {
                     __header__error: 'Error information',
-                    __text__info: `${error.length} Bridged Device(s) are in an error state. Fix the errors before enabling it again.`,
+                    __text__info: Array.isArray(error)
+                        ? `${error.length} Bridged Device(s) are in an error state. Fix the errors before enabling it again.`
+                        : `The Bridge could not be initialized. Please check the logfile for more information.`,
                     __text__info2: `Please refer to the error details at the bridged device level.`,
                     uuid: this.uuid,
                 };
@@ -413,8 +415,9 @@ class BridgedDevices extends BaseServerNode {
                 // The error boolean state should never end here because then this object should have not been created
             }
         } else {
-            const { error } = this.#devices.get(bridgedDeviceUuid) ?? {};
-            if (error) {
+            const { error, device } = this.#devices.get(bridgedDeviceUuid) ?? {};
+            const isValid = device?.isValid;
+            if (error || !isValid) {
                 details.error = {
                     __header__error: 'Error information',
                     __text__info: `Bridged Device is in an error state. Fix the error before enabling it again.`,

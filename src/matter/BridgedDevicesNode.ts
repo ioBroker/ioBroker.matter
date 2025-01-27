@@ -225,7 +225,7 @@ class BridgedDevices extends BaseServerNode {
                     productId,
                     serialNumber: uniqueId,
                     uniqueId: md5(uniqueId),
-                    hardwareVersion: versions.versionNum,
+                    hardwareVersion: 1,
                     hardwareVersionString: versions.versionStr,
                     softwareVersion: versions.versionNum,
                     softwareVersionString: versions.versionStr,

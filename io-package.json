@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.4.9",
+    "version": "0.4.10",
     "news": {
+      "0.4.10": {
+        "en": "Fixed Thermostat limit initialization and Mode error\nFixed Matter Event handling when mapped to an ioBroker state (e.g.GenericSwitch)\nFixed Device type detection by really preferring the preferred type",
+        "de": "Fixed Thermostat Limit Initialisierung und Modusfehler\nFeste Materie Veranstaltungshandling, wenn sie auf einen ioBroker-Staat abgebildet wird (z.B. GenericSwitch)\nFeste Gerätetyp-Erkennung durch die wirklich bevorzugte Art",
+        "ru": "Исправлена ошибка инициализации лимита термостата\nФиксированная материя Обработка событий при отображении состояния ioBroker (например,GenericSwitch)\nФиксированное обнаружение типа устройства, по-настоящему предпочитая предпочтительный тип",
+        "pt": "Inicialização do limite de termostato fixo e erro de modo\nMatéria fixa Manuseio de eventos quando mapeado para um estado ioBroker (por exemplo, GenericSwitch)\nDetecção de tipo de dispositivo fixo preferindo realmente o tipo preferido",
+        "nl": "Vaste thermostaat limiet initialisatie en modusfout\nVaste materie Gebeurtenisafhandeling bij in kaart gebracht naar een ioBroker-toestand (bv. GeneriekeSwitch)\nFixed Device type detectie door echt de voorkeur te geven aan het gewenste type",
+        "fr": "Erreur d'initialisation et de mode de limitation du thermostat fixe\nMatière fixe Manipulation de l'événement lorsqu'il est cartographié dans un état ioBroker (p. ex. GenericSwitch)\nDétection de type de périphérique fixe en préférant vraiment le type préféré",
+        "it": "Termostato fisso limite inizializzazione e errore Modalità\nMateria fissa Gestione degli eventi quando mappato a uno stato ioBroker (ad es.GenericSwitch)\nRilevamento del tipo di dispositivo fisso preferendo davvero il tipo preferito",
+        "es": "Termostato fijo límite inicialización y error de modo\nMaterias fijas Manejo de eventos cuando se mapeó a un estado de yoBroker (por ejemplo, GenericSwitch)\nDetección de tipo de dispositivo fijo preferiendo realmente el tipo preferido",
+        "pl": "Naprawiono inicjalizację limitu termicznego i błąd trybu\nMateria stała Obsługa zdarzeń po odwzorowaniu do stanu jOBroker (np. GenericSwitch)\nWykrywanie typu urządzenia stałego poprzez naprawdę preferowanie preferowanego typu",
+        "uk": "Фіксована термостатова ініціалізація та помилка режиму\nФіксований матовий Обробка подій при картопуванні до стану ІоБрокер (наприклад,GenericSwitch)\nВиправлено виявлення типу пристрою, дійсно віддає перевагу бажаному типу",
+        "zh-cn": "固定热点限制初始化和模式错误\n固定物质 映射到 ioBroker 状态时的事件处理( 例如 GenericSwitch)\n通过真正偏爱首选类型来检测固定设备类型"
+      },
       "0.4.9": {
         "en": "Enhanced error and invalid devices display for UI\nFixed Button Press Controller support\nAdded support to also select folders when adding devices\nFixed Illuminance State type min/max",
         "de": "Verbesserte Fehler- und ungültige Geräteanzeige für UI\nBefestigte Knopfdruckregler-Unterstützung\nUnterstützung hinzugefügt, um auch Ordner auszuwählen, wenn Geräte hinzugefügt werden\nFeste Beleuchtungsstärke Typ min/max",
@@ -80,19 +93,6 @@
         "pl": "Dodano stan OPEN dla wszystkich drzwi Zamki otworzyć drzwi ponownie\nNaprawiona inicjalizacja termostatu, gdy nie jest obsługiwany tryb AUTO\nUlepszony wyświetlacz stanu enum w UI",
         "uk": "Додано Відкритий стан для всіх дверних замків, щоб відкрити двері знову\nВиправлена ініціалізація термостату при відсутності режиму авто\nПокращений дисплей стану енму в UI",
         "zh-cn": "为所有门锁添加 OPEN 状态以再次打开门\n不支持 AUTO 模式时的固定自动启动\n在 UI 中增强 Enum 状态显示"
-      },
-      "0.4.3": {
-        "en": "Optimized UI\nAllows to turn light on/off via the dimming level as Zigbee adapter does\nDetects Switch changes via event which should be more reliable\nOptimizes some Node information",
-        "de": "Optimierte UI\nErmöglicht das Ein- und Ausschalten von Licht über die Dimmebene als Zigbee Adapter\nErkennt Switch-Änderungen über Ereignis, die zuverlässiger sein sollten\nOptimiert einige Keine Informationen",
-        "ru": "Оптимизированный UI\nПозволяет включать/выключать свет через уровень димминга, как делает адаптер Zigbee\nДефекты Переключение изменений через событие, которое должно быть более надежным\nОптимизирует некоторые Информация узла",
-        "pt": "IU otimizada\nPermite ligar/desligar a luz através do nível de escurecimento como o adaptador Zigbee faz\nDetecta alterações de interruptor via evento que deve ser mais confiável\nOtimiza alguns InformaÃ§Ãμes do nó",
-        "nl": "Geoptimaliseerde UI\nHiermee kunt u het licht aan/uit doen via het dimmen niveau zoals Zigbee adapter doet\nDetecteert veranderingen via event die betrouwbaarder moeten zijn\nOptimaliseert sommige Knoopinformatie",
-        "fr": "UI optimisé\nPermet d'allumer/éteindre la lumière via le niveau de gradation comme l'adaptateur Zigbee\nDétecte les changements de commutation par événement qui devraient être plus fiables\nOptimise certains Informations sur le nœud",
-        "it": "UI ottimizzato\nConsente di accendere / spegnere la luce tramite il livello di dimming come adattatore Zigbee fa\nRilevamento Cambiamenti di commutazione tramite evento che dovrebbe essere più affidabile\nOttimizzare alcuni Informazioni sul nodo",
-        "es": "UI optimizada\nPermite encender/apagar la luz a través del nivel de regulación como el adaptador Zigbee\nDetecta cambios de conmutación por evento que debe ser más fiable\nOptimiza algunos Información sobre los nodos",
-        "pl": "Zoptymalizowany interfejs użytkownika\nUmożliwia włączanie / wyłączanie światła przez poziom przyciemniania, tak jak adapter Zigbee\nWykrywa zmiany przełączania poprzez zdarzenie, które powinno być bardziej wiarygodne\nOptymalizuje niektóre Informacje o węźle",
-        "uk": "Оптимізований UI\nДозволяє перетворювати світло / відключати через рівень диммінгу як адаптер Zigbee\nЗменшення змін через захід, який повинен бути більш надійним\nОптимізуйте деякі Немає інформації",
-        "zh-cn": "优化 UI\n允许像 Zigbee 适配器一样通过暗淡的关卡打开/关闭灯光\n通过更可靠的事件切换变化\n优化一些 节点信息"
       }
     },
     "titleLang": {

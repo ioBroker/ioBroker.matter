@@ -115,7 +115,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                     adapter: ioBrokerDevice.adapter,
                 },
                 thermostat: {
-                    // Values are potentially corrected later again
+                    // Values are corrected later again with real values
                     systemMode: hasHeating ? MatterThermostat.SystemMode.Heat : MatterThermostat.SystemMode.Cool,
                     controlSequenceOfOperation:
                         hasHeating && hasCooling
@@ -124,10 +124,10 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                               ? MatterThermostat.ControlSequenceOfOperation.CoolingOnly
                               : MatterThermostat.ControlSequenceOfOperation.HeatingOnly,
                     minSetpointDeadBand: clusterModes.includes(MatterThermostat.Feature.AutoMode) ? 0 : undefined,
-                    absMinHeatSetpointLimit: hasHeating ? this.convertTemperatureValue(7) : undefined,
-                    absMaxHeatSetpointLimit: hasHeating ? this.convertTemperatureValue(30) : undefined,
-                    absMinCoolSetpointLimit: hasCooling ? this.convertTemperatureValue(16) : undefined,
-                    absMaxCoolSetpointLimit: hasCooling ? this.convertTemperatureValue(32) : undefined,
+                    absMinHeatSetpointLimit: hasHeating ? this.convertTemperatureValue(0) : undefined,
+                    absMaxHeatSetpointLimit: hasHeating ? this.convertTemperatureValue(50) : undefined,
+                    absMinCoolSetpointLimit: hasCooling ? this.convertTemperatureValue(0) : undefined,
+                    absMaxCoolSetpointLimit: hasCooling ? this.convertTemperatureValue(50) : undefined,
                 },
             },
         );
@@ -242,8 +242,10 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                 const minMax = this.#ioBrokerDevice.getSetpointMinMax() ?? { min: 7, max: 30 };
                 await this.#matterEndpointThermostat.setStateOf(IoThermostatServer, {
                     // should be HeatingThermostatServer
-                    // @ts-expect-error Workaround a .js instancing/typing error
-                    occupiedHeatingSetpoint: this.convertTemperatureValue(setpointTemperature),
+                    // @ts-expect-error Workaround a matter.js instancing/typing error
+                    occupiedHeatingSetpoint: this.convertTemperatureValue(
+                        this.#ioBrokerDevice.cropValue(setpointTemperature, minMax.min, minMax.max, true),
+                    ),
                     absMinHeatSetpointLimit: this.convertTemperatureValue(minMax.min),
                     absMaxHeatSetpointLimit: this.convertTemperatureValue(minMax.max),
                 });
@@ -252,7 +254,9 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                 const minMax = this.#ioBrokerDevice.getSetpointMinMax() ?? { min: 16, max: 32 };
                 await this.#matterEndpointThermostat.setStateOf(IoThermostatServer, {
                     // @ts-expect-error Workaround a matter.js instancing/typing error
-                    occupiedCoolingSetpoint: this.convertTemperatureValue(setpointTemperature),
+                    occupiedCoolingSetpoint: this.convertTemperatureValue(
+                        this.#ioBrokerDevice.cropValue(setpointTemperature, minMax.min, minMax.max, true),
+                    ),
                     absMinCoolSetpointLimit: this.convertTemperatureValue(minMax.min),
                     absMaxCoolSetpointLimit: this.convertTemperatureValue(minMax.max),
                 });

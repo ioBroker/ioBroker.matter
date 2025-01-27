@@ -83,7 +83,6 @@ export class MatterAdapter extends utils.Adapter {
     readonly #bridges = new Map<string, { bridge?: BridgedDevice; error?: string }>();
     #controller?: MatterController;
     #sendControllerUpdateTimeout?: NodeJS.Timeout;
-    #detector: ChannelDetector;
     #_guiSubscribes: { clientId: string; ts: number }[] | null = null;
     readonly #matterEnvironment: Environment;
     #stateTimeout?: NodeJS.Timeout;
@@ -130,7 +129,6 @@ export class MatterAdapter extends utils.Adapter {
         this.#deviceManagement = new MatterAdapterDeviceManagement(this);
         this.#matterEnvironment = Environment.default;
 
-        this.#detector = new ChannelDetector();
         this.t = (word: string, ..._args: (string | number | boolean | null)[]): string => word;
         this.getText = (_word: string, ..._args: (string | number | boolean | null)[]): ioBroker.Translated =>
             ({}) as ioBroker.Translated;
@@ -813,8 +811,16 @@ export class MatterAdapter extends utils.Adapter {
             _usedIdsOptional: usedIds,
             ignoreIndicators,
             excludedTypes: [Types.info],
+            allowedTypes: preferredType ? [preferredType as Types] : undefined,
+            //ignoreCache: true
         };
-        const controls = this.#detector.detect(options);
+
+        const detector = new ChannelDetector();
+        let controls = detector.detect(options);
+        if (!controls?.length) {
+            delete options.allowedTypes;
+            controls = detector.detect(options);
+        }
         if (controls?.length) {
             let controlsToCheck = controls.filter((control: PatternControl) =>
                 control.states.some(({ id: foundId }) => foundId === id),

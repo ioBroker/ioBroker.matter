@@ -80,6 +80,7 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 ### __WORK IN PROGRESS__
 * (@Apollon77) Fixed Thermostat limit initialization and Mode error
 * (@Apollon77) Fixed Matter Event handling when mapped to an ioBroker state (e.g.GenericSwitch)
+* (@Apollon77) Fixed Device type detection by really preferring the preferred type
 
 ### 0.4.9 (2025-01-26)
 * (@Apollon77) Enhanced error and invalid devices display for UI

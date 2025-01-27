@@ -1250,7 +1250,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             <div style={styles.deviceType}>{`${I18n.t('Device type')}: ${I18n.t(device.type)}`}</div>
                         </div>
                         <div style={{ flex: 1 }} />
-                        {this.props.nodeStates?.[bridge.uuid] ? (
+                        {this.props.nodeStates?.[bridge.uuid] && bridge.enabled ? (
                             <Tooltip
                                 key="debug"
                                 title={hasError ? I18n.t('Show error') : I18n.t('Show additional information')}

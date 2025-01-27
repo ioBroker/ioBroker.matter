@@ -312,7 +312,7 @@ export abstract class GenericDeviceToIoBroker {
             eventId = cluster.events[eventName].id;
         }
 
-        if (stateData.id !== undefined) {
+        if (stateData.id === undefined) {
             stateData.id = `${this.baseId}.`;
         }
         const pathId = eventPathToString({ endpointId, clusterId, eventName });

@@ -127,6 +127,13 @@ export class Thermostat extends GenericDevice {
         return this.#modeState.value;
     }
 
+    updateMode(mode: ThermostatMode): Promise<void> {
+        if (!this.#modeState) {
+            throw new Error('Mode state not found');
+        }
+        return this.#modeState.updateValue(mode);
+    }
+
     hasMode(): boolean {
         return !!this.#modeState;
     }

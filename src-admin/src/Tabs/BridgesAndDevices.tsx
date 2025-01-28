@@ -655,8 +655,8 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                                 button.color === 'primary'
                                     ? 'primary'
                                     : button.color === 'secondary'
-                                        ? 'secondary'
-                                        : undefined
+                                      ? 'secondary'
+                                      : undefined
                             }
                             style={{
                                 backgroundColor:

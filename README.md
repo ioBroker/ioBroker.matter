@@ -76,8 +76,7 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.4.11 (2025-01-28)
 * (@Apollon77) Fixed caching issues in device type detection
 * (@Apollon77) Added Debug info icon for Devices and Bridges
 

@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.4.10",
+    "version": "0.4.11",
     "news": {
+      "0.4.11": {
+        "en": "Fixed caching issues in device type detection\nAdded Debug info icon for Devices and Bridges",
+        "de": "Feste Cache-Probleme bei Gerätetyperkennung\nDebug-Info-Symbol für Geräte und Brücken hinzugefügt",
+        "ru": "Исправленные проблемы кэширования при обнаружении типа устройства\nДобавить значок информации отладки для устройств и мостов",
+        "pt": "Problemas de cache fixos na detecção de tipo de dispositivo\nAdicionado ícone de informação de Debug para dispositivos e pontes",
+        "nl": "Vaste caching problemen in apparaat type detectie\nToegevoegd Debug info pictogram voor apparaten en bruggen",
+        "fr": "Correction des problèmes de cache dans la détection du type d'appareil\nAjout de l'icône de débogage pour les appareils et ponts",
+        "it": "Problemi di caching fissi nel rilevamento del tipo di dispositivo\nAggiunta Debug info icon per Dispositivi e Ponti",
+        "es": "Problemas de caché fijos en la detección del tipo de dispositivo\nAñadido icono de información de depuración para dispositivos y puentes",
+        "pl": "Stałe problemy z buforowaniem w wykrywaniu typu urządzenia\nDodano ikonę debugowania informacji dla urządzeń i mostów",
+        "uk": "Фіксовані проблеми з кешуванням пристрою\nДодано піктограму Debug для пристроїв та міст",
+        "zh-cn": "设备类型检测中的固定缓存问题\n添加设备及桥段的调试信息图标"
+      },
       "0.4.10": {
         "en": "Fixed Thermostat limit initialization and Mode error\nFixed Matter Event handling when mapped to an ioBroker state (e.g.GenericSwitch)\nFixed Device type detection by really preferring the preferred type",
         "de": "Fixed Thermostat Limit Initialisierung und Modusfehler\nFeste Materie Veranstaltungshandling, wenn sie auf einen ioBroker-Staat abgebildet wird (z.B. GenericSwitch)\nFeste Gerätetyp-Erkennung durch die wirklich bevorzugte Art",
@@ -80,19 +93,6 @@
         "pl": "Naprawiono logikę inicjalizacji termostatu i dodano więcej logowania\nNaprawiono okno Poziom pokrycia odpowiadający definicji joBrokera\nAktualizacja mater.js dla dalszych optymalizacji",
         "uk": "Фіксована логіка для ініціалізації термостату та додано більше\nФіксоване вікно Рівень покриття для визначення ioBroker\nОновлена справа.js для подальших оптимізації",
         "zh-cn": "固定热源初始化逻辑并添加更多记录\n固定窗口 覆盖级别以匹配ioBroker定义\n更新事项.js供进一步优化"
-      },
-      "0.4.4": {
-        "en": "Added OPEN state for all Door Locks to open door again\nFixed Thermostat initialization when no AUTO mode is supported\nEnhanced Enum state display in UI",
-        "de": "OPEN Zustand für alle Türschlösser hinzugefügt, um die Tür wieder zu öffnen\nFixed Thermostat Initialisierung, wenn kein AUTO-Modus unterstützt wird\nVerbesserte Enum-Zustandsanzeige in UI",
-        "ru": "Добавленное состояние OPEN для всех замков двери, чтобы открыть дверь снова\nИсправлена инициализация термостата, когда не поддерживается режим AUTO\nРасширенный дисплей состояния онума в UI",
-        "pt": "Adicionado estado de OPEN para todos Fechaduras de porta para abrir novamente\nInicialização do termostato fixo quando nenhum modo AUTO é suportado\nExibição de estado Enum aprimorada na interface do usuário",
-        "nl": "Toegevoegd OPEN status voor alle deursloten om de deur weer te openen\nVaste thermostaat initialisatie wanneer geen AUTO-modus wordt ondersteund\nVerbeterde Enum-statusweergave in UI",
-        "fr": "Ajout de l'état OPEN pour toutes les serrures de porte pour ouvrir à nouveau la porte\nInitialisation du thermostat fixe quand aucun mode AUTO n'est pris en charge\nAffichage amélioré de l'état Enum dans l'interface utilisateur",
-        "it": "Aggiunto stato OPEN per tutte le serrature della porta per aprire nuovamente la porta\nInizializzazione del termostato fisso quando nessuna modalità AUTO è supportata\nEnum display migliorato in UI",
-        "es": "Estado abierto para todas las cerraduras de puerta para abrir puerta de nuevo\nIniciación del termostato fijo cuando no se admite ningún modo AUTO\nEnhanced Enum state display in UI",
-        "pl": "Dodano stan OPEN dla wszystkich drzwi Zamki otworzyć drzwi ponownie\nNaprawiona inicjalizacja termostatu, gdy nie jest obsługiwany tryb AUTO\nUlepszony wyświetlacz stanu enum w UI",
-        "uk": "Додано Відкритий стан для всіх дверних замків, щоб відкрити двері знову\nВиправлена ініціалізація термостату при відсутності режиму авто\nПокращений дисплей стану енму в UI",
-        "zh-cn": "为所有门锁添加 OPEN 状态以再次打开门\n不支持 AUTO 模式时的固定自动启动\n在 UI 中增强 Enum 状态显示"
       }
     },
     "titleLang": {

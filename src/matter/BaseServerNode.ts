@@ -172,11 +172,12 @@ export abstract class BaseServerNode implements GeneralNode {
                             minWidth: 610,
                             title: `${this.type === 'bridges' && !('bridgedDeviceUuid' in message) ? 'Bridge' : 'Device'} Debug information`,
                             buttons: [
-                                {
+                                // TODO : UI must support it
+                                /*{
                                     type: 'copyToClipboard',
                                     label: this.adapter.getText('Copy to clipboard'),
                                     copyToClipboardAttr: 'debugInfos',
-                                },
+                                },*/
                                 {
                                     type: 'close',
                                     label: this.adapter.getText('Close'),

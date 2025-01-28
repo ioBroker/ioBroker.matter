@@ -11,6 +11,7 @@ import {
     Utils,
 } from '@iobroker/adapter-react-v5';
 import {
+    Article,
     Close,
     ContentCopy,
     Delete,
@@ -262,11 +263,16 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         return <QuestionMark style={{ color }} />;
     }
 
-    requestAdditionalInformation(e: React.MouseEvent, uuid: string, bridgedDeviceUuid?: string): void {
+    requestAdditionalInformation(
+        message: 'deviceExtendedInfo' | 'deviceDebugInfo',
+        e: React.MouseEvent,
+        uuid: string,
+        bridgedDeviceUuid?: string,
+    ): void {
         e.stopPropagation();
 
         this.props.socket
-            .sendTo(`matter.${this.props.instance}`, 'deviceExtendedInfo', { uuid, bridgedDeviceUuid })
+            .sendTo(`matter.${this.props.instance}`, message, { uuid, bridgedDeviceUuid })
             .then(
                 ({
                     result: { schema, options },
@@ -283,7 +289,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                     });
                 },
             )
-            .catch(e => this.props.showToast(`Cannot reset: ${e}`));
+            .catch(e => this.props.showToast(`Cannot request additional information for "${message}": ${e}`));
     }
 
     renderMessageDialog(): React.JSX.Element | null {
@@ -315,16 +321,17 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
 
     renderStatus(
         deviceOrBridge: DeviceDescription | BridgeDescription,
-    ): [React.JSX.Element | null, React.JSX.Element | null, React.JSX.Element | null] {
+    ): [React.JSX.Element | null, React.JSX.Element | null, React.JSX.Element | null, React.JSX.Element | null] {
         if (!this.props.nodeStates[deviceOrBridge.uuid] || !deviceOrBridge.enabled) {
-            return [null, null, null];
+            return [null, null, null, null];
         }
 
-        const result: [React.JSX.Element | null, React.JSX.Element | null, React.JSX.Element | null] = [
-            null,
-            null,
-            null,
-        ];
+        const result: [
+            React.JSX.Element | null,
+            React.JSX.Element | null,
+            React.JSX.Element | null,
+            React.JSX.Element | null,
+        ] = [null, null, null, null];
 
         const qrCode = this.props.nodeStates[deviceOrBridge.uuid].status ? (
             <Tooltip
@@ -354,9 +361,10 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         }
 
         const hasError = !!this.props.nodeStates[deviceOrBridge.uuid].error;
-        const extendedInfo = (
+
+        result[2] = (
             <Tooltip
-                key="debug"
+                key="infos"
                 title={hasError ? I18n.t('Show error') : I18n.t('Show additional information')}
                 slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
             >
@@ -375,15 +383,33 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                     }}
                     onClick={e => {
                         e.stopPropagation();
-                        this.requestAdditionalInformation(e, deviceOrBridge.uuid);
+                        this.requestAdditionalInformation('deviceExtendedInfo', e, deviceOrBridge.uuid);
                     }}
                 >
                     {hasError ? <Warning /> : <Info />}
                 </IconButton>
             </Tooltip>
         );
-
-        result[2] = extendedInfo;
+        result[3] = (
+            <Tooltip
+                key="debug"
+                title={I18n.t('Show debug information')}
+                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+            >
+                <IconButton
+                    style={{
+                        height: 40,
+                        color: this.isDevice ? (this.props.themeType === 'dark' ? '#FFFFFF' : '#00000080') : '#FFFFFF',
+                    }}
+                    onClick={e => {
+                        e.stopPropagation();
+                        this.requestAdditionalInformation('deviceDebugInfo', e, deviceOrBridge.uuid);
+                    }}
+                >
+                    <Article />
+                </IconButton>
+            </Tooltip>
+        );
 
         if (
             this.props.nodeStates[deviceOrBridge.uuid].status &&

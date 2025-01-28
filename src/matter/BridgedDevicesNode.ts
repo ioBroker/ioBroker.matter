@@ -1,4 +1,4 @@
-import { Endpoint, ServerNode, VendorId } from '@matter/main';
+import { Endpoint, ServerNode, VendorId, EndpointServer } from '@matter/main';
 import { BridgedDeviceBasicInformationServer, NetworkCommissioningServer } from '@matter/main/behaviors';
 import { AggregatorEndpoint, BridgedNodeEndpoint } from '@matter/main/endpoints';
 import { NetworkCommissioning } from '@matter/main/clusters';
@@ -12,6 +12,8 @@ import matterDeviceFactory from './to-matter/matterFactory';
 import type { GenericDeviceToMatter } from './to-matter/GenericDeviceToMatter';
 import type { StructuredJsonFormData } from '../lib/JsonConfigUtils';
 import { IoBrokerCommissioningServer } from './behaviors/IoBrokerCommissioningServer';
+import { logEndpoint } from './EndpointStructureInspector';
+import type { JsonFormSchema } from '@iobroker/dm-utils';
 
 export interface BridgeCreateOptions {
     parameters: BridgeOptions;
@@ -462,6 +464,27 @@ class BridgedDevices extends BaseServerNode {
         };
 
         return details;
+    }
+
+    override getDeviceDebugInfo(message: ioBroker.MessagePayload): { schema: JsonFormSchema; data: any } {
+        const bridgedDeviceUuid = message.bridgedDeviceUuid;
+        let debugInfos: string;
+        if (bridgedDeviceUuid === undefined) {
+            debugInfos = this.serverNode
+                ? logEndpoint(EndpointServer.forEndpoint(this.serverNode))
+                : 'Server Node not initialized yet.';
+        } else {
+            const endpoints = this.#deviceEndpoints.get(bridgedDeviceUuid);
+            if (endpoints) {
+                debugInfos = endpoints
+                    .map(endpoint => logEndpoint(EndpointServer.forEndpoint(endpoint)))
+                    .join('\r\n\r\n');
+            } else {
+                debugInfos = `Device ${bridgedDeviceUuid} not found in bridge`;
+            }
+        }
+        const { schema } = super.getDeviceDebugInfo(message);
+        return { schema, data: { debugInfos } };
     }
 }
 

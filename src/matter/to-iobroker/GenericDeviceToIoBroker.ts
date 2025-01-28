@@ -405,9 +405,6 @@ export abstract class GenericDeviceToIoBroker {
     }): Promise<void> {
         const pathId = eventPathToString(data);
         const pathProperty = this.#matterMappings.get(pathId);
-        this.#adapter.log.debug(
-            `Handle event ${pathId} with property type ${typeof pathProperty === 'function' ? 'function' : pathProperty}`,
-        );
         if (pathProperty === undefined) {
             return;
         }
@@ -425,7 +422,6 @@ export abstract class GenericDeviceToIoBroker {
             for (const event of data.events) {
                 const value = await convertValue(pathProperty, event);
                 if (value !== undefined) {
-                    this.#adapter.log.debug(`Update state for ${pathId} and type ${pathProperty} with value ${value}`);
                     try {
                         await this.ioBrokerDevice.updatePropertyValue(pathProperty, value);
                     } catch (e) {

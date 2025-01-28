@@ -153,6 +153,7 @@
     "Select/Unselect all devices in room": "Select/Unselect all devices in room",
     "Show QR Code for commissioning": "Show QR Code for commissioning",
     "Show additional information": "Show additional information",
+    "Show debug information": "Show debug information",
     "Show error": "Show error",
     "Show readme page": "Show readme page",
     "Show unsupported devices": "Show unsupported devices",

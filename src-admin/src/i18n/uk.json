@@ -153,6 +153,7 @@
     "Select/Unselect all devices in room": "Виберіть/Скасуйте вибір усіх пристроїв у кімнаті",
     "Show QR Code for commissioning": "Показати QR-код для введення в експлуатацію",
     "Show additional information": "Показати додаткову інформацію",
+    "Show debug information": "",
     "Show error": "Показати помилку",
     "Show readme page": "Показати сторінку readme",
     "Show unsupported devices": "Показати непідтримувані пристрої",

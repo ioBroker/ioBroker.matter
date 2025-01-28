@@ -153,6 +153,7 @@
     "Select/Unselect all devices in room": "Selecionar/desmarcar todos os dispositivos na sala",
     "Show QR Code for commissioning": "Mostrar código QR para comissionamento",
     "Show additional information": "Mostrar informações adicionais",
+    "Show debug information": "Mostrar informações de depuração",
     "Show error": "Mostrar erro",
     "Show readme page": "Mostrar página leia-me",
     "Show unsupported devices": "Mostrar dispositivos não suportados",

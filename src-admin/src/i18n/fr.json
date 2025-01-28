@@ -153,6 +153,7 @@
     "Select/Unselect all devices in room": "Sélectionner/Désélectionner tous les appareils de la pièce",
     "Show QR Code for commissioning": "Afficher le code QR pour la mise en service",
     "Show additional information": "Afficher des informations supplémentaires",
+    "Show debug information": "Afficher les informations de débogage",
     "Show error": "Afficher l'erreur",
     "Show readme page": "Afficher la page readme",
     "Show unsupported devices": "Afficher les appareils non pris en charge",

@@ -666,7 +666,7 @@ export abstract class GenericDevice extends EventEmitter {
         } else if (valueType === ValueType.Enum) {
             return 'select';
         } else if (valueType === ValueType.String && property === PropertyType.Rgb) {
-            //return 'color'; // Add again once works in DM
+            return 'color'; // Add again once works in DM
         }
         return 'input';
     }

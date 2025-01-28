@@ -819,6 +819,7 @@ export class MatterAdapter extends utils.Adapter {
         let controls = detector.detect(options);
         if (!controls?.length) {
             delete options.allowedTypes;
+            const detector = new ChannelDetector();
             controls = detector.detect(options);
         }
         if (controls?.length) {

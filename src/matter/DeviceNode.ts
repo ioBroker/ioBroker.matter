@@ -1,4 +1,4 @@
-import { ServerNode, VendorId } from '@matter/main';
+import { ServerNode, VendorId, EndpointServer } from '@matter/main';
 import { NetworkCommissioningServer } from '@matter/main/behaviors';
 import { NetworkCommissioning } from '@matter/main/clusters';
 import { inspect } from 'util';
@@ -11,6 +11,8 @@ import matterDeviceFactory from './to-matter/matterFactory';
 import type { GenericDeviceToMatter } from './to-matter/GenericDeviceToMatter';
 import type { StructuredJsonFormData } from '../lib/JsonConfigUtils';
 import { IoBrokerCommissioningServer } from './behaviors/IoBrokerCommissioningServer';
+import { logEndpoint } from './EndpointStructureInspector';
+import type { JsonFormSchema } from '@iobroker/dm-utils';
 
 export interface DeviceCreateOptions {
     parameters: DeviceOptions;
@@ -254,6 +256,14 @@ class Device extends BaseServerNode {
             ...details,
             ...this.#mappingDevice?.getDeviceDetails(),
         };
+    }
+
+    override getDeviceDebugInfo(message: ioBroker.MessagePayload): { schema: JsonFormSchema; data: any } {
+        const debugInfos = this.serverNode
+            ? logEndpoint(EndpointServer.forEndpoint(this.serverNode))
+            : 'Server Node not initialized yet.';
+        const { schema } = super.getDeviceDebugInfo(message);
+        return { schema, data: { debugInfos } };
     }
 }
 

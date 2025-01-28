@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import {
     Add,
+    Article,
     AutoMode,
     Close,
     Delete,
@@ -1251,25 +1252,56 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         </div>
                         <div style={{ flex: 1 }} />
                         {this.props.nodeStates?.[bridge.uuid] && bridge.enabled ? (
-                            <Tooltip
-                                key="debug"
-                                title={hasError ? I18n.t('Show error') : I18n.t('Show additional information')}
-                                slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
-                            >
-                                <IconButton
-                                    style={{
-                                        height: 40,
-                                        color: hasError
-                                            ? '#FF0000'
-                                            : this.props.themeType === 'dark'
-                                              ? '#FFFFFF'
-                                              : '#00000080',
-                                    }}
-                                    onClick={e => this.requestAdditionalInformation(e, bridge.uuid, device.uuid)}
+                            <>
+                                <Tooltip
+                                    key="infos"
+                                    title={hasError ? I18n.t('Show error') : I18n.t('Show additional information')}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                                 >
-                                    {hasError ? <Warning /> : <Info />}
-                                </IconButton>
-                            </Tooltip>
+                                    <IconButton
+                                        style={{
+                                            height: 40,
+                                            color: hasError
+                                                ? '#FF0000'
+                                                : this.props.themeType === 'dark'
+                                                  ? '#FFFFFF'
+                                                  : '#00000080',
+                                        }}
+                                        onClick={e =>
+                                            this.requestAdditionalInformation(
+                                                'deviceExtendedInfo',
+                                                e,
+                                                bridge.uuid,
+                                                device.uuid,
+                                            )
+                                        }
+                                    >
+                                        {hasError ? <Warning /> : <Info />}
+                                    </IconButton>
+                                </Tooltip>
+                                <Tooltip
+                                    key="debug"
+                                    title={I18n.t('Show debug information')}
+                                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                                >
+                                    <IconButton
+                                        style={{
+                                            height: 40,
+                                            color: this.props.themeType === 'dark' ? '#FFFFFF' : '#00000080',
+                                        }}
+                                        onClick={e =>
+                                            this.requestAdditionalInformation(
+                                                'deviceDebugInfo',
+                                                e,
+                                                bridge.uuid,
+                                                device.uuid,
+                                            )
+                                        }
+                                    >
+                                        <Article />
+                                    </IconButton>
+                                </Tooltip>
+                            </>
                         ) : null}
                     </div>
                 </TableCell>

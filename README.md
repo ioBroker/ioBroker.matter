@@ -76,6 +76,11 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (@Apollon77) Fixed caching issues in device type detection
+* (@Apollon77) Added Debug info icon for Devices and Bridges
+
 ### 0.4.10 (2025-01-27)
 * (@Apollon77) Fixed Thermostat limit initialization and Mode error
 * (@Apollon77) Fixed Matter Event handling when mapped to an ioBroker state (e.g.GenericSwitch)

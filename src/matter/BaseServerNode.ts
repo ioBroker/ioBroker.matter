@@ -8,6 +8,7 @@ import { PowerSource } from '@matter/main/clusters';
 import type { GenericDevice } from '../lib/devices/GenericDevice';
 import { PropertyType } from '../lib/devices/DeviceStateObject';
 import { BatteryPowerSourceServer } from './behaviors/PowerSourceServer';
+import type { JsonFormSchema } from '@iobroker/dm-utils';
 
 export enum NodeStates {
     Creating = 'creating',
@@ -160,6 +161,31 @@ export abstract class BaseServerNode implements GeneralNode {
                     },
                 };
             }
+            case 'deviceDebugInfo': {
+                const { data, schema } = this.getDeviceDebugInfo(message);
+                return {
+                    result: {
+                        schema,
+                        options: {
+                            data,
+                            maxWidth: 'md',
+                            minWidth: 610,
+                            title: `${this.type === 'bridges' && !('bridgedDeviceUuid' in message) ? 'Bridge' : 'Device'} Debug information`,
+                            buttons: [
+                                {
+                                    type: 'copyToClipboard',
+                                    label: this.adapter.getText('Copy to clipboard'),
+                                    copyToClipboardAttr: 'debugInfos',
+                                },
+                                {
+                                    type: 'close',
+                                    label: this.adapter.getText('Close'),
+                                },
+                            ],
+                        },
+                    },
+                };
+            }
         }
 
         return { error: `Unknown command "${command}"` };
@@ -189,6 +215,33 @@ export abstract class BaseServerNode implements GeneralNode {
     }
 
     abstract getDeviceDetails(message: ioBroker.MessagePayload): StructuredJsonFormData;
+
+    getDeviceDebugInfo(_message: ioBroker.MessagePayload): { schema: JsonFormSchema; data: any } {
+        return {
+            schema: {
+                type: 'panel',
+                items: {
+                    _instructions: {
+                        type: 'staticText',
+                        text: this.adapter.getText(
+                            'In case of issues with this node please copy and post these details together with Debug logs to the issue.',
+                        ),
+                    },
+                    debugInfos: {
+                        type: 'text',
+                        label: this.adapter.getText('Debug Infos'),
+                        minRows: 30,
+                        sm: 12,
+                        readOnly: true,
+                        copyToClipboard: true,
+                        trim: false,
+                        noClearButton: true,
+                    },
+                },
+            },
+            data: null,
+        };
+    }
 
     /**
      * Initializes the reachable state handler for a device and map it to the Basic Information Cluster of the Matter +

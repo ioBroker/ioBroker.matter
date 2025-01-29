@@ -646,7 +646,47 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         if (this.state.jsonConfig.options?.buttons) {
             buttons = [];
             this.state.jsonConfig.options.buttons.forEach((button: ActionButton | 'apply' | 'cancel'): void => {
-                if (button === 'apply' || (button as ActionButton).type === 'apply') {
+                if (typeof button === 'object' && button.type === 'copyToClipboard') {
+                    buttons.push(
+                        <Button
+                            key="copyToClipboard"
+                            variant={button.variant || 'outlined'}
+                            color={
+                                button.color === 'primary'
+                                    ? 'primary'
+                                    : button.color === 'secondary'
+                                      ? 'secondary'
+                                      : undefined
+                            }
+                            style={{
+                                backgroundColor:
+                                    button.color && button.color !== 'primary' && button.color !== 'secondary'
+                                        ? button.color
+                                        : undefined,
+                                ...(button.style || undefined),
+                            }}
+                            onClick={() => {
+                                if (button.copyToClipboardAttr && this.state.jsonConfig?.options?.data) {
+                                    const val = this.state.jsonConfig.options.data[button.copyToClipboardAttr];
+                                    if (typeof val === 'string') {
+                                        Utils.copyToClipboard(val);
+                                    } else {
+                                        Utils.copyToClipboard(JSON.stringify(val, null, 2));
+                                    }
+                                    window.alert(I18n.t('copied'));
+                                } else if (this.state.jsonConfig?.options?.data) {
+                                    Utils.copyToClipboard(JSON.stringify(this.state.jsonConfig.options.data, null, 2));
+                                    window.alert(I18n.t('copied'));
+                                } else {
+                                    window.alert(I18n.t('nothingToCopy'));
+                                }
+                            }}
+                            startIcon={button?.icon ? <Icon src={button?.icon} /> : <ContentCopy />}
+                        >
+                            {getTranslation(button?.label || 'ctcButtonText', button?.noTranslation)}
+                        </Button>,
+                    );
+                } else if (button === 'apply' || (button as ActionButton).type === 'apply') {
                     buttons.push(this.getOkButton(button));
                 } else {
                     buttons.push(this.getCancelButton(button));

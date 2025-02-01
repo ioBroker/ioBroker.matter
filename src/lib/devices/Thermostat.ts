@@ -31,7 +31,7 @@ export class Thermostat extends GenericDevice {
     #getTemperatureState?: DeviceStateObject<number>;
     #powerState?: DeviceStateObject<boolean | number>;
     #getHumidityState?: DeviceStateObject<number>;
-    #boostState?: DeviceStateObject<number>;
+    #boostState?: DeviceStateObject<boolean | number>;
     #partyState?: DeviceStateObject<boolean | number>;
     #modeState?: DeviceStateObject<ThermostatMode>;
 
@@ -234,14 +234,14 @@ export class Thermostat extends GenericDevice {
         return !!this.#getHumidityState;
     }
 
-    getBoost(): number | undefined {
+    getBoost(): boolean | number | undefined {
         if (!this.#boostState) {
             throw new Error('Boost state not found');
         }
         return this.#boostState.value;
     }
 
-    setBoost(value: number): Promise<void> {
+    setBoost(value: boolean | number): Promise<void> {
         if (!this.#boostState) {
             throw new Error('Boost state not found');
         }

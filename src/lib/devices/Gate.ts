@@ -1,10 +1,17 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { BlindDirections, BlindDirectionsNumbers } from './Blind';
+
+export type GateDirections = BlindDirections;
+export const GateDirections = BlindDirections;
+export type GateDirectionsNumbers = BlindDirectionsNumbers;
+export const GateDirectionsNumbers = BlindDirectionsNumbers;
 
 export class Gate extends GenericDevice {
     #setLevelState?: DeviceStateObject<number>;
     #getLevelState?: DeviceStateObject<number>;
     #setStopState?: DeviceStateObject<boolean>;
+    #directionEnumState?: DeviceStateObject<GateDirections>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
@@ -33,6 +40,13 @@ export class Gate extends GenericDevice {
                     type: PropertyType.Stop,
                     callback: state => (this.#setStopState = state),
                 },
+                {
+                    name: 'DIRECTION',
+                    valueType: ValueType.Enum,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.DirectionEnum,
+                    callback: state => (this.#directionEnumState = state),
+                },
             ]),
         );
     }
@@ -56,5 +70,30 @@ export class Gate extends GenericDevice {
             throw new Error('Stop state not found');
         }
         return this.#setStopState.setValue(true);
+    }
+
+    getDirectionEnum(): BlindDirections | undefined {
+        if (!this.#directionEnumState) {
+            throw new Error('Direction state not found');
+        }
+        return this.#directionEnumState.value;
+    }
+
+    setDirectionENum(value: BlindDirections): Promise<void> {
+        if (!this.#directionEnumState) {
+            throw new Error('Direction state not found');
+        }
+        return this.#directionEnumState.setValue(value);
+    }
+
+    updateDirectionEnum(value: BlindDirections): Promise<void> {
+        if (!this.#directionEnumState) {
+            throw new Error('Direction state not found');
+        }
+        return this.#directionEnumState.updateValue(value);
+    }
+
+    hasDirectionEnum(): boolean {
+        return !!this.#directionEnumState;
     }
 }

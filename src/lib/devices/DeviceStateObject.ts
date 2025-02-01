@@ -34,6 +34,8 @@ export enum PropertyType {
     Description = 'description',
     Dimmer = 'dimmer',
     Direction = 'direction',
+    DirectionEnum = 'directionEnum',
+    DoorState = 'doorState',
     Duration = 'duration',
     Elapsed = 'elapsed',
     ElectricPower = 'electricPower',
@@ -352,9 +354,8 @@ export class DeviceStateObject<T> extends EventEmitter {
         if (!this.object) {
             throw new Error(`Object not initialized`);
         }
-        const obj = this.object;
         // {'MODE_VALUE': 'MODE_TEXT'}
-        let modes: { [key: string]: T } = obj?.common?.states;
+        let modes: { [key: string]: T } | undefined = this.object?.common?.states;
         if (modes) {
             // convert ['Auto'] => {'Auto': 'AUTO'}
             if (Array.isArray(modes)) {
@@ -363,8 +364,14 @@ export class DeviceStateObject<T> extends EventEmitter {
                 modes = _m;
             }
             this.modes = modes;
+            this.adapter.log.debug(
+                `Initialize modes ${Object.entries(modes)
+                    .map(([key, value]) => `(${key}) ${String(value)}`)
+                    .join(',')} for ${this.#id}`,
+            );
         } else {
             this.modes = {};
+            this.adapter.log.debug(`No modes found for ${this.#id}`);
         }
     }
 
@@ -519,13 +526,20 @@ export class DeviceStateObject<T> extends EventEmitter {
                         !this.#isIoBrokerState,
                     );
                 } else if (valueType === 'enum') {
-                    let realValue: string | T = value;
+                    let realValue: number | string | T = value;
                     if (this.modes) {
                         for (const [key, value] of Object.entries(this.modes)) {
                             if (realValue === value) {
                                 realValue = key;
                                 break;
                             }
+                        }
+                        this.adapter.log.debug(
+                            `Mapped enum value for ${this.#id}: ${String(value)} --> ${String(realValue)}`,
+                        );
+                        if (this.object.common.type === 'number' && (realValue as string).match(/^[0-9]+$/)) {
+                            realValue = parseFloat(realValue as string);
+                            this.adapter.log.debug(`Converted enum value to number: ${realValue}`);
                         }
                     } else {
                         this.adapter.log.info(`Cannot map enum value for ${this.#id} without modes`);

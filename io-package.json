@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.4.12",
+    "version": "0.4.13",
     "news": {
+      "0.4.13": {
+        "en": "Added support for Door state feature for Devices and Controllers\nFixed Thermostat creation with Boost state",
+        "de": "Unterstützung für Türzustandsfunktionen für Geräte und Controller\nFeste Thermostat-Erstellung mit Boost-Zustand",
+        "ru": "Добавлена поддержка функции состояния двери для устройств и контроллеров\nИсправленное создание Thermostat с состоянием Boost",
+        "pt": "Adicionado suporte para recurso de estado de porta para dispositivos e controladores\nCriação de termostato fixo com estado de impulso",
+        "nl": "Extra ondersteuning voor deurstatus voor apparaten en controllers\nVaste thermostaat creatie met Boost toestand",
+        "fr": "Ajout de la prise en charge de la fonction État de la porte pour les appareils et les contrôleurs\nCréation de thermostat fixe avec état Boost",
+        "it": "Aggiunto supporto per la funzione di stato della porta per dispositivi e controller\nCreazione termostato fisso con stato Boost",
+        "es": "Soporte añadido para la función de estado de puerta para dispositivos y controladores\nCreación de termostato fijo con estado Boost",
+        "pl": "Dodano wsparcie dla funkcji stanu drzwi dla urządzeń i sterowników\nStałe tworzenie termostatu z boost state",
+        "uk": "Додано підтримку функцій дверного стану для пристроїв та контролерів\nФіксована терморегуляція з державою Boost",
+        "zh-cn": "添加对设备及控制器的 Door 状态特性的支持\n带布斯特状态的固定热源创建"
+      },
       "0.4.12": {
         "en": "Added the \"copy to clipboard\" button in the debug dialog\nUpdated matter.js with performance and Memory usage optimizations (and Tasmota pairing workaround)\nReworked Type detection in Backend and for Channel/Device detection type in UI, now multiple devicetypes are offered with most complex one pre-selected\nHandle Matter ColorTemperature Lights as a Color capable light to also allow CT-Lights with Hue support\nAdded BOOST endpoint as switch when exposing Thermostats with Boost state\nOptimized some dimmer/level management for light devices without dimmer state",
         "de": "Hinzufügen der Schaltfläche \"Kopieren zum Clipboard\" im Debug-Dialog\nAktualisierte matter.js mit Leistungs- und Speichernutzungsoptimierungen (und Tasmota-Paaring-Workaround)\nReworked Type-Erkennung im Backend und für Channel/Device-Erkennungstyp in UI, jetzt werden mehrere Gerätetypen mit den komplexesten vorwählten angeboten\nGriff Matter ColorTemperatur Lichter als Farbfähiges Licht, um auch CT-Lights mit Hue-Unterstützung zu ermöglichen\nBOOST Endpunkt als Schalter beim Aussetzen von Thermostaten mit Boost Zustand hinzugefügt\nOptimiertes Dimmer/Level-Management für Lichtgeräte ohne Dimmerzustand",
@@ -80,19 +93,6 @@
         "pl": "Dodano debugowanie, gdy sterowniki zmieniają wartość temperatury na makle, aby nie przeciążyć urządzenia\nDodano wsparcie dla stopnia i zastosowania 0.5 dla temperatury Setpoint\nDodano podparcie futro Żarówki bez stanu nasycenia",
         "uk": "Додано розвантаження при зміні значень температури контролерів до щиколотки, обов'язково не перевантажувати пристрій\nДодана підтримка кроку і використання 0.5 для температури точки Setpoint\nДодана підтримка хутряних світильників без збереження стану",
         "zh-cn": "当控制器改变温度值到 makele 时添加调试, 确定不会超载设备\n添加步骤支持, 在 Setpoint 温度中使用 0. 5\n没有饱和状态而添加支持皮毛色的灯光"
-      },
-      "0.4.6": {
-        "en": "Optimized UI\nAdded user feedback when device or bridged device is identified\nFixes Thermostat logic for devices\nEnsures information are pushed to the UI when devices are in an error state",
-        "de": "Optimierte UI\nBenutzerfeedback hinzugefügt, wenn Gerät oder überbrücktes Gerät identifiziert wird\nFixes Thermostat-Logik für Geräte\nStellt sicher, dass Informationen auf das UI geschoben werden, wenn Geräte in einem Fehlerzustand sind",
-        "ru": "Оптимизированный UI\nДобавить обратную связь пользователя при идентификации устройства или мостового устройства\nЛогика Fixes Thermostat для устройств\nУбедитесь, что информация отталкивается в пользовательский интерфейс, когда устройства находятся в состоянии ошибки",
-        "pt": "IU otimizada\nAdicionado feedback do usuário quando dispositivo ou dispositivo ponte é identificado\nCorrige a lógica termostato para dispositivos\nAssegura que as informações são empurradas para a interface do usuário quando os dispositivos estão em um estado de erro",
-        "nl": "Geoptimaliseerde UI\nToegevoegde gebruikersfeedback wanneer apparaat of apparaat is geïdentificeerd\nFixes Thermostat logica voor apparaten\nZorgt ervoor dat informatie naar de UI wordt geduwd wanneer de apparaten in een fouttoestand verkeren",
-        "fr": "UI optimisé\nAjout de la rétroaction de l'utilisateur lorsque l'appareil est identifié\nCorrection de la logique thermostat pour les appareils\nS'assure que l'information est envoyée à l'interface utilisateur lorsque les appareils sont dans un état d'erreur",
-        "it": "UI ottimizzato\nFeedback utente aggiunto quando dispositivo o dispositivo pontificato è identificato\nFissa la logica del termostato per i dispositivi\nAssicura che le informazioni siano spinte all'interfaccia utente quando i dispositivi sono in stato di errore",
-        "es": "UI optimizada\nComentarios del usuario cuando se identifica el dispositivo o dispositivo puente\nFija la lógica termostato para dispositivos\nAsegura que la información sea empujada a la UI cuando los dispositivos están en estado de error",
-        "pl": "Zoptymalizowany interfejs użytkownika\nDodano sprzężenie zwrotne użytkownika przy identyfikacji urządzenia lub urządzenia pomostowego\nFixes Termostat logika dla urządzeń\nZapewnia wciśnięcie informacji do interfejsu użytkownika, gdy urządzenia znajdują się w stanie błędu",
-        "uk": "Оптимізований UI\nДодано зворотний зв'язок користувача при підключенні пристрою або мостового пристрою\nФіксує логіку термостату для пристроїв\nЗабезпечує інформацію про UI, коли пристрої знаходяться в стані помилки",
-        "zh-cn": "优化 UI\n识别设备或桥梁设备时添加用户反馈\n修正设备的自动调温逻辑\n确保设备处于错误状态时将信息推向 UI"
       }
     },
     "titleLang": {

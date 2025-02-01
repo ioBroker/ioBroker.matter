@@ -78,8 +78,7 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.4.13 (2025-02-01)
 * (@Apollon77) Added support for Door state feature for Devices and Controllers
 * (@Apollon77) Fixed Thermostat creation with Boost state
 

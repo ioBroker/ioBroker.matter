@@ -1,5 +1,5 @@
 import { Endpoint } from '@matter/main';
-import { HumiditySensorDevice, ThermostatDevice } from '@matter/main/devices';
+import { HumiditySensorDevice, ThermostatDevice, OnOffPlugInUnitDevice } from '@matter/main/devices';
 import { Thermostat as MatterThermostat } from '@matter/main/clusters';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { ThermostatMode, type Thermostat } from '../../lib/devices/Thermostat';
@@ -8,15 +8,27 @@ import { IoThermostatServer } from '../behaviors/ThermostatServer';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { IoIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
+import { EventedOnOffPlugInUnitOnOffServer } from '../behaviors/EventedOnOffPlugInUnitOnOffServer';
 
 //const HeatingThermostatServer = IoThermostatServer.with(MatterThermostat.Feature.Heating);
 //const CoolingThermostatServer = IoThermostatServer.with(MatterThermostat.Feature.Cooling);
 
+const IoThermostatDevice = ThermostatDevice.with(IoThermostatServer, IoBrokerEvents, IoIdentifyServer, IoBrokerContext);
+type IoThermostatDevice = typeof IoThermostatDevice;
+
+const IoOnOffPlugInUnitDevice = OnOffPlugInUnitDevice.with(
+    EventedOnOffPlugInUnitOnOffServer,
+    IoBrokerEvents,
+    IoBrokerContext,
+);
+type IoOnOffPlugInUnitDevice = typeof IoOnOffPlugInUnitDevice;
+
 /** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */
 export class ThermostatToMatter extends GenericDeviceToMatter {
     readonly #ioBrokerDevice: Thermostat;
-    readonly #matterEndpointThermostat: Endpoint<ThermostatDevice>;
+    readonly #matterEndpointThermostat: Endpoint<IoThermostatDevice>;
     readonly #matterEndpointHumidity?: Endpoint<HumiditySensorDevice>;
+    readonly #matterEndpointBoost?: Endpoint<IoOnOffPlugInUnitDevice>;
     #supportedModes = new Array<ThermostatMode>();
     #validModes = new Array<ThermostatMode>();
     #temperatureDebounceTimeout?: ioBroker.Timeout;
@@ -102,12 +114,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
         const hasCooling = clusterModes.includes(MatterThermostat.Feature.Cooling);
 
         this.#matterEndpointThermostat = new Endpoint(
-            ThermostatDevice.with(
-                IoThermostatServer.with(...clusterModes),
-                IoBrokerEvents,
-                IoIdentifyServer,
-                IoBrokerContext,
-            ),
+            IoThermostatDevice.with(IoThermostatServer.with(...clusterModes)),
             {
                 id: `${uuid}-Thermostat`,
                 ioBrokerContext: {
@@ -134,12 +141,28 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
         if (this.#ioBrokerDevice.hasHumidity()) {
             this.#matterEndpointHumidity = new Endpoint(HumiditySensorDevice, { id: `${uuid}-Humidity` });
         }
+        if (this.#ioBrokerDevice.hasBoost()) {
+            this.#matterEndpointBoost = new Endpoint(
+                OnOffPlugInUnitDevice.with(
+                    EventedOnOffPlugInUnitOnOffServer,
+                    IoBrokerEvents,
+                    IoIdentifyServer,
+                    IoBrokerContext,
+                ),
+                {
+                    id: `${uuid}-BoostOnOff`,
+                },
+            );
+        }
     }
 
     get matterEndpoints(): Endpoint[] {
         const endpoints: Endpoint[] = [this.#matterEndpointThermostat];
         if (this.#matterEndpointHumidity) {
             endpoints.push(this.#matterEndpointHumidity);
+        }
+        if (this.#matterEndpointBoost) {
+            endpoints.push(this.#matterEndpointBoost);
         }
         return endpoints;
     }
@@ -340,6 +363,13 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
             );
         }
 
+        if (this.#matterEndpointBoost) {
+            this.matterEvents.on(
+                this.#matterEndpointBoost.events.ioBrokerEvents.onOffControlled,
+                async on => await this.#ioBrokerDevice.setBoost(on),
+            );
+        }
+
         this.#ioBrokerDevice.onChange(async event => {
             switch (event.property) {
                 case PropertyType.Temperature:
@@ -410,6 +440,15 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                         await this.#matterEndpointHumidity?.set({
                             relativeHumidityMeasurement: {
                                 measuredValue: this.convertHumidityValue(event.value as number),
+                            },
+                        });
+                    }
+                    break;
+                case PropertyType.Boost:
+                    if (this.#matterEndpointBoost?.owner !== undefined) {
+                        await this.#matterEndpointBoost?.set({
+                            onOff: {
+                                onOff: event.value as boolean,
                             },
                         });
                     }

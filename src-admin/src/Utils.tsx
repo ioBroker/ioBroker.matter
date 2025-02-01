@@ -158,6 +158,7 @@ export async function detectDevices(
         _list = list;
     }
 
+    const detectOnSingleObject = list?.length === 1;
     const options: DetectOptions = {
         id: '',
         objects: devicesObject,
@@ -166,6 +167,9 @@ export async function detectDevices(
         ignoreIndicators,
         allowedTypes,
         excludedTypes,
+        // When we only detect for a single object then we try to find anything and ignore enums
+        detectAllPossibleDevices: detectOnSingleObject,
+        ignoreEnums: detectOnSingleObject,
     };
 
     const result: DetectedRoom[] = [];
@@ -183,7 +187,7 @@ export async function detectDevices(
                 }
                 const stateId = stateIdObj.id;
                 // if not yet added
-                if (result.find(item => item.devices.find(st => st._id === stateId))) {
+                if (!detectOnSingleObject && result.find(item => item.devices.find(st => st._id === stateId))) {
                     return;
                 }
                 const deviceObject: DetectedDevice = {
@@ -262,8 +266,8 @@ export async function detectDevices(
     });
 
     // find names and icons for devices
-    result.forEach(control => {
-        control.devices.forEach(dev => {
+    result.forEach(room => {
+        room.devices.forEach(dev => {
             const deviceObj = dev;
             if (deviceObj.type === 'state' || deviceObj.type === 'channel') {
                 const idArray = deviceObj._id.split('.');
@@ -300,6 +304,18 @@ export async function detectDevices(
         });
     });
 
+    return result;
+}
+
+export function getDetectedDeviceTypes(detectedRooms: DetectedRoom[]): Types[] {
+    const result: Types[] = [];
+    detectedRooms.forEach(room => {
+        room.devices.forEach(device => {
+            if (!result.includes(device.deviceType)) {
+                result.push(device.deviceType);
+            }
+        });
+    });
     return result;
 }
 

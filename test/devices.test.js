@@ -38,6 +38,7 @@ const detectedDevices = {
         { name: 'TILT_STOP', id: '0_userdata.0.tilt_stop', type: 'boolean' },
         { name: 'TILT_OPEN', id: '0_userdata.0.tilt_open', type: 'boolean' },
         { name: 'TILT_CLOSE', id: '0_userdata.0.tilt_close', type: 'boolean' },
+        { name: 'DOOR_STATE', id: '0_userdata.0.door_state', type: 'boolean' },
 
         { name: 'PRESS', id: '0_userdata.0.press', type: 'boolean' },
         { name: 'PRESS_LONG', id: '0_userdata.0.press_long', type: 'boolean' },
@@ -171,6 +172,7 @@ const detectedDevices = {
         { name: 'LOWBAT', id: '0_userdata.0.lowbat', type: 'boolean' },
         { name: 'WORKING', id: '0_userdata.0.working', type: 'boolean' },
         { name: 'DIRECTION', id: '0_userdata.0.direction', type: 'boolean' },
+        { name: 'DIRECTION_ENUM', id: '0_userdata.0.direction_enum', type: 'enum' },
     ],
     type: 'abstract',
 };
@@ -210,7 +212,7 @@ class Adapter {
                 max: 200,
                 unit: '°C',
                 type: 'number',
-                states: entry.type === 'enum' ? { 0: 'Dummy' } : entry.type === 'mixed' ? { null: 'Dummy' } : undefined,
+                states: entry.type === 'enum' ? { 0: 'Dummy', 1: 'Dummy2' } : entry.type === 'mixed' ? { null: 'Dummy' } : undefined,
             },
             type: 'state',
         };
@@ -345,7 +347,9 @@ describe('Test Devices', function () {
                 ) {
                     // Try to read value
                     if (deviceObj.getPropertyValue(prop) === undefined) {
-                        throw new Error(`Property "${prop}" (${properties[prop].valueType}) of "${type}" has no value`);
+                        if (prop !== 'directionEnum') { // This enum is special because overlaps name wise with  direction
+                            throw new Error(`Property "${prop}" (${properties[prop].valueType}) of "${type}" has no value`);
+                        }
                     } else if (properties[prop].valueType === ValueType.Enum) {
                         if (deviceObj.getPropertyValue(prop) !== 'Dummy') {
                             throw new Error(`Property "${prop}" (Enum) of "${type}" has wrong value`);

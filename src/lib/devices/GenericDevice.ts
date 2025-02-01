@@ -5,49 +5,6 @@ import type { BridgeDeviceDescription } from '../../ioBrokerStorageTypes';
 import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { EventEmitter } from 'events';
 
-// take here https://github.com/ioBroker/ioBroker.type-detector/blob/master/DEVICES.md#temperature-temperature
-// export enum DeviceType {
-//     AirCondition = 'airCondition',
-//     Blind = 'blind',
-//     BlindButtons = 'blindButtons',
-//     Button = 'button',
-//     ButtonSensor = 'buttonSensor',
-//     Camera = 'camera',
-//     Url = 'url',
-//     Chart = 'chart',
-//     Image = 'image',
-//     Dimmer = 'dimmer',
-//     Door = 'door',
-//     FireAlarm = 'fireAlarm',
-//     FloodAlarm = 'floodAlarm',
-//     Gate = 'gate',
-//     Humidity = 'humidity',
-//     Info = 'info',
-//     Light = 'light',
-//     Lock = 'lock',
-//     Location = 'location',
-//     Media = 'media',
-//     Motion = 'motion',
-//     Rgb = 'rgb',
-//     Ct = 'ct',
-//     RgbSingle = 'rgbSingle',
-//     RgbwSingle = 'rgbwSingle',
-//     Hue = 'hue',
-//     Cie = 'cie',
-//     Slider = 'slider',
-//     Socket = 'socket',
-//     Temperature = 'temperature',
-//     Thermostat = 'thermostat',
-//     Volume = 'volume',
-//     VacuumCleaner = 'vacuumCleaner',
-//     VolumeGroup = 'volumeGroup',
-//     Window = 'window',
-//     WindowTilt = 'windowTilt',
-//     WeatherCurrent = 'weatherCurrent',
-//     WeatherForecast = 'weatherForecast',
-//     Warning = 'warning',
-// }
-
 export interface DeviceOptions extends BridgeDeviceDescription {
     additionalStateData?: { [key: string]: Partial<DetectorState> };
     dimmerOnLevel?: number;

@@ -78,12 +78,18 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 -->
 
 ## Changelog
+
 ### **WORK IN PROGRESS**
 
 * (@GermanBluefox) Added the "copy to clipboard" button in the debug dialog
+* (@Apollon77) Updated matter.js with performance and Memory usage optimizations (and Tasmota pairing workaround)
+* (@Apollon77) Reworked Type detection in Backend and for Channel/Device detection type in UI, now multiple devicetypes are offered with most complex one pre-selected
+* (@Apollon77) Handle Matter ColorTemperature Lights as a Color capable light to also allow CT-Lights with Hue support
+* (@Apollon77) Added BOOST endpoint as switch when exposing Thermostats with Boost state
+* (@Apollon77) Optimized some dimmer/level management for light devices without dimmer state
 
 ### 0.4.11 (2025-01-28)
-* (@Apollon77) Fixed caching issues in device type detection
+* (@Apollon77) Fixed caching issues in device type detection in backend
 * (@Apollon77) Added Debug info icon for Devices and Bridges
 
 ### 0.4.10 (2025-01-27)

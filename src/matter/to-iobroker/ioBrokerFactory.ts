@@ -14,7 +14,6 @@ import { OnOffPlugInUnitToIoBroker } from './OnOffPlugInUnitToIoBroker';
 import { TemperatureSensorToIoBroker } from './TemperatureSensorToIoBroker';
 import { UtilityOnlyToIoBroker } from './UtilityOnlyToIoBroker';
 import { WaterLeakDetectorToIoBroker } from './WaterLeakDetectorToIoBroker';
-import { ColorTemperatureLightToIoBroker } from './ColorTemperatureLightToIoBroker';
 import { GenericSwitchToIoBroker } from './GenericSwitchToIoBroker';
 import { LightSensorToIoBroker } from './LightSensorToIoBroker';
 import { ExtendedColorLightToIoBroker } from './ExtendedColorLightToIoBroker';
@@ -71,7 +70,8 @@ async function ioBrokerDeviceFabric(
     let isSupportedDeviceType = true;
     switch (primaryDeviceType?.deviceType.id) {
         case Devices.ColorTemperatureLightDeviceDefinition.deviceType:
-            DeviceType = ColorTemperatureLightToIoBroker;
+            //DeviceType = ColorTemperatureLightToIoBroker;
+            DeviceType = ExtendedColorLightToIoBroker; // Because it could be CT and Hue it is easier top map this way
             break;
         case Devices.ContactSensorDeviceDefinition.deviceType:
             DeviceType = ContactSensorToIoBroker;

@@ -54,17 +54,29 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
 
     protected async initializeOnOffClusterHandlers(): Promise<void> {
         await this.#matterEndpoint.setStateOf(EventedOnOffLightOnOffServer, {
-            onOff: this.#ioBrokerDevice.hasPower() ? !!this.#ioBrokerDevice.getPower() : true,
+            onOff: this.#ioBrokerDevice.hasPower()
+                ? !!this.#ioBrokerDevice.getPower()
+                : !(this.#ioBrokerDevice instanceof Light) && this.#ioBrokerDevice.hasDimmer()
+                  ? (this.#ioBrokerDevice.getDimmer() ?? 0) > 0
+                  : true,
         });
 
         this.matterEvents.on(this.#matterEndpoint.eventsOf(IoBrokerEvents).onOffControlled, async on => {
             if (this.#ioBrokerDevice.hasPower()) {
                 await this.#ioBrokerDevice.setPower(on);
-            } else {
-                // Report always on when no Power is supported
-                await this.#matterEndpoint.setStateOf(EventedOnOffLightOnOffServer, {
-                    onOff: true,
-                });
+            } else if (!(this.#ioBrokerDevice instanceof Light) && this.#ioBrokerDevice.hasDimmer()) {
+                if (on) {
+                    if (this.#ioBrokerDevice.getDimmer() === 0) {
+                        const currentLevel = this.#matterEndpoint.stateOf(
+                            EventedLightingLevelControlServer,
+                        )?.currentLevel;
+                        await this.#ioBrokerDevice.setDimmer(
+                            typeof currentLevel === 'number' ? Math.round((currentLevel / 254) * 100) : 100,
+                        );
+                    }
+                } else {
+                    await this.#ioBrokerDevice.setDimmer(0);
+                }
             }
         });
         if (!this.#ioBrokerDevice.hasPower()) {
@@ -92,7 +104,7 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
         const ioBrokerDevice = this.#ioBrokerDevice; // Pin limited type for the scope of this function
 
         const currentLevel = ioBrokerDevice.hasDimmer()
-            ? ioBrokerDevice.cropValue(ioBrokerDevice.getLevel() ?? 100, 1, 100)
+            ? ioBrokerDevice.cropValue(ioBrokerDevice.getDimmer() ?? 100, 1, 100)
             : 100;
         await this.#matterEndpoint.setStateOf(EventedLightingLevelControlServer, {
             currentLevel: this.asMatterLevel(currentLevel),
@@ -107,7 +119,7 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
                     }
 
                     if (level !== null) {
-                        await ioBrokerDevice.setLevel(Math.round((level / 254) * 100));
+                        await ioBrokerDevice.setDimmer(Math.round((level / 254) * 100));
                     }
                 } else {
                     // Report always 100% when no Dimmer is supported
@@ -128,11 +140,21 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
                 case PropertyType.Level:
                 case PropertyType.LevelActual:
                 case PropertyType.Dimmer: {
-                    const value = ioBrokerDevice.cropValue((event.value as number) ?? 100, 1, 100);
+                    const ioValue = (event.value ?? 100) as number;
+                    if (!this.#ioBrokerDevice.hasPower()) {
+                        // If the device has no power state we still report the onoff state based on level
+                        await this.#matterEndpoint.setStateOf(EventedOnOffLightOnOffServer, {
+                            onOff: ioValue > 0,
+                        });
+                    }
 
-                    await this.#matterEndpoint.setStateOf(EventedLightingLevelControlServer, {
-                        currentLevel: this.asMatterLevel(value),
-                    });
+                    if (ioValue > 0) {
+                        const value = ioBrokerDevice.cropValue(ioValue ?? 100, 1, 100);
+
+                        await this.#matterEndpoint.setStateOf(EventedLightingLevelControlServer, {
+                            currentLevel: this.asMatterLevel(value),
+                        });
+                    }
                     break;
                 }
             }

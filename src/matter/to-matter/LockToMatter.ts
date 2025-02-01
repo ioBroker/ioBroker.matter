@@ -17,7 +17,8 @@ const IoBrokerDoorLockDevice = DoorLockDevice.with(
 );
 type IoBrokerDoorLockDevice = typeof IoBrokerDoorLockDevice;
 
-// TODO Add Latching support when "Open" is there!
+//const DoorPositionDoorLockServer = EventedDoorLockServer.with(DoorLock.Feature.DoorPositionSensor);
+//const UnboltingDoorLockServer = EventedDoorLockServer.with(DoorLock.Feature.Unbolting);
 
 /** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
 export class LockToMatter extends GenericElectricityDataDeviceToMatter {
@@ -27,7 +28,18 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
     constructor(ioBrokerDevice: Lock, name: string, uuid: string) {
         super(name, uuid);
 
-        this.#matterEndpoint = new Endpoint(IoBrokerDoorLockDevice, {
+        this.#ioBrokerDevice = ioBrokerDevice;
+
+        const features = new Array<DoorLock.Feature>();
+
+        if (this.#ioBrokerDevice.hasOpen()) {
+            features.push(DoorLock.Feature.Unbolting);
+        }
+        if (this.#ioBrokerDevice.hasDoorState()) {
+            features.push(DoorLock.Feature.DoorPositionSensor);
+        }
+
+        this.#matterEndpoint = new Endpoint(IoBrokerDoorLockDevice.with(EventedDoorLockServer.with(...features)), {
             id: uuid,
             ioBrokerContext: {
                 device: ioBrokerDevice,
@@ -37,9 +49,10 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
                 lockType: DoorLock.LockType.Other,
                 actuatorEnabled: true,
                 lockState: DoorLock.LockState.Locked, // Will be corrected later
+                // @ts-expect-error Simplify state setting because of dynamic features
+                doorState: this.#ioBrokerDevice.hasDoorState() ? DoorLock.DoorState.DoorClosed : undefined,
             },
         });
-        this.#ioBrokerDevice = ioBrokerDevice;
     }
 
     get matterEndpoints(): Endpoint[] {
@@ -61,6 +74,14 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
                     : DoorLock.LockState.Locked,
             },
         });
+        if (this.#ioBrokerDevice.hasDoorState()) {
+            await this.#matterEndpoint.setStateOf(EventedDoorLockServer, {
+                // @ts-expect-error Workaround a matter.js instancing/typing error
+                doorState: this.#ioBrokerDevice.getDoorState()
+                    ? DoorLock.DoorState.DoorOpen
+                    : DoorLock.DoorState.DoorClosed,
+            });
+        }
 
         this.matterEvents.on(this.#matterEndpoint.events.ioBrokerEvents.doorLockStateControlled, async state => {
             switch (state) {
@@ -90,6 +111,12 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
                         doorLock: {
                             lockState: event.value ? DoorLock.LockState.Unlocked : DoorLock.LockState.Locked,
                         },
+                    });
+                    break;
+                case PropertyType.DoorState:
+                    await this.#matterEndpoint.setStateOf(EventedDoorLockServer, {
+                        // @ts-expect-error Workaround a matter.js instancing/typing error
+                        doorState: event.value ? DoorLock.DoorState.DoorOpen : DoorLock.DoorState.DoorClosed,
                     });
                     break;
             }

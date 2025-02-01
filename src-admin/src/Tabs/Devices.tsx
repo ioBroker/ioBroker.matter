@@ -29,7 +29,7 @@ import {
 import { I18n, SelectID, IconDeviceType } from '@iobroker/adapter-react-v5';
 import DeviceDialog, { SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import type { DetectedDevice, DeviceDescription, MatterConfig } from '../types';
-import { clone, detectDevices, getText } from '../Utils';
+import { clone, detectDevices, getDetectedDeviceTypes, getText } from '../Utils';
 import InfoBox from '../components/InfoBox';
 
 import BridgesAndDevices, {
@@ -608,13 +608,13 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         }
 
                         // Try to detect ID out of the supported IDs
-                        const controls =
+                        const detectedRooms =
                             (await detectDevices(this.props.socket, I18n.getLanguage(), SUPPORTED_DEVICES, [oid])) ??
                             [];
-                        if (!controls.length) {
-                            const controls =
+                        if (!detectedRooms.length) {
+                            const detectedRooms =
                                 (await detectDevices(this.props.socket, I18n.getLanguage(), undefined, [oid])) ?? [];
-                            const deviceTypes = controls.map(c => c.devices[0].deviceType);
+                            const deviceTypes = getDetectedDeviceTypes(detectedRooms);
                             if (deviceTypes.length) {
                                 this.props.showToast(
                                     I18n.t('Detected device types "%s" are not supported yet', deviceTypes.join(', ')),
@@ -636,7 +636,8 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                             }
                         } else {
                             // Show dialog to select device type but only allow the detected ones
-                            const deviceType = controls[0].devices[0].deviceType;
+                            const detectedDeviceTypes = getDetectedDeviceTypes(detectedRooms);
+                            const deviceType = detectedDeviceTypes[0];
 
                             // try to find ON state for dimmer
                             this.setState({
@@ -645,11 +646,11 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                     oid,
                                     name: name || '',
                                     deviceType,
-                                    hasOnState: controls[0].devices[0].hasOnState,
+                                    hasOnState: detectedRooms[0].devices[0].hasOnState, // TODO: That needs to be more dynamic if we really need it
                                     vendorID: '0xFFF1',
                                     productID: '0x8000',
                                     noComposed: false,
-                                    detectedDeviceTypes: controls.map(c => c.devices[0].deviceType),
+                                    detectedDeviceTypes,
                                 },
                             });
                         }

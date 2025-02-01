@@ -537,7 +537,11 @@ export class DeviceStateObject<T> extends EventEmitter {
                         this.adapter.log.debug(
                             `Mapped enum value for ${this.#id}: ${String(value)} --> ${String(realValue)}`,
                         );
-                        if (this.object.common.type === 'number' && (realValue as string).match(/^[0-9]+$/)) {
+                        if (
+                            this.object.common.type === 'number' &&
+                            typeof realValue === 'string' &&
+                            realValue.match(/^[0-9]+$/)
+                        ) {
                             realValue = parseFloat(realValue as string);
                             this.adapter.log.debug(`Converted enum value to number: ${realValue}`);
                         }

@@ -812,14 +812,15 @@ export class MatterAdapter extends utils.Adapter {
             ignoreIndicators,
             excludedTypes: [Types.info],
             allowedTypes: preferredType ? [preferredType as Types] : undefined,
-            //ignoreCache: true
+            ignoreCache: true,
+            ignoreEnums: true,
         };
 
         const detector = new ChannelDetector();
         let controls = detector.detect(options);
         if (!controls?.length) {
             delete options.allowedTypes;
-            const detector = new ChannelDetector();
+            options.detectAllPossibleDevices = true;
             controls = detector.detect(options);
         }
         if (controls?.length) {

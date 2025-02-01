@@ -78,8 +78,7 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 -->
 
 ## Changelog
-
-### **WORK IN PROGRESS**
+### 0.4.12 (2025-02-01)
 
 * (@GermanBluefox) Added the "copy to clipboard" button in the debug dialog
 * (@Apollon77) Updated matter.js with performance and Memory usage optimizations (and Tasmota pairing workaround)

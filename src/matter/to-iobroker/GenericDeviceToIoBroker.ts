@@ -27,7 +27,7 @@ export interface EnabledAttributeProperty extends EnabledProperty {
     attributeId?: AttributeId;
     attributeName?: string;
     convertValue?: (value: any) => MaybePromise<any>;
-    changeHandler?: (value: any) => Promise<void> | void;
+    changeHandler?: (value: any) => MaybePromise<void> | void;
     pollAttribute?: boolean;
 }
 
@@ -231,7 +231,7 @@ export abstract class GenericDeviceToIoBroker {
             endpointId?: EndpointNumber;
             clusterId?: ClusterId;
             convertValue?: (value: any) => MaybePromise<any>;
-            changeHandler?: (value: any) => Promise<void> | void;
+            changeHandler?: (value: any) => MaybePromise<void> | void;
             pollAttribute?: boolean;
         } & ({ vendorSpecificAttributeId: AttributeId } | { attributeName?: string }),
     ): void {

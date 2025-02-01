@@ -184,7 +184,7 @@ export class GeneralMatterNode {
         if (info !== undefined) {
             this.#details = {
                 manufacturer: await info.getVendorNameAttribute(),
-                model: toHex(await info.getProductIdAttribute()),
+                model: await info.getProductNameAttribute(),
             };
 
             if (existingObject && existingObject.common.name) {
@@ -1091,9 +1091,6 @@ export class GeneralMatterNode {
             }
 
             result.specification = {};
-            if (typeof details.dataModelRevision === 'number') {
-                result.specification.dataModelRevision = details.dataModelRevision;
-            }
             if (typeof details.specificationVersion === 'number') {
                 const { major, minor, patch } = SpecificationVersion.decode(details.specificationVersion);
                 result.specification.specificationVersion = `${major}.${minor}.${patch}`;
@@ -1107,6 +1104,9 @@ export class GeneralMatterNode {
                         result.specification.specificationVersion = 'unknown';
                     }
                 }
+            }
+            if (typeof details.dataModelRevision === 'number') {
+                result.specification.dataModelRevision = details.dataModelRevision;
             }
             if (details.maxPathsPerInvoke) {
                 result.specification.maxPathsPerInvoke = details.maxPathsPerInvoke;

@@ -3,13 +3,14 @@ import { LevelControl, OnOff, ColorControl } from '@matter/main/clusters';
 import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { Cie } from '../../lib/devices/Cie';
+import { Ct } from '../../lib/devices/Ct';
 import { Hue } from '../../lib/devices/Hue';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 import { kelvinToMireds, miredsToKelvin } from '@matter/main/behaviors';
 
 export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceToIoBroker {
-    readonly #ioBrokerDevice: Hue | Cie;
+    readonly #ioBrokerDevice: Hue | Cie | Ct;
     #hueSaturationTimeout?: ioBroker.Timeout;
     #minLevel = 1;
     #maxLevel = 254;
@@ -43,11 +44,17 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
                 adapter,
                 this.enableHueDeviceTypeStates(),
             );
-        } else {
+        } else if (this.appEndpoint.getClusterClient(ColorControl.Complete)?.supportedFeatures.xy) {
             this.#ioBrokerDevice = new Cie(
                 { ...ChannelDetector.getPatterns().cie, isIoBrokerDevice: false } as DetectedDevice,
                 adapter,
                 this.enableCieDeviceTypeStates(),
+            );
+        } else {
+            this.#ioBrokerDevice = new Ct(
+                { ...ChannelDetector.getPatterns().ct, isIoBrokerDevice: false } as DetectedDevice,
+                adapter,
+                this.enableDeviceTypeStates(),
             );
         }
     }
@@ -295,7 +302,7 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
         return super.enableDeviceTypeStates();
     }
 
-    get ioBrokerDevice(): Hue | Cie {
+    get ioBrokerDevice(): Hue | Cie | Ct {
         return this.#ioBrokerDevice;
     }
 }

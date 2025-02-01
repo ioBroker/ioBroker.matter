@@ -7,6 +7,11 @@ import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDev
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 import { kelvinToMireds, miredsToKelvin } from '@matter/main/behaviors';
 
+/**
+ * This lass is currently unused and can be removed if the remapping of CT to Extended Color Light works as expected
+ * after 0.4.12
+ */
+
 export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Ct;
     #isLighting = false;

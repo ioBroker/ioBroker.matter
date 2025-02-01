@@ -47,7 +47,7 @@
     "@iobroker/testing": "^5.0.3",
     "@iobroker/types": "^7.0.6",
     "@types/jsonwebtoken": "^9.0.8",
-    "@types/node": "^22.12.0",
+    "@types/node": "^22.13.0",
     "chai": "^4.5.0",
     "colorette": "^2.0.20",
     "mocha": "^11.1.0",

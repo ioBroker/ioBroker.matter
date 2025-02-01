@@ -9,7 +9,7 @@
         "@foxriver76/iob-component-lib": "^0.2.0",
         "@iobroker/adapter-react-v5": "^7.4.19",
         "@iobroker/dm-gui-components": "^7.4.19",
-        "@iobroker/type-detector": "^4.1.1",
+        "@iobroker/type-detector": "^4.2.0",
         "@types/react-dom": "^18.3.5",
         "@types/uuid": "^10.0.0",
         "@vitejs/plugin-react": "^4.3.4",

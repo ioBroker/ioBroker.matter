@@ -33,7 +33,6 @@ export class DoorLockToIoBroker extends GenericElectricityDataDeviceToIoBroker {
 
         this.#unboltingSupported =
             this.appEndpoint.getClusterClient(DoorLock.Complete)?.supportedFeatures.unbolting ?? false;
-        // TODO: support more featuresets?
         this.#ioBrokerDevice = new Lock(
             { ...ChannelDetector.getPatterns().lock, isIoBrokerDevice: false } as DetectedDevice,
             adapter,
@@ -65,12 +64,19 @@ export class DoorLockToIoBroker extends GenericElectricityDataDeviceToIoBroker {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: DoorLock.Cluster.id,
             attributeName: 'lockState',
-            convertValue: value => value === DoorLock.LockState.Unlocked,
+            convertValue: (state: DoorLock.LockState | null) => state === DoorLock.LockState.Unlocked,
         });
         this.enableDeviceTypeStateForAttribute(PropertyType.Open, {
             changeHandler: async () => {
                 await this.appEndpoint.getClusterClient(DoorLock.Complete)?.unlockDoor({});
             },
+        });
+        this.enableDeviceTypeStateForAttribute(PropertyType.DoorState, {
+            endpointId: this.appEndpoint.getNumber(),
+            clusterId: DoorLock.Cluster.id,
+            attributeName: 'doorState',
+            convertValue: (state: DoorLock.DoorState | null) =>
+                state === DoorLock.DoorState.DoorOpen || state === DoorLock.DoorState.DoorForcedOpen,
         });
         return super.enableDeviceTypeStates();
     }

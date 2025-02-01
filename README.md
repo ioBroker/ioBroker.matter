@@ -78,8 +78,12 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 -->
 
 ## Changelog
-### 0.4.12 (2025-02-01)
 
+### __WORK IN PROGRESS__
+* (@Apollon77) Added support for Door state feature for Devices and Controllers
+* (@Apollon77) Fixed Thermostat creation with Boost state
+
+### 0.4.12 (2025-02-01)
 * (@GermanBluefox) Added the "copy to clipboard" button in the debug dialog
 * (@Apollon77) Updated matter.js with performance and Memory usage optimizations (and Tasmota pairing workaround)
 * (@Apollon77) Reworked Type detection in Backend and for Channel/Device detection type in UI, now multiple devicetypes are offered with most complex one pre-selected

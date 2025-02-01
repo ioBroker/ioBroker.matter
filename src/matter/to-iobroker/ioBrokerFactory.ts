@@ -14,7 +14,6 @@ import { OnOffPlugInUnitToIoBroker } from './OnOffPlugInUnitToIoBroker';
 import { TemperatureSensorToIoBroker } from './TemperatureSensorToIoBroker';
 import { UtilityOnlyToIoBroker } from './UtilityOnlyToIoBroker';
 import { WaterLeakDetectorToIoBroker } from './WaterLeakDetectorToIoBroker';
-import { ColorTemperatureLightToIoBroker } from './ColorTemperatureLightToIoBroker';
 import { GenericSwitchToIoBroker } from './GenericSwitchToIoBroker';
 import { LightSensorToIoBroker } from './LightSensorToIoBroker';
 import { ExtendedColorLightToIoBroker } from './ExtendedColorLightToIoBroker';

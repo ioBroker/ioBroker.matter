@@ -29,7 +29,7 @@
     "@iobroker/adapter-core": "^3.2.3",
     "@iobroker/i18n": "^0.3.1",
     "@iobroker/dm-utils": "^1.0.9",
-    "@iobroker/type-detector": "^4.1.1",
+    "@iobroker/type-detector": "^4.2.0",
     "@matter/main": "0.12.1",
     "@matter/nodejs": "0.12.1",
     "@project-chip/matter.js": "0.12.1",

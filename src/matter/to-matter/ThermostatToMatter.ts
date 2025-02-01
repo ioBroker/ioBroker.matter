@@ -151,6 +151,10 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                 ),
                 {
                     id: `${uuid}-BoostOnOff`,
+                    ioBrokerContext: {
+                        device: ioBrokerDevice,
+                        adapter: ioBrokerDevice.adapter,
+                    },
                 },
             );
         }

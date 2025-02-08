@@ -78,8 +78,7 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.4.14 (2025-02-08)
 * (@Apollon77) Improved stability and connection reliability (matter.js updated)
 * (@Apollon77) Sort enum entries to improve detection quality when adding new devices
 

@@ -118,7 +118,7 @@ export async function detectDevices(
     list?: string[],
 ): Promise<DetectedRoom[]> {
     const devicesObject = await allObjects(socket);
-    const keys: string[] = Object.keys(devicesObject).sort();
+    const keys = Object.keys(devicesObject).sort();
     const detector = new ChannelDetector();
 
     const usedIds: string[] = [];
@@ -126,37 +126,40 @@ export async function detectDevices(
     const excludedTypes: Types[] = [Types.info];
     const enums: string[] = [];
     const rooms: string[] = [];
-    let _list: string[] = [];
 
     if (!list) {
-        keys.forEach(id => {
+        list = [];
+        for (const id of keys) {
             if (devicesObject[id]?.type === 'enum') {
                 enums.push(id);
             } else if (devicesObject[id]?.common?.smartName) {
-                _list.push(id);
+                list.push(id);
             }
-        });
+        }
 
-        enums.forEach(id => {
+        for (const id of enums) {
             if (id.startsWith('enum.rooms.')) {
                 rooms.push(id);
             }
             const members: string[] = devicesObject[id].common.members;
 
             if (members?.length) {
-                members.forEach(member => {
+                for (const member of members) {
                     // if an object really exists
                     if (devicesObject[member]) {
-                        if (!_list.includes(member)) {
-                            _list.push(member);
+                        if (!list.includes(member)) {
+                            list.push(member);
                         }
                     }
-                });
+                }
             }
-        });
-    } else {
-        _list = list;
+        }
     }
+
+    // We have a list ob  IDs with "point" separated IDs that build up a tree
+    // We sort them in a way that IDs are sorted by levels - so IDs with less points are first
+    // This way we can start detecting from the bottom of the tree
+    list = list.sort((a, b) => a.split('.').length - b.split('.').length);
 
     const detectOnSingleObject = list?.length === 1;
     const options: DetectOptions = {
@@ -174,21 +177,21 @@ export async function detectDevices(
 
     const result: DetectedRoom[] = [];
 
-    _list.forEach(id => {
+    for (const id of list) {
         options.id = id;
 
         const controls = detector.detect(options);
 
         if (controls) {
-            controls.forEach(control => {
+            for (const control of controls) {
                 const stateIdObj = control?.states?.find(state => state.id);
                 if (!stateIdObj) {
-                    return;
+                    continue;
                 }
                 const stateId = stateIdObj.id;
                 // if not yet added
                 if (!detectOnSingleObject && result.find(item => item.devices.find(st => st._id === stateId))) {
-                    return;
+                    continue;
                 }
                 const deviceObject: DetectedDevice = {
                     _id: stateId,
@@ -261,9 +264,9 @@ export async function detectDevices(
                 }
                 deviceObject.roomName = roomObj.common.name;
                 roomObj.devices.push(deviceObject);
-            });
+            }
         }
-    });
+    }
 
     // find names and icons for devices
     result.forEach(room => {

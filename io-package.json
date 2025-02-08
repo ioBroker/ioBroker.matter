@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.4.13",
+    "version": "0.4.14",
     "news": {
+      "0.4.14": {
+        "en": "Improved stability and connection reliability (matter.js updated)\nSort enum entries to improve detection quality when adding new devices",
+        "de": "Verbesserte Stabilität und Verbindungssicherheit (matter.js aktualisiert)\nSortieren Sie enum Einträge zur Verbesserung der Erkennungsqualität beim Hinzufügen neuer Geräte",
+        "ru": "Повышение стабильности и надежности подключения (matter.js обновлено)\nВходы коры для улучшения качества обнаружения при добавлении новых устройств",
+        "pt": "Melhor estabilidade e confiabilidade de conexão (matter.js atualizado)\nClassifique entradas enum para melhorar a qualidade de detecção ao adicionar novos dispositivos",
+        "nl": "Verbeterde stabiliteit en betrouwbaarheid van de verbinding (matter.js bijgewerkt)\nEnum-items sorteren om de detectiekwaliteit te verbeteren bij het toevoegen van nieuwe apparaten",
+        "fr": "Amélioration de la stabilité et de la fiabilité de la connexion (matière.js mise à jour)\nTrier les entrées enum pour améliorer la qualité de détection lors de l'ajout de nouveaux appareils",
+        "it": "Miglioramento della stabilità e dell'affidabilità della connessione (aggiornamento matter.js)\nOrdinare le voci enum per migliorare la qualità di rilevamento quando si aggiungono nuovi dispositivi",
+        "es": "Mejor estabilidad y fiabilidad de conexión (matter.js actualizado)\nOrdenar entradas enum para mejorar la calidad de detección al agregar nuevos dispositivos",
+        "pl": "Lepsza stabilność i niezawodność połączenia (matter.js zaktualizowane)\nSortuj wpisy enum w celu poprawy jakości wykrywania podczas dodawania nowych urządzeń",
+        "uk": "Покращена стабільність і надійність підключення (маттер.js оновлений)\nСортувати записів ферментів для поліпшення якості виявлення при додаванні нових пристроїв",
+        "zh-cn": "提高稳定性和连接可靠性(更新事项)\n在添加新设备时排序enum项以提高检测质量"
+      },
       "0.4.13": {
         "en": "Added support for Door state feature for Devices and Controllers\nFixed Thermostat creation with Boost state",
         "de": "Unterstützung für Türzustandsfunktionen für Geräte und Controller\nFeste Thermostat-Erstellung mit Boost-Zustand",
@@ -80,19 +93,6 @@
         "pl": "Przyjmuje do wiadomości państwa władzy również w państwach EPSTE\nStała obsługa temperatury kolorów dla urządzeń\nNaprawiona logika ustawiania termostatu",
         "uk": "Стани живлення Acknowledges також на SET\nФіксована обробка температури кольору для пристроїв\nФіксована логіка термостату",
         "zh-cn": "也承认SET州的电力公司\n设备的固定颜色温度处理\n固定的定点逻辑"
-      },
-      "0.4.7": {
-        "en": "Added debouncing when controllers change temperature value to makle sure not to overload the device\nAdded support for step and use 0.5 for Setpoint temperatures\nAdded support fur Hue lights without saturation state",
-        "de": "Debouncing hinzugefügt, wenn die Steuerungen den Temperaturwert auf makle ändern, um das Gerät nicht zu überlasten\nUnterstützung für Schritt und Einsatz 0,5 für Solltemperaturen\nUnterstützung Pelz Hue Lichter ohne Sättigung Zustand",
-        "ru": "Добавлена дебоунсация, когда контроллеры меняют значение температуры на лодыжку, чтобы не перегружать устройство\nДобавленная поддержка шага и использование 0,5 для температуры установки\nДобавлена поддержка меховых огней без состояния насыщения",
-        "pt": "Adicionado debouncing quando os controladores mudam o valor da temperatura para makle certeza de não sobrecarregar o dispositivo\nAdicionado suporte para passo e uso 0.5 para temperaturas Setpoint\nAdicionado suporte pele Hue luzes sem saturação estado",
-        "nl": "Toegevoegd debouncing wanneer controllers wijzigen temperatuur waarde om te maken zeker niet overbelast het apparaat\nToegevoegd ondersteuning voor stap en gebruik 0.5 voor Setpoint temperaturen\nToegevoegd support fur Hue lichten zonder verzadigingstoestand",
-        "fr": "Ajout d'un débouncing lorsque les contrôleurs changent la valeur de température à makle sûr de ne pas surcharger l'appareil\nAjout du support pour l'étape et l'utilisation 0.5 pour les températures de consigne\nAjout de la fourrure de support lumières Hue sans état de saturation",
-        "it": "Aggiunto il debouncing quando i controllori cambiano il valore della temperatura a makle sicuro di non sovraccaricare il dispositivo\nAggiunto supporto per passo e uso 0.5 per temperature di Setpoint\nAggiunto supporto pelliccia Hue luci senza saturazione stato",
-        "es": "Agregado desembolso cuando los controladores cambian el valor de temperatura a makle seguro de no sobrecargar el dispositivo\nSoporte añadido para el paso y uso 0.5 para temperaturas de punto\nAñadido soporte piel Luces Hue sin estado de saturación",
-        "pl": "Dodano debugowanie, gdy sterowniki zmieniają wartość temperatury na makle, aby nie przeciążyć urządzenia\nDodano wsparcie dla stopnia i zastosowania 0.5 dla temperatury Setpoint\nDodano podparcie futro Żarówki bez stanu nasycenia",
-        "uk": "Додано розвантаження при зміні значень температури контролерів до щиколотки, обов'язково не перевантажувати пристрій\nДодана підтримка кроку і використання 0.5 для температури точки Setpoint\nДодана підтримка хутряних світильників без збереження стану",
-        "zh-cn": "当控制器改变温度值到 makele 时添加调试, 确定不会超载设备\n添加步骤支持, 在 Setpoint 温度中使用 0. 5\n没有饱和状态而添加支持皮毛色的灯光"
       }
     },
     "titleLang": {

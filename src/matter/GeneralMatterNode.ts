@@ -19,7 +19,7 @@ import { GlobalAttributes, SpecificationVersion } from '@matter/main/types';
 import { AggregatorEndpointDefinition, BridgedNodeEndpointDefinition } from '@matter/main/endpoints';
 import {
     type Endpoint,
-    NodeStates,
+    NodeStates as PairedNodeStates,
     type PairedNode,
     type CommissioningControllerNodeOptions,
 } from '@project-chip/matter.js/device';
@@ -139,11 +139,28 @@ export class GeneralMatterNode {
             this.adapter.log.warn(`Node "${this.node.nodeId}" is disabled, so do not connect`);
             return;
         }
-        this.node.connect(connectOptions);
+        if (!this.node.isConnected) {
+            this.node.connect(connectOptions);
+        }
     }
 
     async initialize(nodeDetails?: { operationalAddress?: string }): Promise<void> {
         await this.clear();
+
+        if (!this.node.initialized) {
+            this.adapter.log.warn(
+                `Node "${this.node.nodeId}" has not yet been initialized! Waiting for initial connection.`,
+            );
+            const handler = async (state: PairedNodeStates): Promise<void> => {
+                if (state === PairedNodeStates.Connected) {
+                    this.node.events.stateChanged.off(handler);
+                    this.adapter.log.info(`Node "${this.node.nodeId}" has been delayed connected. Initialize now!`);
+                    await this.initialize();
+                }
+            };
+            this.node.events.stateChanged.on(handler);
+            return;
+        }
 
         const rootEndpoint = this.node.getRootEndpoint();
         if (rootEndpoint === undefined) {
@@ -234,10 +251,10 @@ export class GeneralMatterNode {
                 role: 'state',
                 type: 'number',
                 states: {
-                    [NodeStates.Connected]: 'connected',
-                    [NodeStates.Disconnected]: 'disconnected',
-                    [NodeStates.Reconnecting]: 'reconnecting',
-                    [NodeStates.WaitingForDeviceDiscovery]: 'waitingForDeviceDiscovery',
+                    [PairedNodeStates.Connected]: 'connected',
+                    [PairedNodeStates.Disconnected]: 'disconnected',
+                    [PairedNodeStates.Reconnecting]: 'reconnecting',
+                    [PairedNodeStates.WaitingForDeviceDiscovery]: 'waitingForDeviceDiscovery',
                 },
                 read: true,
                 write: false,
@@ -955,8 +972,8 @@ export class GeneralMatterNode {
         );
     }
 
-    async handleStateChange(state: NodeStates, nodeDetails?: { operationalAddress?: string }): Promise<void> {
-        const connected = state === NodeStates.Connected;
+    async handleStateChange(state: PairedNodeStates, nodeDetails?: { operationalAddress?: string }): Promise<void> {
+        const connected = state === PairedNodeStates.Connected;
         await this.adapter.setState(this.connectionStateId, connected, true);
         await this.adapter.setState(this.connectionStatusId, state, true);
         if (connected && nodeDetails) {
@@ -965,16 +982,16 @@ export class GeneralMatterNode {
         }
 
         switch (state) {
-            case NodeStates.Connected:
+            case PairedNodeStates.Connected:
                 this.adapter.log.info(`Node "${this.nodeId}" connected`);
                 break;
-            case NodeStates.Disconnected:
+            case PairedNodeStates.Disconnected:
                 this.adapter.log.info(`Node "${this.nodeId}" disconnected`);
                 break;
-            case NodeStates.Reconnecting:
+            case PairedNodeStates.Reconnecting:
                 this.adapter.log.info(`Node "${this.nodeId}" reconnecting`);
                 break;
-            case NodeStates.WaitingForDeviceDiscovery:
+            case PairedNodeStates.WaitingForDeviceDiscovery:
                 this.adapter.log.info(`Node "${this.nodeId}" offline, waiting for device discovery`);
                 break;
         }
@@ -1008,7 +1025,7 @@ export class GeneralMatterNode {
 
     async destroy(): Promise<void> {
         await this.adapter.setState(this.connectionStateId, false, true);
-        await this.adapter.setState(this.connectionStatusId, NodeStates.Disconnected, true);
+        await this.adapter.setState(this.connectionStatusId, PairedNodeStates.Disconnected, true);
         await this.clear();
     }
 
@@ -1146,11 +1163,12 @@ export class GeneralMatterNode {
 
     async getStatus(): Promise<DeviceStatus> {
         const status: DeviceStatus = {
-            connection:
-                this.node.isConnected || this.node.state === NodeStates.Reconnecting ? 'connected' : 'disconnected',
+            connection: this.node.isConnected ? 'connected' : 'disconnected',
         };
 
-        if (this.node.state === NodeStates.Reconnecting) {
+        if (!this.node.initialized) {
+            status.warning = 'The Node is not yet initialized ... Trying to connect.';
+        } else if (this.node.state === PairedNodeStates.Reconnecting) {
             status.warning = 'The Node is currently reconnecting ...';
         }
 
@@ -1259,7 +1277,7 @@ export class GeneralMatterNode {
                 : this.#enabled
                   ? 'The node is currently not connected.'
                   : 'The node is disabled.',
-            status: decamelize(NodeStates[this.node.state]),
+            status: decamelize(PairedNodeStates[this.node.state]),
         };
 
         result.connection.address = this.#connectedAddress;

@@ -183,7 +183,7 @@ export abstract class GenericDevice extends EventEmitter {
         let state = this.getDeviceState(name);
         if (state) {
             if (this.options?.additionalStateData?.[type]) {
-                Object.assign(state, this.options.additionalStateData[type]);
+                state = { ...state, ...this.options.additionalStateData[type] };
             }
             if (!state.id) {
                 state = undefined;
@@ -602,12 +602,16 @@ export abstract class GenericDevice extends EventEmitter {
 
     #determineControlType(property: string, hasMinMax: boolean): string {
         const { valueType, write, read, role } = this.#properties[property];
+        if (valueType === ValueType.Button) {
+            return 'button';
+        }
         if (valueType === ValueType.Boolean) {
             if (role) {
                 if (role.startsWith('switch')) {
                     return 'switch';
                 }
                 if (role.startsWith('button')) {
+                    // not sure if this can happen? Leave in for security
                     return 'button';
                 }
             }
@@ -615,14 +619,17 @@ export abstract class GenericDevice extends EventEmitter {
                 return 'button';
             }
             return 'switch';
-        } else if (valueType === ValueType.Number || valueType === ValueType.NumberPercent || ValueType.NumberMinMax) {
+        }
+        if (valueType === ValueType.Number || valueType === ValueType.NumberPercent || ValueType.NumberMinMax) {
             if (hasMinMax) {
                 return 'slider';
             }
             return 'number';
-        } else if (valueType === ValueType.Enum) {
+        }
+        if (valueType === ValueType.Enum) {
             return 'select';
-        } else if (valueType === ValueType.String && property === PropertyType.Rgb) {
+        }
+        if (valueType === ValueType.String && property === PropertyType.Rgb) {
             return 'color'; // Add again once works in DM
         }
         return 'input';

@@ -302,22 +302,18 @@ class Controller implements GeneralNode {
             return;
         }
 
-        // get nodes
-        const nodes = this.#commissioningController.getCommissionedNodes();
-        this.#adapter.log.info(`Found ${nodes.length} nodes: ${Logger.toJSON(nodes)}`);
-
         const nodesDetails = this.#commissioningController.getCommissionedNodesDetails();
+        this.#adapter.log.info(
+            `Found ${nodesDetails.length} nodes: ${nodesDetails.map(({ nodeId }) => nodeId.toString()).join(', ')}`,
+        );
         // attach all nodes to the controller
-        for (const nodeId of nodes) {
+        for (const details of nodesDetails) {
+            const { nodeId } = details;
             try {
-                this.#adapter.log.info(`Initializing to node "${nodeId}" ...`);
+                this.#adapter.log.info(`Initializing node "${nodeId}" ...`);
                 const node = await this.#commissioningController.getNode(nodeId);
                 this.#registerNodeHandlers(node);
-                await this.nodeToIoBrokerStructure(
-                    node,
-                    nodesDetails.find(n => n.nodeId === nodeId),
-                    this.nodeConnectSettings,
-                );
+                await this.nodeToIoBrokerStructure(node, details, this.nodeConnectSettings);
             } catch (error) {
                 this.#adapter.log.info(`Failed to connect to node "${nodeId}": ${error.stack}`);
             }
@@ -329,10 +325,6 @@ class Controller implements GeneralNode {
         nodeDetails?: { operationalAddress?: string },
         connectOptions?: CommissioningControllerNodeOptions,
     ): Promise<void> {
-        if (!node.initialized) {
-            await node.events.initialized; // eslint is wrong, can be awaited
-        }
-
         const nodeIdStr = node.nodeId.toString();
 
         // find and clear the old device if existing
@@ -481,7 +473,7 @@ class Controller implements GeneralNode {
             throw new Error(`Can not register NodeId "${nodeId}" because controller not initialized.`);
         }
 
-        const node = this.#commissioningController.getPairedNode(nodeId);
+        const node = await this.#commissioningController.getNode(nodeId);
         if (node === undefined) {
             // should never happen
             throw new Error(`Node ${nodeId} is not connected but commissioning was successful. Should not happen.`);
@@ -566,7 +558,7 @@ class Controller implements GeneralNode {
         if (!this.#commissioningController) {
             return null;
         }
-        const node = this.#commissioningController.getPairedNode(nodeId);
+        const node = await this.#commissioningController.getNode(nodeId);
         if (node) {
             return await node.openEnhancedCommissioningWindow();
         }

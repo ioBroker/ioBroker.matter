@@ -758,7 +758,7 @@ export class MatterAdapter extends utils.Adapter {
             if (searchDeviceComingFromLevel !== undefined && searchDeviceComingFromLevel !== 3) {
                 return null;
             }
-            // we can not go higher because we found the namespace root, ets assume a "one device adapter"
+            // we can not go higher because we found the namespace root, let's assume a "one device adapter"
             return id;
         }
 
@@ -797,7 +797,9 @@ export class MatterAdapter extends utils.Adapter {
         for (const state of states.rows) {
             if (state.value) {
                 objects[state.id] = state.value;
-                this.log.debug(`    Found state ${state.id}`);
+                this.log.debug(
+                    `    Found state ${state.id}: type=${state.value.common.type}, role=${state.value.common.role}, read=${state.value.common.read}, write=${state.value.common.write}, unit=${state.value.common.unit}`,
+                );
             }
         }
 

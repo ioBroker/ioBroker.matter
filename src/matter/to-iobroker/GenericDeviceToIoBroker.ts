@@ -233,6 +233,7 @@ export abstract class GenericDeviceToIoBroker {
             convertValue?: (value: any) => MaybePromise<any>;
             changeHandler?: (value: any) => MaybePromise<void> | void;
             pollAttribute?: boolean;
+            modes?: { [key: string]: string };
         } & ({ vendorSpecificAttributeId: AttributeId } | { attributeName?: string }),
     ): void {
         const stateData = this.#deviceOptions.additionalStateData![type] ?? {};
@@ -242,7 +243,7 @@ export abstract class GenericDeviceToIoBroker {
         }
 
         if (data !== undefined) {
-            const { endpointId, clusterId, convertValue, changeHandler, pollAttribute } = data;
+            const { endpointId, clusterId, convertValue, changeHandler, pollAttribute, modes } = data;
             let attributeId: AttributeId | undefined;
             const attributeName =
                 'vendorSpecificAttributeId' in data
@@ -274,6 +275,10 @@ export abstract class GenericDeviceToIoBroker {
                 changeHandler,
                 pollAttribute,
             });
+
+            if (modes !== undefined) {
+                stateData.defaultStates = modes;
+            }
         }
 
         stateData.id = `${this.baseId}.`;
@@ -433,7 +438,7 @@ export abstract class GenericDeviceToIoBroker {
     }
 
     /** Initialization Logic for the device. makes sure all handlers are registered for both sides. */
-    async init(): Promise<void> {
+    async init(delayStateInit = false): Promise<void> {
         const existingObject = await this.#adapter.getObjectAsync(this.baseId);
         if (existingObject) {
             if (existingObject.common.name) {
@@ -449,7 +454,9 @@ export abstract class GenericDeviceToIoBroker {
 
         await this.ioBrokerDevice.init();
         this.#registerIoBrokerHandlersAndInitialize();
-        await this.#initializeStates();
+        if (!delayStateInit) {
+            await this.initializeStates();
+        }
 
         if (this.#name === undefined) {
             this.#name = this.#defaultName;
@@ -519,7 +526,7 @@ export abstract class GenericDeviceToIoBroker {
     }
 
     /** Initialize the states of the ioBroker device with the current values from the matter device. */
-    async #initializeStates(): Promise<void> {
+    async initializeStates(): Promise<void> {
         for (const property of this.#enabledAttributeProperties.keys()) {
             const value = await this.getMatterState(property);
             if (value !== undefined) {

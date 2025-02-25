@@ -82,10 +82,29 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
                 }
             },
         });
+
+        let modes: { [key: number]: ThermostatMode } | undefined = undefined;
+
+        const thermostat = this.appEndpoint.getClusterClient(MatterThermostat.Complete);
+        if (thermostat !== undefined) {
+            const features = thermostat.supportedFeatures;
+            modes = {};
+            if (features?.heating) {
+                modes[ThermostatModeNumbers[ThermostatMode.Heat]] = ThermostatMode.Heat;
+            }
+            if (features?.cooling) {
+                modes[ThermostatModeNumbers[ThermostatMode.Cool]] = ThermostatMode.Cool;
+            }
+            if (features?.autoMode) {
+                modes[ThermostatModeNumbers[ThermostatMode.Auto]] = ThermostatMode.Auto;
+            }
+        }
+
         this.enableDeviceTypeStateForAttribute(PropertyType.Mode, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: MatterThermostat.Cluster.id,
             attributeName: 'systemMode',
+            modes,
             convertValue: async (value: MatterThermostat.SystemMode) => {
                 let ioMode: ThermostatMode | undefined = undefined;
                 switch (value) {
@@ -168,7 +187,7 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
     }
 
     override async init(): Promise<void> {
-        await super.init();
+        await super.init(true);
 
         const thermostat = this.appEndpoint.getClusterClient(MatterThermostat.Complete);
         if (thermostat === undefined) {
@@ -176,17 +195,6 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
         }
 
         const features = thermostat.supportedFeatures;
-        const modes: { [key: string]: ThermostatMode } = {};
-        if (features?.heating) {
-            modes[ThermostatModeNumbers[ThermostatMode.Heat]] = ThermostatMode.Heat;
-        }
-        if (features?.cooling) {
-            modes[ThermostatModeNumbers[ThermostatMode.Cool]] = ThermostatMode.Cool;
-        }
-        if (features?.autoMode) {
-            modes[ThermostatModeNumbers[ThermostatMode.Auto]] = ThermostatMode.Auto;
-        }
-        await this.ioBrokerDevice.updateModes(modes);
 
         // Determine global Min/Max values from Heat and Cool modes
         let min: number | undefined = undefined;
@@ -227,6 +235,9 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
             max = this.temperatureFromMatter(max);
         }
         await this.ioBrokerDevice.updateSetpointMinMax(min, max);
+
+        // Process delayed State init after correcting min/max values
+        await this.initializeStates();
     }
 
     get ioBrokerDevice(): Thermostat {

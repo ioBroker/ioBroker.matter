@@ -365,7 +365,7 @@ export class DeviceStateObject<T> extends EventEmitter {
             }
             this.modes = modes;
             this.adapter.log.debug(
-                `Initialize modes ${Object.entries(modes)
+                `Initialize modes: ${Object.entries(modes)
                     .map(([key, value]) => `(${key}) ${String(value)}`)
                     .join(',')} for ${this.#id}`,
             );
@@ -398,6 +398,11 @@ export class DeviceStateObject<T> extends EventEmitter {
                 states: modes,
             },
         });
+        this.adapter.log.debug(
+            `Updated modes: ${Object.entries(modes)
+                .map(([key, value]) => `(${key}) ${String(value)}`)
+                .join(',')} for ${this.#id}`,
+        );
     }
 
     /** Convert the value from the unit of the state to the Default unit ("toDefaultUnit"===true) or from default unit */

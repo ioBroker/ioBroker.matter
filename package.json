@@ -23,16 +23,16 @@
     "url": "https://github.com/ioBroker/ioBroker.matter"
   },
   "optionalDependencies": {
-    "@matter/nodejs-ble": "0.12.3"
+    "@matter/nodejs-ble": "0.12.4-alpha.0-20250224-46934b522"
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.2.3",
     "@iobroker/dm-utils": "^1.0.9",
     "@iobroker/i18n": "^0.3.1",
     "@iobroker/type-detector": "^4.2.0",
-    "@matter/main": "0.12.3",
-    "@matter/nodejs": "0.12.3",
-    "@project-chip/matter.js": "0.12.3",
+    "@matter/main": "0.12.4-alpha.0-20250224-46934b522",
+    "@matter/nodejs": "0.12.4-alpha.0-20250224-46934b522",
+    "@project-chip/matter.js": "0.12.4-alpha.0-20250224-46934b522",
     "axios": "^1.7.9",
     "jsonwebtoken": "^9.0.2"
   },
@@ -46,12 +46,12 @@
     "@iobroker/legacy-testing": "^2.0.2",
     "@iobroker/testing": "^5.0.3",
     "@iobroker/types": "^7.0.6",
-    "@types/jsonwebtoken": "^9.0.8",
-    "@types/node": "^22.13.0",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/node": "^22.13.5",
     "chai": "^4.5.0",
     "colorette": "^2.0.20",
     "mocha": "^11.1.0",
-    "puppeteer": "^24.1.1",
+    "puppeteer": "^24.3.0",
     "typescript": "~5.7.3"
   },
   "bugs": {

@@ -78,8 +78,7 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.4.15 (2025-02-25)
 * (@GermanBluefox) Added Button display and control in the UI
 * (@Apollon77) Updates matter.js to optimize and add persisted subscriptions
 * (@Apollon77) Fixed states-list initializations for controller states

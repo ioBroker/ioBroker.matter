@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.4.14",
+    "version": "0.4.15",
     "news": {
+      "0.4.15": {
+        "en": "Added Button display and control in the UI\nUpdates matter.js to optimize and add persisted subscriptions\nFixed states-list initializations for controller states\nFixed initialization issue when initial device connection for controller was not finished\nAdjusted connection display when reconnecting to a node to red in UI",
+        "de": "Knopfanzeige und Steuerung im UI hinzugefügt\nAktualisiert matter.js, um anhaltende Abonnements zu optimieren und hinzuzufügen\nFeste State-Liste Initialisierungen für Controller-Staaten\nFixes Initialisierungsproblem, wenn die erste Geräteverbindung für den Controller nicht beendet wurde\nEinstellbare Verbindungsanzeige beim Wiederanschließen an einen Knoten in UI",
+        "ru": "Добавлена кнопка отображения и управления в UI\nОбновления matter.js для оптимизации и добавления постоянных подписок\nИсправленные инициализации списка состояний для состояний контроллера\nИсправлена проблема инициализации, когда первоначальное подключение устройства к контроллеру не было завершено\nСкорректированный дисплей подключения при повторном подключении к узлу с красным в UI",
+        "pt": "Adicionado exibição de botão e controle na interface do usuário\nAtualizações matter.js para otimizar e adicionar assinaturas persistidas\nInicializações de lista de estados fixas para estados controladores\nProblema de inicialização fixa quando a conexão inicial do dispositivo para o controlador não foi terminada\nExibição de conexão ajustada ao reconectar-se a um nó ao vermelho na interface do usuário",
+        "nl": "Toegevoegde knop display en controle in de UI\nUpdates matter.js om aanhoudende abonnementen te optimaliseren en toe te voegen\nVaste staten-lijst initialisaties voor controller toestanden\nVaste initialisatie probleem wanneer de initiële apparaatverbinding voor controller niet was voltooid\nAangepaste verbindingweergave bij het opnieuw verbinden met een knooppunt naar rood in UI",
+        "fr": "Ajout de l'affichage et du contrôle du bouton dans l'interface utilisateur\nMises à jour matter.js pour optimiser et ajouter des abonnements persistants\nInitialisations de listes d'états fixes pour les états contrôleurs\nProblème d'initialisation corrigé lorsque la connexion initiale de l'appareil pour le contrôleur n'était pas terminée\nAffichage de connexion ajusté lors de la reconnexion d'un noeud à rouge dans l'interface utilisateur",
+        "it": "Aggiunto Pulsante visualizzazione e controllo in UI\nAggiornamenti importanti.js per ottimizzare e aggiungere abbonamenti perseverati\nInizializzazioni della lista degli stati fissi per gli stati del controller\nProblema di inizializzazione fissa quando la connessione iniziale del dispositivo per il controller non è stata terminata\nVisualizzazione della connessione regolata quando si ricollega a un nodo a rosso in UI",
+        "es": "Pantalla de botón y control agregado en la UI\nActualizaciones matter.js para optimizar y añadir suscripciones persistidas\nIniciaciones de lista de estados fija para estados controladores\nCuestión de inicialización fija cuando la conexión del dispositivo inicial para el controlador no se terminó\nPantalla de conexión ajustada al conectarse a un nodo a rojo en UI",
+        "pl": "Dodano przycisk wyświetlania i sterowania w UI\nAktualizuje mater.js do optymalizacji i dodawania utrzymujących się subskrypcji\nStałe inicjalizacje listy stanów dla stanów kontrolera\nNaprawiono problem inicjalizacji, gdy początkowe połączenie urządzenia dla sterownika nie zostało zakończone\nRegulowany wyświetlacz połączenia przy ponownym podłączeniu do węzła do czerwonego w UI",
+        "uk": "Додана кнопка відображення та контроль в UI\nОновлення матері.js для оптимізації та додавання стійких підписок\nВиправлені ініціалізації стану держав-листів для станів контролера\nВиправлено проблему ініціалізації при з'єднанні початкового пристрою для контролера не завершено\nРегульований дисплей з'єднання при відключенні до вузла в червоний в UI",
+        "zh-cn": "在 UI 中添加按钮显示和控制\n进行更新以优化和增加持续订阅\n控制国的固定状态列表初始化\n控制器初始设备连接未完成时的固定初始化问题\n在 UI 中重新连接到节点为红色时调整了连接显示"
+      },
       "0.4.14": {
         "en": "Improved stability and connection reliability (matter.js updated)\nSort enum entries to improve detection quality when adding new devices",
         "de": "Verbesserte Stabilität und Verbindungssicherheit (matter.js aktualisiert)\nSortieren Sie enum Einträge zur Verbesserung der Erkennungsqualität beim Hinzufügen neuer Geräte",
@@ -80,19 +93,6 @@
         "pl": "Ulepszony wyświetlacz błędów i niepoprawnych urządzeń dla interfejsu użytkownika\nNaprawiono obsługę Kontrolera Prasy Przycisków\nDodano obsługę do wyboru folderów przy dodawaniu urządzeń\nNaprawiono iluminację Typ państwa min / max",
         "uk": "Розширений дисплей помилок та недійсних пристроїв для UI\nВиправлена підтримка кнопки Прес контролер\nДодано підтримку також виберіть папки при додаванні пристроїв\nФіксована ілюстрація Тип держави min/max",
         "zh-cn": "用于 UI 的增强错误和无效设备显示\n固定按钮新闻控制器支持\n添加设备时添加支持以选择文件夹\n固定的光辉 状态类型 分钟/最大"
-      },
-      "0.4.8": {
-        "en": "Acknowledges Power states also on SET states\nFixed Color Temperature handling for devices\nFixed Thermostat setpoint logic",
-        "de": "Erkennt Power-Staaten auch auf SET-Staaten\nFeste Farbtemperaturbehandlung für Geräte\nFeste Thermostat-Solllogik",
-        "ru": "Признает, что в государствах SET есть также\nФиксированная обработка температуры цвета для устройств\nЛогика фиксированной точки",
-        "pt": "Agradece que os estados do poder também em estados do SET\nManuseio de temperatura de cor fixa para dispositivos\nLógica fixa de setpoint termostato",
-        "nl": "Bekent machtstaten ook op SET-staten\nVaste kleurtemperatuurbehandeling voor apparaten\nVaste thermostaat setpoint logica",
-        "fr": "Reconnaît les états de pouvoir aussi sur les états SET\nManipulation de température de couleur fixe pour les appareils\nLogique de réglage du thermostat fixe",
-        "it": "Riconosce gli stati di potenza anche sugli stati SET\nMovimentazione a temperatura fissa per dispositivi\nLogica a punto fisso del termostato",
-        "es": "Reconoce que el poder también está en los estados de SET\nManejo de temperatura de color fijo para dispositivos\nLógica de punto termostato fijo",
-        "pl": "Przyjmuje do wiadomości państwa władzy również w państwach EPSTE\nStała obsługa temperatury kolorów dla urządzeń\nNaprawiona logika ustawiania termostatu",
-        "uk": "Стани живлення Acknowledges також на SET\nФіксована обробка температури кольору для пристроїв\nФіксована логіка термостату",
-        "zh-cn": "也承认SET州的电力公司\n设备的固定颜色温度处理\n固定的定点逻辑"
       }
     },
     "titleLang": {

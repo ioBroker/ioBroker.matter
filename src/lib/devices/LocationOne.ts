@@ -44,7 +44,7 @@ export class LocationOne extends GenericDevice {
         );
     }
 
-    getGPS(): string | undefined {
+    getGps(): string | undefined {
         if (!this.#getGPSState) {
             throw new Error('GPS state not found');
         }

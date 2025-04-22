@@ -30,6 +30,7 @@ import {
     Fab,
     FormControl,
     FormControlLabel,
+    IconButton as MuiIconButton,
     IconButton,
     InputLabel,
     MenuItem,
@@ -43,9 +44,17 @@ import {
     Tooltip,
 } from '@mui/material';
 
-import { I18n, SelectID, type IobTheme, Utils } from '@iobroker/adapter-react-v5';
+import {
+    I18n,
+    SelectID,
+    type IobTheme,
+    Utils,
+    DeviceTypeSelector,
+    DeviceTypeIcon,
+    InfoBox,
+    IconExpert,
+} from '@iobroker/adapter-react-v5';
 
-import InfoBox from '../components/InfoBox';
 import DeviceDialog, { SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import type {
     BridgeDescription,
@@ -61,7 +70,6 @@ import BridgesAndDevices, {
     type BridgesAndDevicesProps,
     type BridgesAndDevicesState,
 } from './BridgesAndDevices';
-import TypeSelector, { TypeIcon } from '../components/TypeSelector';
 
 const styles: Record<string, any> = {
     ...STYLES,
@@ -71,9 +79,9 @@ const styles: Record<string, any> = {
         },
     },
     bridgeName: {
-        marginTop: 4,
         fontSize: 16,
         fontWeight: 'bold',
+        display: 'flex',
     },
     bridgeTitle: {
         fontStyle: 'italic',
@@ -387,10 +395,22 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 onClose={() => this.setState({ editBridgeDialog: null })}
                 open={!0}
             >
-                <DialogTitle>
+                <DialogTitle style={{ display: 'flex', width: 'calc(100% - 48px)' }}>
                     {this.state.editBridgeDialog.add
                         ? I18n.t('Add bridge')
                         : `${I18n.t('Edit bridge')} "${this.state.editBridgeDialog?.originalName}"`}
+                    <div style={{ flexGrow: 1 }} />
+                    <Tooltip
+                        title={I18n.t('Toggle expert mode')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                    >
+                        <MuiIconButton
+                            onClick={() => this.props.setExpertMode(!this.props.expertMode)}
+                            color={this.props.expertMode ? 'primary' : 'default'}
+                        >
+                            <IconExpert />
+                        </MuiIconButton>
+                    </Tooltip>
                 </DialogTitle>
                 <DialogContent>
                     <TextField
@@ -410,60 +430,64 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         variant="standard"
                         fullWidth
                     />
-                    <TextField
-                        select
-                        disabled={isCommissioned}
-                        style={{ width: 'calc(50% - 8px)', marginRight: 16, marginTop: 16 }}
-                        value={this.state.editBridgeDialog.vendorID}
-                        onChange={e => {
-                            if (!this.state.editBridgeDialog) {
-                                return;
-                            }
+                    {this.props.expertMode ? (
+                        <TextField
+                            select
+                            disabled={isCommissioned}
+                            style={{ width: 'calc(50% - 8px)', marginRight: 16, marginTop: 16 }}
+                            value={this.state.editBridgeDialog.vendorID}
+                            onChange={e => {
+                                if (!this.state.editBridgeDialog) {
+                                    return;
+                                }
 
-                            const editBridgeDialog = clone(this.state.editBridgeDialog);
-                            editBridgeDialog.vendorID = e.target.value;
-                            this.setState({ editBridgeDialog });
-                        }}
-                        label={I18n.t('Vendor ID')}
-                        helperText={<span style={{ display: 'block', height: 20 }} />}
-                        variant="standard"
-                    >
-                        {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorID => (
-                            <MenuItem
-                                key={vendorID}
-                                value={vendorID}
-                            >
-                                {vendorID}
-                            </MenuItem>
-                        ))}
-                    </TextField>
-                    <TextField
-                        select
-                        disabled={isCommissioned}
-                        style={{ width: 'calc(50% - 8px)', marginTop: 16 }}
-                        value={this.state.editBridgeDialog.productID}
-                        onChange={e => {
-                            if (!this.state.editBridgeDialog) {
-                                return;
-                            }
+                                const editBridgeDialog = clone(this.state.editBridgeDialog);
+                                editBridgeDialog.vendorID = e.target.value;
+                                this.setState({ editBridgeDialog });
+                            }}
+                            label={I18n.t('Vendor ID')}
+                            helperText={<span style={{ display: 'block', height: 20 }} />}
+                            variant="standard"
+                        >
+                            {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorID => (
+                                <MenuItem
+                                    key={vendorID}
+                                    value={vendorID}
+                                >
+                                    {vendorID}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                    ) : null}
+                    {this.props.expertMode ? (
+                        <TextField
+                            select
+                            disabled={isCommissioned}
+                            style={{ width: 'calc(50% - 8px)', marginTop: 16 }}
+                            value={this.state.editBridgeDialog.productID}
+                            onChange={e => {
+                                if (!this.state.editBridgeDialog) {
+                                    return;
+                                }
 
-                            const editBridgeDialog = clone(this.state.editBridgeDialog);
-                            editBridgeDialog.productID = e.target.value;
-                            this.setState({ editBridgeDialog });
-                        }}
-                        label={I18n.t('Product ID')}
-                        helperText={<span style={{ display: 'block', height: 20 }} />}
-                        variant="standard"
-                    >
-                        {this.props.productIDs.map(productID => (
-                            <MenuItem
-                                key={productID}
-                                value={productID}
-                            >
-                                {productID}
-                            </MenuItem>
-                        ))}
-                    </TextField>
+                                const editBridgeDialog = clone(this.state.editBridgeDialog);
+                                editBridgeDialog.productID = e.target.value;
+                                this.setState({ editBridgeDialog });
+                            }}
+                            label={I18n.t('Product ID')}
+                            helperText={<span style={{ display: 'block', height: 20 }} />}
+                            variant="standard"
+                        >
+                            {this.props.productIDs.map(productID => (
+                                <MenuItem
+                                    key={productID}
+                                    value={productID}
+                                >
+                                    {productID}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                    ) : null}
                     {isCommissioned
                         ? I18n.t('Bridge is already commissioned. You cannot change the name or the vendor/product ID.')
                         : null}
@@ -563,6 +587,12 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         fullWidth
                     />
                     <FormControlLabel
+                        sx={{
+                            '&.MuiFormControlLabel-root': {
+                                width: 'calc(100% - 48px)',
+                                marginRight: 0,
+                            },
+                        }}
                         disabled={isCommissioned}
                         control={
                             <Checkbox
@@ -584,7 +614,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             </span>
                         }
                     />
-                    <TypeSelector
+                    <DeviceTypeSelector
                         themeType={this.props.themeType}
                         error={!this.state.editDeviceDialog.deviceType}
                         style={{ width: '100%', marginTop: 30 }}
@@ -602,6 +632,12 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         }}
                     />
                     <FormControlLabel
+                        sx={{
+                            '&.MuiFormControlLabel-root': {
+                                width: 'calc(100% - 48px)',
+                                marginRight: 0,
+                            },
+                        }}
                         style={{ width: '100%', marginTop: 30 }}
                         label={I18n.t('Allow action by identify')}
                         control={
@@ -621,6 +657,12 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     />
                     {this.state.editDeviceDialog.deviceType === 'dimmer' && !this.state.editDeviceDialog.hasOnState ? (
                         <FormControlLabel
+                            sx={{
+                                '&.MuiFormControlLabel-root': {
+                                    width: 'calc(100% - 48px)',
+                                    marginRight: 0,
+                                },
+                            }}
                             style={{ marginTop: 20 }}
                             label={I18n.t('Use last value for ON')}
                             control={
@@ -643,7 +685,15 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     !this.state.editDeviceDialog.hasOnState &&
                     !this.state.editDeviceDialog.dimmerUseLastLevelForOn ? (
                         <FormControl style={{ width: '100%', marginTop: 30 }}>
-                            <InputLabel>{I18n.t('Brightness by ON')}</InputLabel>
+                            <InputLabel
+                                sx={{
+                                    '&.MuiFormLabel-root': {
+                                        transform: 'translate(0px, -9px) scale(0.75)',
+                                    },
+                                }}
+                            >
+                                {I18n.t('Brightness by ON')}
+                            </InputLabel>
                             <Select
                                 error={!this.state.editDeviceDialog.dimmerOnLevel}
                                 variant="standard"
@@ -737,6 +787,12 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         } ${this.state.deleteDialog.name}?`}
                     </div>
                     <FormControlLabel
+                        sx={{
+                            '&.MuiFormControlLabel-root': {
+                                width: 'calc(100% - 48px)',
+                                marginRight: 0,
+                            },
+                        }}
                         control={
                             <Checkbox
                                 checked={this.state.suppressDeleteEnabled}
@@ -814,6 +870,12 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 <DialogContent>
                     {I18n.t('Warning about 15 devices')}
                     <FormControlLabel
+                        sx={{
+                            '&.MuiFormControlLabel-root': {
+                                width: 'calc(100% - 48px)',
+                                marginRight: 0,
+                            },
+                        }}
                         control={
                             <Checkbox
                                 checked={this.state.suppressAddEnabled}
@@ -950,6 +1012,8 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 setDetectedDevices={(detectedDevices: DetectedRoom[]) => this.props.setDetectedDevices(detectedDevices)}
                 type="bridge"
                 name={this.props.matter.bridges[this.state.addDeviceDialog.bridgeIndex].name}
+                expertMode={this.props.expertMode}
+                setExpertMode={this.props.setExpertMode}
             />
         );
     }
@@ -1071,7 +1135,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         variant="standard"
                         fullWidth
                     />
-                    <TypeSelector
+                    <DeviceTypeSelector
                         themeType={this.props.themeType}
                         style={{ width: '100%', marginTop: 30 }}
                         value={this.state.addCustomDeviceDialog.deviceType}
@@ -1089,6 +1153,12 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         }}
                     />
                     <FormControlLabel
+                        sx={{
+                            '&.MuiFormControlLabel-root': {
+                                width: 'calc(100% - 48px)',
+                                marginRight: 0,
+                            },
+                        }}
                         control={
                             <Checkbox
                                 checked={this.state.addCustomDeviceDialog.noComposed}
@@ -1187,7 +1257,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 <TableCell style={{ border: 0, borderBottomLeftRadius: isLast ? 4 : 0 }} />
                 <TableCell>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <TypeIcon
+                        <DeviceTypeIcon
                             type={device.type}
                             title
                             style={{ marginRight: 8 }}
@@ -1197,7 +1267,9 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                 {getText(device.name)}
                                 <span style={styles.deviceOid}>({device.oid})</span>
                             </div>
-                            <div style={styles.deviceType}>{`${I18n.t('Device type')}: ${I18n.t(`type-${device.type}`)}`}</div>
+                            <div
+                                style={styles.deviceType}
+                            >{`${I18n.t('Device type')}: ${I18n.t(`type-${device.type}`)}`}</div>
                         </div>
                         <div style={{ flex: 1 }} />
                         {this.props.nodeStates?.[bridge.uuid] && bridge.enabled ? (
@@ -1389,16 +1461,23 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         }}
                     >
                         <div style={styles.bridgeDiv}>
-                            <div style={styles.bridgeName}>
-                                {getText(bridge.name)}
-                                <span style={styles.devicesCount}>{countText}</span>
+                            <div
+                                style={{
+                                    ...styles.bridgeName,
+                                    marginTop: this.props.expertMode ? 4 : 0,
+                                }}
+                            >
+                                <div>{getText(bridge.name)}</div>
+                                <div style={styles.devicesCount}>{countText}</div>
                             </div>
-                            <div>
-                                <span style={styles.bridgeTitle}>{I18n.t('Vendor ID')}:</span>
-                                <span style={styles.bridgeValue}>{bridge.vendorID || ''}</span>
-                                <span style={styles.bridgeTitle}>,{I18n.t('Product ID')}:</span>
-                                <span style={styles.bridgeValue}>{bridge.productID || ''}</span>
-                            </div>
+                            {this.props.expertMode ? (
+                                <div>
+                                    <span style={styles.bridgeTitle}>{I18n.t('Vendor ID')}:</span>
+                                    <span style={styles.bridgeValue}>{bridge.vendorID || ''}</span>
+                                    <span style={styles.bridgeTitle}>,{I18n.t('Product ID')}:</span>
+                                    <span style={styles.bridgeValue}>{bridge.productID || ''}</span>
+                                </div>
+                            ) : null}
                         </div>
                         <div style={styles.flexGrow} />
                         {this.renderStatus(bridge)}
@@ -1633,16 +1712,18 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                 {this.renderResetDialog()}
                 {this.renderJsonConfigDialog()}
                 {this.renderMessageDialog()}
-                <InfoBox
-                    type="info"
-                    closeable
-                    storeId="matter.bridge"
-                    iconPosition="top"
-                >
-                    {I18n.t('Matter Bridges Infotext')}
-                </InfoBox>
+                {this.props.expertMode ? null : (
+                    <InfoBox
+                        type="info"
+                        closeable
+                        storeId="matter.bridge"
+                        iconPosition="top"
+                    >
+                        {I18n.t('Matter Bridges Infotext')}
+                    </InfoBox>
+                )}
                 {this.props.matter.bridges.length ? (
-                    <div>
+                    <div style={{ display: 'flex', gap: 4 }}>
                         <Tooltip
                             title={I18n.t('Add bridge')}
                             slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
@@ -1685,6 +1766,17 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             >
                                 <Add />
                             </Fab>
+                        </Tooltip>
+                        <Tooltip
+                            title={I18n.t('Toggle expert mode')}
+                            slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                        >
+                            <IconButton
+                                onClick={() => this.props.setExpertMode(!this.props.expertMode)}
+                                color={this.props.expertMode ? 'primary' : 'default'}
+                            >
+                                <IconExpert />
+                            </IconButton>
                         </Tooltip>
                         <Tooltip
                             title={I18n.t('Expand all')}

@@ -59,6 +59,18 @@ import plLang from './i18n/pl.json';
 import ukLang from './i18n/uk.json';
 import zhCnLang from './i18n/zh-cn.json';
 
+// TODO: Replace it by deviceTypeExtendTranslations from @iobroker/adapter-react-v5 after admin 7.6.11
+import enDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/en.json';
+import deDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/de.json';
+import ruDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/ru.json';
+import ptDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/pt.json';
+import plDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/pl.json';
+import frDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/fr.json';
+import itDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/it.json';
+import nlDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/nl.json';
+import ukDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/uk.json';
+import zhDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/zh-cn.json';
+
 declare global {
     interface Window {
         sentryDSN: string;
@@ -110,6 +122,22 @@ interface AppState extends GenericAppState {
     welcomeDialogShowed: boolean;
     updatePassTrigger: number;
     identifyUuids: { uuid: string; ts: number }[];
+    localExpertMode: boolean;
+}
+
+export function deviceTypeExtendTranslations(): void {
+    I18n.extendTranslations({
+        en: enDtLang,
+        de: deDtLang,
+        ru: ruDtLang,
+        pt: ptDtLang,
+        pl: plDtLang,
+        fr: frDtLang,
+        it: itDtLang,
+        nl: nlDtLang,
+        uk: ukDtLang,
+        'zh-cn': zhDtLang,
+    });
 }
 
 class App extends GenericApp<GenericAppProps, AppState> {
@@ -165,6 +193,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
             selectedTab = 'controller';
         }
 
+        deviceTypeExtendTranslations();
+
         Object.assign(this.state, {
             selectedTab,
             alive: false,
@@ -181,6 +211,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             inProcessing: null,
             updatePassTrigger: 1,
             identifyUuids: [],
+            localExpertMode: window.localStorage.getItem(`${this.adapterName}.${this.instance}.expertMode`) === 'true',
         } as Partial<AppState>);
 
         this.alert = window.alert;
@@ -506,6 +537,11 @@ class App extends GenericApp<GenericAppProps, AppState> {
         }
     }
 
+    setLocalExpertMode(enabled: boolean): void {
+        this.setState({ localExpertMode: enabled });
+        window.localStorage.setItem(`${this.adapterName}.${this.instance}.expertMode`, enabled ? 'true' : 'false');
+    }
+
     renderController(): React.ReactNode {
         if (!this.configHandler || !this.socket.systemConfig) {
             return null;
@@ -530,6 +566,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 theme={this.state.theme}
                 isFloatComma={this.socket.systemConfig.common.isFloatComma}
                 dateFormat={this.socket.systemConfig.common.dateFormat}
+                expertMode={this.state.localExpertMode}
+                setExpertMode={localExpertMode => this.setLocalExpertMode(localExpertMode)}
             />
         );
     }
@@ -559,6 +597,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
                     this.setConfigurationError(errorText);
                 }}
                 updatePassTrigger={this.state.updatePassTrigger}
+                expertMode={this.state.localExpertMode}
+                setExpertMode={localExpertMode => this.setLocalExpertMode(localExpertMode)}
             />
         );
     }
@@ -597,6 +637,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
                     this.checkLicenseOnAdd(type, matter)
                 }
                 identifyUuids={this.state.identifyUuids}
+                expertMode={this.state.localExpertMode}
+                setExpertMode={localExpertMode => this.setLocalExpertMode(localExpertMode)}
             />
         );
     }
@@ -633,6 +675,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 showToast={(text: string) => this.showToast(text)}
                 checkLicenseOnAdd={(matter: MatterConfig) => this.checkLicenseOnAdd('addDevice', matter)}
                 identifyUuids={this.state.identifyUuids}
+                expertMode={this.state.localExpertMode}
+                setExpertMode={localExpertMode => this.setLocalExpertMode(localExpertMode)}
             />
         );
     }

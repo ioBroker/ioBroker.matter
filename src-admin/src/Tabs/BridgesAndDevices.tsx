@@ -2,15 +2,6 @@ import React, { Component } from 'react';
 import QRCode from 'react-qr-code';
 
 import {
-    type AdminConnection,
-    I18n,
-    Icon,
-    type IobTheme,
-    type ThemeName,
-    type ThemeType,
-    Utils,
-} from '@iobroker/adapter-react-v5';
-import {
     Article,
     Close,
     ContentCopy,
@@ -43,11 +34,21 @@ import {
     Tooltip,
 } from '@mui/material';
 import { SiAmazonalexa, SiApple, SiGoogleassistant, SiSmartthings } from 'react-icons/si';
-import ioBroker from '../assets/ioBroker.svg';
-import { type ConfigItemPanel, type ConfigItemTabs, JsonConfigComponent } from '@iobroker/json-config';
 
+import { type ConfigItemPanel, type ConfigItemTabs, JsonConfigComponent } from '@iobroker/json-config';
+import {
+    type AdminConnection,
+    I18n,
+    Icon,
+    type IobTheme,
+    type ThemeName,
+    type ThemeType,
+    Utils,
+    InfoBox,
+} from '@iobroker/adapter-react-v5';
+
+import ioBroker from '../assets/ioBroker.svg';
 import { VendorIds, VendorIdsAmazon, VendorIdsApple, VendorIdsGoogle, VendorIdsSamsung } from '../utils/vendorIDs';
-import InfoBox from '../components/InfoBox';
 
 import type {
     BridgeDescription,
@@ -102,6 +103,8 @@ export interface BridgesAndDevicesProps {
     updateNodeStates: (states: { [uuid: string]: NodeStateResponse }) => void;
     inProcessing: Processing;
     identifyUuids: { uuid: string; ts: number }[];
+    expertMode: boolean;
+    setExpertMode: (expertMode: boolean) => void;
 }
 
 export interface BridgesAndDevicesState {

@@ -10,8 +10,10 @@ import {
     DialogActions,
     DialogContent,
     DialogTitle,
+    IconButton,
     Switch,
     TextField,
+    Tooltip,
     Typography,
 } from '@mui/material';
 
@@ -22,12 +24,13 @@ import {
     type ThemeType,
     I18n,
     DialogMessage,
+    InfoBox,
+    IconExpert,
 } from '@iobroker/adapter-react-v5';
 import DeviceManager from '@iobroker/dm-gui-components';
 
 import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
 import { clone } from '../Utils';
-import InfoBox from '../components/InfoBox';
 import QrCodeDialog from '../components/QrCodeDialog';
 import DiscoveredDevicesDialog from '../components/DiscoveredDevicesDialog';
 
@@ -106,6 +109,8 @@ interface ComponentProps {
     themeName: ThemeName;
     themeType: ThemeType;
     theme: IobTheme;
+    expertMode: boolean;
+    setExpertMode: (expertMode: boolean) => void;
 }
 
 interface ComponentState {
@@ -307,7 +312,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
             <Dialog open={!0}>
                 <DialogTitle>{I18n.t('BLE Commissioning information')}</DialogTitle>
                 <DialogContent>
-                    <div>
+                    {this.props.expertMode ? null : (
                         <InfoBox
                             type="info"
                             iconPosition="top"
@@ -316,118 +321,106 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         >
                             {I18n.t('Matter Controller BLE Dialog Infotext')}
                         </InfoBox>
+                    )}
 
-                        <Typography sx={styles.header}>{I18n.t('Bluetooth configuration')}</Typography>
-                        <TextField
-                            fullWidth
-                            variant="standard"
-                            sx={styles.inputField}
-                            type="number"
-                            label={I18n.t('Bluetooth HCI ID')}
-                            value={this.props.matter.controller.hciId || ''}
-                            onChange={e => {
-                                const matter = clone(this.props.matter);
-                                matter.controller.hciId = e.target.value;
-                                this.props.updateConfig(matter);
-                            }}
-                        />
-                    </div>
+                    <Typography sx={styles.header}>{I18n.t('Bluetooth configuration')}</Typography>
+                    <TextField
+                        fullWidth
+                        variant="standard"
+                        sx={styles.inputField}
+                        type="number"
+                        label={I18n.t('Bluetooth HCI ID')}
+                        value={this.props.matter.controller.hciId || ''}
+                        onChange={e => {
+                            const matter = clone(this.props.matter);
+                            matter.controller.hciId = e.target.value;
+                            this.props.updateConfig(matter);
+                        }}
+                    />
 
                     <Typography sx={styles.header}>{I18n.t('WLAN credentials')}</Typography>
-                    <div>
-                        <TextField
-                            fullWidth
-                            variant="standard"
-                            sx={styles.inputField}
-                            label={I18n.t('WiFi SSID')}
-                            error={!this.props.matter.controller.wifiSSID && !this.isRequiredBleInformationProvided()}
-                            helperText={
-                                !this.props.matter.controller.wifiSSID && !this.isRequiredBleInformationProvided()
-                                    ? I18n.t('Provide your Thread or WiFi information or both!')
-                                    : ''
-                            }
-                            value={this.props.matter.controller.wifiSSID || ''}
-                            onChange={e => {
-                                const matter = clone(this.props.matter);
-                                matter.controller.wifiSSID = e.target.value;
-                                this.props.updateConfig(matter);
-                            }}
-                        />
-                    </div>
+                    <TextField
+                        fullWidth
+                        variant="standard"
+                        sx={styles.inputField}
+                        label={I18n.t('WiFi SSID')}
+                        error={!this.props.matter.controller.wifiSSID && !this.isRequiredBleInformationProvided()}
+                        helperText={
+                            !this.props.matter.controller.wifiSSID && !this.isRequiredBleInformationProvided()
+                                ? I18n.t('Provide your Thread or WiFi information or both!')
+                                : ''
+                        }
+                        value={this.props.matter.controller.wifiSSID || ''}
+                        onChange={e => {
+                            const matter = clone(this.props.matter);
+                            matter.controller.wifiSSID = e.target.value;
+                            this.props.updateConfig(matter);
+                        }}
+                    />
 
-                    <div>
-                        <TextField
-                            fullWidth
-                            variant="standard"
-                            sx={styles.inputField}
-                            label={I18n.t('WiFi password')}
-                            error={
-                                !this.props.matter.controller.wifiPassword && !this.isRequiredBleInformationProvided()
-                            }
-                            helperText={
-                                !this.props.matter.controller.wifiPassword && !this.isRequiredBleInformationProvided()
-                                    ? I18n.t('Provide your Thread or WiFi information or both!')
-                                    : ''
-                            }
-                            value={this.props.matter.controller.wifiPassword || ''}
-                            onChange={e => {
-                                const matter = clone(this.props.matter);
-                                matter.controller.wifiPassword = e.target.value;
-                                this.props.updateConfig(matter);
-                            }}
-                        />
-                    </div>
+                    <TextField
+                        fullWidth
+                        variant="standard"
+                        sx={styles.inputField}
+                        label={I18n.t('WiFi password')}
+                        error={!this.props.matter.controller.wifiPassword && !this.isRequiredBleInformationProvided()}
+                        helperText={
+                            !this.props.matter.controller.wifiPassword && !this.isRequiredBleInformationProvided()
+                                ? I18n.t('Provide your Thread or WiFi information or both!')
+                                : ''
+                        }
+                        value={this.props.matter.controller.wifiPassword || ''}
+                        onChange={e => {
+                            const matter = clone(this.props.matter);
+                            matter.controller.wifiPassword = e.target.value;
+                            this.props.updateConfig(matter);
+                        }}
+                    />
 
                     <Typography sx={styles.header}>{I18n.t('Thread credentials')}</Typography>
-                    <div>
-                        <TextField
-                            fullWidth
-                            sx={styles.inputField}
-                            variant="standard"
-                            label={I18n.t('Thread network name')}
-                            error={
-                                !this.props.matter.controller.threadNetworkName &&
-                                !this.isRequiredBleInformationProvided()
-                            }
-                            helperText={
-                                !this.props.matter.controller.threadNetworkName &&
-                                !this.isRequiredBleInformationProvided()
-                                    ? I18n.t('Provide your Thread or WiFi information or both!')
-                                    : ''
-                            }
-                            value={this.props.matter.controller.threadNetworkName || ''}
-                            onChange={e => {
-                                const matter = clone(this.props.matter);
-                                matter.controller.threadNetworkName = e.target.value;
-                                this.props.updateConfig(matter);
-                            }}
-                        />
-                    </div>
+                    <TextField
+                        fullWidth
+                        sx={styles.inputField}
+                        variant="standard"
+                        label={I18n.t('Thread network name')}
+                        error={
+                            !this.props.matter.controller.threadNetworkName && !this.isRequiredBleInformationProvided()
+                        }
+                        helperText={
+                            !this.props.matter.controller.threadNetworkName && !this.isRequiredBleInformationProvided()
+                                ? I18n.t('Provide your Thread or WiFi information or both!')
+                                : ''
+                        }
+                        value={this.props.matter.controller.threadNetworkName || ''}
+                        onChange={e => {
+                            const matter = clone(this.props.matter);
+                            matter.controller.threadNetworkName = e.target.value;
+                            this.props.updateConfig(matter);
+                        }}
+                    />
 
-                    <div>
-                        <TextField
-                            fullWidth
-                            sx={styles.inputField}
-                            variant="standard"
-                            label={I18n.t('Thread operational dataset')}
-                            error={
-                                !this.props.matter.controller.threadOperationalDataSet &&
-                                !this.isRequiredBleInformationProvided()
-                            }
-                            helperText={
-                                !this.props.matter.controller.threadOperationalDataSet &&
-                                !this.isRequiredBleInformationProvided()
-                                    ? I18n.t('Provide your Thread or WiFi information or both!')
-                                    : ''
-                            }
-                            value={this.props.matter.controller.threadOperationalDataSet || ''}
-                            onChange={e => {
-                                const matter = clone(this.props.matter);
-                                matter.controller.threadOperationalDataSet = e.target.value;
-                                this.props.updateConfig(matter);
-                            }}
-                        />
-                    </div>
+                    <TextField
+                        fullWidth
+                        sx={styles.inputField}
+                        variant="standard"
+                        label={I18n.t('Thread operational dataset')}
+                        error={
+                            !this.props.matter.controller.threadOperationalDataSet &&
+                            !this.isRequiredBleInformationProvided()
+                        }
+                        helperText={
+                            !this.props.matter.controller.threadOperationalDataSet &&
+                            !this.isRequiredBleInformationProvided()
+                                ? I18n.t('Provide your Thread or WiFi information or both!')
+                                : ''
+                        }
+                        value={this.props.matter.controller.threadOperationalDataSet || ''}
+                        onChange={e => {
+                            const matter = clone(this.props.matter);
+                            matter.controller.threadOperationalDataSet = e.target.value;
+                            this.props.updateConfig(matter);
+                        }}
+                    />
 
                     <DialogActions>
                         <Button
@@ -454,13 +447,15 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     </DialogActions>
 
                     <Typography sx={styles.header}>{I18n.t('Bluetooth configuration')}</Typography>
-                    <InfoBox type={!this.isRequiredBleInformationProvided() ? 'error' : 'info'}>
-                        {I18n.t(
-                            this.isRequiredBleInformationProvided()
-                                ? 'Activate BLE to pair devices nearby. You can also use the "ioBroker Visu" App to pair other devices.'
-                                : 'You need to configure WLAN or Thread credentials above to activate BLE',
-                        )}
-                    </InfoBox>
+                    {this.props.expertMode ? null : (
+                        <InfoBox type={!this.isRequiredBleInformationProvided() ? 'error' : 'info'}>
+                            {I18n.t(
+                                this.isRequiredBleInformationProvided()
+                                    ? 'Activate BLE to pair devices nearby. You can also use the "ioBroker Visu" App to pair other devices.'
+                                    : 'You need to configure WLAN or Thread credentials above to activate BLE',
+                            )}
+                        </InfoBox>
+                    )}
                     <DialogActions>
                         <Button
                             variant="contained"
@@ -648,20 +643,34 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
         return (
             <div style={styles.panel}>
-                <InfoBox
-                    type="info"
-                    closeable
-                    storeId="matter.controller.info"
-                    iconPosition="top"
-                >
-                    {I18n.t('Matter Controller Infotext')}
-                </InfoBox>
+                {this.props.expertMode ? null : (
+                    <InfoBox
+                        type="info"
+                        closeable
+                        storeId="matter.controller.info"
+                        iconPosition="top"
+                    >
+                        {I18n.t('Matter Controller Infotext')}
+                    </InfoBox>
+                )}
                 {this.renderLoadingSpinner()}
                 {this.renderShowDiscoveredDevices()}
                 {this.renderQrCodeDialog()}
                 {this.renderBleDialog()}
                 {this.renderShowErrorDialog()}
                 <div>
+                    <Tooltip
+                        title={I18n.t('Toggle expert mode')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                    >
+                        <IconButton
+                            style={{ marginRight: 16 }}
+                            onClick={() => this.props.setExpertMode(!this.props.expertMode)}
+                            color={this.props.expertMode ? 'primary' : 'default'}
+                        >
+                            <IconExpert />
+                        </IconButton>
+                    </Tooltip>
                     {I18n.t('Off')}
                     <Switch
                         disabled={this.state.discoveryRunning}

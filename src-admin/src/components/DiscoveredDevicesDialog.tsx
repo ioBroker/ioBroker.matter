@@ -14,11 +14,12 @@ import {
     TableHead,
     TableRow,
 } from '@mui/material';
-import { type AdminConnection, I18n, type ThemeType } from '@iobroker/adapter-react-v5';
-import InfoBox from './InfoBox';
-import { getVendorName } from '../Utils';
-import { IconButton } from '@foxriver76/iob-component-lib';
 import { Close, SearchOff } from '@mui/icons-material';
+
+import { type AdminConnection, I18n, type ThemeType, InfoBox } from '@iobroker/adapter-react-v5';
+import { IconButton } from '@foxriver76/iob-component-lib';
+
+import { getVendorName } from '../Utils';
 import type { CommissionableDevice } from '../types';
 import QrCodeDialog from './QrCodeDialog';
 

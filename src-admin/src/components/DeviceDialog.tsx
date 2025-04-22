@@ -9,21 +9,27 @@ import {
     Dialog,
     DialogActions,
     DialogContent,
-    DialogTitle,
+    DialogTitle, IconButton as MuiIconButton,
     LinearProgress,
     MenuItem,
     Switch,
-    TextField,
+    TextField, Tooltip,
 } from '@mui/material';
 
 import { Add, Close, ExpandMore } from '@mui/icons-material';
 
-import { type AdminConnection, I18n, Icon, type IobTheme, type ThemeType } from '@iobroker/adapter-react-v5';
+import {
+    type AdminConnection,
+    I18n,
+    Icon,
+    type IobTheme,
+    type ThemeType,
+    DeviceTypeIcon, IconExpert,
+} from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 
 import { clone, detectDevices, getText } from '../Utils';
 import type { DetectedDevice, DetectedRoom, MatterConfig } from '../types';
-import { TypeIcon } from './TypeSelector';
 
 export const SUPPORTED_DEVICES: Types[] = [
     Types.blind,
@@ -134,6 +140,8 @@ interface DeviceDialogProps {
     /** If dialog should check the number of devices */
     checkAddedDevices?: number;
     themeType: ThemeType;
+    expertMode: boolean;
+    setExpertMode: (expertMode: boolean) => void;
 }
 
 interface DeviceDialogState {
@@ -341,7 +349,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                         onClick={e => e.stopPropagation()}
                     />
                     <span style={{ marginRight: 8 }}>
-                        <TypeIcon
+                        <DeviceTypeIcon
                             type={device.deviceType}
                             title
                         />
@@ -367,7 +375,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                             this.setState({ rooms });
                         }}
                     />
-                    {this.props.type === 'device' ? (
+                    {this.props.type === 'device' && this.props.expertMode ? (
                         <>
                             <TextField
                                 select
@@ -485,8 +493,20 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                 fullWidth
             >
                 {this.renderCommissioningHintDialog()}
-                <DialogTitle>
+                <DialogTitle style={{ display: 'flex', width: 'calc(100% - 48px)' }}>
                     {`${I18n.t('Add devices')}${this.props.type === 'bridge' ? ` ${I18n.t('to bridge')} ${getText(this.props.name)}` : ''}`}
+                    <div style={{ flexGrow: 1 }} />
+                    <Tooltip
+                        title={I18n.t('Toggle expert mode')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                    >
+                        <MuiIconButton
+                            onClick={() => this.props.setExpertMode(!this.props.expertMode)}
+                            color={this.props.expertMode ? 'primary' : 'default'}
+                        >
+                            <IconExpert />
+                        </MuiIconButton>
+                    </Tooltip>
                 </DialogTitle>
                 <DialogContent style={styles.dialogContent}>
                     {showHint}

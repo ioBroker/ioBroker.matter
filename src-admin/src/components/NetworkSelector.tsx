@@ -114,7 +114,15 @@ export default class NetworkSelector extends Component<NetworkSelectorProps, Net
             />
         ) : (
             <FormControl style={styles.inputLong}>
-                <InputLabel>{I18n.t('Interface')}</InputLabel>
+                <InputLabel
+                    sx={{
+                        '&.MuiFormLabel-root': {
+                            transform: 'translate(0px, -9px) scale(0.75)',
+                        },
+                    }}
+                >
+                    {I18n.t('Interface')}
+                </InputLabel>
                 <Select
                     variant="standard"
                     style={styles.inputLong}

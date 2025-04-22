@@ -9,11 +9,13 @@ import {
     Dialog,
     DialogActions,
     DialogContent,
-    DialogTitle, IconButton as MuiIconButton,
+    DialogTitle,
+    IconButton as MuiIconButton,
     LinearProgress,
     MenuItem,
     Switch,
-    TextField, Tooltip,
+    TextField,
+    Tooltip,
 } from '@mui/material';
 
 import { Add, Close, ExpandMore } from '@mui/icons-material';
@@ -24,7 +26,8 @@ import {
     Icon,
     type IobTheme,
     type ThemeType,
-    DeviceTypeIcon, IconExpert,
+    DeviceTypeIcon,
+    IconExpert,
 } from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 

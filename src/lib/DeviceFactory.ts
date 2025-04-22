@@ -20,6 +20,7 @@ import { Image } from './devices/Image';
 import { Info } from './devices/Info';
 import { Light } from './devices/Light';
 import { Location } from './devices/Location';
+import { LocationOne } from './devices/LocationOne';
 import { Lock } from './devices/Lock';
 import { Media } from './devices/Media';
 import { Motion } from './devices/Motion';
@@ -39,7 +40,6 @@ import { WeatherForecast } from './devices/WeatherForecast';
 import { Window } from './devices/Window';
 import { WindowTilt } from './devices/WindowTilt';
 import { Illuminance } from './devices/Illuminance';
-import {LocationOne} from "./devices/LocationOne";
 
 /** Type for a class that extends a defined class to make TS understand that also derived classes are allowed. */
 type ClassExtends<C> = { new (...args: any[]): C };

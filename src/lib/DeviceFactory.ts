@@ -39,6 +39,7 @@ import { WeatherForecast } from './devices/WeatherForecast';
 import { Window } from './devices/Window';
 import { WindowTilt } from './devices/WindowTilt';
 import { Illuminance } from './devices/Illuminance';
+import {LocationOne} from "./devices/LocationOne";
 
 /** Type for a class that extends a defined class to make TS understand that also derived classes are allowed. */
 type ClassExtends<C> = { new (...args: any[]): C };
@@ -64,6 +65,7 @@ const types: { [key in Types]: ClassExtends<GenericDevice> | null } = {
     [Types.light]: Light,
     [Types.lock]: Lock,
     [Types.location]: Location,
+    [Types.location_one]: LocationOne,
     [Types.media]: Media,
     [Types.motion]: Motion,
     [Types.rgb]: Rgb,

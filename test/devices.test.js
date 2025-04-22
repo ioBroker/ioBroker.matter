@@ -288,7 +288,7 @@ describe('Test Devices', function () {
         for (const type of types) {
             // detect that only read values are subscribed
             console.log(`------------------------\nCreated device for ${type}`);
-            const className = type === 'location_one' ? 'LocationOne' : (type[0].toUpperCase() + type.substring(1));
+            const className = type[0].toUpperCase() + type.substring(1);
             const Device = require(`../build/lib/devices/${className}`)[className];
             const adapter = new Adapter();
             SubscribeManager.setAdapter(adapter);

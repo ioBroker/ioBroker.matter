@@ -65,7 +65,7 @@ const types: { [key in Types]: ClassExtends<GenericDevice> | null } = {
     [Types.light]: Light,
     [Types.lock]: Lock,
     [Types.location]: Location,
-    [Types.location_one]: LocationOne,
+    [Types.locationOne]: LocationOne,
     [Types.media]: Media,
     [Types.motion]: Motion,
     [Types.rgb]: Rgb,

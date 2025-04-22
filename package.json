@@ -29,11 +29,11 @@
     "@iobroker/adapter-core": "^3.2.3",
     "@iobroker/dm-utils": "^1.0.9",
     "@iobroker/i18n": "^0.3.1",
-    "@iobroker/type-detector": "^4.2.0",
+    "@iobroker/type-detector": "^4.3.0",
     "@matter/main": "0.12.4-alpha.0-20250224-46934b522",
     "@matter/nodejs": "0.12.4-alpha.0-20250224-46934b522",
     "@project-chip/matter.js": "0.12.4-alpha.0-20250224-46934b522",
-    "axios": "^1.7.9",
+    "axios": "^1.8.4",
     "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {
@@ -42,17 +42,15 @@
     "@alcalzone/release-script-plugin-license": "^3.7.0",
     "@iobroker/build-tools": "^2.0.15",
     "@iobroker/dev-server": "^0.7.8",
-    "@iobroker/eslint-config": "^1.0.0",
+    "@iobroker/eslint-config": "^2.0.1",
     "@iobroker/legacy-testing": "^2.0.2",
-    "@iobroker/testing": "^5.0.3",
-    "@iobroker/types": "^7.0.6",
+    "@iobroker/testing": "^5.0.4",
+    "@iobroker/types": "^7.0.7",
     "@types/jsonwebtoken": "^9.0.9",
-    "@types/node": "^22.13.5",
-    "chai": "^4.5.0",
+    "@types/node": "^22.14.1",
     "colorette": "^2.0.20",
-    "mocha": "^11.1.0",
-    "puppeteer": "^24.3.0",
-    "typescript": "~5.7.3"
+    "puppeteer": "^24.6.1",
+    "typescript": "~5.8.3"
   },
   "bugs": {
     "url": "https://github.com/ioBroker/ioBroker.matter/issues"

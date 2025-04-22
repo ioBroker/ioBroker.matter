@@ -12,7 +12,7 @@ export interface IdentifyState {
 }
 
 export class IoIdentifyServer extends IdentifyServer {
-    protected declare internal: IoIdentifyServer.Internal;
+    declare protected internal: IoIdentifyServer.Internal;
 
     override async initialize(): Promise<void> {
         if (this.state.identifyType === undefined) {
@@ -83,7 +83,7 @@ export namespace IoIdentifyServer {
 }
 
 export class IoLightingIdentifyServer extends IoIdentifyServer {
-    protected declare internal: IoLightingIdentifyServer.Internal;
+    declare protected internal: IoLightingIdentifyServer.Internal;
 
     override async initialize(): Promise<void> {
         this.state.identifyType = Identify.IdentifyType.LightOutput;

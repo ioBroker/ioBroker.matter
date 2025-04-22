@@ -323,7 +323,7 @@ export function getDetectedDeviceTypes(detectedRooms: DetectedRoom[]): Types[] {
 }
 
 /**
- * Get text from object or just a string without trying to translate it
+ * Get text from an object or just a string without trying to translate it
  */
 export function getText(text?: ioBroker.StringOrTranslated): string {
     return typeof text === 'object' ? text?.[I18n.getLanguage()] || '' : text || '';

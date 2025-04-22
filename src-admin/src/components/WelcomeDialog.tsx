@@ -192,9 +192,9 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
 
         if (this.props.host) {
             const hostData: HostInfo & { 'Active instances': number; location: string; Uptime: number } =
-                await this.props.socket.getHostInfo(this.props.host, false, 10000).catch((e: unknown): void => {
+                (await this.props.socket.getHostInfo(this.props.host, false, 10000).catch((e: unknown): void => {
                     window.alert(`Cannot getHostInfo for "${this.props.host}": ${e as Error}`);
-                });
+                })) as HostInfo & { 'Active instances': number; location: string; Uptime: number };
 
             if (hostData) {
                 this.setState({ docker: !!hostData.dockerInformation?.isDocker });

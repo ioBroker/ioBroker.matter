@@ -12,11 +12,8 @@ import {
     DialogContent,
     DialogTitle,
     Fab,
-    FormControl,
     FormControlLabel,
-    InputLabel,
     MenuItem,
-    Select,
     Switch,
     Table,
     TableBody,
@@ -26,7 +23,7 @@ import {
     Tooltip,
 } from '@mui/material';
 
-import { I18n, SelectID, IconDeviceType } from '@iobroker/adapter-react-v5';
+import { I18n, SelectID } from '@iobroker/adapter-react-v5';
 import DeviceDialog, { SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import type { DetectedDevice, DeviceDescription, MatterConfig } from '../types';
 import { clone, detectDevices, getDetectedDeviceTypes, getText } from '../Utils';
@@ -38,6 +35,7 @@ import BridgesAndDevices, {
     STYLES,
 } from './BridgesAndDevices';
 import DeviceEditDialog, { type DeviceData } from '../components/DeviceEditDialog';
+import TypeSelector, { TypeIcon } from '../components/TypeSelector';
 
 const styles: Record<string, React.CSSProperties> = {
     ...STYLES,
@@ -205,6 +203,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
 
         return (
             <DeviceEditDialog
+                themeType={this.props.themeType}
                 isCommissioned={
                     this.props.commissioning[this.props.matter.devices[this.state.editDeviceDialog.deviceIndex].uuid]
                 }
@@ -341,45 +340,21 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         variant="standard"
                         fullWidth
                     />
-                    <FormControl style={{ width: '100%', marginTop: 30 }}>
-                        <InputLabel
-                            style={
-                                this.state.addCustomDeviceDialog.deviceType
-                                    ? { transform: 'translate(0px, -9px) scale(0.75)' }
-                                    : undefined
+                    <TypeSelector
+                        style={{ width: '100%', marginTop: 30 }}
+                        themeType={this.props.themeType}
+                        value={this.state.addCustomDeviceDialog.deviceType}
+                        supportedDevices={this.state.addCustomDeviceDialog?.detectedDeviceTypes ?? SUPPORTED_DEVICES}
+                        onChange={value => {
+                            if (!this.state.addCustomDeviceDialog) {
+                                return;
                             }
-                        >
-                            {I18n.t('Device type')}
-                        </InputLabel>
-                        <Select
-                            variant="standard"
-                            value={this.state.addCustomDeviceDialog.deviceType}
-                            onChange={e => {
-                                if (!this.state.addCustomDeviceDialog) {
-                                    return;
-                                }
 
-                                const addCustomDeviceDialog = clone(this.state.addCustomDeviceDialog);
-                                addCustomDeviceDialog.deviceType = e.target.value as Types;
-                                this.setState({ addCustomDeviceDialog });
-                            }}
-                        >
-                            {Object.keys(Types)
-                                .filter(key =>
-                                    (
-                                        this.state.addCustomDeviceDialog?.detectedDeviceTypes ?? SUPPORTED_DEVICES
-                                    ).includes(key as Types),
-                                )
-                                .map(type => (
-                                    <MenuItem
-                                        key={type}
-                                        value={type}
-                                    >
-                                        {I18n.t(type)}
-                                    </MenuItem>
-                                ))}
-                        </Select>
-                    </FormControl>
+                            const addCustomDeviceDialog = clone(this.state.addCustomDeviceDialog);
+                            addCustomDeviceDialog.deviceType = value;
+                            this.setState({ addCustomDeviceDialog });
+                        }}
+                    />
                     <TextField
                         select
                         style={{ width: 'calc(50% - 8px)', marginRight: 16, marginTop: 16 }}
@@ -619,7 +594,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 this.props.showToast(
                                     I18n.t('Detected device types "%s" are not supported yet', deviceTypes.join(', ')),
                                 );
-                                // TODO Should we really let user select??
+                                // Let the user select between the detected device types
                                 this.setState({
                                     addDeviceDialog: null,
                                     addCustomDeviceDialog: {
@@ -635,7 +610,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 this.props.showToast(I18n.t('No device found for ID %s', oid));
                             }
                         } else {
-                            // Show dialog to select device type but only allow the detected ones
+                            // Show dialog to select a device type but only allow the detected ones
                             const detectedDeviceTypes = getDetectedDeviceTypes(detectedRooms);
                             const deviceType = detectedDeviceTypes[0];
 
@@ -689,12 +664,11 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 <TableCell>
                     {this.renderProcessOverlay(device.uuid, device.deleted)}
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <span
+                        <TypeIcon
+                            type={device.type}
+                            title
                             style={{ marginRight: 8 }}
-                            title={device.type}
-                        >
-                            <IconDeviceType src={device.type} />
-                        </span>
+                        />
                         <div style={styles.bridgeDiv}>
                             <div style={styles.deviceName}>
                                 {getText(device.name)}
@@ -706,7 +680,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 <span style={styles.deviceTitle}>{I18n.t('Product ID')}:</span>
                                 <span style={styles.deviceValue}>{device.productID || ''},</span>
                                 <span style={styles.deviceType}>{I18n.t('Device type')}:</span>
-                                <span style={styles.deviceType}>{I18n.t(device.type)}</span>
+                                <span style={styles.deviceType}>{I18n.t(`type-${device.type}`)}</span>
                             </div>
                         </div>
                     </div>

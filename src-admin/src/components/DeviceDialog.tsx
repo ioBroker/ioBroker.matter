@@ -18,18 +18,12 @@ import {
 
 import { Add, Close, ExpandMore } from '@mui/icons-material';
 
-import {
-    type AdminConnection,
-    I18n,
-    Icon,
-    IconDeviceType,
-    type IobTheme,
-    type ThemeType,
-} from '@iobroker/adapter-react-v5';
+import { type AdminConnection, I18n, Icon, type IobTheme, type ThemeType } from '@iobroker/adapter-react-v5';
 import { Types } from '@iobroker/type-detector';
 
 import { clone, detectDevices, getText } from '../Utils';
 import type { DetectedDevice, DetectedRoom, MatterConfig } from '../types';
+import { TypeIcon } from './TypeSelector';
 
 export const SUPPORTED_DEVICES: Types[] = [
     Types.blind,
@@ -347,7 +341,10 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                         onClick={e => e.stopPropagation()}
                     />
                     <span style={{ marginRight: 8 }}>
-                        <IconDeviceType src={device.deviceType} />
+                        <TypeIcon
+                            type={device.deviceType}
+                            title
+                        />
                     </span>
                     <TextField
                         variant="standard"
@@ -356,7 +353,7 @@ class DeviceDialog extends Component<DeviceDialogProps, DeviceDialogState> {
                         label={device._id}
                         helperText={
                             <span style={{ fontStyle: 'italic' }}>
-                                {`${I18n.t('Device type')}: ${I18n.t(device.deviceType)}`}
+                                {`${I18n.t('Device type')}: ${I18n.t(`type-${device.deviceType}`)}`}
                             </span>
                         }
                         value={device.common.name}

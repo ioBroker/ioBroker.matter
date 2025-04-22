@@ -17,9 +17,11 @@ import {
 import { Close, Save } from '@mui/icons-material';
 
 import { Types } from '@iobroker/type-detector';
-import { I18n, IconDeviceType } from '@iobroker/adapter-react-v5';
+import { I18n, IconDeviceType, type ThemeType } from '@iobroker/adapter-react-v5';
+
 import { SUPPORTED_DEVICES } from './DeviceDialog';
 import { clone } from '../Utils';
+import TypeSelector from './TypeSelector';
 
 export type DeviceData = {
     name: string;
@@ -39,6 +41,7 @@ interface DeviceEditDialogProps {
     productIDs: string[];
     auto: boolean;
     hasOnState: boolean;
+    themeType: ThemeType;
 }
 
 interface DeviceEditDialogState {
@@ -159,47 +162,22 @@ export default class DeviceEditDialog extends Component<DeviceEditDialogProps, D
                             </span>
                         }
                     />
-                    <FormControl style={{ width: '100%', marginTop: 30 }}>
-                        <InputLabel>{I18n.t('Device type')}</InputLabel>
-                        <Select
-                            variant="standard"
-                            disabled={this.props.isCommissioned || this.props.auto}
-                            value={this.state.data.deviceType}
-                            onChange={e => {
-                                if (!this.state.data) {
-                                    return;
-                                }
+                    <TypeSelector
+                        themeType={this.props.themeType}
+                        style={{ width: '100%', marginTop: 30 }}
+                        value={this.state.data.deviceType}
+                        disabled={this.props.isCommissioned || this.props.auto}
+                        supportedDevices={SUPPORTED_DEVICES}
+                        onChange={value => {
+                            if (!this.state.data) {
+                                return;
+                            }
 
-                                const data = clone(this.state.data);
-                                data.deviceType = e.target.value as Types;
-                                this.setState({ data });
-                            }}
-                            renderValue={value => (
-                                <span>
-                                    <IconDeviceType
-                                        src={value}
-                                        style={{ marginRight: 8 }}
-                                    />
-                                    {I18n.t(value)}
-                                </span>
-                            )}
-                        >
-                            {Object.keys(Types)
-                                .filter(key => SUPPORTED_DEVICES.includes(key as Types))
-                                .map(type => (
-                                    <MenuItem
-                                        key={type}
-                                        value={type}
-                                    >
-                                        <IconDeviceType
-                                            src={type}
-                                            style={{ marginRight: 8 }}
-                                        />
-                                        {I18n.t(type)}
-                                    </MenuItem>
-                                ))}
-                        </Select>
-                    </FormControl>
+                            const data = clone(this.state.data);
+                            data.deviceType = value;
+                            this.setState({ data });
+                        }}
+                    />
                     <FormControlLabel
                         style={{ width: '100%', marginTop: 30 }}
                         label={I18n.t('Allow action by identify')}

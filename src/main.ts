@@ -1,14 +1,19 @@
-import * as utils from '@iobroker/adapter-core';
+import axios from 'axios';
+import jwt from 'jsonwebtoken';
+import fs from 'node:fs/promises';
+import { Environment, LogLevel, LogFormat, Logger, StorageService, PromiseQueue } from '@matter/main';
+import { inspect } from 'util';
+
+import { type AdapterOptions, Adapter, getAbsoluteInstanceDataDir } from '@iobroker/adapter-core';
 import ChannelDetector, {
     type DetectorState,
     Types,
     type DetectOptions,
     type PatternControl,
 } from '@iobroker/type-detector';
-import { Environment, LogLevel, LogFormat, Logger, StorageService, PromiseQueue } from '@matter/main';
-import axios from 'axios';
-import jwt from 'jsonwebtoken';
-import fs from 'node:fs/promises';
+const I18n = import('@iobroker/i18n');
+import type { JsonFormSchema, BackEndCommandJsonFormOptions } from '@iobroker/dm-utils';
+
 import type { MatterControllerConfig } from '../src-admin/src/types';
 import type {
     BridgeDescription,
@@ -26,15 +31,12 @@ import MatterDevice, { type DeviceCreateOptions } from './matter/DeviceNode';
 import type { PairedNodeConfig } from './matter/GeneralMatterNode';
 import type { MessageResponse } from './matter/GeneralNode';
 import { IoBrokerObjectStorage } from './matter/IoBrokerObjectStorage';
-import { inspect } from 'util';
-const I18n = import('@iobroker/i18n');
-import type { JsonFormSchema, BackEndCommandJsonFormOptions } from '@iobroker/dm-utils';
 import { type StructuredJsonFormData, convertDataToJsonConfig } from './lib/JsonConfigUtils';
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
 
 // If the device was created by user and user defined the type of device => use this OID as given name
-const DEVICE_DEFAULT_NAME: { [key: string]: string } = {
+const DEVICE_DEFAULT_NAME: Partial<Record<Types, string>> = {
     [Types.airCondition]: 'SET',
     [Types.blindButtons]: 'STOP',
     [Types.blind]: 'SET',
@@ -50,6 +52,7 @@ const DEVICE_DEFAULT_NAME: { [key: string]: string } = {
     [Types.gate]: 'SET',
     [Types.hue]: 'HUE',
     [Types.humidity]: 'ACTUAL',
+    [Types.illuminance]: 'ACTUAL',
     [Types.image]: 'URL',
     [Types.info]: 'ACTUAL',
     [Types.light]: 'SET',
@@ -78,7 +81,7 @@ interface NodeStatesOptions {
     controller?: boolean;
 }
 
-export class MatterAdapter extends utils.Adapter {
+export class MatterAdapter extends Adapter {
     readonly #devices = new Map<string, { device?: MatterDevice; error?: string }>();
     readonly #bridges = new Map<string, { bridge?: BridgedDevice; error?: string }>();
     #controller?: MatterController;
@@ -106,7 +109,7 @@ export class MatterAdapter extends utils.Adapter {
     #controllerActionQueue = new PromiseQueue();
     #blockGuiUpdates = false;
 
-    public constructor(options: Partial<utils.AdapterOptions> = {}) {
+    public constructor(options: Partial<AdapterOptions> = {}) {
         super({
             ...options,
             name: 'matter',
@@ -216,98 +219,108 @@ export class MatterAdapter extends utils.Adapter {
         this.restart();
     }
 
+    async handleControllerCommand(obj: ioBroker.Message): Promise<void> {
+        await this.#controllerActionQueue.add(async () => {
+            if (this.#controller) {
+                try {
+                    const result = await this.#controller?.handleCommand(obj);
+                    if (result !== undefined && obj.callback) {
+                        this.sendTo(obj.from, obj.command, result, obj.callback);
+                    }
+                } catch (error) {
+                    this.log.warn(`Error while handling command "${obj.command}" for controller: ${error.stack}`);
+                    if (obj.callback) {
+                        this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
+                    }
+                }
+            } else if (obj.callback) {
+                this.sendTo(obj.from, obj.command, { error: 'Controller not enabled' }, obj.callback);
+            }
+        });
+    }
+
+    async handleDeviceCommand(obj: ioBroker.Message): Promise<void> {
+        for (const [oid, { bridge, error }] of this.#bridges.entries()) {
+            const uuid = oid.split('.').pop() || '';
+            if (uuid === obj.message.uuid) {
+                if (bridge) {
+                    try {
+                        const result = await bridge.handleCommand(obj);
+                        if (result !== undefined && obj.callback) {
+                            this.sendTo(obj.from, obj.command, result, obj.callback);
+                        }
+                    } catch (error) {
+                        this.log.warn(
+                            `Error while handling command "${obj.command}" for device ${bridge.uuid}: ${error.stack}`,
+                        );
+                        if (obj.callback) {
+                            this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
+                        }
+                    }
+                } else if (error) {
+                    if (obj.command === 'deviceExtendedInfo') {
+                        const result = this.getGenericErrorDetails('bridge', uuid, error);
+                        if (result !== undefined && obj.callback) {
+                            this.sendTo(obj.from, obj.command, { result }, obj.callback);
+                        }
+                    }
+                }
+                return;
+            }
+        }
+        for (const [oid, { device, error }] of this.#devices.entries()) {
+            const uuid = oid.split('.').pop() || '';
+            if (uuid === obj.message.uuid) {
+                if (device) {
+                    try {
+                        const result = await device.handleCommand(obj);
+                        if (result !== undefined && obj.callback) {
+                            this.sendTo(obj.from, obj.command, result, obj.callback);
+                        }
+                    } catch (error) {
+                        this.log.warn(
+                            `Error while handling command "${obj.command}" for device ${device.uuid}: ${error.stack}`,
+                        );
+                        if (obj.callback) {
+                            this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
+                        }
+                    }
+                } else if (error) {
+                    if (obj.command === 'deviceExtendedInfo') {
+                        const result = this.getGenericErrorDetails('device', uuid, error);
+                        if (result !== undefined && obj.callback) {
+                            this.sendTo(obj.from, obj.command, { result }, obj.callback);
+                        }
+                    }
+                }
+
+                return;
+            }
+        }
+        if (obj.callback) {
+            this.sendTo(
+                obj.from,
+                obj.command,
+                { error: `Device or Bridge ${obj.message.uuid} not found` },
+                obj.callback,
+            );
+        }
+    }
+
     async #onMessage(obj: ioBroker.Message): Promise<void> {
         if (obj.command?.startsWith('dm:')) {
             // Handled by Device Manager class itself, so ignored here
             return;
         }
+
         this.log.debug(`Handle message ${obj.command} ${obj.command !== 'getLicense' ? JSON.stringify(obj) : ''}`);
+
         if (obj.command?.startsWith('controller')) {
-            await this.#controllerActionQueue.add(async () => {
-                if (this.#controller) {
-                    try {
-                        const result = await this.#controller?.handleCommand(obj);
-                        if (result !== undefined && obj.callback) {
-                            this.sendTo(obj.from, obj.command, result, obj.callback);
-                        }
-                    } catch (error) {
-                        this.log.warn(`Error while handling command "${obj.command}" for controller: ${error.stack}`);
-                        if (obj.callback) {
-                            this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
-                        }
-                    }
-                } else if (obj.callback) {
-                    this.sendTo(obj.from, obj.command, { error: 'Controller not enabled' }, obj.callback);
-                }
-            });
+            await this.handleControllerCommand(obj);
             return;
         }
         if (obj.command?.startsWith('device')) {
-            for (const [oid, { bridge, error }] of this.#bridges.entries()) {
-                const uuid = oid.split('.').pop() || '';
-                if (uuid === obj.message.uuid) {
-                    if (bridge) {
-                        try {
-                            const result = await bridge.handleCommand(obj);
-                            if (result !== undefined && obj.callback) {
-                                this.sendTo(obj.from, obj.command, result, obj.callback);
-                            }
-                        } catch (error) {
-                            this.log.warn(
-                                `Error while handling command "${obj.command}" for device ${bridge.uuid}: ${error.stack}`,
-                            );
-                            if (obj.callback) {
-                                this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
-                            }
-                        }
-                    } else if (error) {
-                        if (obj.command === 'deviceExtendedInfo') {
-                            const result = this.getGenericErrorDetails('bridge', uuid, error);
-                            if (result !== undefined && obj.callback) {
-                                this.sendTo(obj.from, obj.command, { result }, obj.callback);
-                            }
-                        }
-                    }
-                    return;
-                }
-            }
-            for (const [oid, { device, error }] of this.#devices.entries()) {
-                const uuid = oid.split('.').pop() || '';
-                if (uuid === obj.message.uuid) {
-                    if (device) {
-                        try {
-                            const result = await device.handleCommand(obj);
-                            if (result !== undefined && obj.callback) {
-                                this.sendTo(obj.from, obj.command, result, obj.callback);
-                            }
-                        } catch (error) {
-                            this.log.warn(
-                                `Error while handling command "${obj.command}" for device ${device.uuid}: ${error.stack}`,
-                            );
-                            if (obj.callback) {
-                                this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
-                            }
-                        }
-                    } else if (error) {
-                        if (obj.command === 'deviceExtendedInfo') {
-                            const result = this.getGenericErrorDetails('device', uuid, error);
-                            if (result !== undefined && obj.callback) {
-                                this.sendTo(obj.from, obj.command, { result }, obj.callback);
-                            }
-                        }
-                    }
-
-                    return;
-                }
-            }
-            if (obj.callback) {
-                this.sendTo(
-                    obj.from,
-                    obj.command,
-                    { error: `Device or Bridge ${obj.message.uuid} not found` },
-                    obj.callback,
-                );
-            }
+            await this.handleDeviceCommand(obj);
             return;
         }
 
@@ -335,7 +348,7 @@ export class MatterAdapter extends utils.Adapter {
                 const result = await this.applyControllerConfiguration(newControllerConfig);
                 if (result && 'result' in result) {
                     // was successful
-                    await this.extendObjectAsync(`${this.namespace}.controller`, { native: newControllerConfig });
+                    await this.extendObject(`${this.namespace}.controller`, { native: newControllerConfig });
                 }
                 this.sendTo(obj.from, obj.command, result, obj.callback);
                 break;
@@ -362,7 +375,9 @@ export class MatterAdapter extends utils.Adapter {
         const sub = this.#_guiSubscribes.find(s => s.clientId === clientId);
         if (!sub) {
             this.#_guiSubscribes.push({ clientId, ts: Date.now() });
-            this.#stateTimeout && clearTimeout(this.#stateTimeout);
+            if (this.#stateTimeout) {
+                clearTimeout(this.#stateTimeout);
+            }
             this.#stateTimeout = setTimeout(async () => {
                 this.#stateTimeout = undefined;
                 const states = await this.requestNodeStates();
@@ -478,7 +493,7 @@ export class MatterAdapter extends utils.Adapter {
     }
 
     async #onReady(): Promise<void> {
-        const dataDir = utils.getAbsoluteInstanceDataDir(this);
+        const dataDir = getAbsoluteInstanceDataDir(this);
         try {
             await fs.mkdir(dataDir);
             this.#instanceDataDir = dataDir;
@@ -530,7 +545,7 @@ export class MatterAdapter extends utils.Adapter {
         this.log.debug('Initialization done, Objects subscribed');
 
         // this allows to GUI to read the devices. So make it after all devices are loaded
-        this.#_guiSubscribes = this.#_guiSubscribes || [];
+        this.#_guiSubscribes ||= [];
     }
 
     async requestNodeStates(options?: NodeStatesOptions): Promise<{ [uuid: string]: NodeStateResponse }> {
@@ -569,12 +584,18 @@ export class MatterAdapter extends utils.Adapter {
 
     async #onUnload(callback: () => void): Promise<void> {
         this.#closing = true;
-        this.#stateTimeout && clearTimeout(this.#stateTimeout);
-        this.#stateTimeout = undefined;
-        this.#sendControllerUpdateTimeout && clearTimeout(this.#sendControllerUpdateTimeout);
-        this.#sendControllerUpdateTimeout = undefined;
-        this.#objectProcessQueueTimeout && clearTimeout(this.#objectProcessQueueTimeout);
-        this.#controllerActionQueue.clear(false);
+        if (this.#stateTimeout) {
+            clearTimeout(this.#stateTimeout);
+            this.#stateTimeout = undefined;
+        }
+        if (this.#sendControllerUpdateTimeout) {
+            clearTimeout(this.#sendControllerUpdateTimeout);
+            this.#sendControllerUpdateTimeout = undefined;
+        }
+        if (this.#objectProcessQueueTimeout) {
+            clearTimeout(this.#objectProcessQueueTimeout);
+            this.#controllerActionQueue.clear(false);
+        }
         if (this.#objectProcessQueue.length && this.#objectProcessQueue[0].inProgress) {
             const promise = this.#currentObjectProcessPromise;
             this.#objectProcessQueue.length = 1;
@@ -706,11 +727,7 @@ export class MatterAdapter extends utils.Adapter {
 
     #onObjectChange(id: string, obj: ioBroker.Object | null | undefined): void {
         const mainObjectId = id.split('.').slice(0, 4).join('.'); // get the device or controller object
-        if (
-            this.#objectProcessQueue.length &&
-            this.#objectProcessQueue[0].id.startsWith(mainObjectId) &&
-            id !== mainObjectId
-        ) {
+        if (this.#objectProcessQueue[0]?.id.startsWith(mainObjectId) && id !== mainObjectId) {
             this.log.debug(
                 `Sub object changed ${id}, type = ${obj?.type} - Already in queue via ${mainObjectId}, ignore ...`,
             );
@@ -879,9 +896,10 @@ export class MatterAdapter extends utils.Adapter {
 
     async checkLicense(login?: string, pass?: string): Promise<boolean> {
         const config = this.config as MatterAdapterConfig;
-        login = login || config.login;
-        pass = pass || config.pass;
+        login ||= config.login;
+        pass ||= config.pass;
         const key = `${login}/////${pass}`;
+        // If already checked before, return the result
         if (this.#license[key] !== undefined) {
             return !!this.#license[key];
         }
@@ -907,24 +925,59 @@ export class MatterAdapter extends utils.Adapter {
             }
             return !!this.#license[key];
         }
-        const subscriptions = response.data;
+        const subscriptions: {
+            json: string;
+            id: string;
+            email: string;
+            product: string;
+            type: 'assistant' | 'remote';
+            version: string;
+            invoice: string;
+            uuid: string | null;
+            time: string; // ISO 8601 date string
+            validTill: string; // ISO 8601 date string
+        }[] = response.data;
         const cert = await fs.readFile(`${__dirname}/../data/cloudCert.crt`, 'utf8');
         if (
             subscriptions.find((it: any) => {
                 try {
-                    const decoded: any = jwt.verify(it.json, cert);
-                    if (decoded.name?.startsWith('remote.') || decoded.name?.startsWith('assistant.')) {
+                    const decoded: {
+                        email: string;
+                        comment: string;
+                        type: string;
+                        name: string;
+                        ltype: string;
+                        valid_till: string; // ISO 8601 date string
+                        invoice: string;
+                        expires: number; // Unix timestamp
+                        version: string;
+                        id: string;
+                        iat: number; // Issued at, Unix timestamp
+                    } = jwt.verify(it.json, cert) as {
+                        email: string;
+                        comment: string;
+                        type: string;
+                        name: string;
+                        ltype: string;
+                        valid_till: string; // ISO 8601 date string
+                        invoice: string;
+                        expires: number; // Unix timestamp
+                        version: string;
+                        id: string;
+                        iat: number; // Issued at, Unix timestamp
+                    };
+                    if (decoded.name && (decoded.name.startsWith('remote.') || decoded.name.startsWith('assistant.'))) {
                         return new Date(decoded.expires * 1000) > new Date();
                     }
                 } catch (e) {
                     this.log.warn(`Cannot verify license: ${e}`);
                     this.#license[key] = false;
-                    return this.#license[key];
+                    return false;
                 }
             })
         ) {
             this.#license[key] = true;
-            return this.#license[key];
+            return true;
         }
 
         let userResponse;
@@ -978,7 +1031,7 @@ export class MatterAdapter extends utils.Adapter {
             type: type as Types,
             states: [
                 {
-                    name: DEVICE_DEFAULT_NAME[type] || 'SET',
+                    name: DEVICE_DEFAULT_NAME[type as Types] || 'SET',
                     id: oid,
                     // type: StateType.Number, // ignored
                     write: true, // ignored
@@ -1173,7 +1226,7 @@ export class MatterAdapter extends utils.Adapter {
 
         for (const object of objects) {
             // No valid object or a sub-channel
-            if (!object || !object.native || object._id.split('.').length !== 4) {
+            if (!object?.native || object._id.split('.').length !== 4) {
                 continue;
             }
 
@@ -1450,7 +1503,7 @@ export class MatterAdapter extends utils.Adapter {
 
 if (require.main !== module) {
     // Export the constructor in compact mode
-    module.exports = (options: Partial<utils.AdapterOptions> | undefined) => new MatterAdapter(options);
+    module.exports = (options: Partial<AdapterOptions> | undefined) => new MatterAdapter(options);
 } else {
     // otherwise start the instance directly
     (() => new MatterAdapter())();

@@ -27,6 +27,7 @@ import {
     type GenericAppProps,
     type GenericAppState,
     type IobTheme,
+    extendDeviceTypeTranslation,
 } from '@iobroker/adapter-react-v5';
 import { clone, getText } from './Utils';
 
@@ -58,18 +59,6 @@ import esLang from './i18n/es.json';
 import plLang from './i18n/pl.json';
 import ukLang from './i18n/uk.json';
 import zhCnLang from './i18n/zh-cn.json';
-
-// TODO: Replace it by deviceTypeExtendTranslations from @iobroker/adapter-react-v5 after admin 7.6.11
-import enDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/en.json';
-import deDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/de.json';
-import ruDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/ru.json';
-import ptDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/pt.json';
-import plDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/pl.json';
-import frDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/fr.json';
-import itDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/it.json';
-import nlDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/nl.json';
-import ukDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/uk.json';
-import zhDtLang from '@iobroker/adapter-react-v5/build/Components/DeviceType/i18n/zh-cn.json';
 
 declare global {
     interface Window {
@@ -125,21 +114,6 @@ interface AppState extends GenericAppState {
     localExpertMode: boolean;
 }
 
-export function deviceTypeExtendTranslations(): void {
-    I18n.extendTranslations({
-        en: enDtLang,
-        de: deDtLang,
-        ru: ruDtLang,
-        pt: ptDtLang,
-        pl: plDtLang,
-        fr: frDtLang,
-        it: itDtLang,
-        nl: nlDtLang,
-        uk: ukDtLang,
-        'zh-cn': zhDtLang,
-    });
-}
-
 class App extends GenericApp<GenericAppProps, AppState> {
     private configHandler: ConfigHandler | null = null;
 
@@ -193,7 +167,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             selectedTab = 'controller';
         }
 
-        deviceTypeExtendTranslations();
+        extendDeviceTypeTranslation();
 
         Object.assign(this.state, {
             selectedTab,

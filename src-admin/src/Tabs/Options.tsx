@@ -323,9 +323,16 @@ class Options extends Component<OptionsProps, OptionsState> {
                     <Typography sx={styles.header}>{I18n.t('Cloud Account')}</Typography>
                     {this.props.expertMode ? null : (
                         <InfoBox type="info">
-                            {I18n.t(
-                                'To use a Matter bridge or device options with more than 5 devices please enter valid ioBroker.pro Cloud credentials with at least an active Assistant license.',
-                            )}
+                            <p>
+                                {I18n.t(
+                                    'To use a Matter bridge or device options with more than 5 devices please enter valid ioBroker.pro Cloud credentials with at least an active Assistant license.',
+                                )}
+                            </p>
+                            <p>
+                                {I18n.t(
+                                    'Make sure that after purchasing a new assistant or remote license, the instance is restarted. The license will only be verified during startup.',
+                                )}
+                            </p>
                         </InfoBox>
                     )}
                 </div>

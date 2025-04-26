@@ -54,7 +54,7 @@ export class WindowCoveringToIoBroker extends GenericElectricityDataDeviceToIoBr
     async updateWorkingStateForLift(currentLiftValue: number | null): Promise<void> {
         const targetValue = await this.appEndpoint
             .getClusterClient(WindowCovering.Complete)
-            ?.getTargetPositionLiftPercent100thsAttribute();
+            ?.getTargetPositionLiftPercent100thsAttribute(false);
         if (
             targetValue !== undefined &&
             targetValue !== null &&
@@ -68,7 +68,7 @@ export class WindowCoveringToIoBroker extends GenericElectricityDataDeviceToIoBr
     async updateWorkingStateForTilt(currentTiltValue: number | null): Promise<void> {
         const targetValue = await this.appEndpoint
             .getClusterClient(WindowCovering.Complete)
-            ?.getTargetPositionTiltPercent100thsAttribute();
+            ?.getTargetPositionTiltPercent100thsAttribute(false);
         if (
             targetValue !== undefined &&
             targetValue !== null &&

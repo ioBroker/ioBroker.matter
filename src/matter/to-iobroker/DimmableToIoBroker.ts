@@ -47,11 +47,11 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
         if (levelControl) {
             this.#isLighting = !!levelControl.supportedFeatures.lighting;
             const minLevel = levelControl.isAttributeSupportedByName('minLevel')
-                ? await levelControl.getMinLevelAttribute()
+                ? await levelControl.getMinLevelAttribute(false)
                 : undefined;
             this.#minLevel = minLevel ?? (this.#isLighting ? 1 : 0);
             const maxLevel = levelControl.isAttributeSupportedByName('maxLevel')
-                ? await levelControl.getMaxLevelAttribute()
+                ? await levelControl.getMaxLevelAttribute(false)
                 : undefined;
             this.#maxLevel = maxLevel ?? 254;
         }
@@ -70,7 +70,7 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
                         // Check if the Dimmer in ioBroker still matches the Device Dimmer and correct if needed
                         const currentLevel = await this.appEndpoint
                             .getClusterClient(LevelControl.Cluster)
-                            ?.getCurrentLevelAttribute();
+                            ?.getCurrentLevelAttribute(false);
                         if (typeof currentLevel === 'number' && currentLevel <= 1) {
                             const ioLevel = Math.round((currentLevel / 100) * 254);
                             if (ioLevel !== this.#ioBrokerDevice.getDimmer()) {

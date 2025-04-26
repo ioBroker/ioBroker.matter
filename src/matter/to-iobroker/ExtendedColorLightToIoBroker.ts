@@ -65,11 +65,11 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
         const levelControl = this.appEndpoint.getClusterClient(LevelControl.Complete);
         if (levelControl) {
             const minLevel = levelControl.isAttributeSupportedByName('minLevel')
-                ? await levelControl.getMinLevelAttribute()
+                ? await levelControl.getMinLevelAttribute(false)
                 : undefined;
             this.#minLevel = minLevel ?? 1;
             const maxLevel = levelControl.isAttributeSupportedByName('maxLevel')
-                ? await levelControl.getMaxLevelAttribute()
+                ? await levelControl.getMaxLevelAttribute(false)
                 : undefined;
             this.#maxLevel = maxLevel ?? 254;
         }
@@ -77,13 +77,13 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
         const colorControl = this.appEndpoint.getClusterClient(ColorControl.Complete);
         if (colorControl) {
             this.#colorTemperatureMinMireds =
-                (await colorControl.getColorTempPhysicalMinMiredsAttribute()) ?? kelvinToMireds(6_500);
+                (await colorControl.getColorTempPhysicalMinMiredsAttribute(false)) ?? kelvinToMireds(6_500);
             this.#colorTemperatureMaxMireds =
-                (await colorControl.getColorTempPhysicalMaxMiredsAttribute()) ?? kelvinToMireds(2_000);
+                (await colorControl.getColorTempPhysicalMaxMiredsAttribute(false)) ?? kelvinToMireds(2_000);
 
             if (this.#ioBrokerDevice instanceof Cie) {
-                const currentX = await colorControl.getCurrentXAttribute();
-                const currentY = await colorControl.getCurrentYAttribute();
+                const currentX = await colorControl.getCurrentXAttribute(false);
+                const currentY = await colorControl.getCurrentYAttribute(false);
                 if (currentX !== undefined && currentY !== undefined) {
                     await this.#ioBrokerDevice.updateXy(currentX / 65536, currentY / 65536);
                 }

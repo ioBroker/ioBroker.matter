@@ -200,24 +200,24 @@ export class GeneralMatterNode {
         const info = this.node.getRootClusterClient(BasicInformationCluster);
         if (info !== undefined) {
             this.#details = {
-                manufacturer: await info.getVendorNameAttribute(),
-                model: await info.getProductNameAttribute(),
+                manufacturer: await info.getVendorNameAttribute(false),
+                model: await info.getProductNameAttribute(false),
             };
 
             if (existingObject && existingObject.common.name) {
                 deviceObj.common.name = existingObject.common.name;
             } else {
-                deviceObj.common.name = await info.getProductNameAttribute();
+                deviceObj.common.name = await info.getProductNameAttribute(false);
             }
             deviceObj.native.vendorId = toHex(await info.getVendorIdAttribute());
             deviceObj.native.vendorName = this.#details.manufacturer;
             deviceObj.native.productId = this.#details.model;
-            deviceObj.native.nodeLabel = await info.getNodeLabelAttribute();
+            deviceObj.native.nodeLabel = await info.getNodeLabelAttribute(false);
             deviceObj.native.productLabel = info.isAttributeSupportedByName('productLabel')
-                ? await info.getProductLabelAttribute()
+                ? await info.getProductLabelAttribute(false)
                 : undefined;
             deviceObj.native.serialNumber = info.isAttributeSupportedByName('serialNumber')
-                ? await info.getSerialNumberAttribute()
+                ? await info.getSerialNumberAttribute(false)
                 : undefined;
         }
         this.#name = (deviceObj.common.name || this.nodeId) as string;

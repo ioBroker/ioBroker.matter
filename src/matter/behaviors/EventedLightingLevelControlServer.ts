@@ -5,7 +5,7 @@ import type { LevelControl } from '@matter/main/clusters';
 import { IoBrokerEvents } from './IoBrokerEvents';
 
 export class EventedLightingLevelControlServer extends DimmableLightRequirements.LevelControlServer {
-    protected declare internal: EventedLightingLevelControlServer.Internal;
+    declare protected internal: EventedLightingLevelControlServer.Internal;
 
     override moveToLevelLogic(
         level: number,

@@ -4,9 +4,8 @@ import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Link } from 
 import { Close } from '@mui/icons-material';
 import { FaApple, FaAndroid } from 'react-icons/fa';
 
-import { type AdminConnection, I18n, type ThemeType, DialogMessage } from '@iobroker/adapter-react-v5';
+import { type AdminConnection, I18n, type ThemeType, DialogMessage, InfoBox } from '@iobroker/adapter-react-v5';
 
-import InfoBox from './InfoBox';
 import NetworkSelector, { type NetworkInterface } from './NetworkSelector';
 import LoginPassword from './LoginPassword';
 import type { MatterAdapterConfig } from '../types';
@@ -192,9 +191,9 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
 
         if (this.props.host) {
             const hostData: HostInfo & { 'Active instances': number; location: string; Uptime: number } =
-                await this.props.socket.getHostInfo(this.props.host, false, 10000).catch((e: unknown): void => {
+                (await this.props.socket.getHostInfo(this.props.host, false, 10000).catch((e: unknown): void => {
                     window.alert(`Cannot getHostInfo for "${this.props.host}": ${e as Error}`);
-                });
+                })) as HostInfo & { 'Active instances': number; location: string; Uptime: number };
 
             if (hostData) {
                 this.setState({ docker: !!hostData.dockerInformation?.isDocker });

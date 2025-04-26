@@ -12,11 +12,8 @@ import {
     DialogContent,
     DialogTitle,
     Fab,
-    FormControl,
     FormControlLabel,
-    InputLabel,
     MenuItem,
-    Select,
     Switch,
     Table,
     TableBody,
@@ -24,13 +21,13 @@ import {
     TableRow,
     TextField,
     Tooltip,
+    IconButton as MuiIconButton,
 } from '@mui/material';
 
-import { I18n, SelectID, IconDeviceType } from '@iobroker/adapter-react-v5';
+import { I18n, SelectID, DeviceTypeSelector, DeviceTypeIcon, InfoBox, IconExpert } from '@iobroker/adapter-react-v5';
 import DeviceDialog, { SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import type { DetectedDevice, DeviceDescription, MatterConfig } from '../types';
 import { clone, detectDevices, getDetectedDeviceTypes, getText } from '../Utils';
-import InfoBox from '../components/InfoBox';
 
 import BridgesAndDevices, {
     type BridgesAndDevicesProps,
@@ -157,6 +154,12 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 <DialogContent>
                     <div>{`${I18n.t('Do you want to delete device')} ${this.state.deleteDialog.name}?`}</div>
                     <FormControlLabel
+                        sx={{
+                            '&.MuiFormControlLabel-root': {
+                                width: 'calc(100% - 48px)',
+                                marginRight: 0,
+                            },
+                        }}
                         control={
                             <Checkbox
                                 checked={this.state.suppressDeleteEnabled}
@@ -205,6 +208,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
 
         return (
             <DeviceEditDialog
+                themeType={this.props.themeType}
                 isCommissioned={
                     this.props.commissioning[this.props.matter.devices[this.state.editDeviceDialog.deviceIndex].uuid]
                 }
@@ -212,6 +216,8 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 auto={this.state.editDeviceDialog.auto}
                 hasOnState={this.state.editDeviceDialog.hasOnState}
                 data={this.state.editDeviceDialog.data}
+                expertMode={this.props.expertMode}
+                setExpertMode={this.props.setExpertMode}
                 onClose={(data?: DeviceData): void => {
                     if (!data) {
                         this.setState({ editDeviceDialog: null });
@@ -324,8 +330,21 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 open={!0}
                 onClose={() => this.setState({ addCustomDeviceDialog: null })}
             >
-                <DialogTitle>{I18n.t('Configure custom device')}</DialogTitle>
-                <DialogContent>
+                <DialogTitle style={{ display: 'flex', width: 'calc(100% - 48px)' }}>
+                    {I18n.t('Configure custom device')} <div style={{ flexGrow: 1 }} />
+                    <Tooltip
+                        title={I18n.t('Toggle expert mode')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                    >
+                        <MuiIconButton
+                            onClick={() => this.props.setExpertMode(!this.props.expertMode)}
+                            color={this.props.expertMode ? 'primary' : 'default'}
+                        >
+                            <IconExpert />
+                        </MuiIconButton>
+                    </Tooltip>
+                </DialogTitle>
+                <DialogContent style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
                     <TextField
                         label={I18n.t('Name')}
                         value={this.state.addCustomDeviceDialog.name}
@@ -341,96 +360,82 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         variant="standard"
                         fullWidth
                     />
-                    <FormControl style={{ width: '100%', marginTop: 30 }}>
-                        <InputLabel
-                            style={
-                                this.state.addCustomDeviceDialog.deviceType
-                                    ? { transform: 'translate(0px, -9px) scale(0.75)' }
-                                    : undefined
+                    <DeviceTypeSelector
+                        style={{ width: '100%', marginTop: 30 }}
+                        themeType={this.props.themeType}
+                        value={this.state.addCustomDeviceDialog.deviceType}
+                        supportedDevices={this.state.addCustomDeviceDialog?.detectedDeviceTypes ?? SUPPORTED_DEVICES}
+                        onChange={value => {
+                            if (!this.state.addCustomDeviceDialog) {
+                                return;
                             }
-                        >
-                            {I18n.t('Device type')}
-                        </InputLabel>
-                        <Select
-                            variant="standard"
-                            value={this.state.addCustomDeviceDialog.deviceType}
+
+                            const addCustomDeviceDialog = clone(this.state.addCustomDeviceDialog);
+                            addCustomDeviceDialog.deviceType = value;
+                            this.setState({ addCustomDeviceDialog });
+                        }}
+                    />
+                    {this.props.expertMode ? (
+                        <TextField
+                            select
+                            style={{ width: 'calc(50% - 8px)', marginRight: 16, marginTop: 16 }}
+                            value={this.state.addCustomDeviceDialog.vendorID}
                             onChange={e => {
                                 if (!this.state.addCustomDeviceDialog) {
                                     return;
                                 }
 
                                 const addCustomDeviceDialog = clone(this.state.addCustomDeviceDialog);
-                                addCustomDeviceDialog.deviceType = e.target.value as Types;
+                                addCustomDeviceDialog.vendorID = e.target.value;
                                 this.setState({ addCustomDeviceDialog });
                             }}
+                            label={I18n.t('Vendor ID')}
+                            variant="standard"
                         >
-                            {Object.keys(Types)
-                                .filter(key =>
-                                    (
-                                        this.state.addCustomDeviceDialog?.detectedDeviceTypes ?? SUPPORTED_DEVICES
-                                    ).includes(key as Types),
-                                )
-                                .map(type => (
-                                    <MenuItem
-                                        key={type}
-                                        value={type}
-                                    >
-                                        {I18n.t(type)}
-                                    </MenuItem>
-                                ))}
-                        </Select>
-                    </FormControl>
-                    <TextField
-                        select
-                        style={{ width: 'calc(50% - 8px)', marginRight: 16, marginTop: 16 }}
-                        value={this.state.addCustomDeviceDialog.vendorID}
-                        onChange={e => {
-                            if (!this.state.addCustomDeviceDialog) {
-                                return;
-                            }
+                            {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorID => (
+                                <MenuItem
+                                    key={vendorID}
+                                    value={vendorID}
+                                >
+                                    {vendorID}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                    ) : null}
+                    {this.props.expertMode ? (
+                        <TextField
+                            select
+                            style={{ width: 'calc(50% - 8px)', marginTop: 16 }}
+                            value={this.state.addCustomDeviceDialog.productID}
+                            onChange={e => {
+                                if (!this.state.addCustomDeviceDialog) {
+                                    return;
+                                }
 
-                            const addCustomDeviceDialog = clone(this.state.addCustomDeviceDialog);
-                            addCustomDeviceDialog.vendorID = e.target.value;
-                            this.setState({ addCustomDeviceDialog });
-                        }}
-                        label={I18n.t('Vendor ID')}
-                        variant="standard"
-                    >
-                        {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorID => (
-                            <MenuItem
-                                key={vendorID}
-                                value={vendorID}
-                            >
-                                {vendorID}
-                            </MenuItem>
-                        ))}
-                    </TextField>
-                    <TextField
-                        select
-                        style={{ width: 'calc(50% - 8px)', marginTop: 16 }}
-                        value={this.state.addCustomDeviceDialog.productID}
-                        onChange={e => {
-                            if (!this.state.addCustomDeviceDialog) {
-                                return;
-                            }
-
-                            const addCustomDeviceDialog = clone(this.state.addCustomDeviceDialog);
-                            addCustomDeviceDialog.productID = e.target.value;
-                            this.setState({ addCustomDeviceDialog });
-                        }}
-                        label={I18n.t('Product ID')}
-                        variant="standard"
-                    >
-                        {this.props.productIDs.map(productID => (
-                            <MenuItem
-                                key={productID}
-                                value={productID}
-                            >
-                                {productID}
-                            </MenuItem>
-                        ))}
-                    </TextField>
+                                const addCustomDeviceDialog = clone(this.state.addCustomDeviceDialog);
+                                addCustomDeviceDialog.productID = e.target.value;
+                                this.setState({ addCustomDeviceDialog });
+                            }}
+                            label={I18n.t('Product ID')}
+                            variant="standard"
+                        >
+                            {this.props.productIDs.map(productID => (
+                                <MenuItem
+                                    key={productID}
+                                    value={productID}
+                                >
+                                    {productID}
+                                </MenuItem>
+                            ))}
+                        </TextField>
+                    ) : null}
                     <FormControlLabel
+                        sx={{
+                            '&.MuiFormControlLabel-root': {
+                                width: 'calc(100% - 48px)',
+                                marginRight: 0,
+                            },
+                        }}
                         control={
                             <Checkbox
                                 checked={this.state.addCustomDeviceDialog.noComposed}
@@ -619,7 +624,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 this.props.showToast(
                                     I18n.t('Detected device types "%s" are not supported yet', deviceTypes.join(', ')),
                                 );
-                                // TODO Should we really let user select??
+                                // Let the user select between the detected device types
                                 this.setState({
                                     addDeviceDialog: null,
                                     addCustomDeviceDialog: {
@@ -635,7 +640,7 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                                 this.props.showToast(I18n.t('No device found for ID %s', oid));
                             }
                         } else {
-                            // Show dialog to select device type but only allow the detected ones
+                            // Show dialog to select a device type but only allow the detected ones
                             const detectedDeviceTypes = getDetectedDeviceTypes(detectedRooms);
                             const deviceType = detectedDeviceTypes[0];
 
@@ -668,6 +673,8 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 themeType={this.props.themeType}
                 detectedDevices={this.props.detectedDevices}
                 setDetectedDevices={detectedDevices => this.props.setDetectedDevices(detectedDevices)}
+                expertMode={this.props.expertMode}
+                setExpertMode={this.props.setExpertMode}
                 type="device"
             />
         );
@@ -689,24 +696,31 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 <TableCell>
                     {this.renderProcessOverlay(device.uuid, device.deleted)}
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                        <span
+                        <DeviceTypeIcon
+                            type={device.type}
+                            title
                             style={{ marginRight: 8 }}
-                            title={device.type}
-                        >
-                            <IconDeviceType src={device.type} />
-                        </span>
+                        />
                         <div style={styles.bridgeDiv}>
                             <div style={styles.deviceName}>
                                 {getText(device.name)}
-                                <span style={styles.deviceOid}>({device.oid})</span>
+                                {this.props.expertMode ? <span style={styles.deviceOid}>({device.oid})</span> : null}
                             </div>
                             <div>
-                                <span style={styles.deviceTitle}>{I18n.t('Vendor ID')}:</span>
-                                <span style={styles.deviceValue}>{device.vendorID || ''},</span>
-                                <span style={styles.deviceTitle}>{I18n.t('Product ID')}:</span>
-                                <span style={styles.deviceValue}>{device.productID || ''},</span>
-                                <span style={styles.deviceType}>{I18n.t('Device type')}:</span>
-                                <span style={styles.deviceType}>{I18n.t(device.type)}</span>
+                                {this.props.expertMode ? (
+                                    <>
+                                        <span style={styles.deviceTitle}>{I18n.t('Vendor ID')}:</span>
+                                        <span style={styles.deviceValue}>{device.vendorID || ''},</span>
+                                        <span style={styles.deviceTitle}>{I18n.t('Product ID')}:</span>
+                                        <span style={styles.deviceValue}>{device.productID || ''},</span>
+                                        <span style={styles.deviceType}>{I18n.t('Device type')}:</span>
+                                        <span style={styles.deviceType}>{I18n.t(`type-${device.type}`)}</span>
+                                    </>
+                                ) : (
+                                    <div style={{ ...styles.deviceOid, marginLeft: 0, marginTop: -4 }}>
+                                        {device.oid}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -806,16 +820,18 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                 {this.renderResetDialog()}
                 {this.renderJsonConfigDialog()}
                 {this.renderMessageDialog()}
-                <InfoBox
-                    type="info"
-                    closeable
-                    iconPosition="top"
-                    storeId="matter.devices"
-                >
-                    {I18n.t(
-                        'Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.',
-                    )}
-                </InfoBox>
+                {this.props.expertMode ? null : (
+                    <InfoBox
+                        type="info"
+                        closeable
+                        iconPosition="top"
+                        storeId="matter.devices"
+                    >
+                        {I18n.t(
+                            'Additionally to bridges you can also expose ioBroker states as stand alone matter devices. They can all be paired individually. You should prefer to use bridges.',
+                        )}
+                    </InfoBox>
+                )}
                 <div style={{ width: '100%' }}>
                     <Tooltip
                         title={I18n.t('Add device')}
@@ -836,6 +852,17 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                         >
                             <Add />
                         </Fab>
+                    </Tooltip>
+                    <Tooltip
+                        title={I18n.t('Toggle expert mode')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                    >
+                        <MuiIconButton
+                            onClick={() => this.props.setExpertMode(!this.props.expertMode)}
+                            color={this.props.expertMode ? 'primary' : 'default'}
+                        >
+                            <IconExpert />
+                        </MuiIconButton>
                     </Tooltip>
                     {!this.props.matter.devices.length ? (
                         <span style={{ marginLeft: 16 }}>

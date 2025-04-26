@@ -22,9 +22,8 @@ import {
 
 import { Check, Close, LayersClear, AutoAwesome, Clear } from '@mui/icons-material';
 
-import { type AdminConnection, I18n, Logo } from '@iobroker/adapter-react-v5';
+import { type AdminConnection, I18n, Logo, InfoBox, IconExpert } from '@iobroker/adapter-react-v5';
 
-import InfoBox from '../components/InfoBox';
 import LoginPassword from '../components/LoginPassword';
 import NetworkSelector from '../components/NetworkSelector';
 import type { MatterAdapterConfig, MatterConfig } from '../types';
@@ -74,6 +73,8 @@ interface OptionsProps {
     onShowWelcomeDialog: () => void;
     onError: (errorText: string) => void;
     updatePassTrigger: number;
+    expertMode: boolean;
+    setExpertMode: (expertMode: boolean) => void;
 }
 
 interface OptionsState {
@@ -175,6 +176,29 @@ class Options extends Component<OptionsProps, OptionsState> {
                         <AutoAwesome />
                     </Fab>
                 </Tooltip>
+                <Tooltip
+                    title={I18n.t('Toggle expert mode')}
+                    slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                >
+                    <IconButton
+                        style={{
+                            position: 'absolute',
+                            top: 4,
+                            left: 130,
+                            width: 40,
+                            height: 40,
+                        }}
+                        onClick={() => this.props.setExpertMode(!this.props.expertMode)}
+                        color={this.props.expertMode ? 'primary' : 'default'}
+                    >
+                        <IconExpert
+                            style={{
+                                width: 40,
+                                height: 40,
+                            }}
+                        />
+                    </IconButton>
+                </Tooltip>
                 <Logo
                     instance={this.props.instance}
                     common={this.props.common}
@@ -183,11 +207,13 @@ class Options extends Component<OptionsProps, OptionsState> {
                     onLoad={this.props.onLoad}
                 />
                 <Typography sx={styles.header}>{I18n.t('Network configuration')}</Typography>
-                <InfoBox type="info">
-                    {I18n.t(
-                        'If your device has more then one active network interface and you have issues try limiting it to one interface',
-                    )}
-                </InfoBox>
+                {this.props.expertMode ? null : (
+                    <InfoBox type="info">
+                        {I18n.t(
+                            'If your device has more then one active network interface and you have issues try limiting it to one interface',
+                        )}
+                    </InfoBox>
+                )}
 
                 <NetworkSelector
                     interface={this.props.native.interface}
@@ -197,9 +223,17 @@ class Options extends Component<OptionsProps, OptionsState> {
                 />
 
                 <Box sx={{ marginTop: 2 }}>
-                    <InfoBox type="info">{I18n.t('Info about Alexa Bridge')}</InfoBox>
+                    {this.props.expertMode ? null : <InfoBox type="info">{I18n.t('Info about Alexa Bridge')}</InfoBox>}
                     <FormControl style={styles.inputLong}>
-                        <InputLabel>{I18n.t('Default bridge (Alexa-compatible)')}</InputLabel>
+                        <InputLabel
+                            sx={{
+                                '&.MuiFormLabel-root': {
+                                    transform: 'translate(0px, -9px) scale(0.75)',
+                                },
+                            }}
+                        >
+                            {I18n.t('Default bridge (Alexa-compatible)')}
+                        </InputLabel>
                         <Select
                             variant="standard"
                             style={styles.inputLong}
@@ -245,11 +279,13 @@ class Options extends Component<OptionsProps, OptionsState> {
 
                 <div style={{ marginTop: 50 }}>
                     <Typography sx={styles.header}>{I18n.t('Controller Settings')}</Typography>
-                    <InfoBox type="info">
-                        {I18n.t(
-                            'The label set here is used as Label when ioBroker connects to a device as controller and might be shown by other Controllers in their overviews about other connected ecosystems.',
-                        )}
-                    </InfoBox>
+                    {this.props.expertMode ? null : (
+                        <InfoBox type="info">
+                            {I18n.t(
+                                'The label set here is used as Label when ioBroker connects to a device as controller and might be shown by other Controllers in their overviews about other connected ecosystems.',
+                            )}
+                        </InfoBox>
+                    )}
                     <TextField
                         variant="standard"
                         label={I18n.t('Controller fabric label')}
@@ -285,11 +321,20 @@ class Options extends Component<OptionsProps, OptionsState> {
 
                 <div style={{ marginTop: 50 }}>
                     <Typography sx={styles.header}>{I18n.t('Cloud Account')}</Typography>
-                    <InfoBox type="info">
-                        {I18n.t(
-                            'To use a Matter bridge or device options with more than 5 devices please enter valid ioBroker.pro Cloud credentials with at least an active Assistant license.',
-                        )}
-                    </InfoBox>
+                    {this.props.expertMode ? null : (
+                        <InfoBox type="info">
+                            <p>
+                                {I18n.t(
+                                    'To use a Matter bridge or device options with more than 5 devices please enter valid ioBroker.pro Cloud credentials with at least an active Assistant license.',
+                                )}
+                            </p>
+                            <p>
+                                {I18n.t(
+                                    'Make sure that after purchasing a new assistant or remote license, the instance is restarted. The license will only be verified during startup.',
+                                )}
+                            </p>
+                        </InfoBox>
+                    )}
                 </div>
                 <LoginPassword
                     native={this.props.native}

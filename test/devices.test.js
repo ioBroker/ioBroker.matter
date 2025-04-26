@@ -62,6 +62,7 @@ const detectedDevices = {
         { name: 'CONSUMPTION', id: '0_userdata.0.consumption', type: 'number' },
         { name: 'FREQUENCY', id: '0_userdata.0.frequency', type: 'number' },
 
+        { name: 'GPS', id: '0_userdata.0.GPS', type: 'string' },
         { name: 'LONGITUDE', id: '0_userdata.0.LONGITUDE', type: 'number' },
         { name: 'LATITUDE', id: '0_userdata.0.LATITUDE', type: 'number' },
         { name: 'ELEVATION', id: '0_userdata.0.ELEVATION', type: 'number' },
@@ -313,7 +314,7 @@ describe('Test Devices', function () {
                         throw new Error(`Property "${prop}" of "${type}" was not subscribed, but it is readable`);
                     }
                 } else if (properties[prop].accessType === StateAccessType.Write) {
-                    // check that write only properties are not subscribed
+                    // check that write-only properties are not subscribed
                     if (subscribed.includes(properties[prop].read)) {
                         throw new Error(`Property "${prop}" of "${type}" was subscribed, but it is only writable`);
                     }

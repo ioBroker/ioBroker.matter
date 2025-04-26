@@ -20,6 +20,7 @@ import { Image } from './devices/Image';
 import { Info } from './devices/Info';
 import { Light } from './devices/Light';
 import { Location } from './devices/Location';
+import { LocationOne } from './devices/LocationOne';
 import { Lock } from './devices/Lock';
 import { Media } from './devices/Media';
 import { Motion } from './devices/Motion';
@@ -64,6 +65,7 @@ const types: { [key in Types]: ClassExtends<GenericDevice> | null } = {
     [Types.light]: Light,
     [Types.lock]: Lock,
     [Types.location]: Location,
+    [Types.locationOne]: LocationOne,
     [Types.media]: Media,
     [Types.motion]: Motion,
     [Types.rgb]: Rgb,

@@ -9,15 +9,18 @@ import {
     DialogTitle,
     FormControl,
     FormControlLabel,
+    IconButton as MuiIconButton,
     InputLabel,
     MenuItem,
     Select,
     TextField,
+    Tooltip,
 } from '@mui/material';
 import { Close, Save } from '@mui/icons-material';
 
-import { Types } from '@iobroker/type-detector';
-import { I18n, IconDeviceType } from '@iobroker/adapter-react-v5';
+import type { Types } from '@iobroker/type-detector';
+import { I18n, type ThemeType, DeviceTypeSelector, IconExpert } from '@iobroker/adapter-react-v5';
+
 import { SUPPORTED_DEVICES } from './DeviceDialog';
 import { clone } from '../Utils';
 
@@ -39,6 +42,9 @@ interface DeviceEditDialogProps {
     productIDs: string[];
     auto: boolean;
     hasOnState: boolean;
+    themeType: ThemeType;
+    expertMode: boolean;
+    setExpertMode: (expertMode: boolean) => void;
 }
 
 interface DeviceEditDialogState {
@@ -70,7 +76,21 @@ export default class DeviceEditDialog extends Component<DeviceEditDialogProps, D
                 onClose={() => this.props.onClose()}
                 open={!0}
             >
-                <DialogTitle>{`${I18n.t('Edit device')} ${this.props.data.name}`}</DialogTitle>
+                <DialogTitle style={{ display: 'flex', width: 'calc(100% - 48px)' }}>
+                    {`${I18n.t('Edit device')} ${this.props.data.name}`}
+                    <div style={{ flexGrow: 1 }} />
+                    <Tooltip
+                        title={I18n.t('Toggle expert mode')}
+                        slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
+                    >
+                        <MuiIconButton
+                            onClick={() => this.props.setExpertMode(!this.props.expertMode)}
+                            color={this.props.expertMode ? 'primary' : 'default'}
+                        >
+                            <IconExpert />
+                        </MuiIconButton>
+                    </Tooltip>
+                </DialogTitle>
                 <DialogContent>
                     <TextField
                         label={I18n.t('Name')}
@@ -85,63 +105,71 @@ export default class DeviceEditDialog extends Component<DeviceEditDialogProps, D
                         variant="standard"
                         fullWidth
                     />
-                    <div
-                        style={{
-                            width: '100%',
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: 8,
-                            marginTop: 16,
-                            justifyContent: 'stretch',
-                        }}
-                    >
-                        <TextField
-                            select
-                            style={{ width: 'calc(50% - 4px)' }}
-                            disabled={this.props.isCommissioned}
-                            value={this.state.data.vendorID}
-                            onChange={e => {
-                                const data = clone(this.state.data);
-                                data.vendorID = e.target.value;
-                                this.setState({ data });
+                    {this.props.expertMode ? (
+                        <div
+                            style={{
+                                width: '100%',
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: 8,
+                                marginTop: 16,
+                                justifyContent: 'stretch',
                             }}
-                            label={I18n.t('Vendor ID')}
-                            variant="standard"
                         >
-                            {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorID => (
-                                <MenuItem
-                                    key={vendorID}
-                                    value={vendorID}
-                                >
-                                    {vendorID}
-                                </MenuItem>
-                            ))}
-                        </TextField>
-                        <TextField
-                            select
-                            style={{ width: 'calc(50% - 4px)' }}
-                            disabled={this.props.isCommissioned}
-                            value={this.state.data.productID}
-                            onChange={e => {
-                                const data = clone(this.state.data);
-                                data.productID = e.target.value;
-                                this.setState({ data });
-                            }}
-                            label={I18n.t('Product ID')}
-                            variant="standard"
-                        >
-                            {this.props.productIDs.map(productID => (
-                                <MenuItem
-                                    key={productID}
-                                    value={productID}
-                                >
-                                    {productID}
-                                </MenuItem>
-                            ))}
-                        </TextField>
-                    </div>
+                            <TextField
+                                select
+                                style={{ width: 'calc(50% - 4px)' }}
+                                disabled={this.props.isCommissioned}
+                                value={this.state.data.vendorID}
+                                onChange={e => {
+                                    const data = clone(this.state.data);
+                                    data.vendorID = e.target.value;
+                                    this.setState({ data });
+                                }}
+                                label={I18n.t('Vendor ID')}
+                                variant="standard"
+                            >
+                                {['0xFFF1', '0xFFF2', '0xFFF3', '0xFFF4'].map(vendorID => (
+                                    <MenuItem
+                                        key={vendorID}
+                                        value={vendorID}
+                                    >
+                                        {vendorID}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                            <TextField
+                                select
+                                style={{ width: 'calc(50% - 4px)' }}
+                                disabled={this.props.isCommissioned}
+                                value={this.state.data.productID}
+                                onChange={e => {
+                                    const data = clone(this.state.data);
+                                    data.productID = e.target.value;
+                                    this.setState({ data });
+                                }}
+                                label={I18n.t('Product ID')}
+                                variant="standard"
+                            >
+                                {this.props.productIDs.map(productID => (
+                                    <MenuItem
+                                        key={productID}
+                                        value={productID}
+                                    >
+                                        {productID}
+                                    </MenuItem>
+                                ))}
+                            </TextField>
+                        </div>
+                    ) : null}
 
                     <FormControlLabel
+                        sx={{
+                            '&.MuiFormControlLabel-root': {
+                                width: 'calc(100% - 48px)',
+                                marginRight: 0,
+                            },
+                        }}
                         control={
                             <Checkbox
                                 checked={this.state.data.noComposed}
@@ -159,48 +187,30 @@ export default class DeviceEditDialog extends Component<DeviceEditDialogProps, D
                             </span>
                         }
                     />
-                    <FormControl style={{ width: '100%', marginTop: 30 }}>
-                        <InputLabel>{I18n.t('Device type')}</InputLabel>
-                        <Select
-                            variant="standard"
-                            disabled={this.props.isCommissioned || this.props.auto}
-                            value={this.state.data.deviceType}
-                            onChange={e => {
-                                if (!this.state.data) {
-                                    return;
-                                }
+                    <DeviceTypeSelector
+                        themeType={this.props.themeType}
+                        style={{ width: '100%', marginTop: 30 }}
+                        value={this.state.data.deviceType}
+                        disabled={this.props.isCommissioned || this.props.auto}
+                        supportedDevices={SUPPORTED_DEVICES}
+                        onChange={value => {
+                            if (!this.state.data) {
+                                return;
+                            }
 
-                                const data = clone(this.state.data);
-                                data.deviceType = e.target.value as Types;
-                                this.setState({ data });
-                            }}
-                            renderValue={value => (
-                                <span>
-                                    <IconDeviceType
-                                        src={value}
-                                        style={{ marginRight: 8 }}
-                                    />
-                                    {I18n.t(value)}
-                                </span>
-                            )}
-                        >
-                            {Object.keys(Types)
-                                .filter(key => SUPPORTED_DEVICES.includes(key as Types))
-                                .map(type => (
-                                    <MenuItem
-                                        key={type}
-                                        value={type}
-                                    >
-                                        <IconDeviceType
-                                            src={type}
-                                            style={{ marginRight: 8 }}
-                                        />
-                                        {I18n.t(type)}
-                                    </MenuItem>
-                                ))}
-                        </Select>
-                    </FormControl>
+                            const data = clone(this.state.data);
+                            data.deviceType = value;
+                            this.setState({ data });
+                        }}
+                    />
+
                     <FormControlLabel
+                        sx={{
+                            '&.MuiFormControlLabel-root': {
+                                width: 'calc(100% - 48px)',
+                                marginRight: 0,
+                            },
+                        }}
                         style={{ width: '100%', marginTop: 30 }}
                         label={I18n.t('Allow action by identify')}
                         control={
@@ -218,8 +228,15 @@ export default class DeviceEditDialog extends Component<DeviceEditDialogProps, D
                             />
                         }
                     />
+
                     {this.state.data.deviceType === 'dimmer' && !this.props.hasOnState ? (
                         <FormControlLabel
+                            sx={{
+                                '&.MuiFormControlLabel-root': {
+                                    width: 'calc(100% - 48px)',
+                                    marginRight: 0,
+                                },
+                            }}
                             style={{ marginTop: 20 }}
                             label={I18n.t('Use last value for ON')}
                             control={
@@ -242,7 +259,15 @@ export default class DeviceEditDialog extends Component<DeviceEditDialogProps, D
                     !this.props.hasOnState &&
                     !this.state.data.dimmerUseLastLevelForOn ? (
                         <FormControl style={{ width: '100%', marginTop: 30 }}>
-                            <InputLabel>{I18n.t('Brightness by ON')}</InputLabel>
+                            <InputLabel
+                                sx={{
+                                    '&.MuiFormLabel-root': {
+                                        transform: 'translate(0px, -9px) scale(0.75)',
+                                    },
+                                }}
+                            >
+                                {I18n.t('Brightness by ON')}
+                            </InputLabel>
                             <Select
                                 variant="standard"
                                 error={!this.state.data.dimmerOnLevel}

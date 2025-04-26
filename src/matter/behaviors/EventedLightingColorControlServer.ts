@@ -165,7 +165,7 @@ const BaseHueSaturationColorControlServer = EventedExtendedColorXyColorControlSe
 );
 
 export class EventedExtendedColorHueSaturationColorControlServer extends BaseHueSaturationColorControlServer {
-    protected declare internal: EventedExtendedColorHueSaturationColorControlServer.Internal;
+    declare protected internal: EventedExtendedColorHueSaturationColorControlServer.Internal;
 
     override moveToHueLogic(
         targetHue: number,

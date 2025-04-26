@@ -72,10 +72,10 @@ async function allObjects(socket: AdminConnection): Promise<Record<string, ioBro
 
     cachedObjects = {};
 
-    if (states) {
-        for (const id in states) {
-            if (states[id]) {
-                cachedObjects[id] = states[id];
+    if (devices) {
+        for (const id in devices) {
+            if (devices[id]) {
+                cachedObjects[id] = devices[id];
             }
         }
     }
@@ -86,17 +86,17 @@ async function allObjects(socket: AdminConnection): Promise<Record<string, ioBro
             }
         }
     }
-    if (devices) {
-        for (const id in devices) {
-            if (devices[id]) {
-                cachedObjects[id] = devices[id];
-            }
-        }
-    }
     if (folders) {
         for (const id in folders) {
             if (folders[id]) {
                 cachedObjects[id] = folders[id];
+            }
+        }
+    }
+    if (states) {
+        for (const id in states) {
+            if (states[id]) {
+                cachedObjects[id] = states[id];
             }
         }
     }
@@ -156,12 +156,8 @@ export async function detectDevices(
         }
     }
 
-    // We have a list ob  IDs with "point" separated IDs that build up a tree
-    // We sort them in a way that IDs are sorted by levels - so IDs with less points are first
-    // This way we can start detecting from the bottom of the tree
-    list = list.sort((a, b) => a.split('.').length - b.split('.').length);
-
     const detectOnSingleObject = list?.length === 1;
+
     const options: DetectOptions = {
         id: '',
         objects: devicesObject,
@@ -170,6 +166,14 @@ export async function detectDevices(
         ignoreIndicators,
         allowedTypes,
         excludedTypes,
+        prioritizedTypes: [
+            // Matter natively supports HUE light, so if we can find these states, we should use them first
+            // Additionally: Single state changes are easier to handle in both directions, so also prefer them
+            [Types.hue, Types.rgb],
+            [Types.rgbwSingle, Types.rgb],
+            [Types.rgbSingle, Types.rgb],
+        ],
+        detectParent: !detectOnSingleObject, // Because we sort out enum objects above, we should check for best parent
         // When we only detect for a single object then we try to find anything and ignore enums
         detectAllPossibleDevices: detectOnSingleObject,
         ignoreEnums: detectOnSingleObject,

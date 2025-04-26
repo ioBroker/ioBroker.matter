@@ -397,8 +397,6 @@ class Controller implements GeneralNode {
             passcode = pairingCodeCodec[0].passcode;
         } else if ('passcode' in data) {
             passcode = data.passcode;
-            // TODO also use vendor Id once matter.js can discover for both together
-            // TODO also try ip/port once matter.js can use this without a full discoverableDevice
             vendorId = VendorId(data.vendorId);
             productId = data.productId;
             if (data.ip && data.port) {
@@ -441,7 +439,7 @@ class Controller implements GeneralNode {
                           ? { shortDiscriminator }
                           : vendorId !== undefined
                             ? { vendorId, productId }
-                            : undefined,
+                            : {},
             },
             passcode,
         };

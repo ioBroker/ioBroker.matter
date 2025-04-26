@@ -27,7 +27,15 @@ export function bytesToIpV4(bytes: Uint8Array): string {
 }
 
 export function bytesToIpV6(bytes: Uint8Array): string {
-    return Bytes.toHex(bytes)
-        .match(/.{1,4}/g)!
-        .join(':');
+    // Convert the byte array to an array of 8 groups of 16-bit numbers
+    const groups = [];
+    for (let i = 0; i < 16; i += 2) {
+        groups.push(((bytes[i] << 8) | bytes[i + 1]).toString(16));
+    }
+
+    // Join the groups with colons
+    const ipv6 = groups.join(':');
+
+    // Compress the longest sequence of zeroes using "::"
+    return ipv6.replace(/(?:^|:)0(:0)*(:|$)/, '::');
 }

@@ -1,11 +1,18 @@
-import { MaybePromise } from '@matter/main';
+import { type Behavior, type MaybePromise, type Transitions } from '@matter/main';
 import type { TypeFromPartialBitSchema } from '@matter/main/types';
 import { DimmableLightRequirements } from '@matter/main/devices';
 import type { LevelControl } from '@matter/main/clusters';
 import { IoBrokerEvents } from './IoBrokerEvents';
+import { EventedTransitions } from './EventedTransitions';
 
 export class EventedLightingLevelControlServer extends DimmableLightRequirements.LevelControlServer {
     declare protected internal: EventedLightingLevelControlServer.Internal;
+
+    override createTransitions<B extends Behavior>(config: Transitions.Configuration<B>): EventedTransitions<B> {
+        const transitions = new EventedTransitions(this.endpoint, config);
+        this.reactTo(transitions.currentLevel$Changed, this.#setLevel, { lock: true });
+        return transitions;
+    }
 
     override moveToLevelLogic(
         level: number,
@@ -43,19 +50,13 @@ export class EventedLightingLevelControlServer extends DimmableLightRequirements
         return super.stopLogic(options);
     }
 
-    override setLevel(
-        level: number,
-        withOnOff: boolean,
-        options: TypeFromPartialBitSchema<typeof LevelControl.Options> = {},
-    ): MaybePromise<void> {
+    #setLevel(level: number): void {
         const transitionTime = this.internal.currentTransitionTime;
         this.internal.currentTransitionTime = undefined;
-        const result = super.setLevel(level, withOnOff, options);
-        return MaybePromise.then(result, () =>
-            this.endpoint.act(agent =>
-                agent.get(IoBrokerEvents).events.dimmerLevelControlled.emit(level, transitionTime),
-            ),
-        );
+        if (transitionTime == undefined || transitionTime === 0) {
+            this.state.currentLevel = level;
+        }
+        this.endpoint.act(agent => agent.get(IoBrokerEvents).events.dimmerLevelControlled.emit(level, transitionTime));
     }
 }
 

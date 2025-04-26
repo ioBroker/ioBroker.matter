@@ -4,7 +4,7 @@ import { NetworkCommissioning } from '@matter/main/clusters';
 import { inspect } from 'util';
 import type { DeviceDescription } from '../ioBrokerStorageTypes';
 import type { GenericDevice } from '../lib';
-import { md5 } from '../lib/utils';
+import { md5, toUpperCaseHex } from '../lib/utils';
 import type { MatterAdapter } from '../main';
 import { BaseServerNode } from './BaseServerNode';
 import matterDeviceFactory from './to-matter/matterFactory';
@@ -249,8 +249,8 @@ class Device extends BaseServerNode {
             port: this.port,
             deviceName: this.#parameters.deviceName,
             productName: this.#parameters.productName,
-            vendorId: this.#parameters.vendorId,
-            productId: this.#parameters.productId,
+            vendorId: toUpperCaseHex(this.#parameters.vendorId),
+            productId: toUpperCaseHex(this.#parameters.productId),
         };
         return {
             ...details,

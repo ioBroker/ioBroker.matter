@@ -86,6 +86,7 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 * (@Apollon77) Included Battery state in attribute polling and changed default interval to 24h if device is battery bowered
 * (@Apollon77) Shows subscription maximum interval of the node in the connection-infos
 * (@Apollon77) Allows to overwrite the default subscription maximum interval send to the device in Node settings
+* (@Apollon77) Considers also the BatteryAlarm state of Smoke-CO sensors when determine LOWBAT state
 
 ### 0.4.15 (2025-02-25)
 * (@GermanBluefox) Added Button display and control in the UI

@@ -73,7 +73,7 @@ export abstract class GenericDeviceToIoBroker {
     #pollTimeout?: NodeJS.Timeout;
     #destroyed = false;
     #initialized = false;
-    #pollInterval = 60_000;
+    #pollInterval?: number;
     #hasAttributesToPoll = false;
 
     protected constructor(
@@ -134,6 +134,10 @@ export abstract class GenericDeviceToIoBroker {
         return this.#node.basicInformation ?? {};
     }
 
+    get node(): PairedNode {
+        return this.#node;
+    }
+
     /**
      * Method to override to add own states to the device.
      * This method is called by the constructor.
@@ -173,12 +177,14 @@ export abstract class GenericDeviceToIoBroker {
             clusterId: PowerSource.Cluster.id,
             attributeName: 'batChargeLevel',
             convertValue: value => value !== PowerSource.BatChargeLevel.Ok,
+            pollAttribute: true,
         });
         this.enableDeviceTypeStateForAttribute(PropertyType.Battery, {
             endpointId,
             clusterId: PowerSource.Cluster.id,
             attributeName: 'batPercentRemaining',
             convertValue: value => Math.round(value / 2),
+            pollAttribute: true,
         });
         return true;
     }
@@ -556,8 +562,12 @@ export abstract class GenericDeviceToIoBroker {
         }
         if (pollingAttributes.length) {
             this.#hasAttributesToPoll = true;
-            this.#pollTimeout = setTimeout(() => this.#pollAttributes(pollingAttributes), this.#pollInterval);
+            this.#pollTimeout = setTimeout(() => this.#pollAttributes(pollingAttributes), this.pollInterval);
         }
+    }
+
+    get pollInterval(): number {
+        return this.#pollInterval ?? (this.#node.deviceInformation?.isBatteryPowered ? 24 * 60 * 60_000 : 60_000);
     }
 
     async #pollAttributes(
@@ -634,7 +644,7 @@ export abstract class GenericDeviceToIoBroker {
         }
 
         if (!this.#destroyed) {
-            this.#pollTimeout = setTimeout(() => this.#pollAttributes(attributes), this.#pollInterval);
+            this.#pollTimeout = setTimeout(() => this.#pollAttributes(attributes), this.pollInterval);
         }
     }
 
@@ -750,7 +760,7 @@ export abstract class GenericDeviceToIoBroker {
 
     get deviceConfiguration(): { pollInterval?: number } {
         return {
-            pollInterval: this.#hasAttributesToPoll ? Math.round(this.#pollInterval / 1000) : undefined,
+            pollInterval: this.#hasAttributesToPoll ? Math.round(this.pollInterval / 1000) : undefined,
         };
     }
 
@@ -759,7 +769,7 @@ export abstract class GenericDeviceToIoBroker {
         if (pollInterval !== undefined) {
             if (isNaN(pollInterval) || pollInterval < 30 || pollInterval > 2_147_482) {
                 this.#adapter.log.warn(
-                    `Invalid polling interval ${pollInterval} seconds, use former value of ${Math.round(this.#pollInterval / 1000)}.`,
+                    `Invalid polling interval ${pollInterval} seconds, use former value of ${Math.round(this.pollInterval / 1000)}.`,
                 );
                 return;
             }

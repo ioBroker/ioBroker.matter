@@ -69,6 +69,10 @@ const SystemClusters: ClusterId[] = [
     ClusterId(0x0062), // Scenes Management
 ];
 
+export type GenericNodeConfiguration = {
+    subscriptionMaxIntervalS?: number;
+};
+
 export type NodeDetails = {
     manufacturer?: string;
     model?: string;
@@ -94,6 +98,8 @@ export class GeneralMatterNode {
     #connectedAddress?: string;
     #hasAggregatorEndpoint = false;
     #enabled = true;
+    #subscriptionMaxIntervalS?: number;
+    #connectOptions?: CommissioningControllerNodeOptions;
 
     constructor(
         protected readonly adapter: MatterAdapter,
@@ -134,13 +140,22 @@ export class GeneralMatterNode {
         return this.#hasAggregatorEndpoint;
     }
 
-    connect(connectOptions?: CommissioningControllerNodeOptions): void {
+    connect(connectOptions?: CommissioningControllerNodeOptions, reconnect = false): void {
+        if (connectOptions !== undefined) {
+            this.#connectOptions = connectOptions;
+        }
         if (!this.#enabled) {
             this.adapter.log.warn(`Node "${this.node.nodeId}" is disabled, so do not connect`);
             return;
         }
-        if (!this.node.isConnected) {
-            this.node.connect(connectOptions);
+        this.#connectOptions = {
+            ...this.#connectOptions,
+            ...(this.#subscriptionMaxIntervalS
+                ? { subscribeMaxIntervalCeilingSeconds: this.#subscriptionMaxIntervalS }
+                : {}),
+        };
+        if (!this.node.isConnected || reconnect) {
+            this.node.connect(this.#connectOptions);
         }
     }
 
@@ -179,6 +194,9 @@ export class GeneralMatterNode {
             if (existingObject.native?.enabled !== undefined) {
                 this.#enabled = existingObject.native.enabled;
             }
+            this.setNodeConfiguration({
+                subscriptionMaxIntervalS: existingObject.native?.subscriptionMaxIntervalS,
+            });
         }
         // create device
         const deviceObj: ioBroker.Object = {
@@ -321,6 +339,32 @@ export class GeneralMatterNode {
 
     get details(): NodeDetails {
         return this.#details;
+    }
+
+    get nodeConfiguration(): { subscriptionMaxIntervalS?: number } {
+        return {
+            subscriptionMaxIntervalS: this.#subscriptionMaxIntervalS,
+        };
+    }
+
+    setNodeConfiguration(config: GenericNodeConfiguration): void {
+        const { subscriptionMaxIntervalS } = config;
+        if (subscriptionMaxIntervalS !== undefined && subscriptionMaxIntervalS !== 0) {
+            if (
+                isNaN(subscriptionMaxIntervalS) ||
+                subscriptionMaxIntervalS < 30 ||
+                subscriptionMaxIntervalS > 2_147_482
+            ) {
+                this.adapter.log.warn(
+                    `Invalid polling interval ${subscriptionMaxIntervalS} seconds, use ${this.#subscriptionMaxIntervalS ? `former value of ${Math.round(this.#subscriptionMaxIntervalS)}` : ' default value'}.`,
+                );
+                return;
+            }
+            this.#subscriptionMaxIntervalS = subscriptionMaxIntervalS;
+            if (this.#enabled && this.node.isConnected) {
+                this.connect(undefined, true);
+            }
+        }
     }
 
     async applyConfiguration(config: PairedNodeConfig, forcedUpdate = false): Promise<void> {
@@ -1290,6 +1334,7 @@ export class GeneralMatterNode {
         }
 
         if (this.node.isConnected) {
+            result.connection.subscriptionMaximumInterval = `${this.node.currentSubscriptionIntervalSeconds}s`;
             const operationalCredentials = this.node.getRootClusterClient(OperationalCredentialsCluster);
             if (operationalCredentials) {
                 result.connection.__header__operationalCredentials = 'Connected Fabrics';

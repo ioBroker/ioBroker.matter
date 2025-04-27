@@ -14,7 +14,7 @@ import {
     DeviceManagement,
     ACTIONS,
 } from '@iobroker/dm-utils';
-import type { GeneralMatterNode, NodeDetails } from '../matter/GeneralMatterNode';
+import { GeneralMatterNode, type NodeDetails } from '../matter/GeneralMatterNode';
 import { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIoBroker';
 import type { DeviceAction } from '@iobroker/dm-utils/build/types/base';
 import { logEndpoint } from '../matter/EndpointStructureInspector';
@@ -512,7 +512,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     ): Promise<{ refresh: DeviceRefresh }> {
         const obj = await this.adapter.getObjectAsync(baseId);
 
-        // const node = nodeOrDevice instanceof GeneralMatterNode ? nodeOrDevice : undefined;
+        const node = nodeOrDevice instanceof GeneralMatterNode ? nodeOrDevice : undefined;
         const device = nodeOrDevice instanceof GenericDeviceToIoBroker ? nodeOrDevice : undefined;
 
         const items: Record<string, ConfigItemAny> = {
@@ -557,14 +557,57 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         if (device !== undefined) {
             const deviceConfig = device.deviceConfiguration;
             if (deviceConfig.pollInterval !== undefined) {
+                items.pollInterval_devider = {
+                    type: 'divider',
+                };
                 items.pollInterval = {
                     type: 'number',
-                    label: this.#adapter.getText('Energy Attribute Polling Interval (s)'),
+                    label: this.#adapter.getText('Attribute Polling Interval (s)'),
                     min: 30,
                     max: 2147482,
                     sm: 12,
                 };
                 data.pollInterval = deviceConfig.pollInterval;
+
+                if (device.node.deviceInformation?.isBatteryPowered) {
+                    items.pollInterval_batteryInfo = {
+                        type: 'staticText',
+                        newLine: true,
+                        text: this.#adapter.getText(
+                            'This device is battery powered. Be careful to not drain the battery too fast.',
+                        ),
+                    };
+                }
+            }
+        } else if (node !== undefined) {
+            const nodeConfig = node.nodeConfiguration;
+            items.subscriptionMaxIntervalS_devider = {
+                type: 'divider',
+            };
+            items.subscriptionMaxIntervalS = {
+                type: 'number',
+                label: this.#adapter.getText('Subscription Maximum Interval (s, 0=Default)'),
+                min: 0,
+                max: 2147482,
+                sm: 12,
+            };
+            data.subscriptionMaxIntervalS = nodeConfig.subscriptionMaxIntervalS ?? 0;
+            items.subscriptionMaxIntervalS_info = {
+                type: 'staticText',
+                newLine: true,
+                text: this.#adapter.getText(
+                    'This value is just a proposal from the controller. The device may decide for an other maximum interval.',
+                ),
+            };
+
+            if (node.node.deviceInformation?.isBatteryPowered) {
+                items.subscriptionMaxIntervalS_batteryInfo = {
+                    type: 'staticText',
+                    newLine: true,
+                    text: this.#adapter.getText(
+                        'This device is battery powered. Be careful to not drain the battery too fast.',
+                    ),
+                };
             }
         }
 
@@ -582,8 +625,14 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
         );
 
-        if (result?.pollInterval !== undefined && device !== undefined) {
+        if (device !== undefined && result?.pollInterval !== undefined) {
             device.setDeviceConfiguration({ pollInterval: result.pollInterval });
+        } else if (
+            node !== undefined &&
+            result?.subscriptionMaxIntervalS !== undefined &&
+            result?.subscriptionMaxIntervalS !== 0
+        ) {
+            node.setNodeConfiguration({ subscriptionMaxIntervalS: result.subscriptionMaxIntervalS });
         }
 
         if (
@@ -595,6 +644,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     exposeMatterApplicationClusterData: strToBool(result.exposeMatterApplicationClusterData),
                     exposeMatterSystemClusterData: strToBool(result.exposeMatterSystemClusterData),
                     ...(device !== undefined ? device.deviceConfiguration : {}),
+                    ...(node !== undefined ? node.nodeConfiguration : {}),
                 },
             });
         }

@@ -83,6 +83,9 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 * (@GermanBluefox) GUI optimizations
 * (@Apollon77) Upgrade Matter support to 1.4
 * (@Apollon77) Upgrade type detector and usage for better automatic detection results
+* (@Apollon77) Included Battery state in attribute polling and changed default interval to 24h if device is battery bowered
+* (@Apollon77) Shows subscription maximum interval of the node in the connection-infos
+* (@Apollon77) Allows to overwrite the default subscription maximum interval send to the device in Node settings
 
 ### 0.4.15 (2025-02-25)
 * (@GermanBluefox) Added Button display and control in the UI

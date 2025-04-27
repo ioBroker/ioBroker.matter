@@ -166,6 +166,10 @@ export async function detectDevices(
         ignoreIndicators,
         allowedTypes,
         excludedTypes,
+        limitTypesToOneOf: [
+            // Just detect one type of light at a time
+            [Types.light, Types.ct, Types.rgb, Types.rgbSingle, Types.rgbwSingle, Types.hue, Types.cie],
+        ],
         prioritizedTypes: [
             // Matter natively supports HUE light, so if we can find these states, we should use them first
             // Additionally: Single state changes are easier to handle in both directions, so also prefer them

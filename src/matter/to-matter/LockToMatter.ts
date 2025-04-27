@@ -49,7 +49,6 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
                 lockType: DoorLock.LockType.Other,
                 actuatorEnabled: true,
                 lockState: DoorLock.LockState.Locked, // Will be corrected later
-                // @ts-expect-error Simplify state setting because of dynamic features
                 doorState: this.#ioBrokerDevice.hasDoorState() ? DoorLock.DoorState.DoorClosed : undefined,
             },
         });

@@ -26,7 +26,7 @@ import {
 import type { MatterControllerConfig } from '../../src-admin/src/types';
 import { SubscribeManager } from '../lib';
 import type { SubscribeCallback } from '../lib/SubscribeManager';
-import { bytesToIpV4, bytesToIpV6, bytesToMac, decamelize, toHex } from '../lib/utils';
+import { bytesToIpV4, bytesToIpV6, bytesToMac, decamelize, toHex, toUpperCaseHex } from '../lib/utils';
 import type { MatterAdapter } from '../main';
 import type { GenericDeviceToIoBroker } from './to-iobroker/GenericDeviceToIoBroker';
 import ioBrokerDeviceFabric, { identifyDeviceTypes } from './to-iobroker/ioBrokerFactory';
@@ -200,24 +200,24 @@ export class GeneralMatterNode {
         const info = this.node.getRootClusterClient(BasicInformationCluster);
         if (info !== undefined) {
             this.#details = {
-                manufacturer: await info.getVendorNameAttribute(),
-                model: await info.getProductNameAttribute(),
+                manufacturer: await info.getVendorNameAttribute(false),
+                model: await info.getProductNameAttribute(false),
             };
 
             if (existingObject && existingObject.common.name) {
                 deviceObj.common.name = existingObject.common.name;
             } else {
-                deviceObj.common.name = await info.getProductNameAttribute();
+                deviceObj.common.name = await info.getProductNameAttribute(false);
             }
-            deviceObj.native.vendorId = toHex(await info.getVendorIdAttribute());
+            deviceObj.native.vendorId = toUpperCaseHex(await info.getVendorIdAttribute(false));
             deviceObj.native.vendorName = this.#details.manufacturer;
             deviceObj.native.productId = this.#details.model;
-            deviceObj.native.nodeLabel = await info.getNodeLabelAttribute();
+            deviceObj.native.nodeLabel = await info.getNodeLabelAttribute(false);
             deviceObj.native.productLabel = info.isAttributeSupportedByName('productLabel')
-                ? await info.getProductLabelAttribute()
+                ? await info.getProductLabelAttribute(false)
                 : undefined;
             deviceObj.native.serialNumber = info.isAttributeSupportedByName('serialNumber')
-                ? await info.getSerialNumberAttribute()
+                ? await info.getSerialNumberAttribute(false)
                 : undefined;
         }
         this.#name = (deviceObj.common.name || this.nodeId) as string;
@@ -409,7 +409,7 @@ export class GeneralMatterNode {
         // TODO: Add TagList support
         const bridgedBasicInfo = endpoint.getClusterClient(BridgedDeviceBasicInformation.Cluster);
         const endpointName = bridgedBasicInfo?.isAttributeSupportedByName('nodeLabel')
-            ? await bridgedBasicInfo.getNodeLabelAttribute()
+            ? await bridgedBasicInfo.getNodeLabelAttribute(false)
             : `${deviceTypeName}-${id}`;
         const endpointBaseName =
             primaryDeviceType?.deviceType.id === AggregatorEndpointDefinition.deviceType
@@ -1053,9 +1053,9 @@ export class GeneralMatterNode {
             result.node = {};
 
             result.node.vendorName = details.vendorName;
-            result.node.vendorId = toHex(details.vendorId as number);
+            result.node.vendorId = toUpperCaseHex(details.vendorId as number);
             result.node.productName = details.productName;
-            result.node.productId = toHex(details.productId as number);
+            result.node.productId = toUpperCaseHex(details.productId as number);
             result.node.nodeLabel = details.nodeLabel;
             result.node.location = details.location;
             result.node.hardwareVersion = details.hardwareVersionString;
@@ -1299,8 +1299,8 @@ export class GeneralMatterNode {
                     const fabricId = fabric.fabricId;
                     const vendorId = fabric.vendorId;
                     const vendorName = VendorIds[vendorId]
-                        ? `${VendorIds[vendorId]} (0x${vendorId.toString(16)})`
-                        : `0x${vendorId.toString(16)}`;
+                        ? `${VendorIds[vendorId]} (${toUpperCaseHex(vendorId)})`
+                        : toUpperCaseHex(vendorId);
                     result.connection[`fabric${fabricId}__${vendorName}`] =
                         `${fabric.label}${ownFabricIndex === fabric.fabricIndex ? ' (Own)' : ''}`;
                     // TODO Add name lookup and button to manage beside own Fabric index

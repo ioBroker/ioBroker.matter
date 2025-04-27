@@ -55,7 +55,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
         if (levelControl) {
             this.#isLighting = !!levelControl.supportedFeatures.lighting; // Should always be the case
             const minLevel = levelControl.isAttributeSupportedByName('minLevel')
-                ? await levelControl.getMinLevelAttribute()
+                ? await levelControl.getMinLevelAttribute(false)
                 : undefined;
             this.#minLevel = minLevel ?? (this.#isLighting ? 1 : 0);
             const maxLevel = levelControl.isAttributeSupportedByName('maxLevel')

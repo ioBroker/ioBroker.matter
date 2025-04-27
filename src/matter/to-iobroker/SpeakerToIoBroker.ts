@@ -45,11 +45,11 @@ export class SpeakerToIoBroker extends GenericElectricityDataDeviceToIoBroker {
         const levelControl = this.appEndpoint.getClusterClient(LevelControl.Complete);
         if (levelControl) {
             const minLevel = levelControl.isAttributeSupportedByName('minLevel')
-                ? await levelControl.getMinLevelAttribute()
+                ? await levelControl.getMinLevelAttribute(false)
                 : undefined;
             this.#minLevel = minLevel ?? 0;
             const maxLevel = levelControl.isAttributeSupportedByName('maxLevel')
-                ? await levelControl.getMaxLevelAttribute()
+                ? await levelControl.getMaxLevelAttribute(false)
                 : undefined;
             this.#maxLevel = maxLevel ?? 254;
         }

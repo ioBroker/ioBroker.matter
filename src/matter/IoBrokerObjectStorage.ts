@@ -1,5 +1,5 @@
 import { fromJson, type MaybeAsyncStorage, StorageError, type SupportedStorageTypes, toJson } from '@matter/main';
-import { StorageBackendDiskAsync } from '@matter/nodejs';
+import { StorageBackendDisk } from '@matter/nodejs';
 
 /**
  * Class that implements the storage for one Node in the Matter ecosystem
@@ -12,7 +12,7 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
     readonly #adapter: ioBroker.Adapter;
     #namespace: string;
     #clear = false;
-    #localStorageManager?: StorageBackendDiskAsync;
+    #localStorageManager?: StorageBackendDisk;
     #localStorageForPrefix?: string;
 
     constructor(
@@ -42,7 +42,7 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
         this.#adapter.log.debug(`[STORAGE] Initializing storage for ${this.#storageRootOid}`);
 
         if (this.#nodeDataStorageDirectory !== undefined) {
-            this.#localStorageManager = new StorageBackendDiskAsync(this.#nodeDataStorageDirectory, this.#clear);
+            this.#localStorageManager = new StorageBackendDisk(this.#nodeDataStorageDirectory, this.#clear);
         }
 
         await this.#adapter.extendObjectAsync(this.#storageRootOid, {

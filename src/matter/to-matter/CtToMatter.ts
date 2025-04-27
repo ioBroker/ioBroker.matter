@@ -39,9 +39,9 @@ export class CtToMatter extends GenericLightingDeviceToMatter {
                 enhancedColorMode: ColorControl.EnhancedColorMode.ColorTemperatureMireds,
 
                 // Dummy values, will be better set later
-                colorTempPhysicalMinMireds: 0,
+                colorTempPhysicalMinMireds: 1,
                 colorTempPhysicalMaxMireds: 65279,
-                coupleColorTempToLevelMinMireds: 0,
+                coupleColorTempToLevelMinMireds: 1,
                 startUpColorTemperatureMireds: null,
             },
         });

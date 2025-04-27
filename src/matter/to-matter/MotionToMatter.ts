@@ -1,6 +1,7 @@
 import { Endpoint } from '@matter/main';
 import { OccupancySensing } from '@matter/main/clusters';
 import { LightSensorDevice, OccupancySensorDevice } from '@matter/main/devices';
+import { OccupancySensingServer } from '@matter/main/behaviors/occupancy-sensing';
 import type { TypeFromBitSchema } from '@matter/main/types';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { Motion } from '../../lib/devices/Motion';
@@ -8,15 +9,22 @@ import { GenericDeviceToMatter } from './GenericDeviceToMatter';
 import { IoIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 
+const IoOccupancySensingDevice = OccupancySensorDevice.with(
+    IoIdentifyServer,
+    IoBrokerContext,
+    OccupancySensingServer.with(OccupancySensing.Feature.PassiveInfrared),
+);
+type IoOccupancySensingDevice = typeof IoOccupancySensingDevice;
+
 /** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */
 export class MotionToMatter extends GenericDeviceToMatter {
     readonly #ioBrokerDevice: Motion;
-    readonly #matterEndpointOccupancy: Endpoint<OccupancySensorDevice>;
+    readonly #matterEndpointOccupancy: Endpoint<IoOccupancySensingDevice>;
     readonly #matterEndpointLightSensor?: Endpoint<LightSensorDevice>;
 
     constructor(ioBrokerDevice: Motion, name: string, uuid: string) {
         super(name, uuid);
-        this.#matterEndpointOccupancy = new Endpoint(OccupancySensorDevice.with(IoIdentifyServer, IoBrokerContext), {
+        this.#matterEndpointOccupancy = new Endpoint(IoOccupancySensingDevice, {
             id: `${uuid}-Occupancy`,
             ioBrokerContext: {
                 device: ioBrokerDevice,

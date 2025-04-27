@@ -47,9 +47,9 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                 enhancedColorMode: ColorControl.EnhancedColorMode.CurrentHueAndCurrentSaturation,
 
                 // Dummy values, will be better set later
-                colorTempPhysicalMinMireds: 0,
+                colorTempPhysicalMinMireds: 1,
                 colorTempPhysicalMaxMireds: 65279,
-                coupleColorTempToLevelMinMireds: 0,
+                coupleColorTempToLevelMinMireds: 1,
                 startUpColorTemperatureMireds: null,
                 currentX: 24939,
                 currentY: 24701,

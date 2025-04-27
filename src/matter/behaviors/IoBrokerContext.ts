@@ -19,7 +19,7 @@ export class IoBrokerContext extends Behavior {
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace IoBrokerContext {
-    export class State {
+    export class State extends Behavior.State {
         adapter!: ioBroker.Adapter;
         device!: GenericDevice;
     }

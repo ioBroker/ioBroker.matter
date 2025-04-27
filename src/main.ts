@@ -348,7 +348,7 @@ export class MatterAdapter extends Adapter {
                 const result = await this.applyControllerConfiguration(newControllerConfig);
                 if (result && 'result' in result) {
                     // was successful
-                    await this.extendObject(`${this.namespace}.controller`, { native: newControllerConfig });
+                    await this.extendObjectAsync(`${this.namespace}.controller`, { native: newControllerConfig });
                 }
                 this.sendTo(obj.from, obj.command, result, obj.callback);
                 break;

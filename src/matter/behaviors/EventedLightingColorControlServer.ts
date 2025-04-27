@@ -213,7 +213,7 @@ export class EventedExtendedColorHueSaturationColorControlServer extends BaseHue
         const transitionTime = this.internal.currentTransitionTime;
         this.internal.currentTransitionTime = undefined;
         if (transitionTime == undefined || transitionTime === 0) {
-            this.state.currentHue = saturation;
+            this.state.currentSaturation = saturation;
         }
         if (this.internal.blockEvents) {
             return;

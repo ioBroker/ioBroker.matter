@@ -1,4 +1,4 @@
-import { Logger, NodeId, singleton, VendorId, type ServerAddressIp } from '@matter/main';
+import { Diagnostic, NodeId, singleton, VendorId, type ServerAddressIp } from '@matter/main';
 import { GeneralCommissioning } from '@matter/main/clusters';
 import {
     Ble,
@@ -247,6 +247,13 @@ class Controller implements GeneralNode {
             this.#adapter.log.info(`Node "${node.nodeId}" decommissioned`);
             // TODO Delete the node from config and objects
             this.#updateCallback();
+        });
+        node.events.connectionAlive.on(() => {
+            const nodeIdStr = node.nodeId.toString();
+            const deviceNode = this.#nodes.get(nodeIdStr);
+            if (deviceNode) {
+                deviceNode.handleConnectionAlive();
+            }
         });
     }
 
@@ -502,7 +509,7 @@ class Controller implements GeneralNode {
                     onIpNetwork: true,
                 },
                 device => {
-                    this.#adapter.log.debug(`Discovered Device: ${Logger.toJSON(device)}`);
+                    this.#adapter.log.debug(`Discovered Device: ${Diagnostic.json(device)}`);
                     if (this.#discovering) {
                         this.#adapter
                             .sendToGui({

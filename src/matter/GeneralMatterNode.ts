@@ -1,4 +1,4 @@
-import { capitalize, ClusterId, Logger, type NodeId, serialize } from '@matter/main';
+import { capitalize, ClusterId, type NodeId, serialize, Diagnostic } from '@matter/main';
 import {
     BasicInformationCluster,
     BridgedDeviceBasicInformation,
@@ -944,7 +944,7 @@ export class GeneralMatterNode {
             value,
         } = data;
         this.adapter.log.debug(
-            `handleChangedAttribute "${this.nodeId}": Attribute ${nodeId}/${endpointId}/${toHex(clusterId)}/${attributeName} changed to ${Logger.toJSON(
+            `handleChangedAttribute "${this.nodeId}": Attribute ${nodeId}/${endpointId}/${toHex(clusterId)}/${attributeName} changed to ${Diagnostic.json(
                 value,
             )}`,
         );
@@ -986,7 +986,7 @@ export class GeneralMatterNode {
             events,
         } = data;
         this.adapter.log.debug(
-            `handleTriggeredEvent "${this.nodeId}": Event ${nodeId}/${endpointId}/${toHex(clusterId)}/${eventName} triggered with ${Logger.toJSON(
+            `handleTriggeredEvent "${this.nodeId}": Event ${nodeId}/${endpointId}/${toHex(clusterId)}/${eventName} triggered with ${Diagnostic.json(
                 events,
             )}`,
         );
@@ -1011,7 +1011,7 @@ export class GeneralMatterNode {
         }
         await this.adapter.setState(
             `${endpointBaseId}.${toHex(clusterId)}.events.${eventName}`,
-            Logger.toJSON(events),
+            Diagnostic.json(events),
             true,
         );
     }
@@ -1046,7 +1046,7 @@ export class GeneralMatterNode {
         if (attributeValue === null || attributeValue === undefined) {
             value = null;
         } else if (targetType === 'object') {
-            value = Logger.toJSON(attributeValue);
+            value = Diagnostic.json(attributeValue);
         } else if (targetType === 'number') {
             if (typeof attributeValue === 'number') {
                 value = attributeValue;
@@ -1059,7 +1059,7 @@ export class GeneralMatterNode {
             value = attributeValue.toString();
         } else {
             if (typeof attributeValue === 'object') {
-                value = Logger.toJSON(attributeValue);
+                value = Diagnostic.json(attributeValue);
             } else {
                 value = attributeValue;
             }

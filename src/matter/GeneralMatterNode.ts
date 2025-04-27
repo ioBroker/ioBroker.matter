@@ -1016,6 +1016,12 @@ export class GeneralMatterNode {
         );
     }
 
+    handleConnectionAlive(): void {
+        if (this.node.isConnected) {
+            this.adapter.setState(this.connectionStateId, true, true).catch(() => {});
+        }
+    }
+
     async handleStateChange(state: PairedNodeStates, nodeDetails?: { operationalAddress?: string }): Promise<void> {
         const connected = state === PairedNodeStates.Connected;
         await this.adapter.setState(this.connectionStateId, connected, true);

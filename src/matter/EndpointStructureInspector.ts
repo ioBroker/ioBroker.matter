@@ -232,6 +232,9 @@ function logClusterClient(
         subResult.push('Commands:');
         const subSub = new Array<string>();
         for (const commandName in clusterClient.commands) {
+            if (commandName.match(/^\d+$/)) {
+                continue;
+            }
             const supported = clusterClient.isCommandSupportedByName(commandName);
             if (!supported && options.logNotSupportedClusterCommands === false) {
                 continue;

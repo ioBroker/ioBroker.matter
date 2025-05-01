@@ -6,6 +6,7 @@ import {
     Diagnostic,
     EndpointNumber,
 } from '@matter/main';
+import type { MatterAdapter } from '../../main';
 import { BasicInformation, BridgedDeviceBasicInformation, Identify, PowerSource } from '@matter/main/clusters';
 import type { DecodedEventData } from '@matter/main/protocol';
 import type { Endpoint, PairedNode, DeviceBasicInformation } from '@project-chip/matter.js/device';
@@ -56,7 +57,7 @@ function eventPathToString(path: { endpointId: EndpointNumber; clusterId: Cluste
 
 /** Base class to map an ioBroker device to a matter device. */
 export abstract class GenericDeviceToIoBroker {
-    readonly #adapter: ioBroker.Adapter;
+    readonly #adapter: MatterAdapter;
     readonly baseId: string;
     readonly #node: PairedNode;
     protected readonly appEndpoint: Endpoint;
@@ -77,7 +78,7 @@ export abstract class GenericDeviceToIoBroker {
     #hasAttributesToPoll = false;
 
     protected constructor(
-        adapter: ioBroker.Adapter,
+        adapter: MatterAdapter,
         node: PairedNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
@@ -186,6 +187,7 @@ export abstract class GenericDeviceToIoBroker {
             convertValue: value => Math.round(value / 2),
             pollAttribute: true,
         });
+        powerSource.addBatPercentRemainingAttributeListener(() => this.#adapter.refreshControllerDevices());
         return true;
     }
 

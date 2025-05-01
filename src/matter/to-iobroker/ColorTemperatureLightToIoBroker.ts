@@ -6,6 +6,7 @@ import { Ct } from '../../lib/devices/Ct';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 import { kelvinToMireds, miredsToKelvin } from '@matter/main/behaviors';
+import type { MatterAdapter } from '../../main';
 
 /**
  * This lass is currently unused and can be removed if the remapping of CT to Extended Color Light works as expected
@@ -24,7 +25,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
         node: PairedNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
-        adapter: ioBroker.Adapter,
+        adapter: MatterAdapter,
         endpointDeviceBaseId: string,
         deviceTypeName: string,
         defaultConnectionStateId: string,

@@ -382,7 +382,7 @@ export class MatterAdapter extends Adapter {
                 this.#stateTimeout = undefined;
                 const states = await this.requestNodeStates();
                 await this.sendToGui({ command: 'bridgeStates', states });
-                this.#refreshControllerDevices();
+                this.refreshControllerDevices();
             }, 100);
         } else {
             sub.ts = Date.now();
@@ -421,7 +421,7 @@ export class MatterAdapter extends Adapter {
     };
 
     /** This command will be sent to GUI to update the controller devices */
-    #refreshControllerDevices(): void {
+    refreshControllerDevices(): void {
         if (this.#closing) {
             return;
         }
@@ -1191,7 +1191,7 @@ export class MatterAdapter extends Adapter {
         const matterController = new MatterController({
             adapter: this,
             controllerOptions,
-            updateCallback: () => this.#refreshControllerDevices(),
+            updateCallback: () => this.refreshControllerDevices(),
             fabricLabel: fabricLabel.substring(0, 32),
         });
         matterController.init(); // add bridge to server

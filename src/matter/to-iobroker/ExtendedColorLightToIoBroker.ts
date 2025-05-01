@@ -8,6 +8,7 @@ import { Hue } from '../../lib/devices/Hue';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 import { kelvinToMireds, miredsToKelvin } from '@matter/main/behaviors';
+import type { MatterAdapter } from '../../main';
 
 export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Hue | Cie | Ct;
@@ -21,7 +22,7 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
         node: PairedNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
-        adapter: ioBroker.Adapter,
+        adapter: MatterAdapter,
         endpointDeviceBaseId: string,
         deviceTypeName: string,
         defaultConnectionStateId: string,

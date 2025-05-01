@@ -6,6 +6,7 @@ import type { DetectedDevice } from '../../lib/devices/GenericDevice';
 import { Light } from '../../lib/devices/Light';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 import type { StructuredJsonFormData } from '../../lib/JsonConfigUtils';
+import type { MatterAdapter } from '../../main';
 
 export class UtilityOnlyToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: ElectricityDataDevice;
@@ -15,7 +16,7 @@ export class UtilityOnlyToIoBroker extends GenericElectricityDataDeviceToIoBroke
         node: PairedNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
-        adapter: ioBroker.Adapter,
+        adapter: MatterAdapter,
         endpointDeviceBaseId: string,
         deviceTypeName: string,
         defaultConnectionStateId: string,

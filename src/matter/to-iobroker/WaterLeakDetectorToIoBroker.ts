@@ -5,6 +5,7 @@ import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { FloodAlarm } from '../../lib/devices/FloodAlarm';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
+import type { MatterAdapter } from '../../main';
 
 export class WaterLeakDetectorToIoBroker extends GenericDeviceToIoBroker {
     readonly #ioBrokerDevice: FloodAlarm;
@@ -13,7 +14,7 @@ export class WaterLeakDetectorToIoBroker extends GenericDeviceToIoBroker {
         node: PairedNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
-        adapter: ioBroker.Adapter,
+        adapter: MatterAdapter,
         endpointDeviceBaseId: string,
         deviceTypeName: string,
         defaultConnectionStateId: string,

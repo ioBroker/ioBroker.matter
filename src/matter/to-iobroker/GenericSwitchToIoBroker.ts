@@ -6,6 +6,7 @@ import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDev
 import { ButtonSensor } from '../../lib/devices/ButtonSensor';
 import { Socket } from '../../lib/devices/Socket';
 import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
+import type { MatterAdapter } from '../../main';
 
 export class GenericSwitchToIoBroker extends GenericDeviceToIoBroker {
     readonly #ioBrokerDevice: ButtonSensor | Socket;
@@ -14,7 +15,7 @@ export class GenericSwitchToIoBroker extends GenericDeviceToIoBroker {
         node: PairedNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
-        adapter: ioBroker.Adapter,
+        adapter: MatterAdapter,
         endpointDeviceBaseId: string,
         deviceTypeName: string,
         defaultConnectionStateId: string,

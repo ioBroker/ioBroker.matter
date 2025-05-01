@@ -7,6 +7,7 @@ import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityData
 import { Blind } from '../../lib/devices/Blind';
 import { BlindButtons } from '../../lib/devices/BlindButtons';
 import type { TypeFromBitSchema } from '@matter/main/types';
+import type { MatterAdapter } from '../../main';
 
 export class WindowCoveringToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Blind | BlindButtons;
@@ -16,7 +17,7 @@ export class WindowCoveringToIoBroker extends GenericElectricityDataDeviceToIoBr
         node: PairedNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
-        adapter: ioBroker.Adapter,
+        adapter: MatterAdapter,
         endpointDeviceBaseId: string,
         deviceTypeName: string,
         defaultConnectionStateId: string,

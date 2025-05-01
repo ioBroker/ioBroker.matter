@@ -23,16 +23,16 @@
     "url": "https://github.com/ioBroker/ioBroker.matter"
   },
   "optionalDependencies": {
-    "@matter/nodejs-ble": "0.13.0-alpha.0-20250427-e7df8aa45"
+    "@matter/nodejs-ble": "0.13.1-alpha.0-20250501-80c86b03e"
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.2.3",
     "@iobroker/dm-utils": "^1.0.9",
     "@iobroker/i18n": "^0.3.1",
-    "@iobroker/type-detector": "^4.4.0",
-    "@matter/main": "0.13.0-alpha.0-20250427-e7df8aa45",
-    "@matter/nodejs": "0.13.0-alpha.0-20250427-e7df8aa45",
-    "@project-chip/matter.js": "0.13.0-alpha.0-20250427-e7df8aa45",
+    "@iobroker/type-detector": "^4.5.0",
+    "@matter/main": "0.13.1-alpha.0-20250501-80c86b03e",
+    "@matter/nodejs": "0.13.1-alpha.0-20250501-80c86b03e",
+    "@project-chip/matter.js": "0.13.1-alpha.0-20250501-80c86b03e",
     "axios": "^1.9.0",
     "jsonwebtoken": "^9.0.2"
   },
@@ -47,7 +47,7 @@
     "@iobroker/testing": "^5.0.4",
     "@iobroker/types": "^7.0.7",
     "@types/jsonwebtoken": "^9.0.9",
-    "@types/node": "^22.15.2",
+    "@types/node": "^22.15.3",
     "colorette": "^2.0.20",
     "puppeteer": "^24.7.2",
     "typescript": "~5.8.3"

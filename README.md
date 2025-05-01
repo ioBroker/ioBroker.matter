@@ -88,6 +88,7 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 * (@Apollon77) Allows to overwrite the default subscription maximum interval send to the device in Node settings
 * (@Apollon77) Considers also the BatteryAlarm state of Smoke-CO sensors when determine LOWBAT state
 * (@Apollon77) Updates the connection state of Controller devices as soon as alive triggers or data updates come in
+* (@Apollon77) For Lock devices the SET state is synced with ACTUAL
 
 ### 0.4.15 (2025-02-25)
 * (@GermanBluefox) Added Button display and control in the UI

@@ -6,6 +6,7 @@ import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { Motion } from '../../lib/devices/Motion';
 import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
+import type { MatterAdapter } from '../../main';
 
 export class OccupancyToIoBroker extends GenericDeviceToIoBroker {
     readonly #ioBrokerDevice: Motion;
@@ -14,7 +15,7 @@ export class OccupancyToIoBroker extends GenericDeviceToIoBroker {
         node: PairedNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
-        adapter: ioBroker.Adapter,
+        adapter: MatterAdapter,
         endpointDeviceBaseId: string,
         deviceTypeName: string,
         defaultConnectionStateId: string,

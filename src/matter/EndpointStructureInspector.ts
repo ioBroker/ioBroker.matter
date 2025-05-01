@@ -7,7 +7,7 @@ import {
     SupportedAttributeClient,
     UnknownSupportedAttributeClient,
 } from '@matter/main/protocol';
-import { Logger, Diagnostic } from '@matter/main';
+import { Diagnostic } from '@matter/main';
 import { GlobalAttributes } from '@matter/main/types';
 
 export type EndpointLoggingOptions = {
@@ -44,7 +44,7 @@ function getAttributeServerValue(attribute: AnyAttributeServer<any>, options: En
             attributeValue !== null &&
             options.logAttributeObjectValues !== false
         ) {
-            value = Logger.toJSON(attributeValue);
+            value = Diagnostic.json(attributeValue);
         }
     } catch (error) {
         if (error instanceof FabricScopeError) {
@@ -232,6 +232,9 @@ function logClusterClient(
         subResult.push('Commands:');
         const subSub = new Array<string>();
         for (const commandName in clusterClient.commands) {
+            if (commandName.match(/^\d+$/)) {
+                continue;
+            }
             const supported = clusterClient.isCommandSupportedByName(commandName);
             if (!supported && options.logNotSupportedClusterCommands === false) {
                 continue;

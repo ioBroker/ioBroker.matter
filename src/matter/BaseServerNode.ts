@@ -1,4 +1,4 @@
-import { Logger, type ServerNode, type SessionsBehavior, type Endpoint, serialize } from '@matter/main';
+import { type ServerNode, type SessionsBehavior, type Endpoint, serialize, Diagnostic } from '@matter/main';
 import { DeviceCommissioner } from '@matter/main/protocol';
 import type { MatterAdapter } from '../main';
 import type { GeneralNode, MessageResponse } from './GeneralNode';
@@ -205,7 +205,7 @@ export abstract class BaseServerNode implements GeneralNode {
 
         const sessionChange = async (session: SessionsBehavior.Session): Promise<void> => {
             this.adapter.log.debug(
-                `activeSessionsChangedCallback: Active sessions changed on Fabric ${session.fabric?.fabricIndex}${Logger.toJSON(session)}`,
+                `activeSessionsChangedCallback: Active sessions changed on Fabric ${session.fabric?.fabricIndex}${Diagnostic.json(session)}`,
             );
             await this.updateUiState();
         };

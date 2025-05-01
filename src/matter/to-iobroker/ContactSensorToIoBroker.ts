@@ -5,6 +5,7 @@ import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { Window } from '../../lib/devices/Window';
 import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
+import type { MatterAdapter } from '../../main';
 
 export class ContactSensorToIoBroker extends GenericDeviceToIoBroker {
     readonly #ioBrokerDevice: Window; // TODO That's a hack for now, could also be Door or Generic?
@@ -13,7 +14,7 @@ export class ContactSensorToIoBroker extends GenericDeviceToIoBroker {
         node: PairedNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
-        adapter: ioBroker.Adapter,
+        adapter: MatterAdapter,
         endpointDeviceBaseId: string,
         deviceTypeName: string,
         defaultConnectionStateId: string,

@@ -96,6 +96,7 @@ export class Lock extends GenericDevice {
             throw new Error('Level state not found');
         }
         await this.#getLockState.updateValue(value);
+        await this.#setLockState?.updateValue(value);
     }
 
     setOpen(): Promise<void> {

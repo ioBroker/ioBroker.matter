@@ -6,7 +6,7 @@
         "@foxriver76/iob-component-lib": "^0.2.0",
         "@iobroker/adapter-react-v5": "^7.6.14",
         "@iobroker/dm-gui-components": "^7.6.14",
-        "@iobroker/type-detector": "^4.4.0",
+        "@iobroker/type-detector": "^4.5.0",
         "@types/react-dom": "^18.3.6",
         "@types/uuid": "^10.0.0",
         "@vitejs/plugin-react": "^4.4.1",

@@ -946,29 +946,26 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             (await detectDevices(this.props.socket, I18n.getLanguage(), SUPPORTED_DEVICES, [oid])) ??
                             [];
                         if (!detectedRooms.length) {
+                            // Attempt to detect devices using all possible device types, including those not supported by Matter.
+                            // This fallback is used to ensure that devices outside the SUPPORTED_DEVICES list are still identified,
+                            // allowing the user to receive feedback about unsupported device types or the absence of any matching devices.
                             const detectedRooms =
                                 (await detectDevices(this.props.socket, I18n.getLanguage(), undefined, [oid])) ?? [];
                             const deviceTypes = getDetectedDeviceTypes(detectedRooms);
                             if (deviceTypes.length) {
-                                this.props.showToast(
-                                    I18n.t('Detected device types "%s" are not supported yet', deviceTypes.join(', ')),
-                                );
-                                // TODO Should we really let user select??
                                 this.setState({
-                                    addDeviceDialog: null,
-                                    addCustomDeviceDialog: {
-                                        oid,
-                                        name: name || '',
-                                        deviceType: '',
-                                        bridgeIndex: this.bridgeIndex as number,
-                                        noComposed: false,
-                                    },
+                                    message: I18n.t(
+                                        'Detected device types "%s" are not supported yet',
+                                        deviceTypes.join(', '),
+                                    ),
                                 });
                             } else {
-                                this.props.showToast(I18n.t('No device found for ID %s', oid));
+                                this.setState({
+                                    message: I18n.t('No device found for ID %s', oid),
+                                });
                             }
                         } else {
-                            // Show dialog to select device type but only allow the detected ones
+                            // Show dialog to select a device type but only allow the detected ones
                             const detectedDeviceTypes = getDetectedDeviceTypes(detectedRooms);
                             const deviceType = detectedDeviceTypes[0];
 

@@ -946,7 +946,9 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                             (await detectDevices(this.props.socket, I18n.getLanguage(), SUPPORTED_DEVICES, [oid])) ??
                             [];
                         if (!detectedRooms.length) {
-                            // Detect with all possible devices, "not supported by matter" too
+                            // Attempt to detect devices using all possible device types, including those not supported by Matter.
+                            // This fallback is used to ensure that devices outside the SUPPORTED_DEVICES list are still identified,
+                            // allowing the user to receive feedback about unsupported device types or the absence of any matching devices.
                             const detectedRooms =
                                 (await detectDevices(this.props.socket, I18n.getLanguage(), undefined, [oid])) ?? [];
                             const deviceTypes = getDetectedDeviceTypes(detectedRooms);

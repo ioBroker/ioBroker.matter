@@ -78,6 +78,11 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* IMPORTANT: Increase Node.js requirement to at least 20.x because else BLE currently does not work
+* (@Apollon77) Added info log message when device decided for a different subscription interval
+
 ### 0.4.16 (2025-05-01)
 * (@GermanBluefox) Added expert mode to GUI
 * (@GermanBluefox) GUI optimizations

@@ -1034,6 +1034,14 @@ export class GeneralMatterNode {
         switch (state) {
             case PairedNodeStates.Connected:
                 this.adapter.log.info(`Node "${this.nodeId}" connected`);
+                if (
+                    this.#subscriptionMaxIntervalS &&
+                    this.node.currentSubscriptionIntervalSeconds !== this.#subscriptionMaxIntervalS
+                ) {
+                    this.adapter.log.info(
+                        `Node "${this.nodeId}" subscription interval was requested with ${this.#subscriptionMaxIntervalS}s but device returned ${this.node.currentSubscriptionIntervalSeconds}s`,
+                    );
+                }
                 break;
             case PairedNodeStates.Disconnected:
                 this.adapter.log.info(`Node "${this.nodeId}" disconnected`);

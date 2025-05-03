@@ -1035,7 +1035,7 @@ export class GeneralMatterNode {
             case PairedNodeStates.Connected:
                 this.adapter.log.info(`Node "${this.nodeId}" connected`);
                 if (
-                    this.#subscriptionMaxIntervalS !== 0 &&
+                    this.#subscriptionMaxIntervalS &&
                     this.node.currentSubscriptionIntervalSeconds !== this.#subscriptionMaxIntervalS
                 ) {
                     this.adapter.log.info(

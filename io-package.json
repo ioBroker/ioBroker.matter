@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.4.16",
+    "version": "0.5.0",
     "news": {
+      "0.5.0": {
+        "en": "IMPORTANT: Increase Node.js requirement to at least 20.x because else BLE currently does not work\nAdded info log message when device decided for a different subscription interval",
+        "de": "WICHTIG: Erhöhe Node.js Anforderung auf mindestens 20.x, weil BLE derzeit nicht funktioniert\nZusätzliche Info-Log-Nachricht, wenn das Gerät für ein anderes Abonnement-Intervall entschieden",
+        "ru": "ВАЖНО: Увеличьте требование Node.js как минимум до 20.x, потому что в настоящее время BLE не работает\nДобавлено сообщение журнала информации, когда устройство решило для другого интервала подписки",
+        "pt": "IMPORTANTE: Aumentar a exigência de Node.js para pelo menos 20.x porque mais BLE atualmente não funciona\nAdicionado info log mensagem quando dispositivo decidiu para um intervalo de assinatura diferente",
+        "nl": "BELANGRIJK: Node.js vereiste verhogen tot ten minste 20.x omdat anders BLE momenteel niet werkt\nInfologbericht toegevoegd wanneer het apparaat besloot voor een ander abonnementsinterval",
+        "fr": "IMPORTANT: Augmenter l'exigence Node.js à au moins 20.x parce que le BLE ne fonctionne pas actuellement\nAjout d'un message de journal d'information lorsque le périphérique a décidé pour un intervalle d'abonnement différent",
+        "it": "IMPORTANTE: Aumentare il requisito Node.js di almeno 20.x perché altrimenti BLE attualmente non funziona\nAggiunto info log messaggio quando il dispositivo ha deciso per un intervallo di abbonamento diverso",
+        "es": "IMPORTANTE: Aumentar el requisito Node.js a al menos 20.x porque si no BLE actualmente no funciona\nInformación adicional mensaje de registro cuando el dispositivo decidió un intervalo de suscripción diferente",
+        "pl": "WAŻNE: Zwiększyć Node.js wymóg co najmniej 20.x, ponieważ inaczej BLE obecnie nie działa\nDodano komunikat dziennika informacji, gdy urządzenie zdecydowało się na inny interwał subskrypcji",
+        "uk": "ВАЖЛИВО: Збільшити вимоги Node.js до принаймні 20.x, оскільки інші BLE наразі не працюють\nДодано повідомлення про журнал, коли пристрій вирішив для різних інтервалів підписки",
+        "zh-cn": "重要: 将节点.js要求至少增加到20x,因为其他BLE目前行不通\n当设备决定不同的订阅间隔时添加信息日志消息"
+      },
       "0.4.16": {
         "en": "Added expert mode to GUI\nGUI optimizations\nUpgrade Matter support to 1.4\nUpgrade type detector and usage for better automatic detection results\nIncluded Battery state in attribute polling and changed default interval to 24h if device is battery bowered\nShows subscription maximum interval of the node in the connection-infos\nAllows to overwrite the default subscription maximum interval send to the device in Node settings\nConsiders also the BatteryAlarm state of Smoke-CO sensors when determine LOWBAT state\nUpdates the connection state of Controller devices as soon as alive triggers or data updates come in\nFor Lock devices the SET state is synced with ACTUAL",
         "de": "Zusätzlich zu GUI\nGUI Optimierungen\nUpgrade Matter Unterstützung für 1.4\nUpgrade-Typ-Detektor und Verwendung für bessere automatische Erkennungsergebnisse\nInklusive Batteriezustand in Attributverstimmung und geänderte Standardintervall auf 24h, wenn Gerät Batterie verneigt\nZeigt das maximale Abointervall des Knotens in den Verbindungs-Infos\nErlaubt, das maximale Intervall für das Standard-Abo-Abonnement zu überschreiben, das an das Gerät in Node-Einstellungen gesendet wird\nBetrachtet auch den BatteryAlarm Zustand von Smoke-CO Sensoren, wenn LOWBAT-Zustand\nAktualisiert den Verbindungszustand der Controller-Geräte, sobald lebendige Trigger oder Datenaktualisierungen eintreffen\nFür Lock-Geräte wird der SET-Zustand mit ACTUAL synchronisiert",
@@ -80,19 +93,6 @@
         "pl": "Stałe problemy z buforowaniem w wykrywaniu typu urządzenia\nDodano ikonę debugowania informacji dla urządzeń i mostów",
         "uk": "Фіксовані проблеми з кешуванням пристрою\nДодано піктограму Debug для пристроїв та міст",
         "zh-cn": "设备类型检测中的固定缓存问题\n添加设备及桥段的调试信息图标"
-      },
-      "0.4.10": {
-        "en": "Fixed Thermostat limit initialization and Mode error\nFixed Matter Event handling when mapped to an ioBroker state (e.g.GenericSwitch)\nFixed Device type detection by really preferring the preferred type",
-        "de": "Fixed Thermostat Limit Initialisierung und Modusfehler\nFeste Materie Veranstaltungshandling, wenn sie auf einen ioBroker-Staat abgebildet wird (z.B. GenericSwitch)\nFeste Gerätetyp-Erkennung durch die wirklich bevorzugte Art",
-        "ru": "Исправлена ошибка инициализации лимита термостата\nФиксированная материя Обработка событий при отображении состояния ioBroker (например,GenericSwitch)\nФиксированное обнаружение типа устройства, по-настоящему предпочитая предпочтительный тип",
-        "pt": "Inicialização do limite de termostato fixo e erro de modo\nMatéria fixa Manuseio de eventos quando mapeado para um estado ioBroker (por exemplo, GenericSwitch)\nDetecção de tipo de dispositivo fixo preferindo realmente o tipo preferido",
-        "nl": "Vaste thermostaat limiet initialisatie en modusfout\nVaste materie Gebeurtenisafhandeling bij in kaart gebracht naar een ioBroker-toestand (bv. GeneriekeSwitch)\nFixed Device type detectie door echt de voorkeur te geven aan het gewenste type",
-        "fr": "Erreur d'initialisation et de mode de limitation du thermostat fixe\nMatière fixe Manipulation de l'événement lorsqu'il est cartographié dans un état ioBroker (p. ex. GenericSwitch)\nDétection de type de périphérique fixe en préférant vraiment le type préféré",
-        "it": "Termostato fisso limite inizializzazione e errore Modalità\nMateria fissa Gestione degli eventi quando mappato a uno stato ioBroker (ad es.GenericSwitch)\nRilevamento del tipo di dispositivo fisso preferendo davvero il tipo preferito",
-        "es": "Termostato fijo límite inicialización y error de modo\nMaterias fijas Manejo de eventos cuando se mapeó a un estado de yoBroker (por ejemplo, GenericSwitch)\nDetección de tipo de dispositivo fijo preferiendo realmente el tipo preferido",
-        "pl": "Naprawiono inicjalizację limitu termicznego i błąd trybu\nMateria stała Obsługa zdarzeń po odwzorowaniu do stanu jOBroker (np. GenericSwitch)\nWykrywanie typu urządzenia stałego poprzez naprawdę preferowanie preferowanego typu",
-        "uk": "Фіксована термостатова ініціалізація та помилка режиму\nФіксований матовий Обробка подій при картопуванні до стану ІоБрокер (наприклад,GenericSwitch)\nВиправлено виявлення типу пристрою, дійсно віддає перевагу бажаному типу",
-        "zh-cn": "固定热点限制初始化和模式错误\n固定物质 映射到 ioBroker 状态时的事件处理( 例如 GenericSwitch)\n通过真正偏爱首选类型来检测固定设备类型"
       }
     },
     "titleLang": {

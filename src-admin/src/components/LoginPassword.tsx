@@ -20,29 +20,23 @@ interface LoginPasswordProps {
     native: MatterAdapterConfig;
     onChange: (attr: string, value: string) => Promise<void>;
     onError: (errorText: string) => void;
-    updatePassTrigger: number;
     socket: AdminConnection;
 }
 
 interface LoginPasswordState {
     iotLogin: string;
     iotPassword: string;
-    passwordRepeat: string;
     iotInstance: string;
 }
 
 export default class LoginPassword extends Component<LoginPasswordProps, LoginPasswordState> {
-    private updatePassTrigger: number;
-
     constructor(props: LoginPasswordProps) {
         super(props);
         this.state = {
-            passwordRepeat: this.props.native.pass,
             iotLogin: '',
             iotPassword: '',
             iotInstance: '',
         };
-        this.updatePassTrigger = this.props.updatePassTrigger;
     }
 
     async componentDidMount(): Promise<void> {
@@ -87,19 +81,7 @@ export default class LoginPassword extends Component<LoginPasswordProps, LoginPa
     }
 
     render(): React.JSX.Element {
-        const passwordError =
-            this.props.native.pass !== this.state.passwordRepeat
-                ? I18n.t('Password repeat is not equal to password')
-                : LoginPassword.checkPassword(this.props.native.pass);
-
-        if (this.props.updatePassTrigger !== this.updatePassTrigger) {
-            this.updatePassTrigger = this.props.updatePassTrigger;
-            if (this.state.passwordRepeat !== this.props.native.pass) {
-                setTimeout(() => {
-                    this.setState({ passwordRepeat: this.props.native.pass });
-                }, 50);
-            }
-        }
+        const passwordError = LoginPassword.checkPassword(this.props.native.pass);
 
         return (
             <div>
@@ -144,11 +126,6 @@ export default class LoginPassword extends Component<LoginPasswordProps, LoginPa
                                         size="small"
                                         onClick={() => {
                                             void this.props.onChange('pass', '');
-                                            if (this.state.passwordRepeat !== '') {
-                                                this.props.onError(I18n.t('Password repeat is not equal to password'));
-                                            } else {
-                                                this.props.onError('');
-                                            }
                                         }}
                                     >
                                         <Clear />
@@ -161,52 +138,6 @@ export default class LoginPassword extends Component<LoginPasswordProps, LoginPa
                         helperText={passwordError || ''}
                         onChange={e => {
                             void this.props.onChange('pass', e.target.value);
-                            if (this.state.passwordRepeat !== e.target.value) {
-                                this.props.onError(I18n.t('Password repeat is not equal to password'));
-                            } else {
-                                this.props.onError('');
-                            }
-                        }}
-                        margin="normal"
-                    />
-                    <TextField
-                        variant="standard"
-                        label={I18n.t('Password repeat')}
-                        error={!!passwordError}
-                        autoComplete="current-password"
-                        style={styles.input}
-                        slotProps={{
-                            htmlInput: {
-                                autocomplete: 'new-password',
-                            },
-                            input: {
-                                endAdornment: this.state.passwordRepeat ? (
-                                    <IconButton
-                                        size="small"
-                                        onClick={() => {
-                                            this.setState({ passwordRepeat: '' });
-                                            if (this.props.native.pass !== '') {
-                                                this.props.onError(I18n.t('Password repeat is not equal to password'));
-                                            } else {
-                                                this.props.onError('');
-                                            }
-                                        }}
-                                    >
-                                        <Clear />
-                                    </IconButton>
-                                ) : null,
-                            },
-                        }}
-                        value={this.state.passwordRepeat}
-                        type="password"
-                        helperText={passwordError || ''}
-                        onChange={e => {
-                            if (this.props.native.pass !== e.target.value) {
-                                this.props.onError(I18n.t('Password repeat is not equal to password'));
-                            } else {
-                                this.props.onError('');
-                            }
-                            this.setState({ passwordRepeat: e.target.value });
                         }}
                         margin="normal"
                     />
@@ -214,7 +145,6 @@ export default class LoginPassword extends Component<LoginPasswordProps, LoginPa
                 <div style={{ marginTop: 8 }}>
                     {this.state.iotInstance &&
                     (this.state.iotPassword !== this.props.native.pass ||
-                        this.state.iotPassword !== this.state.passwordRepeat ||
                         this.state.iotLogin !== this.props.native.login) ? (
                         <Button
                             variant="contained"
@@ -228,7 +158,6 @@ export default class LoginPassword extends Component<LoginPasswordProps, LoginPa
                                 }
 
                                 this.props.onError('');
-                                this.setState({ passwordRepeat: this.state.iotPassword });
                             }}
                         >
                             {I18n.t('Sync credentials with %s', this.state.iotInstance.replace('system.adapter.', ''))}

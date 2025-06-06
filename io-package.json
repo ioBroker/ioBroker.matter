@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.5.0",
+    "version": "0.5.1",
     "news": {
+      "0.5.1": {
+        "en": "Updated matter.js to 0.14 with many performance- and other improvements",
+        "de": "Aktualisierte matter.js bis 0,14 mit vielen Leistungs- und anderen Verbesserungen",
+        "ru": "Обновленный matter.js до 0.14 со многими улучшениями производительности",
+        "pt": "Atualizado matter.js para 0.14 com muitos desempenho- e outras melhorias",
+        "nl": "Bijgewerkt materie.js naar 0.14 met veel prestaties- en andere verbeteringen",
+        "fr": "Matière mise à jour.js à 0.14 avec de nombreuses améliorations - et autres",
+        "it": "Question.js aggiornato a 0.14 con molte prestazioni- e altri miglioramenti",
+        "es": "Actualizado matter.js a 0.14 con muchas mejoras de rendimiento y otros",
+        "pl": "Aktualizacja mater.js do 0.14 z wielu wykonania- i innych ulepszeń",
+        "uk": "Оновлена справа.js до 0.14 з багатьма перфомансувальними та іншими вдосконаленнями",
+        "zh-cn": "已更新到0.14,并有许多业绩和其他改进"
+      },
       "0.5.0": {
         "en": "IMPORTANT: Increase Node.js requirement to at least 20.x because else BLE currently does not work\nAdded info log message when device decided for a different subscription interval",
         "de": "WICHTIG: Erhöhe Node.js Anforderung auf mindestens 20.x, weil BLE derzeit nicht funktioniert\nZusätzliche Info-Log-Nachricht, wenn das Gerät für ein anderes Abonnement-Intervall entschieden",
@@ -80,19 +93,6 @@
         "pl": "Dodano przycisk \"kopiuj do schowka\" w oknie debugowania\nAktualizacja mater.js z optymalizacją wydajności i wykorzystania pamięci (i parowanie Tasmota working around)\nPrzerabiana detekcja typu w tle i dla typu detekcji Channel / Device w UI, teraz wiele devicetypes są oferowane z najbardziej złożonym jednym z wstępnie wybranych\nHandle Materia ColorTemperature Lights jako kolor zdolny światło, aby również pozwolić CT- Lights z Hue wsparcia\nDodano punkt końcowy BOOST jako przełącznik przy ekspozycji Termostatów z Boost stanu\nZoptymalizowane zarządzanie przyciemniaczem / poziomem dla urządzeń oświetleniowych bez stanu przyciemniacza",
         "uk": "Додано кнопку \"копіювати до буфера\" в діалоговому вікні знезараження\nОновлена справа.js з оптимізації використання продуктивності та пам'яті (і Tasmota pairing workaround)\nВідновлений тип виявлення в Backend і для типу виявлення каналів/Device в UI, тепер кілька типів пристроїв пропонуються з найскладнішим\nРучка Matter ColorTemperature Lights як колір здатний світло, щоб також дозволити CT-Lights з підтримкою Hue\nДодана кінцева точка BOOST як перемикач при випромінюванні термостатів з станом Boost\nОптимізоване управління зануренням/рівневими пристроями без занурення стану",
         "zh-cn": "在调试对话框中添加“ 复制到剪贴板” 按钮\n有性能和内存使用优化的更新物质.js(和Tasmota配对工作)\n在后端和在UI中为Channel/Device检测类型重新设计类型检测,现在提供多种设备类型,其中最复杂的一种是预选\n处理物质彩色透光作为彩色有能力的光, 也允许有色人种支持的 CT- Lights\n曝光带有布斯特状态的自动调温器时添加了 BOOST 端点作为切换\n优化一些无淡化状态的光设备的淡化/级别管理"
-      },
-      "0.4.11": {
-        "en": "Fixed caching issues in device type detection\nAdded Debug info icon for Devices and Bridges",
-        "de": "Feste Cache-Probleme bei Gerätetyperkennung\nDebug-Info-Symbol für Geräte und Brücken hinzugefügt",
-        "ru": "Исправленные проблемы кэширования при обнаружении типа устройства\nДобавить значок информации отладки для устройств и мостов",
-        "pt": "Problemas de cache fixos na detecção de tipo de dispositivo\nAdicionado ícone de informação de Debug para dispositivos e pontes",
-        "nl": "Vaste caching problemen in apparaat type detectie\nToegevoegd Debug info pictogram voor apparaten en bruggen",
-        "fr": "Correction des problèmes de cache dans la détection du type d'appareil\nAjout de l'icône de débogage pour les appareils et ponts",
-        "it": "Problemi di caching fissi nel rilevamento del tipo di dispositivo\nAggiunta Debug info icon per Dispositivi e Ponti",
-        "es": "Problemas de caché fijos en la detección del tipo de dispositivo\nAñadido icono de información de depuración para dispositivos y puentes",
-        "pl": "Stałe problemy z buforowaniem w wykrywaniu typu urządzenia\nDodano ikonę debugowania informacji dla urządzeń i mostów",
-        "uk": "Фіксовані проблеми з кешуванням пристрою\nДодано піктограму Debug для пристроїв та міст",
-        "zh-cn": "设备类型检测中的固定缓存问题\n添加设备及桥段的调试信息图标"
       }
     },
     "titleLang": {

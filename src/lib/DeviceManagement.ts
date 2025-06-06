@@ -17,9 +17,10 @@ import {
 import { GeneralMatterNode, type NodeDetails } from '../matter/GeneralMatterNode';
 import { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIoBroker';
 import type { DeviceAction } from '@iobroker/dm-utils/build/types/base';
-import { logEndpoint } from '../matter/EndpointStructureInspector';
 import { inspect } from 'util';
 import { convertDataToJsonConfig } from './JsonConfigUtils';
+import { logControllerEndpoint } from '../matter/ControllerEndpointStructureInspector';
+import { SpecificationVersion } from '@matter/main/types';
 
 function strToBool(str: string): boolean | null {
     if (str === 'true') {
@@ -459,7 +460,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     async #handleLogDebugNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
         const rootEndpoint = node.node.getRootEndpoint();
 
-        const debugInfos = rootEndpoint ? logEndpoint(rootEndpoint) : 'No root endpoint found';
+        const debugInfos = rootEndpoint ? logControllerEndpoint(rootEndpoint) : 'No root endpoint found';
 
         await context.showForm(
             {
@@ -581,24 +582,34 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             }
         } else if (node !== undefined) {
             const nodeConfig = node.nodeConfiguration;
-            items.subscriptionMaxIntervalS_devider = {
-                type: 'divider',
-            };
-            items.subscriptionMaxIntervalS = {
-                type: 'number',
-                label: this.#adapter.getText('Subscription Maximum Interval (s, 0=Default)'),
-                min: 0,
-                max: 2147482,
-                sm: 12,
-            };
-            data.subscriptionMaxIntervalS = nodeConfig.subscriptionMaxIntervalS ?? 0;
-            items.subscriptionMaxIntervalS_info = {
-                type: 'staticText',
-                newLine: true,
-                text: this.#adapter.getText(
-                    'This value is just a proposal from the controller. The device may decide for an other maximum interval.',
-                ),
-            };
+
+            // Because of a Matter SDK Bug setting the subscriptionMaxIntervalS only makes sense
+            // for Matter versions >= 1.3
+            const specVersion = node.node.basicInformation?.specificationVersion;
+            if (typeof specVersion === 'number') {
+                const { major, minor } = SpecificationVersion.decode(specVersion);
+                const matterVersion = parseFloat((major + minor / 100).toFixed(1));
+                if (matterVersion >= 1.3) {
+                    items.subscriptionMaxIntervalS_devider = {
+                        type: 'divider',
+                    };
+                    items.subscriptionMaxIntervalS = {
+                        type: 'number',
+                        label: this.#adapter.getText('Subscription Maximum Interval (s, 0=Default)'),
+                        min: 0,
+                        max: 2147482,
+                        sm: 12,
+                    };
+                    data.subscriptionMaxIntervalS = nodeConfig.subscriptionMaxIntervalS ?? 0;
+                    items.subscriptionMaxIntervalS_info = {
+                        type: 'staticText',
+                        newLine: true,
+                        text: this.#adapter.getText(
+                            'This value is just a proposal for the device The device may decide for an other maximum interval.',
+                        ),
+                    };
+                }
+            }
 
             if (node.node.deviceInformation?.isBatteryPowered) {
                 items.subscriptionMaxIntervalS_batteryInfo = {

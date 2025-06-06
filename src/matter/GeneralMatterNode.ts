@@ -11,7 +11,6 @@ import { AttributeModel, ClusterModel, CommandModel, MatterModel } from '@matter
 import {
     type DecodedAttributeReportValue,
     type DecodedEventReportValue,
-    FabricScopeError,
     SupportedAttributeClient,
     UnknownSupportedAttributeClient,
 } from '@matter/main/protocol';
@@ -783,19 +782,13 @@ export class GeneralMatterNode {
 
                 if (this.node.isConnected) {
                     // Only request values when connected, else old values should still be current
-                    try {
-                        const attributeValue = await attribute.get(false); // Only use locally cached values, do not request from remote
+                    const attributeValue = await attribute.getLocal(); // Only use locally cached values, do not request from remote
+                    if (attributeValue !== undefined) {
                         await this.adapter.setState(
                             attributeBaseId,
                             this.#formatAttributeServerValue(endpoint.number, attributeValue, targetType),
                             true,
                         );
-                    } catch (error: unknown) {
-                        if (error instanceof FabricScopeError) {
-                            this.adapter.log.warn('Fabric-Scoped');
-                        } else {
-                            this.adapter.log.warn(`Error: ${(error as Error).message}`);
-                        }
                     }
                 }
 

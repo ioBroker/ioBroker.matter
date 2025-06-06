@@ -1,7 +1,12 @@
-import type { Val } from '@matter/main/protocol';
-import { Diagnostic, type Endpoint, type Behavior, type ClusterBehavior, serialize } from '@matter/main';
-import { FeatureSet } from '@matter/main/model';
-import { GlobalAttributes, VoidSchema } from '@matter/main/types';
+import type { Endpoint as LegacyEndpoint } from '@project-chip/matter.js/device';
+import { type ClusterServer } from '@project-chip/matter.js/cluster';
+import {
+    type ClusterClientObj,
+    SupportedAttributeClient,
+    UnknownSupportedAttributeClient,
+} from '@matter/main/protocol';
+import { Diagnostic, serialize } from '@matter/main';
+import { GlobalAttributes } from '@matter/main/types';
 
 export type EndpointLoggingOptions = {
     logClusterServers?: boolean;
@@ -17,9 +22,9 @@ export type EndpointLoggingOptions = {
     logAttributePrimitiveValues?: boolean;
     logAttributeObjectValues?: boolean;
 
-    clusterServerFilter?: (endpoint: Endpoint, clusterName: string) => boolean;
-    clusterClientFilter?: (endpoint: Endpoint, clusterName: string) => boolean;
-    endpointFilter?: (endpoint: Endpoint) => boolean;
+    clusterServerFilter?: (endpoint: LegacyEndpoint, cluster: ClusterServer) => boolean;
+    clusterClientFilter?: (endpoint: LegacyEndpoint, cluster: ClusterClientObj) => boolean;
+    endpointFilter?: (endpoint: LegacyEndpoint) => boolean;
 };
 
 export type NestedArray<T> = T | Array<T> | Array<NestedArray<T>>;
@@ -29,7 +34,6 @@ function shortenString(str?: string, maxLength = 150): string {
     if (str === undefined) {
         return 'undefined';
     }
-
     if (str.length <= maxLength) {
         return str;
     }
@@ -37,45 +41,54 @@ function shortenString(str?: string, maxLength = 150): string {
     return `${str.slice(0, partLength)}...${str.slice(-partLength)}`;
 }
 
-function logServerClusterServer(
-    endpoint: Endpoint,
-    clusterName: string,
-    type: Behavior.Type,
+function logControllerClusterServer(
+    endpoint: LegacyEndpoint,
+    clusterServer: ClusterServer,
     options: EndpointLoggingOptions = {},
 ): NestedArray<string> {
-    if (options.clusterServerFilter !== undefined && !options.clusterServerFilter(endpoint, clusterName)) {
+    if (options.clusterServerFilter !== undefined && !options.clusterServerFilter(endpoint, clusterServer)) {
         return [''];
     }
-    const cluster = (type as ClusterBehavior.Type)?.cluster;
+
+    return [`Cluster-Client "${clusterServer.name}"`];
+}
+
+function logControllerClusterClient(
+    endpoint: LegacyEndpoint,
+    clusterClient: ClusterClientObj,
+    options: EndpointLoggingOptions = {},
+): NestedArray<string> {
+    if (options.clusterClientFilter !== undefined && !options.clusterClientFilter(endpoint, clusterClient)) {
+        return '';
+    }
 
     const result = new Array<NestedArray<string>>();
 
-    const features = new FeatureSet(cluster.supportedFeatures);
-    const supportedFeatures = [...features.values()];
-    const globalAttributes = GlobalAttributes<any>({});
+    const { supportedFeatures: features } = clusterClient;
+    const globalAttributes = GlobalAttributes<any>(features);
+    const supportedFeatures = new Array<string>();
+    for (const featureName in features) {
+        if (features[featureName] === true) {
+            supportedFeatures.push(featureName);
+        }
+    }
 
     result.push(
-        `Cluster-Server "${clusterName}" (${Diagnostic.hex(cluster.id)}) ${
+        `Cluster-Server "${clusterClient.name}" (${Diagnostic.hex(clusterClient.id)}) ${
             supportedFeatures.length ? `(Features: ${supportedFeatures.join(', ')})` : ''
         }`,
     );
-    const elements = endpoint.behaviors.elementsOf(type);
-    const state = endpoint.stateOf(type);
-
     if (options.logClusterGlobalAttributes !== false) {
         const subResult = new Array<NestedArray<string>>();
         subResult.push('Global-Attributes:');
         const subSub = new Array<string>();
         for (const attributeName in globalAttributes) {
-            if (!elements.attributes.has(attributeName)) {
+            const attribute = clusterClient.attributes[attributeName];
+            if (attribute === undefined) {
                 continue;
             }
-            const attribute = cluster.attributes[attributeName];
 
-            const value = (state as Val.Struct)[attributeName] as any;
-            subSub.push(
-                `"${attributeName}" (${Diagnostic.hex(attribute.id)})${value !== undefined ? `: value = ${shortenString(serialize(value))}` : ''}`,
-            );
+            subSub.push(`"${attribute.name}" (${Diagnostic.hex(attribute.id)})`);
         }
         subResult.push(subSub);
         result.push(subResult);
@@ -84,18 +97,30 @@ function logServerClusterServer(
         const subResult = new Array<NestedArray<string>>();
         subResult.push('Attributes:');
         const subSub = new Array<string>();
-        for (const attributeName of elements.attributes) {
+        for (const attributeName in clusterClient.attributes) {
             if (attributeName in globalAttributes) {
                 continue;
             }
-            const attribute = cluster.attributes[attributeName];
+            const attribute = clusterClient.attributes[attributeName];
             if (attribute === undefined) {
                 continue;
             }
+            const supported = attribute instanceof SupportedAttributeClient;
+            if (!supported && options.logNotSupportedClusterAttributes === false) {
+                continue;
+            }
+            const unknown = attribute instanceof UnknownSupportedAttributeClient;
 
-            const value = (state as Val.Struct)[attributeName] as any;
+            let info = '';
+            if (!supported) {
+                info += ' (Not Supported)';
+            }
+            if (unknown) {
+                info += ' (Unknown)';
+            }
+
             subSub.push(
-                `"${attributeName}" (${Diagnostic.hex(attribute.id)})${value !== undefined ? `: value = ${shortenString(serialize(value))}` : ''}`,
+                `"${attribute.name}" = ${shortenString(serialize(attribute.getLocal()))} (${Diagnostic.hex(attribute.id)})${info}`,
             );
         }
         subResult.push(subSub);
@@ -105,14 +130,15 @@ function logServerClusterServer(
         const subResult = new Array<NestedArray<string>>();
         subResult.push('Commands:');
         const subSub = new Array<string>();
-        for (const commandName of elements.commands) {
-            const command = cluster.commands[commandName];
-            if (command === undefined) {
+        for (const commandName in clusterClient.commands) {
+            if (commandName.match(/^\d+$/)) {
                 continue;
             }
-            subSub.push(
-                `"${commandName}" (${Diagnostic.hex(cluster.commands[commandName].requestId)}${cluster.commands[commandName].responseSchema instanceof VoidSchema ? '' : `/${Diagnostic.hex(cluster.commands[commandName].responseId)}`})`,
-            );
+            const supported = clusterClient.isCommandSupportedByName(commandName);
+            if (!supported && options.logNotSupportedClusterCommands === false) {
+                continue;
+            }
+            subSub.push(`"${commandName}"${supported ? '' : ' (Not Supported)'}`);
         }
         subResult.push(subSub);
         result.push(subResult);
@@ -121,12 +147,13 @@ function logServerClusterServer(
         const subResult = new Array<NestedArray<string>>();
         subResult.push('Events:');
         const subSub = new Array<string>();
-        for (const eventName of elements.events) {
-            const event = cluster.events[eventName];
+        for (const eventName in clusterClient.events) {
+            const event = clusterClient.events[eventName];
             if (event === undefined) {
                 continue;
             }
-            subSub.push(`"${eventName}" (${Diagnostic.hex(event.id)})`);
+
+            subSub.push(`"${event.name}" (${Diagnostic.hex(event.id)})`);
         }
         subResult.push(subSub);
         result.push(subResult);
@@ -134,8 +161,8 @@ function logServerClusterServer(
     return result;
 }
 
-function _logServerEndpoint(
-    endpoint: Endpoint,
+function _logControllerEndpoint(
+    endpoint: LegacyEndpoint,
     options: EndpointLoggingOptions = {
         logNotSupportedClusterAttributes: false,
         logNotSupportedClusterEvents: false,
@@ -148,46 +175,43 @@ function _logServerEndpoint(
 
     const result = new Array<NestedArray<string>>();
 
-    result.push(`Endpoint ${endpoint.number} (${endpoint.type.name} / ${endpoint.id}):`);
+    result.push(`Endpoint ${endpoint.number} (${endpoint.name}):`);
     if (options.logClusterServers !== false) {
         const subResult = new Array<NestedArray<string>>();
         subResult.push('Cluster-Servers:');
-        for (const [name, type] of Object.entries(endpoint.behaviors.supported)) {
-            if (!(type as ClusterBehavior.Type)?.cluster) {
-                continue; // Skip non-cluster behaviors
-            }
-            subResult.push(logServerClusterServer(endpoint, name, type, options));
+        for (const clusterServer of endpoint.getAllClusterServers()) {
+            subResult.push(logControllerClusterServer(endpoint, clusterServer, options));
         }
         result.push(subResult);
     }
-    /*if (options.logClusterClients !== false) {
+    if (options.logClusterClients !== false) {
         const subResult = new Array<NestedArray<string>>();
         subResult.push('Cluster-Clients:');
         for (const clusterClient of endpoint.getAllClusterClients()) {
-            subResult.push(logServerClusterClient(endpoint, clusterClient, options));
+            subResult.push(logControllerClusterClient(endpoint, clusterClient, options));
         }
         result.push(subResult);
-    }*/
+    }
     if (options.logChildEndpoints !== false) {
         const subResult = new Array<NestedArray<string>>();
         subResult.push('Child-Endpoints:');
-        for (const childEndpoint of endpoint.parts) {
-            subResult.push(logServerEndpoint(childEndpoint, options));
+        for (const childEndpoint of endpoint.getChildEndpoints()) {
+            subResult.push(logControllerEndpoint(childEndpoint, options));
         }
         result.push(subResult);
     }
     return result;
 }
 
-export function logServerEndpoint(
-    endpoint: Endpoint,
+export function logControllerEndpoint(
+    endpoint: LegacyEndpoint,
     options: EndpointLoggingOptions = {
         logNotSupportedClusterAttributes: false,
         logNotSupportedClusterEvents: false,
         logNotSupportedClusterCommands: false,
     },
 ): string {
-    return arrayToString(_logServerEndpoint(endpoint, options));
+    return arrayToString(_logControllerEndpoint(endpoint, options));
 }
 
 function arrayToString(array: NestedArray<string>, indent: string = ''): string {

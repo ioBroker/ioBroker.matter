@@ -346,7 +346,7 @@ export abstract class GenericDeviceToIoBroker {
         this.#enabledEventProperties.set(type, knownEvents);
     }
 
-    async getMatterState(property: PropertyType): Promise<any> {
+    getMatterState(property: PropertyType): any {
         const matterLocation = this.#enabledAttributeProperties.get(property);
         if (matterLocation === undefined || matterLocation.type !== 'attribute') {
             return;
@@ -365,7 +365,7 @@ export abstract class GenericDeviceToIoBroker {
         if (!cluster) {
             return;
         }
-        return cluster.attributes[attributeName].get(false);
+        return cluster.attributes[attributeName].getLocal();
     }
 
     async updateIoBrokerState(property: PropertyType, value: any): Promise<void> {
@@ -536,7 +536,7 @@ export abstract class GenericDeviceToIoBroker {
     /** Initialize the states of the ioBroker device with the current values from the matter device. */
     async initializeStates(): Promise<void> {
         for (const property of this.#enabledAttributeProperties.keys()) {
-            const value = await this.getMatterState(property);
+            const value = this.getMatterState(property);
             if (value !== undefined) {
                 await this.updateIoBrokerState(property, value);
             }

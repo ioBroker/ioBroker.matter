@@ -17,9 +17,9 @@ import {
 import { GeneralMatterNode, type NodeDetails } from '../matter/GeneralMatterNode';
 import { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIoBroker';
 import type { DeviceAction } from '@iobroker/dm-utils/build/types/base';
-import { logEndpoint } from '../matter/EndpointStructureInspector';
 import { inspect } from 'util';
 import { convertDataToJsonConfig } from './JsonConfigUtils';
+import { logControllerEndpoint } from '../matter/ControllerEndpointStructureInspector';
 
 function strToBool(str: string): boolean | null {
     if (str === 'true') {
@@ -459,7 +459,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     async #handleLogDebugNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
         const rootEndpoint = node.node.getRootEndpoint();
 
-        const debugInfos = rootEndpoint ? logEndpoint(rootEndpoint) : 'No root endpoint found';
+        const debugInfos = rootEndpoint ? logControllerEndpoint(rootEndpoint) : 'No root endpoint found';
 
         await context.showForm(
             {

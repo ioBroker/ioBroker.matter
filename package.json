@@ -47,7 +47,7 @@
     "@iobroker/testing": "^5.0.4",
     "@iobroker/types": "^7.0.7",
     "@types/jsonwebtoken": "^9.0.9",
-    "@types/node": "^22.15.29",
+    "@types/node": "^22.15.30",
     "colorette": "^2.0.20",
     "puppeteer": "^24.10.0",
     "typescript": "~5.8.3"

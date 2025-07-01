@@ -23,7 +23,7 @@
     "url": "https://github.com/ioBroker/ioBroker.matter"
   },
   "optionalDependencies": {
-    "@matter/nodejs-ble": "0.14.0"
+    "@matter/nodejs-ble": "0.15.0"
   },
   "dependencies": {
     "@iobroker/adapter-core": "^3.2.3",

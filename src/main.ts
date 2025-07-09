@@ -967,7 +967,7 @@ export class MatterAdapter extends Adapter {
                         iat: number; // Issued at, Unix timestamp
                     };
                     if (decoded.name && (decoded.name.startsWith('remote.') || decoded.name.startsWith('assistant.'))) {
-                        return new Date(decoded.expires * 1000) > new Date();
+                        return new Date(decoded.valid_till) > new Date();
                     }
                 } catch (e) {
                     this.log.warn(`Cannot verify license: ${e}`);

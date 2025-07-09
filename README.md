@@ -78,19 +78,22 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (@GermanBluefox) Corrected the checking of the licenses if they were stacked
+
 ### 0.5.1 (2025-06-06)
 * (@Apollon77) Updated matter.js to 0.14 with many performance- and other improvements
 
 ### 0.5.0 (2025-05-03)
 * IMPORTANT: Increase Node.js requirement to at least 20.x because else BLE currently does not work
-* (@Apollon77) Added info log message when device decided for a different subscription interval
+* (@Apollon77) Added info log message when the device decided for a different subscription interval
 
 ### 0.4.16 (2025-05-01)
 * (@GermanBluefox) Added expert mode to GUI
 * (@GermanBluefox) GUI optimizations
 * (@Apollon77) Upgrade Matter support to 1.4
 * (@Apollon77) Upgrade type detector and usage for better automatic detection results
-* (@Apollon77) Included Battery state in attribute polling and changed default interval to 24h if device is battery bowered
+* (@Apollon77) Included Battery state in attribute polling and changed default interval to 24h if the device is battery powered
 * (@Apollon77) Shows subscription maximum interval of the node in the connection-infos
 * (@Apollon77) Allows to overwrite the default subscription maximum interval send to the device in Node settings
 * (@Apollon77) Considers also the BatteryAlarm state of Smoke-CO sensors when determine LOWBAT state

@@ -32,7 +32,7 @@
     "@iobroker/type-detector": "^4.5.0",
     "@matter/main": "0.14.0",
     "@matter/nodejs": "0.14.0",
-    "@project-chip/matter.js": "0.14.0",
+    "@project-chip/matter.js": "0.15.2",
     "axios": "^1.9.0",
     "jsonwebtoken": "^9.0.2"
   },

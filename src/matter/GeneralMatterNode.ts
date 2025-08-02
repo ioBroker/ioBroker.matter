@@ -1345,7 +1345,7 @@ export class GeneralMatterNode {
             const operationalCredentials = this.node.getRootClusterClient(OperationalCredentialsCluster);
             if (operationalCredentials) {
                 result.connection.__header__operationalCredentials = 'Connected Fabrics';
-                const ownFabricIndex = await operationalCredentials.getCurrentFabricIndexAttribute();
+                const ownFabricIndex = operationalCredentials.getCurrentFabricIndexAttributeFromCache();
                 const fabrics = await operationalCredentials.getFabricsAttribute(true, false);
                 fabrics.forEach(fabric => {
                     const fabricId = fabric.fabricId;

@@ -56,11 +56,11 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
         if (levelControl) {
             this.#isLighting = !!levelControl.supportedFeatures.lighting; // Should always be the case
             const minLevel = levelControl.isAttributeSupportedByName('minLevel')
-                ? await levelControl.getMinLevelAttribute(false)
+                ? levelControl.getMinLevelAttributeFromCache()
                 : undefined;
             this.#minLevel = minLevel ?? (this.#isLighting ? 1 : 0);
             const maxLevel = levelControl.isAttributeSupportedByName('maxLevel')
-                ? await levelControl.getMaxLevelAttribute()
+                ? levelControl.getMaxLevelAttributeFromCache()
                 : undefined;
             this.#maxLevel = maxLevel ?? 254;
         }
@@ -68,9 +68,9 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
         const colorControl = this.appEndpoint.getClusterClient(ColorControl.Complete);
         if (colorControl) {
             this.#colorTemperatureMinMireds =
-                (await colorControl.getColorTempPhysicalMinMiredsAttribute()) ?? kelvinToMireds(6_500);
+                colorControl.getColorTempPhysicalMinMiredsAttributeFromCache() ?? kelvinToMireds(6_500);
             this.#colorTemperatureMaxMireds =
-                (await colorControl.getColorTempPhysicalMaxMiredsAttribute()) ?? kelvinToMireds(2_000);
+                colorControl.getColorTempPhysicalMaxMiredsAttributeFromCache() ?? kelvinToMireds(2_000);
         }
     }
 
@@ -85,9 +85,9 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                 if (value) {
                     if (this.#ioBrokerDevice.hasDimmer()) {
                         // Check if the Dimmer in ioBroker still matches the Device Dimmer and correct if needed
-                        const currentLevel = await this.appEndpoint
+                        const currentLevel = this.appEndpoint
                             .getClusterClient(LevelControl.Cluster)
-                            ?.getCurrentLevelAttribute();
+                            ?.getCurrentLevelAttributeFromCache();
                         if (typeof currentLevel === 'number' && currentLevel <= 1) {
                             const ioLevel = Math.round((currentLevel / 100) * 254);
                             if (ioLevel !== this.#ioBrokerDevice.getDimmer()) {

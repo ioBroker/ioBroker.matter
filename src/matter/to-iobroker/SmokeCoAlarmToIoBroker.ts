@@ -70,12 +70,12 @@ export class SmokeCoAlarmToIoBroker extends GenericDeviceToIoBroker {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: PowerSource.Cluster.id,
             attributeName: 'batChargeLevel',
-            convertValue: async value => {
+            convertValue: value => {
                 if (value !== PowerSource.BatChargeLevel.Ok) {
                     return true;
                 }
                 const smokeBatteryState =
-                    (await smokeCo?.getBatteryAlertAttribute(false)) ?? SmokeCoAlarm.AlarmState.Normal;
+                    smokeCo?.getBatteryAlertAttributeFromCache() ?? SmokeCoAlarm.AlarmState.Normal;
                 return smokeBatteryState !== SmokeCoAlarm.AlarmState.Normal;
             },
             pollAttribute: true,

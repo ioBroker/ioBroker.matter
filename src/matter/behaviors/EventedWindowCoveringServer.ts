@@ -9,7 +9,7 @@ export class EventedWindowCoveringServer extends WindowCoveringRequirements.Wind
         reversed: boolean,
         direction: MovementDirection,
         targetPercent100ths?: number,
-    ): Promise<void> {
+    ): MaybePromise<void> {
         this.endpoint.act(agent =>
             agent
                 .get(IoBrokerEvents)

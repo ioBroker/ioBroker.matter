@@ -89,8 +89,8 @@ export class UtilityOnlyToIoBroker extends GenericElectricityDataDeviceToIoBroke
         return this.#ioBrokerDevice;
     }
 
-    override async getDeviceDetails(nodeConnected: boolean): Promise<StructuredJsonFormData> {
-        const details = await super.getDeviceDetails(nodeConnected);
+    override getDeviceDetails(nodeConnected: boolean): StructuredJsonFormData {
+        const details = super.getDeviceDetails(nodeConnected);
 
         const unsupportedInfo = {
             __header__UnsupportedNotice: 'This Device type is not automatically mapped to ioBroker!',

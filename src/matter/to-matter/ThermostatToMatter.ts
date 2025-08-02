@@ -1,4 +1,4 @@
-import { Endpoint } from '@matter/main';
+import { Endpoint, type ActionContext } from '@matter/main';
 import { HumiditySensorDevice, ThermostatDevice, OnOffPlugInUnitDevice } from '@matter/main/devices';
 import { Thermostat as MatterThermostat } from '@matter/main/clusters';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
@@ -292,15 +292,16 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
 
         this.matterEvents.on(
             this.#matterEndpointThermostat.eventsOf(IoThermostatServer).systemMode$Changed,
-            async value => {
+            async (value, _oldValue, context) => {
+                if (context === undefined || context.offline === true) {
+                    return;
+                }
                 switch (value) {
                     case MatterThermostat.SystemMode.Off:
-                        if (this.#ioBrokerDevice.hasPower()) {
+                        if (this.#ioBrokerDevice.hasPower() && this.#ioBrokerDevice.getPower()) {
                             await this.#ioBrokerDevice.setPower(false);
-                        } else if (
-                            this.#supportedModes.includes(ThermostatMode.Off) &&
-                            this.#ioBrokerDevice.hasMode()
-                        ) {
+                        }
+                        if (this.#supportedModes.includes(ThermostatMode.Off) && this.#ioBrokerDevice.hasMode()) {
                             await this.#ioBrokerDevice.setMode(ThermostatMode.Off);
                         } else {
                             this.#ioBrokerDevice.adapter.log.info(
@@ -309,6 +310,9 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                         }
                         break;
                     case MatterThermostat.SystemMode.Heat: {
+                        if (this.#ioBrokerDevice.hasPower() && !this.#ioBrokerDevice.getPower()) {
+                            await this.#ioBrokerDevice.setPower(true);
+                        }
                         if (this.#ioBrokerDevice.hasMode() && this.#validModes.includes(ThermostatMode.Heat)) {
                             await this.#ioBrokerDevice.setMode(ThermostatMode.Heat);
                         }
@@ -321,6 +325,9 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                         break;
                     }
                     case MatterThermostat.SystemMode.Cool: {
+                        if (this.#ioBrokerDevice.hasPower() && !this.#ioBrokerDevice.getPower()) {
+                            await this.#ioBrokerDevice.setPower(true);
+                        }
                         if (this.#ioBrokerDevice.hasMode() && this.#validModes.includes(ThermostatMode.Cool)) {
                             await this.#ioBrokerDevice.setMode(ThermostatMode.Cool);
                         }
@@ -333,16 +340,25 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                         break;
                     }
                     case MatterThermostat.SystemMode.Auto:
+                        if (this.#ioBrokerDevice.hasPower() && !this.#ioBrokerDevice.getPower()) {
+                            await this.#ioBrokerDevice.setPower(true);
+                        }
                         if (this.#ioBrokerDevice.hasMode() && this.#validModes.includes(ThermostatMode.Auto)) {
                             await this.#ioBrokerDevice.setMode(ThermostatMode.Auto);
                         }
                         break;
                     case MatterThermostat.SystemMode.FanOnly:
+                        if (this.#ioBrokerDevice.hasPower() && !this.#ioBrokerDevice.getPower()) {
+                            await this.#ioBrokerDevice.setPower(true);
+                        }
                         if (this.#ioBrokerDevice.hasMode() && this.#validModes.includes(ThermostatMode.FanOnly)) {
                             await this.#ioBrokerDevice.setMode(ThermostatMode.FanOnly);
                         }
                         break;
                     case MatterThermostat.SystemMode.Dry:
+                        if (this.#ioBrokerDevice.hasPower() && !this.#ioBrokerDevice.getPower()) {
+                            await this.#ioBrokerDevice.setPower(true);
+                        }
                         if (this.#ioBrokerDevice.hasMode() && this.#validModes.includes(ThermostatMode.Dry)) {
                             await this.#ioBrokerDevice.setMode(ThermostatMode.Dry);
                         }
@@ -355,7 +371,14 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
             this.matterEvents.on(
                 // @ts-expect-error Workaround a matter.js instancing/typing error
                 this.#matterEndpointThermostat.eventsOf(IoThermostatServer).occupiedHeatingSetpoint$Changed,
-                () => this.#updateSetPointTemperature(),
+                // @ts-expect-error Workaround a matter.js instancing/typing error
+                (_value: unknown, _oldValue: unknown, context: ActionContext) => {
+                    if (context === undefined || context.offline === true) {
+                        return;
+                    }
+
+                    this.#updateSetPointTemperature();
+                },
             );
         }
 
@@ -363,7 +386,14 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
             this.matterEvents.on(
                 // @ts-expect-error Workaround a matter.js instancing/typing error
                 this.#matterEndpointThermostat.eventsOf(IoThermostatServer).occupiedCoolingSetpoint$Changed,
-                () => this.#updateSetPointTemperature(),
+                // @ts-expect-error Workaround a matter.js instancing/typing error
+                (_value: unknown, _oldValue: unknown, context: ActionContext) => {
+                    if (context === undefined || context.offline === true) {
+                        return;
+                    }
+
+                    this.#updateSetPointTemperature();
+                },
             );
         }
 

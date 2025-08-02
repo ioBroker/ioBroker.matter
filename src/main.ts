@@ -815,7 +815,7 @@ export class MatterAdapter extends Adapter {
             if (state.value) {
                 objects[state.id] = state.value;
                 this.log.debug(
-                    `    Found state ${state.id}: type=${state.value.common.type}, role=${state.value.common.role}, read=${state.value.common.read}, write=${state.value.common.write}, unit=${state.value.common.unit}`,
+                    `    Found state ${state.id}: type=${state.value.common.type}, role=${state.value.common.role}, read=${state.value.common.read}, write=${state.value.common.write}, min=${state.value.common.min}, max=${state.value.common.max}, unit=${state.value.common.unit}`,
                 );
             }
         }

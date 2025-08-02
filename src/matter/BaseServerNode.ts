@@ -1,5 +1,5 @@
 import { type ServerNode, type SessionsBehavior, type Endpoint, serialize, Diagnostic } from '@matter/main';
-import { DeviceCommissioner } from '@matter/main/protocol';
+import { DeviceCommissioner, DeviceAdvertiser } from '@matter/main/protocol';
 import type { MatterAdapter } from '../main';
 import type { GeneralNode, MessageResponse } from './GeneralNode';
 import { type StructuredJsonFormData, convertDataToJsonConfig } from '../lib/JsonConfigUtils';
@@ -64,7 +64,7 @@ export abstract class BaseServerNode implements GeneralNode {
         if (this.serverNode.lifecycle.isCommissioned) {
             await this.serverNode.env.get(DeviceCommissioner)?.allowBasicCommissioning();
         } else {
-            await this.serverNode.advertiseNow();
+            await this.serverNode.env.get(DeviceAdvertiser)?.advertise(false);
         }
     }
 

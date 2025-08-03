@@ -75,9 +75,8 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 	### **WORK IN PROGRESS**
 -->
 
-## Changelog  
-
-### __WORK IN PROGRESS__
+## Changelog
+### 0.5.2 (2025-08-03)
 * (@Apollon77) Updated matter.js to 0.15.2 with many performance- and other improvements
 * (@GermanBluefox) Corrected the checking of the licenses if they were stacked
 * (Apollon77) Use attributes from cache instead of requesting them from the device

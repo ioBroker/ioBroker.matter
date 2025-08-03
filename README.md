@@ -80,9 +80,11 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 ### __WORK IN PROGRESS__
 * (@Apollon77) Updated matter.js to 0.15.2 with many performance- and other improvements
 * (@GermanBluefox) Corrected the checking of the licenses if they were stacked
-* (Apollon77) Use attributes from cache instead requesting them from device
-* (Apollon77) Ignoring invalid min/max for colortemperature from objects
+* (Apollon77) Use attributes from cache instead of requesting them from the device
+* (Apollon77) Ignoring invalid min/max for color temperature from objects
 * (Apollon77) Prevents update loops for Thermostat on/off state changes
+* (Apollon77) Fixes invalid color state updates when multiple attributes are adjusted together
+* (Apollon77) Rounds RSSI values to prevent digits
 
 ### 0.5.1 (2025-06-06)
 * (@Apollon77) Updated matter.js to 0.14 with many performance- and other improvements

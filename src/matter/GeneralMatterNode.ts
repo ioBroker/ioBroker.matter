@@ -1307,7 +1307,7 @@ export class GeneralMatterNode {
         });
 
         // Compute overall RSSI
-        return totalWeight > 0 ? weightedRssiSum / totalWeight : undefined;
+        return totalWeight > 0 ? Math.round(weightedRssiSum / totalWeight) : undefined;
     }
 
     get connectionType(): ConfigConnectionType {

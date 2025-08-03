@@ -185,9 +185,11 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                 `Device ${this.#ioBrokerDevice.uuid} does not support color temperature, so commands will be ignored`,
             );
         }
-        const { min = 2_000, max = 6_536 } = this.#ioBrokerDevice.hasTemperature()
+        let { min = 2_000, max = 6_536 } = this.#ioBrokerDevice.hasTemperature()
             ? (this.#ioBrokerDevice.getTemperatureMinMax() ?? {})
             : {}; // 153 till 500 mireds
+        min = this.#ioBrokerDevice.cropValue(min, 2_000, 6_536);
+        max = this.#ioBrokerDevice.cropValue(max, 2_000, 6_536);
         const currentTemperature = this.#ioBrokerDevice.cropValue(
             this.#ioBrokerDevice.hasTemperature() ? (this.#ioBrokerDevice.getTemperature() ?? min) : min,
             min,

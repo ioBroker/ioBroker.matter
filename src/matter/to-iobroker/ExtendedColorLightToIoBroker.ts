@@ -66,11 +66,11 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
         const levelControl = this.appEndpoint.getClusterClient(LevelControl.Complete);
         if (levelControl) {
             const minLevel = levelControl.isAttributeSupportedByName('minLevel')
-                ? await levelControl.getMinLevelAttribute(false)
+                ? levelControl.getMinLevelAttributeFromCache()
                 : undefined;
             this.#minLevel = minLevel ?? 1;
             const maxLevel = levelControl.isAttributeSupportedByName('maxLevel')
-                ? await levelControl.getMaxLevelAttribute(false)
+                ? levelControl.getMaxLevelAttributeFromCache()
                 : undefined;
             this.#maxLevel = maxLevel ?? 254;
         }
@@ -78,13 +78,13 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
         const colorControl = this.appEndpoint.getClusterClient(ColorControl.Complete);
         if (colorControl) {
             this.#colorTemperatureMinMireds =
-                (await colorControl.getColorTempPhysicalMinMiredsAttribute(false)) ?? kelvinToMireds(6_500);
+                colorControl.getColorTempPhysicalMinMiredsAttributeFromCache() ?? kelvinToMireds(6_500);
             this.#colorTemperatureMaxMireds =
-                (await colorControl.getColorTempPhysicalMaxMiredsAttribute(false)) ?? kelvinToMireds(2_000);
+                colorControl.getColorTempPhysicalMaxMiredsAttributeFromCache() ?? kelvinToMireds(2_000);
 
             if (this.#ioBrokerDevice instanceof Cie) {
-                const currentX = await colorControl.getCurrentXAttribute(false);
-                const currentY = await colorControl.getCurrentYAttribute(false);
+                const currentX = colorControl.getCurrentXAttributeFromCache();
+                const currentY = colorControl.getCurrentYAttributeFromCache();
                 if (currentX !== undefined && currentY !== undefined) {
                     await this.#ioBrokerDevice.updateXy(currentX / 65536, currentY / 65536);
                 }
@@ -215,9 +215,9 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
                 if (value) {
                     if (this.#ioBrokerDevice.hasDimmer()) {
                         // Check if the Dimmer in ioBroker still matches the Device Dimmer and correct if needed
-                        const currentLevel = await this.appEndpoint
+                        const currentLevel = this.appEndpoint
                             .getClusterClient(LevelControl.Cluster)
-                            ?.getCurrentLevelAttribute();
+                            ?.getCurrentLevelAttributeFromCache();
                         if (typeof currentLevel === 'number' && currentLevel <= 1) {
                             const ioLevel = Math.round((currentLevel / 100) * 254);
                             if (ioLevel !== this.#ioBrokerDevice.getDimmer()) {

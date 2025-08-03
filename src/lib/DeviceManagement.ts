@@ -69,7 +69,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     // contents see in the next chapters
-    async listDevices(): Promise<DeviceInfo[]> {
+    listDevices(): DeviceInfo[] {
         if (!this.#adapter.controllerNode) {
             return []; // TODO How to return that no controller is started?
         }
@@ -79,7 +79,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const arrDevices: DeviceInfo[] = [];
         let colorCounter = 0;
         for (const ioNode of nodes.values()) {
-            const devices = await this.#getNodeEntry(ioNode, colorCounter++ % 2 === 0 ? 'primary' : 'secondary');
+            const devices = this.#getNodeEntry(ioNode, colorCounter++ % 2 === 0 ? 'primary' : 'secondary');
             arrDevices.push(...devices);
         }
 
@@ -124,8 +124,8 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     /**
      * Create the "Node" device entry and also add all Endpoint-"Devices" for Device-Manager
      */
-    async #getNodeEntry(ioNode: GeneralMatterNode, backgroundColor: 'primary' | 'secondary'): Promise<DeviceInfo[]> {
-        const status: DeviceStatus = await ioNode.getStatus();
+    #getNodeEntry(ioNode: GeneralMatterNode, backgroundColor: 'primary' | 'secondary'): DeviceInfo[] {
+        const status: DeviceStatus = ioNode.getStatus();
         const isEnabled = ioNode.isEnabled;
         const isConnected = ioNode.isConnected;
         const id = ioNode.nodeId;
@@ -208,7 +208,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         if (isEnabled) {
             let deviceCount = 0;
             for (const device of ioNode.devices.values()) {
-                const deviceInfo = await this.#getNodeDeviceEntries(
+                const deviceInfo = this.#getNodeDeviceEntries(
                     device,
                     id,
                     details,
@@ -231,14 +231,14 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     /**
      * Create one Endpoint-"Device" for Device-Manager
      */
-    async #getNodeDeviceEntries(
+    #getNodeDeviceEntries(
         device: GenericDeviceToIoBroker,
         nodeId: string,
         nodeDetails: NodeDetails,
         nodeConnected: boolean,
         nodeConnectionType: ConfigConnectionType,
         backgroundColor: 'primary' | 'secondary',
-    ): Promise<DeviceInfo> {
+    ): DeviceInfo {
         const icon = device.iconDeviceType;
         const data: DeviceInfo = {
             id: `${nodeId}-${device.number}`,
@@ -246,7 +246,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             icon,
             ...nodeDetails,
             backgroundColor,
-            status: await device.getStatus({
+            status: device.getStatus({
                 connection: nodeConnected ? 'connected' : 'disconnected',
             }),
             connectionType: nodeConnectionType,
@@ -750,7 +750,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         return { refresh: false };
     }
 
-    async getDeviceDetails(id: string): Promise<DeviceDetails | null | { error: string }> {
+    getDeviceDetails(id: string): DeviceDetails | null | { error: string } {
         this.adapter.log.debug(`Get details ${id}`);
 
         const idParts = id.split('-');
@@ -765,7 +765,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         if (endpointId === undefined) {
             // Get Node details
-            const schema = convertDataToJsonConfig(await node.getNodeDetails());
+            const schema = convertDataToJsonConfig(node.getNodeDetails());
             return { id, schema, data: {} };
         }
 
@@ -775,7 +775,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             return { error: 'Device not found' };
         }
 
-        const schema = convertDataToJsonConfig(await device.getDeviceDetails(node.isConnected));
+        const schema = convertDataToJsonConfig(device.getDeviceDetails(node.isConnected));
 
         return { id, schema, data: {} };
     }

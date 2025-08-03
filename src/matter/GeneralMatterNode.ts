@@ -217,24 +217,24 @@ export class GeneralMatterNode {
         const info = this.node.getRootClusterClient(BasicInformationCluster);
         if (info !== undefined) {
             this.#details = {
-                manufacturer: await info.getVendorNameAttribute(false),
-                model: await info.getProductNameAttribute(false),
+                manufacturer: info.getVendorNameAttributeFromCache(),
+                model: info.getProductNameAttributeFromCache(),
             };
 
             if (existingObject && existingObject.common.name) {
                 deviceObj.common.name = existingObject.common.name;
             } else {
-                deviceObj.common.name = await info.getProductNameAttribute(false);
+                deviceObj.common.name = info.getProductNameAttributeFromCache() ?? 'Unknown';
             }
-            deviceObj.native.vendorId = toUpperCaseHex(await info.getVendorIdAttribute(false));
+            deviceObj.native.vendorId = toUpperCaseHex(info.getVendorIdAttributeFromCache() ?? 0);
             deviceObj.native.vendorName = this.#details.manufacturer;
             deviceObj.native.productId = this.#details.model;
-            deviceObj.native.nodeLabel = await info.getNodeLabelAttribute(false);
+            deviceObj.native.nodeLabel = info.getNodeLabelAttributeFromCache();
             deviceObj.native.productLabel = info.isAttributeSupportedByName('productLabel')
-                ? await info.getProductLabelAttribute(false)
+                ? info.getProductLabelAttributeFromCache()
                 : undefined;
             deviceObj.native.serialNumber = info.isAttributeSupportedByName('serialNumber')
-                ? await info.getSerialNumberAttribute(false)
+                ? info.getSerialNumberAttributeFromCache()
                 : undefined;
         }
         this.#name = (deviceObj.common.name || this.nodeId) as string;
@@ -452,7 +452,7 @@ export class GeneralMatterNode {
         // TODO: Add TagList support
         const bridgedBasicInfo = endpoint.getClusterClient(BridgedDeviceBasicInformation.Cluster);
         const endpointName = bridgedBasicInfo?.isAttributeSupportedByName('nodeLabel')
-            ? await bridgedBasicInfo.getNodeLabelAttribute(false)
+            ? bridgedBasicInfo.getNodeLabelAttributeFromCache()
             : `${deviceTypeName}-${id}`;
         const endpointBaseName =
             primaryDeviceType?.deviceType.id === AggregatorEndpointDefinition.deviceType
@@ -1015,13 +1015,13 @@ export class GeneralMatterNode {
         }
     }
 
-    async handleStateChange(state: PairedNodeStates, nodeDetails?: { operationalAddress?: string }): Promise<void> {
+    handleStateChange(state: PairedNodeStates, nodeDetails?: { operationalAddress?: string }): void {
         const connected = state === PairedNodeStates.Connected;
-        await this.adapter.setState(this.connectionStateId, connected, true);
-        await this.adapter.setState(this.connectionStatusId, state, true);
+        this.adapter.setState(this.connectionStateId, connected, true).catch(() => {});
+        this.adapter.setState(this.connectionStatusId, state, true).catch(() => {});
         if (connected && nodeDetails) {
             this.#connectedAddress = nodeDetails.operationalAddress?.substring(6);
-            await this.adapter.setState(this.connectedAddressStateId, this.#connectedAddress ?? null, true);
+            this.adapter.setState(this.connectedAddressStateId, this.#connectedAddress ?? null, true).catch(() => {});
         }
 
         switch (state) {
@@ -1095,7 +1095,7 @@ export class GeneralMatterNode {
         await this.adapter.extendObjectAsync(this.nodeBaseId, { common: { name: newName } });
     }
 
-    async getNodeDetails(): Promise<StructuredJsonFormData> {
+    getNodeDetails(): StructuredJsonFormData {
         const result: StructuredJsonFormData = {};
 
         const details = this.node.basicInformation;
@@ -1136,7 +1136,7 @@ export class GeneralMatterNode {
                 const generalDiag = this.node.getRootClusterClient(GeneralDiagnosticsCluster);
                 if (generalDiag) {
                     try {
-                        const networkInterfaces = await generalDiag.getNetworkInterfacesAttribute();
+                        const networkInterfaces = generalDiag.getNetworkInterfacesAttributeFromCache();
                         if (networkInterfaces) {
                             const interfaces = networkInterfaces.filter(({ isOperational }) => isOperational);
                             if (interfaces.length) {
@@ -1212,7 +1212,7 @@ export class GeneralMatterNode {
         return result;
     }
 
-    async getStatus(): Promise<DeviceStatus> {
+    getStatus(): DeviceStatus {
         const status: DeviceStatus = {
             connection: this.node.isConnected ? 'connected' : 'disconnected',
         };
@@ -1226,7 +1226,7 @@ export class GeneralMatterNode {
         if (this.node.isConnected) {
             const wifiNetworkDiagnostics = this.node.getRootClusterClient(WiFiNetworkDiagnosticsCluster);
             if (wifiNetworkDiagnostics !== undefined && wifiNetworkDiagnostics.isAttributeSupportedByName('rssi')) {
-                const rssi = await wifiNetworkDiagnostics.getRssiAttribute(false);
+                const rssi = wifiNetworkDiagnostics.getRssiAttributeFromCache();
                 if (rssi !== null) {
                     status.rssi = rssi;
                 }
@@ -1237,9 +1237,9 @@ export class GeneralMatterNode {
                     threadNetworkDiagnostics !== undefined &&
                     threadNetworkDiagnostics.isAttributeSupportedByName('neighborTable')
                 ) {
-                    const neighborTable = await threadNetworkDiagnostics.getNeighborTableAttribute(false);
+                    const neighborTable = threadNetworkDiagnostics.getNeighborTableAttributeFromCache() ?? [];
                     const routeTable = threadNetworkDiagnostics.isAttributeSupportedByName('routeTable')
-                        ? await threadNetworkDiagnostics.getRouteTableAttribute(false)
+                        ? (threadNetworkDiagnostics.getRouteTableAttributeFromCache() ?? [])
                         : [];
                     const rssi = this.#calculateThreadRssi(neighborTable, routeTable);
                     if (rssi !== undefined) {
@@ -1307,7 +1307,7 @@ export class GeneralMatterNode {
         });
 
         // Compute overall RSSI
-        return totalWeight > 0 ? weightedRssiSum / totalWeight : undefined;
+        return totalWeight > 0 ? Math.round(weightedRssiSum / totalWeight) : undefined;
     }
 
     get connectionType(): ConfigConnectionType {
@@ -1345,7 +1345,7 @@ export class GeneralMatterNode {
             const operationalCredentials = this.node.getRootClusterClient(OperationalCredentialsCluster);
             if (operationalCredentials) {
                 result.connection.__header__operationalCredentials = 'Connected Fabrics';
-                const ownFabricIndex = await operationalCredentials.getCurrentFabricIndexAttribute();
+                const ownFabricIndex = operationalCredentials.getCurrentFabricIndexAttributeFromCache();
                 const fabrics = await operationalCredentials.getFabricsAttribute(true, false);
                 fabrics.forEach(fabric => {
                     const fabricId = fabric.fabricId;

@@ -53,9 +53,9 @@ export class WindowCoveringToIoBroker extends GenericElectricityDataDeviceToIoBr
     }
 
     async updateWorkingStateForLift(currentLiftValue: number | null): Promise<void> {
-        const targetValue = await this.appEndpoint
+        const targetValue = this.appEndpoint
             .getClusterClient(WindowCovering.Complete)
-            ?.getTargetPositionLiftPercent100thsAttribute(false);
+            ?.getTargetPositionLiftPercent100thsAttributeFromCache();
         if (
             targetValue !== undefined &&
             targetValue !== null &&
@@ -67,9 +67,9 @@ export class WindowCoveringToIoBroker extends GenericElectricityDataDeviceToIoBr
     }
 
     async updateWorkingStateForTilt(currentTiltValue: number | null): Promise<void> {
-        const targetValue = await this.appEndpoint
+        const targetValue = this.appEndpoint
             .getClusterClient(WindowCovering.Complete)
-            ?.getTargetPositionTiltPercent100thsAttribute(false);
+            ?.getTargetPositionTiltPercent100thsAttributeFromCache();
         if (
             targetValue !== undefined &&
             targetValue !== null &&
@@ -216,12 +216,12 @@ export class WindowCoveringToIoBroker extends GenericElectricityDataDeviceToIoBr
         if (windowCovering !== undefined) {
             this.#maintenanceState = {
                 maintenance: !!(
-                    (await windowCovering.getModeAttribute()) ?? {
+                    windowCovering.getModeAttributeFromCache() ?? {
                         maintenanceMode: true,
                     }
                 ).maintenanceMode,
                 operational: !!(
-                    (await windowCovering.getConfigStatusAttribute()) ?? {
+                    windowCovering.getConfigStatusAttributeFromCache() ?? {
                         operational: true,
                     }
                 ).operational,

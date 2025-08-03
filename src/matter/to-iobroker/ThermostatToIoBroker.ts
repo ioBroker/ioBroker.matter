@@ -128,16 +128,16 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
                         await this.ioBrokerDevice.updatePower(true);
                     }*/
                     if (ioMode === ThermostatMode.Heat) {
-                        const heatSetpoint = await this.appEndpoint
+                        const heatSetpoint = this.appEndpoint
                             .getClusterClient(MatterThermostat.Complete)
-                            ?.getOccupiedHeatingSetpointAttribute(false);
+                            ?.getOccupiedHeatingSetpointAttributeFromCache();
                         if (heatSetpoint !== undefined) {
                             await this.ioBrokerDevice.updateLevel(this.temperatureFromMatter(heatSetpoint));
                         }
                     } else if (ioMode === ThermostatMode.Cool) {
-                        const coolSetpoint = await this.appEndpoint
+                        const coolSetpoint = this.appEndpoint
                             .getClusterClient(MatterThermostat.Complete)
-                            ?.getOccupiedCoolingSetpointAttribute(false);
+                            ?.getOccupiedCoolingSetpointAttributeFromCache();
                         if (coolSetpoint !== undefined) {
                             await this.ioBrokerDevice.updateLevel(this.temperatureFromMatter(coolSetpoint));
                         }
@@ -202,13 +202,13 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
         let max: number | undefined = undefined;
         if (features?.heating) {
             this.#minHeatSetpointLimit = thermostat.isAttributeSupportedByName('absMinHeatSetpointLimit')
-                ? await thermostat.getAbsMinHeatSetpointLimitAttribute(false)
+                ? thermostat.getAbsMinHeatSetpointLimitAttributeFromCache()
                 : undefined;
             if (this.#minHeatSetpointLimit !== undefined) {
                 min = Math.min(min ?? this.#minHeatSetpointLimit, this.#minHeatSetpointLimit);
             }
             this.#maxHeatSetpointLimit = thermostat.isAttributeSupportedByName('absMaxHeatSetpointLimit')
-                ? await thermostat.getAbsMaxHeatSetpointLimitAttribute(false)
+                ? thermostat.getAbsMaxHeatSetpointLimitAttributeFromCache()
                 : undefined;
             if (this.#maxHeatSetpointLimit !== undefined) {
                 max = Math.max(max ?? this.#maxHeatSetpointLimit, this.#maxHeatSetpointLimit);
@@ -217,13 +217,13 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
 
         if (features?.cooling) {
             this.#minCoolSetpointLimit = thermostat.isAttributeSupportedByName('absMinCoolSetpointLimit')
-                ? await thermostat.getAbsMinCoolSetpointLimitAttribute(false)
+                ? thermostat.getAbsMinCoolSetpointLimitAttributeFromCache()
                 : undefined;
             if (this.#minCoolSetpointLimit !== undefined) {
                 min = Math.min(min ?? this.#minCoolSetpointLimit, this.#minCoolSetpointLimit);
             }
             this.#maxCoolSetpointLimit = thermostat.isAttributeSupportedByName('absMaxCoolSetpointLimit')
-                ? await thermostat.getAbsMaxCoolSetpointLimitAttribute(false)
+                ? thermostat.getAbsMaxCoolSetpointLimitAttributeFromCache()
                 : undefined;
             if (this.#maxCoolSetpointLimit !== undefined) {
                 max = Math.max(max ?? this.#maxCoolSetpointLimit, this.#maxCoolSetpointLimit);

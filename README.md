@@ -15,9 +15,7 @@ Sentry reporting is used starting with js-controller 3.0.
 
 ## Introduction
 > [!Important]
-> The adapter can NOT be installed via GitHub: The adapter must be installed via the ioBroker repository (stable or latest).
-> 
-> Currently the adapter is in the BETA phase and only available in latest repository. Please check [iobroker documentation](https://www.iobroker.net/#de/documentation/basics/repositories.md) how to install an adapter from latest repository/npm.
+> The adapter CANNOT be installed via GitHub: The adapter must be installed via the ioBroker repository (stable or latest).
 >
 > A detailed description of the configuration and use of the ioBroker Matter adapter is described in the 🇩🇪 [german Wiki](https://github.com/ioBroker/ioBroker.matter/wiki) and 🇬🇧 [english Wiki](https://github.com/ioBroker/ioBroker.matter/wiki/Home-%E2%80%90-EN).
 > 
@@ -77,9 +75,16 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 	### **WORK IN PROGRESS**
 -->
 
-## Changelog
-### **WORK IN PROGRESS**
+## Changelog  
+
+### __WORK IN PROGRESS__
+* (@Apollon77) Updated matter.js to 0.15.2 with many performance- and other improvements
 * (@GermanBluefox) Corrected the checking of the licenses if they were stacked
+* (Apollon77) Use attributes from cache instead of requesting them from the device
+* (Apollon77) Ignoring invalid min/max for color temperature from objects
+* (Apollon77) Prevents update loops for Thermostat on/off state changes
+* (Apollon77) Fixes invalid color state updates when multiple attributes are adjusted together
+* (Apollon77) Rounds RSSI values to prevent digits
 
 ### 0.5.1 (2025-06-06)
 * (@Apollon77) Updated matter.js to 0.14 with many performance- and other improvements

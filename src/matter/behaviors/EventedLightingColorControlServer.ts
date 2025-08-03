@@ -201,7 +201,8 @@ export class EventedExtendedColorHueSaturationColorControlServer extends BaseHue
         if (transitionTime == undefined || transitionTime === 0) {
             this.state.currentHue = hue;
         }
-        if (this.internal.blockEvents) {
+        if (this.internal.blockEvents.has('hue')) {
+            this.internal.blockEvents.delete('hue');
             return;
         }
         this.endpoint.act(agent =>
@@ -215,7 +216,8 @@ export class EventedExtendedColorHueSaturationColorControlServer extends BaseHue
         if (transitionTime == undefined || transitionTime === 0) {
             this.state.currentSaturation = saturation;
         }
-        if (this.internal.blockEvents) {
+        if (this.internal.blockEvents.has('saturation')) {
+            this.internal.blockEvents.delete('saturation');
             return;
         }
         this.endpoint.act(agent =>
@@ -280,9 +282,9 @@ export class EventedExtendedColorHueSaturationColorControlServer extends BaseHue
         targetSaturation: number,
         transitionTime: number,
     ): MaybePromise {
-        this.internal.blockEvents = true;
+        this.internal.blockEvents.set('hue', true);
+        this.internal.blockEvents.set('saturation', true);
         const result = super.moveToHueAndSaturationLogic(targetHue, targetSaturation, transitionTime);
-        this.internal.blockEvents = false;
         return MaybePromise.then(result, () =>
             this.endpoint.act(agent =>
                 agent
@@ -297,6 +299,9 @@ export class EventedExtendedColorHueSaturationColorControlServer extends BaseHue
 export namespace EventedExtendedColorHueSaturationColorControlServer {
     export class Internal extends BaseHueSaturationColorControlServer.Internal {
         /** Block Events for the "Hue and Saturation" case to not receive multiple events */
-        blockEvents: boolean = false;
+        blockEvents: Map<string, boolean> = new Map();
+
+        /** Current transition instance for the color control */
+        eventedTransitions?: EventedTransitions<Behavior>;
     }
 }

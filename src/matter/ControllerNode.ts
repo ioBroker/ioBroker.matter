@@ -221,14 +221,14 @@ class Controller implements GeneralNode {
                 ?.handleTriggeredEvent(data)
                 .catch(error => this.#adapter.log.error(`Error handling event: ${error}`));
         });
-        node.events.stateChanged.on(async (info: PairedNodeStates) => {
+        node.events.stateChanged.on((info: PairedNodeStates) => {
             const nodeDetails = (this.#commissioningController?.getCommissionedNodesDetails() ?? []).find(
                 n => n.nodeId === node.nodeId,
             );
             const nodeIdStr = node.nodeId.toString();
             const deviceNode = this.#nodes.get(nodeIdStr);
             if (deviceNode) {
-                await deviceNode.handleStateChange(info, nodeDetails);
+                deviceNode.handleStateChange(info, nodeDetails);
             } else {
                 if (info !== PairedNodeStates.Disconnected) {
                     this.#adapter.log.info(

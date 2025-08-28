@@ -47,8 +47,33 @@ This is an ioBroker adapter for integrating Matter devices into the ioBroker hom
 │   │   └── i18n/                 # Internationalization files
 │   └── matter/                   # Matter protocol implementations
 │       ├── ControllerNode.ts     # Matter controller logic
-│       ├── DeviceNode.ts         # Matter device implementations
-│       └── BridgedDevicesNode.ts # Bridging logic
+│       ├── DeviceNode.ts         # Matter device implementations  
+│       ├── BridgedDevicesNode.ts # Bridging logic
+│       ├── GeneralMatterNode.ts  # Base Matter node functionality
+│       ├── BaseServerNode.ts     # Base server node implementation
+│       ├── behaviors/            # Custom Matter.js behaviors for ioBroker integration
+│       │   ├── IoBrokerContext.ts           # Context behavior for sharing adapter/device state
+│       │   ├── IoBrokerEvents.ts            # Event system for ioBroker-Matter communication
+│       │   ├── EventedOnOffLightOnOffServer.ts # Event-driven OnOff server behavior
+│       │   ├── EventedLightingLevelControlServer.ts # Event-driven dimming behavior
+│       │   ├── ThermostatServer.ts          # Custom thermostat behavior
+│       │   └── PowerSourceServer.ts         # Battery and power management behavior
+│       ├── to-iobroker/          # Matter device → ioBroker state mapping (Controller mode)
+│       │   ├── ioBrokerFactory.ts           # Factory for creating ioBroker devices from Matter
+│       │   ├── GenericDeviceToIoBroker.ts   # Base class for Matter→ioBroker mapping
+│       │   ├── OnOffLightToIoBroker.ts      # Maps Matter lights to ioBroker light states
+│       │   ├── DimmableToIoBroker.ts        # Maps Matter dimmable devices
+│       │   ├── TemperatureSensorToIoBroker.ts # Maps Matter temperature sensors
+│       │   ├── ThermostatToIoBroker.ts      # Maps Matter thermostats
+│       │   └── [Other device mappers]       # Device-specific mapping implementations
+│       └── to-matter/            # ioBroker device → Matter device mapping (Bridge mode)
+│           ├── matterFactory.ts             # Factory for creating Matter devices from ioBroker
+│           ├── GenericDeviceToMatter.ts     # Base class for ioBroker→Matter mapping
+│           ├── LightToMatter.ts             # Maps ioBroker lights to Matter endpoints
+│           ├── DimmerToMatter.ts            # Maps ioBroker dimmers to Matter dimmable lights
+│           ├── TemperatureToMatter.ts       # Maps ioBroker temperature sensors
+│           ├── ThermostatToMatter.ts        # Maps ioBroker thermostats to Matter thermostats
+│           └── [Other device mappers]       # Device-specific mapping implementations
 ├── src-admin/                    # Frontend React admin interface
 │   ├── src/
 │   │   ├── App.tsx               # Main application component
@@ -157,6 +182,143 @@ node tasks.js --4-patch  # Patch HTML files for ioBroker
 - Limited test coverage currently
 - Focus on component rendering and user interactions
 - Test configuration forms and validation
+
+## Matter Integration Patterns
+
+### Bidirectional Device Mapping Architecture
+
+The adapter implements a sophisticated bidirectional mapping system between ioBroker and Matter protocols:
+
+#### Matter → ioBroker Mapping (Controller Mode)
+**Location**: `src/matter/to-iobroker/`
+**Purpose**: When the adapter acts as a Matter controller, connecting to external Matter devices
+
+**Key Components**:
+- **ioBrokerFactory.ts**: Device type identification and factory creation
+  - Uses `identifyDeviceTypes()` to analyze Matter device endpoints
+  - Maps Matter device types to appropriate ioBroker mapping classes
+  - Handles utility vs application device type classification
+- **GenericDeviceToIoBroker.ts**: Base class for all Matter→ioBroker mappings
+  - Manages attribute and event subscriptions from Matter clusters
+  - Handles ioBroker state creation and updates
+  - Implements polling for attributes that don't support subscriptions
+  - Provides device configuration and status reporting
+
+**Device-Specific Implementations**:
+- Each Matter device type has a dedicated mapping class (e.g., `OnOffLightToIoBroker`)
+- Maps Matter clusters (OnOff, LevelControl, ColorControl) to ioBroker states
+- Handles value conversion between Matter and ioBroker formats
+- Implements device-specific features like battery status, connectivity
+
+**Best Practices**:
+- Extend `GenericDeviceToIoBroker` for consistent behavior
+- Use `EnabledAttributeProperty` and `EnabledEventProperty` for cluster mapping
+- Implement proper error handling for network disconnections
+- Handle Matter attribute polling efficiently to avoid network overload
+
+#### ioBroker → Matter Mapping (Bridge Mode)
+**Location**: `src/matter/to-matter/`
+**Purpose**: When the adapter bridges ioBroker devices to Matter controllers (HomeKit, Google, Alexa)
+
+**Key Components**:
+- **matterFactory.ts**: ioBroker device type to Matter device creation
+  - Uses @iobroker/type-detector device types as input
+  - Creates appropriate Matter device endpoints with required clusters
+  - Handles unsupported device types gracefully
+- **GenericDeviceToMatter.ts**: Base class for all ioBroker→Matter mappings
+  - Manages Matter endpoint lifecycle and validation
+  - Provides observer pattern for device state changes
+  - Handles endpoint initialization and cleanup
+
+**Device-Specific Implementations**:
+- Each ioBroker device type maps to one or more Matter endpoints
+- Implements required Matter clusters for device functionality
+- Handles state synchronization from ioBroker to Matter
+- Manages composed vs single-endpoint device structures
+
+**Best Practices**:
+- Extend `GenericDeviceToMatter` for consistent lifecycle management
+- Implement proper Matter cluster requirements for device type compliance
+- Use ObserverGroup for managing Matter event subscriptions
+- Handle ioBroker state validation and device availability
+
+### Custom Matter.js Behaviors
+**Location**: `src/matter/behaviors/`
+**Purpose**: Extend Matter.js framework with ioBroker-specific functionality
+
+#### Core Behaviors:
+- **IoBrokerContext.ts**: Provides shared context (adapter, device) across endpoints
+- **IoBrokerEvents.ts**: Event system for communication between Matter and ioBroker
+- **EventedTransitions.ts**: Handles animated transitions for smooth state changes
+
+#### Device-Specific Behaviors:
+- **EventedOnOffLightOnOffServer.ts**: OnOff cluster with ioBroker event integration
+- **EventedLightingLevelControlServer.ts**: Dimming control with smooth transitions
+- **ThermostatServer.ts**: Complex thermostat logic with setpoint management
+- **PowerSourceServer.ts**: Battery and power source reporting
+
+**Best Practices**:
+- Extend appropriate Matter.js base behaviors
+- Use IoBrokerContext for accessing adapter and device state
+- Implement proper event emission for state changes
+- Handle asynchronous operations correctly in behavior lifecycle
+
+### Factory Pattern Implementation
+
+Both directions use factory patterns for device creation:
+
+#### ioBrokerFactory Pattern:
+```typescript
+// Identifies device type from Matter endpoint
+const { primaryDeviceType } = identifyDeviceTypes(endpoint);
+
+// Maps to appropriate ioBroker device class
+switch (primaryDeviceType?.deviceType.id) {
+    case Devices.OnOffLightDeviceDefinition.deviceType:
+        DeviceType = OnOffLightToIoBroker;
+        break;
+    // ... other device types
+}
+```
+
+#### matterFactory Pattern:
+```typescript
+// Maps ioBroker device type to Matter implementation
+switch (ioBrokerDeviceType) {
+    case Types.light:
+        ToMatter = LightToMatter;
+        break;
+    // ... other device types
+}
+```
+
+### State Synchronization Patterns
+
+#### Attribute Subscription (Matter→ioBroker):
+- Subscribe to Matter cluster attributes for real-time updates
+- Handle attribute reporting and event callbacks
+- Implement fallback polling for attributes without subscription support
+- Map Matter data types to appropriate ioBroker state types
+
+#### State Change Handling (ioBroker→Matter):
+- Listen to ioBroker state changes via adapter subscriptions
+- Update corresponding Matter cluster attributes
+- Handle validation and error reporting
+- Maintain Matter specification compliance
+
+### Error Handling and Resilience
+
+#### Network Resilience:
+- Implement timeouts for Matter operations
+- Handle device disconnections gracefully
+- Retry failed operations with exponential backoff
+- Maintain device state consistency during network issues
+
+#### Device Validation:
+- Validate device capabilities against Matter specifications
+- Check required vs optional cluster implementations
+- Handle unsupported features gracefully
+- Provide clear error messages for configuration issues
 
 ## Common Gotchas
 

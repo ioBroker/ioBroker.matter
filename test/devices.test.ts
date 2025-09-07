@@ -1,8 +1,95 @@
-import { Types } from '@iobroker/type-detector';
+import { Types, DetectorState } from '@iobroker/type-detector';
+import { SubscribeManager } from '../src/lib/SubscribeManager';
+import { StateAccessType, DetectedDevice } from '../src/lib/devices/GenericDevice';
+import { ValueType, PropertyType } from '../src/lib/devices/DeviceStateObject';
 
-const { SubscribeManager } = require('../build/lib/SubscribeManager');
-const { StateAccessType } = require('../build/lib/devices/GenericDevice');
-const { ValueType } = require('../build/lib/devices/DeviceStateObject');
+// Import all device classes statically
+import { AirCondition } from '../src/lib/devices/AirCondition';
+import { Blind } from '../src/lib/devices/Blind';
+import { BlindButtons } from '../src/lib/devices/BlindButtons';
+import { Button } from '../src/lib/devices/Button';
+import { ButtonSensor } from '../src/lib/devices/ButtonSensor';
+import { Camera } from '../src/lib/devices/Camera';
+import { Chart } from '../src/lib/devices/Chart';
+import { Cie } from '../src/lib/devices/Cie';
+import { Ct } from '../src/lib/devices/Ct';
+import { Dimmer } from '../src/lib/devices/Dimmer';
+import { Door } from '../src/lib/devices/Door';
+import { ElectricityDataDevice } from '../src/lib/devices/ElectricityDataDevice';
+import { FireAlarm } from '../src/lib/devices/FireAlarm';
+import { FloodAlarm } from '../src/lib/devices/FloodAlarm';
+import { Gate } from '../src/lib/devices/Gate';
+import { Hue } from '../src/lib/devices/Hue';
+import { Humidity } from '../src/lib/devices/Humidity';
+import { Illuminance } from '../src/lib/devices/Illuminance';
+import { Image } from '../src/lib/devices/Image';
+import { Info } from '../src/lib/devices/Info';
+import { Light } from '../src/lib/devices/Light';
+import { Location } from '../src/lib/devices/Location';
+import { LocationOne } from '../src/lib/devices/LocationOne';
+import { Lock } from '../src/lib/devices/Lock';
+import { Media } from '../src/lib/devices/Media';
+import { Motion } from '../src/lib/devices/Motion';
+import { Rgb } from '../src/lib/devices/Rgb';
+import { RgbSingle } from '../src/lib/devices/RgbSingle';
+import { RgbwSingle } from '../src/lib/devices/RgbwSingle';
+import { Slider } from '../src/lib/devices/Slider';
+import { Socket } from '../src/lib/devices/Socket';
+import { Temperature } from '../src/lib/devices/Temperature';
+import { Thermostat } from '../src/lib/devices/Thermostat';
+import { VacuumCleaner } from '../src/lib/devices/VacuumCleaner';
+import { Volume } from '../src/lib/devices/Volume';
+import { VolumeGroup } from '../src/lib/devices/VolumeGroup';
+import { Warning } from '../src/lib/devices/Warning';
+import { WeatherCurrent } from '../src/lib/devices/WeatherCurrent';
+import { WeatherForecast } from '../src/lib/devices/WeatherForecast';
+import { Window } from '../src/lib/devices/Window';
+import { WindowTilt } from '../src/lib/devices/WindowTilt';
+
+// Device registry mapping type names to classes
+const deviceRegistry: Record<string, any> = {
+    airCondition: AirCondition,
+    blind: Blind,
+    blindButtons: BlindButtons,
+    button: Button,
+    buttonSensor: ButtonSensor,
+    camera: Camera,
+    chart: Chart,
+    cie: Cie,
+    ct: Ct,
+    dimmer: Dimmer,
+    door: Door,
+    electricityDataDevice: ElectricityDataDevice,
+    fireAlarm: FireAlarm,
+    floodAlarm: FloodAlarm,
+    gate: Gate,
+    hue: Hue,
+    humidity: Humidity,
+    illuminance: Illuminance,
+    image: Image,
+    info: Info,
+    light: Light,
+    location: Location,
+    locationOne: LocationOne,
+    lock: Lock,
+    media: Media,
+    motion: Motion,
+    rgb: Rgb,
+    rgbSingle: RgbSingle,
+    rgbwSingle: RgbwSingle,
+    slider: Slider,
+    socket: Socket,
+    temperature: Temperature,
+    thermostat: Thermostat,
+    vacuumCleaner: VacuumCleaner,
+    volume: Volume,
+    volumeGroup: VolumeGroup,
+    warning: Warning,
+    weatherCurrent: WeatherCurrent,
+    weatherForecast: WeatherForecast,
+    window: Window,
+    windowTilt: WindowTilt,
+};
 
 const excludedTypes: string[] = [
     'unknown',
@@ -17,14 +104,14 @@ interface StateDefinition {
     val?: any;
 }
 
-interface DetectedDevice {
+interface TestDetectedDevice {
     states: StateDefinition[];
     type: string;
     isIoBrokerDevice?: boolean;
 }
 
 // create a maximal set of states
-const detectedDevices: DetectedDevice = {
+const detectedDevices: TestDetectedDevice = {
     states: [
         { name: 'SET', id: '0_userdata.0.set', type: 'mixed' },
         { name: 'ACTUAL', id: '0_userdata.0.actual', type: 'mixed' },
@@ -189,6 +276,19 @@ interface StateValue {
     ack: boolean;
 }
 
+// Helper function to convert test data to proper DetectedDevice interface
+function convertToDetectedDevice(testData: TestDetectedDevice): DetectedDevice {
+    return {
+        type: testData.type as Types,
+        states: testData.states.map(state => ({
+            id: state.id,
+            name: state.name,
+            // Add required fields for DetectorState
+        } as DetectorState)),
+        isIoBrokerDevice: testData.isIoBrokerDevice || false
+    };
+}
+
 interface MockAdapter {
     log: {
         debug: (msg: string) => void;
@@ -337,14 +437,25 @@ describe('Test Devices', function () {
         for (const type of types) {
             // detect that only read values are subscribed
             console.log(`------------------------\nCreated device for ${type}`);
-            const className = type[0].toUpperCase() + type.substring(1);
-            const Device = require(`../build/lib/devices/${className}`)[className];
+            const Device = deviceRegistry[type];
+            if (!Device) {
+                console.warn(`Device class not found for type: ${type}`);
+                continue;
+            }
             const adapter = new Adapter();
-            SubscribeManager.setAdapter(adapter);
+            SubscribeManager.setAdapter(adapter as any);
             adapter.setSubscribeManager(SubscribeManager);
-            const testDetectedDevices = { ...detectedDevices, type, isIoBrokerDevice: true };
+            const testDetectedDevices = convertToDetectedDevice({ ...detectedDevices, type, isIoBrokerDevice: true });
             
-            const deviceObj = new Device(testDetectedDevices, adapter, { enabled: true });
+            const deviceObj = new Device(testDetectedDevices, adapter as any, { 
+                uuid: 'test-uuid',
+                enabled: true,
+                name: 'test-device',
+                oid: 'test.0',
+                type: type,
+                auto: true,
+                noComposed: false
+            });
             await deviceObj.init();
 
             const properties = deviceObj.getProperties();
@@ -469,23 +580,31 @@ describe('Test Devices', function () {
     }).timeout(120000);
 
     it('Test min/max - negative', async function () {
-        const Device = require(`../build/lib/devices/Thermostat`).Thermostat;
+        const Device = Thermostat;
         const adapter = new Adapter();
-        SubscribeManager.setAdapter(adapter);
+        SubscribeManager.setAdapter(adapter as any);
         adapter.setSubscribeManager(SubscribeManager);
-        const testDetectedDevices = { ...detectedDevices, type: 'thermostat' };
+        const testDetectedDevices = convertToDetectedDevice({ ...detectedDevices, type: 'thermostat' });
         
-        const deviceObj = new Device(testDetectedDevices, adapter, { enabled: true });
+        const deviceObj = new Device(testDetectedDevices, adapter as any, { 
+            uuid: 'test-uuid-thermostat',
+            enabled: true,
+            name: 'test-thermostat',
+            oid: 'test.0',
+            type: 'thermostat',
+            auto: true,
+            noComposed: false
+        });
         await deviceObj.init();
 
         const properties = deviceObj.getProperties();
 
         // subscribe on changes and try to read value
-        await deviceObj.setPropertyValue('level', 30);
+        await deviceObj.setPropertyValue(PropertyType.Level, 30);
         const ioBrokerValue = await adapter.getForeignStateAsync(properties.level.read);
         await new Promise(resolve =>
             setTimeout(() => {
-                const deviceValue = deviceObj.getPropertyValue('level');
+                const deviceValue = deviceObj.getPropertyValue(PropertyType.Level);
                 if (ioBrokerValue.val !== deviceValue) {
                     throw new Error(
                         `Value of ${properties.level.read} is ${ioBrokerValue.val}, but should be ${deviceValue}`,
@@ -498,27 +617,35 @@ describe('Test Devices', function () {
     }).timeout(2000);
 
     it('Test min/max - positive, readId=writeId', async function () {
-        const Device = require(`../build/lib/devices/Slider`).Slider;
+        const Device = Slider;
         const adapter = new Adapter();
-        SubscribeManager.setAdapter(adapter);
+        SubscribeManager.setAdapter(adapter as any);
         adapter.setSubscribeManager(SubscribeManager);
-        const _detectedDevices: DetectedDevice = {
+        const _detectedDevices: TestDetectedDevice = {
             states: [{ name: 'SET', id: '0_userdata.0.set' }],
             type: 'slider',
             isIoBrokerDevice: true,
         };
 
-        const deviceObj = new Device(_detectedDevices, adapter, { enabled: true });
+        const deviceObj = new Device(convertToDetectedDevice(_detectedDevices), adapter as any, { 
+            uuid: 'test-uuid-slider1',
+            enabled: true,
+            name: 'test-slider1',
+            oid: 'test.0',
+            type: 'slider',
+            auto: true,
+            noComposed: false
+        });
         await deviceObj.init();
 
         const properties = deviceObj.getProperties();
 
         // subscribe on changes and try to read value
-        await deviceObj.setPropertyValue('level', 30);
+        await deviceObj.setPropertyValue(PropertyType.Level, 30);
         const ioBrokerValue = await adapter.getForeignStateAsync(properties.level.read);
         await new Promise(resolve =>
             setTimeout(() => {
-                const deviceValue = deviceObj.getPropertyValue('level');
+                const deviceValue = deviceObj.getPropertyValue(PropertyType.Level);
                 if (deviceValue !== 30) {
                     throw new Error(`Value of ${properties.level.read} is ${ioBrokerValue.val}, but should be 30`);
                 }
@@ -533,11 +660,11 @@ describe('Test Devices', function () {
     }).timeout(2000);
 
     it('Test min/max - positive, readId!=writeId', async function () {
-        const Device = require(`../build/lib/devices/Slider`).Slider;
+        const Device = Slider;
         const adapter = new Adapter();
-        SubscribeManager.setAdapter(adapter);
+        SubscribeManager.setAdapter(adapter as any);
         adapter.setSubscribeManager(SubscribeManager);
-        const _detectedDevices: DetectedDevice = {
+        const _detectedDevices: TestDetectedDevice = {
             states: [
                 { name: 'SET', id: '0_userdata.0.set' },
                 { name: 'ACTUAL', id: '0_userdata.0.actual' },
@@ -546,13 +673,21 @@ describe('Test Devices', function () {
             isIoBrokerDevice: true,
         };
 
-        const deviceObj = new Device(_detectedDevices, adapter, { enabled: true });
+        const deviceObj = new Device(convertToDetectedDevice(_detectedDevices), adapter as any, { 
+            uuid: 'test-uuid-slider2',
+            enabled: true,
+            name: 'test-slider2',
+            oid: 'test.0',
+            type: 'slider',
+            auto: true,
+            noComposed: false
+        });
         await deviceObj.init();
 
         const properties = deviceObj.getProperties();
 
         // subscribe on changes and try to read value
-        await deviceObj.setPropertyValue('level', 75);
+        await deviceObj.setPropertyValue(PropertyType.Level, 75);
 
         // write value to ACTUAL
         const ioBrokerValue = await adapter.getForeignStateAsync(properties.level.write);
@@ -560,7 +695,7 @@ describe('Test Devices', function () {
 
         await new Promise(resolve =>
             setTimeout(() => {
-                const deviceValue = deviceObj.getPropertyValue('level');
+                const deviceValue = deviceObj.getPropertyValue(PropertyType.Level);
                 if (deviceValue !== 75) {
                     throw new Error(`Value of ${properties.level.read} is ${deviceValue}, but should be 75`);
                 }

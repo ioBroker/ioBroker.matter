@@ -47,9 +47,11 @@
     "@iobroker/testing": "^5.0.4",
     "@iobroker/types": "^7.0.7",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^24.1.0",
     "colorette": "^2.0.20",
     "puppeteer": "^24.15.0",
+    "ts-node": "^10.9.2",
     "typescript": "~5.8.3"
   },
   "bugs": {
@@ -64,7 +66,7 @@
     "data/"
   ],
   "scripts": {
-    "test": "mocha --exit",
+    "test": "TS_NODE_PROJECT=./tsconfig.test.json mocha --exit test/**/*.ts --require ts-node/register --require ./test/mocha.setup.js",
     "prepublishOnly": "npm run build",
     "npm": "npm i && cd src-admin && npm i",
     "lint": "eslint -c eslint.config.mjs",

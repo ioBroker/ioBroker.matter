@@ -36,8 +36,8 @@
         "sourceMap": true,
         "inlineSourceMap": false,
         "useUnknownInCatchVariables": false,
-        "types": ["@iobroker/types"]
+        "types": ["@iobroker/types", "mocha"]
     },
-    "include": ["src/**/*.ts", "./.eslintrc.js"],
+    "include": ["src/**/*.ts", "./.eslintrc.js", "test/**/*.ts"],
     "exclude": ["build/**", "node_modules/**", "src-admin/**"]
 }

@@ -208,6 +208,7 @@ interface MockAdapter {
     subscribeForeignStatesAsync(id: string): Promise<void>;
     getSubscribed(): string[];
     extendObject(): void;
+    extendObjectAsync?(id: string, obj: any): Promise<void>;
 }
 
 class Adapter implements MockAdapter {
@@ -316,6 +317,10 @@ class Adapter implements MockAdapter {
     extendObject(): void {
         // Nothing to do
     }
+
+    async extendObjectAsync(id: string, obj: any): Promise<void> {
+        // Nothing to do - just mock implementation
+    }
 }
 
 describe('Test Devices', function () {
@@ -337,10 +342,9 @@ describe('Test Devices', function () {
             const adapter = new Adapter();
             SubscribeManager.setAdapter(adapter);
             adapter.setSubscribeManager(SubscribeManager);
-            detectedDevices.type = type;
-            detectedDevices.isIoBrokerDevice = true;
-
-            const deviceObj = new Device(detectedDevices, adapter, { enabled: true });
+            const testDetectedDevices = { ...detectedDevices, type, isIoBrokerDevice: true };
+            
+            const deviceObj = new Device(testDetectedDevices, adapter, { enabled: true });
             await deviceObj.init();
 
             const properties = deviceObj.getProperties();
@@ -441,11 +445,11 @@ describe('Test Devices', function () {
                         }
                     }, 0);
 
-                    await new Promise<void>(resolve => {
+                    await new Promise(resolve => {
                         const handler = (event: any) => {
                             console.log(`Detected change of ${event.property} to ${event.value}`);
                             deviceObj.offChange(handler);
-                            resolve();
+                            resolve(undefined);
                         };
                         deviceObj.onChange(handler);
                     });
@@ -469,9 +473,9 @@ describe('Test Devices', function () {
         const adapter = new Adapter();
         SubscribeManager.setAdapter(adapter);
         adapter.setSubscribeManager(SubscribeManager);
-        detectedDevices.type = 'thermostat';
-
-        const deviceObj = new Device(detectedDevices, adapter, { enabled: true });
+        const testDetectedDevices = { ...detectedDevices, type: 'thermostat' };
+        
+        const deviceObj = new Device(testDetectedDevices, adapter, { enabled: true });
         await deviceObj.init();
 
         const properties = deviceObj.getProperties();
@@ -479,7 +483,7 @@ describe('Test Devices', function () {
         // subscribe on changes and try to read value
         await deviceObj.setPropertyValue('level', 30);
         const ioBrokerValue = await adapter.getForeignStateAsync(properties.level.read);
-        await new Promise<void>(resolve =>
+        await new Promise(resolve =>
             setTimeout(() => {
                 const deviceValue = deviceObj.getPropertyValue('level');
                 if (ioBrokerValue.val !== deviceValue) {
@@ -487,7 +491,7 @@ describe('Test Devices', function () {
                         `Value of ${properties.level.read} is ${ioBrokerValue.val}, but should be ${deviceValue}`,
                     );
                 }
-                resolve();
+                resolve(undefined);
             }, 100),
         );
         await deviceObj.destroy();
@@ -512,7 +516,7 @@ describe('Test Devices', function () {
         // subscribe on changes and try to read value
         await deviceObj.setPropertyValue('level', 30);
         const ioBrokerValue = await adapter.getForeignStateAsync(properties.level.read);
-        await new Promise<void>(resolve =>
+        await new Promise(resolve =>
             setTimeout(() => {
                 const deviceValue = deviceObj.getPropertyValue('level');
                 if (deviceValue !== 30) {
@@ -521,7 +525,7 @@ describe('Test Devices', function () {
                 if (ioBrokerValue.val !== -10) {
                     throw new Error(`Value of ${properties.level.read} is ${ioBrokerValue.val}, but should be -10`);
                 }
-                resolve();
+                resolve(undefined);
             }, 100),
         );
 
@@ -554,7 +558,7 @@ describe('Test Devices', function () {
         const ioBrokerValue = await adapter.getForeignStateAsync(properties.level.write);
         await adapter.setForeignStateAsync(properties.level.read, ioBrokerValue.val, true);
 
-        await new Promise<void>(resolve =>
+        await new Promise(resolve =>
             setTimeout(() => {
                 const deviceValue = deviceObj.getPropertyValue('level');
                 if (deviceValue !== 75) {
@@ -563,7 +567,7 @@ describe('Test Devices', function () {
                 if (ioBrokerValue.val !== 125) {
                     throw new Error(`Value of ${properties.level.write} is ${ioBrokerValue.val}, but should be 125`);
                 }
-                resolve();
+                resolve(undefined);
             }, 100),
         );
 

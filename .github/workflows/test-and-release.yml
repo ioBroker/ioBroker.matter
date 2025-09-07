@@ -28,7 +28,7 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
             - name: Use Node.js 22.x
               uses: actions/setup-node@v4
               with:
@@ -59,7 +59,7 @@ jobs:
                 os: [ubuntu-latest, windows-latest, macos-latest]
 
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
             - name: Use Node.js ${{ matrix.node-version }}
               uses: actions/setup-node@v4
               with:
@@ -98,7 +98,7 @@ jobs:
 
             - name: Checkout repository
               if: steps.automerge.outputs.mergeResult == 'merged'
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   fetch-depth: 0 # Fetch the history, or this action won't work
                   ref: 'main'

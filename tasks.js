@@ -63,13 +63,13 @@ if (process.argv.includes('--0-clean')) {
 } else if (process.argv.includes('--build')) {
     clean();
     sync2files(`${__dirname}/src/lib/vendorIDs.ts`, `${__dirname}/src-admin/src/utils/vendorIDs.ts`);
-    npmInstall(`${__dirname}/src-admin`)
-        .then(() =>
-            buildReact(`${__dirname}/src-admin/`, {
-                rootDir: __dirname,
-                vite: true,
-            }),
-        )
+    //npmInstall(`${__dirname}/src-admin`)
+    //.then(() =>
+    buildReact(`${__dirname}/src-admin/`, {
+        rootDir: __dirname,
+        vite: true,
+    })
+        //)
         .then(() => copyAllFiles())
         .then(() => patch())
         .catch(e => {
@@ -82,13 +82,13 @@ if (process.argv.includes('--0-clean')) {
     clean();
     sync2files(`${__dirname}/src/lib/vendorIDs.ts`, `${__dirname}/src-admin/src/utils/vendorIDs.ts`);
 
-    npmInstall(`${__dirname}/src-admin`)
-        .then(() =>
-            buildReact(`${__dirname}/src-admin/`, {
-                rootDir: __dirname,
-                vite: true,
-            }),
-        )
+    //npmInstall(`${__dirname}/src-admin`)
+    //.then(() =>
+    buildReact(`${__dirname}/src-admin/`, {
+        rootDir: __dirname,
+        vite: true,
+    })
+        //)
         .then(() => copyAllFiles())
         .then(() => patch())
         .catch(e => {

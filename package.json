@@ -67,7 +67,7 @@
   "scripts": {
     "test": "mocha --exit",
     "prepublishOnly": "npm run build",
-    "npm": "cd src-admin && npm i && cd .. && npm i",
+    "npm": "npm i && cd src-admin && npm i",
     "lint": "eslint -c eslint.config.mjs",
     "lint-frontend": "cd src-admin && eslint -c eslint.config.mjs",
     "build": "npm run build:ts && npm run build:gui",

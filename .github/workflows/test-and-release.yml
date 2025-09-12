@@ -66,7 +66,10 @@ jobs:
                   node-version: ${{ matrix.node-version }}
 
             - name: Install Dependencies
-              run: rm -rf package-lock.json && rm -rf src-admin/package-lock.json && npm run npm
+              run: |
+                rm -rf package-lock.json
+                rm -rf src-admin/package-lock.json
+                npm run npm
 
             - name: Build typescript
               run: npm run build

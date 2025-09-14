@@ -1,3 +1,5 @@
 {
-    "require": ["./test/mocha.setup.js"]
+    "require": ["./test/mocha.setup.js", "ts-node/register"],
+    "spec": "test/**/*.test.ts",
+    "extensions": ["ts"]
 }

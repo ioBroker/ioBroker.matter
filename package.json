@@ -49,12 +49,12 @@
         "@iobroker/types": "^7.0.7",
         "@types/jsonwebtoken": "^9.0.10",
         "@types/mocha": "^10.0.10",
-    "@types/node": "^24.3.1",
+        "@types/node": "^24.4.0",
         "esbuild": "^0.25.9",
         "colorette": "^2.0.20",
         "puppeteer": "^24.20.0",
         "ts-node": "^10.9.2",
-    "typescript": "~5.9.2"
+        "typescript": "~5.9.2"
     },
     "bugs": {
         "url": "https://github.com/ioBroker/ioBroker.matter/issues"

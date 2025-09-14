@@ -48,7 +48,7 @@
         "eslint-plugin-import": "^2.32.0",
         "@iobroker/types": "^7.0.7",
         "@types/jsonwebtoken": "^9.0.10",
-        "@types/node": "^24.3.1",
+        "@types/node": "^24.4.0",
         "esbuild": "^0.25.9",
         "colorette": "^2.0.20",
         "puppeteer": "^24.20.0",

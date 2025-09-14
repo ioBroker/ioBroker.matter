@@ -47,7 +47,7 @@ jobs:
               run: npm run build
 
             ## add caching for the build step including /admin and /build to reuse in later steps
-            - name: Cache admin build output
+            - name: Cache build output
               uses: actions/cache/save@v4
               with:
                 path: |
@@ -72,6 +72,15 @@ jobs:
 
         steps:
             - uses: actions/checkout@v5
+
+            - name: Restore build output cache
+              uses: actions/cache/restore@v4
+              with:
+                path: |
+                  admin
+                  build
+                key: ${{ github.ref }}-build
+
             - name: Use Node.js ${{ matrix.node-version }}
               uses: actions/setup-node@v5
               with:
@@ -79,15 +88,6 @@ jobs:
 
             - name: Install Base Dependencies
               run: npm ci && cd src-admin && npm ci
-
-          ## add caching for the build step including /admin and /build to reuse in later steps
-            - name: Cache build output
-              uses: actions/cache/restore@v4
-              with:
-                path: |
-                  admin
-                  build
-                key: ${{ github.ref }}-build
 
             - name: Run local tests
               run: npm test

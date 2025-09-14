@@ -45,13 +45,14 @@
         "@iobroker/eslint-config": "^2.1.0",
         "@iobroker/legacy-testing": "^2.0.2",
         "@iobroker/testing": "^5.1.1",
-        "eslint-plugin-import": "^2.32.0",
         "@iobroker/types": "^7.0.7",
         "@types/jsonwebtoken": "^9.0.10",
         "@types/node": "^24.4.0",
-        "esbuild": "^0.25.9",
         "colorette": "^2.0.20",
+        "esbuild": "^0.25.9",
+        "eslint-plugin-import": "^2.32.0",
         "puppeteer": "^24.20.0",
+        "ts-node": "^10.9.2",
         "typescript": "~5.9.2"
     },
     "bugs": {
@@ -66,7 +67,8 @@
         "data/"
     ],
     "scripts": {
-        "test": "mocha --exit",
+        "test": "npm run build:test && mocha --exit",
+        "build:test": "tsc test/devices.test.ts --outDir ./ --target es2022 --module commonjs --moduleResolution node --skipLibCheck --esModuleInterop && mv devices.test.js test/",
         "prepublishOnly": "npm run build",
         "npm": "npm i && cd src-admin && npm i",
         "lint": "eslint -c eslint.config.mjs",

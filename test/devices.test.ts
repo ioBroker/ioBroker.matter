@@ -1,10 +1,10 @@
 // Import types and dependencies
 import { Types } from '@iobroker/type-detector';
 
-// Use require for runtime imports to match the original approach
-const { SubscribeManager } = require('../build/lib/SubscribeManager');
-const { StateAccessType } = require('../build/lib/devices/GenericDevice');
-const { ValueType } = require('../build/lib/devices/DeviceStateObject');
+// Import from TypeScript source files directly  
+const { SubscribeManager } = require('../src/lib/SubscribeManager');
+const { StateAccessType } = require('../src/lib/devices/GenericDevice');
+const { ValueType } = require('../src/lib/devices/DeviceStateObject');
 
 const excludedTypes: string[] = [
     'unknown',
@@ -334,7 +334,7 @@ describe('Test Devices', function () {
             // detect that only read values are subscribed
             console.log(`------------------------\nCreated device for ${type}`);
             const className = type[0].toUpperCase() + type.substring(1);
-            const Device = require(`../build/lib/devices/${className}`)[className];
+            const Device = require(`../src/lib/devices/${className}`)[className];
             const adapter = new Adapter();
             SubscribeManager.setAdapter(adapter as any);
             adapter.setSubscribeManager(SubscribeManager);
@@ -466,7 +466,7 @@ describe('Test Devices', function () {
     }).timeout(50000);
 
     it('Test min/max - negative', async function () {
-        const Device = require(`../build/lib/devices/Thermostat`).Thermostat;
+        const Device = require(`../src/lib/devices/Thermostat`).Thermostat;
         const adapter = new Adapter();
         SubscribeManager.setAdapter(adapter as any);
         adapter.setSubscribeManager(SubscribeManager);
@@ -495,7 +495,7 @@ describe('Test Devices', function () {
     }).timeout(2000);
 
     it('Test min/max - positive, readId=writeId', async function () {
-        const Device = require(`../build/lib/devices/Slider`).Slider;
+        const Device = require(`../src/lib/devices/Slider`).Slider;
         const adapter = new Adapter();
         SubscribeManager.setAdapter(adapter as any);
         adapter.setSubscribeManager(SubscribeManager);
@@ -530,7 +530,7 @@ describe('Test Devices', function () {
     }).timeout(2000);
 
     it('Test min/max - positive, readId!=writeId', async function () {
-        const Device = require(`../build/lib/devices/Slider`).Slider;
+        const Device = require(`../src/lib/devices/Slider`).Slider;
         const adapter = new Adapter();
         SubscribeManager.setAdapter(adapter as any);
         adapter.setSubscribeManager(SubscribeManager);

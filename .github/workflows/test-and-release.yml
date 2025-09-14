@@ -46,6 +46,15 @@ jobs:
             - name: Build
               run: npm run build
 
+            ## add caching for the build step including /admin and /build to reuse in later steps
+            - name: Cache admin build output
+              uses: actions/cache/save@v4
+              with:
+                path: |
+                  admin
+                  build
+                key: ${{ github.ref }}-admin
+
     # Runs adapter tests on all supported node versions and OSes
     adapter-tests:
         if: contains(github.event.head_commit.message, '[skip ci]') == false
@@ -68,16 +77,17 @@ jobs:
               with:
                   node-version: ${{ matrix.node-version }}
 
-            # downgrade npm to 10.8.2 when nodejs is 24.x as otherwise the tests fail
-            - name: Downgrade npm for Node.js 24.x
-              if: matrix.node-version == '24.x'
-              run: npm install -g npm@10.8.2
-
             - name: Install Base Dependencies
               run: npm ci && cd src-admin && npm ci
 
-            - name: Build typescript
-              run: npm run build
+          ## add caching for the build step including /admin and /build to reuse in later steps
+            - name: Cache build output
+              uses: actions/cache/restore@v4
+              with:
+                path: |
+                  admin
+                  build
+                key: ${{ github.ref }}-build
 
             - name: Run local tests
               run: npm test

@@ -53,7 +53,7 @@ jobs:
                 path: |
                   admin
                   build
-                key: ${{ github.ref }}-admin
+                key: ${{ github.ref }}-build
 
     # Runs adapter tests on all supported node versions and OSes
     adapter-tests:

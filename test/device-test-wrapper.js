@@ -1,13 +1,4 @@
-// Simple test runner that bypasses ts-node issues by using transpilation
-require('./mocha.setup.js');
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
 
-console.log('Setting up test environment...');
-
-// Create a simple CommonJS wrapper that imports from the built files
-const testWrapperContent = `
 const { Types, DetectorState } = require('@iobroker/type-detector');
 const { SubscribeManager } = require('../build/lib/SubscribeManager');
 const { StateAccessType, DetectedDevice } = require('../build/lib/devices/GenericDevice');
@@ -87,19 +78,3 @@ console.log('Tests would run here with built JavaScript files');
 console.log('✅ Test environment successfully uses built files instead of TypeScript sources');
 
 module.exports = { deviceClasses, detectedDevices, Types, SubscribeManager };
-`;
-
-// Write the test wrapper
-fs.writeFileSync(path.join(__dirname, 'device-test-wrapper.js'), testWrapperContent);
-
-try {
-    console.log('Running device tests with built JavaScript files...');
-    // For now, just validate that we can load the dependencies
-    const wrapper = require('./device-test-wrapper.js');
-    console.log('✅ Successfully loaded all device classes from built files');
-    console.log('✅ Test setup complete - using JavaScript builds instead of TypeScript sources');
-    console.log('Note: This approach maintains the original functionality while avoiding ts-node compatibility issues.');
-} catch (error) {
-    console.error('Test setup failed:', error.message);
-    process.exit(1);
-}

@@ -64,7 +64,11 @@ jobs:
               uses: actions/setup-node@v5
               with:
                   node-version: ${{ matrix.node-version }}
-                  package-manager-cache: false
+
+            # downgrade npm to 10.8.2 when nodejs is 24.x as otherwise the tests fail
+            - name: Downgrade npm for Node.js 24.x
+              if: matrix.node-version == '24.x'
+              run: npm install -g npm@10.8.2
 
             - name: Install Base Dependencies
               run: npm ci && cd src-admin && npm ci

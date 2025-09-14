@@ -3,9 +3,11 @@
     "compilerOptions": {
         "allowJs": true,
         "checkJs": false,
-        "noEmit": true,
-        "skipLibCheck": true
+        "noEmit": false,
+        "skipLibCheck": true,
+        "module": "CommonJS",
+        "moduleResolution": "node"
     },
-    "include": ["test/**/*.ts"],
+    "include": ["test/**/*.ts", "src/**/*.ts"],
     "exclude": ["node_modules/**", "build/**"]
 }

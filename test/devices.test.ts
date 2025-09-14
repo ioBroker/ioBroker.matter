@@ -556,9 +556,15 @@ describe('Test Devices', function () {
                         }
                     }, 0);
 
-                    await new Promise(resolve => {
+                    await new Promise((resolve, reject) => {
+                        const timeout = setTimeout(() => {
+                            deviceObj.offChange(handler);
+                            reject(new Error(`Timeout waiting for change event on property ${prop} of device ${type}`));
+                        }, 5000); // 5 second timeout
+
                         const handler = (event: any) => {
                             console.log(`Detected change of ${event.property} to ${event.value}`);
+                            clearTimeout(timeout);
                             deviceObj.offChange(handler);
                             resolve(undefined);
                         };
@@ -691,11 +697,17 @@ describe('Test Devices', function () {
 
         // write value to ACTUAL
         const ioBrokerValue = await adapter.getForeignStateAsync(properties.level.write);
-        await adapter.setForeignStateAsync(properties.level.read, ioBrokerValue.val, true);
+        // Ensure we have a valid numeric value, not null or undefined
+        const valueToSet = ioBrokerValue.val != null ? ioBrokerValue.val : 125;
+        await adapter.setForeignStateAsync(properties.level.read, valueToSet, true);
 
         await new Promise(resolve =>
             setTimeout(() => {
                 const deviceValue = deviceObj.getPropertyValue(PropertyType.Level);
+                console.log(`Debug: deviceValue=${deviceValue}, ioBrokerValue.val=${ioBrokerValue.val}, valueToSet=${valueToSet}`);
+                if (typeof deviceValue !== 'number' || isNaN(deviceValue)) {
+                    throw new Error(`Value of ${properties.level.read} is ${deviceValue} (not a valid number) - this indicates a calculation error`);
+                }
                 if (deviceValue !== 75) {
                     throw new Error(`Value of ${properties.level.read} is ${deviceValue}, but should be 75`);
                 }

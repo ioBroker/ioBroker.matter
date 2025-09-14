@@ -6,7 +6,9 @@
         "noEmit": false,
         "skipLibCheck": true,
         "module": "CommonJS",
-        "moduleResolution": "node"
+        "moduleResolution": "node",
+        "target": "ES2022",
+        "esModuleInterop": true
     },
     "include": ["test/**/*.ts", "src/**/*.ts"],
     "exclude": ["node_modules/**", "build/**"]

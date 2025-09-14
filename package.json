@@ -68,7 +68,7 @@
         "data/"
     ],
     "scripts": {
-        "test": "npm run build && node test/run-tests.js",
+        "test": "TS_NODE_PROJECT=./tsconfig.test.json ./node_modules/.bin/mocha --require ts-node/register test/devices.test.ts",
         "prepublishOnly": "npm run build",
         "npm": "npm i && cd src-admin && npm i",
         "lint": "eslint -c eslint.config.mjs",

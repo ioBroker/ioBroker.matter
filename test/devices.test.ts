@@ -1,3 +1,8 @@
+// Setup unhandled rejection handler (replaces mocha.setup.js)
+process.on('unhandledRejection', r => {
+    throw r;
+});
+
 import { Types, DetectorState } from '@iobroker/type-detector';
 import { SubscribeManager } from '../src/lib/SubscribeManager';
 import { StateAccessType, DetectedDevice } from '../src/lib/devices/GenericDevice';

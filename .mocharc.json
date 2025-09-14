@@ -1,3 +1,6 @@
 {
-    "require": ["./test/mocha.setup.js"]
+    "ts-node": {
+        "project": "./tsconfig.test.json"
+    },
+    "timeout": 10000
 }

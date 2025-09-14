@@ -80,6 +80,7 @@ jobs:
                   admin
                   build
                 key: ${{ github.ref }}-build
+                enableCrossOsArchive: true
 
             - name: Use Node.js ${{ matrix.node-version }}
               uses: actions/setup-node@v5

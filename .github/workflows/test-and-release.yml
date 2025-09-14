@@ -8,13 +8,15 @@ name: Test and Release
 on:
     push:
         branches:
-            - '*'
+            - 'main'
         tags:
             # normal versions
             - 'v?[0-9]+.[0-9]+.[0-9]+'
             # pre-releases
             - 'v?[0-9]+.[0-9]+.[0-9]+-**'
-    pull_request: {}
+    pull_request:
+        branches:
+            - 'main'
 
 concurrency:
     group: ${{ github.ref }}
@@ -28,7 +30,7 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
             - name: Use Node.js 22.x
               uses: actions/setup-node@v4
               with:
@@ -46,6 +48,15 @@ jobs:
             - name: Build
               run: npm run build
 
+            ## add caching for the build step including /admin and /build to reuse in later steps
+            - name: Cache build output
+              uses: actions/cache/save@v4
+              with:
+                path: |
+                  admin
+                  build
+                key: ${{ github.ref }}-build
+
     # Runs adapter tests on all supported node versions and OSes
     adapter-tests:
         if: contains(github.event.head_commit.message, '[skip ci]') == false
@@ -57,19 +68,29 @@ jobs:
             matrix:
                 node-version: [20.x, 22.x, 24.x]
                 os: [ubuntu-latest, windows-latest, macos-latest]
+                exclude:
+                    - os: macos-latest
+                      node-version: 24.x
 
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
+
+            - name: Restore build output cache
+              uses: actions/cache/restore@v4
+              with:
+                path: |
+                  admin
+                  build
+                key: ${{ github.ref }}-build
+                enableCrossOsArchive: true
+
             - name: Use Node.js ${{ matrix.node-version }}
-              uses: actions/setup-node@v4
+              uses: actions/setup-node@v5
               with:
                   node-version: ${{ matrix.node-version }}
 
-            - name: Install Dependencies
+            - name: Install Base Dependencies
               run: npm ci && cd src-admin && npm ci
-
-            - name: Build typescript
-              run: npm run build
 
             - name: Run local tests
               run: npm test
@@ -98,7 +119,7 @@ jobs:
 
             - name: Checkout repository
               if: steps.automerge.outputs.mergeResult == 'merged'
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   fetch-depth: 0 # Fetch the history, or this action won't work
                   ref: 'main'

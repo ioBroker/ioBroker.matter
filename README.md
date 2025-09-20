@@ -76,7 +76,7 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 -->
 
 ## Changelog
-### __WORK IN PROGRESS__
+### 0.5.3 (2025-09-20)
 * (@Apollon77) Updated matter.js to 0.15.4
 
 ### 0.5.2 (2025-08-03)

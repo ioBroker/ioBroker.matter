@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.5.2",
+    "version": "0.5.3",
     "news": {
+      "0.5.3": {
+        "en": "Updated matter.js to 0.15.4",
+        "de": "Matter.js auf Version 0.15.4 aktualisiert.",
+        "ru": "Обновлен matter.js до версии 0.15.4",
+        "pt": "Atualizado o matter.js para 0.15.4",
+        "nl": "Matter.js bijgewerkt naar 0.15.4",
+        "fr": "Mise à jour de matter.js en version 0.15.4",
+        "it": "Aggiornato matter.js a 0.15.4",
+        "es": "Se actualizó matter.js a la versión 0.15.4",
+        "pl": "Zaktualizowano bibliotekę matter.js do wersji 0.15.4",
+        "uk": "Оновлено matter.js до версії 0.15.4",
+        "zh-cn": "将matter.js更新到0.15.4"
+      },
       "0.5.2": {
         "en": "Updated matter.js to 0.15.2 with many performance- and other improvements\nCorrected the checking of the licenses if they were stacked\nUse attributes from cache instead of requesting them from the device\nIgnoring invalid min/max for color temperature from objects\nPrevents update loops for Thermostat on/off state changes\nFixes invalid color state updates when multiple attributes are adjusted together\nRounds RSSI values to prevent digits",
         "de": "Aktualisierte matter.js bis 0,15.2 mit vielen Leistungs- und anderen Verbesserungen\nKorrektur der Überprüfung der Lizenzen, wenn sie gestapelt wurden\nVerwenden Sie Attribute aus dem Cache, anstatt sie vom Gerät anzufordern\nUngültige min/max für Farbtemperatur von Objekten ignorieren\nVerhindert Aktualisierungsschleifen für Thermostat-Ein-/Aus-Zustandsänderungen\nBehebt ungültige Farbzustandsupdates, wenn mehrere Attribute zusammen angepasst werden\nRunden RSSI-Werte, um Ziffern zu verhindern",
@@ -80,19 +93,6 @@
         "pl": "Lepsza stabilność i niezawodność połączenia (matter.js zaktualizowane)\nSortuj wpisy enum w celu poprawy jakości wykrywania podczas dodawania nowych urządzeń",
         "uk": "Покращена стабільність і надійність підключення (маттер.js оновлений)\nСортувати записів ферментів для поліпшення якості виявлення при додаванні нових пристроїв",
         "zh-cn": "提高稳定性和连接可靠性(更新事项)\n在添加新设备时排序enum项以提高检测质量"
-      },
-      "0.4.13": {
-        "en": "Added support for Door state feature for Devices and Controllers\nFixed Thermostat creation with Boost state",
-        "de": "Unterstützung für Türzustandsfunktionen für Geräte und Controller\nFeste Thermostat-Erstellung mit Boost-Zustand",
-        "ru": "Добавлена поддержка функции состояния двери для устройств и контроллеров\nИсправленное создание Thermostat с состоянием Boost",
-        "pt": "Adicionado suporte para recurso de estado de porta para dispositivos e controladores\nCriação de termostato fixo com estado de impulso",
-        "nl": "Extra ondersteuning voor deurstatus voor apparaten en controllers\nVaste thermostaat creatie met Boost toestand",
-        "fr": "Ajout de la prise en charge de la fonction État de la porte pour les appareils et les contrôleurs\nCréation de thermostat fixe avec état Boost",
-        "it": "Aggiunto supporto per la funzione di stato della porta per dispositivi e controller\nCreazione termostato fisso con stato Boost",
-        "es": "Soporte añadido para la función de estado de puerta para dispositivos y controladores\nCreación de termostato fijo con estado Boost",
-        "pl": "Dodano wsparcie dla funkcji stanu drzwi dla urządzeń i sterowników\nStałe tworzenie termostatu z boost state",
-        "uk": "Додано підтримку функцій дверного стану для пристроїв та контролерів\nФіксована терморегуляція з державою Boost",
-        "zh-cn": "添加对设备及控制器的 Door 状态特性的支持\n带布斯特状态的固定热源创建"
       }
     },
     "titleLang": {

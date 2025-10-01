@@ -51,7 +51,7 @@
     "@types/node": "^24.4.0",
     "esbuild": "^0.25.9",
     "colorette": "^2.0.20",
-    "puppeteer": "^24.20.0",
+    "puppeteer": "^24.22.3",
     "typescript": "~5.9.2"
   },
   "bugs": {

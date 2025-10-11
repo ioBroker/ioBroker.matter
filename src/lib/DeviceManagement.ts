@@ -516,6 +516,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const node = nodeOrDevice instanceof GeneralMatterNode ? nodeOrDevice : undefined;
         const device = nodeOrDevice instanceof GenericDeviceToIoBroker ? nodeOrDevice : undefined;
 
+        let addBatteryPoweredInfo = false;
         const items: Record<string, ConfigItemAny> = {
             exposeMatterApplicationClusterData: {
                 type: 'select',
@@ -571,13 +572,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 data.pollInterval = deviceConfig.pollInterval;
 
                 if (device.node.deviceInformation?.isBatteryPowered) {
-                    items.pollInterval_batteryInfo = {
-                        type: 'staticText',
-                        newLine: true,
-                        text: this.#adapter.getText(
-                            'This device is battery powered. Be careful to not drain the battery too fast.',
-                        ),
-                    };
+                    addBatteryPoweredInfo = true;
                 }
             }
         } else if (node !== undefined) {
@@ -608,11 +603,14 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                             'This value is just a proposal for the device The device may decide for an other maximum interval.',
                         ),
                     };
+                    if (node.node.deviceInformation?.isBatteryPowered) {
+                        addBatteryPoweredInfo = true;
+                    }
                 }
             }
 
-            if (node.node.deviceInformation?.isBatteryPowered) {
-                items.subscriptionMaxIntervalS_batteryInfo = {
+            if (addBatteryPoweredInfo) {
+                items.pollInterval_batteryInfo = {
                     type: 'staticText',
                     newLine: true,
                     text: this.#adapter.getText(

@@ -70,6 +70,28 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
   * (1+) Battery Storage -> ???
   * (1+) Heat Pump -> ???
 
+## Development
+
+### Updating Dependencies
+
+When updating project dependencies (in both the root `package.json` and `src-admin/package.json`), always use the following command:
+
+```bash
+npm run npm
+```
+
+This command updates dependencies in both the main project and the admin frontend, ensuring `package-lock.json` files are properly synchronized.
+
+### Running Tests
+
+All tests are written in TypeScript and executed directly without compilation:
+
+```bash
+npm test
+```
+
+Tests are located in the `test/` directory and use ts-node for direct TypeScript execution.
+
 <!--
 	Placeholder for the next version (at the beginning of the line):
 	### **WORK IN PROGRESS**

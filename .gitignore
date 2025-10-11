@@ -29,3 +29,4 @@ build
 /src-admin/src/components/DeviceManagerDev/i18n/
 /src-admin/src/components/DeviceManagerDev/i18n/*
 /admin/tab_m.html
+test/*.test.js

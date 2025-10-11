@@ -52,6 +52,7 @@
     "esbuild": "^0.25.10",
     "colorette": "^2.0.20",
     "puppeteer": "^24.23.0",
+    "ts-node": "^10.9.2",
     "typescript": "~5.9.3"
   },
   "bugs": {
@@ -66,7 +67,7 @@
     "data/"
   ],
   "scripts": {
-    "test": "mocha --exit",
+    "test": "mocha --exit test/**/*.test.ts",
     "prepublishOnly": "npm run build",
     "npm": "npm i && cd src-admin && npm i",
     "lint": "eslint -c eslint.config.mjs",

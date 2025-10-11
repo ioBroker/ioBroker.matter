@@ -1,235 +1,244 @@
 {
-    "common": {
-        "name": "matter",
-        "version": "0.5.3",
-        "news": {
-            "0.5.3": {
-                "en": "Updated matter.js to 0.15.4",
-                "de": "Matter.js auf Version 0.15.4 aktualisiert.",
-                "ru": "Обновлен matter.js до версии 0.15.4",
-                "pt": "Atualizado o matter.js para 0.15.4",
-                "nl": "Matter.js bijgewerkt naar 0.15.4",
-                "fr": "Mise à jour de matter.js en version 0.15.4",
-                "it": "Aggiornato matter.js a 0.15.4",
-                "es": "Se actualizó matter.js a la versión 0.15.4",
-                "pl": "Zaktualizowano bibliotekę matter.js do wersji 0.15.4",
-                "uk": "Оновлено matter.js до версії 0.15.4",
-                "zh-cn": "将matter.js更新到0.15.4"
-            },
-            "0.5.2": {
-                "en": "Updated matter.js to 0.15.2 with many performance- and other improvements\nCorrected the checking of the licenses if they were stacked\nUse attributes from cache instead of requesting them from the device\nIgnoring invalid min/max for color temperature from objects\nPrevents update loops for Thermostat on/off state changes\nFixes invalid color state updates when multiple attributes are adjusted together\nRounds RSSI values to prevent digits",
-                "de": "Aktualisierte matter.js bis 0,15.2 mit vielen Leistungs- und anderen Verbesserungen\nKorrektur der Überprüfung der Lizenzen, wenn sie gestapelt wurden\nVerwenden Sie Attribute aus dem Cache, anstatt sie vom Gerät anzufordern\nUngültige min/max für Farbtemperatur von Objekten ignorieren\nVerhindert Aktualisierungsschleifen für Thermostat-Ein-/Aus-Zustandsänderungen\nBehebt ungültige Farbzustandsupdates, wenn mehrere Attribute zusammen angepasst werden\nRunden RSSI-Werte, um Ziffern zu verhindern",
-                "ru": "Обновленный matter.js до 0,15.2 со многими улучшениями производительности\nИсправлена проверка лицензий, если они были сложены\nИспользуйте атрибуты из кэша вместо того, чтобы запрашивать их с устройства\nИгнорирование недействительных min/max для цветовой температуры от объектов\nПредотвращение циклов обновления для изменений состояния включения / выключения термостата\nИсправляет недействительные обновления состояния цвета, когда несколько атрибутов регулируются вместе\nОкругление значений RSSI для предотвращения цифр",
-                "pt": "Updated matter.js to 0.15.2 com muitos desempenhos e outras melhorias\nCorrigido a verificação das licenças se eles foram empilhados\nUsar atributos da 'cache' em vez de os solicitar do dispositivo\nIgnorando min/max inválido para a temperatura de cor de objetos\nPrevine a atualização de loops para as mudanças de estado do termostato\nCorrige atualizações de estado de cor inválidas quando vários atributos são ajustados juntos\nRedondas Valores RSSI para evitar dígitos",
-                "nl": "Bijgewerkt materie.js naar 0,15.2 met veel prestaties- en andere verbeteringen\nCorrectie van de controle van de licenties als ze werden gestapeld\nAttributen uit cache gebruiken in plaats van ze van het apparaat te vragen\nOngeldige min/max voor kleurtemperatuur van objecten negeren\nVoorkomt update loops voor thermostat aan/uit toestand wijzigingen\nFixeert ongeldige kleurstatus-updates wanneer meerdere attributen samen worden aangepast\nRounds RSSI-waarden om cijfers te voorkomen",
-                "fr": "Matière mise à jour.js à 0.15.2 avec de nombreuses améliorations - et d'autres améliorations\nCorrection de la vérification des licences si elles étaient empilées\nUtiliser les attributs du cache au lieu de les demander à partir du périphérique\nIgnorer min/max invalide pour la température de couleur des objets\nEmpêche les boucles de mise à jour pour les changements d'état de Thermostat\nCorrection des mises à jour d'état de couleur invalides lorsque plusieurs attributs sont ajustés ensemble\nRondles valeurs RSSI pour empêcher les chiffres",
-                "it": "Question.js aggiornato a 0.15.2 con molte prestazioni- e altri miglioramenti\nCorretto il controllo delle licenze se sono stati impilati\nUtilizzare gli attributi dalla cache invece di richiederli dal dispositivo\nIgnorando min/max non valido per temperatura di colore da oggetti\nPreviene i loop di aggiornamento per le modifiche dello stato di termostato\nRisolve gli aggiornamenti di stato di colore non validi quando più attributi vengono regolati insieme\nTondi valori RSSI per prevenire le cifre",
-                "es": "Updated matter.js to 0.15.2 with many performance- and other improvements\nCorregido la comprobación de las licencias si fueron apilados\nUtilice atributos de caché en lugar de solicitarlos del dispositivo\nIgnorando min/max inválido para la temperatura de color de los objetos\nEvita los bucles de actualización para los cambios de estado de termostato\nFija actualizaciones de estado de color inválidas cuando se ajustan múltiples atributos juntos\nValores RSSI para prevenir dígitos",
-                "pl": "Aktualizacja mater.js do 0.15.2 z wielu wykonania- i innych ulepszeń\nPoprawiono sprawdzanie licencji, jeśli zostały ułożone\nUżyj atrybutów z pamięci podręcznej zamiast żądać ich z urządzenia\nIgnorowanie nieprawidłowego min / max dla temperatury barw obiektów\nZapobiega aktualizacji pętli dla zmian stanu włączenia / wyłączenia termostatu\nFixes błędne aktualizacje stanu kolorów, gdy wiele atrybutów są dopasowane razem\nZaokrągla wartości RSSI, aby zapobiec cyfrom",
-                "uk": "Оновлена справа.js до 0.15.2 з багатьма перформансами та іншими вдосконаленнями\nВиправлено перевірку ліцензій, якщо вони були складені\nВикористовуйте атрибути кешу замість запиту їх з пристрою\nПрогнозування недійсним хв/максу за температуру кольору від предметів\nЗапобігає відновленню петель термостату за змінами стану\nВиправлення недійсних оновлення стану кольору при багаторазових атрибутах регулюється разом\nКруглі значення RSSI для запобігання цифр",
-                "zh-cn": "更新为0.15.2,并改进了许多业绩和其他\n纠正了对许可证的检查,如果这些许可证被堆放\n使用缓存中的属性而不是请求设备中的属性\n忽略对象颜色温度的无效分/ 最大值\n防止打开/关闭自动调温器的更新循环\n当多个属性一起调整时修复无效的颜色状态更新\n圆 RSSI 值防止位数"
-            },
-            "0.5.1": {
-                "en": "Updated matter.js to 0.14 with many performance- and other improvements",
-                "de": "Aktualisierte matter.js bis 0,14 mit vielen Leistungs- und anderen Verbesserungen",
-                "ru": "Обновленный matter.js до 0.14 со многими улучшениями производительности",
-                "pt": "Atualizado matter.js para 0.14 com muitos desempenho- e outras melhorias",
-                "nl": "Bijgewerkt materie.js naar 0.14 met veel prestaties- en andere verbeteringen",
-                "fr": "Matière mise à jour.js à 0.14 avec de nombreuses améliorations - et autres",
-                "it": "Question.js aggiornato a 0.14 con molte prestazioni- e altri miglioramenti",
-                "es": "Actualizado matter.js a 0.14 con muchas mejoras de rendimiento y otros",
-                "pl": "Aktualizacja mater.js do 0.14 z wielu wykonania- i innych ulepszeń",
-                "uk": "Оновлена справа.js до 0.14 з багатьма перфомансувальними та іншими вдосконаленнями",
-                "zh-cn": "已更新到0.14,并有许多业绩和其他改进"
-            },
-            "0.5.0": {
-                "en": "IMPORTANT: Increase Node.js requirement to at least 20.x because else BLE currently does not work\nAdded info log message when device decided for a different subscription interval",
-                "de": "WICHTIG: Erhöhe Node.js Anforderung auf mindestens 20.x, weil BLE derzeit nicht funktioniert\nZusätzliche Info-Log-Nachricht, wenn das Gerät für ein anderes Abonnement-Intervall entschieden",
-                "ru": "ВАЖНО: Увеличьте требование Node.js как минимум до 20.x, потому что в настоящее время BLE не работает\nДобавлено сообщение журнала информации, когда устройство решило для другого интервала подписки",
-                "pt": "IMPORTANTE: Aumentar a exigência de Node.js para pelo menos 20.x porque mais BLE atualmente não funciona\nAdicionado info log mensagem quando dispositivo decidiu para um intervalo de assinatura diferente",
-                "nl": "BELANGRIJK: Node.js vereiste verhogen tot ten minste 20.x omdat anders BLE momenteel niet werkt\nInfologbericht toegevoegd wanneer het apparaat besloot voor een ander abonnementsinterval",
-                "fr": "IMPORTANT: Augmenter l'exigence Node.js à au moins 20.x parce que le BLE ne fonctionne pas actuellement\nAjout d'un message de journal d'information lorsque le périphérique a décidé pour un intervalle d'abonnement différent",
-                "it": "IMPORTANTE: Aumentare il requisito Node.js di almeno 20.x perché altrimenti BLE attualmente non funziona\nAggiunto info log messaggio quando il dispositivo ha deciso per un intervallo di abbonamento diverso",
-                "es": "IMPORTANTE: Aumentar el requisito Node.js a al menos 20.x porque si no BLE actualmente no funciona\nInformación adicional mensaje de registro cuando el dispositivo decidió un intervalo de suscripción diferente",
-                "pl": "WAŻNE: Zwiększyć Node.js wymóg co najmniej 20.x, ponieważ inaczej BLE obecnie nie działa\nDodano komunikat dziennika informacji, gdy urządzenie zdecydowało się na inny interwał subskrypcji",
-                "uk": "ВАЖЛИВО: Збільшити вимоги Node.js до принаймні 20.x, оскільки інші BLE наразі не працюють\nДодано повідомлення про журнал, коли пристрій вирішив для різних інтервалів підписки",
-                "zh-cn": "重要: 将节点.js要求至少增加到20x,因为其他BLE目前行不通\n当设备决定不同的订阅间隔时添加信息日志消息"
-            },
-            "0.4.16": {
-                "en": "Added expert mode to GUI\nGUI optimizations\nUpgrade Matter support to 1.4\nUpgrade type detector and usage for better automatic detection results\nIncluded Battery state in attribute polling and changed default interval to 24h if device is battery bowered\nShows subscription maximum interval of the node in the connection-infos\nAllows to overwrite the default subscription maximum interval send to the device in Node settings\nConsiders also the BatteryAlarm state of Smoke-CO sensors when determine LOWBAT state\nUpdates the connection state of Controller devices as soon as alive triggers or data updates come in\nFor Lock devices the SET state is synced with ACTUAL",
-                "de": "Zusätzlich zu GUI\nGUI Optimierungen\nUpgrade Matter Unterstützung für 1.4\nUpgrade-Typ-Detektor und Verwendung für bessere automatische Erkennungsergebnisse\nInklusive Batteriezustand in Attributverstimmung und geänderte Standardintervall auf 24h, wenn Gerät Batterie verneigt\nZeigt das maximale Abointervall des Knotens in den Verbindungs-Infos\nErlaubt, das maximale Intervall für das Standard-Abo-Abonnement zu überschreiben, das an das Gerät in Node-Einstellungen gesendet wird\nBetrachtet auch den BatteryAlarm Zustand von Smoke-CO Sensoren, wenn LOWBAT-Zustand\nAktualisiert den Verbindungszustand der Controller-Geräte, sobald lebendige Trigger oder Datenaktualisierungen eintreffen\nFür Lock-Geräte wird der SET-Zustand mit ACTUAL synchronisiert",
-                "ru": "Добавлен экспертный режим в GUI\nОптимизация GUI\nОбновление поддержки 1.4\nОбновление детектора типа и использование для улучшения результатов автоматического обнаружения\nВключенное состояние батареи в опросе атрибутов и измененный интервал по умолчанию до 24 часов, если устройство забито батареей\nПоказывает максимальный интервал подписки узла в соединении-инфо\nПозволяет перезаписывать максимальный интервал подписки по умолчанию, отправляемый на устройство в настройках узла\nРассматривает также состояние сигнализации батареи датчиков Smoke-CO при определении состояния LOWBAT\nОбновляет состояние подключения устройств контроллера, как только появляются активные триггеры или обновления данных\nДля устройств блокировки состояние SET синхронизируется с ACTUAL",
-                "pt": "Adicionado modo de especialista para GUI\nOtimizações de GUI\nAtualize o suporte Matter para 1.4\nDetector de tipo de atualização e uso para melhores resultados de detecção automática\nEstado da bateria incluído na sondagem de atributos e intervalo padrão alterado para 24h se o dispositivo é a bateria curvada\nMostra o intervalo máximo de assinatura do nó na conexão-infos\nPermite substituir o intervalo máximo de assinatura padrão enviado para o dispositivo em configurações de nó\nConsidera também o estado BatteryAlarm de sensores Smoke-CO quando determinar o estado LOWBAT\nAtualiza o estado de conexão de dispositivos Controller assim que os gatilhos vivos ou atualizações de dados entram\nPara dispositivos Lock, o estado SET é sincronizado com ACTUAL",
-                "nl": "Expert mode toegevoegd aan GUI\nGUI optimalisaties\nOndersteuning voor het upgraden naar 1.4\nUpgrade type detector en gebruik voor betere automatische detectie resultaten\nInclusief Batterij toestand in attribuut polling en veranderd standaard interval naar 24h als het apparaat is batterij gebogen\nToont maximale abonnementsinterval van de node in de connectie-infos\nHiermee kunt u de standaard abonnement maximaal interval verzenden naar het apparaat in Node-instellingen\nBeschouwt ook de BatteryAlarm toestand van Smoke-CO sensoren bij het bepalen van LOWBAT toestand\nUpdates van de verbinding staat van Controller apparaten zodra levende triggers of gegevens updates komen in\nVoor Lock-apparaten is de SET-status gesynchroniseerd met ACTUAL",
-                "fr": "Ajout du mode expert à l'interface graphique\nOptimisations de l'interface graphique\nMettre à niveau le soutien de la matière à 1,4\nMise à niveau du détecteur de type et utilisation pour de meilleurs résultats de détection automatique\nÉtat de la batterie inclus dans le sondage d'attribut et changement de l'intervalle par défaut à 24h si l'appareil est bowered batterie\nAffiche l'intervalle maximum d'abonnement du nœud dans les informations de connexion\nPermet d'écraser l'intervalle maximum d'abonnement par défaut envoyé au périphérique dans les paramètres de nœud\nConsidére également l'état BatterieAlarm des capteurs Smoke-CO lors de la détermination de l'état LOWBAT\nMettre à jour l'état de connexion des dispositifs de contrôleur dès que les déclencheurs vivants ou les mises à jour de données arrivent\nPour les périphériques Lock, l'état SET est synchronisé avec ACTUEL",
-                "it": "Modalità esperto aggiunto a GUI\nOttimizzazioni GUI\nSupporto Materia di aggiornamento a 1.4\nRilevatore di tipo di aggiornamento e utilizzo per migliori risultati di rilevamento automatico\nIncluso stato della batteria nell'attributo inquinante e cambiato intervallo di default a 24h se il dispositivo è a batteria\nMostra l'intervallo massimo di abbonamento del nodo nella connessione-infos\nConsente di sovrascrivere l'intervallo massimo di abbonamento predefinito invio al dispositivo nelle impostazioni Node\nConsidera anche lo stato BatteryAlarm dei sensori Smoke-CO quando determina lo stato LOWBAT\nAggiorna lo stato di connessione dei dispositivi di controllo non appena i trigger vivi o gli aggiornamenti di dati vengono in\nPer i dispositivi di blocco lo stato SET è sincronizzato con ACTUAL",
-                "es": "Modo experto añadido a GUI\nOptimizaciones GUI\nSoporte de actualización de la materia a 1.4\nDetector de tipo de actualización y uso para mejores resultados de detección automática\nIncluido estado de la batería en la encuesta de atributos y cambió intervalo predeterminado a 24h si el dispositivo es la batería inclinada\nMuestra el intervalo máximo de suscripción del nodo en el enlace-infos\nPermite sobreescribir el intervalo máximo de suscripción predeterminado enviar al dispositivo en la configuración de Node\nConsidera también el estado de BatteryAlarm de los sensores Smoke-CO cuando determina el estado LOWBAT\nActualiza el estado de conexión de los dispositivos Controller tan pronto como los disparadores vivos o actualizaciones de datos entran\nPara dispositivos de bloqueo el estado SET es sincronizado con ACTUAL",
-                "pl": "Dodano tryb ekspertów do GUI\nOptymalizacja GUI\nUlepszenie wsparcia materii do 1.4\nCzujnik typu upgrade i wykorzystanie dla lepszych wyników automatycznego wykrywania\nZawarte stan baterii w sondażu atrybutów i zmienione domyślne interwał do 24h, jeśli urządzenie jest zasilane baterią\nPokazuje maksymalny okres subskrypcji węzła w connection- infos\nPozwala na nadpisanie domyślnego maksymalnego okresu subskrypcji wysyłania do urządzenia w ustawieniach węzła\nUważa również stan BatteryAlarm czujników Smoke- CO przy określaniu stanu LOWBAT\nAktualizuje stan połączeń urządzeń Controller jak tylko żywe wyzwalacze lub aktualizacje danych się pojawią\nDla urządzeń Lock stan SET jest synchronizowany z ACTUAL",
-                "uk": "Додано режим експерта в GUI\nОптимізація інтерфейсу\nПідтримка Upgrade Matter до 1.4\nОновити детектор типу і використання для більш автоматичного виявлення результатів\nВключений стан акумулятора в обмерці атрибутів і змінений інтервал за замовчуванням до 24h, якщо пристрій є акумулятором\nПоказує передплату максимального інтервалу вузла в підключенні-infos\nДозволяє перезаписувати підписку за замовчуванням максимальний інтервал відправки на пристрій в налаштуваннях Node\nРозглянуто також стан датчиків диму-CO при визначенні стану LOWBAT\nОновлює стан з'єднання пристроїв контролера, як тільки живі тригери або оновлення даних приходять в\nДля Lock пристроїв SET держава закріплюється з ACTUAL",
-                "zh-cn": "添加专家模式到图形界面\nGUI 优化\n将物质支持提高到1.4\n升级型号探测器和使用,以获得更好的自动探测结果\n在属性投票中包含电池状态, 如果设备已充电, 默认间隔改为24小时\n显示连接- infos中节点的最大订阅间隔\n允许覆盖在节点设置中发送到设备的默认订阅最大间隔\n在确定LOWBAT状态时,还考虑到烟雾CO传感器的电池警报状态\n一旦有生命触发或数据更新进入,即更新控制器设备的连接状态\n对于锁定设备, SET 状态与 ACTUAL 同步"
-            },
-            "0.4.15": {
-                "en": "Added Button display and control in the UI\nUpdates matter.js to optimize and add persisted subscriptions\nFixed states-list initializations for controller states\nFixed initialization issue when initial device connection for controller was not finished\nAdjusted connection display when reconnecting to a node to red in UI",
-                "de": "Knopfanzeige und Steuerung im UI hinzugefügt\nAktualisiert matter.js, um anhaltende Abonnements zu optimieren und hinzuzufügen\nFeste State-Liste Initialisierungen für Controller-Staaten\nFixes Initialisierungsproblem, wenn die erste Geräteverbindung für den Controller nicht beendet wurde\nEinstellbare Verbindungsanzeige beim Wiederanschließen an einen Knoten in UI",
-                "ru": "Добавлена кнопка отображения и управления в UI\nОбновления matter.js для оптимизации и добавления постоянных подписок\nИсправленные инициализации списка состояний для состояний контроллера\nИсправлена проблема инициализации, когда первоначальное подключение устройства к контроллеру не было завершено\nСкорректированный дисплей подключения при повторном подключении к узлу с красным в UI",
-                "pt": "Adicionado exibição de botão e controle na interface do usuário\nAtualizações matter.js para otimizar e adicionar assinaturas persistidas\nInicializações de lista de estados fixas para estados controladores\nProblema de inicialização fixa quando a conexão inicial do dispositivo para o controlador não foi terminada\nExibição de conexão ajustada ao reconectar-se a um nó ao vermelho na interface do usuário",
-                "nl": "Toegevoegde knop display en controle in de UI\nUpdates matter.js om aanhoudende abonnementen te optimaliseren en toe te voegen\nVaste staten-lijst initialisaties voor controller toestanden\nVaste initialisatie probleem wanneer de initiële apparaatverbinding voor controller niet was voltooid\nAangepaste verbindingweergave bij het opnieuw verbinden met een knooppunt naar rood in UI",
-                "fr": "Ajout de l'affichage et du contrôle du bouton dans l'interface utilisateur\nMises à jour matter.js pour optimiser et ajouter des abonnements persistants\nInitialisations de listes d'états fixes pour les états contrôleurs\nProblème d'initialisation corrigé lorsque la connexion initiale de l'appareil pour le contrôleur n'était pas terminée\nAffichage de connexion ajusté lors de la reconnexion d'un noeud à rouge dans l'interface utilisateur",
-                "it": "Aggiunto Pulsante visualizzazione e controllo in UI\nAggiornamenti importanti.js per ottimizzare e aggiungere abbonamenti perseverati\nInizializzazioni della lista degli stati fissi per gli stati del controller\nProblema di inizializzazione fissa quando la connessione iniziale del dispositivo per il controller non è stata terminata\nVisualizzazione della connessione regolata quando si ricollega a un nodo a rosso in UI",
-                "es": "Pantalla de botón y control agregado en la UI\nActualizaciones matter.js para optimizar y añadir suscripciones persistidas\nIniciaciones de lista de estados fija para estados controladores\nCuestión de inicialización fija cuando la conexión del dispositivo inicial para el controlador no se terminó\nPantalla de conexión ajustada al conectarse a un nodo a rojo en UI",
-                "pl": "Dodano przycisk wyświetlania i sterowania w UI\nAktualizuje mater.js do optymalizacji i dodawania utrzymujących się subskrypcji\nStałe inicjalizacje listy stanów dla stanów kontrolera\nNaprawiono problem inicjalizacji, gdy początkowe połączenie urządzenia dla sterownika nie zostało zakończone\nRegulowany wyświetlacz połączenia przy ponownym podłączeniu do węzła do czerwonego w UI",
-                "uk": "Додана кнопка відображення та контроль в UI\nОновлення матері.js для оптимізації та додавання стійких підписок\nВиправлені ініціалізації стану держав-листів для станів контролера\nВиправлено проблему ініціалізації при з'єднанні початкового пристрою для контролера не завершено\nРегульований дисплей з'єднання при відключенні до вузла в червоний в UI",
-                "zh-cn": "在 UI 中添加按钮显示和控制\n进行更新以优化和增加持续订阅\n控制国的固定状态列表初始化\n控制器初始设备连接未完成时的固定初始化问题\n在 UI 中重新连接到节点为红色时调整了连接显示"
-            },
-            "0.4.14": {
-                "en": "Improved stability and connection reliability (matter.js updated)\nSort enum entries to improve detection quality when adding new devices",
-                "de": "Verbesserte Stabilität und Verbindungssicherheit (matter.js aktualisiert)\nSortieren Sie enum Einträge zur Verbesserung der Erkennungsqualität beim Hinzufügen neuer Geräte",
-                "ru": "Повышение стабильности и надежности подключения (matter.js обновлено)\nВходы коры для улучшения качества обнаружения при добавлении новых устройств",
-                "pt": "Melhor estabilidade e confiabilidade de conexão (matter.js atualizado)\nClassifique entradas enum para melhorar a qualidade de detecção ao adicionar novos dispositivos",
-                "nl": "Verbeterde stabiliteit en betrouwbaarheid van de verbinding (matter.js bijgewerkt)\nEnum-items sorteren om de detectiekwaliteit te verbeteren bij het toevoegen van nieuwe apparaten",
-                "fr": "Amélioration de la stabilité et de la fiabilité de la connexion (matière.js mise à jour)\nTrier les entrées enum pour améliorer la qualité de détection lors de l'ajout de nouveaux appareils",
-                "it": "Miglioramento della stabilità e dell'affidabilità della connessione (aggiornamento matter.js)\nOrdinare le voci enum per migliorare la qualità di rilevamento quando si aggiungono nuovi dispositivi",
-                "es": "Mejor estabilidad y fiabilidad de conexión (matter.js actualizado)\nOrdenar entradas enum para mejorar la calidad de detección al agregar nuevos dispositivos",
-                "pl": "Lepsza stabilność i niezawodność połączenia (matter.js zaktualizowane)\nSortuj wpisy enum w celu poprawy jakości wykrywania podczas dodawania nowych urządzeń",
-                "uk": "Покращена стабільність і надійність підключення (маттер.js оновлений)\nСортувати записів ферментів для поліпшення якості виявлення при додаванні нових пристроїв",
-                "zh-cn": "提高稳定性和连接可靠性(更新事项)\n在添加新设备时排序enum项以提高检测质量"
-            }
-        },
-        "titleLang": {
-            "en": "Matter protocol",
-            "de": "Matter Protokoll",
-            "ru": "Протокол Matter",
-            "pt": "Protocolo de Matter",
-            "nl": "Matter protocol",
-            "fr": "Matter protocol",
-            "it": "Protocollo della Matter",
-            "es": "Protocolo de la Matter",
-            "pl": "Protokół Matter",
-            "uk": "Протокол Маттер",
-            "zh-cn": "Matter"
-        },
-        "desc": {
-            "en": "Controlling and simulation of matter devices",
-            "de": "Steuerung und Simulation von Matter-Geräten",
-            "ru": "Контроль и моделирование Matter-устройств",
-            "pt": "Controle e simulação de Matter-dispositivos",
-            "nl": "Controleren en simulatie van Matter-apparaten",
-            "fr": "Contrôle et simulation des Matter-dispositifs",
-            "it": "Controllo e simulazione di Matter-dispositivi",
-            "es": "Control y simulación de Matter-dispositivos",
-            "pl": "Kontrola i symulacja Matter-urządzeń",
-            "uk": "Контроль та імітація Matter-пристроїв",
-            "zh-cn": "控制和模拟事故装置"
-        },
-        "authors": ["Denis Haev <dogafox@gmail.com>"],
-        "platform": "Javascript/Node.js",
-        "mode": "daemon",
-        "nogit": true,
-        "loglevel": "info",
-        "readme": "https://github.com/ioBroker/ioBroker.matter/blob/master/README.md",
-        "icon": "matter.svg",
-        "connectionType": "local",
-        "dataSource": "push",
-        "adminTab": {
-            "singleton": false,
-            "name": "Matter"
-        },
-        "adminUI": {
-            "config": "materialize",
-            "tab": "materialize"
-        },
-        "tier": 3,
-        "keywords": ["matter"],
-        "eraseOnUpload": true,
-        "stopTimeout": 30000,
-        "stopBeforeUpdate": true,
-        "enabled": true,
-        "compact": false,
-        "singletonHost": true,
-        "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.matter/master/admin/matter.svg",
-        "type": "iot-systems",
-        "messagebox": true,
-        "plugins": {
-            "sentry": {
-                "dsn": "https://de38f4a20c964ce395d2e236c64aa075@sentry.iobroker.net/234"
-            }
-        },
-        "licenseInformation": {
-            "type": "free",
-            "license": "Apache-2.0"
-        },
-        "supportedMessages": {
-            "deviceManager": true
-        },
-        "dependencies": [
-            {
-                "js-controller": ">=5.0.19"
-            }
-        ],
-        "globalDependencies": [
-            {
-                "admin": ">=7.6.0"
-            }
-        ]
+  "common": {
+    "name": "matter",
+    "version": "0.5.4",
+    "news": {
+      "0.5.4": {
+        "en": "Updated matter.js to 0.15.5",
+        "de": "Aktualisierte Materie.js bis 0,15.5",
+        "ru": "Обновленный matter.js до 0,15,5",
+        "pt": "Updated matter.js to 0.15.5",
+        "nl": "Bijgewerkte materie.js tot 0,15.5",
+        "fr": "Matière mise à jour.js à 0.15.5",
+        "it": "Question.js aggiornato a 0.15.5",
+        "es": "Actualizado matter.js a 0.15.5",
+        "pl": "Aktualizacja mater.js do 0.15.5",
+        "uk": "Оновлена справа.js до 0.15.5",
+        "zh-cn": "更新为0.15.5"
+      },
+      "0.5.3": {
+        "en": "Updated matter.js to 0.15.4",
+        "de": "Matter.js auf Version 0.15.4 aktualisiert.",
+        "ru": "Обновлен matter.js до версии 0.15.4",
+        "pt": "Atualizado o matter.js para 0.15.4",
+        "nl": "Matter.js bijgewerkt naar 0.15.4",
+        "fr": "Mise à jour de matter.js en version 0.15.4",
+        "it": "Aggiornato matter.js a 0.15.4",
+        "es": "Se actualizó matter.js a la versión 0.15.4",
+        "pl": "Zaktualizowano bibliotekę matter.js do wersji 0.15.4",
+        "uk": "Оновлено matter.js до версії 0.15.4",
+        "zh-cn": "将matter.js更新到0.15.4"
+      },
+      "0.5.2": {
+        "en": "Updated matter.js to 0.15.2 with many performance- and other improvements\nCorrected the checking of the licenses if they were stacked\nUse attributes from cache instead of requesting them from the device\nIgnoring invalid min/max for color temperature from objects\nPrevents update loops for Thermostat on/off state changes\nFixes invalid color state updates when multiple attributes are adjusted together\nRounds RSSI values to prevent digits",
+        "de": "Aktualisierte matter.js bis 0,15.2 mit vielen Leistungs- und anderen Verbesserungen\nKorrektur der Überprüfung der Lizenzen, wenn sie gestapelt wurden\nVerwenden Sie Attribute aus dem Cache, anstatt sie vom Gerät anzufordern\nUngültige min/max für Farbtemperatur von Objekten ignorieren\nVerhindert Aktualisierungsschleifen für Thermostat-Ein-/Aus-Zustandsänderungen\nBehebt ungültige Farbzustandsupdates, wenn mehrere Attribute zusammen angepasst werden\nRunden RSSI-Werte, um Ziffern zu verhindern",
+        "ru": "Обновленный matter.js до 0,15.2 со многими улучшениями производительности\nИсправлена проверка лицензий, если они были сложены\nИспользуйте атрибуты из кэша вместо того, чтобы запрашивать их с устройства\nИгнорирование недействительных min/max для цветовой температуры от объектов\nПредотвращение циклов обновления для изменений состояния включения / выключения термостата\nИсправляет недействительные обновления состояния цвета, когда несколько атрибутов регулируются вместе\nОкругление значений RSSI для предотвращения цифр",
+        "pt": "Updated matter.js to 0.15.2 com muitos desempenhos e outras melhorias\nCorrigido a verificação das licenças se eles foram empilhados\nUsar atributos da 'cache' em vez de os solicitar do dispositivo\nIgnorando min/max inválido para a temperatura de cor de objetos\nPrevine a atualização de loops para as mudanças de estado do termostato\nCorrige atualizações de estado de cor inválidas quando vários atributos são ajustados juntos\nRedondas Valores RSSI para evitar dígitos",
+        "nl": "Bijgewerkt materie.js naar 0,15.2 met veel prestaties- en andere verbeteringen\nCorrectie van de controle van de licenties als ze werden gestapeld\nAttributen uit cache gebruiken in plaats van ze van het apparaat te vragen\nOngeldige min/max voor kleurtemperatuur van objecten negeren\nVoorkomt update loops voor thermostat aan/uit toestand wijzigingen\nFixeert ongeldige kleurstatus-updates wanneer meerdere attributen samen worden aangepast\nRounds RSSI-waarden om cijfers te voorkomen",
+        "fr": "Matière mise à jour.js à 0.15.2 avec de nombreuses améliorations - et d'autres améliorations\nCorrection de la vérification des licences si elles étaient empilées\nUtiliser les attributs du cache au lieu de les demander à partir du périphérique\nIgnorer min/max invalide pour la température de couleur des objets\nEmpêche les boucles de mise à jour pour les changements d'état de Thermostat\nCorrection des mises à jour d'état de couleur invalides lorsque plusieurs attributs sont ajustés ensemble\nRondles valeurs RSSI pour empêcher les chiffres",
+        "it": "Question.js aggiornato a 0.15.2 con molte prestazioni- e altri miglioramenti\nCorretto il controllo delle licenze se sono stati impilati\nUtilizzare gli attributi dalla cache invece di richiederli dal dispositivo\nIgnorando min/max non valido per temperatura di colore da oggetti\nPreviene i loop di aggiornamento per le modifiche dello stato di termostato\nRisolve gli aggiornamenti di stato di colore non validi quando più attributi vengono regolati insieme\nTondi valori RSSI per prevenire le cifre",
+        "es": "Updated matter.js to 0.15.2 with many performance- and other improvements\nCorregido la comprobación de las licencias si fueron apilados\nUtilice atributos de caché en lugar de solicitarlos del dispositivo\nIgnorando min/max inválido para la temperatura de color de los objetos\nEvita los bucles de actualización para los cambios de estado de termostato\nFija actualizaciones de estado de color inválidas cuando se ajustan múltiples atributos juntos\nValores RSSI para prevenir dígitos",
+        "pl": "Aktualizacja mater.js do 0.15.2 z wielu wykonania- i innych ulepszeń\nPoprawiono sprawdzanie licencji, jeśli zostały ułożone\nUżyj atrybutów z pamięci podręcznej zamiast żądać ich z urządzenia\nIgnorowanie nieprawidłowego min / max dla temperatury barw obiektów\nZapobiega aktualizacji pętli dla zmian stanu włączenia / wyłączenia termostatu\nFixes błędne aktualizacje stanu kolorów, gdy wiele atrybutów są dopasowane razem\nZaokrągla wartości RSSI, aby zapobiec cyfrom",
+        "uk": "Оновлена справа.js до 0.15.2 з багатьма перформансами та іншими вдосконаленнями\nВиправлено перевірку ліцензій, якщо вони були складені\nВикористовуйте атрибути кешу замість запиту їх з пристрою\nПрогнозування недійсним хв/максу за температуру кольору від предметів\nЗапобігає відновленню петель термостату за змінами стану\nВиправлення недійсних оновлення стану кольору при багаторазових атрибутах регулюється разом\nКруглі значення RSSI для запобігання цифр",
+        "zh-cn": "更新为0.15.2,并改进了许多业绩和其他\n纠正了对许可证的检查,如果这些许可证被堆放\n使用缓存中的属性而不是请求设备中的属性\n忽略对象颜色温度的无效分/ 最大值\n防止打开/关闭自动调温器的更新循环\n当多个属性一起调整时修复无效的颜色状态更新\n圆 RSSI 值防止位数"
+      },
+      "0.5.1": {
+        "en": "Updated matter.js to 0.14 with many performance- and other improvements",
+        "de": "Aktualisierte matter.js bis 0,14 mit vielen Leistungs- und anderen Verbesserungen",
+        "ru": "Обновленный matter.js до 0.14 со многими улучшениями производительности",
+        "pt": "Atualizado matter.js para 0.14 com muitos desempenho- e outras melhorias",
+        "nl": "Bijgewerkt materie.js naar 0.14 met veel prestaties- en andere verbeteringen",
+        "fr": "Matière mise à jour.js à 0.14 avec de nombreuses améliorations - et autres",
+        "it": "Question.js aggiornato a 0.14 con molte prestazioni- e altri miglioramenti",
+        "es": "Actualizado matter.js a 0.14 con muchas mejoras de rendimiento y otros",
+        "pl": "Aktualizacja mater.js do 0.14 z wielu wykonania- i innych ulepszeń",
+        "uk": "Оновлена справа.js до 0.14 з багатьма перфомансувальними та іншими вдосконаленнями",
+        "zh-cn": "已更新到0.14,并有许多业绩和其他改进"
+      },
+      "0.5.0": {
+        "en": "IMPORTANT: Increase Node.js requirement to at least 20.x because else BLE currently does not work\nAdded info log message when device decided for a different subscription interval",
+        "de": "WICHTIG: Erhöhe Node.js Anforderung auf mindestens 20.x, weil BLE derzeit nicht funktioniert\nZusätzliche Info-Log-Nachricht, wenn das Gerät für ein anderes Abonnement-Intervall entschieden",
+        "ru": "ВАЖНО: Увеличьте требование Node.js как минимум до 20.x, потому что в настоящее время BLE не работает\nДобавлено сообщение журнала информации, когда устройство решило для другого интервала подписки",
+        "pt": "IMPORTANTE: Aumentar a exigência de Node.js para pelo menos 20.x porque mais BLE atualmente não funciona\nAdicionado info log mensagem quando dispositivo decidiu para um intervalo de assinatura diferente",
+        "nl": "BELANGRIJK: Node.js vereiste verhogen tot ten minste 20.x omdat anders BLE momenteel niet werkt\nInfologbericht toegevoegd wanneer het apparaat besloot voor een ander abonnementsinterval",
+        "fr": "IMPORTANT: Augmenter l'exigence Node.js à au moins 20.x parce que le BLE ne fonctionne pas actuellement\nAjout d'un message de journal d'information lorsque le périphérique a décidé pour un intervalle d'abonnement différent",
+        "it": "IMPORTANTE: Aumentare il requisito Node.js di almeno 20.x perché altrimenti BLE attualmente non funziona\nAggiunto info log messaggio quando il dispositivo ha deciso per un intervallo di abbonamento diverso",
+        "es": "IMPORTANTE: Aumentar el requisito Node.js a al menos 20.x porque si no BLE actualmente no funciona\nInformación adicional mensaje de registro cuando el dispositivo decidió un intervalo de suscripción diferente",
+        "pl": "WAŻNE: Zwiększyć Node.js wymóg co najmniej 20.x, ponieważ inaczej BLE obecnie nie działa\nDodano komunikat dziennika informacji, gdy urządzenie zdecydowało się na inny interwał subskrypcji",
+        "uk": "ВАЖЛИВО: Збільшити вимоги Node.js до принаймні 20.x, оскільки інші BLE наразі не працюють\nДодано повідомлення про журнал, коли пристрій вирішив для різних інтервалів підписки",
+        "zh-cn": "重要: 将节点.js要求至少增加到20x,因为其他BLE目前行不通\n当设备决定不同的订阅间隔时添加信息日志消息"
+      },
+      "0.4.16": {
+        "en": "Added expert mode to GUI\nGUI optimizations\nUpgrade Matter support to 1.4\nUpgrade type detector and usage for better automatic detection results\nIncluded Battery state in attribute polling and changed default interval to 24h if device is battery bowered\nShows subscription maximum interval of the node in the connection-infos\nAllows to overwrite the default subscription maximum interval send to the device in Node settings\nConsiders also the BatteryAlarm state of Smoke-CO sensors when determine LOWBAT state\nUpdates the connection state of Controller devices as soon as alive triggers or data updates come in\nFor Lock devices the SET state is synced with ACTUAL",
+        "de": "Zusätzlich zu GUI\nGUI Optimierungen\nUpgrade Matter Unterstützung für 1.4\nUpgrade-Typ-Detektor und Verwendung für bessere automatische Erkennungsergebnisse\nInklusive Batteriezustand in Attributverstimmung und geänderte Standardintervall auf 24h, wenn Gerät Batterie verneigt\nZeigt das maximale Abointervall des Knotens in den Verbindungs-Infos\nErlaubt, das maximale Intervall für das Standard-Abo-Abonnement zu überschreiben, das an das Gerät in Node-Einstellungen gesendet wird\nBetrachtet auch den BatteryAlarm Zustand von Smoke-CO Sensoren, wenn LOWBAT-Zustand\nAktualisiert den Verbindungszustand der Controller-Geräte, sobald lebendige Trigger oder Datenaktualisierungen eintreffen\nFür Lock-Geräte wird der SET-Zustand mit ACTUAL synchronisiert",
+        "ru": "Добавлен экспертный режим в GUI\nОптимизация GUI\nОбновление поддержки 1.4\nОбновление детектора типа и использование для улучшения результатов автоматического обнаружения\nВключенное состояние батареи в опросе атрибутов и измененный интервал по умолчанию до 24 часов, если устройство забито батареей\nПоказывает максимальный интервал подписки узла в соединении-инфо\nПозволяет перезаписывать максимальный интервал подписки по умолчанию, отправляемый на устройство в настройках узла\nРассматривает также состояние сигнализации батареи датчиков Smoke-CO при определении состояния LOWBAT\nОбновляет состояние подключения устройств контроллера, как только появляются активные триггеры или обновления данных\nДля устройств блокировки состояние SET синхронизируется с ACTUAL",
+        "pt": "Adicionado modo de especialista para GUI\nOtimizações de GUI\nAtualize o suporte Matter para 1.4\nDetector de tipo de atualização e uso para melhores resultados de detecção automática\nEstado da bateria incluído na sondagem de atributos e intervalo padrão alterado para 24h se o dispositivo é a bateria curvada\nMostra o intervalo máximo de assinatura do nó na conexão-infos\nPermite substituir o intervalo máximo de assinatura padrão enviado para o dispositivo em configurações de nó\nConsidera também o estado BatteryAlarm de sensores Smoke-CO quando determinar o estado LOWBAT\nAtualiza o estado de conexão de dispositivos Controller assim que os gatilhos vivos ou atualizações de dados entram\nPara dispositivos Lock, o estado SET é sincronizado com ACTUAL",
+        "nl": "Expert mode toegevoegd aan GUI\nGUI optimalisaties\nOndersteuning voor het upgraden naar 1.4\nUpgrade type detector en gebruik voor betere automatische detectie resultaten\nInclusief Batterij toestand in attribuut polling en veranderd standaard interval naar 24h als het apparaat is batterij gebogen\nToont maximale abonnementsinterval van de node in de connectie-infos\nHiermee kunt u de standaard abonnement maximaal interval verzenden naar het apparaat in Node-instellingen\nBeschouwt ook de BatteryAlarm toestand van Smoke-CO sensoren bij het bepalen van LOWBAT toestand\nUpdates van de verbinding staat van Controller apparaten zodra levende triggers of gegevens updates komen in\nVoor Lock-apparaten is de SET-status gesynchroniseerd met ACTUAL",
+        "fr": "Ajout du mode expert à l'interface graphique\nOptimisations de l'interface graphique\nMettre à niveau le soutien de la matière à 1,4\nMise à niveau du détecteur de type et utilisation pour de meilleurs résultats de détection automatique\nÉtat de la batterie inclus dans le sondage d'attribut et changement de l'intervalle par défaut à 24h si l'appareil est bowered batterie\nAffiche l'intervalle maximum d'abonnement du nœud dans les informations de connexion\nPermet d'écraser l'intervalle maximum d'abonnement par défaut envoyé au périphérique dans les paramètres de nœud\nConsidére également l'état BatterieAlarm des capteurs Smoke-CO lors de la détermination de l'état LOWBAT\nMettre à jour l'état de connexion des dispositifs de contrôleur dès que les déclencheurs vivants ou les mises à jour de données arrivent\nPour les périphériques Lock, l'état SET est synchronisé avec ACTUEL",
+        "it": "Modalità esperto aggiunto a GUI\nOttimizzazioni GUI\nSupporto Materia di aggiornamento a 1.4\nRilevatore di tipo di aggiornamento e utilizzo per migliori risultati di rilevamento automatico\nIncluso stato della batteria nell'attributo inquinante e cambiato intervallo di default a 24h se il dispositivo è a batteria\nMostra l'intervallo massimo di abbonamento del nodo nella connessione-infos\nConsente di sovrascrivere l'intervallo massimo di abbonamento predefinito invio al dispositivo nelle impostazioni Node\nConsidera anche lo stato BatteryAlarm dei sensori Smoke-CO quando determina lo stato LOWBAT\nAggiorna lo stato di connessione dei dispositivi di controllo non appena i trigger vivi o gli aggiornamenti di dati vengono in\nPer i dispositivi di blocco lo stato SET è sincronizzato con ACTUAL",
+        "es": "Modo experto añadido a GUI\nOptimizaciones GUI\nSoporte de actualización de la materia a 1.4\nDetector de tipo de actualización y uso para mejores resultados de detección automática\nIncluido estado de la batería en la encuesta de atributos y cambió intervalo predeterminado a 24h si el dispositivo es la batería inclinada\nMuestra el intervalo máximo de suscripción del nodo en el enlace-infos\nPermite sobreescribir el intervalo máximo de suscripción predeterminado enviar al dispositivo en la configuración de Node\nConsidera también el estado de BatteryAlarm de los sensores Smoke-CO cuando determina el estado LOWBAT\nActualiza el estado de conexión de los dispositivos Controller tan pronto como los disparadores vivos o actualizaciones de datos entran\nPara dispositivos de bloqueo el estado SET es sincronizado con ACTUAL",
+        "pl": "Dodano tryb ekspertów do GUI\nOptymalizacja GUI\nUlepszenie wsparcia materii do 1.4\nCzujnik typu upgrade i wykorzystanie dla lepszych wyników automatycznego wykrywania\nZawarte stan baterii w sondażu atrybutów i zmienione domyślne interwał do 24h, jeśli urządzenie jest zasilane baterią\nPokazuje maksymalny okres subskrypcji węzła w connection- infos\nPozwala na nadpisanie domyślnego maksymalnego okresu subskrypcji wysyłania do urządzenia w ustawieniach węzła\nUważa również stan BatteryAlarm czujników Smoke- CO przy określaniu stanu LOWBAT\nAktualizuje stan połączeń urządzeń Controller jak tylko żywe wyzwalacze lub aktualizacje danych się pojawią\nDla urządzeń Lock stan SET jest synchronizowany z ACTUAL",
+        "uk": "Додано режим експерта в GUI\nОптимізація інтерфейсу\nПідтримка Upgrade Matter до 1.4\nОновити детектор типу і використання для більш автоматичного виявлення результатів\nВключений стан акумулятора в обмерці атрибутів і змінений інтервал за замовчуванням до 24h, якщо пристрій є акумулятором\nПоказує передплату максимального інтервалу вузла в підключенні-infos\nДозволяє перезаписувати підписку за замовчуванням максимальний інтервал відправки на пристрій в налаштуваннях Node\nРозглянуто також стан датчиків диму-CO при визначенні стану LOWBAT\nОновлює стан з'єднання пристроїв контролера, як тільки живі тригери або оновлення даних приходять в\nДля Lock пристроїв SET держава закріплюється з ACTUAL",
+        "zh-cn": "添加专家模式到图形界面\nGUI 优化\n将物质支持提高到1.4\n升级型号探测器和使用,以获得更好的自动探测结果\n在属性投票中包含电池状态, 如果设备已充电, 默认间隔改为24小时\n显示连接- infos中节点的最大订阅间隔\n允许覆盖在节点设置中发送到设备的默认订阅最大间隔\n在确定LOWBAT状态时,还考虑到烟雾CO传感器的电池警报状态\n一旦有生命触发或数据更新进入,即更新控制器设备的连接状态\n对于锁定设备, SET 状态与 ACTUAL 同步"
+      },
+      "0.4.15": {
+        "en": "Added Button display and control in the UI\nUpdates matter.js to optimize and add persisted subscriptions\nFixed states-list initializations for controller states\nFixed initialization issue when initial device connection for controller was not finished\nAdjusted connection display when reconnecting to a node to red in UI",
+        "de": "Knopfanzeige und Steuerung im UI hinzugefügt\nAktualisiert matter.js, um anhaltende Abonnements zu optimieren und hinzuzufügen\nFeste State-Liste Initialisierungen für Controller-Staaten\nFixes Initialisierungsproblem, wenn die erste Geräteverbindung für den Controller nicht beendet wurde\nEinstellbare Verbindungsanzeige beim Wiederanschließen an einen Knoten in UI",
+        "ru": "Добавлена кнопка отображения и управления в UI\nОбновления matter.js для оптимизации и добавления постоянных подписок\nИсправленные инициализации списка состояний для состояний контроллера\nИсправлена проблема инициализации, когда первоначальное подключение устройства к контроллеру не было завершено\nСкорректированный дисплей подключения при повторном подключении к узлу с красным в UI",
+        "pt": "Adicionado exibição de botão e controle na interface do usuário\nAtualizações matter.js para otimizar e adicionar assinaturas persistidas\nInicializações de lista de estados fixas para estados controladores\nProblema de inicialização fixa quando a conexão inicial do dispositivo para o controlador não foi terminada\nExibição de conexão ajustada ao reconectar-se a um nó ao vermelho na interface do usuário",
+        "nl": "Toegevoegde knop display en controle in de UI\nUpdates matter.js om aanhoudende abonnementen te optimaliseren en toe te voegen\nVaste staten-lijst initialisaties voor controller toestanden\nVaste initialisatie probleem wanneer de initiële apparaatverbinding voor controller niet was voltooid\nAangepaste verbindingweergave bij het opnieuw verbinden met een knooppunt naar rood in UI",
+        "fr": "Ajout de l'affichage et du contrôle du bouton dans l'interface utilisateur\nMises à jour matter.js pour optimiser et ajouter des abonnements persistants\nInitialisations de listes d'états fixes pour les états contrôleurs\nProblème d'initialisation corrigé lorsque la connexion initiale de l'appareil pour le contrôleur n'était pas terminée\nAffichage de connexion ajusté lors de la reconnexion d'un noeud à rouge dans l'interface utilisateur",
+        "it": "Aggiunto Pulsante visualizzazione e controllo in UI\nAggiornamenti importanti.js per ottimizzare e aggiungere abbonamenti perseverati\nInizializzazioni della lista degli stati fissi per gli stati del controller\nProblema di inizializzazione fissa quando la connessione iniziale del dispositivo per il controller non è stata terminata\nVisualizzazione della connessione regolata quando si ricollega a un nodo a rosso in UI",
+        "es": "Pantalla de botón y control agregado en la UI\nActualizaciones matter.js para optimizar y añadir suscripciones persistidas\nIniciaciones de lista de estados fija para estados controladores\nCuestión de inicialización fija cuando la conexión del dispositivo inicial para el controlador no se terminó\nPantalla de conexión ajustada al conectarse a un nodo a rojo en UI",
+        "pl": "Dodano przycisk wyświetlania i sterowania w UI\nAktualizuje mater.js do optymalizacji i dodawania utrzymujących się subskrypcji\nStałe inicjalizacje listy stanów dla stanów kontrolera\nNaprawiono problem inicjalizacji, gdy początkowe połączenie urządzenia dla sterownika nie zostało zakończone\nRegulowany wyświetlacz połączenia przy ponownym podłączeniu do węzła do czerwonego w UI",
+        "uk": "Додана кнопка відображення та контроль в UI\nОновлення матері.js для оптимізації та додавання стійких підписок\nВиправлені ініціалізації стану держав-листів для станів контролера\nВиправлено проблему ініціалізації при з'єднанні початкового пристрою для контролера не завершено\nРегульований дисплей з'єднання при відключенні до вузла в червоний в UI",
+        "zh-cn": "在 UI 中添加按钮显示和控制\n进行更新以优化和增加持续订阅\n控制国的固定状态列表初始化\n控制器初始设备连接未完成时的固定初始化问题\n在 UI 中重新连接到节点为红色时调整了连接显示"
+      }
     },
-    "protectedNative": ["pass", "login"],
-    "encryptedNative": ["pass"],
-    "native": {
-        "interface": "",
-        "debug": false,
-        "login": "",
-        "pass": "",
-        "defaultBridge": "",
-        "controllerFabricLabel": ""
+    "titleLang": {
+      "en": "Matter protocol",
+      "de": "Matter Protokoll",
+      "ru": "Протокол Matter",
+      "pt": "Protocolo de Matter",
+      "nl": "Matter protocol",
+      "fr": "Matter protocol",
+      "it": "Protocollo della Matter",
+      "es": "Protocolo de la Matter",
+      "pl": "Protokół Matter",
+      "uk": "Протокол Маттер",
+      "zh-cn": "Matter"
     },
-    "objects": [],
-    "instanceObjects": [
-        {
-            "_id": "bridges",
-            "type": "folder",
-            "common": {
-                "name": "Matter Bridges",
-                "desc": "Configuration and Details for Matter Bridges"
-            },
-            "native": {}
-        },
-        {
-            "_id": "devices",
-            "type": "folder",
-            "common": {
-                "name": "Matter Devices",
-                "desc": "Configuration and Details for Matter Devices"
-            },
-            "native": {}
-        },
-        {
-            "_id": "controller",
-            "type": "folder",
-            "common": {
-                "name": "Matter Controller",
-                "desc": "States for paired Matter Devices"
-            },
-            "native": {}
-        },
-        {
-            "_id": "info",
-            "type": "folder",
-            "common": {
-                "name": "Information"
-            },
-            "native": {}
-        },
-        {
-            "_id": "info.welcomeDialog",
-            "type": "state",
-            "common": {
-                "name": "Welcome dialog showed",
-                "role": "indicator",
-                "type": "boolean",
-                "read": true,
-                "write": false
-            },
-            "native": {}
-        }
+    "desc": {
+      "en": "Controlling and simulation of matter devices",
+      "de": "Steuerung und Simulation von Matter-Geräten",
+      "ru": "Контроль и моделирование Matter-устройств",
+      "pt": "Controle e simulação de Matter-dispositivos",
+      "nl": "Controleren en simulatie van Matter-apparaten",
+      "fr": "Contrôle et simulation des Matter-dispositifs",
+      "it": "Controllo e simulazione di Matter-dispositivi",
+      "es": "Control y simulación de Matter-dispositivos",
+      "pl": "Kontrola i symulacja Matter-urządzeń",
+      "uk": "Контроль та імітація Matter-пристроїв",
+      "zh-cn": "控制和模拟事故装置"
+    },
+    "authors": [
+      "Denis Haev <dogafox@gmail.com>"
+    ],
+    "platform": "Javascript/Node.js",
+    "mode": "daemon",
+    "nogit": true,
+    "loglevel": "info",
+    "readme": "https://github.com/ioBroker/ioBroker.matter/blob/master/README.md",
+    "icon": "matter.svg",
+    "connectionType": "local",
+    "dataSource": "push",
+    "adminTab": {
+      "singleton": false,
+      "name": "Matter"
+    },
+    "adminUI": {
+      "config": "materialize",
+      "tab": "materialize"
+    },
+    "tier": 3,
+    "keywords": [
+      "matter"
+    ],
+    "eraseOnUpload": true,
+    "stopTimeout": 30000,
+    "stopBeforeUpdate": true,
+    "enabled": true,
+    "compact": false,
+    "singletonHost": true,
+    "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.matter/master/admin/matter.svg",
+    "type": "iot-systems",
+    "messagebox": true,
+    "plugins": {
+      "sentry": {
+        "dsn": "https://de38f4a20c964ce395d2e236c64aa075@sentry.iobroker.net/234"
+      }
+    },
+    "licenseInformation": {
+      "type": "free",
+      "license": "Apache-2.0"
+    },
+    "supportedMessages": {
+      "deviceManager": true
+    },
+    "dependencies": [
+      {
+        "js-controller": ">=5.0.19"
+      }
+    ],
+    "globalDependencies": [
+      {
+        "admin": ">=7.6.0"
+      }
     ]
+  },
+  "protectedNative": [
+    "pass",
+    "login"
+  ],
+  "encryptedNative": [
+    "pass"
+  ],
+  "native": {
+    "interface": "",
+    "debug": false,
+    "login": "",
+    "pass": "",
+    "defaultBridge": "",
+    "controllerFabricLabel": ""
+  },
+  "objects": [],
+  "instanceObjects": [
+    {
+      "_id": "bridges",
+      "type": "folder",
+      "common": {
+        "name": "Matter Bridges",
+        "desc": "Configuration and Details for Matter Bridges"
+      },
+      "native": {}
+    },
+    {
+      "_id": "devices",
+      "type": "folder",
+      "common": {
+        "name": "Matter Devices",
+        "desc": "Configuration and Details for Matter Devices"
+      },
+      "native": {}
+    },
+    {
+      "_id": "controller",
+      "type": "folder",
+      "common": {
+        "name": "Matter Controller",
+        "desc": "States for paired Matter Devices"
+      },
+      "native": {}
+    },
+    {
+      "_id": "info",
+      "type": "folder",
+      "common": {
+        "name": "Information"
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.welcomeDialog",
+      "type": "state",
+      "common": {
+        "name": "Welcome dialog showed",
+        "role": "indicator",
+        "type": "boolean",
+        "read": true,
+        "write": false
+      },
+      "native": {}
+    }
+  ]
 }

@@ -2,6 +2,7 @@ import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import fs from 'node:fs/promises';
 import { Environment, LogLevel, LogFormat, Logger, StorageService, PromiseQueue } from '@matter/main';
+import { MdnsService } from '@matter/main/protocol';
 import { inspect } from 'util';
 
 import { type AdapterOptions, Adapter, getAbsoluteInstanceDataDir } from '@iobroker/adapter-core';
@@ -622,6 +623,12 @@ export class MatterAdapter extends Adapter {
         try {
             await this.shutDownMatterNodes();
             // close Environment/MDNS?
+        } catch {
+            // ignore
+        }
+
+        try {
+            this.#matterEnvironment.close(MdnsService);
         } catch {
             // ignore
         }

@@ -79,6 +79,9 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 
 ### __WORK IN PROGRESS__
 * (@Apollon77) Optimizes Battery drain information
+* (@Apollon77) Correctly shows "in progress changes" in UI when adjusting devices to ovoid overlapping actions
+* (@Apollon77) Fix HSV to RGB calculation for some cases
+* (@Apollon77) Updated matter.js to 0.15.6
 * (@Apollon77) Optimizes shutdown process to ensure everything is properly closed
 
 ### 0.5.4 (2025-10-07)

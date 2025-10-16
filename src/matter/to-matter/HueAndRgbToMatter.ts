@@ -315,6 +315,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
         this.matterEvents.on(
             this.#matterEndpoint.eventsOf(IoBrokerEvents).colorSaturationControlled,
             async (saturation, transitionTime) => {
+                saturation /= 254;
                 if (this.#ioBrokerDevice.hasTransitionTime() && typeof transitionTime === 'number') {
                     await this.#ioBrokerDevice.setTransitionTime(transitionTime * 100);
                 }
@@ -362,6 +363,10 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
         this.matterEvents.on(
             this.#matterEndpoint.eventsOf(IoBrokerEvents).colorHueSaturationControlled,
             async (hue, saturation, transitionTime) => {
+                // Convert from Matter to required range
+                saturation /= 254;
+                hue = (hue / 254) * 360;
+
                 if (this.#ioBrokerDevice.hasTransitionTime() && typeof transitionTime === 'number') {
                     await this.#ioBrokerDevice.setTransitionTime(transitionTime * 100);
                 }

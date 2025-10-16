@@ -289,7 +289,7 @@ export class EventedExtendedColorHueSaturationColorControlServer extends BaseHue
             this.endpoint.act(agent =>
                 agent
                     .get(IoBrokerEvents)
-                    .events.colorHueSaturationControlled.emit(this.hue, this.saturation, transitionTime),
+                    .events.colorHueSaturationControlled.emit(targetHue, targetSaturation, transitionTime),
             ),
         );
     }

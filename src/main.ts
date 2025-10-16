@@ -2,6 +2,7 @@ import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import fs from 'node:fs/promises';
 import { Environment, LogLevel, LogFormat, Logger, StorageService, PromiseQueue } from '@matter/main';
+import { MdnsService } from '@matter/main/protocol';
 import { inspect } from 'util';
 
 import { type AdapterOptions, Adapter, getAbsoluteInstanceDataDir } from '@iobroker/adapter-core';
@@ -626,6 +627,12 @@ export class MatterAdapter extends Adapter {
             // ignore
         }
 
+        try {
+            this.#matterEnvironment.close(MdnsService);
+        } catch {
+            // ignore
+        }
+
         callback();
     }
 
@@ -681,12 +688,14 @@ export class MatterAdapter extends Adapter {
     }
 
     #processObjectChangeQueue(): void {
+        // inform GUI about whats in progress
+        this.sendToGui({
+            command: 'processing',
+            processing: this.#objectProcessQueue.map(item => ({ id: item.id, inProgress: true })),
+        }).catch((error): void => this.log.error(`Cannot send to GUI: ${error}`));
+
         if (this.#objectProcessQueue.length === 0 || this.#objectProcessQueue.some(e => e.inProgress)) {
-            // inform GUI that the processing is finished
-            this.sendToGui({
-                command: 'processing',
-                processing: this.#objectProcessQueue.map(item => ({ id: item.id, inProgress: item.inProgress })),
-            }).catch((error): void => this.log.error(`Cannot send to GUI: ${error}`));
+            // Already something is in progress, we catch up later
             return;
         }
 
@@ -709,12 +718,6 @@ export class MatterAdapter extends Adapter {
 
         const entry = this.#objectProcessQueue[0];
         entry.inProgress = true;
-
-        // inform GUI about processing
-        this.sendToGui({
-            command: 'processing',
-            processing: this.#objectProcessQueue.map(item => ({ id: item.id, inProgress: item.inProgress })),
-        }).catch((error): void => this.log.error(`Cannot send to GUI: ${error}`));
 
         this.#currentObjectProcessPromise = entry.func();
         this.#currentObjectProcessPromise

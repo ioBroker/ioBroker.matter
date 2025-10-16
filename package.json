@@ -67,7 +67,7 @@
     "data/"
   ],
   "scripts": {
-    "test": "mocha --exit test/**/*.test.ts",
+    "test": "TS_NODE_PROJECT=./tsconfig.test.json mocha --exit test/**/*.test.ts",
     "prepublishOnly": "npm run build",
     "npm": "npm i && cd src-admin && npm i",
     "lint": "eslint -c eslint.config.mjs",

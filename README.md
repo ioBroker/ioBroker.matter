@@ -98,8 +98,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.5.5 (2025-10-16)
 * (@Apollon77) Optimizes Battery drain information
 * (@Apollon77) Correctly shows "in progress changes" in UI when adjusting devices to ovoid overlapping actions
 * (@Apollon77) Fix HSV to RGB calculation for some cases

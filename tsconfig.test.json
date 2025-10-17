@@ -1,0 +1,19 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "skipLibCheck": true
+    },
+    "ts-node": {
+        "compilerOptions": {
+            "module": "commonjs",
+            "moduleResolution": "node"
+        },
+        "transpileOnly": true
+    },
+    "include": ["test/**/*.ts"],
+    "exclude": ["node_modules/**"]
+}

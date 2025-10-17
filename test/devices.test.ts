@@ -1,25 +1,62 @@
-const ChannelDetectorImport = require('@iobroker/type-detector');
-const Types = ChannelDetectorImport.Types;
-const { SubscribeManager } = require('../build/lib/SubscribeManager');
-const { StateAccessType } = require('../build/lib/devices/GenericDevice');
-const ValueType = {
-    String: 'string',
-    Number: 'number',
-    NumberMinMax: 'numberMM',
-    NumberPercent: 'numberPercent',
-    Boolean: 'boolean',
-    Button: 'button',
-    Enum: 'enum',
-};
+// Import types and dependencies
+import { Types } from '@iobroker/type-detector';
 
-const excludedTypes = [
+// Import from TypeScript source files directly  
+const { SubscribeManager } = require('../src/lib/SubscribeManager');
+const { StateAccessType } = require('../src/lib/devices/GenericDevice');
+const { ValueType } = require('../src/lib/devices/DeviceStateObject');
+
+const excludedTypes: string[] = [
     'unknown',
     'instance',
     'valve',
 ];
 
+// Interface for the state structure used in tests
+interface TestState {
+    name: string;
+    id: string;
+    type?: string;
+    val?: any;
+}
+
+// Interface for the device detection structure  
+interface TestDetectedDevice {
+    states: TestState[];
+    type: Types;
+    isIoBrokerDevice: boolean;
+}
+
+// Interface for the mock adapter log object
+interface MockLog {
+    debug: (...args: any[]) => void;
+    info: (...args: any[]) => void;
+    warn: (...args: any[]) => void;
+    error: (...args: any[]) => void;
+}
+
+// Interface for the ioBroker state object
+interface MockState {
+    ts: number;
+    val: any;
+    ack: boolean;
+}
+
+// Interface for the ioBroker object
+interface MockObject {
+    _id: string;
+    common: {
+        type?: string;
+        min?: number;
+        max?: number;
+        unit?: string;
+        states?: { [key: string]: string };
+    };
+    type: string;
+}
+
 // create a maximal set of states
-const detectedDevices = {
+const detectedDevices: TestDetectedDevice = {
     states: [
         { name: 'SET', id: '0_userdata.0.set', type: 'mixed' },
         { name: 'ACTUAL', id: '0_userdata.0.actual', type: 'mixed' },
@@ -175,10 +212,17 @@ const detectedDevices = {
         { name: 'DIRECTION', id: '0_userdata.0.direction', type: 'boolean' },
         { name: 'DIRECTION_ENUM', id: '0_userdata.0.direction_enum', type: 'enum' },
     ],
-    type: 'abstract',
+    type: 'abstract' as any,
+    isIoBrokerDevice: true,
 };
 
 class Adapter {
+    public log: MockLog;
+    public subscribed: string[];
+    public states: { [id: string]: MockState };
+    public namespace: string;
+    public subscribeManager?: typeof SubscribeManager;
+
     constructor() {
         this.log = {
             debug: console.log,
@@ -187,15 +231,15 @@ class Adapter {
             error: console.log,
         };
         this.subscribed = [];
-        this.states = [];
+        this.states = {};
         this.namespace = 'matter.0';
     }
 
-    setSubscribeManager(subscribeManager) {
+    setSubscribeManager(subscribeManager: typeof SubscribeManager): void {
         this.subscribeManager = subscribeManager;
     }
 
-    async getForeignObjectAsync(id) {
+    async getForeignObjectAsync(id: string): Promise<MockObject> {
         const entry = detectedDevices.states.find(state => state.id === id);
         if (entry && (entry.type === 'boolean' || entry.type === 'string')) {
             return {
@@ -213,38 +257,38 @@ class Adapter {
                 max: 200,
                 unit: '°C',
                 type: 'number',
-                states: entry.type === 'enum' ? { 0: 'Dummy', 1: 'Dummy2' } : entry.type === 'mixed' ? { null: 'Dummy' } : undefined,
+                states: entry?.type === 'enum' ? { 0: 'Dummy', 1: 'Dummy2' } : entry?.type === 'mixed' ? { null: 'Dummy' } : undefined,
             },
             type: 'state',
         };
     }
 
-    async setForeignStateAsync(id, value) {
+    async setForeignStateAsync(id: string, value: any): Promise<void> {
         console.log("SET", id, value);
-        this.states[id] = this.states[id] || {};
+        this.states[id] = this.states[id] || {} as MockState;
         this.states[id].ts = Date.now();
         this.states[id].val = value;
         this.states[id].ack = true; // Just simulate as if the state was acked directly
         if (this.subscribed.includes(id) && this.subscribeManager) {
             setTimeout(() => {
-                this.subscribeManager.observer(id, { ...this.states[id] });
+                this.subscribeManager!.observer(id, { ...this.states[id] } as any);
             }, 0);
         }
     }
 
-    async getForeignStateAsync(id) {
+    async getForeignStateAsync(id: string): Promise<MockState> {
         console.log("GET", id);
         if (!this.states[id]) {
             const entry = detectedDevices.states.find(state => state.id === id);
             if (entry && entry.val !== undefined) {
                 this.states[id] = { ts: Date.now(), val: entry.val, ack: true };
-            } else if (entry.type === 'enum') {
+            } else if (entry?.type === 'enum') {
                 this.states[id] = { ts: Date.now(), val: 0, ack: true };
-            } else if (entry.type === 'number') {
+            } else if (entry?.type === 'number') {
                 this.states[id] = { ts: Date.now(), val: 1, ack: true };
-            } else if (entry.type === 'boolean') {
+            } else if (entry?.type === 'boolean') {
                 this.states[id] = { ts: Date.now(), val: true, ack: true };
-            } else if (entry.type === 'string') {
+            } else if (entry?.type === 'string') {
                 this.states[id] = { ts: Date.now(), val: 'test', ack: true };
             } else {
                 this.states[id] = { ts: Date.now(), val: null, ack: true };
@@ -253,7 +297,7 @@ class Adapter {
         return this.states[id];
     }
 
-    async unsubscribeForeignStatesAsync(id) {
+    async unsubscribeForeignStatesAsync(id: string): Promise<void> {
         // console.log('Unsubscribe', id);
         const pos = this.subscribed.indexOf(id);
         if (pos !== -1) {
@@ -261,16 +305,16 @@ class Adapter {
         }
     }
 
-    async subscribeForeignStatesAsync(id) {
+    async subscribeForeignStatesAsync(id: string): Promise<void> {
         console.log('Subscribe', id);
         this.subscribed.push(id);
     }
 
-    getSubscribed() {
+    getSubscribed(): string[] {
         return this.subscribed;
     }
 
-    extendObject() {
+    extendObject(): void {
         // Nothing to do
     }
 }
@@ -290,11 +334,11 @@ describe('Test Devices', function () {
             // detect that only read values are subscribed
             console.log(`------------------------\nCreated device for ${type}`);
             const className = type[0].toUpperCase() + type.substring(1);
-            const Device = require(`../build/lib/devices/${className}`)[className];
+            const Device = require(`../src/lib/devices/${className}`)[className];
             const adapter = new Adapter();
-            SubscribeManager.setAdapter(adapter);
+            SubscribeManager.setAdapter(adapter as any);
             adapter.setSubscribeManager(SubscribeManager);
-            detectedDevices.type = type;
+            detectedDevices.type = type as Types;
             detectedDevices.isIoBrokerDevice = true;
 
             const deviceObj = new Device(detectedDevices, adapter, { enabled: true });
@@ -358,7 +402,7 @@ describe('Test Devices', function () {
                     }
                 }
                 if (properties[prop].accessType === StateAccessType.Write) {
-                    let value;
+                    let value: any;
                     if (
                         properties[prop].valueType === ValueType.Boolean ||
                         properties[prop].valueType === ValueType.Button
@@ -377,7 +421,7 @@ describe('Test Devices', function () {
                 } else if (properties[prop].accessType === StateAccessType.ReadWrite) {
                     // subscribe on changes and try to read value
                     setTimeout(async () => {
-                        let value;
+                        let value: any;
                         if (
                             properties[prop].valueType === ValueType.Boolean ||
                             properties[prop].valueType === ValueType.Button
@@ -394,12 +438,12 @@ describe('Test Devices', function () {
                         await deviceObj.setPropertyValue(prop, value);
                         if (properties[prop].read !== properties[prop].write) {
                             console.log(`Write read value of ${prop} with ${value}`);
-                            await adapter.setForeignStateAsync(properties[prop].read, value, true);
+                            await adapter.setForeignStateAsync(properties[prop].read, value);
                         }
                     }, 0);
 
-                    await new Promise(resolve => {
-                        const handler = event => {
+                    await new Promise<void>(resolve => {
+                        const handler = (event: any) => {
                             console.log(`Detected change of ${event.property} to ${event.value}`);
                             deviceObj.offChange(handler);
                             resolve();
@@ -422,11 +466,11 @@ describe('Test Devices', function () {
     }).timeout(50000);
 
     it('Test min/max - negative', async function () {
-        const Device = require(`../build/lib/devices/Thermostat`).Thermostat;
+        const Device = require(`../src/lib/devices/Thermostat`).Thermostat;
         const adapter = new Adapter();
-        SubscribeManager.setAdapter(adapter);
+        SubscribeManager.setAdapter(adapter as any);
         adapter.setSubscribeManager(SubscribeManager);
-        detectedDevices.type = 'thermostat';
+        detectedDevices.type = Types.thermostat;
 
         const deviceObj = new Device(detectedDevices, adapter, { enabled: true });
         await deviceObj.init();
@@ -436,7 +480,7 @@ describe('Test Devices', function () {
         // subscribe on changes and try to read value
         await deviceObj.setPropertyValue('level', 30);
         const ioBrokerValue = await adapter.getForeignStateAsync(properties.level.read);
-        await new Promise(resolve =>
+        await new Promise<void>(resolve =>
             setTimeout(() => {
                 const deviceValue = deviceObj.getPropertyValue('level');
                 if (ioBrokerValue.val !== deviceValue) {
@@ -451,13 +495,13 @@ describe('Test Devices', function () {
     }).timeout(2000);
 
     it('Test min/max - positive, readId=writeId', async function () {
-        const Device = require(`../build/lib/devices/Slider`).Slider;
+        const Device = require(`../src/lib/devices/Slider`).Slider;
         const adapter = new Adapter();
-        SubscribeManager.setAdapter(adapter);
+        SubscribeManager.setAdapter(adapter as any);
         adapter.setSubscribeManager(SubscribeManager);
-        const _detectedDevices = {
+        const _detectedDevices: TestDetectedDevice = {
             states: [{ name: 'SET', id: '0_userdata.0.set' }],
-            type: 'slider',
+            type: Types.slider,
             isIoBrokerDevice: true,
         };
 
@@ -469,7 +513,7 @@ describe('Test Devices', function () {
         // subscribe on changes and try to read value
         await deviceObj.setPropertyValue('level', 30);
         const ioBrokerValue = await adapter.getForeignStateAsync(properties.level.read);
-        await new Promise(resolve =>
+        await new Promise<void>(resolve =>
             setTimeout(() => {
                 const deviceValue = deviceObj.getPropertyValue('level');
                 if (deviceValue !== 30) {
@@ -486,16 +530,16 @@ describe('Test Devices', function () {
     }).timeout(2000);
 
     it('Test min/max - positive, readId!=writeId', async function () {
-        const Device = require(`../build/lib/devices/Slider`).Slider;
+        const Device = require(`../src/lib/devices/Slider`).Slider;
         const adapter = new Adapter();
-        SubscribeManager.setAdapter(adapter);
+        SubscribeManager.setAdapter(adapter as any);
         adapter.setSubscribeManager(SubscribeManager);
-        const _detectedDevices = {
+        const _detectedDevices: TestDetectedDevice = {
             states: [
                 { name: 'SET', id: '0_userdata.0.set' },
                 { name: 'ACTUAL', id: '0_userdata.0.actual' },
             ],
-            type: 'slider',
+            type: Types.slider,
             isIoBrokerDevice: true,
         };
 
@@ -509,9 +553,9 @@ describe('Test Devices', function () {
 
         // write value to ACTUAL
         const ioBrokerValue = await adapter.getForeignStateAsync(properties.level.write);
-        await adapter.setForeignStateAsync(properties.level.read, ioBrokerValue.val, true);
+        await adapter.setForeignStateAsync(properties.level.read, ioBrokerValue.val);
 
-        await new Promise(resolve =>
+        await new Promise<void>(resolve =>
             setTimeout(() => {
                 const deviceValue = deviceObj.getPropertyValue('level');
                 if (deviceValue !== 75) {

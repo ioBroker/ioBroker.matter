@@ -45,12 +45,13 @@
     "@iobroker/eslint-config": "^2.2.0",
     "@iobroker/legacy-testing": "^2.0.2",
     "@iobroker/testing": "^5.1.1",
-    "eslint-plugin-import": "^2.32.0",
     "@iobroker/types": "^7.0.7",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^24.7.2",
-    "esbuild": "^0.25.11",
     "colorette": "^2.0.20",
+    "cross-env": "^7.0.3",
+    "esbuild": "^0.25.11",
+    "eslint-plugin-import": "^2.32.0",
     "puppeteer": "^24.25.0",
     "ts-node": "^10.9.2",
     "typescript": "~5.9.3"
@@ -67,7 +68,7 @@
     "data/"
   ],
   "scripts": {
-    "test": "TS_NODE_PROJECT=./tsconfig.test.json mocha --exit test/**/*.test.ts",
+    "test": "cross-env TS_NODE_PROJECT=./tsconfig.test.json mocha --exit test/**/*.test.ts",
     "prepublishOnly": "npm run build",
     "npm": "npm i && cd src-admin && npm i",
     "lint": "eslint -c eslint.config.mjs",

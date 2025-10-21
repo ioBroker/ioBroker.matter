@@ -30,3 +30,6 @@ build
 /src-admin/src/components/DeviceManagerDev/i18n/*
 /admin/tab_m.html
 test/*.test.js
+
+#ignore .commitinfo created by ioBroker release script
+.commitinfo

@@ -340,7 +340,6 @@ class Options extends Component<OptionsProps, OptionsState> {
                     native={this.props.native}
                     onChange={(attr: string, value: string): Promise<void> => this.props.onChange(attr, value)}
                     onError={(error: string) => this.props.onError(error)}
-                    updatePassTrigger={this.props.updatePassTrigger}
                     socket={this.props.socket}
                 />
 

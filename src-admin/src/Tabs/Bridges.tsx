@@ -1249,7 +1249,10 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
             <TableRow
                 key={devIndex}
                 style={{ opacity: device.enabled && bridge.enabled ? 1 : 0.4 }}
-                sx={this.getBlinkingSx(device.uuid)}
+                sx={{
+                    ...this.getBlinkingSx(device.uuid),
+                    '&:hover': { backgroundColor: this.props.theme.palette.action.hover },
+                }}
             >
                 <TableCell style={{ border: 0, borderBottomLeftRadius: isLast ? 4 : 0 }} />
                 <TableCell>
@@ -1464,7 +1467,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                     marginTop: this.props.expertMode ? 4 : 0,
                                 }}
                             >
-                                <div>{getText(bridge.name)}</div>
+                                <div style={{ height: 40, display: 'flex', alignItems: 'center' }}>{getText(bridge.name)}</div>
                                 <div style={styles.devicesCount}>{countText}</div>
                             </div>
                             {this.props.expertMode ? (

@@ -98,8 +98,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 -->
 
 ## Changelog
-
-### __WORK IN PROGRESS__
+### 0.5.6 (2025-10-21)
 * (@Apollon77) Type detector update, should detect single states in non-device structures better
 
 ### 0.5.5 (2025-10-16)

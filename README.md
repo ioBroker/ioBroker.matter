@@ -98,6 +98,10 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 -->
 
 ## Changelog
+
+### __WORK IN PROGRESS__
+* (@Apollon77) Type detector update, should detect single states in non-device structures better
+
 ### 0.5.5 (2025-10-16)
 * (@Apollon77) Optimizes Battery drain information
 * (@Apollon77) Correctly shows "in progress changes" in UI when adjusting devices to ovoid overlapping actions

@@ -1467,7 +1467,9 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                     marginTop: this.props.expertMode ? 4 : 0,
                                 }}
                             >
-                                <div style={{ height: 40, display: 'flex', alignItems: 'center' }}>{getText(bridge.name)}</div>
+                                <div style={{ height: 40, display: 'flex', alignItems: 'center' }}>
+                                    {getText(bridge.name)}
+                                </div>
                                 <div style={styles.devicesCount}>{countText}</div>
                             </div>
                             {this.props.expertMode ? (

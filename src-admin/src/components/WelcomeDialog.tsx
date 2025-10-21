@@ -370,7 +370,6 @@ class WelcomeDialog extends React.Component<WelcomeDialogProps, WelcomeDialogSta
                                 }
                             }}
                             socket={this.props.socket}
-                            updatePassTrigger={1}
                         />
                     ) : null}
                 </DialogContent>

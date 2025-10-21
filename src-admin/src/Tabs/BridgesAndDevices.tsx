@@ -282,10 +282,9 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 }: {
                     result: { schema: JsonFormSchema; options?: BackEndCommandJsonFormOptions };
                 }): void => {
-                    // @ts-expect-error fixed in next admin
                     this.setState({
                         jsonConfig: {
-                            schema,
+                            schema: schema as ConfigItemPanel | ConfigItemTabs,
                             options,
                             changed: false,
                             data: options?.data || {},

@@ -28,7 +28,6 @@
   "dependencies": {
     "@iobroker/adapter-core": "^3.3.2",
     "@iobroker/dm-utils": "^1.0.10",
-    "@iobroker/i18n": "^1.0.0",
     "@iobroker/type-detector": "^4.6.0",
     "@matter/main": "0.15.6",
     "@matter/nodejs": "0.15.6",
@@ -52,7 +51,7 @@
     "cross-env": "^10.1.0",
     "esbuild": "^0.25.11",
     "eslint-plugin-import": "^2.32.0",
-    "puppeteer": "^24.25.0",
+    "puppeteer": "^24.26.0",
     "ts-node": "^10.9.2",
     "typescript": "~5.9.3"
   },

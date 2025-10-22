@@ -1,5 +1,6 @@
 import type { ConfigItemAny, ConfigItemPanel, JsonFormSchema } from '@iobroker/dm-utils';
 import { decamelize } from './utils';
+import type { MatterAdapter } from '../main';
 
 export type StructuredJsonFormData = Record<string, Record<string, unknown>>;
 
@@ -14,7 +15,10 @@ export type StructuredJsonFormData = Record<string, Record<string, unknown>>;
  * The logic expects a two level object structure. By default, it returns a tabs structure. If only one key is used on
  * first level only one panel is returned.
  */
-export function convertDataToJsonConfig(data: StructuredJsonFormData): JsonFormSchema {
+export function convertDataToJsonConfig(
+    data: StructuredJsonFormData,
+    adapter?: MatterAdapter,
+): JsonFormSchema {
     const items: Record<string, ConfigItemPanel> = {};
 
     let panelCount = 0;
@@ -25,24 +29,29 @@ export function convertDataToJsonConfig(data: StructuredJsonFormData): JsonFormS
         for (const tabItem in data[tab]) {
             const flatKey = `${tab}_${tabItem}`;
             if (tabItem.startsWith('__header__')) {
+                const textValue = String(data[tab][tabItem]);
                 tabItems[flatKey] = {
                     type: 'header',
-                    text: String(data[tab][tabItem]),
-                    noTranslation: true,
+                    text: adapter ? adapter.getText(textValue) : textValue,
+                    noTranslation: !adapter,
                 };
                 continue;
             }
             if (tabItem.startsWith('__text__')) {
+                const textValue = String(data[tab][tabItem]);
                 tabItems[flatKey] = {
                     type: 'staticText',
-                    text: String(data[tab][tabItem]),
+                    text: adapter ? adapter.getText(textValue) : textValue,
+                    noTranslation: !adapter,
                 };
                 continue;
             }
             if (tabItem.startsWith('__smalltext__')) {
+                const textValue = String(data[tab][tabItem]);
                 tabItems[flatKey] = {
                     type: 'staticText',
-                    text: String(data[tab][tabItem]),
+                    text: adapter ? adapter.getText(textValue) : textValue,
+                    noTranslation: !adapter,
                     style: { fontSize: 10, fontStyle: 'italic', marginTop: -8 },
                 };
                 continue;

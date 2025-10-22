@@ -1353,8 +1353,9 @@ export class GeneralMatterNode {
                     const vendorName = VendorIds[vendorId]
                         ? `${VendorIds[vendorId]} (${toUpperCaseHex(vendorId)})`
                         : toUpperCaseHex(vendorId);
-                    result.connection[`fabric${fabricId}__${vendorName}`] =
-                        `${fabric.label}${ownFabricIndex === fabric.fabricIndex ? ' (Own)' : ''}`;
+                    result.connection[`fabric${fabricId}__${vendorName}`] = `${fabric.label}${
+                        ownFabricIndex === fabric.fabricIndex ? ` (${this.adapter.t('Own')})` : ''
+                    }`;
                     // TODO Add name lookup and button to manage beside own Fabric index
                 });
             }

@@ -174,7 +174,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             {
                 id: 'logNodeDebug',
                 icon: 'lines',
-                description: this.#adapter.getText('Output Debug details this node'),
+                description: this.#adapter.getText('Output Debug details for this node'),
                 handler: (_id, context) => this.#handleLogDebugNode(ioNode, context),
             },
         ];
@@ -506,7 +506,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     async #handleConfigureNodeOrDevice(
-        title: string,
+        title: ioBroker.StringOrTranslated,
         baseId: string,
         context: ActionContext,
         nodeOrDevice: GeneralMatterNode | GenericDeviceToIoBroker,
@@ -600,7 +600,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                         type: 'staticText',
                         newLine: true,
                         text: this.#adapter.getText(
-                            'This value is just a proposal for the device The device may decide for an other maximum interval.',
+                            'This value is just a proposal for the device. The device may decide for another maximum interval.',
                         ),
                     };
                     if (node.node.deviceInformation?.isBatteryPowered) {
@@ -630,7 +630,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
             {
                 data,
-                title: this.#adapter.getText(title),
+                title,
             },
         );
 
@@ -663,7 +663,12 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     async #handleConfigureNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
         this.adapter.log.info(`Configure node ${node.nodeId}`);
 
-        return await this.#handleConfigureNodeOrDevice('Configure node', node.nodeBaseId, context, node);
+        return await this.#handleConfigureNodeOrDevice(
+            this.#adapter.getText('Configure node'),
+            node.nodeBaseId,
+            context,
+            node,
+        );
     }
 
     async #handleConfigureDevice(
@@ -672,7 +677,12 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     ): Promise<{ refresh: DeviceRefresh }> {
         this.adapter.log.info(`Configure device ${device.name}`);
 
-        return await this.#handleConfigureNodeOrDevice('Configure device', device.baseId, context, device);
+        return await this.#handleConfigureNodeOrDevice(
+            this.#adapter.getText('Configure device'),
+            device.baseId,
+            context,
+            device,
+        );
     }
 
     async #handleIdentifyDevice(
@@ -758,7 +768,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const node = this.#adapter.controllerNode?.nodes.get(nodeId);
 
         if (!node) {
-            return { error: 'Node not found' };
+            return { error: this.#adapter.t('Node not found') };
         }
 
         if (endpointId === undefined) {
@@ -770,7 +780,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         // Get Endpoint details
         const device = node.devices.get(endpointId);
         if (!device) {
-            return { error: 'Device not found' };
+            return { error: this.#adapter.t('Device not found') };
         }
 
         const schema = convertDataToJsonConfig(device.getDeviceDetails(node.isConnected));

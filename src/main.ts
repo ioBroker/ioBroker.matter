@@ -1495,7 +1495,7 @@ export class MatterAdapter extends Adapter {
             options: {
                 maxWidth: 'md',
                 data: {},
-                title: `${type === 'bridge' ? 'Bridge' : 'Device'} Error information`,
+                title: this.getText(type === 'bridge' ? 'Bridge Error information' : 'Device Error information'),
                 buttons: ['close'],
             },
         };

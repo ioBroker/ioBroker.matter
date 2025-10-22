@@ -5,14 +5,13 @@ import { Environment, LogLevel, LogFormat, Logger, StorageService, PromiseQueue 
 import { MdnsService } from '@matter/main/protocol';
 import { inspect } from 'util';
 
-import { type AdapterOptions, Adapter, getAbsoluteInstanceDataDir } from '@iobroker/adapter-core';
+import { type AdapterOptions, Adapter, getAbsoluteInstanceDataDir, I18n } from '@iobroker/adapter-core';
 import ChannelDetector, {
     type DetectorState,
     Types,
     type DetectOptions,
     type PatternControl,
 } from '@iobroker/type-detector';
-const I18n = import('@iobroker/i18n');
 import type { JsonFormSchema, BackEndCommandJsonFormOptions } from '@iobroker/dm-utils';
 
 import type { MatterControllerConfig } from '../src-admin/src/types';
@@ -515,10 +514,9 @@ export class MatterAdapter extends Adapter {
         }
 
         // init i18n
-        const i18n = await I18n;
-        await i18n.init(`${__dirname}/lib`, this);
-        this.t = i18n.translate;
-        this.getText = i18n.getTranslatedObject;
+        await I18n.init(__dirname, this);
+        this.t = I18n.translate;
+        this.getText = I18n.getTranslatedObject;
 
         SubscribeManager.setAdapter(this);
         await this.prepareMatterEnvironment();

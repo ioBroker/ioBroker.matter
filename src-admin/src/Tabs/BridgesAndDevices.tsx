@@ -284,7 +284,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 }): void => {
                     this.setState({
                         jsonConfig: {
-                            schema,
+                            schema: schema as ConfigItemPanel | ConfigItemTabs,
                             options,
                             changed: false,
                             data: options?.data || {},

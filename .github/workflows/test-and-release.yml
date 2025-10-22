@@ -101,6 +101,10 @@ jobs:
             github.event_name == 'pull_request'
         needs: [adapter-tests]
         runs-on: ubuntu-latest
+        permissions:
+            contents: write
+            pull-requests: read
+            id-token: write
         steps:
             - id: automerge
               name: automerge
@@ -167,7 +171,7 @@ jobs:
             - name: Publish npm
               if: steps.automerge.outputs.mergeResult == 'merged'
               run: |
-                  npm config set //registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}
+                  npm install -g npm@latest
                   npm whoami
                   npm publish ${{ steps.extract_release.outputs.TAG }}
 

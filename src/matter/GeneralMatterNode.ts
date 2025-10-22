@@ -1141,7 +1141,11 @@ export class GeneralMatterNode {
                             const interfaces = networkInterfaces.filter(({ isOperational }) => isOperational);
                             if (interfaces.length) {
                                 interfaces.forEach(({ name, hardwareAddress, iPv4Addresses, iPv6Addresses }, index) => {
-                                    result.network[`__header__${index}_${name}`] = `Interface ${index} "${name}"`;
+                                    result.network[`__header__${index}_${name}`] = this.adapter.t(
+                                        'Interface %s "%s"',
+                                        index,
+                                        name,
+                                    );
                                     result.network[`${index}_${name}__HardwareAddress`] = bytesToMac(hardwareAddress);
                                     result.network[`${index}_${name}__IPv4Addresses`] = iPv4Addresses
                                         .map(ip => bytesToIpV4(ip))
@@ -1204,7 +1208,7 @@ export class GeneralMatterNode {
                 result.rootEndpointClusters[`__header__${client.name}`] = decamelize(client.name);
                 result.rootEndpointClusters[`${client.name}__Features`] = activeFeatures.length
                     ? activeFeatures.map(name => decamelize(name)).join(', ')
-                    : 'Basic features set';
+                    : this.adapter.t('Basic features set');
                 result.rootEndpointClusters[`${client.name}__Revision`] = client.revision;
             }
         }

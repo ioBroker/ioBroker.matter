@@ -150,7 +150,7 @@ export abstract class BaseServerNode implements GeneralNode {
             case 'deviceExtendedInfo': {
                 return {
                     result: {
-                        schema: convertDataToJsonConfig(this.getDeviceDetails(message)),
+                        schema: convertDataToJsonConfig(this.getDeviceDetails(message), this.adapter),
                         options: {
                             maxWidth: 'md',
                             minWidth: 610,

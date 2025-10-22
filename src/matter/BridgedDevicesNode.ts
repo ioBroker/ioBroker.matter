@@ -408,9 +408,9 @@ class BridgedDevices extends BaseServerNode {
                 details.error = {
                     __header__error: 'Error information',
                     __text__info: Array.isArray(error)
-                        ? `${error.length} Bridged Device(s) are in an error state. Fix the errors before enabling it again.`
-                        : `The Bridge could not be initialized. Please check the logfile for more information.`,
-                    __text__info2: `Please refer to the error details at the bridged device level.`,
+                        ? this.adapter.t('Bridged Device(s) are in an error state. Fix the errors before enabling it again.', error.length)
+                        : this.adapter.t('The Bridge could not be initialized. Please check the logfile for more information.'),
+                    __text__info2: this.adapter.t('Please refer to the error details at the bridged device level.'),
                     uuid: this.uuid,
                 };
             } else {
@@ -422,9 +422,9 @@ class BridgedDevices extends BaseServerNode {
             if (error || !isValid) {
                 details.error = {
                     __header__error: 'Error information',
-                    __text__info: `Bridged Device is in an error state. Fix the error before enabling it again.`,
+                    __text__info: this.adapter.t('Bridged Device is in an error state. Fix the error before enabling it again.'),
                     uuid: `${bridgedDeviceUuid} on ${this.uuid}`,
-                    __text__error: `Error: ${error}`,
+                    __text__error: error ? `Error: ${error}` : '',
                 };
             }
         }
@@ -444,7 +444,7 @@ class BridgedDevices extends BaseServerNode {
                 noDevice: {
                     __header__error: 'Device not created',
                     uuid: `${bridgedDeviceUuid} on ${this.uuid}`,
-                    __text__error: `Error: The device does not exist on this bridge`,
+                    __text__error: this.adapter.t('Error: The device does not exist on this bridge'),
                 },
             };
         }

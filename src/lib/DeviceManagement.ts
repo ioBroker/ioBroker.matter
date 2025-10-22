@@ -311,7 +311,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     async #handleOnStatusNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        const schema = convertDataToJsonConfig(await node.getConnectionStatus());
+        const schema = convertDataToJsonConfig(await node.getConnectionStatus(), this.#adapter);
 
         await context.showForm(schema, {
             data: {},
@@ -773,7 +773,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         if (endpointId === undefined) {
             // Get Node details
-            const schema = convertDataToJsonConfig(node.getNodeDetails());
+            const schema = convertDataToJsonConfig(node.getNodeDetails(), this.#adapter);
             return { id, schema, data: {} };
         }
 
@@ -783,7 +783,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             return { error: this.#adapter.t('Device not found') };
         }
 
-        const schema = convertDataToJsonConfig(device.getDeviceDetails(node.isConnected));
+        const schema = convertDataToJsonConfig(device.getDeviceDetails(node.isConnected), this.#adapter);
 
         return { id, schema, data: {} };
     }

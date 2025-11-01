@@ -32,7 +32,7 @@ jobs:
         steps:
             - uses: actions/checkout@v5
             - name: Use Node.js 22.x
-              uses: actions/setup-node@v5
+              uses: actions/setup-node@v6
               with:
                   node-version: 22.x
 
@@ -85,7 +85,7 @@ jobs:
                 enableCrossOsArchive: true
 
             - name: Use Node.js ${{ matrix.node-version }}
-              uses: actions/setup-node@v5
+              uses: actions/setup-node@v6
               with:
                   node-version: ${{ matrix.node-version }}
 
@@ -130,7 +130,7 @@ jobs:
 
             - name: Use Node.js 22
               if: steps.automerge.outputs.mergeResult == 'merged'
-              uses: actions/setup-node@v5
+              uses: actions/setup-node@v6
               with:
                   node-version: 22
 

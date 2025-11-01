@@ -32,7 +32,7 @@
     "@matter/main": "0.15.6",
     "@matter/nodejs": "0.15.6",
     "@project-chip/matter.js": "0.15.6",
-    "axios": "^1.12.2",
+    "axios": "^1.13.1",
     "jsonwebtoken": "^9.0.2"
   },
   "devDependencies": {

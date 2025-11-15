@@ -50,7 +50,7 @@
     "@types/node": "^24.9.1",
     "colorette": "^2.0.20",
     "cross-env": "^10.1.0",
-    "esbuild": "^0.25.11",
+    "esbuild": "^0.27.0",
     "eslint-plugin-import": "^2.32.0",
     "puppeteer": "^24.26.0",
     "ts-node": "^10.9.2",

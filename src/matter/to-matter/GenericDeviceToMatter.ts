@@ -85,7 +85,10 @@ export abstract class GenericDeviceToMatter {
                 __text__info: 'The following Matter endpoints are mapped for this device.',
             };
             endpoints.forEach(endpoint => {
-                details.endpoints[`__header__endpoint${endpoint.number}`] = `Endpoint ${endpoint.number}`;
+                details.endpoints[`__header__endpoint${endpoint.number}`] = this.adapter.t(
+                    'Endpoint %s',
+                    endpoint.number,
+                );
                 details.endpoints[`dt${endpoint.number}__deviceType`] = capitalize(endpoint.type.name);
                 // TODO expose potentially more
             });

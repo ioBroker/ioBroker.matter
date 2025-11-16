@@ -150,12 +150,16 @@ export abstract class BaseServerNode implements GeneralNode {
             case 'deviceExtendedInfo': {
                 return {
                     result: {
-                        schema: convertDataToJsonConfig(this.getDeviceDetails(message)),
+                        schema: convertDataToJsonConfig(this.getDeviceDetails(message), this.adapter),
                         options: {
                             maxWidth: 'md',
                             minWidth: 610,
                             data: {},
-                            title: `${this.type === 'bridges' && !('bridgedDeviceUuid' in message) ? 'Bridge' : 'Device'} Detail information`,
+                            title: this.adapter.getText(
+                                this.type === 'bridges' && !('bridgedDeviceUuid' in message)
+                                    ? 'Bridge Detail information'
+                                    : 'Device Detail information',
+                            ),
                             buttons: ['close'],
                         },
                     },
@@ -170,7 +174,11 @@ export abstract class BaseServerNode implements GeneralNode {
                             data,
                             maxWidth: 'md',
                             minWidth: 610,
-                            title: `${this.type === 'bridges' && !('bridgedDeviceUuid' in message) ? 'Bridge' : 'Device'} Debug information`,
+                            title: this.adapter.getText(
+                                this.type === 'bridges' && !('bridgedDeviceUuid' in message)
+                                    ? 'Bridge Debug information'
+                                    : 'Device Debug information',
+                            ),
                             buttons: [
                                 {
                                     type: 'copyToClipboard',
@@ -343,7 +351,7 @@ export abstract class BaseServerNode implements GeneralNode {
         endpoint.behaviors.require(BatteryPowerSourceServer, {
             status: PowerSource.PowerSourceStatus.Active,
             order: 0,
-            description: 'Battery as reported by ioBroker',
+            description: this.adapter.t('Battery as reported by ioBroker'),
             batPercentRemaining,
             batChargeLevel,
             batReplacementNeeded,

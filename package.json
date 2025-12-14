@@ -52,7 +52,7 @@
     "cross-env": "^10.1.0",
     "esbuild": "^0.25.11",
     "eslint-plugin-import": "^2.32.0",
-    "puppeteer": "^24.26.0",
+    "puppeteer": "^24.33.0",
     "ts-node": "^10.9.2",
     "typescript": "~5.9.3"
   },

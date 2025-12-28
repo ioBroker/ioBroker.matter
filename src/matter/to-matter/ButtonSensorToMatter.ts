@@ -1,4 +1,4 @@
-import { Endpoint } from '@matter/main';
+import { Endpoint, Millis } from '@matter/main';
 import { GenericSwitchDevice } from '@matter/main/devices';
 import { SwitchServer } from '@matter/main/behaviors';
 import { Switch } from '@matter/main/clusters';
@@ -50,8 +50,8 @@ export class ButtonSensorToMatter extends GenericDeviceToMatter {
                 numberOfPositions: 2,
                 currentPosition: 0,
                 multiPressMax: 3,
-                multiPressDelay: 300,
-                longPressDelay: hasLongPress ? 450 : undefined,
+                multiPressDelay: Millis(300),
+                longPressDelay: hasLongPress ? Millis(450) : undefined,
             },
         });
     }

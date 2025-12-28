@@ -1,10 +1,11 @@
-import { fromJson, type MaybeAsyncStorage, StorageError, type SupportedStorageTypes, toJson } from '@matter/main';
+import type { Bytes, Storage, SupportedStorageTypes } from '@matter/main';
+import { fromJson, StorageError, toJson } from '@matter/main';
 import { StorageBackendDisk } from '@matter/nodejs';
 
 /**
  * Class that implements the storage for one Node in the Matter ecosystem
  */
-export class IoBrokerObjectStorage implements MaybeAsyncStorage {
+export class IoBrokerObjectStorage implements Storage {
     #existingObjectIds = new Set<string>();
     readonly #storageRootOid: string;
     readonly #nodeDataStorageDirectory?: string;
@@ -13,29 +14,25 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
     #namespace: string;
     #clear = false;
     #localStorageManager?: StorageBackendDisk;
-    #localStorageForPrefix?: string;
+    #storeLocalChecker?: (contexts: string[]) => boolean;
 
     constructor(
         adapter: ioBroker.Adapter,
         namespace: string,
         clear = false,
         nodeDataStorageDirectory?: string,
-        localPrefix?: string,
+        storeLocalChecker?: (contexts: string[]) => boolean,
     ) {
         this.#adapter = adapter;
         this.#namespace = namespace;
         this.#clear = clear;
         this.#storageRootOid = `storage.${this.#namespace}`;
         this.#nodeDataStorageDirectory = nodeDataStorageDirectory;
-        this.#localStorageForPrefix = localPrefix;
+        this.#storeLocalChecker = storeLocalChecker;
     }
 
     #isLocallyStored(contexts: string[]): boolean {
-        return (
-            this.#nodeDataStorageDirectory !== undefined &&
-            this.#localStorageForPrefix !== undefined &&
-            contexts[0].startsWith(this.#localStorageForPrefix)
-        );
+        return !!(this.#nodeDataStorageDirectory !== undefined && this.#storeLocalChecker?.(contexts));
     }
 
     async initialize(): Promise<void> {
@@ -43,6 +40,7 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
 
         if (this.#nodeDataStorageDirectory !== undefined) {
             this.#localStorageManager = new StorageBackendDisk(this.#nodeDataStorageDirectory, this.#clear);
+            await this.#localStorageManager.initialize();
         }
 
         await this.#adapter.extendObjectAsync(this.#storageRootOid, {
@@ -146,10 +144,14 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
         }
     }
 
-    async contexts(contexts: string[]): Promise<string[]> {
+    async has(contexts: string[], key: string): Promise<boolean> {
+        return (await this.get(contexts, key)) !== undefined;
+    }
+
+    contexts(contexts: string[]): string[] {
         const result = new Array<string>();
         if (this.#localStorageManager) {
-            result.push(...(await this.#localStorageManager.contexts(contexts)));
+            result.push(...this.#localStorageManager.contexts(contexts));
         }
 
         const contextKeyStart = this.buildKey(contexts, '');
@@ -258,5 +260,19 @@ export class IoBrokerObjectStorage implements MaybeAsyncStorage {
             this.#adapter.log.error(`[STORAGE] Cannot delete state ${oid}: ${error.message}`);
         }
         this.#existingObjectIds.delete(oid);
+    }
+
+    openBlob(contexts: string[], key: string): Promise<Blob> {
+        if (this.#localStorageManager === undefined) {
+            throw new StorageError('[STORAGE] Cannot open blob, local storage is not enabled!');
+        }
+        return this.#localStorageManager.openBlob(contexts, key);
+    }
+
+    writeBlobFromStream(contexts: string[], key: string, stream: ReadableStream<Bytes>): Promise<void> {
+        if (this.#localStorageManager === undefined) {
+            throw new StorageError('[STORAGE] Cannot open blob, local storage is not enabled!');
+        }
+        return this.#localStorageManager.writeBlobFromStream(contexts, key, stream);
     }
 }

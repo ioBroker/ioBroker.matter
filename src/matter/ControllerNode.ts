@@ -1,14 +1,12 @@
-import { Diagnostic, NodeId, singleton, VendorId, type ServerAddressIp } from '@matter/main';
+import { Diagnostic, NodeId, VendorId, type ServerAddressUdp, Seconds } from '@matter/main';
 import { GeneralCommissioning } from '@matter/main/clusters';
 import {
-    Ble,
     type CommissionableDevice,
     type ControllerCommissioningFlowOptions,
     type DiscoveryData,
     CommissioningError,
 } from '@matter/main/protocol';
 import { ManualPairingCodeCodec, QrPairingCodeCodec, DiscoveryCapabilitiesSchema } from '@matter/main/types';
-import { NodeJsBle } from '@matter/nodejs-ble';
 import { CommissioningController, type NodeCommissioningOptions } from '@project-chip/matter.js';
 import {
     NodeStates as PairedNodeStates,
@@ -71,15 +69,12 @@ class Controller implements GeneralNode {
                 (this.#parameters.threadNetworkName !== undefined &&
                     this.#parameters.threadOperationalDataSet !== undefined)
             ) {
-                try {
-                    const hciId = this.#parameters.hciId === undefined ? undefined : parseInt(this.#parameters.hciId);
-                    Ble.get = singleton(() => new NodeJsBle({ hciId }));
-                    this.#useBle = true;
-                } catch (error) {
-                    this.#adapter.log.warn(`Failed to initialize BLE: ${error.message}`);
-                    this.#parameters.ble = false;
-                    return;
+                this.#adapter.matterEnvironment.vars.set('ble.enable', true);
+                const hciId = this.#parameters.hciId === undefined ? undefined : parseInt(this.#parameters.hciId);
+                if (hciId !== undefined && (hciId < 0 || hciId > 255)) {
+                    this.#adapter.matterEnvironment.vars.set('ble.hci.id', hciId);
                 }
+                this.#useBle = true;
             } else {
                 this.#adapter.log.warn(
                     `BLE enabled but no WiFi or Thread configuration provided. BLE will stay disabled.`,
@@ -238,9 +233,12 @@ class Controller implements GeneralNode {
             }
             this.#updateCallback();
         });
-        node.events.structureChanged.on(async () => {
+        node.events.structureChanged.on(() => {
             this.#adapter.log.info(`Node "${node.nodeId}" structure changed`);
-            await this.nodeToIoBrokerStructure(node);
+            this.nodeToIoBrokerStructure(node).then(
+                () => this.#updateCallback(),
+                error => this.#adapter.log.info(`Error while updating structure: ${error}`),
+            );
             this.#updateCallback();
         });
         node.events.decommissioned.on(() => {
@@ -384,7 +382,7 @@ class Controller implements GeneralNode {
         let longDiscriminator: number | undefined = undefined;
         let productId: number | undefined = undefined;
         let vendorId: VendorId | undefined = undefined;
-        let knownAddress: ServerAddressIp | undefined = undefined;
+        let knownAddress: ServerAddressUdp | undefined = undefined;
         if ('manualCode' in data && data.manualCode.length > 0) {
             const pairingCodeCodec = ManualPairingCodeCodec.decode(data.manualCode);
             shortDiscriminator = pairingCodeCodec.shortDiscriminator;
@@ -519,7 +517,7 @@ class Controller implements GeneralNode {
                             .catch(error => this.#adapter.log.info(`Error sending to GUI: ${error}`));
                     }
                 },
-                60, // timeoutSeconds
+                Seconds(60), // timeoutSeconds
             )
             .then(result => {
                 this.#adapter.log.info(`Discovering stopped. Found ${result.length} devices.`);

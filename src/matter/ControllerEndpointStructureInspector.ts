@@ -1,10 +1,10 @@
 import type { Endpoint as LegacyEndpoint } from '@project-chip/matter.js/device';
-import { type ClusterServer } from '@project-chip/matter.js/cluster';
 import {
-    type ClusterClientObj,
+    type ClusterServer,
     SupportedAttributeClient,
     UnknownSupportedAttributeClient,
-} from '@matter/main/protocol';
+} from '@project-chip/matter.js/cluster';
+import type { ClusterClientObj } from '@matter/main/protocol';
 import { Diagnostic, serialize } from '@matter/main';
 import { GlobalAttributes } from '@matter/main/types';
 

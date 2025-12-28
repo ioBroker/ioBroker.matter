@@ -1,4 +1,4 @@
-import { Endpoint, Time } from '@matter/main';
+import { Endpoint, Time, Millis } from '@matter/main';
 import { ExtendedColorLightDevice } from '@matter/main/devices';
 import { Hue } from '../../lib/devices/Hue';
 import { Rgb } from '../../lib/devices/Rgb';
@@ -29,7 +29,7 @@ type IoBrokerExtendedColorLightDevice = typeof IoBrokerExtendedColorLightDevice;
 export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
     readonly #ioBrokerDevice: Hue | Rgb | RgbSingle | RgbwSingle;
     readonly #matterEndpoint: Endpoint<IoBrokerExtendedColorLightDevice>;
-    readonly #rgbSingleDelayTimer = Time.getTimer('rgbSingleDelayTimer', 100, () =>
+    readonly #rgbSingleDelayTimer = Time.getTimer('rgbSingleDelayTimer', Millis(100), () =>
         this.#setRgbValue().catch(error =>
             this.#ioBrokerDevice.adapter.log.warn(`Failed to set RGB value: ${error.message}`),
         ),
@@ -185,11 +185,11 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                 `Device ${this.#ioBrokerDevice.uuid} does not support color temperature, so commands will be ignored`,
             );
         }
-        let { min = 2_000, max = 6_536 } = this.#ioBrokerDevice.hasTemperature()
+        let { min = 1_000, max = 20_000 } = this.#ioBrokerDevice.hasTemperature()
             ? (this.#ioBrokerDevice.getTemperatureMinMax() ?? {})
-            : {}; // 153 till 500 mireds
-        min = this.#ioBrokerDevice.cropValue(min, 2_000, 6_536);
-        max = this.#ioBrokerDevice.cropValue(max, 2_000, 6_536);
+            : {}; // 50 till 1.000 mireds
+        min = this.#ioBrokerDevice.cropValue(min, 1_000, 20_000);
+        max = this.#ioBrokerDevice.cropValue(max, 1_000, 20_000);
         const currentTemperature = this.#ioBrokerDevice.cropValue(
             this.#ioBrokerDevice.hasTemperature() ? (this.#ioBrokerDevice.getTemperature() ?? min) : min,
             min,

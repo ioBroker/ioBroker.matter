@@ -64,7 +64,7 @@ export abstract class BaseServerNode implements GeneralNode {
         if (this.serverNode.lifecycle.isCommissioned) {
             await this.serverNode.env.get(DeviceCommissioner)?.allowBasicCommissioning();
         } else {
-            await this.serverNode.env.get(DeviceAdvertiser)?.advertise(false);
+            this.serverNode.env.get(DeviceAdvertiser)?.restartAdvertisement();
         }
     }
 
@@ -196,18 +196,18 @@ export abstract class BaseServerNode implements GeneralNode {
         if (!this.serverNode) {
             throw new Error('ServerNode not yet initialized.');
         }
-        this.serverNode.events.commissioning.fabricsChanged.on(async fabricIndex => {
+        this.serverNode.events.commissioning.fabricsChanged.on(fabricIndex => {
             this.adapter.log.debug(
                 `commissioningChangedCallback: Commissioning changed on Fabric ${fabricIndex}: ${serialize(this.serverNode?.state.operationalCredentials.fabrics.find(fabric => fabric.fabricIndex === fabricIndex))}`,
             );
-            await this.updateUiState();
+            this.updateUiState().catch(error => this.adapter.log.info(`Could not update UI state: ${error}`));
         });
 
-        const sessionChange = async (session: SessionsBehavior.Session): Promise<void> => {
+        const sessionChange = (session: SessionsBehavior.Session): void => {
             this.adapter.log.debug(
                 `activeSessionsChangedCallback: Active sessions changed on Fabric ${session.fabric?.fabricIndex}${Diagnostic.json(session)}`,
             );
-            await this.updateUiState();
+            this.updateUiState().catch(error => this.adapter.log.info(`Could not update UI state: ${error}`));
         };
         this.serverNode.events.sessions.opened.on(sessionChange);
         this.serverNode.events.sessions.closed.on(sessionChange);

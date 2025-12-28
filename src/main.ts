@@ -1,7 +1,7 @@
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import fs from 'node:fs/promises';
-import { Environment, LogLevel, LogFormat, Logger, StorageService, PromiseQueue } from '@matter/main';
+import { Environment, LogLevel, LogFormat, Logger, StorageService, Semaphore } from '@matter/main';
 import { MdnsService } from '@matter/main/protocol';
 import { inspect } from 'util';
 
@@ -106,7 +106,7 @@ export class MatterAdapter extends Adapter {
     }>();
     #objectProcessQueueTimeout?: NodeJS.Timeout;
     #currentObjectProcessPromise?: Promise<void>;
-    #controllerActionQueue = new PromiseQueue();
+    #controllerActionQueue = new Semaphore();
     #blockGuiUpdates = false;
 
     public constructor(options: Partial<AdapterOptions> = {}) {
@@ -149,7 +149,7 @@ export class MatterAdapter extends Adapter {
         return this.#controller;
     }
 
-    get controllerUpdateQueue(): PromiseQueue {
+    get controllerUpdateQueue(): Semaphore {
         return this.#controllerActionQueue;
     }
 
@@ -185,8 +185,9 @@ export class MatterAdapter extends Adapter {
             }
         }
         this.#bridges.clear();
-        // TODO with next matter.js : if (this.#controllerActionQueue.count)
-        this.#controllerActionQueue.clear(false);
+        if (this.#controllerActionQueue.count > 0) {
+            this.#controllerActionQueue.clear();
+        }
         try {
             await this.#controller?.stop();
         } catch (error) {
@@ -220,7 +221,8 @@ export class MatterAdapter extends Adapter {
     }
 
     async handleControllerCommand(obj: ioBroker.Message): Promise<void> {
-        await this.#controllerActionQueue.add(async () => {
+        const slot = await this.#controllerActionQueue.obtainSlot();
+        try {
             if (this.#controller) {
                 try {
                     const result = await this.#controller?.handleCommand(obj);
@@ -236,7 +238,9 @@ export class MatterAdapter extends Adapter {
             } else if (obj.callback) {
                 this.sendTo(obj.from, obj.command, { error: 'Controller not enabled' }, obj.callback);
             }
-        });
+        } finally {
+            slot.close();
+        }
     }
 
     async handleDeviceCommand(obj: ioBroker.Message): Promise<void> {
@@ -593,7 +597,7 @@ export class MatterAdapter extends Adapter {
         }
         if (this.#objectProcessQueueTimeout) {
             clearTimeout(this.#objectProcessQueueTimeout);
-            this.#controllerActionQueue.clear(false);
+            this.#controllerActionQueue.clear();
         }
         if (this.#objectProcessQueue.length && this.#objectProcessQueue[0].inProgress) {
             const promise = this.#currentObjectProcessPromise;
@@ -1420,18 +1424,22 @@ export class MatterAdapter extends Adapter {
         this.log.debug('Sync done');
     }
 
-    syncControllerNode(nodeId: string, obj: ioBroker.FolderObject, forcedUpdate = false): Promise<void> {
-        return this.#controllerActionQueue.add(async () => {
+    async syncControllerNode(nodeId: string, obj: ioBroker.FolderObject, forcedUpdate = false): Promise<void> {
+        const slot = await this.#controllerActionQueue.obtainSlot();
+        try {
             if (!this.#controller) {
                 return;
             } // not active
             await this.#controller.applyPairedNodeConfiguration(nodeId, obj.native as PairedNodeConfig, forcedUpdate);
-        });
+        } finally {
+            slot.close();
+        }
     }
 
     async applyControllerConfiguration(config: MatterControllerConfig, handleStart = true): Promise<MessageResponse> {
         // Make sure to not overlap controller config updates
-        return this.#controllerActionQueue.add(async () => {
+        const slot = await this.#controllerActionQueue.obtainSlot();
+        try {
             if (config.enabled) {
                 if (this.#controller) {
                     this.#controller.applyConfiguration(config);
@@ -1450,12 +1458,14 @@ export class MatterAdapter extends Adapter {
                 // Controller should be disabled but is not
                 const controller = this.#controller;
                 this.#controller = undefined;
-                this.#controllerActionQueue.clear(false);
+                this.#controllerActionQueue.clear();
                 await controller.stop();
             }
 
             return { result: true };
-        });
+        } finally {
+            slot.close();
+        }
     }
 
     async stopBridgeOrDevice(type: 'bridge' | 'device', id: string): Promise<void> {

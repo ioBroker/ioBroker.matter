@@ -37,6 +37,7 @@ export class Ct extends GenericLightingDevice {
                     callback: state => (this.#temperatureState = state),
                     unitConversionMap: {
                         mireds: value => Math.round(1_000_000 / value),
+                        mired: value => Math.round(1_000_000 / value),
                     },
                 },
                 // actual value first, as it will be read first

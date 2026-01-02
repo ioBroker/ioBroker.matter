@@ -88,7 +88,7 @@ export class IoBrokerObjectStorage implements Storage {
         }
         if (this.#localStorageManager && this.#isLocallyStored(contexts)) {
             this.#adapter.log.info(`[STORAGE] Clearing all storage for ${contexts.join('$$')} in local storage`);
-            return this.#localStorageManager.clearAll(contexts);
+            await this.#localStorageManager.clearAll(contexts);
         }
 
         const contextKey = `${this.#adapter.namespace}.${this.buildKey(contexts, '')}`;

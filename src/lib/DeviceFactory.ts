@@ -40,6 +40,7 @@ import { WeatherForecast } from './devices/WeatherForecast';
 import { Window } from './devices/Window';
 import { WindowTilt } from './devices/WindowTilt';
 import { Illuminance } from './devices/Illuminance';
+import { Percentage } from './devices/Percentage';
 
 /** Type for a class that extends a defined class to make TS understand that also derived classes are allowed. */
 type ClassExtends<C> = { new (...args: any[]): C };
@@ -75,6 +76,7 @@ const types: { [key in Types]: ClassExtends<GenericDevice> | null } = {
     [Types.hue]: Hue,
     [Types.cie]: Cie,
     [Types.slider]: Slider,
+    [Types.percentage]: Percentage,
     [Types.socket]: Socket,
     [Types.temperature]: Temperature,
     [Types.thermostat]: Thermostat,

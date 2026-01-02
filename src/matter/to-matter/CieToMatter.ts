@@ -64,9 +64,9 @@ export class CieToMatter extends GenericLightingDeviceToMatter {
                 `Device ${this.#ioBrokerDevice.uuid} does not support color temperature, so commands will be ignored`,
             );
         }
-        const { min = 2_000, max = 6_536 } = this.#ioBrokerDevice.hasTemperature()
+        const { min = 1_000, max = 20_000 } = this.#ioBrokerDevice.hasTemperature()
             ? (this.#ioBrokerDevice.getTemperatureMinMax() ?? {})
-            : {}; // 153 till 500 mireds
+            : {}; // 50 till 1.000 mireds
         const currentTemperature = this.#ioBrokerDevice.cropValue(
             this.#ioBrokerDevice.hasTemperature() ? (this.#ioBrokerDevice.getTemperature() ?? min) : min,
             min,

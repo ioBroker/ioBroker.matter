@@ -18,8 +18,8 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
     #isLighting = false;
     #minLevel = 1;
     #maxLevel = 254;
-    #colorTemperatureMinMireds = kelvinToMireds(6_500);
-    #colorTemperatureMaxMireds = kelvinToMireds(2_000);
+    #colorTemperatureMinMireds = kelvinToMireds(20_000);
+    #colorTemperatureMaxMireds = kelvinToMireds(1_000);
 
     constructor(
         node: PairedNode,
@@ -68,9 +68,9 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
         const colorControl = this.appEndpoint.getClusterClient(ColorControl.Complete);
         if (colorControl) {
             this.#colorTemperatureMinMireds =
-                colorControl.getColorTempPhysicalMinMiredsAttributeFromCache() ?? kelvinToMireds(6_500);
+                colorControl.getColorTempPhysicalMinMiredsAttributeFromCache() ?? kelvinToMireds(20_000);
             this.#colorTemperatureMaxMireds =
-                colorControl.getColorTempPhysicalMaxMiredsAttributeFromCache() ?? kelvinToMireds(2_000);
+                colorControl.getColorTempPhysicalMaxMiredsAttributeFromCache() ?? kelvinToMireds(1_000);
         }
     }
 

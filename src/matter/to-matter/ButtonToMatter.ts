@@ -1,4 +1,4 @@
-import { Endpoint } from '@matter/main';
+import { Endpoint, Millis } from '@matter/main';
 import { GenericSwitchDevice } from '@matter/main/devices';
 import { SwitchServer } from '@matter/main/behaviors';
 import { Switch } from '@matter/main/clusters';
@@ -34,7 +34,7 @@ export class ButtonToMatter extends GenericDeviceToMatter {
                 numberOfPositions: 2,
                 currentPosition: 0,
                 multiPressMax: 3,
-                multiPressDelay: 300,
+                multiPressDelay: Millis(300),
             },
         });
         this.#ioBrokerDevice = ioBrokerDevice;

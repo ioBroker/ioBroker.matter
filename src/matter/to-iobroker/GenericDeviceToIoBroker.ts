@@ -9,7 +9,7 @@ import {
 import type { MatterAdapter } from '../../main';
 import { BasicInformation, BridgedDeviceBasicInformation, Identify, PowerSource } from '@matter/main/clusters';
 import type { DecodedEventData } from '@matter/main/protocol';
-import type { Endpoint, PairedNode, DeviceBasicInformation } from '@project-chip/matter.js/device';
+import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
 import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DeviceOptions } from '../../lib/devices/GenericDevice';
@@ -131,7 +131,7 @@ export abstract class GenericDeviceToIoBroker {
         return this.#connectionStateId;
     }
 
-    get nodeBasicInformation(): Partial<DeviceBasicInformation> {
+    get nodeBasicInformation(): Record<string, unknown> {
         return this.#node.basicInformation ?? {};
     }
 
@@ -595,24 +595,6 @@ export abstract class GenericDeviceToIoBroker {
                 // Maximum read for 9 attribute paths is allowed, so split in chunks of 9
                 const chunk = attributes.slice(i, i + 9);
 
-                // Collect the endpoints and clusters and get the last known data version for each to use as filter
-                const endpointClusters = new Map<string, { endpointId: EndpointNumber; clusterId: ClusterId }>();
-                for (const { endpointId, clusterId } of chunk) {
-                    const key = `${endpointId}-${clusterId}`;
-                    endpointClusters.set(key, { endpointId, clusterId });
-                }
-                const dataVersionFilters = new Array<{
-                    endpointId: EndpointNumber;
-                    clusterId: ClusterId;
-                    dataVersion: number;
-                }>();
-                for (const data of endpointClusters.values()) {
-                    const filter = client.getCachedClusterDataVersions(data);
-                    if (filter.length) {
-                        dataVersionFilters.push(filter[0]);
-                    }
-                }
-
                 try {
                     // Query the attributes
                     const result = await client.getMultipleAttributes({
@@ -621,7 +603,6 @@ export abstract class GenericDeviceToIoBroker {
                             clusterId,
                             attributeId,
                         })),
-                        dataVersionFilters,
                     });
 
                     // Handle the results as if they would have come as subscription update

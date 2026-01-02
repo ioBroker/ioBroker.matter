@@ -1,6 +1,6 @@
 import { IdentifyServer } from '@matter/main/behaviors';
 import { Identify } from '@matter/main/clusters';
-import { Time, MaybePromise, type Timer } from '@matter/main';
+import { Time, MaybePromise, type Timer, Seconds } from '@matter/main';
 import { IoBrokerContext } from './IoBrokerContext';
 import { GenericLightingDevice } from '../../lib/devices/GenericLightingDevice';
 import type { MatterAdapter } from '../../main';
@@ -31,7 +31,7 @@ export class IoIdentifyServer extends IdentifyServer {
     }
 
     startIdentifying(): void {
-        this.internal.identifyHandlerTimeout = Time.getPeriodicTimer('Identify', 1000, () =>
+        this.internal.identifyHandlerTimeout = Time.getPeriodicTimer('Identify', Seconds(1), () =>
             MaybePromise.then(
                 () => this.handleIoIdentify(false),
                 () => {},
@@ -157,7 +157,7 @@ export class IoLightingIdentifyServer extends IoIdentifyServer {
         ) {
             const currentState = !!this.internal.device.getPower();
             await this.internal.device.setPower(!currentState);
-            this.internal.identifyTimer = Time.getTimer('Identify effect', 1000, () =>
+            this.internal.identifyTimer = Time.getTimer('Identify effect', Seconds(1), () =>
                 (this.internal.device as GenericLightingDevice)
                     .setPower(currentState)
                     .catch(error =>

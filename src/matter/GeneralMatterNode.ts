@@ -8,12 +8,7 @@ import {
     OperationalCredentialsCluster,
 } from '@matter/main/clusters';
 import { AttributeModel, ClusterModel, CommandModel, MatterModel } from '@matter/main/model';
-import {
-    type DecodedAttributeReportValue,
-    type DecodedEventReportValue,
-    SupportedAttributeClient,
-    UnknownSupportedAttributeClient,
-} from '@matter/main/protocol';
+import { type DecodedAttributeReportValue, type DecodedEventReportValue } from '@matter/main/protocol';
 import { GlobalAttributes, SpecificationVersion } from '@matter/main/types';
 import { AggregatorEndpointDefinition, BridgedNodeEndpointDefinition } from '@matter/main/endpoints';
 import {
@@ -22,6 +17,7 @@ import {
     type PairedNode,
     type CommissioningControllerNodeOptions,
 } from '@project-chip/matter.js/device';
+import { SupportedAttributeClient, UnknownSupportedAttributeClient } from '@project-chip/matter.js/cluster';
 import type { MatterControllerConfig } from '../../src-admin/src/types';
 import { SubscribeManager } from '../lib';
 import type { SubscribeCallback } from '../lib/SubscribeManager';
@@ -165,11 +161,11 @@ export class GeneralMatterNode {
             this.adapter.log.warn(
                 `Node "${this.node.nodeId}" has not yet been initialized! Waiting for initial connection.`,
             );
-            const handler = async (state: PairedNodeStates): Promise<void> => {
+            const handler = (state: PairedNodeStates): void => {
                 if (state === PairedNodeStates.Connected) {
                     this.node.events.stateChanged.off(handler);
                     this.adapter.log.info(`Node "${this.node.nodeId}" has been delayed connected. Initialize now!`);
-                    await this.initialize();
+                    this.initialize().catch(error => this.adapter.log.info(`Error while initializing node: ${error}`));
                 }
             };
             this.node.events.stateChanged.on(handler);
@@ -292,7 +288,7 @@ export class GeneralMatterNode {
         });
 
         await this.adapter.setState(this.connectionStateId, this.node.isConnected, true);
-        await this.adapter.setState(this.connectionStatusId, this.node.state, true);
+        await this.adapter.setState(this.connectionStatusId, this.node.connectionState, true);
 
         this.#connectedAddress = nodeDetails?.operationalAddress?.substring(6);
         await this.adapter.setState(this.connectedAddressStateId, this.#connectedAddress ?? null, true);
@@ -1104,9 +1100,9 @@ export class GeneralMatterNode {
             result.node = {};
 
             result.node.vendorName = details.vendorName;
-            result.node.vendorId = toUpperCaseHex(details.vendorId as number);
+            result.node.vendorId = toUpperCaseHex(details.vendorId);
             result.node.productName = details.productName;
-            result.node.productId = toUpperCaseHex(details.productId as number);
+            result.node.productId = toUpperCaseHex(details.productId);
             result.node.nodeLabel = details.nodeLabel;
             result.node.location = details.location;
             result.node.hardwareVersion = details.hardwareVersionString;
@@ -1219,7 +1215,7 @@ export class GeneralMatterNode {
 
         if (!this.node.initialized) {
             status.warning = 'The Node is not yet initialized ... Trying to connect.';
-        } else if (this.node.state === PairedNodeStates.Reconnecting) {
+        } else if (this.node.connectionState === PairedNodeStates.Reconnecting) {
             status.warning = 'The Node is currently reconnecting ...';
         }
 
@@ -1328,7 +1324,7 @@ export class GeneralMatterNode {
                 : this.#enabled
                   ? 'The node is currently not connected.'
                   : 'The node is disabled.',
-            status: decamelize(PairedNodeStates[this.node.state]),
+            status: decamelize(PairedNodeStates[this.node.connectionState]),
         };
 
         result.connection.address = this.#connectedAddress;

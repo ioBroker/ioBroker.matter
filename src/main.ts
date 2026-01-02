@@ -1,7 +1,9 @@
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import fs from 'node:fs/promises';
-import { Environment, LogLevel, LogFormat, Logger, StorageService, PromiseQueue } from '@matter/main';
+import path from 'node:path';
+import { Environment, LogLevel, LogFormat, Logger, StorageService, Semaphore } from '@matter/main';
+import { StorageBackendDisk } from '@matter/nodejs';
 import { MdnsService } from '@matter/main/protocol';
 import { inspect } from 'util';
 
@@ -62,6 +64,7 @@ const DEVICE_DEFAULT_NAME: Partial<Record<Types, string>> = {
     [Types.rgbSingle]: 'CIE',
     [Types.rgbwSingle]: 'RGB',
     [Types.slider]: 'SET',
+    [Types.percentage]: 'SET',
     [Types.socket]: 'SET',
     [Types.temperature]: 'ACTUAL',
     [Types.thermostat]: 'SET',
@@ -106,7 +109,7 @@ export class MatterAdapter extends Adapter {
     }>();
     #objectProcessQueueTimeout?: NodeJS.Timeout;
     #currentObjectProcessPromise?: Promise<void>;
-    #controllerActionQueue = new PromiseQueue();
+    #controllerActionQueue = new Semaphore();
     #blockGuiUpdates = false;
 
     public constructor(options: Partial<AdapterOptions> = {}) {
@@ -149,7 +152,7 @@ export class MatterAdapter extends Adapter {
         return this.#controller;
     }
 
-    get controllerUpdateQueue(): PromiseQueue {
+    get controllerUpdateQueue(): Semaphore {
         return this.#controllerActionQueue;
     }
 
@@ -185,8 +188,9 @@ export class MatterAdapter extends Adapter {
             }
         }
         this.#bridges.clear();
-        // TODO with next matter.js : if (this.#controllerActionQueue.count)
-        this.#controllerActionQueue.clear(false);
+        if (this.#controllerActionQueue.count > 0) {
+            this.#controllerActionQueue.clear();
+        }
         try {
             await this.#controller?.stop();
         } catch (error) {
@@ -220,7 +224,8 @@ export class MatterAdapter extends Adapter {
     }
 
     async handleControllerCommand(obj: ioBroker.Message): Promise<void> {
-        await this.#controllerActionQueue.add(async () => {
+        const slot = await this.#controllerActionQueue.obtainSlot();
+        try {
             if (this.#controller) {
                 try {
                     const result = await this.#controller?.handleCommand(obj);
@@ -236,7 +241,9 @@ export class MatterAdapter extends Adapter {
             } else if (obj.callback) {
                 this.sendTo(obj.from, obj.command, { error: 'Controller not enabled' }, obj.callback);
             }
-        });
+        } finally {
+            slot.close();
+        }
     }
 
     async handleDeviceCommand(obj: ioBroker.Message): Promise<void> {
@@ -464,7 +471,7 @@ export class MatterAdapter extends Adapter {
         /**
          * Initialize the storage system.
          *
-         * The storage manager is then also used by the Matter server, so this code block in general is required,
+         * The Matter server then also uses the storage manager, so this code block in general is required,
          * but you can choose a different storage backend as long as it implements the required API.
          */
         await this.extendObjectAsync('storage', {
@@ -477,14 +484,30 @@ export class MatterAdapter extends Adapter {
         });
 
         const storageService = this.#matterEnvironment.get(StorageService);
-        storageService.factory = (namespace: string) =>
-            new IoBrokerObjectStorage(
+        storageService.factory = (namespace: string) => {
+            // We put special namespaces with temporary data into the filesystem
+            // We reuse the dir of the normal storage but use subdirectories, so should be fine
+            if (namespace === 'ota' || namespace === 'certificates' || namespace === 'vendors') {
+                const namespacePath = path.join(this.#instanceDataDir!, `ns-${namespace}`);
+                return new StorageBackendDisk(namespacePath, false);
+            }
+            return new IoBrokerObjectStorage(
                 this,
                 namespace,
                 false,
                 namespace === 'controller' ? this.#instanceDataDir : undefined,
-                namespace === 'controller' ? 'node-' : undefined,
+                namespace === 'controller'
+                    ? (contexts: string[]): boolean =>
+                          // Legacy node data
+                          contexts[0]?.startsWith('node-') ||
+                          // Or new node data for endpoints (not internal clusters)
+                          (contexts[0] === 'nodes' &&
+                              contexts[2] === 'endpoints' &&
+                              contexts[1]?.startsWith('peer') &&
+                              !Number.isNaN(contexts[4]))
+                    : undefined,
             );
+        };
         storageService.location = `${this.namespace}.storage`; // For logging
 
         if (config.interface) {
@@ -593,7 +616,7 @@ export class MatterAdapter extends Adapter {
         }
         if (this.#objectProcessQueueTimeout) {
             clearTimeout(this.#objectProcessQueueTimeout);
-            this.#controllerActionQueue.clear(false);
+            this.#controllerActionQueue.clear();
         }
         if (this.#objectProcessQueue.length && this.#objectProcessQueue[0].inProgress) {
             const promise = this.#currentObjectProcessPromise;
@@ -1420,18 +1443,22 @@ export class MatterAdapter extends Adapter {
         this.log.debug('Sync done');
     }
 
-    syncControllerNode(nodeId: string, obj: ioBroker.FolderObject, forcedUpdate = false): Promise<void> {
-        return this.#controllerActionQueue.add(async () => {
+    async syncControllerNode(nodeId: string, obj: ioBroker.FolderObject, forcedUpdate = false): Promise<void> {
+        const slot = await this.#controllerActionQueue.obtainSlot();
+        try {
             if (!this.#controller) {
                 return;
             } // not active
             await this.#controller.applyPairedNodeConfiguration(nodeId, obj.native as PairedNodeConfig, forcedUpdate);
-        });
+        } finally {
+            slot.close();
+        }
     }
 
     async applyControllerConfiguration(config: MatterControllerConfig, handleStart = true): Promise<MessageResponse> {
         // Make sure to not overlap controller config updates
-        return this.#controllerActionQueue.add(async () => {
+        const slot = await this.#controllerActionQueue.obtainSlot();
+        try {
             if (config.enabled) {
                 if (this.#controller) {
                     this.#controller.applyConfiguration(config);
@@ -1450,12 +1477,14 @@ export class MatterAdapter extends Adapter {
                 // Controller should be disabled but is not
                 const controller = this.#controller;
                 this.#controller = undefined;
-                this.#controllerActionQueue.clear(false);
+                this.#controllerActionQueue.clear();
                 await controller.stop();
             }
 
             return { result: true };
-        });
+        } finally {
+            slot.close();
+        }
     }
 
     async stopBridgeOrDevice(type: 'bridge' | 'device', id: string): Promise<void> {

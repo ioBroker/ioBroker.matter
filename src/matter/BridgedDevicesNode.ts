@@ -160,7 +160,12 @@ class BridgedDevices extends BaseServerNode {
                 this.#deviceEndpoints.set(deviceOptions.uuid, [composedEndpoint]);
             }
             await mappingDevice.init();
-            mappingDevice.validChanged.on(() => this.updateUiState());
+            mappingDevice.validChanged.on(
+                () =>
+                    void this.updateUiState().catch(error =>
+                        this.adapter.log.info(`Could not update UI state: ${error}`),
+                    ),
+            );
             this.#mappingDevices.set(deviceOptions.uuid, mappingDevice);
 
             const addedEndpoints = this.#deviceEndpoints.get(deviceOptions.uuid) as Endpoint<BridgedNodeEndpoint>[];

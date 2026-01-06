@@ -402,4 +402,4 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 ## License
 Apache-2.0
 
-Copyright (c) 2023-2025 Denis Haev <dogafox@gmail.com>
+Copyright (c) 2023-2026 Denis Haev <dogafox@gmail.com>

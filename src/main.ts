@@ -1513,18 +1513,22 @@ export class MatterAdapter extends Adapter {
         const details: StructuredJsonFormData = {
             panel: {
                 __header__error: 'Error information',
-                __text__info: `${type === 'bridge' ? 'Bridge' : 'Device'} is in error state. Fix the error before enabling it again`,
+                __text__info: this.t(
+                    type === 'bridge'
+                        ? 'Bridge is in error state. Fix the error before enabling it again'
+                        : 'Device is in error state. Fix the error before enabling it again',
+                ),
                 __text__error: error,
                 uuid: uuid,
             },
         };
 
         return {
-            schema: convertDataToJsonConfig(details),
+            schema: convertDataToJsonConfig(details, this),
             options: {
                 maxWidth: 'md',
                 data: {},
-                title: `${type === 'bridge' ? 'Bridge' : 'Device'} Error information`,
+                title: this.getText(type === 'bridge' ? 'Bridge Error information' : 'Device Error information'),
                 buttons: ['close'],
             },
         };

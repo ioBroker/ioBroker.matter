@@ -1,10 +1,19 @@
-import { Diagnostic, NodeId, VendorId, type ServerAddressUdp, Seconds } from '@matter/main';
+import {
+    Diagnostic,
+    NodeId,
+    VendorId,
+    type ServerAddressUdp,
+    Seconds,
+    ObserverGroup,
+    SoftwareUpdateManager,
+} from '@matter/main';
 import { GeneralCommissioning } from '@matter/main/clusters';
 import {
     type CommissionableDevice,
     type ControllerCommissioningFlowOptions,
     type DiscoveryData,
     CommissioningError,
+    DclOtaUpdateService,
 } from '@matter/main/protocol';
 import { ManualPairingCodeCodec, QrPairingCodeCodec, DiscoveryCapabilitiesSchema } from '@matter/main/types';
 import { CommissioningController, type NodeCommissioningOptions } from '@project-chip/matter.js';
@@ -15,9 +24,14 @@ import {
 } from '@project-chip/matter.js/device';
 import type { MatterControllerConfig } from '../../src-admin/src/types';
 import type { MatterAdapter } from '../main';
+import type { MatterAdapterConfig } from '../ioBrokerStorageTypes';
 import { GeneralMatterNode, type PairedNodeConfig } from './GeneralMatterNode';
 import type { GeneralNode, MessageResponse } from './GeneralNode';
 import { inspect } from 'util';
+import { createReadStream } from 'fs';
+import { readdir, stat, mkdir } from 'fs/promises';
+import { Readable } from 'stream';
+import { join } from 'path';
 
 export interface ControllerCreateOptions {
     adapter: MatterAdapter;
@@ -49,6 +63,7 @@ class Controller implements GeneralNode {
     #discovering = false;
     #useBle = false;
     #commissioningStatus = new Map<number, { status: 'finished' | 'error' | 'inprogress'; result?: MessageResponse }>();
+    #observers = new ObserverGroup();
 
     constructor(options: ControllerCreateOptions) {
         const { adapter, controllerOptions, updateCallback, fabricLabel } = options;
@@ -193,6 +208,16 @@ class Controller implements GeneralNode {
                 case 'controllerCompletePaseCommissioning':
                     // Completes a commissioning process that was started by the mobile app in the main controller
                     return await this.completeCommissioningForNode(message.peerNodeId, message.discoveryData);
+                case 'controllerCancelUpdate': {
+                    // Cancel an ongoing software update for a node
+                    const nodeId = message.nodeId as string;
+                    const node = this.#nodes.get(nodeId);
+                    if (!node) {
+                        return { error: `Node ${nodeId} not found` };
+                    }
+                    await node.cancelSoftwareUpdate();
+                    return { result: 'ok' };
+                }
             }
         } catch (error) {
             const errorText = inspect(error, { depth: 10 });
@@ -274,6 +299,7 @@ class Controller implements GeneralNode {
                 id: 'controller',
             },
             adminFabricLabel: this.#fabricLabel,
+            enableOtaProvider: true,
         });
 
         await this.#adapter.extendObjectAsync('controller.info', {
@@ -323,6 +349,41 @@ class Controller implements GeneralNode {
                 this.#adapter.log.info(`Failed to connect to node "${nodeId}": ${error.stack}`);
             }
         }
+
+        this.#observers.on(
+            this.#commissioningController.otaProvider.eventsOf(SoftwareUpdateManager).updateAvailable,
+            (peerAddress, info) => {
+                const nodeIdStr = peerAddress.nodeId.toString();
+                const node = this.#nodes.get(nodeIdStr);
+                if (node === undefined) {
+                    return;
+                }
+                // Use the new method that persists to state
+                node.setSoftwareUpdateAvailable(info);
+                // Refresh UI to show the update available icon
+                this.#adapter.refreshControllerDevices();
+            },
+        );
+        this.#observers.on(
+            this.#commissioningController.otaProvider.eventsOf(SoftwareUpdateManager).updateDone,
+            peerAddress => {
+                const nodeIdStr = peerAddress.nodeId.toString();
+                const node = this.#nodes.get(nodeIdStr);
+                if (node === undefined) {
+                    return;
+                }
+                // Use the new method that clears the persisted state
+                node.clearSoftwareUpdateAvailable().catch(error => {
+                    this.#adapter.log.error(`Error clearing update available state for node ${nodeIdStr}: ${error}`);
+                });
+                // Notify the node that the update is complete (closes progress dialog)
+                node.onSoftwareUpdateComplete(true).catch(error => {
+                    this.#adapter.log.error(`Error handling update complete for node ${nodeIdStr}: ${error}`);
+                });
+                // Refresh UI to remove the update available icon
+                this.#adapter.refreshControllerDevices();
+            },
+        );
     }
 
     async nodeToIoBrokerStructure(
@@ -336,7 +397,7 @@ class Controller implements GeneralNode {
         const oldDevice = this.#nodes.get(nodeIdStr);
         await oldDevice?.destroy();
 
-        const device = new GeneralMatterNode(this.#adapter, node, this.#parameters);
+        const device = new GeneralMatterNode(this.#adapter, node, this.#parameters, this.#commissioningController);
         this.#nodes.set(nodeIdStr, device);
         await device.initialize(nodeDetails);
         device.connect(connectOptions);
@@ -568,6 +629,86 @@ class Controller implements GeneralNode {
         return null;
     }
 
+    /**
+     * Import custom OTA update files from a directory.
+     *
+     * @param customPath Optional custom path. If not provided, uses adapter config or default.
+     * @returns Number of imported files
+     */
+    async importCustomOtaUpdates(customPath?: string): Promise<number> {
+        const adapterConfig = this.#adapter.config as MatterAdapterConfig;
+
+        // Determine the path to scan
+        const path = customPath || adapterConfig.customUpdatesPath || join(this.#adapter.instanceDataDir, 'custom-ota');
+
+        // Check if custom updates are enabled
+        if (!adapterConfig.allowInofficialUpdates) {
+            this.#adapter.log.debug('Custom OTA updates are disabled');
+            return 0;
+        }
+
+        // Ensure directory exists
+        try {
+            await mkdir(path, { recursive: true });
+        } catch {
+            // Directory might already exist
+        }
+
+        // Get the OTA service from the environment
+        const otaService = this.#adapter.matterEnvironment.get(DclOtaUpdateService);
+
+        // Find all .ota files in the directory
+        let files: string[];
+        try {
+            const entries = await readdir(path);
+            files = entries.filter(f => f.toLowerCase().endsWith('.ota'));
+        } catch (error) {
+            this.#adapter.log.warn(`Cannot read custom OTA directory "${path}": ${error}`);
+            return 0;
+        }
+
+        if (files.length === 0) {
+            this.#adapter.log.info(`No OTA files found in "${path}"`);
+            return 0;
+        }
+
+        this.#adapter.log.info(`Found ${files.length} OTA files in "${path}"`);
+        let imported = 0;
+
+        for (const file of files) {
+            const filePath = join(path, file);
+            try {
+                // Check if file exists and is readable
+                const fileStat = await stat(filePath);
+                if (!fileStat.isFile()) {
+                    continue;
+                }
+
+                this.#adapter.log.debug(`Importing OTA file: ${file}`);
+
+                // Create a stream for reading header info
+                const stream1 = Readable.toWeb(createReadStream(filePath)) as ReadableStream<Uint8Array>;
+                const updateInfo = await otaService.updateInfoFromStream(stream1, `file://${filePath}`);
+
+                this.#adapter.log.info(
+                    `OTA file "${file}": vendorId=${updateInfo.vid}, productId=${updateInfo.pid}, version=${updateInfo.softwareVersion}`,
+                );
+
+                // Create another stream for storing
+                const stream2 = Readable.toWeb(createReadStream(filePath)) as ReadableStream<Uint8Array>;
+                await otaService.store(stream2, updateInfo, false);
+
+                imported++;
+                this.#adapter.log.info(`Successfully imported OTA file: ${file}`);
+            } catch (error) {
+                this.#adapter.log.warn(`Failed to import OTA file "${file}": ${error}`);
+            }
+        }
+
+        this.#adapter.log.info(`Imported ${imported} of ${files.length} OTA files`);
+        return imported;
+    }
+
     async stop(): Promise<void> {
         this.#adapter.log.info(`Stopping Controller...`);
         if (this.#discovering) {
@@ -581,6 +722,7 @@ class Controller implements GeneralNode {
         this.#nodes.clear();
 
         if (this.#commissioningController) {
+            this.#observers.close();
             await this.#commissioningController.close();
             this.#commissioningController = undefined;
         }

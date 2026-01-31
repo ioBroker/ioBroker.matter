@@ -5,6 +5,10 @@ export interface MatterAdapterConfig extends ioBroker.AdapterConfig {
     pass: string;
     defaultBridge: string;
     controllerFabricLabel: string;
+    /** Allow unofficial/custom OTA updates */
+    allowInofficialUpdates: boolean;
+    /** Custom path for OTA update files (default: instanceDataDir/custom-ota) */
+    customUpdatesPath: string;
 }
 
 export interface BridgeDeviceDescription {

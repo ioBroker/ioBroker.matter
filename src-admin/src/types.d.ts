@@ -8,6 +8,10 @@ export interface MatterAdapterConfig extends ioBroker.AdapterConfig {
     /** UUID of the default (alexa-compatible - port 5540)bridge */
     defaultBridge: string;
     controllerFabricLabel: string;
+    /** Allow unofficial/custom OTA updates */
+    allowInofficialUpdates: boolean;
+    /** Custom path for OTA update files (default: instanceDataDir/custom-ota) */
+    customUpdatesPath: string;
 }
 
 export interface BridgeDeviceDescription {
@@ -163,7 +167,8 @@ export interface GUIMessage {
         | 'progress'
         | 'processing'
         | 'identifyPopup'
-        | 'updateController';
+        | 'updateController'
+        | 'updateSuccess';
     states?: { [uuid: string]: NodeStateResponse };
     device?: CommissionableDevice;
     processing?: { id: string; inProgress: boolean }[] | null;
@@ -177,10 +182,28 @@ export interface GUIMessage {
         close?: boolean;
         title?: string;
         text?: string;
+        /** Secondary text shown below progress (e.g., patience notice) */
+        subText?: string;
         indeterminate?: boolean;
         value?: number;
+        /** Whether the progress dialog can be cancelled */
+        cancelable?: boolean;
+        /** Node ID for cancel action (for OTA updates) */
+        cancelNodeId?: string;
     };
 }
+
+/** OTA Update states from Matter specification */
+export type OtaUpdateState =
+    | 'Unknown'
+    | 'Idle'
+    | 'Querying'
+    | 'DelayedOnQuery'
+    | 'Downloading'
+    | 'Applying'
+    | 'DelayedOnApply'
+    | 'RollingBack'
+    | 'DelayedOnUserConsent';
 
 export interface CommissioningInfo {
     bridges: Record<string, boolean>;

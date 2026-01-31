@@ -97,6 +97,10 @@ export class MatterAdapter extends Adapter {
     readonly #deviceManagement: MatterAdapterDeviceManagement;
     #nextPortNumber: number = 5541;
     #instanceDataDir?: string;
+    /** Get the instance data directory path */
+    get instanceDataDir(): string {
+        return this.#instanceDataDir ?? '';
+    }
     t: (word: string, ...args: (string | number | boolean | null)[]) => string;
     getText: (word: string, ...args: (string | number | boolean | null)[]) => ioBroker.Translated;
     #closing = false;
@@ -109,7 +113,7 @@ export class MatterAdapter extends Adapter {
     }>();
     #objectProcessQueueTimeout?: NodeJS.Timeout;
     #currentObjectProcessPromise?: Promise<void>;
-    #controllerActionQueue = new Semaphore();
+    #controllerActionQueue = new Semaphore('controller-action');
     #blockGuiUpdates = false;
 
     public constructor(options: Partial<AdapterOptions> = {}) {
@@ -358,6 +362,32 @@ export class MatterAdapter extends Adapter {
                     await this.extendObjectAsync(`${this.namespace}.controller`, { native: newControllerConfig });
                 }
                 this.sendTo(obj.from, obj.command, result, obj.callback);
+                break;
+            }
+            case 'getDefaultCustomOtaPath': {
+                const path = `${this.instanceDataDir}/custom-ota`;
+                if (obj.callback) {
+                    this.sendTo(obj.from, obj.command, { path }, obj.callback);
+                }
+                break;
+            }
+            case 'importCustomOtaUpdates': {
+                if (!this.#controller) {
+                    if (obj.callback) {
+                        this.sendTo(obj.from, obj.command, { error: 'Controller is not active' }, obj.callback);
+                    }
+                    break;
+                }
+                try {
+                    const imported = await this.#controller.importCustomOtaUpdates();
+                    if (obj.callback) {
+                        this.sendTo(obj.from, obj.command, { imported }, obj.callback);
+                    }
+                } catch (error) {
+                    if (obj.callback) {
+                        this.sendTo(obj.from, obj.command, { error: `${error}` }, obj.callback);
+                    }
+                }
                 break;
             }
             default:
@@ -1472,6 +1502,12 @@ export class MatterAdapter extends Adapter {
 
                 if (handleStart) {
                     await this.#controller.start();
+                    // Import custom OTA updates after controller is started
+                    if ((this.config as MatterAdapterConfig).allowInofficialUpdates) {
+                        this.#controller.importCustomOtaUpdates().catch(error => {
+                            this.log.warn(`Failed to import custom OTA updates: ${error}`);
+                        });
+                    }
                 }
             } else if (this.#controller) {
                 // Controller should be disabled but is not

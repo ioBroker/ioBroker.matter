@@ -21,6 +21,7 @@ import { inspect } from 'util';
 import { convertDataToJsonConfig } from './JsonConfigUtils';
 import { logControllerEndpoint } from '../matter/ControllerEndpointStructureInspector';
 import { SpecificationVersion } from '@matter/main/types';
+import { isObject } from '@matter/main';
 
 function strToBool(str: string): boolean | null {
     if (str === 'true') {
@@ -131,11 +132,23 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const id = ioNode.nodeId;
         const details = ioNode.details;
 
+        let updateAvailableMessage: string | undefined = undefined;
+        if (ioNode.softwareUpdateAvailable !== undefined) {
+            const info = ioNode.softwareUpdateAvailable;
+            updateAvailableMessage = '';
+            if (ioNode.node.basicInformation) {
+                updateAvailableMessage = `${ioNode.node.basicInformation.softwareVersionString} (${ioNode.node.basicInformation.softwareVersion})`;
+            }
+            updateAvailableMessage += ` → ${info.softwareVersionString} (${info.softwareVersion})`;
+            updateAvailableMessage = updateAvailableMessage.trim();
+        }
+
         let actions: (DeviceAction<'adapter'> | null)[] = [
             {
                 // This is a special action when the user clicks on the status icon
                 id: ACTIONS.STATUS,
                 handler: (_id, context) => this.#handleOnStatusNode(ioNode, context),
+                timeout: 20_000,
             },
             {
                 // This is a special action when the user clicks on the enabled icon
@@ -147,6 +160,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 icon: 'delete',
                 description: this.#adapter.getText('Unpair this node'),
                 handler: (_id, context) => this.#handleDeleteNode(ioNode, context),
+                timeout: 30_000,
             },
             {
                 id: 'renameNode',
@@ -161,6 +175,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                       icon: 'qrcode',
                       description: this.#adapter.getText('Generate new pairing code'),
                       handler: (_id, context) => this.#handlePairingCode(ioNode, context),
+                      timeout: 20_000,
                   }
                 : null,
             isConnected
@@ -177,6 +192,15 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 description: this.#adapter.getText('Output Debug details this node'),
                 handler: (_id, context) => this.#handleLogDebugNode(ioNode, context),
             },
+            // Show software update action if an update is available
+            updateAvailableMessage
+                ? {
+                      id: 'softwareUpdate',
+                      icon: 'update',
+                      description: updateAvailableMessage,
+                      handler: (_id, context) => this.#handleSoftwareUpdateNode(ioNode, context),
+                  }
+                : null,
         ];
 
         // remove null actions
@@ -278,6 +302,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 icon: 'identify',
                 description: this.#adapter.getText('Identify this device'),
                 handler: (id, context) => this.#handleIdentifyDevice(device, context),
+                timeout: 10_000,
             });
         }
 
@@ -501,6 +526,119 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 ],
             },
         );
+
+        return { refresh: false };
+    }
+
+    async #handleSoftwareUpdateNode(
+        node: GeneralMatterNode,
+        context: ActionContext,
+    ): Promise<{ refresh: DeviceRefresh }> {
+        const info = node.softwareUpdateAvailable;
+        if (!info || !node.node.basicInformation) {
+            await context.showMessage(this.#adapter.t('No software update information available'));
+            return { refresh: false };
+        }
+
+        const currentVersion = node.node.basicInformation.softwareVersionString;
+        const currentVersionNum = node.node.basicInformation.softwareVersion;
+
+        const items: Record<string, ConfigItemAny> = {
+            _header: {
+                type: 'staticText',
+                text: this.#adapter.getText('A software update is available for this device.'),
+                style: { marginBottom: 16 },
+            },
+            _divider1: {
+                type: 'divider',
+            },
+            _currentVersionHeader: {
+                type: 'header',
+                text: this.#adapter.getText('Current Version'),
+                size: 5,
+            },
+            currentVersion: {
+                type: 'staticInfo',
+                label: this.#adapter.getText('Version'),
+                data: `${currentVersion} (${currentVersionNum})`,
+            },
+            _newVersionHeader: {
+                type: 'header',
+                text: this.#adapter.getText('New Version'),
+                size: 5,
+                newLine: true,
+            },
+            newVersion: {
+                type: 'staticInfo',
+                label: this.#adapter.getText('New Version'),
+                data: `${info.softwareVersionString} (${info.softwareVersion})`,
+            },
+            ...(info.releaseNotesUrl
+                ? {
+                      releaseNotes: {
+                          type: 'staticText',
+                          label: this.#adapter.getText('Release Notes'),
+                          text: this.#adapter.getText('Release Notes'),
+                          href: info.releaseNotesUrl,
+                          target: '_blank',
+                          button: true,
+                          variant: 'outlined',
+                          newLine: true,
+                          style: { marginTop: 16 },
+                      },
+                  }
+                : {}),
+            _divider2: {
+                type: 'divider',
+                style: { marginTop: 16 },
+            },
+            _patienceNotice: {
+                type: 'staticText',
+                text: this.#adapter.getText(
+                    'Software updates can take several minutes depending on the device and connection type (Thread, WiFi). The update may appear stuck at times - please be patient and do not interrupt the process.',
+                ),
+                style: { marginTop: 8, fontStyle: 'italic', fontSize: '0.9em' },
+            },
+        };
+
+        const result = await context.showForm(
+            {
+                type: 'panel',
+                items,
+                style: {
+                    minWidth: 350,
+                },
+            },
+            {
+                data: { confirmUpdate: true },
+                title: this.#adapter.getText('Software Update Available'),
+                buttons: [
+                    {
+                        type: 'cancel',
+                        label: this.#adapter.getText('Close'),
+                    },
+                    {
+                        type: 'apply',
+                        label: this.#adapter.getText('Update now'),
+                        color: 'primary',
+                    },
+                ],
+                ignoreApplyDisabled: true,
+            },
+        );
+
+        if (isObject(result)) {
+            // User clicked "Update now" - start the update process
+            this.adapter.log.info(`User requested software update for node ${node.nodeId}`);
+
+            // Start the update process directly on the node
+            // Progress will be shown via sendToGui with cancel support
+            try {
+                await node.startSoftwareUpdate();
+            } catch (error) {
+                await context.showMessage(`${this.#adapter.t('Failed to start software update')}: ${error}`);
+            }
+        }
 
         return { refresh: false };
     }

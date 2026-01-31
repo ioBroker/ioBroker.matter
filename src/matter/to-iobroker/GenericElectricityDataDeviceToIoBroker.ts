@@ -3,8 +3,14 @@ import { ElectricalEnergyMeasurement, ElectricalPowerMeasurement } from '@matter
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
+import type { CustomStatesRecord, EmptyCustomStates } from './custom-states';
 
-export abstract class GenericElectricityDataDeviceToIoBroker extends GenericDeviceToIoBroker {
+/**
+ * Abstract class for devices that may have electrical measurement data.
+ */
+export abstract class GenericElectricityDataDeviceToIoBroker<
+    C extends CustomStatesRecord = EmptyCustomStates,
+> extends GenericDeviceToIoBroker<C> {
     protected enableDeviceTypeStates(): DeviceOptions {
         // Check for Energy or Power measurement clusters
         let found = this.#enableMatterElectricalMeasurementStates();

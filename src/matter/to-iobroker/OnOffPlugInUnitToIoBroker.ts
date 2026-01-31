@@ -6,8 +6,9 @@ import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDev
 import { Socket } from '../../lib/devices/Socket';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 import type { MatterAdapter } from '../../main';
+import { OnOffCustomStates, type OnOffCustomStatesType } from './custom-states';
 
-export class OnOffPlugInUnitToIoBroker extends GenericElectricityDataDeviceToIoBroker {
+export class OnOffPlugInUnitToIoBroker extends GenericElectricityDataDeviceToIoBroker<OnOffCustomStatesType> {
     readonly #ioBrokerDevice: Socket;
 
     constructor(
@@ -29,16 +30,20 @@ export class OnOffPlugInUnitToIoBroker extends GenericElectricityDataDeviceToIoB
             deviceTypeName,
             defaultConnectionStateId,
             defaultName,
+            OnOffCustomStates,
         );
 
         this.#ioBrokerDevice = new Socket(
             { ...ChannelDetector.getPatterns().socket, isIoBrokerDevice: false } as DetectedDevice,
             adapter,
             this.enableDeviceTypeStates(),
+            OnOffCustomStates,
         );
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
+        this.#enableCustomStates();
+
         this.enableDeviceTypeStateForAttribute(PropertyType.Power, {
             endpointId: this.appEndpoint.getNumber(),
             clusterId: OnOff.Cluster.id,
@@ -61,6 +66,28 @@ export class OnOffPlugInUnitToIoBroker extends GenericElectricityDataDeviceToIoB
             },
         });
         return super.enableDeviceTypeStates();
+    }
+
+    #enableCustomStates(): void {
+        const endpointId = this.appEndpoint.getNumber();
+
+        // StartUp On/Off - defines device behavior on power-up
+        this.enableCustomStateForAttribute('startUpOnOff', {
+            endpointId,
+            clusterId: OnOff.Cluster.id,
+            attributeName: 'startUpOnOff',
+            changeHandler: async (value: number | null) => {
+                const client = await this.node.getInteractionClient();
+                await client.setAttribute({
+                    attributeData: {
+                        endpointId,
+                        clusterId: OnOff.Complete.id,
+                        attribute: OnOff.Complete.attributes.startUpOnOff,
+                        value,
+                    },
+                });
+            },
+        });
     }
 
     get ioBrokerDevice(): Socket {

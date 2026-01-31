@@ -1,5 +1,6 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import type { CustomStatesRecord } from '../../matter/to-iobroker/custom-states';
 
 const milliConversion = (value: number, toDefaultUnit: boolean): number =>
     toDefaultUnit ? value * 0.001 : value * 1000;
@@ -15,8 +16,13 @@ export class ElectricityDataDevice extends GenericDevice {
     #getConsumptionState?: DeviceStateObject<number>;
     #getFrequencyState?: DeviceStateObject<number>;
 
-    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
-        super(detectedDevice, adapter, options);
+    constructor(
+        detectedDevice: DetectedDevice,
+        adapter: ioBroker.Adapter,
+        options?: DeviceOptions,
+        customStateDefinitions?: CustomStatesRecord,
+    ) {
+        super(detectedDevice, adapter, options, customStateDefinitions);
 
         this._construction.push(
             this.addDeviceStates([

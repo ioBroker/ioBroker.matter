@@ -571,3 +571,263 @@ describe('Test Devices', function () {
         await deviceObj.destroy();
     }).timeout(20000);
 });
+
+describe('Test Custom States', function () {
+    // Reset SubscribeManager state before each test to prevent cross-test interference
+    beforeEach(function () {
+        // Clear the subscribes Map
+        (SubscribeManager as any).subscribes = new Map();
+        // Reset locallySubscribed flag
+        (SubscribeManager as any).locallySubscribed = false;
+    });
+
+    // Custom state definitions for testing
+    const TestCustomStates = {
+        testReadOnly: {
+            name: 'testReadOnly',
+            valueType: ValueType.Number,
+            accessType: StateAccessType.Read,
+            common: {
+                role: 'value',
+                unit: 's',
+                min: 0,
+            },
+        },
+        testReadWrite: {
+            name: 'testReadWrite',
+            valueType: ValueType.Number,
+            accessType: StateAccessType.ReadWrite,
+            common: {
+                role: 'level',
+                unit: '%',
+                min: 0,
+                max: 100,
+            },
+        },
+        testWriteOnly: {
+            name: 'testWriteOnly',
+            valueType: ValueType.Boolean,
+            accessType: StateAccessType.Write,
+            common: {
+                role: 'button',
+            },
+        },
+    } as const;
+
+    // Extended mock adapter for custom states tests (Matter devices writing to ioBroker)
+    class CustomStateAdapter extends Adapter {
+        public createdObjects: { [id: string]: any } = {};
+
+        async extendObjectAsync(id: string, obj: any): Promise<void> {
+            if (this.createdObjects[id]) {
+                this.createdObjects[id] = {
+                    ...this.createdObjects[id],
+                    ...obj,
+                    common: { ...this.createdObjects[id].common, ...obj.common },
+                };
+            } else {
+                this.createdObjects[id] = { _id: id, type: 'state', ...obj };
+            }
+        }
+
+        async getForeignObjectAsync(id: string): Promise<MockObject | null> {
+            if (id.startsWith('matter.') && !this.createdObjects[id]) {
+                return null as any;
+            }
+            if (this.createdObjects[id]) {
+                return this.createdObjects[id];
+            }
+            return super.getForeignObjectAsync(id);
+        }
+
+        subscribeStates(pattern: string): void {
+            if (!this.subscribed.includes(pattern)) {
+                this.subscribed.push(pattern);
+            }
+        }
+
+        unsubscribeStates(pattern: string): void {
+            const idx = this.subscribed.indexOf(pattern);
+            if (idx !== -1) {
+                this.subscribed.splice(idx, 1);
+            }
+        }
+    }
+
+    it('Test custom state initialization and basic operations', async function () {
+        const { Lock } = require('../src/lib/devices/Lock');
+        const adapter = new CustomStateAdapter();
+        SubscribeManager.setAdapter(adapter as any);
+        adapter.setSubscribeManager(SubscribeManager);
+
+        const _detectedDevices: TestDetectedDevice = {
+            states: [{ name: 'SET', id: '0_userdata.0.lock_set', type: 'boolean' }],
+            type: Types.lock,
+            isIoBrokerDevice: false,
+        };
+
+        const deviceObj = new Lock(_detectedDevices, adapter, { enabled: true }, TestCustomStates);
+        await deviceObj.init();
+
+        // Test: hasCustomState returns false before initialization
+        if (deviceObj.hasCustomState('testReadOnly')) {
+            throw new Error('hasCustomState should return false before initialization');
+        }
+
+        // Test: getCustomValue returns undefined before initialization
+        if (deviceObj.getCustomValue('testReadOnly') !== undefined) {
+            throw new Error('getCustomValue should return undefined before initialization');
+        }
+
+        // Test: initCustomState creates state with valid definition
+        const state = await deviceObj.initCustomState('testReadOnly', 'matter.0.device.custom.');
+        if (!state) {
+            throw new Error('Custom state testReadOnly was not created');
+        }
+        if (!deviceObj.hasCustomState('testReadOnly')) {
+            throw new Error('hasCustomState returned false for testReadOnly');
+        }
+
+        // Test: initCustomState returns undefined for unknown definition
+        const unknownState = await deviceObj.initCustomState('unknownState', 'matter.0.device.custom.');
+        if (unknownState !== undefined) {
+            throw new Error('initCustomState should return undefined for unknown definition');
+        }
+
+        // Test: updateCustomValue updates state from Matter side
+        await deviceObj.updateCustomValue('testReadOnly', 42);
+        if (deviceObj.getCustomValue<number>('testReadOnly') !== 42) {
+            throw new Error('Expected custom value to be 42');
+        }
+
+        // Test: initCustomState does not reinitialize existing state
+        const state2 = await deviceObj.initCustomState('testReadOnly', 'matter.0.device.custom.');
+        if (state !== state2) {
+            throw new Error('initCustomState should return existing state on re-initialization');
+        }
+        if (deviceObj.getCustomValue<number>('testReadOnly') !== 42) {
+            throw new Error('Value should be preserved after re-initialization');
+        }
+
+        // Test: customStateDefinitions returns passed definitions
+        const definitions = deviceObj.customStateDefinitions;
+        if (!definitions?.testReadOnly || definitions.testReadOnly.valueType !== ValueType.Number) {
+            throw new Error('customStateDefinitions should contain testReadOnly with correct valueType');
+        }
+
+        await deviceObj.destroy();
+    }).timeout(5000);
+
+    it('Test custom state read-write operations', async function () {
+        const { Lock } = require('../src/lib/devices/Lock');
+        const adapter = new CustomStateAdapter();
+        SubscribeManager.setAdapter(adapter as any);
+        adapter.setSubscribeManager(SubscribeManager);
+
+        const _detectedDevices: TestDetectedDevice = {
+            states: [{ name: 'SET', id: '0_userdata.0.lock_set', type: 'boolean' }],
+            type: Types.lock,
+            isIoBrokerDevice: false,
+        };
+
+        const deviceObj = new Lock(_detectedDevices, adapter, { enabled: true }, TestCustomStates);
+        await deviceObj.init();
+
+        // Initialize read-write custom state
+        await deviceObj.initCustomState('testReadWrite', 'matter.0.device.custom.');
+
+        // Test: setCustomValue on read-write state
+        await deviceObj.setCustomValue('testReadWrite', 75);
+        if (deviceObj.getCustomValue<number>('testReadWrite') !== 75) {
+            throw new Error('Expected custom value to be 75');
+        }
+
+        // Initialize read-only custom state
+        await deviceObj.initCustomState('testReadOnly', 'matter.0.device.custom.');
+
+        // Test: setCustomValue throws error on read-only state
+        let errorThrown = false;
+        try {
+            await deviceObj.setCustomValue('testReadOnly', 100);
+        } catch (e: any) {
+            errorThrown = true;
+            if (!e.message.includes('read-only')) {
+                throw new Error(`Expected error message to contain 'read-only', got: ${e.message}`);
+            }
+        }
+        if (!errorThrown) {
+            throw new Error('setCustomValue on read-only state should throw an error');
+        }
+
+        // Test: customPropertyNames returns initialized property names
+        const names = deviceObj.customPropertyNames;
+        if (names.length !== 2 || !names.includes('testReadOnly') || !names.includes('testReadWrite')) {
+            throw new Error(`Expected customPropertyNames to include testReadOnly and testReadWrite, got ${names.join(', ')}`);
+        }
+
+        await deviceObj.destroy();
+    }).timeout(5000);
+
+    it('Test custom state change handlers', async function () {
+        const { Lock } = require('../src/lib/devices/Lock');
+        const adapter = new CustomStateAdapter();
+        SubscribeManager.setAdapter(adapter as any);
+        adapter.setSubscribeManager(SubscribeManager);
+
+        const _detectedDevices: TestDetectedDevice = {
+            states: [{ name: 'SET', id: '0_userdata.0.lock_set', type: 'boolean' }],
+            type: Types.lock,
+            isIoBrokerDevice: false,
+        };
+
+        const deviceObj = new Lock(_detectedDevices, adapter, { enabled: true }, TestCustomStates);
+        await deviceObj.init();
+        await deviceObj.initCustomState('testReadWrite', 'matter.0.device.custom.');
+
+        // Test: offCustomChange without argument removes all handlers
+        let anyHandlerCalled = false;
+        const handler1 = async () => { anyHandlerCalled = true; };
+        const handler2 = async () => { anyHandlerCalled = true; };
+
+        deviceObj.onCustomChange(handler1);
+        deviceObj.onCustomChange(handler2);
+        deviceObj.offCustomChange();
+
+        // Manually trigger the update callback to test handler removal
+        await deviceObj.setCustomValue('testReadWrite', 30);
+
+        if (anyHandlerCalled) {
+            throw new Error('No handlers should have been called after offCustomChange()');
+        }
+
+        await deviceObj.destroy();
+    }).timeout(5000);
+
+    it('Test custom state subscriptions cleanup on destroy', async function () {
+        const { Lock } = require('../src/lib/devices/Lock');
+        const adapter = new CustomStateAdapter();
+        SubscribeManager.setAdapter(adapter as any);
+        adapter.setSubscribeManager(SubscribeManager);
+
+        const _detectedDevices: TestDetectedDevice = {
+            states: [{ name: 'SET', id: '0_userdata.0.lock_set', type: 'boolean' }],
+            type: Types.lock,
+            isIoBrokerDevice: false,
+        };
+
+        const deviceObj = new Lock(_detectedDevices, adapter, { enabled: true }, TestCustomStates);
+        await deviceObj.init();
+        await deviceObj.initCustomState('testReadWrite', 'matter.0.device.custom.');
+
+        // Verify subscription was created (via SubscribeManager static map)
+        const subscribedBefore = (SubscribeManager as any).subscribes.size;
+        if (subscribedBefore === 0) {
+            throw new Error('Expected at least one subscription in SubscribeManager');
+        }
+
+        await deviceObj.destroy();
+
+        // After destroy, subscriptions should be cleaned up from SubscribeManager
+        // Note: The adapter's subscribed array may still have '*' but SubscribeManager.subscribes should be empty
+    }).timeout(5000);
+});

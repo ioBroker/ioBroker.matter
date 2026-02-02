@@ -20,6 +20,7 @@ import { BlindsToMatter } from './BlindsToMatter';
 import { ThermostatToMatter } from './ThermostatToMatter';
 import { HueAndRgbToMatter } from './HueAndRgbToMatter';
 import { CieToMatter } from './CieToMatter';
+import { VolumeToMatter } from './VolumeToMatter';
 
 /**
  * Factory function to create a Matter device from an ioBroker device.
@@ -90,6 +91,10 @@ async function matterDeviceFabric(
             break;
         case Types.thermostat:
             ToMatter = ThermostatToMatter;
+            break;
+        case Types.volume:
+        case Types.volumeGroup:
+            ToMatter = VolumeToMatter;
             break;
         case Types.window:
             ToMatter = WindowToMatter;

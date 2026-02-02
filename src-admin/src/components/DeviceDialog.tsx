@@ -56,6 +56,8 @@ export const SUPPORTED_DEVICES: Types[] = [
     Types.socket,
     Types.temperature,
     Types.thermostat,
+    Types.volume,
+    Types.volumeGroup,
     Types.window,
 ];
 

@@ -750,7 +750,9 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                                 <FitScreenIcon />
                             </IconButton>
                         </Tooltip>
-                        <Tooltip title={this.state.physicsEnabled ? I18n.t('Freeze layout') : I18n.t('Unfreeze layout')}>
+                        <Tooltip
+                            title={this.state.physicsEnabled ? I18n.t('Freeze layout') : I18n.t('Unfreeze layout')}
+                        >
                             <IconButton
                                 onClick={this.handleTogglePhysics}
                                 size="small"

@@ -398,10 +398,10 @@ abstract class BaseNetworkGraph<
     /**
      * Enables or disables physics simulation (node movement/settling).
      * When disabled, nodes freeze in place; when enabled, they resume settling.
+     *
      * @param enabled Whether to enable physics
      * @param isManual If true, cancels any pending auto-freeze (user manually toggled)
      */
-    // eslint-disable-next-line react/no-unused-class-component-methods
     public setPhysicsEnabled(enabled: boolean, isManual = true): void {
         // If user manually toggles, cancel auto-freeze to respect their choice
         if (isManual) {

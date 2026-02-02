@@ -261,6 +261,23 @@ Cross-project imports will:
 
 ## Development Tips
 
+### Required Checks Before Committing
+
+**IMPORTANT: Always run these checks after making changes:**
+
+```bash
+# After backend changes
+npm run lint
+
+# After frontend changes (src-admin/)
+npm run lint-frontend
+
+# Build to verify compilation
+npm run build
+```
+
+The frontend linter (`npm run lint-frontend`) uses ESLint with Prettier and must pass before committing any frontend code changes.
+
 ### Adding New Device Type
 
 1. Create ioBroker device class in `src/lib/devices/NewDevice.ts`

@@ -73,7 +73,6 @@ For testing pre-release or community firmware:
 * Cleanup objects when devices/states are removed
 * ioBroker device types
   * (6) vacuumCleaner
-  * (5+) volume, volumeGroup
   * (5+/8) airCondition
   * (7) fireAlarm
   * (5) mediaPlayer
@@ -144,6 +143,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) Increases default color temperature range to 1.000 to 20.000 K
 * (@GermanBluefox) Highlight the devices in GUI when hovering over the device in the device list
 * (@GermanBluefox) Replaced I18n package
+* (@tarikweiss) Added support for volume, volumeGroup ioBroker devices to matter
 
 ### 0.5.6 (2025-10-21)
 * (@Apollon77) Type detector update, should detect single states in non-device structures better

@@ -50,7 +50,7 @@ jobs:
 
             ## add caching for the build step including /admin and /build to reuse in later steps
             - name: Cache build output
-              uses: actions/cache/save@v4
+              uses: actions/cache/save@v5
               with:
                 path: |
                   admin
@@ -76,7 +76,7 @@ jobs:
             - uses: actions/checkout@v6
 
             - name: Restore build output cache
-              uses: actions/cache/restore@v4
+              uses: actions/cache/restore@v5
               with:
                 path: |
                   admin

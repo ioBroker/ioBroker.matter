@@ -23,6 +23,10 @@ import {
     Refresh as RefreshIcon,
     FitScreen as FitScreenIcon,
     Sync as SyncIcon,
+    ZoomIn as ZoomInIcon,
+    ZoomOut as ZoomOutIcon,
+    Pause as PauseIcon,
+    PlayArrow as PlayArrowIcon,
 } from '@mui/icons-material';
 
 import type { NetworkGraphData, NetworkNodeData } from './NetworkTypes';
@@ -61,6 +65,7 @@ interface NetworkGraphDialogState {
     loading: boolean;
     selectedNodeId: string | null;
     updateDialogOpen: boolean;
+    physicsEnabled: boolean;
 }
 
 class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, NetworkGraphDialogState> {
@@ -72,6 +77,7 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
             loading: false,
             selectedNodeId: null,
             updateDialogOpen: false,
+            physicsEnabled: true,
         };
     }
 
@@ -108,6 +114,25 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
 
     handleFitScreen = (): void => {
         this.graphRef.current?.fit();
+    };
+
+    handleZoomIn = (): void => {
+        this.graphRef.current?.zoomIn();
+    };
+
+    handleZoomOut = (): void => {
+        this.graphRef.current?.zoomOut();
+    };
+
+    handleTogglePhysics = (): void => {
+        const newState = !this.state.physicsEnabled;
+        this.setState({ physicsEnabled: newState });
+        this.graphRef.current?.setPhysicsEnabled(newState);
+    };
+
+    handlePhysicsChange = (enabled: boolean): void => {
+        // Update UI state when graph auto-freezes
+        this.setState({ physicsEnabled: enabled });
     };
 
     handleOpenUpdateDialog = (): void => {
@@ -658,6 +683,7 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                             darkMode={darkMode}
                             onNodeSelect={this.handleNodeSelect}
                             selectedNodeId={selectedNodeId}
+                            onPhysicsChange={this.handlePhysicsChange}
                         />
                     ) : (
                         <WiFiGraph
@@ -666,6 +692,7 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                             darkMode={darkMode}
                             onNodeSelect={this.handleNodeSelect}
                             selectedNodeId={selectedNodeId}
+                            onPhysicsChange={this.handlePhysicsChange}
                         />
                     )}
                 </Box>
@@ -698,14 +725,46 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                     >
                         {title}
                     </Typography>
-                    <Tooltip title={I18n.t('Fit to screen')}>
-                        <IconButton
-                            onClick={this.handleFitScreen}
-                            size="small"
-                        >
-                            <FitScreenIcon />
-                        </IconButton>
-                    </Tooltip>
+                    <Box sx={{ display: 'flex', gap: 0.5, mr: 1 }}>
+                        <Tooltip title={I18n.t('Zoom in')}>
+                            <IconButton
+                                onClick={this.handleZoomIn}
+                                size="small"
+                            >
+                                <ZoomInIcon />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title={I18n.t('Zoom out')}>
+                            <IconButton
+                                onClick={this.handleZoomOut}
+                                size="small"
+                            >
+                                <ZoomOutIcon />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title={I18n.t('Fit to screen')}>
+                            <IconButton
+                                onClick={this.handleFitScreen}
+                                size="small"
+                            >
+                                <FitScreenIcon />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title={this.state.physicsEnabled ? I18n.t('Freeze layout') : I18n.t('Unfreeze layout')}>
+                            <IconButton
+                                onClick={this.handleTogglePhysics}
+                                size="small"
+                                sx={{
+                                    backgroundColor: this.state.physicsEnabled ? 'transparent' : 'action.selected',
+                                    '&:hover': {
+                                        backgroundColor: this.state.physicsEnabled ? 'action.hover' : 'action.focus',
+                                    },
+                                }}
+                            >
+                                {this.state.physicsEnabled ? <PauseIcon /> : <PlayArrowIcon />}
+                            </IconButton>
+                        </Tooltip>
+                    </Box>
                     <Tooltip title={I18n.t('Refresh')}>
                         <IconButton
                             onClick={this.handleRefresh}

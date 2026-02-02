@@ -13,10 +13,13 @@ export interface BaseNetworkGraphProps {
     darkMode: boolean;
     onNodeSelect?: (nodeId: string | null) => void;
     selectedNodeId?: string | null;
+    /** Callback when physics state changes (e.g., auto-freeze) */
+    onPhysicsChange?: (enabled: boolean) => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface BaseNetworkGraphState {}
+export interface BaseNetworkGraphState {
+    physicsEnabled: boolean;
+}
 
 abstract class BaseNetworkGraph<
     P extends BaseNetworkGraphProps = BaseNetworkGraphProps,
@@ -31,10 +34,18 @@ abstract class BaseNetworkGraph<
     private originalEdgeColors: Map<string, { color: string; highlight: string }> = new Map();
     /** Store original node sizes for restoration after highlighting */
     private originalNodeSizes: Map<string, number> = new Map();
+    /** Timer for auto-freeze feature */
+    private autoFreezeTimer?: ReturnType<typeof setTimeout>;
+    /** Whether auto-freeze has already been applied (to avoid re-freezing after user unfreezes) */
+    private autoFreezeApplied = false;
+    /** Whether initial fit has been done (to preserve user's zoom/pan after first load) */
+    private initialFitDone = false;
 
     constructor(props: P) {
         super(props);
-        this.state = {} as S;
+        this.state = {
+            physicsEnabled: true,
+        } as S;
     }
 
     componentDidMount(): void {
@@ -56,6 +67,7 @@ abstract class BaseNetworkGraph<
 
     componentWillUnmount(): void {
         this.resizeObserver?.disconnect();
+        this.cancelAutoFreezeTimer();
         // Explicitly remove event listeners before destroying (destroy() also does this, but being explicit)
         if (this.network) {
             this.network.off('click');
@@ -103,16 +115,23 @@ abstract class BaseNetworkGraph<
             this.handleNodeSelected(nodeId ?? null);
         });
 
+        // Auto-fit after initial stabilization completes (only once)
         this.network.on('stabilizationIterationsDone', () => {
-            this.network?.fit({
-                animation: {
-                    duration: 500,
-                    easingFunction: 'easeInOutQuad',
-                },
-            });
+            if (!this.initialFitDone) {
+                // Fit with padding to keep nodes away from edges
+                this.network?.fit({
+                    animation: {
+                        duration: 500,
+                        easingFunction: 'easeInOutQuad',
+                    },
+                });
+                this.initialFitDone = true;
+
+                // Start auto-freeze timer (5 seconds after initial stabilization)
+                this.startAutoFreezeTimer();
+            }
         });
 
-        this.setState({ initialized: true } as S);
         this.updateGraph();
     }
 
@@ -330,6 +349,101 @@ abstract class BaseNetworkGraph<
                 easingFunction: 'easeInOutQuad',
             },
         });
+    }
+
+    /**
+     * Zooms in by 20%.
+     */
+    // eslint-disable-next-line react/no-unused-class-component-methods
+    public zoomIn(): void {
+        if (!this.network) {
+            return;
+        }
+        const scale = this.network.getScale();
+        this.network.moveTo({
+            scale: scale * 1.2,
+            animation: {
+                duration: 200,
+                easingFunction: 'easeInOutQuad',
+            },
+        });
+    }
+
+    /**
+     * Zooms out by 20%.
+     */
+    // eslint-disable-next-line react/no-unused-class-component-methods
+    public zoomOut(): void {
+        if (!this.network) {
+            return;
+        }
+        const scale = this.network.getScale();
+        this.network.moveTo({
+            scale: scale / 1.2,
+            animation: {
+                duration: 200,
+                easingFunction: 'easeInOutQuad',
+            },
+        });
+    }
+
+    /**
+     * Returns whether physics simulation is currently enabled.
+     */
+    // eslint-disable-next-line react/no-unused-class-component-methods
+    public get physicsEnabled(): boolean {
+        return this.state.physicsEnabled;
+    }
+
+    /**
+     * Enables or disables physics simulation (node movement/settling).
+     * When disabled, nodes freeze in place; when enabled, they resume settling.
+     * @param enabled Whether to enable physics
+     * @param isManual If true, cancels any pending auto-freeze (user manually toggled)
+     */
+    // eslint-disable-next-line react/no-unused-class-component-methods
+    public setPhysicsEnabled(enabled: boolean, isManual = true): void {
+        // If user manually toggles, cancel auto-freeze to respect their choice
+        if (isManual) {
+            this.cancelAutoFreezeTimer();
+            this.autoFreezeApplied = true; // Prevent future auto-freeze
+        }
+
+        this.setState({ physicsEnabled: enabled } as S);
+        this.network?.setOptions({
+            physics: { enabled },
+        });
+    }
+
+    /**
+     * Starts the auto-freeze timer. Physics will be disabled after 5 seconds
+     * unless the user manually toggles physics or the timer is cancelled.
+     */
+    private startAutoFreezeTimer(): void {
+        // Don't auto-freeze if already applied or user has manually controlled physics
+        if (this.autoFreezeApplied) {
+            return;
+        }
+
+        this.cancelAutoFreezeTimer();
+        this.autoFreezeTimer = setTimeout(() => {
+            if (!this.autoFreezeApplied && this.state.physicsEnabled) {
+                this.setPhysicsEnabled(false, false); // false = not manual, don't mark as applied yet
+                this.autoFreezeApplied = true;
+                // Notify parent so UI can update
+                this.props.onPhysicsChange?.(false);
+            }
+        }, 5000);
+    }
+
+    /**
+     * Cancels any pending auto-freeze timer.
+     */
+    private cancelAutoFreezeTimer(): void {
+        if (this.autoFreezeTimer) {
+            clearTimeout(this.autoFreezeTimer);
+            this.autoFreezeTimer = undefined;
+        }
     }
 
     /**

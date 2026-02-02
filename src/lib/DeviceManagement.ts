@@ -1,19 +1,18 @@
 import type { MatterAdapter } from '../main';
-import {
-    type ActionContext,
-    type ApiVersion,
-    type ConfigItemAny,
-    type DeviceDetails,
-    type DeviceInfo,
-    type DeviceRefresh,
-    type DeviceStatus,
-    type InstanceDetails,
-    type JsonFormSchema,
-    type JsonFormData,
-    type ConfigConnectionType,
-    DeviceManagement,
-    ACTIONS,
+import type {
+    ActionContext,
+    ApiVersion,
+    ConfigItemAny,
+    DeviceDetails,
+    DeviceInfo,
+    DeviceRefresh,
+    DeviceStatus,
+    InstanceDetails,
+    JsonFormSchema,
+    JsonFormData,
+    ConfigConnectionType,
 } from '@iobroker/dm-utils';
+import { DeviceManagement, ACTIONS } from '@iobroker/dm-utils';
 import { GeneralMatterNode, type NodeDetails } from '../matter/GeneralMatterNode';
 import { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIoBroker';
 import type { DeviceAction } from '@iobroker/dm-utils/build/types/base';
@@ -46,25 +45,38 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             ...(await super.getInstanceInfo()),
             apiVersion: 'v1' as ApiVersion,
             actions: [
-                /*{
-                    id: 'newDevice',
-                    icon: 'fas fa-plus',
-                    title: '',
-                    description: {
-                        en: 'Add new device to Zigbee',
-                        de: 'Neues Gerät zu Zigbee hinzufügen',
-                        ru: 'Добавить новое устройство в Zigbee',
-                        pt: 'Adicionar novo dispositivo ao Zigbee',
-                        nl: 'Voeg nieuw apparaat toe aan Zigbee',
-                        fr: 'Ajouter un nouvel appareil à Zigbee',
-                        it: 'Aggiungi nuovo dispositivo a Zigbee',
-                        es: 'Agregar nuevo dispositivo a Zigbee',
-                        pl: 'Dodaj nowe urządzenie do Zigbee',
-
-                        uk: 'Додати новий пристрій до Zigbee',
+                {
+                    id: 'checkNodeUpdates',
+                    icon: 'update',
+                    title: {
+                        en: 'Check Updates',
+                        de: 'Updates prüfen',
+                        ru: 'Проверка обновлений',
+                        pt: 'Verificar actualizações',
+                        nl: 'Updates controleren',
+                        fr: 'Vérifier les mises à jour',
+                        it: 'Controllare gli aggiornamenti',
+                        es: 'Comprobar actualizaciones',
+                        pl: 'Sprawdź aktualizacje',
+                        uk: 'Перевірте оновлення',
+                        'zh-cn': 'Check Updates',
                     },
-                    handler: this.handleNewDevice.bind(this),
-                },*/
+                    description: {
+                        en: 'Check for Node updates',
+                        de: 'Node-Updates prüfen',
+                        ru: 'Проверьте наличие обновлений узла',
+                        pt: 'Verificar se há actualizações do Node',
+                        nl: 'Controleren op Node-updates',
+                        fr: 'Vérifier les mises à jour de Node',
+                        it: 'Verifica degli aggiornamenti dei nodi',
+                        es: 'Buscar actualizaciones de nodos',
+                        pl: 'Sprawdź aktualizacje węzła',
+                        uk: 'Перевірте наявність оновлень вузла',
+                        'zh-cn': 'Check for Node updates',
+                    },
+                    handler: this.checkNodeUpdates.bind(this),
+                    timeout: 30_000,
+                },
             ],
         };
     }
@@ -719,7 +731,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             // Because of a Matter SDK Bug setting the subscriptionMaxIntervalS only makes sense
             // for Matter versions >= 1.3
             const specVersion = node.node.basicInformation?.specificationVersion;
-            if (typeof specVersion === 'number') {
+            if (typeof specVersion === 'number' && specVersion !== 0) {
                 const { major, minor } = SpecificationVersion.decode(specVersion);
                 const matterVersion = parseFloat((major + minor / 100).toFixed(1));
                 if (matterVersion >= 1.3) {
@@ -914,6 +926,14 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const schema = convertDataToJsonConfig(device.getDeviceDetails(node.isConnected));
 
         return { id, schema, data: {} };
+    }
+
+    async checkNodeUpdates(context: ActionContext): Promise<{ refresh: boolean }> {
+        const updates = (await this.#adapter?.controllerNode?.queryUpdates()) ?? [];
+
+        await context.showMessage(`${updates.length} updates available.`);
+
+        return { refresh: !!updates.length };
     }
 
     async close(): Promise<void> {

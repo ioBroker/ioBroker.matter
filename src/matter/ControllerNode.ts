@@ -1,20 +1,29 @@
+import type { Endpoint, ServerAddressUdp, SoftwareUpdateInfo } from '@matter/main';
 import {
+    ObserverGroup,
+    SoftwareUpdateManager,
     Diagnostic,
     NodeId,
     VendorId,
-    type ServerAddressUdp,
     Seconds,
-    ObserverGroup,
-    SoftwareUpdateManager,
+    ClusterId,
+    EndpointNumber,
+    AttributeId,
 } from '@matter/main';
-import { GeneralCommissioning } from '@matter/main/clusters';
 import {
-    type CommissionableDevice,
-    type ControllerCommissioningFlowOptions,
-    type DiscoveryData,
-    CommissioningError,
-    DclOtaUpdateService,
+    GeneralCommissioning,
+    GeneralDiagnosticsCluster,
+    NetworkCommissioning,
+    ThreadNetworkDiagnostics,
+    WiFiNetworkDiagnosticsCluster,
+} from '@matter/main/clusters';
+import type {
+    PeerAddress,
+    CommissionableDevice,
+    ControllerCommissioningFlowOptions,
+    DiscoveryData,
 } from '@matter/main/protocol';
+import { CommissioningError, DclOtaUpdateService } from '@matter/main/protocol';
 import { ManualPairingCodeCodec, QrPairingCodeCodec, DiscoveryCapabilitiesSchema } from '@matter/main/types';
 import { CommissioningController, type NodeCommissioningOptions } from '@project-chip/matter.js';
 import {
@@ -22,16 +31,26 @@ import {
     type CommissioningControllerNodeOptions,
     type PairedNode,
 } from '@project-chip/matter.js/device';
-import type { MatterControllerConfig } from '../../src-admin/src/types';
 import type { MatterAdapter } from '../main';
-import type { MatterAdapterConfig } from '../ioBrokerStorageTypes';
+import type {
+    MatterAdapterConfig,
+    MatterControllerConfig,
+    NetworkGraphData,
+    NetworkNodeData,
+    NetworkType,
+    WiFiDiagnosticsData,
+    ThreadDiagnosticsData,
+    ThreadNeighborEntry,
+    ThreadRouteEntry,
+} from '../ioBrokerStorageTypes';
 import { GeneralMatterNode, type PairedNodeConfig } from './GeneralMatterNode';
 import type { GeneralNode, MessageResponse } from './GeneralNode';
 import { inspect } from 'util';
 import { createReadStream } from 'fs';
-import { readdir, stat, mkdir } from 'fs/promises';
+import { readdir, stat, mkdir, unlink } from 'fs/promises';
 import { Readable } from 'stream';
 import { join } from 'path';
+import type { OtaProviderEndpoint } from '@matter/main/endpoints';
 
 export interface ControllerCreateOptions {
     adapter: MatterAdapter;
@@ -75,6 +94,10 @@ class Controller implements GeneralNode {
 
     get nodes(): Map<string, GeneralMatterNode> {
         return this.#nodes;
+    }
+
+    get otaProvider(): Endpoint<OtaProviderEndpoint> | undefined {
+        return this.#commissioningController?.otaProvider;
     }
 
     init(): void {
@@ -700,6 +723,10 @@ class Controller implements GeneralNode {
 
                 imported++;
                 this.#adapter.log.info(`Successfully imported OTA file: ${file}`);
+
+                // Delete the original file after a successful import
+                await unlink(filePath);
+                this.#adapter.log.debug(`Deleted original OTA file: ${file}`);
             } catch (error) {
                 this.#adapter.log.warn(`Failed to import OTA file "${file}": ${error}`);
             }
@@ -738,6 +765,26 @@ class Controller implements GeneralNode {
         );
         this.#nodes.delete(nodeId);
         this.#updateCallback();
+    }
+
+    async queryUpdates(): Promise<
+        {
+            peerAddress: PeerAddress;
+            info: SoftwareUpdateInfo;
+        }[]
+    > {
+        if (!this.otaProvider) {
+            this.#adapter.log.warn('No OTA provider available, cannot query for updates');
+            return [];
+        }
+        // Query OTA provider for updates using dynamic behavior access
+        const updatesAvailable = await this.otaProvider.act(agent =>
+            agent.get(SoftwareUpdateManager).queryUpdates({
+                includeStoredUpdates: true,
+            }),
+        );
+        this.#adapter.log.info(`OTA updates available for ${updatesAvailable.length} nodes`);
+        return updatesAvailable;
     }
 }
 

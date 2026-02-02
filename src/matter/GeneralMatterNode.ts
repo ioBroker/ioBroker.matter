@@ -23,7 +23,7 @@ import {
 } from '@project-chip/matter.js/device';
 import type { CommissioningController } from '@project-chip/matter.js';
 import { SupportedAttributeClient, UnknownSupportedAttributeClient } from '@project-chip/matter.js/cluster';
-import type { MatterControllerConfig } from '../../src-admin/src/types';
+import type { MatterControllerConfig } from '../ioBrokerStorageTypes';
 import { SubscribeManager } from '../lib';
 import type { SubscribeCallback } from '../lib/SubscribeManager';
 import { bytesToIpV4, bytesToIpV6, bytesToMac, decamelize, toHex, toUpperCaseHex } from '../lib/utils';
@@ -1477,7 +1477,7 @@ export class GeneralMatterNode {
             }
 
             result.specification = {};
-            if (typeof details.specificationVersion === 'number') {
+            if (typeof details.specificationVersion === 'number' && details.specificationVersion !== 0) {
                 const { major, minor, patch } = SpecificationVersion.decode(details.specificationVersion);
                 result.specification.specificationVersion = `${major}.${minor}.${patch}`;
             } else {

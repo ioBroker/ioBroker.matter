@@ -52,6 +52,7 @@
     "Unpair this node": "取消此节点的配对",
     "Unpairing node...": "正在取消配对节点...",
     "Update now": "立即更新",
+    "%d updates available": "有%d个可用更新",
     "Updates can take several minutes and may appear stuck. Please be patient.": "更新可能需要几分钟，并且可能看起来卡住了。请耐心等待。",
     "Use the following pairing code to commission the device": "使用以下配对代码来调试设备",
     "Use the following pairing code to commission the device: %s": "使用以下配对代码来调试设备：%s",

@@ -25,7 +25,7 @@ import {
     Sync as SyncIcon,
 } from '@mui/icons-material';
 
-import type { NetworkGraphData, NetworkNodeData, NetworkType } from './NetworkTypes';
+import type { NetworkGraphData, NetworkNodeData } from './NetworkTypes';
 import {
     SIGNAL_COLORS,
     categorizeNodes,
@@ -39,7 +39,6 @@ import {
     findUnknownDevices,
     getRoutableDestinationsCount,
     getNodeConnections,
-    type NodeConnection,
 } from './NetworkUtils';
 import ThreadGraph from './ThreadGraph';
 import WiFiGraph from './WiFiGraph';
@@ -79,14 +78,14 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
     componentDidMount(): void {
         // Load data when dialog opens
         if (this.props.open && !this.props.data) {
-            this.handleRefresh();
+            void this.handleRefresh();
         }
     }
 
     componentDidUpdate(prevProps: NetworkGraphDialogProps): void {
         // Load data when dialog opens
         if (this.props.open && !prevProps.open && !this.props.data) {
-            this.handleRefresh();
+            void this.handleRefresh();
         }
         // Reset selection when network type changes
         if (this.props.networkType !== prevProps.networkType) {
@@ -232,7 +231,10 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
         return (
             <>
                 <Divider sx={{ my: 1 }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                <Typography
+                    variant="subtitle2"
+                    sx={{ fontWeight: 'bold', mb: 1 }}
+                >
                     {I18n.t('Connections')} ({connections.length})
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 200, overflowY: 'auto' }}>
@@ -270,10 +272,11 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                             />
                             <Box sx={{ flex: 1, minWidth: 0 }}>
                                 {/* Node name or Unknown */}
-                                <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
-                                    {conn.connectedNode
-                                        ? conn.connectedNode.name
-                                        : `${I18n.t('Unknown Device')}`}
+                                <Typography
+                                    variant="body2"
+                                    sx={{ wordBreak: 'break-word' }}
+                                >
+                                    {conn.connectedNode ? conn.connectedNode.name : `${I18n.t('Unknown Device')}`}
                                     {conn.connectedNode && (
                                         <Typography
                                             component="span"
@@ -285,7 +288,10 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                                     )}
                                 </Typography>
                                 {/* Signal info */}
-                                <Typography variant="caption" color="text.secondary">
+                                <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                >
                                     {conn.rssi !== null && `RSSI: ${conn.rssi} dBm`}
                                     {conn.rssi !== null && conn.lqi !== null && ', '}
                                     {conn.lqi !== null && `LQI: ${conn.lqi}`}
@@ -312,7 +318,11 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
 
         return (
             <Box sx={{ px: 1, mb: 1 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ fontStyle: 'italic' }}
+                >
                     {networkType === 'thread' ? I18n.t('Thread network info') : I18n.t('WiFi network info')}
                 </Typography>
             </Box>
@@ -324,26 +334,38 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
 
         return (
             <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', mb: 1, px: 1 }}>
-                <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                <Typography
+                    variant="caption"
+                    sx={{ fontWeight: 'bold' }}
+                >
                     {I18n.t('Signal Strength')}:
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: SIGNAL_COLORS.strong.color }} />
+                    <Box
+                        sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: SIGNAL_COLORS.strong.color }}
+                    />
                     <Typography variant="caption">{I18n.t('Strong')}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: SIGNAL_COLORS.medium.color }} />
+                    <Box
+                        sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: SIGNAL_COLORS.medium.color }}
+                    />
                     <Typography variant="caption">{I18n.t('Medium')}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: SIGNAL_COLORS.weak.color }} />
+                    <Box
+                        sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: SIGNAL_COLORS.weak.color }}
+                    />
                     <Typography variant="caption">{I18n.t('Weak')}</Typography>
                 </Box>
 
                 {networkType === 'thread' && (
                     <>
                         <Box sx={{ borderLeft: 1, borderColor: 'divider', pl: 2, ml: 1 }} />
-                        <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                        <Typography
+                            variant="caption"
+                            sx={{ fontWeight: 'bold' }}
+                        >
                             {I18n.t('Thread Roles')}:
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
@@ -394,8 +416,14 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
 
         if (!selectedNodeId) {
             return (
-                <Paper elevation={2} sx={{ width: 280, p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Typography color="textSecondary" variant="body2">
+                <Paper
+                    elevation={2}
+                    sx={{ width: 280, p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                    <Typography
+                        color="textSecondary"
+                        variant="body2"
+                    >
                         {I18n.t('Click a node to see details')}
                     </Typography>
                 </Paper>
@@ -406,27 +434,45 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
         const onlineNeighborIds = this.getOnlineNeighborIds();
 
         return (
-            <Paper elevation={2} sx={{ width: 280, p: 2, display: 'flex', flexDirection: 'column', gap: 1, overflow: 'auto' }}>
+            <Paper
+                elevation={2}
+                sx={{ width: 280, p: 2, display: 'flex', flexDirection: 'column', gap: 1, overflow: 'auto' }}
+            >
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                         {isUnknown ? (
                             <>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
+                                <Typography
+                                    variant="subtitle2"
+                                    sx={{ fontWeight: 'bold' }}
+                                >
                                     {I18n.t('Unknown Device')}
                                 </Typography>
-                                <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary', wordBreak: 'break-all' }}>
+                                <Typography
+                                    variant="caption"
+                                    sx={{ fontFamily: 'monospace', color: 'text.secondary', wordBreak: 'break-all' }}
+                                >
                                     {unknownExtAddress}
                                 </Typography>
                             </>
                         ) : node ? (
                             <>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', wordBreak: 'break-word' }}>
+                                <Typography
+                                    variant="subtitle2"
+                                    sx={{ fontWeight: 'bold', wordBreak: 'break-word' }}
+                                >
                                     {node.name}
                                 </Typography>
-                                <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary', display: 'block' }}>
+                                <Typography
+                                    variant="caption"
+                                    sx={{ fontFamily: 'monospace', color: 'text.secondary', display: 'block' }}
+                                >
                                     {formatNodeIdHex(node.nodeId)}
                                 </Typography>
-                                <Typography variant="body2" color={node.isConnected ? 'success.main' : 'error.main'}>
+                                <Typography
+                                    variant="body2"
+                                    color={node.isConnected ? 'success.main' : 'error.main'}
+                                >
                                     {node.isConnected ? I18n.t('Connected') : I18n.t('Offline')}
                                 </Typography>
                             </>
@@ -437,13 +483,19 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                     <Box sx={{ display: 'flex', gap: 0.5, ml: 1 }}>
                         {onUpdateConnections && (
                             <Tooltip title={I18n.t('Update Connections')}>
-                                <IconButton onClick={this.handleOpenUpdateDialog} size="small">
+                                <IconButton
+                                    onClick={this.handleOpenUpdateDialog}
+                                    size="small"
+                                >
                                     <SyncIcon fontSize="small" />
                                 </IconButton>
                             </Tooltip>
                         )}
                         <Tooltip title={I18n.t('Close')}>
-                            <IconButton onClick={() => this.handleNodeSelect(null)} size="small">
+                            <IconButton
+                                onClick={() => this.handleNodeSelect(null)}
+                                size="small"
+                            >
                                 <CloseIcon fontSize="small" />
                             </IconButton>
                         </Tooltip>
@@ -464,7 +516,10 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                                     </Typography>
                                 )}
                                 {node.thread.extendedAddress && (
-                                    <Typography variant="body2" sx={{ wordBreak: 'break-all' }}>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{ wordBreak: 'break-all' }}
+                                    >
                                         <strong>{I18n.t('Extended Address')}:</strong>{' '}
                                         <span style={{ fontFamily: 'monospace', fontSize: '0.85em' }}>
                                             {parseExtendedAddressToHex(node.thread.extendedAddress)}
@@ -473,7 +528,8 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                                 )}
                                 {node.thread.neighborTable && node.thread.neighborTable.length > 0 && (
                                     <Typography variant="body2">
-                                        <strong>{I18n.t('Direct Neighbors')}:</strong> {node.thread.neighborTable.length}
+                                        <strong>{I18n.t('Direct Neighbors')}:</strong>{' '}
+                                        {node.thread.neighborTable.length}
                                     </Typography>
                                 )}
                                 {(() => {
@@ -499,10 +555,12 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                                     </Typography>
                                 )}
                                 <Typography variant="body2">
-                                    <strong>{I18n.t('Security')}:</strong> {getWiFiSecurityTypeName(node.wifi.securityType)}
+                                    <strong>{I18n.t('Security')}:</strong>{' '}
+                                    {getWiFiSecurityTypeName(node.wifi.securityType)}
                                 </Typography>
                                 <Typography variant="body2">
-                                    <strong>{I18n.t('WiFi Version')}:</strong> {getWiFiVersionName(node.wifi.wifiVersion)}
+                                    <strong>{I18n.t('WiFi Version')}:</strong>{' '}
+                                    {getWiFiVersionName(node.wifi.wifiVersion)}
                                 </Typography>
                             </Box>
                         )}
@@ -542,11 +600,26 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
 
         if (error) {
             return (
-                <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', flex: 1, gap: 2 }}>
-                    <Typography color="error" variant="h6">
+                <Box
+                    sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        flex: 1,
+                        gap: 2,
+                    }}
+                >
+                    <Typography
+                        color="error"
+                        variant="h6"
+                    >
                         {I18n.t('Error loading network data')}
                     </Typography>
-                    <Typography color="textSecondary" variant="body2">
+                    <Typography
+                        color="textSecondary"
+                        variant="body2"
+                    >
                         {error}
                     </Typography>
                 </Box>
@@ -619,20 +692,33 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                 }}
             >
                 <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 1 }}>
-                    <Typography variant="h6" sx={{ flex: 1 }}>
+                    <Typography
+                        variant="h6"
+                        sx={{ flex: 1 }}
+                    >
                         {title}
                     </Typography>
                     <Tooltip title={I18n.t('Fit to screen')}>
-                        <IconButton onClick={this.handleFitScreen} size="small">
+                        <IconButton
+                            onClick={this.handleFitScreen}
+                            size="small"
+                        >
                             <FitScreenIcon />
                         </IconButton>
                     </Tooltip>
                     <Tooltip title={I18n.t('Refresh')}>
-                        <IconButton onClick={this.handleRefresh} disabled={loading} size="small">
+                        <IconButton
+                            onClick={this.handleRefresh}
+                            disabled={loading}
+                            size="small"
+                        >
                             <RefreshIcon />
                         </IconButton>
                     </Tooltip>
-                    <IconButton onClick={onClose} size="small">
+                    <IconButton
+                        onClick={onClose}
+                        size="small"
+                    >
                         <CloseIcon />
                     </IconButton>
                 </DialogTitle>

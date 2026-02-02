@@ -583,9 +583,7 @@ export function getNodeConnections(
     }
 
     // Get this node's extended address for reverse lookups
-    const thisExtAddrHex = node.thread?.extendedAddress
-        ? parseExtendedAddressToHex(node.thread.extendedAddress)
-        : null;
+    const thisExtAddrHex = node.thread?.extendedAddress ? parseExtendedAddressToHex(node.thread.extendedAddress) : null;
 
     // 1. Add neighbors this node reports (outgoing connections)
     if (node.thread?.neighborTable) {
@@ -594,7 +592,7 @@ export function getNodeConnections(
             const connectedNodeId = extAddrMap.get(neighborExtAddrHex);
             const connectedNode = connectedNodeId ? nodes.find(n => n.nodeId === connectedNodeId) : undefined;
             const isUnknown = connectedNodeId === undefined;
-            const displayId = isUnknown ? `unknown_${neighborExtAddrHex}` : connectedNodeId!;
+            const displayId = isUnknown ? `unknown_${neighborExtAddrHex}` : connectedNodeId;
 
             seenConnectedIds.add(displayId);
 

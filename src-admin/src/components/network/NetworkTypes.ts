@@ -39,7 +39,7 @@ export interface NetworkGraphNode {
     font?: { color: string };
     title?: string;
     // Custom data
-    networkType?: import('../../types').NetworkType;
+    networkType?: NetworkType;
     threadRole?: ThreadRoutingRole;
     offline?: boolean;
     isUnknown?: boolean;

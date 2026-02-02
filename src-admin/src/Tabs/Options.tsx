@@ -354,14 +354,14 @@ class Options extends Component<OptionsProps, OptionsState> {
                         <FormControlLabel
                             control={
                                 <Checkbox
-                                    checked={!!this.props.native.allowInofficialUpdates}
-                                    onChange={e => this.props.onChange('allowInofficialUpdates', e.target.checked)}
+                                    checked={!!this.props.native.allowUnofficialUpdates}
+                                    onChange={e => this.props.onChange('allowUnofficialUpdates', e.target.checked)}
                                     color="primary"
                                 />
                             }
                             label={I18n.t('Allow custom/unofficial OTA updates')}
                         />
-                        {this.props.native.allowInofficialUpdates ? (
+                        {this.props.native.allowUnofficialUpdates ? (
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 1 }}>
                                 <TextField
                                     variant="standard"

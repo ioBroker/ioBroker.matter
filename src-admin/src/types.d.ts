@@ -9,7 +9,7 @@ export interface MatterAdapterConfig extends ioBroker.AdapterConfig {
     defaultBridge: string;
     controllerFabricLabel: string;
     /** Allow unofficial/custom OTA updates */
-    allowInofficialUpdates: boolean;
+    allowUnofficialUpdates: boolean;
     /** Custom path for OTA update files (default: instanceDataDir/custom-ota) */
     customUpdatesPath: string;
 }
@@ -174,7 +174,7 @@ export interface GUIMessage {
     device?: CommissionableDevice;
     processing?: { id: string; inProgress: boolean }[] | null;
     /** Network graph data update */
-    networkGraphData?: import('./components/network/NetworkTypes').NetworkGraphData;
+    networkGraphData?: NetworkGraphData;
 
     /** Used for identify popup */
     identifyUuid?: string;

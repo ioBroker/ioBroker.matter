@@ -52,6 +52,7 @@
     "Unpair this node": "Rozparuj ten węzeł",
     "Unpairing node...": "Rozparowywanie węzła...",
     "Update now": "Aktualizuj teraz",
+    "%d updates available": "%d aktualizacji dostępnych",
     "Updates can take several minutes and may appear stuck. Please be patient.": "Aktualizacje mogą trwać kilka minut i mogą wydawać się zawieszone. Prosimy o cierpliwość.",
     "Use the following pairing code to commission the device": "Użyj poniższego kodu parowania, aby uruchomić urządzenie",
     "Use the following pairing code to commission the device: %s": "Użyj następującego kodu parowania, aby uruchomić urządzenie: %s",

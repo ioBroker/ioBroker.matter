@@ -691,7 +691,7 @@ class Controller implements GeneralNode {
         const path = customPath || adapterConfig.customUpdatesPath || join(this.#adapter.instanceDataDir, 'custom-ota');
 
         // Check if custom updates are enabled
-        if (!adapterConfig.allowInofficialUpdates) {
+        if (!adapterConfig.allowUnofficialUpdates) {
             this.#adapter.log.debug('Custom OTA updates are disabled');
             return 0;
         }

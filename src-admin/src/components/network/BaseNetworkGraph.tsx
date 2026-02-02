@@ -152,6 +152,7 @@ abstract class BaseNetworkGraph<
         };
     }
 
+    // eslint-disable-next-line class-methods-use-this
     protected getPhysicsOptions(): Options['physics'] {
         return {
             enabled: true,
@@ -234,9 +235,7 @@ abstract class BaseNetworkGraph<
             return {
                 id: edge.id,
                 width: isConnected ? 3 : 1,
-                color: isConnected
-                    ? originalColor ?? fallbackColor
-                    : { color: dimmedColor, highlight: dimmedColor },
+                color: isConnected ? (originalColor ?? fallbackColor) : { color: dimmedColor, highlight: dimmedColor },
             };
         });
         this.edgesDataSet.update(edgeUpdates);
@@ -261,8 +260,12 @@ abstract class BaseNetworkGraph<
                 size: newSize,
                 font: {
                     color: isConnected
-                        ? this.props.darkMode ? '#e0e0e0' : '#333333'
-                        : this.props.darkMode ? '#666666' : '#999999',
+                        ? this.props.darkMode
+                            ? '#e0e0e0'
+                            : '#333333'
+                        : this.props.darkMode
+                          ? '#666666'
+                          : '#999999',
                 },
             };
         });
@@ -307,6 +310,7 @@ abstract class BaseNetworkGraph<
      * Clear stored edge colors and node sizes when graph is updated (nodes/edges are recreated).
      * Call this at the beginning of updateGraph() in subclasses.
      */
+    // eslint-disable-next-line react/no-unused-class-component-methods
     protected clearOriginalEdgeColors(): void {
         this.originalEdgeColors.clear();
         this.originalNodeSizes.clear();
@@ -321,6 +325,7 @@ abstract class BaseNetworkGraph<
         this.updateGraph();
     }
 
+    // eslint-disable-next-line react/no-unused-class-component-methods
     public fit(): void {
         this.network?.fit({
             animation: {
@@ -338,6 +343,7 @@ abstract class BaseNetworkGraph<
     /**
      * Get node color based on connection state
      */
+    // eslint-disable-next-line class-methods-use-this, react/no-unused-class-component-methods
     protected getNodeColor(isConnected: boolean, isOffline?: boolean): string | { background: string; border: string } {
         if (isOffline || !isConnected) {
             return {

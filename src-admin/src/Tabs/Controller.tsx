@@ -821,7 +821,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             color="primary"
                             onClick={() => {
                                 this.setState({ networkGraphDialogType: 'thread' });
-                                this.loadNetworkGraphData();
+                                void this.loadNetworkGraphData();
                             }}
                             startIcon={<Hub />}
                         >
@@ -834,7 +834,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             color="primary"
                             onClick={() => {
                                 this.setState({ networkGraphDialogType: 'wifi' });
-                                this.loadNetworkGraphData();
+                                void this.loadNetworkGraphData();
                             }}
                             startIcon={<Hub />}
                         >

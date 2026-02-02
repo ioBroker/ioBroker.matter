@@ -51,6 +51,7 @@
     "Unpair this node": "Unpair this node",
     "Unpairing node...": "Unpairing node...",
     "Update now": "Update now",
+    "%d updates available": "%d updates available",
     "Updates can take several minutes and may appear stuck. Please be patient.": "Updates can take several minutes and may appear stuck. Please be patient.",
     "Software updates can take several minutes depending on the device and connection type (Thread, WiFi). The update may appear stuck at times - please be patient and do not interrupt the process.": "Software updates can take several minutes depending on the device and connection type (Thread, WiFi). The update may appear stuck at times - please be patient and do not interrupt the process.",
     "Use the following pairing code to commission the device": "Use the following pairing code to commission the device",

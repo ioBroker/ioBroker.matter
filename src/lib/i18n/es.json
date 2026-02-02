@@ -52,6 +52,7 @@
     "Unpair this node": "Desemparejar este nodo",
     "Unpairing node...": "Desvinculando nodo...",
     "Update now": "Actualizar ahora",
+    "%d updates available": "%d actualizaciones disponibles",
     "Updates can take several minutes and may appear stuck. Please be patient.": "Las actualizaciones pueden tardar varios minutos y pueden parecer bloqueadas. Por favor sea paciente.",
     "Use the following pairing code to commission the device": "Utilice el siguiente código de emparejamiento para poner en funcionamiento el dispositivo",
     "Use the following pairing code to commission the device: %s": "Utilice el siguiente código de emparejamiento para poner en marcha el dispositivo: %s",

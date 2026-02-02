@@ -52,6 +52,7 @@
     "Unpair this node": "Désapparier ce nœud",
     "Unpairing node...": "Désappariement du nœud...",
     "Update now": "Mettre à jour maintenant",
+    "%d updates available": "%d mises à jour disponibles",
     "Updates can take several minutes and may appear stuck. Please be patient.": "Les mises à jour peuvent prendre plusieurs minutes et peuvent sembler bloquées. Veuillez être patient.",
     "Use the following pairing code to commission the device": "Utilisez le code d'appariement suivant pour mettre en service l'appareil",
     "Use the following pairing code to commission the device: %s": "Utilisez le code d'appariement suivant pour mettre l'appareil en service : %s",

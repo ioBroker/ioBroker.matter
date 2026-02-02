@@ -130,6 +130,7 @@ class ThreadGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGra
         this.edgesDataSet.add(graphEdges);
     }
 
+    // eslint-disable-next-line class-methods-use-this
     private getNodeSize(role: ThreadRoutingRole | null): number {
         switch (role) {
             case 6: // Leader
@@ -143,6 +144,7 @@ class ThreadGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGra
         }
     }
 
+    // eslint-disable-next-line class-methods-use-this
     private getThreadNodeColor(
         isConnected: boolean,
         role: ThreadRoutingRole | null,

@@ -190,7 +190,7 @@
     "pass": "",
     "defaultBridge": "",
     "controllerFabricLabel": "",
-    "allowInofficialUpdates": false,
+    "allowUnofficialUpdates": false,
     "customUpdatesPath": ""
   },
   "objects": [],

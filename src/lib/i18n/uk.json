@@ -52,6 +52,7 @@
     "Unpair this node": "Скасувати сполучення цього вузла",
     "Unpairing node...": "Скасування сполучення вузла...",
     "Update now": "Оновити зараз",
+    "%d updates available": "Доступно оновлень: %d",
     "Updates can take several minutes and may appear stuck. Please be patient.": "Оновлення можуть тривати кілька хвилин і можуть здаватися завислими. Будь ласка, будьте терплячі.",
     "Use the following pairing code to commission the device": "Використовуйте наступний код сполучення, щоб ввести пристрій в експлуатацію",
     "Use the following pairing code to commission the device: %s": "Для введення пристрою в експлуатацію використовуйте такий код сполучення: %s",

@@ -828,6 +828,9 @@ describe('Test Custom States', function () {
         await deviceObj.destroy();
 
         // After destroy, subscriptions should be cleaned up from SubscribeManager
-        // Note: The adapter's subscribed array may still have '*' but SubscribeManager.subscribes should be empty
+        const subscribedAfter = (SubscribeManager as any).subscribes.size;
+        if (subscribedAfter !== 0) {
+            throw new Error(`Expected SubscribeManager.subscribes.size to be 0 after destroy, but got ${subscribedAfter}`);
+        }
     }).timeout(5000);
 });

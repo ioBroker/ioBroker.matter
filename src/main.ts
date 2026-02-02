@@ -223,7 +223,7 @@ export class MatterAdapter extends Adapter {
             await this.#controller.start();
 
             // Import custom OTA updates after the controller is started
-            if ((this.config as MatterAdapterConfig).allowInofficialUpdates && this.#controller.otaProvider) {
+            if ((this.config as MatterAdapterConfig).allowUnofficialUpdates && this.#controller.otaProvider) {
                 await this.#controller.otaProvider.setStateOf(SoftwareUpdateManager, {
                     allowTestOtaImages: true,
                 });
@@ -384,9 +384,9 @@ export class MatterAdapter extends Adapter {
                 break;
             }
             case 'getDefaultCustomOtaPath': {
-                const path = `${this.instanceDataDir}/custom-ota`;
+                const customOtaPath = path.join(this.instanceDataDir!, 'custom-ota');
                 if (obj.callback) {
-                    this.sendTo(obj.from, obj.command, { path }, obj.callback);
+                    this.sendTo(obj.from, obj.command, { path: customOtaPath }, obj.callback);
                 }
                 break;
             }
@@ -1521,7 +1521,7 @@ export class MatterAdapter extends Adapter {
                 if (handleStart) {
                     await this.#controller.start();
                     // Import custom OTA updates after controller is started
-                    if ((this.config as MatterAdapterConfig).allowInofficialUpdates) {
+                    if ((this.config as MatterAdapterConfig).allowUnofficialUpdates) {
                         this.#controller.importCustomOtaUpdates().catch(error => {
                             this.log.warn(`Failed to import custom OTA updates: ${error}`);
                         });

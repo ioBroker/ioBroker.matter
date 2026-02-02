@@ -130,9 +130,7 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
             case 'online':
                 return (
                     <>
-                        <Typography>
-                            {I18n.t('Refresh network information for "%s".', selectedNodeName)}
-                        </Typography>
+                        <Typography>{I18n.t('Refresh network information for "%s".', selectedNodeName)}</Typography>
                         {onlineNeighborIds.length > 0 && (
                             <FormControlLabel
                                 control={
@@ -141,7 +139,10 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
                                         onChange={this.handleIncludeNeighborsChange}
                                     />
                                 }
-                                label={I18n.t('Include %s connected online neighbor(s)', onlineNeighborIds.length.toString())}
+                                label={I18n.t(
+                                    'Include %s connected online neighbor(s)',
+                                    onlineNeighborIds.length.toString(),
+                                )}
                                 sx={{ mt: 2 }}
                             />
                         )}
@@ -151,12 +152,13 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
             case 'offline':
                 return (
                     <>
-                        <Typography>
-                            {I18n.t('"%s" appears to be offline.', selectedNodeName)}
-                        </Typography>
+                        <Typography>{I18n.t('"%s" appears to be offline.', selectedNodeName)}</Typography>
                         <Typography sx={{ mt: 1 }}>
                             {onlineNeighborIds.length > 0
-                                ? I18n.t('Update network data from its %s online neighbor(s) to refresh connection info.', onlineNeighborIds.length.toString())
+                                ? I18n.t(
+                                      'Update network data from its %s online neighbor(s) to refresh connection info.',
+                                      onlineNeighborIds.length.toString(),
+                                  )
                                 : I18n.t('No online neighbors available to update.')}
                         </Typography>
                     </>
@@ -170,7 +172,10 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
                         </Typography>
                         <Typography sx={{ mt: 1 }}>
                             {onlineNeighborIds.length > 0
-                                ? I18n.t('Update network data from %s node(s) that see(s) this device to refresh info.', onlineNeighborIds.length.toString())
+                                ? I18n.t(
+                                      'Update network data from %s node(s) that see(s) this device to refresh info.',
+                                      onlineNeighborIds.length.toString(),
+                                  )
                                 : I18n.t('No online nodes available that see this device.')}
                         </Typography>
                     </>
@@ -183,9 +188,8 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
         const { isUpdating } = this.state;
 
         const updateCount = this.getUpdateCount();
-        const buttonText = updateCount === 0
-            ? I18n.t('No nodes to update')
-            : I18n.t('Update %s node(s)', updateCount.toString());
+        const buttonText =
+            updateCount === 0 ? I18n.t('No nodes to update') : I18n.t('Update %s node(s)', updateCount.toString());
 
         return (
             <Dialog
@@ -201,11 +205,12 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
                 fullWidth
             >
                 <DialogTitle>{I18n.t('Update Connections')}</DialogTitle>
-                <DialogContent>
-                    {this.renderContent()}
-                </DialogContent>
+                <DialogContent>{this.renderContent()}</DialogContent>
                 <DialogActions>
-                    <Button onClick={onClose} disabled={isUpdating}>
+                    <Button
+                        onClick={onClose}
+                        disabled={isUpdating}
+                    >
                         {I18n.t('Cancel')}
                     </Button>
                     <Button
@@ -215,10 +220,15 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
                     >
                         {isUpdating ? (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <CircularProgress size={18} color="inherit" />
+                                <CircularProgress
+                                    size={18}
+                                    color="inherit"
+                                />
                                 {I18n.t('Updating...')}
                             </Box>
-                        ) : buttonText}
+                        ) : (
+                            buttonText
+                        )}
                     </Button>
                 </DialogActions>
             </Dialog>

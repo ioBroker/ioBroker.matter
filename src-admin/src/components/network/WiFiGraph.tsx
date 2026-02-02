@@ -14,6 +14,7 @@ import {
 } from './NetworkUtils';
 
 class WiFiGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGraphState> {
+    // eslint-disable-next-line class-methods-use-this
     protected getPhysicsOptions(): Options['physics'] {
         // Override physics for star topology
         return {
@@ -128,10 +129,8 @@ class WiFiGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGraph
         this.edgesDataSet.add(graphEdges);
     }
 
-    private getWiFiNodeColor(
-        isConnected: boolean,
-        rssi: number | null,
-    ): { background: string; border: string } {
+    // eslint-disable-next-line class-methods-use-this
+    private getWiFiNodeColor(isConnected: boolean, rssi: number | null): { background: string; border: string } {
         if (!isConnected) {
             return {
                 background: '#9E9E9E',

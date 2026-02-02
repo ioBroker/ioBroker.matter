@@ -76,18 +76,14 @@ export class VolumeToMatter extends GenericDeviceToMatter {
         this.matterEvents.on(this.#matterEndpoint.eventsOf(IoBrokerEvents).onOffControlled, async volumeOn => {
             if (this.#ioBrokerDevice.hasMute()) {
                 await this.#ioBrokerDevice.setMute(!volumeOn);
-
                 return;
             }
-
-            console.log('Got something');
 
             // Device does NOT have a mute capability directly
 
             // Device is getting muted
             if (!volumeOn) {
                 await this.#ioBrokerDevice.setLevel(0);
-
                 return;
             }
 

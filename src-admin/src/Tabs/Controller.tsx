@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 
-import { Add, Bluetooth, BluetoothDisabled, Close, Save, Search, Warning } from '@mui/icons-material';
+import { Add, Bluetooth, BluetoothDisabled, Close, Hub, Save, Search, Warning } from '@mui/icons-material';
 
 import {
     Backdrop,
@@ -33,6 +33,18 @@ import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
 import { clone } from '../Utils';
 import QrCodeDialog from '../components/QrCodeDialog';
 import DiscoveredDevicesDialog from '../components/DiscoveredDevicesDialog';
+import { NetworkGraphDialog, type NetworkGraphData } from '../components/network';
+
+/**
+ * Validates that an object conforms to the NetworkGraphData structure
+ */
+function isNetworkGraphData(data: unknown): data is NetworkGraphData {
+    if (!data || typeof data !== 'object') {
+        return false;
+    }
+    const obj = data as Record<string, unknown>;
+    return Array.isArray(obj.nodes) && typeof obj.timestamp === 'number';
+}
 
 const styles: Record<string, React.CSSProperties> = {
     panel: {
@@ -127,6 +139,12 @@ interface ComponentState {
     triggerControllerLoad: number;
     discoveryRunning: boolean;
     errorText: string;
+    /** Which network graph dialog is shown (null = none) */
+    networkGraphDialogType: 'thread' | 'wifi' | null;
+    /** Network graph data */
+    networkGraphData: NetworkGraphData | null;
+    /** Network graph loading error */
+    networkGraphError: string | null;
 }
 
 class Controller extends Component<ComponentProps, ComponentState> {
@@ -148,6 +166,9 @@ class Controller extends Component<ComponentProps, ComponentState> {
             triggerControllerLoad: 0,
             discoveryRunning: false,
             errorText: '',
+            networkGraphDialogType: null,
+            networkGraphData: null,
+            networkGraphError: null,
         };
     }
 
@@ -276,6 +297,15 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 this.onDiscoveryMessageHandler(message.device);
             } else {
                 console.log(`Invalid message with no device: ${JSON.stringify(message)}`);
+            }
+        } else if (message?.command === 'networkGraphUpdate') {
+            // Update network graph data if dialog is open
+            if (
+                message.networkGraphData &&
+                this.state.networkGraphDialogType !== null &&
+                isNetworkGraphData(message.networkGraphData)
+            ) {
+                this.setState({ networkGraphData: message.networkGraphData });
             }
         } else {
             console.log(`Unknown update: ${JSON.stringify(message)}`);
@@ -517,6 +547,68 @@ class Controller extends Component<ComponentProps, ComponentState> {
         this.setState({ backendProcessingActive: false });
     }
 
+    /**
+     * Load network graph data from backend
+     */
+    loadNetworkGraphData = async (): Promise<void> => {
+        try {
+            this.setState({ networkGraphError: null });
+            const result = await this.props.socket.sendTo(
+                `matter.${this.props.instance}`,
+                'controllerNetworkGraphData',
+                {},
+            );
+            if (result?.result && isNetworkGraphData(result.result)) {
+                this.setState({ networkGraphData: result.result });
+            } else if (result?.error) {
+                this.setState({ networkGraphError: result.error });
+            } else if (result?.result) {
+                console.error('Invalid network graph data received:', result.result);
+                this.setState({ networkGraphError: 'Invalid network graph data format' });
+            }
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            console.error('Failed to load network graph data:', error);
+            this.setState({ networkGraphError: errorMessage });
+        }
+    };
+
+    /**
+     * Update network connections for specified nodes
+     */
+    updateNetworkConnections = async (nodeIds: string[]): Promise<void> => {
+        try {
+            await this.props.socket.sendTo(`matter.${this.props.instance}`, 'controllerRefreshNodeNetworkData', {
+                nodeIds,
+            });
+        } catch (error) {
+            console.error('Failed to refresh node network data:', error);
+            throw error;
+        }
+    };
+
+    /**
+     * Render the network graph dialog
+     */
+    renderNetworkGraphDialog(): React.JSX.Element | null {
+        if (this.state.networkGraphDialogType === null) {
+            return null;
+        }
+
+        return (
+            <NetworkGraphDialog
+                open={this.state.networkGraphDialogType !== null}
+                data={this.state.networkGraphData}
+                error={this.state.networkGraphError}
+                onClose={() => this.setState({ networkGraphDialogType: null, networkGraphError: null })}
+                onRefresh={this.loadNetworkGraphData}
+                onUpdateConnections={this.updateNetworkConnections}
+                darkMode={this.props.themeType === 'dark'}
+                networkType={this.state.networkGraphDialogType}
+            />
+        );
+    }
+
     renderQrCodeDialog(): React.JSX.Element | null {
         if (!this.state.showQrCodeDialog) {
             return null;
@@ -658,6 +750,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 {this.renderQrCodeDialog()}
                 {this.renderBleDialog()}
                 {this.renderShowErrorDialog()}
+                {this.renderNetworkGraphDialog()}
                 <div>
                     <Tooltip
                         title={I18n.t('Toggle expert mode')}
@@ -720,6 +813,32 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             startIcon={this.props.matter.controller.ble ? <Bluetooth /> : <BluetoothDisabled />}
                         >
                             {I18n.t('BLE Commissioning information')}
+                        </Button>
+                    ) : null}
+                    {this.props.matter.controller.enabled && this.props.alive ? (
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={() => {
+                                this.setState({ networkGraphDialogType: 'thread' });
+                                this.loadNetworkGraphData();
+                            }}
+                            startIcon={<Hub />}
+                        >
+                            {I18n.t('Thread Topology')}
+                        </Button>
+                    ) : null}
+                    {this.props.matter.controller.enabled && this.props.alive ? (
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={() => {
+                                this.setState({ networkGraphDialogType: 'wifi' });
+                                this.loadNetworkGraphData();
+                            }}
+                            startIcon={<Hub />}
+                        >
+                            {I18n.t('WiFi Topology')}
                         </Button>
                     ) : null}
                 </div>

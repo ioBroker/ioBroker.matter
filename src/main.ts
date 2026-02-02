@@ -2,9 +2,16 @@ import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { Environment, LogLevel, LogFormat, Logger, StorageService, Semaphore } from '@matter/main';
+import {
+    Environment,
+    LogLevel,
+    LogFormat,
+    Logger,
+    StorageService,
+    Semaphore,
+    SoftwareUpdateManager,
+} from '@matter/main';
 import { StorageBackendDisk } from '@matter/nodejs';
-import { MdnsService } from '@matter/main/protocol';
 import { inspect } from 'util';
 
 import { type AdapterOptions, Adapter, getAbsoluteInstanceDataDir, I18n } from '@iobroker/adapter-core';
@@ -16,12 +23,12 @@ import ChannelDetector, {
 } from '@iobroker/type-detector';
 import type { JsonFormSchema, BackEndCommandJsonFormOptions } from '@iobroker/dm-utils';
 
-import type { MatterControllerConfig } from '../src-admin/src/types';
 import type {
     BridgeDescription,
     BridgeDeviceDescription,
     DeviceDescription,
     MatterAdapterConfig,
+    MatterControllerConfig,
 } from './ioBrokerStorageTypes';
 import { DeviceFactory, type GenericDevice, SubscribeManager } from './lib';
 import MatterAdapterDeviceManagement from './lib/DeviceManagement';
@@ -212,7 +219,19 @@ export class MatterAdapter extends Adapter {
             await device?.start();
         }
 
-        await this.#controller?.start();
+        if (this.#controller) {
+            await this.#controller.start();
+
+            // Import custom OTA updates after the controller is started
+            if ((this.config as MatterAdapterConfig).allowInofficialUpdates && this.#controller.otaProvider) {
+                await this.#controller.otaProvider.setStateOf(SoftwareUpdateManager, {
+                    allowTestOtaImages: true,
+                });
+                this.log.info('Enabled test OTA images (test-net DCL)');
+
+                await this.#controller.importCustomOtaUpdates();
+            }
+        }
     }
 
     async onTotalReset(): Promise<void> {
@@ -380,6 +399,11 @@ export class MatterAdapter extends Adapter {
                 }
                 try {
                     const imported = await this.#controller.importCustomOtaUpdates();
+
+                    if (imported > 0) {
+                        await this.#controller.queryUpdates();
+                    }
+
                     if (obj.callback) {
                         this.sendTo(obj.from, obj.command, { imported }, obj.callback);
                     }
@@ -674,12 +698,6 @@ export class MatterAdapter extends Adapter {
         try {
             await this.shutDownMatterNodes();
             // close Environment/MDNS?
-        } catch {
-            // ignore
-        }
-
-        try {
-            this.#matterEnvironment.close(MdnsService);
         } catch {
             // ignore
         }

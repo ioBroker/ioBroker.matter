@@ -66,6 +66,9 @@ interface AddDeviceResult {
     nodeId?: string;
 }
 
+// Re-export network types for external use
+export type { NetworkGraphData, NetworkNodeData, NetworkType, WiFiDiagnosticsData, ThreadDiagnosticsData };
+
 type EndUserCommissioningOptions = (
     | { qrCode: string }
     | { manualCode: string }
@@ -83,6 +86,7 @@ class Controller implements GeneralNode {
     #useBle = false;
     #commissioningStatus = new Map<number, { status: 'finished' | 'error' | 'inprogress'; result?: MessageResponse }>();
     #observers = new ObserverGroup();
+    #networkGraphUpdateTimer?: ReturnType<typeof setTimeout>;
 
     constructor(options: ControllerCreateOptions) {
         const { adapter, controllerOptions, updateCallback, fabricLabel } = options;
@@ -241,6 +245,20 @@ class Controller implements GeneralNode {
                     await node.cancelSoftwareUpdate();
                     return { result: 'ok' };
                 }
+                case 'controllerNetworkGraphData': {
+                    // Get network graph data for visualization
+                    const data = this.getNetworkGraphData();
+                    return { result: data };
+                }
+                case 'controllerRefreshNodeNetworkData': {
+                    // Refresh network diagnostics data for specified nodes
+                    const nodeIds = message.nodeIds as string[];
+                    if (!Array.isArray(nodeIds) || nodeIds.length === 0) {
+                        return { error: 'No node IDs provided' };
+                    }
+                    await this.refreshNodeNetworkData(nodeIds);
+                    return { result: 'ok' };
+                }
             }
         } catch (error) {
             const errorText = inspect(error, { depth: 10 });
@@ -257,6 +275,11 @@ class Controller implements GeneralNode {
                 .get(node.nodeId.toString())
                 ?.handleChangedAttribute(data)
                 .catch(error => this.#adapter.log.error(`Error handling attribute change: ${error}`));
+
+            // Check if this is a network-relevant attribute change and send update to GUI
+            if (this.#isNetworkRelevantCluster(data.path.clusterId)) {
+                this.#sendNetworkGraphUpdate();
+            }
         });
         node.events.eventTriggered.on(data => {
             this.#nodes
@@ -280,6 +303,9 @@ class Controller implements GeneralNode {
                 }
             }
             this.#updateCallback();
+
+            // Send network graph update on connection state changes
+            this.#sendNetworkGraphUpdate();
         });
         node.events.structureChanged.on(() => {
             this.#adapter.log.info(`Node "${node.nodeId}" structure changed`);
@@ -736,10 +762,354 @@ class Controller implements GeneralNode {
         return imported;
     }
 
+    /**
+     * Get network graph data for all connected nodes.
+     * Collects WiFi and Thread diagnostics data for visualization.
+     */
+    getNetworkGraphData(): NetworkGraphData {
+        const nodes: NetworkNodeData[] = [];
+
+        for (const [nodeId, node] of this.#nodes) {
+            try {
+                const nodeData = this.#collectNodeNetworkData(nodeId, node);
+                if (nodeData) {
+                    nodes.push(nodeData);
+                }
+            } catch (error) {
+                this.#adapter.log.debug(`Error collecting network data for node ${nodeId}: ${error}`);
+            }
+        }
+
+        return { nodes, timestamp: Date.now() };
+    }
+
+    /**
+     * Refresh network diagnostics data for specified nodes by re-reading cluster attributes.
+     * Uses getMultipleAttributes to send one efficient request per node.
+     */
+    async refreshNodeNetworkData(nodeIds: string[]): Promise<void> {
+        this.#adapter.log.debug(`Refreshing network data for nodes: ${nodeIds.join(', ')}`);
+
+        // Thread Network Diagnostics cluster ID: 0x0035 (53)
+        // Attribute IDs: channel=0, routingRole=1, neighborTable=7, routeTable=8
+        const threadClusterId = ClusterId(0x0035);
+        const threadAttributes = [
+            { endpointId: EndpointNumber(0), clusterId: threadClusterId, attributeId: AttributeId(0) }, // channel
+            { endpointId: EndpointNumber(0), clusterId: threadClusterId, attributeId: AttributeId(1) }, // routingRole
+            { endpointId: EndpointNumber(0), clusterId: threadClusterId, attributeId: AttributeId(7) }, // neighborTable
+            { endpointId: EndpointNumber(0), clusterId: threadClusterId, attributeId: AttributeId(8) }, // routeTable
+        ];
+
+        // WiFi Network Diagnostics cluster ID: 0x0036 (54)
+        // Attribute IDs: bssid=0, securityType=1, wiFiVersion=2, channelNumber=3, rssi=4
+        const wifiClusterId = ClusterId(0x0036);
+        const wifiAttributes = [
+            { endpointId: EndpointNumber(0), clusterId: wifiClusterId, attributeId: AttributeId(0) }, // bssid
+            { endpointId: EndpointNumber(0), clusterId: wifiClusterId, attributeId: AttributeId(1) }, // securityType
+            { endpointId: EndpointNumber(0), clusterId: wifiClusterId, attributeId: AttributeId(2) }, // wiFiVersion
+            { endpointId: EndpointNumber(0), clusterId: wifiClusterId, attributeId: AttributeId(3) }, // channelNumber
+            { endpointId: EndpointNumber(0), clusterId: wifiClusterId, attributeId: AttributeId(4) }, // rssi
+        ];
+
+        const refreshPromises = nodeIds.map(async nodeIdStr => {
+            const node = this.#nodes.get(nodeIdStr);
+            if (!node) {
+                this.#adapter.log.debug(`Node ${nodeIdStr} not found for refresh`);
+                return;
+            }
+
+            if (!node.isConnected) {
+                this.#adapter.log.debug(`Node ${nodeIdStr} is offline, skipping refresh`);
+                return;
+            }
+
+            try {
+                // Get interaction client for this node
+                const client = await node.node.getInteractionClient();
+
+                // Determine network type and read appropriate diagnostics
+                const networkType = this.#getNetworkType(node);
+                const attributes =
+                    networkType === 'thread' ? threadAttributes : networkType === 'wifi' ? wifiAttributes : [];
+
+                if (attributes.length === 0) {
+                    this.#adapter.log.debug(`Node ${nodeIdStr} has no network diagnostics to refresh`);
+                    return;
+                }
+
+                // Read all attributes in one request
+                await client.getMultipleAttributes({ attributes });
+
+                this.#adapter.log.debug(`Successfully refreshed network data for node ${nodeIdStr}`);
+            } catch (error) {
+                this.#adapter.log.debug(`Error refreshing network data for node ${nodeIdStr}: ${error}`);
+            }
+        });
+
+        await Promise.all(refreshPromises);
+
+        // Send updated network graph data
+        this.#sendNetworkGraphUpdate();
+    }
+
+    /**
+     * Send network graph update to GUI with debouncing to avoid excessive updates.
+     * Debounce time is 1 second to batch rapid changes.
+     */
+    #sendNetworkGraphUpdate(): void {
+        if (this.#networkGraphUpdateTimer) {
+            clearTimeout(this.#networkGraphUpdateTimer);
+        }
+        this.#networkGraphUpdateTimer = setTimeout(async () => {
+            try {
+                const data = this.getNetworkGraphData();
+                await this.#adapter.sendToGui({
+                    command: 'networkGraphUpdate',
+                    networkGraphData: data,
+                });
+            } catch (error) {
+                this.#adapter.log.debug(`Error sending network graph update: ${error}`);
+            }
+        }, 1000);
+    }
+
+    /**
+     * Check if the cluster ID is relevant for network graph visualization.
+     */
+    #isNetworkRelevantCluster(clusterId: number): boolean {
+        // WiFiNetworkDiagnostics cluster ID: 0x0036 (54)
+        // ThreadNetworkDiagnostics cluster ID: 0x0035 (53)
+        // NetworkCommissioning cluster ID: 0x0031 (49)
+        return clusterId === 0x0036 || clusterId === 0x0035 || clusterId === 0x0031;
+    }
+
+    #collectNodeNetworkData(nodeId: string, node: GeneralMatterNode): NetworkNodeData | null {
+        const networkType = this.#getNetworkType(node);
+        const wifiDiagnostics = this.#getWiFiDiagnostics(node);
+        const threadDiagnostics = this.#getThreadDiagnostics(node);
+
+        // Get vendorId and productId from basicInformation
+        const basicInfo = node.node.basicInformation;
+        const vendorId =
+            basicInfo?.vendorId !== undefined ? `0x${basicInfo.vendorId.toString(16).toUpperCase()}` : undefined;
+        const productId =
+            basicInfo?.productId !== undefined ? `0x${basicInfo.productId.toString(16).toUpperCase()}` : undefined;
+
+        return {
+            nodeId,
+            name: node.name,
+            vendorId,
+            productId,
+            isConnected: node.isConnected,
+            networkType,
+            wifi: wifiDiagnostics,
+            thread: threadDiagnostics,
+        };
+    }
+
+    #getNetworkType(node: GeneralMatterNode): NetworkType {
+        // Use the deviceInformation from PairedNode which is more reliable
+        if (node.node.deviceInformation?.threadConnected) {
+            return 'thread';
+        }
+        if (node.node.deviceInformation?.wifiConnected) {
+            return 'wifi';
+        }
+        if (node.node.deviceInformation?.ethernetConnected) {
+            return 'ethernet';
+        }
+
+        // Fallback: try to detect from NetworkCommissioning cluster feature map
+        try {
+            const networkCommissioning = node.node.getRootClusterClient(NetworkCommissioning.Complete);
+            if (networkCommissioning) {
+                const features = networkCommissioning.supportedFeatures;
+                if (features.threadNetworkInterface) {
+                    return 'thread';
+                }
+                if (features.wiFiNetworkInterface) {
+                    return 'wifi';
+                }
+                if (features.ethernetNetworkInterface) {
+                    return 'ethernet';
+                }
+            }
+        } catch {
+            // Ignore errors
+        }
+
+        return 'unknown';
+    }
+
+    #getWiFiDiagnostics(node: GeneralMatterNode): WiFiDiagnosticsData | undefined {
+        if (!node.isConnected) {
+            return undefined;
+        }
+
+        try {
+            const cluster = node.node.getRootClusterClient(WiFiNetworkDiagnosticsCluster);
+            if (!cluster) {
+                return undefined;
+            }
+
+            const bssidRaw = cluster.isAttributeSupportedByName('bssid') ? cluster.getBssidAttributeFromCache() : null;
+            let bssid: string | null = null;
+            if (bssidRaw) {
+                // Convert Uint8Array to base64 string
+                bssid = Buffer.from(new Uint8Array(bssidRaw as ArrayBuffer)).toString('base64');
+            }
+
+            return {
+                bssid,
+                rssi: cluster.isAttributeSupportedByName('rssi') ? (cluster.getRssiAttributeFromCache() ?? null) : null,
+                channel: cluster.isAttributeSupportedByName('channelNumber')
+                    ? (cluster.getChannelNumberAttributeFromCache() ?? null)
+                    : null,
+                securityType: cluster.isAttributeSupportedByName('securityType')
+                    ? ((cluster.getSecurityTypeAttributeFromCache() as number | null | undefined) ?? null)
+                    : null,
+                wifiVersion: cluster.isAttributeSupportedByName('wiFiVersion')
+                    ? ((cluster.getWiFiVersionAttributeFromCache() as number | null | undefined) ?? null)
+                    : null,
+            };
+        } catch {
+            return undefined;
+        }
+    }
+
+    #getThreadDiagnostics(node: GeneralMatterNode): ThreadDiagnosticsData | undefined {
+        if (!node.isConnected) {
+            return undefined;
+        }
+
+        try {
+            const cluster = node.node.getRootClusterClient(ThreadNetworkDiagnostics.Cluster);
+            if (!cluster) {
+                return undefined;
+            }
+
+            // Get extended address from General Diagnostics cluster
+            const extendedAddress = this.#getExtendedAddress(node);
+
+            // Get neighbor table
+            const neighborTableRaw = cluster.isAttributeSupportedByName('neighborTable')
+                ? (cluster.getNeighborTableAttributeFromCache() ?? [])
+                : [];
+
+            const neighborTable: ThreadNeighborEntry[] = neighborTableRaw.map(entry => ({
+                extAddress: this.#bigIntToBase64(entry.extAddress),
+                rloc16: entry.rloc16,
+                age: entry.age,
+                averageRssi: entry.averageRssi,
+                lastRssi: entry.lastRssi,
+                lqi: entry.lqi,
+                frameErrorRate: entry.frameErrorRate,
+                messageErrorRate: entry.messageErrorRate,
+                rxOnWhenIdle: entry.rxOnWhenIdle,
+                fullThreadDevice: entry.fullThreadDevice,
+                fullNetworkData: entry.fullNetworkData,
+                isChild: entry.isChild,
+            }));
+
+            // Get route table
+            const routeTableRaw = cluster.isAttributeSupportedByName('routeTable')
+                ? (cluster.getRouteTableAttributeFromCache() ?? [])
+                : [];
+
+            const routeTable: ThreadRouteEntry[] = routeTableRaw.map(entry => ({
+                extAddress: this.#bigIntToBase64(entry.extAddress),
+                rloc16: entry.rloc16,
+                routerId: entry.routerId,
+                nextHop: entry.nextHop,
+                pathCost: entry.pathCost,
+                lqiIn: entry.lqiIn,
+                lqiOut: entry.lqiOut,
+                age: entry.age,
+                allocated: entry.allocated,
+                linkEstablished: entry.linkEstablished,
+            }));
+
+            // Get extended PAN ID
+            let extendedPanId: string | null = null;
+            if (cluster.isAttributeSupportedByName('extendedPanId')) {
+                const extPanIdRaw = cluster.getExtendedPanIdAttributeFromCache();
+                if (extPanIdRaw !== undefined && extPanIdRaw !== null) {
+                    extendedPanId = this.#bigIntToBase64(extPanIdRaw);
+                }
+            }
+
+            return {
+                channel: cluster.isAttributeSupportedByName('channel')
+                    ? (cluster.getChannelAttributeFromCache() ?? null)
+                    : null,
+                routingRole: cluster.isAttributeSupportedByName('routingRole')
+                    ? ((cluster.getRoutingRoleAttributeFromCache() as number | null | undefined) ?? null)
+                    : null,
+                extendedPanId,
+                rloc16: cluster.isAttributeSupportedByName('rloc16')
+                    ? (cluster.getRloc16AttributeFromCache() ?? null)
+                    : null,
+                extendedAddress,
+                neighborTable,
+                routeTable,
+            };
+        } catch {
+            return undefined;
+        }
+    }
+
+    #getExtendedAddress(node: GeneralMatterNode): string | null {
+        try {
+            const cluster = node.node.getRootClusterClient(GeneralDiagnosticsCluster);
+            if (!cluster) {
+                return null;
+            }
+
+            const networkInterfaces = cluster.isAttributeSupportedByName('networkInterfaces')
+                ? cluster.getNetworkInterfacesAttributeFromCache()
+                : null;
+
+            if (!networkInterfaces?.length) {
+                return null;
+            }
+
+            // Find Thread interface (type 4) or use first with hardware address
+            const threadIface = networkInterfaces.find(i => i.type === 4) || networkInterfaces[0];
+            if (!threadIface?.hardwareAddress) {
+                return null;
+            }
+
+            return Buffer.from(new Uint8Array(threadIface.hardwareAddress as ArrayBuffer)).toString('base64');
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * Convert a bigint (like extended address) to base64 string
+     */
+    #bigIntToBase64(value: bigint | number): string {
+        const bigValue = typeof value === 'number' ? BigInt(value) : value;
+        // Convert bigint to 8-byte buffer (big-endian)
+        const bytes = new Uint8Array(8);
+        let remaining = bigValue;
+        for (let i = 7; i >= 0; i--) {
+            bytes[i] = Number(remaining & 0xffn);
+            remaining >>= 8n;
+        }
+        return Buffer.from(bytes).toString('base64');
+    }
+
     async stop(): Promise<void> {
         this.#adapter.log.info(`Stopping Controller...`);
         if (this.#discovering) {
             await this.#discoveryStop();
+        }
+
+        // Clear any pending network graph update timer
+        if (this.#networkGraphUpdateTimer) {
+            clearTimeout(this.#networkGraphUpdateTimer);
+            this.#networkGraphUpdateTimer = undefined;
         }
 
         for (const node of this.#nodes.values()) {

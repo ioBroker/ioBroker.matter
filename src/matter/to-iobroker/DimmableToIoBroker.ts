@@ -180,7 +180,7 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker<D
                     },
                 });
             },
-            convertValue: value => Math.round((value / 254) * 100),
+            convertValue: value => (value !== null ? Math.round((value / 254) * 100) : null),
         });
     }
 

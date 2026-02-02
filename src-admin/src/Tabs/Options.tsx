@@ -85,8 +85,6 @@ interface OptionsState {
     defaultCustomOtaPath: string;
     /** If we are currently waiting for backend processing */
     backendProcessingActive: boolean;
-    /** Error text to show */
-    errorText: string;
 }
 
 class Options extends Component<OptionsProps, OptionsState> {
@@ -97,7 +95,6 @@ class Options extends Component<OptionsProps, OptionsState> {
             dialogLevel: 0,
             defaultCustomOtaPath: '',
             backendProcessingActive: false,
-            errorText: '',
         };
     }
 

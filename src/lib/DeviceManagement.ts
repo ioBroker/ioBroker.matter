@@ -931,7 +931,8 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     async checkNodeUpdates(context: ActionContext): Promise<{ refresh: boolean }> {
         const updates = (await this.#adapter?.controllerNode?.queryUpdates()) ?? [];
 
-        const message = this.#adapter?.t('%d updates available', updates.length) ?? `${updates.length} updates available`;
+        const message =
+            this.#adapter?.t('%d updates available', updates.length) ?? `${updates.length} updates available`;
         await context.showMessage(message);
 
         return { refresh: !!updates.length };

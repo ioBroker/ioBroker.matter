@@ -384,7 +384,7 @@ export class MatterAdapter extends Adapter {
                 break;
             }
             case 'getDefaultCustomOtaPath': {
-                const customOtaPath = path.join(this.instanceDataDir!, 'custom-ota');
+                const customOtaPath = path.join(this.instanceDataDir, 'custom-ota');
                 if (obj.callback) {
                     this.sendTo(obj.from, obj.command, { path: customOtaPath }, obj.callback);
                 }

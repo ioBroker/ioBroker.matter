@@ -347,7 +347,7 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
                     },
                 });
             },
-            convertValue: value => Math.round((value / 254) * 100),
+            convertValue: value => (value !== null ? Math.round((value / 254) * 100) : null),
         });
 
         // StartUp Color Temperature - defines the color temperature on power-up (Kelvin in ioBroker, Mireds in Matter)
@@ -367,7 +367,7 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
                     },
                 });
             },
-            convertValue: value => Math.round(miredsToKelvin(value)),
+            convertValue: value => (value !== null ? Math.round(miredsToKelvin(value)) : null),
         });
     }
 

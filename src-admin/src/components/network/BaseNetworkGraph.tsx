@@ -15,9 +15,8 @@ export interface BaseNetworkGraphProps {
     selectedNodeId?: string | null;
 }
 
-export interface BaseNetworkGraphState {
-    initialized: boolean;
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface BaseNetworkGraphState {}
 
 abstract class BaseNetworkGraph<
     P extends BaseNetworkGraphProps = BaseNetworkGraphProps,
@@ -35,9 +34,7 @@ abstract class BaseNetworkGraph<
 
     constructor(props: P) {
         super(props);
-        this.state = {
-            initialized: false,
-        } as S;
+        this.state = {} as S;
     }
 
     componentDidMount(): void {

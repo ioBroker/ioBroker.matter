@@ -856,7 +856,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                         color="primary"
                         autoFocus
                     >
-                        {I18n.t('Ok')}
+                        {I18n.t('okButtonText')}
                     </Button>
                 </DialogActions>
             </Dialog>

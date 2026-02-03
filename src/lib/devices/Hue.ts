@@ -1,13 +1,19 @@
 import { Ct } from './Ct';
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import type { CustomStatesRecord } from '../../matter/to-iobroker/custom-states';
 
 export class Hue extends Ct {
     #hueState?: DeviceStateObject<number>;
     #saturationState?: DeviceStateObject<number>; //Makes no sense!
 
-    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
-        super(detectedDevice, adapter, options);
+    constructor(
+        detectedDevice: DetectedDevice,
+        adapter: ioBroker.Adapter,
+        options?: DeviceOptions,
+        customStateDefinitions?: CustomStatesRecord,
+    ) {
+        super(detectedDevice, adapter, options, customStateDefinitions);
 
         this._construction.push(
             this.addDeviceStates([

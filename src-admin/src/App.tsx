@@ -4,7 +4,9 @@ import React from 'react';
 import { IconButton as IconButton76 } from '@foxriver76/iob-component-lib';
 import {
     AppBar,
+    Button,
     Dialog,
+    DialogActions,
     DialogContent,
     DialogContentText,
     DialogTitle,
@@ -105,13 +107,21 @@ interface AppState extends GenericAppState {
     progress: {
         title?: ioBroker.StringOrTranslated;
         text?: ioBroker.StringOrTranslated;
+        /** Secondary text shown below progress (e.g., patience notice) */
+        subText?: ioBroker.StringOrTranslated;
         indeterminate?: boolean;
         value?: number;
+        /** Whether the progress dialog can be cancelled */
+        cancelable?: boolean;
+        /** Node ID for cancel action (for OTA updates) */
+        cancelNodeId?: string;
     } | null;
     welcomeDialogShowed: boolean;
     updatePassTrigger: number;
     identifyUuids: { uuid: string; ts: number }[];
     localExpertMode: boolean;
+    cancelUpdateInfo: boolean;
+    updateSuccessInfo: boolean;
 }
 
 class App extends GenericApp<GenericAppProps, AppState> {
@@ -186,6 +196,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
             updatePassTrigger: 1,
             identifyUuids: [],
             localExpertMode: window.localStorage.getItem(`${this.adapterName}.${this.instance}.expertMode`) === 'true',
+            cancelUpdateInfo: false,
+            updateSuccessInfo: false,
         } as Partial<AppState>);
 
         this.alert = window.alert;
@@ -380,6 +392,15 @@ class App extends GenericApp<GenericAppProps, AppState> {
                     if (update.progress.indeterminate !== undefined) {
                         progress.indeterminate = update.progress.indeterminate;
                     }
+                    if (update.progress.cancelable !== undefined) {
+                        progress.cancelable = update.progress.cancelable;
+                    }
+                    if (update.progress.cancelNodeId !== undefined) {
+                        progress.cancelNodeId = update.progress.cancelNodeId;
+                    }
+                    if (update.progress.subText !== undefined) {
+                        progress.subText = update.progress.subText;
+                    }
                     this.setState({ progress });
                 }
             } else if (this.state.progress) {
@@ -451,6 +472,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
             } else {
                 console.warn('No identifyUuid');
             }
+        } else if (update.command === 'updateSuccess') {
+            this.setState({ updateSuccessInfo: true });
         } else {
             this.controllerMessageHandler && this.controllerMessageHandler(update);
         }
@@ -720,6 +743,21 @@ class App extends GenericApp<GenericAppProps, AppState> {
         }
     }
 
+    handleProgressCancel = (): void => {
+        if (this.state.progress?.cancelNodeId) {
+            this.socket
+                .sendTo(`matter.${this.instance}`, 'controllerCancelUpdate', {
+                    nodeId: this.state.progress.cancelNodeId,
+                })
+                .then(() => {
+                    this.setState({ progress: null, cancelUpdateInfo: true });
+                })
+                .catch(e => {
+                    console.error(`Cannot cancel update: ${e}`);
+                });
+        }
+    };
+
     renderProgressDialog(): React.JSX.Element | null {
         if (!this.state.progress) {
             return null;
@@ -734,13 +772,93 @@ class App extends GenericApp<GenericAppProps, AppState> {
                 {this.state.progress.title ? <DialogTitle>{getText(this.state.progress.title)}</DialogTitle> : null}
                 <DialogContent>
                     <LinearProgress
+                        sx={{ marginBottom: 2, minWidth: 300 }}
                         variant={this.state.progress.indeterminate ? 'indeterminate' : 'determinate'}
                         value={this.state.progress.value}
                     />
                     {this.state.progress.text ? (
                         <DialogContentText>{getText(this.state.progress.text)}</DialogContentText>
                     ) : null}
+                    {this.state.progress.subText ? (
+                        <DialogContentText sx={{ marginTop: 2, fontStyle: 'italic', fontSize: '0.9em' }}>
+                            {getText(this.state.progress.subText)}
+                        </DialogContentText>
+                    ) : null}
                 </DialogContent>
+                {this.state.progress.cancelable ? (
+                    <DialogActions>
+                        <Button
+                            onClick={this.handleProgressCancel}
+                            color="primary"
+                        >
+                            {I18n.t('Cancel')}
+                        </Button>
+                    </DialogActions>
+                ) : null}
+            </Dialog>
+        );
+    }
+
+    renderCancelUpdateInfoDialog(): React.JSX.Element | null {
+        if (!this.state.cancelUpdateInfo) {
+            return null;
+        }
+
+        return (
+            <Dialog
+                open={!0}
+                onClose={() => this.setState({ cancelUpdateInfo: false })}
+                maxWidth="sm"
+            >
+                <DialogTitle>{I18n.t('Update cancelled')}</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        {I18n.t(
+                            'Update cancelled. The device might be blocked for another update try for the next 5-15 minutes.',
+                        )}
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        onClick={() => this.setState({ cancelUpdateInfo: false })}
+                        color="primary"
+                        autoFocus
+                    >
+                        {I18n.t('Close')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        );
+    }
+
+    renderUpdateSuccessDialog(): React.JSX.Element | null {
+        if (!this.state.updateSuccessInfo) {
+            return null;
+        }
+
+        return (
+            <Dialog
+                open={!0}
+                onClose={() => this.setState({ updateSuccessInfo: false })}
+                maxWidth="sm"
+            >
+                <DialogTitle>{I18n.t('Update successful')}</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        {I18n.t(
+                            'The software update has been successfully applied. The device will restart to complete the update. This can take up to several minutes.',
+                        )}
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        onClick={() => this.setState({ updateSuccessInfo: false })}
+                        color="primary"
+                        autoFocus
+                    >
+                        {I18n.t('okButtonText')}
+                    </Button>
+                </DialogActions>
             </Dialog>
         );
     }
@@ -844,6 +962,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
                     {this.renderToast()}
                     {this.renderIdentifyToast()}
                     {this.renderProgressDialog()}
+                    {this.renderCancelUpdateInfoDialog()}
+                    {this.renderUpdateSuccessDialog()}
                     {this.renderWelcomeDialog()}
                     <div
                         className="App"

@@ -10,7 +10,7 @@
 [![Downloads](https://img.shields.io/npm/dm/iobroker.matter.svg)](https://www.npmjs.com/package/iobroker.matter)
 
 **This adapter uses Sentry libraries to automatically report exceptions and code errors to the developers.**
-For more details and for information how to disable the error reporting see [Sentry-Plugin Documentation](https://github.com/ioBroker/plugin-sentry#plugin-sentry)!
+For more details and for information how to disable the error reporting, see [Sentry-Plugin Documentation](https://github.com/ioBroker/plugin-sentry#plugin-sentry)!
 Sentry reporting is used starting with js-controller 3.0.
 
 ## Introduction
@@ -26,6 +26,46 @@ With the ioBroker Matter Adapter, it is possible to map the following use cases:
 * Matter-based devices can be linked directly to ioBroker and thus read in / controlled
 * The provision of multiple ioBroker devices as a Matter Bridge: Matter Bridges can contain multiple devices and are the easiest way to integrate ioBroker devices into a Matter-compatible ecosystem.
 * ioBroker provides individual virtual Matter devices based on ioBroker devices / ioBroker states, which can be taught to a Matter-compatible ecosystem (currently only bridges are possible for Amazon Alexa)
+
+## OTA Updates (Over-The-Air)
+
+The Matter adapter supports firmware updates for devices connected via the Controller, allowing you to update Matter devices directly through ioBroker.
+
+### Basic Usage
+
+When an update is available, an **update icon** appears next to the device in the Controller panel. Updates are checked once a day and initially approx 10-15 minutes after the adapter start.
+
+**To update a device:**
+1. Open the **Controller panel** for the Matter adapter
+2. Click the **update action** on the device with the update icon
+3. Review the update information (if shown) and click **Update now**
+
+**Update phases:**
+- **Querying** → **Downloading** (shows %) → **Applying**
+
+You can cancel during Querying/Downloading. Once Applying starts, the update cannot be cancelled. After completion, the device restarts automatically (may take several minutes).
+
+> **Tip**: Updates can appear stuck during download – this is normal, especially for Thread devices. Be patient.
+
+### Official Updates
+
+The adapter automatically checks for certified firmware from the [Distributed Compliance Ledger (DCL)](https://webui.dcl.csa-iot.org/) - the official Matter certification database. No configuration required.
+
+### Custom OTA Updates (Advanced)
+
+For testing pre-release or community firmware:
+
+> **Warning**: Custom updates bypass certification. Only use firmware from trusted sources.
+
+**Setup:**
+1. Go to **General** tab → **Custom OTA Updates** section
+2. Enable **Allow custom/unofficial OTA updates**
+3. Optionally set a custom path (default: `<instance data>/custom-ota`)
+
+**Adding files:**
+- Place `.ota` files in the custom updates directory
+- Click **Import updates now** to scan for new files (Files are imported on adapter start automatically once)
+- The adapter extracts vendor/product IDs from file headers automatically and validates the files.
 
 ## ToDo
 * Texts are partially in english
@@ -402,4 +442,4 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 ## License
 Apache-2.0
 
-Copyright (c) 2023-2026 Denis Haev <dogafox@gmail.com>
+Copyright (c) 2023-2026 Denis Haev <dogafox@gmail.com>, Ingo Fischer <github@fischer-ka.de>

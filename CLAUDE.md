@@ -231,7 +231,52 @@ Pro subscription required for:
 
 Verified via `iobroker.pro` API in `checkLicense()`.
 
+## Critical: Separate TypeScript Projects
+
+**IMPORTANT: The backend (`src/`) and frontend (`src-admin/`) are TWO SEPARATE TypeScript projects with independent compilation.**
+
+### Rules
+
+1. **Never import from `src-admin/` in backend code** - The backend tsconfig does not include src-admin
+2. **Never import from `src/` in frontend code** - The frontend tsconfig does not include src
+3. **Shared types must be duplicated** - If both projects need the same types, define them in both:
+   - Backend types: `src/ioBrokerStorageTypes.ts`
+   - Frontend types: `src-admin/src/types.d.ts`
+4. **Keep type definitions in sync manually** - When modifying shared types, update both files
+
+### Why This Matters
+
+Cross-project imports will:
+- Silently fail during TypeScript compilation (files outside the project are ignored)
+- Result in missing code in the built output
+- Cause runtime errors like "Unknown command" when handlers aren't compiled
+
+### Type Locations
+
+| Type Category | Backend Location | Frontend Location |
+|---------------|------------------|-------------------|
+| Config types | `src/ioBrokerStorageTypes.ts` | `src-admin/src/types.d.ts` |
+| Network graph types | `src/ioBrokerStorageTypes.ts` | `src-admin/src/types.d.ts` |
+| GUI message types | N/A (backend uses inline) | `src-admin/src/types.d.ts` |
+
 ## Development Tips
+
+### Required Checks Before Committing
+
+**IMPORTANT: Always run these checks after making changes:**
+
+```bash
+# After backend changes
+npm run lint
+
+# After frontend changes (src-admin/)
+npm run lint-frontend
+
+# Build to verify compilation
+npm run build
+```
+
+The frontend linter (`npm run lint-frontend`) uses ESLint with Prettier and must pass before committing any frontend code changes.
 
 ### Adding New Device Type
 
@@ -261,5 +306,6 @@ Set `debug: true` in adapter config to enable verbose matter.js logging.
 | `src/matter/to-iobroker/ioBrokerFactory.ts` | Creates ioBroker mappings for controller |
 | `src-admin/src/App.tsx` | Main React application |
 | `src-admin/src/components/ConfigHandler.tsx` | Config sync between UI and objects |
-| `src-admin/src/types.d.ts` | Shared TypeScript types (used by both) |
+| `src/ioBrokerStorageTypes.ts` | Backend TypeScript types |
+| `src-admin/src/types.d.ts` | Frontend TypeScript types |
 | `io-package.json` | ioBroker adapter metadata |

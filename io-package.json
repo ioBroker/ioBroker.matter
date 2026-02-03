@@ -189,7 +189,9 @@
     "login": "",
     "pass": "",
     "defaultBridge": "",
-    "controllerFabricLabel": ""
+    "controllerFabricLabel": "",
+    "allowUnofficialUpdates": false,
+    "customUpdatesPath": ""
   },
   "objects": [],
   "instanceObjects": [

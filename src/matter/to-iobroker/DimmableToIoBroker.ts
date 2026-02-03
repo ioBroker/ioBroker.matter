@@ -6,8 +6,9 @@ import { Dimmer } from '../../lib/devices/Dimmer';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 import type { MatterAdapter } from '../../main';
+import { DimmableCustomStates, type DimmableCustomStatesType } from './custom-states';
 
-export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
+export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker<DimmableCustomStatesType> {
     readonly #ioBrokerDevice: Dimmer;
     #isLighting = false;
     #minLevel = 0;
@@ -32,12 +33,14 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
             deviceTypeName,
             defaultConnectionStateId,
             defaultName,
+            DimmableCustomStates,
         );
 
         this.#ioBrokerDevice = new Dimmer(
             { ...ChannelDetector.getPatterns().dimmer, isIoBrokerDevice: false } as DetectedDevice,
             adapter,
             this.enableDeviceTypeStates(),
+            DimmableCustomStates,
         );
     }
 
@@ -59,6 +62,8 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
+        this.#enableCustomStates();
+
         this.enableDeviceTypeStateForAttribute(PropertyType.TransitionTime);
 
         this.enableDeviceTypeStateForAttribute(PropertyType.Power, {
@@ -135,6 +140,48 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker {
             convertValue: value => Math.round((value / 254) * 100),
         });
         return super.enableDeviceTypeStates();
+    }
+
+    #enableCustomStates(): void {
+        const endpointId = this.appEndpoint.getNumber();
+
+        // StartUp On/Off - defines device behavior on power-up
+        this.enableCustomStateForAttribute('startUpOnOff', {
+            endpointId,
+            clusterId: OnOff.Cluster.id,
+            attributeName: 'startUpOnOff',
+            changeHandler: async (value: number | null) => {
+                const client = await this.node.getInteractionClient();
+                await client.setAttribute({
+                    attributeData: {
+                        endpointId,
+                        clusterId: OnOff.Complete.id,
+                        attribute: OnOff.Complete.attributes.startUpOnOff,
+                        value,
+                    },
+                });
+            },
+        });
+
+        // StartUp Current Level - defines the brightness level on power-up (0-100% in ioBroker, 0-254 in Matter)
+        this.enableCustomStateForAttribute('startUpCurrentLevel', {
+            endpointId,
+            clusterId: LevelControl.Cluster.id,
+            attributeName: 'startUpCurrentLevel',
+            changeHandler: async (value: number | null) => {
+                const matterValue = value !== null ? Math.round((value / 100) * 254) : null;
+                const client = await this.node.getInteractionClient();
+                await client.setAttribute({
+                    attributeData: {
+                        endpointId,
+                        clusterId: LevelControl.Complete.id,
+                        attribute: LevelControl.Complete.attributes.startUpCurrentLevel,
+                        value: matterValue,
+                    },
+                });
+            },
+            convertValue: value => (value !== null ? Math.round((value / 254) * 100) : null),
+        });
     }
 
     get ioBrokerDevice(): Dimmer {

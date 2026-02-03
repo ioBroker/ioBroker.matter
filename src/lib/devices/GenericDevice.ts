@@ -1,7 +1,8 @@
 // @iobroker/device-types
 
-import type { DetectorState, Types } from '@iobroker/type-detector';
+import type { DetectorState, Types, StateType } from '@iobroker/type-detector';
 import type { BridgeDeviceDescription } from '../../ioBrokerStorageTypes';
+import type { CustomStatesRecord } from '../../matter/to-iobroker/custom-states';
 import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { EventEmitter } from 'events';
 
@@ -67,16 +68,29 @@ export abstract class GenericDevice extends EventEmitter {
     #directionState?: DeviceStateObject<boolean>;
     #batteryState?: DeviceStateObject<number>;
 
+    /** Custom states storage - keyed by custom property name */
+    #customStates = new Map<string, DeviceStateObject<any>>();
+    /** Custom state definitions passed from ToIoBroker converter */
+    #customStateDefinitions?: CustomStatesRecord;
+    /** Custom state metadata - keyed by custom property name */
+    #customProperties: { [name: string]: StateDescription } = {};
+    /** Handlers for custom state changes */
+    #customHandlers = new Array<
+        (event: { customPropertyName: string; value: any; device: GenericDevice }) => Promise<void>
+    >();
+
     constructor(
         detectedDevice: DetectedDevice,
         adapter: ioBroker.Adapter,
         protected options?: DeviceOptions,
+        customStateDefinitions?: CustomStatesRecord,
     ) {
         super();
         this.#adapter = adapter;
         this.#deviceType = detectedDevice.type;
         this.#detectedDevice = detectedDevice;
         this.#isIoBrokerDevice = detectedDevice.isIoBrokerDevice;
+        this.#customStateDefinitions = customStateDefinitions;
 
         this._construction.push(
             this.addDeviceStates([
@@ -549,6 +563,208 @@ export abstract class GenericDevice extends EventEmitter {
     hasBattery(): boolean {
         return this.propertyNames.includes(PropertyType.Battery);
     }
+
+    // ==================== Custom State Methods ====================
+
+    /**
+     * Initialize a custom state from its definition.
+     * Called by ToIoBroker converters after enabling custom state mappings.
+     *
+     * @param customPropertyName - The custom property name (must exist in customStateDefinitions)
+     * @param stateIdPrefix - Prefix for the ioBroker state ID (typically baseId + '.')
+     */
+    async initCustomState(
+        customPropertyName: string,
+        stateIdPrefix: string,
+    ): Promise<DeviceStateObject<any> | undefined> {
+        const definition = this.#customStateDefinitions?.[customPropertyName];
+        if (!definition) {
+            this.#adapter.log.warn(`Custom state definition not found for: ${customPropertyName}`);
+            return undefined;
+        }
+
+        if (this.#customStates.has(customPropertyName)) {
+            this.#adapter.log.debug(`Custom state ${customPropertyName} already initialized`);
+            return this.#customStates.get(customPropertyName);
+        }
+
+        const stateId = `${stateIdPrefix}${definition.name}`;
+        const { valueType, accessType, common } = definition;
+
+        // Use common from definition
+        const mergedCommon = common ?? {};
+
+        // Derive defaultType from common.type or valueType
+        let defaultType: 'number' | 'string' | 'boolean' | undefined = mergedCommon.type as
+            | 'number'
+            | 'string'
+            | 'boolean'
+            | undefined;
+        if (!defaultType) {
+            // Derive from valueType
+            switch (valueType) {
+                case ValueType.Number:
+                case ValueType.NumberMinMax:
+                case ValueType.NumberPercent:
+                    defaultType = 'number';
+                    break;
+                case ValueType.Boolean:
+                case ValueType.Button:
+                    defaultType = 'boolean';
+                    break;
+                case ValueType.String:
+                    defaultType = 'string';
+                    break;
+                case ValueType.Enum:
+                    // Enum can be number or string based on keys, default to string
+                    defaultType = 'number';
+                    break;
+            }
+        }
+
+        try {
+            const object = await DeviceStateObject.create<any>(
+                this.#adapter,
+                {
+                    id: stateId,
+                    name: definition.name,
+                    isIoBrokerState: false, // Custom states are always Matter-side states
+                    write: accessType === StateAccessType.Write || accessType === StateAccessType.ReadWrite,
+                    read: accessType === StateAccessType.Read || accessType === StateAccessType.ReadWrite,
+                    defaultRole: mergedCommon.role ?? 'state',
+                    defaultUnit: mergedCommon.unit,
+                    defaultStates: mergedCommon.states as { [key: string]: string } | undefined,
+                    defaultType: defaultType as StateType | undefined,
+                    defaultMin: mergedCommon.min,
+                    defaultMax: mergedCommon.max,
+                    defaultStep: mergedCommon.step,
+                    // Handle desc - convert to string if it's not already
+                    defaultDesc: typeof mergedCommon.desc === 'string' ? mergedCommon.desc : undefined,
+                },
+                PropertyType.Custom,
+                valueType,
+                this.enabled,
+            );
+
+            // Store metadata
+            this.#customProperties[customPropertyName] = {
+                name: definition.name,
+                accessType,
+                valueType,
+                read: accessType !== StateAccessType.Write ? stateId : undefined,
+                write: accessType !== StateAccessType.Read ? stateId : undefined,
+                role: object.role,
+            };
+
+            // Subscribe if needed (for write access from ioBroker side)
+            if (accessType === StateAccessType.ReadWrite || accessType === StateAccessType.Write) {
+                await object.subscribe(async (obj: DeviceStateObject<any>) => {
+                    await this.#updateCustomState(customPropertyName, obj);
+                }, accessType !== StateAccessType.Write);
+                this.#subscribeObjects.push(object);
+                object.on('validChanged', () => this.#handleValidChange());
+            }
+
+            this.#customStates.set(customPropertyName, object);
+            this.#registeredStates.push(object);
+
+            this.#adapter.log.debug(`Initialized custom state: ${customPropertyName} -> ${stateId}`);
+            return object;
+        } catch (error) {
+            this.#adapter.log.error(`Cannot create custom state ${customPropertyName}: ${error}`);
+            return undefined;
+        }
+    }
+
+    /** Handler for custom state changes from ioBroker side */
+    async #updateCustomState(customPropertyName: string, object: DeviceStateObject<any>): Promise<void> {
+        if (!this.enabled) {
+            return;
+        }
+        const props = this.#customProperties[customPropertyName];
+        if (!props || props.accessType === StateAccessType.Read) {
+            this.#adapter.log.info(
+                `updateCustomState not allowed for ${customPropertyName} and value ${object.value as string}`,
+            );
+            return;
+        }
+        for (const handler of this.#customHandlers) {
+            await handler({
+                customPropertyName,
+                value: object.value,
+                device: this,
+            });
+        }
+    }
+
+    /** Check if a custom state exists */
+    hasCustomState(customPropertyName: string): boolean {
+        return this.#customStates.has(customPropertyName);
+    }
+
+    /** Get the value of a custom state */
+    getCustomValue<T = any>(customPropertyName: string): T | undefined {
+        const state = this.#customStates.get(customPropertyName);
+        if (!state) {
+            return undefined;
+        }
+        return state.value as T;
+    }
+
+    /** Set a custom state value (from ioBroker side, triggers Matter update) */
+    async setCustomValue(customPropertyName: string, value: any): Promise<void> {
+        const state = this.#customStates.get(customPropertyName);
+        if (!state) {
+            throw new Error(`Custom state ${customPropertyName} not found`);
+        }
+        const props = this.#customProperties[customPropertyName];
+        if (props?.accessType === StateAccessType.Read) {
+            throw new Error(`Custom state ${customPropertyName} is read-only`);
+        }
+        await state.setValue(value);
+    }
+
+    /** Update a custom state value (from Matter side, updates ioBroker state) */
+    async updateCustomValue(customPropertyName: string, value: any): Promise<void> {
+        const state = this.#customStates.get(customPropertyName);
+        if (!state) {
+            throw new Error(`Custom state ${customPropertyName} not found`);
+        }
+        await state.updateValue(value);
+    }
+
+    /** Get all custom property names */
+    get customPropertyNames(): string[] {
+        return Array.from(this.#customStates.keys());
+    }
+
+    /** Get custom state definitions */
+    get customStateDefinitions(): CustomStatesRecord | undefined {
+        return this.#customStateDefinitions;
+    }
+
+    /** Register a handler for custom state changes */
+    onCustomChange(
+        handler: (event: { customPropertyName: string; value: any; device: GenericDevice }) => Promise<void>,
+    ): void {
+        this.#customHandlers.push(handler);
+    }
+
+    /** Unregister a handler for custom state changes */
+    offCustomChange(
+        handler?: (event: { customPropertyName: string; value: any; device: GenericDevice }) => Promise<void>,
+    ): void {
+        if (!handler) {
+            this.#customHandlers = [];
+        } else {
+            const index = this.#customHandlers.indexOf(handler);
+            if (index !== -1) {
+                this.#customHandlers.splice(index, 1);
+            }
+        }
+    }
+
+    // ==================== End Custom State Methods ====================
 
     onChange<T>(handler: (event: { property: PropertyType; value: T }) => Promise<void>): void {
         this.#handlers.push(handler);

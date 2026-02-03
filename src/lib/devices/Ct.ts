@@ -1,6 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 import { GenericLightingDevice } from './GenericLightingDevice';
+import type { CustomStatesRecord } from '../../matter/to-iobroker/custom-states';
 
 export class Ct extends GenericLightingDevice {
     #dimmerState?: DeviceStateObject<number>;
@@ -10,8 +11,13 @@ export class Ct extends GenericLightingDevice {
     #getPowerState?: DeviceStateObject<boolean>;
     #transitionTimeState?: DeviceStateObject<number>;
 
-    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
-        super(detectedDevice, adapter, options);
+    constructor(
+        detectedDevice: DetectedDevice,
+        adapter: ioBroker.Adapter,
+        options?: DeviceOptions,
+        customStateDefinitions?: CustomStatesRecord,
+    ) {
+        super(detectedDevice, adapter, options, customStateDefinitions);
 
         this._construction.push(
             this.addDeviceStates([

@@ -136,10 +136,21 @@ export enum PropertyType {
     White = 'white',
     WorkMode = 'workMode',
     Working = 'working',
+
+    /** Generic type for custom Matter-specific state mappings */
+    Custom = 'custom',
 }
 
 interface StateDefinition extends DetectorState {
     isIoBrokerState: boolean;
+    /** Default minimum value for numeric states */
+    defaultMin?: number;
+    /** Default maximum value for numeric states */
+    defaultMax?: number;
+    /** Default step size for numeric states */
+    defaultStep?: number;
+    /** Default description for the state */
+    defaultDesc?: string;
 }
 
 /** Convert a StateType into an ioBroker common type value */
@@ -238,14 +249,34 @@ export class DeviceStateObject<T> extends EventEmitter {
             },
             native: {},
         };
+
+        // Handle min/max/step from state definition or valueType
         if (this.valueType === ValueType.NumberPercent) {
+            // NumberPercent always uses 0-100 range
             if (currentObject?.common?.min === undefined) {
                 obj.common.min = 0;
             }
             if (currentObject?.common?.max === undefined) {
                 obj.common.max = 100;
             }
+        } else {
+            // Apply min/max/step from state definition if provided
+            if (this.state.defaultMin !== undefined) {
+                obj.common.min = this.state.defaultMin;
+            }
+            if (this.state.defaultMax !== undefined) {
+                obj.common.max = this.state.defaultMax;
+            }
+            if (this.state.defaultStep !== undefined) {
+                obj.common.step = this.state.defaultStep;
+            }
         }
+
+        // Apply description if provided
+        if (this.state.defaultDesc) {
+            obj.common.desc = this.state.defaultDesc;
+        }
+
         if (currentObject !== undefined) {
             // When common matches the important fields then consider same object
             if (
@@ -255,9 +286,11 @@ export class DeviceStateObject<T> extends EventEmitter {
                 currentObject.common.read === obj.common.read &&
                 currentObject.common.role === obj.common.role &&
                 currentObject.common.unit === obj.common.unit &&
-                currentObject.common.states === obj.common.states &&
+                JSON.stringify(currentObject.common.states) === JSON.stringify(obj.common.states) &&
                 currentObject.common.min === obj.common.min &&
-                currentObject.common.max === obj.common.max
+                currentObject.common.max === obj.common.max &&
+                currentObject.common.step === obj.common.step &&
+                currentObject.common.desc === obj.common.desc
             ) {
                 return currentObject;
             }
@@ -338,16 +371,17 @@ export class DeviceStateObject<T> extends EventEmitter {
                 throw new Error(`State ${this.#id} is not a number`);
             }
         } else {
-            this.min = obj?.common?.min;
-            this.max = obj?.common?.max;
+            // Use min/max from object common (which may have been set from state definition)
+            this.min = obj?.common?.min ?? this.state.defaultMin;
+            this.max = obj?.common?.max ?? this.state.defaultMax;
             if (this.min !== undefined && this.max === undefined) {
                 this.max = 100;
             } else if (this.min === undefined && this.max !== undefined) {
                 this.min = 0;
             }
-            this.unit = obj?.common?.unit;
+            this.unit = obj?.common?.unit ?? this.state.defaultUnit;
         }
-        this.step = obj?.common?.step;
+        this.step = obj?.common?.step ?? this.state.defaultStep;
     }
 
     protected parseMode(): void {

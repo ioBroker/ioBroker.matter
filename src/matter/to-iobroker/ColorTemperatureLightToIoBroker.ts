@@ -7,13 +7,14 @@ import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDev
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 import { kelvinToMireds, miredsToKelvin } from '@matter/main/behaviors';
 import type { MatterAdapter } from '../../main';
+import { ColorLightCustomStates, type ColorLightCustomStatesType } from './custom-states';
 
 /**
  * This lass is currently unused and can be removed if the remapping of CT to Extended Color Light works as expected
  * after 0.4.12
  */
 
-export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDeviceToIoBroker {
+export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDeviceToIoBroker<ColorLightCustomStatesType> {
     readonly #ioBrokerDevice: Ct;
     #isLighting = false;
     #minLevel = 1;
@@ -40,12 +41,14 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
             deviceTypeName,
             defaultConnectionStateId,
             defaultName,
+            ColorLightCustomStates,
         );
 
         this.#ioBrokerDevice = new Ct(
             { ...ChannelDetector.getPatterns().ct, isIoBrokerDevice: false } as DetectedDevice,
             adapter,
             this.enableDeviceTypeStates(),
+            ColorLightCustomStates,
         );
     }
 
@@ -75,6 +78,8 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
+        this.#enableCustomStates();
+
         this.enableDeviceTypeStateForAttribute(PropertyType.TransitionTime);
 
         this.enableDeviceTypeStateForAttribute(PropertyType.Power, {
@@ -170,6 +175,68 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
             convertValue: value => Math.round(miredsToKelvin(value)),
         });
         return super.enableDeviceTypeStates();
+    }
+
+    #enableCustomStates(): void {
+        const endpointId = this.appEndpoint.getNumber();
+
+        // StartUp On/Off - defines device behavior on power-up
+        this.enableCustomStateForAttribute('startUpOnOff', {
+            endpointId,
+            clusterId: OnOff.Cluster.id,
+            attributeName: 'startUpOnOff',
+            changeHandler: async (value: number | null) => {
+                const client = await this.node.getInteractionClient();
+                await client.setAttribute({
+                    attributeData: {
+                        endpointId,
+                        clusterId: OnOff.Complete.id,
+                        attribute: OnOff.Complete.attributes.startUpOnOff,
+                        value,
+                    },
+                });
+            },
+        });
+
+        // StartUp Current Level - defines the brightness level on power-up (0-100% in ioBroker, 0-254 in Matter)
+        this.enableCustomStateForAttribute('startUpCurrentLevel', {
+            endpointId,
+            clusterId: LevelControl.Cluster.id,
+            attributeName: 'startUpCurrentLevel',
+            changeHandler: async (value: number | null) => {
+                const matterValue = value !== null ? Math.round((value / 100) * 254) : null;
+                const client = await this.node.getInteractionClient();
+                await client.setAttribute({
+                    attributeData: {
+                        endpointId,
+                        clusterId: LevelControl.Complete.id,
+                        attribute: LevelControl.Complete.attributes.startUpCurrentLevel,
+                        value: matterValue,
+                    },
+                });
+            },
+            convertValue: value => (value !== null ? Math.round((value / 254) * 100) : null),
+        });
+
+        // StartUp Color Temperature - defines the color temperature on power-up (Kelvin in ioBroker, Mireds in Matter)
+        this.enableCustomStateForAttribute('startUpColorTemperatureMireds', {
+            endpointId,
+            clusterId: ColorControl.Cluster.id,
+            attributeName: 'startUpColorTemperatureMireds',
+            changeHandler: async (value: number | null) => {
+                const matterValue = value !== null ? kelvinToMireds(value) : null;
+                const client = await this.node.getInteractionClient();
+                await client.setAttribute({
+                    attributeData: {
+                        endpointId,
+                        clusterId: ColorControl.Complete.id,
+                        attribute: ColorControl.Complete.attributes.startUpColorTemperatureMireds,
+                        value: matterValue,
+                    },
+                });
+            },
+            convertValue: value => (value !== null ? Math.round(miredsToKelvin(value)) : null),
+        });
     }
 
     get ioBrokerDevice(): Ct {

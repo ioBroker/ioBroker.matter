@@ -8,5 +8,5 @@
         "types": ["@iobroker/types"]
     },
     "include": ["src/**/*.ts"],
-    "exclude": ["src/matter/ControllerNode.ts", "src/**/*.test.ts"]
+    "exclude": ["src/**/*.test.ts"]
 }

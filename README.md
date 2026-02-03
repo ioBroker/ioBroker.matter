@@ -38,7 +38,7 @@ When an update is available, an **update icon** appears next to the device in th
 **To update a device:**
 1. Open the **Controller panel** for the Matter adapter
 2. Click the **update action** on the device with the update icon
-3. Confirm the checkbox and click **Update now**
+3. Review the update information (if shown) and click **Update now**
 
 **Update phases:**
 - **Querying** → **Downloading** (shows %) → **Applying**

@@ -90,7 +90,7 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
         if (thermostat !== undefined) {
             const features = thermostat.supportedFeatures;
             modes = {};
-            // OFF is always supported by Matter Thermostat cluster
+            // We assume OFF is always supported by Matter Thermostat cluster, no way to determine exactly
             modes[ThermostatModeNumbers[ThermostatMode.Off]] = ThermostatMode.Off;
             
             if (features?.heating) {

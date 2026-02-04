@@ -137,7 +137,8 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 -->
 
 ## Changelog
-### 0.6.0 (2026-02-04)
+### **WORK IN PROGRESS**
+* This version will not be in ioBroker Latest repository and used for Alpha testing!
 * (@Apollon77) Updated to Matter 1.4 2 (matter.js to 0.16.0)
 * (@Apollon77) Also covert values for unit "mired" for Color temperatures
 * (@Apollon77) Increases default color temperature range to 1.000 to 20.000 K

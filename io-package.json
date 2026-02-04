@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "0.5.6",
+    "version": "0.6.0",
     "news": {
+      "0.6.0": {
+        "en": "Updated to Matter 1.4 2 (matter.js to 0.16.0)\nAlso covert values for unit \"mired\" for Color temperatures\nIncreases default color temperature range to 1.000 to 20.000 K\nHighlight the devices in GUI when hovering over the device in the device list\nReplaced I18n package\nAdded support for volume, volumeGroup ioBroker devices to matter\nAdd Off mode for Thermostats for Matter devices",
+        "de": "Aktualisiert auf Matter 1.4 2 (matter.js bis 0.16.0)\nAuch verdeckte Werte für Einheit \"bewundert\" für Farbtemperaturen\nErhöht den Standard-Farbtemperaturbereich auf 1.000 bis 20.000 K\nMarkieren Sie die Geräte in der GUI beim Hochfahren über das Gerät in der Geräteliste\nErsatzpaket I18n\nUnterstützung für Volumen, Volumen Gruppe ioBroker-Geräte zu Materie\nOff-Modus für Thermostate für Matter-Geräte hinzufügen",
+        "ru": "Обновлено до 1.4 2 (matter.js до 0.16.0)\nТакже скрытые значения для единицы «погрязли» для цветовых температур\nУвеличивает диапазон цветовой температуры по умолчанию до 1000-20000 К\nВыделите устройства в GUI при наведении на устройство в списке устройств\nЗамена пакета I18n\nДобавлена поддержка объема, объема Устройства группы ioBroker имеют значение\nРежим Add Off для термостатов для устройств Matter",
+        "pt": "Actualizado para a matéria 1.4 2 (mater.js para 0.16.0)\nTambém valores encobertos para a unidade \"semeada\" para temperaturas de cor\nAumenta a faixa de temperatura de cor padrão para 1.000 a 20.000 K\nRealçar os dispositivos na interface gráfica ao passar sobre o dispositivo na lista de dispositivos\nPacote I18n substituído\nAdicionado suporte para volume, volume Grupo ioBroker dispositivos para importar\nAdicionar modo desligado para termostatos para dispositivos Matter",
+        "nl": "Bijgewerkt naar onderwerp 1.4 2 (materie.js tot 0.16.0)\nOok geheime waarden voor eenheid \"gespiegeld\" voor kleurtemperaturen\nVerhoogt standaard kleurtemperatuurbereik tot 1.000 tot 20.000 K\nDe apparaten in de GUI markeren bij het zweven over het apparaat in de lijst met apparaten\nVervangen I18n pakket\nOndersteuning toegevoegd voor volume, volume ioBroker-apparaten van groep\nUit-modus toevoegen voor thermostaten voor materie-apparaten",
+        "fr": "Mise à jour à la matière 1.4 2 (matière.js à 0.16.0)\nAussi des valeurs cachées pour l'unité \"miré\" pour les températures de couleur\nAugmente la plage de température de couleur par défaut à 1.000 à 20.000 K\nMettre en évidence les appareils en interface graphique lorsque vous survolez l'appareil dans la liste des appareils\nColis I18n remplacé\nSoutien supplémentaire au volume, au volume Groupe ioBroker dispositifs à la matière\nAjouter le mode hors tension pour les thermostats pour les dispositifs de matière",
+        "it": "Aggiornato a Matter 1.4 2 (matter.js a 0.16.0)\nAnche i valori nascosti per unità \"mired\" per temperature di colore\nAumenta l'intervallo di temperatura di colore predefinito a 1.000 a 20.000 K\nEvidenziare i dispositivi in GUI quando si passa sopra il dispositivo nell'elenco dei dispositivi\nSostituito pacchetto I18n\nAggiunto supporto per volume, volume Gruppo ioBroker dispositivi per la materia\nAggiungere la modalità Off per termostati per dispositivi Matter",
+        "es": "Actualizado a Matter 1.4 2 (matter.js a 0.16.0)\nValores también encubiertos para la unidad \"mirada\" para temperaturas de color\nAumenta el rango de temperatura de color predeterminado a 1.000 a 20.000 K\nDestacar los dispositivos en GUI cuando se mueve sobre el dispositivo en la lista de dispositivos\nPaquete I18n reemplazado\nAñadido soporte para volumen, volumen Grupo ioBroker dispositivos para importar\nAgregar modo Off para termostatos para dispositivos de la máquina",
+        "pl": "Aktualizacja do materii 1.4 2 (matter.js do 0.16.0)\nRównież ukryte wartości dla jednostki \"mired\" dla temperatury kolorów\nZwiększa domyślny zakres temperatury kolorów do 1.000 do 20.000 K\nZaznacz urządzenia w GUI podczas unoszenia się nad urządzeniem na liście urządzeń\nZastąpiony pakiet I18n\nDodano wsparcie dla głośności, głośności Urządzenia joBroker grupy do znaczenia\nDodaj tryb wyłączenia dla termostatów dla urządzeń Matter",
+        "uk": "Оновлено в Matter 1.4 2 (маттер.js до 0.16.0)\nТакож значення покривала для блоку \"здивовані\" для температур кольору\nПідвищує діапазон температури за замовчуванням до 1.000 до 20.000 Р\nВиділіть пристрої в GUI при переховуванні пристрою в списку пристроїв\nЗамінний пакет I18n\nДодано підтримку обсягу, об'єм Група ioBroker пристроїв для матерії\nДодати режим вимкнення термостатів для пристроїв Matter",
+        "zh-cn": "更新为物质1.42(事项js至0.16.0)\n颜色温度单位“ 迷恋” 的隐蔽值\n将默认颜色温度范围提高到1 000至20 000 K级\n在设备列表中盘旋设备时突出显示图形用户界面中的设备\n已替换的 I18n 软件包\n添加对音量、音量的支持 组合 ioBroker 设备以显示物质\n为物质设备的自动调温器添加关闭模式"
+      },
       "0.5.6": {
         "en": "Type detector update, should detect single states in non-device structures better",
         "de": "Typ-Detektor-Update, sollte einzelne Zustände in Nicht-Gerät-Strukturen besser erkennen",
@@ -80,19 +93,6 @@
         "pl": "Aktualizacja mater.js do 0.14 z wielu wykonania- i innych ulepszeń",
         "uk": "Оновлена справа.js до 0.14 з багатьма перфомансувальними та іншими вдосконаленнями",
         "zh-cn": "已更新到0.14,并有许多业绩和其他改进"
-      },
-      "0.5.0": {
-        "en": "IMPORTANT: Increase Node.js requirement to at least 20.x because else BLE currently does not work\nAdded info log message when device decided for a different subscription interval",
-        "de": "WICHTIG: Erhöhe Node.js Anforderung auf mindestens 20.x, weil BLE derzeit nicht funktioniert\nZusätzliche Info-Log-Nachricht, wenn das Gerät für ein anderes Abonnement-Intervall entschieden",
-        "ru": "ВАЖНО: Увеличьте требование Node.js как минимум до 20.x, потому что в настоящее время BLE не работает\nДобавлено сообщение журнала информации, когда устройство решило для другого интервала подписки",
-        "pt": "IMPORTANTE: Aumentar a exigência de Node.js para pelo menos 20.x porque mais BLE atualmente não funciona\nAdicionado info log mensagem quando dispositivo decidiu para um intervalo de assinatura diferente",
-        "nl": "BELANGRIJK: Node.js vereiste verhogen tot ten minste 20.x omdat anders BLE momenteel niet werkt\nInfologbericht toegevoegd wanneer het apparaat besloot voor een ander abonnementsinterval",
-        "fr": "IMPORTANT: Augmenter l'exigence Node.js à au moins 20.x parce que le BLE ne fonctionne pas actuellement\nAjout d'un message de journal d'information lorsque le périphérique a décidé pour un intervalle d'abonnement différent",
-        "it": "IMPORTANTE: Aumentare il requisito Node.js di almeno 20.x perché altrimenti BLE attualmente non funziona\nAggiunto info log messaggio quando il dispositivo ha deciso per un intervallo di abbonamento diverso",
-        "es": "IMPORTANTE: Aumentar el requisito Node.js a al menos 20.x porque si no BLE actualmente no funciona\nInformación adicional mensaje de registro cuando el dispositivo decidió un intervalo de suscripción diferente",
-        "pl": "WAŻNE: Zwiększyć Node.js wymóg co najmniej 20.x, ponieważ inaczej BLE obecnie nie działa\nDodano komunikat dziennika informacji, gdy urządzenie zdecydowało się na inny interwał subskrypcji",
-        "uk": "ВАЖЛИВО: Збільшити вимоги Node.js до принаймні 20.x, оскільки інші BLE наразі не працюють\nДодано повідомлення про журнал, коли пристрій вирішив для різних інтервалів підписки",
-        "zh-cn": "重要: 将节点.js要求至少增加到20x,因为其他BLE目前行不通\n当设备决定不同的订阅间隔时添加信息日志消息"
       }
     },
     "titleLang": {

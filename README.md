@@ -144,6 +144,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@GermanBluefox) Highlight the devices in GUI when hovering over the device in the device list
 * (@GermanBluefox) Replaced I18n package
 * (@tarikweiss) Added support for volume, volumeGroup ioBroker devices to matter
+* (@Tyraenor/Apollon77) Add Off mode for Thermostats for Matter devices
 
 ### 0.5.6 (2025-10-21)
 * (@Apollon77) Type detector update, should detect single states in non-device structures better

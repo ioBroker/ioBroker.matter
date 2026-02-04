@@ -172,7 +172,6 @@ jobs:
               if: steps.automerge.outputs.mergeResult == 'merged'
               run: |
                   npm install -g npm@latest
-                  npm whoami
                   npm publish ${{ steps.extract_release.outputs.TAG }}
 
             - name: Create Github Release

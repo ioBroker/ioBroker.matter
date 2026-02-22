@@ -169,6 +169,7 @@ export interface GUIMessage {
         | 'identifyPopup'
         | 'updateController'
         | 'updateSuccess'
+        | 'updateFailed'
         | 'networkGraphUpdate';
     states?: { [uuid: string]: NodeStateResponse };
     device?: CommissionableDevice;

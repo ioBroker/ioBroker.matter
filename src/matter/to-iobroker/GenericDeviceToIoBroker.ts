@@ -89,6 +89,10 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
     #initialized = false;
     #pollInterval?: number;
     #hasAttributesToPoll = false;
+    /** Tracks in-progress changeHandler calls: property → value currently being handled */
+    #inProgressChangeHandlers = new Map<PropertyType, unknown>();
+    /** Tracks in-progress custom changeHandler calls: customPropertyName → value currently being handled */
+    #inProgressCustomChangeHandlers = new Map<string, unknown>();
 
     /** Custom state definitions passed to this converter */
     protected readonly customStateDefinitions: C;
@@ -679,10 +683,25 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
             if (changeHandler === undefined) {
                 return;
             }
+            // Skip duplicate: same property with same value is already being handled
+            if (
+                this.#inProgressChangeHandlers.has(event.property) &&
+                this.#inProgressChangeHandlers.get(event.property) === event.value
+            ) {
+                this.#adapter.log.info(
+                    `Skipping duplicate change event for ${event.property} with value ${JSON.stringify(event.value)} (handler already in progress)`,
+                );
+                return;
+            }
             this.#adapter.log.debug(
                 `Handle change event for ${event.property} with value ${JSON.stringify(event.value)}`,
             );
-            await changeHandler(event.value);
+            this.#inProgressChangeHandlers.set(event.property, event.value);
+            try {
+                await changeHandler(event.value);
+            } finally {
+                this.#inProgressChangeHandlers.delete(event.property);
+            }
         });
 
         // Handle custom state changes from ioBroker side
@@ -695,10 +714,25 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
             if (changeHandler === undefined) {
                 return;
             }
+            // Skip duplicate: same custom property with same value is already being handled
+            if (
+                this.#inProgressCustomChangeHandlers.has(event.customPropertyName) &&
+                this.#inProgressCustomChangeHandlers.get(event.customPropertyName) === event.value
+            ) {
+                this.#adapter.log.info(
+                    `Skipping duplicate custom change event for ${event.customPropertyName} with value ${JSON.stringify(event.value)} (handler already in progress)`,
+                );
+                return;
+            }
             this.#adapter.log.debug(
                 `Handle custom change event for ${event.customPropertyName} with value ${JSON.stringify(event.value)}`,
             );
-            await changeHandler(event.value);
+            this.#inProgressCustomChangeHandlers.set(event.customPropertyName, event.value);
+            try {
+                await changeHandler(event.value);
+            } finally {
+                this.#inProgressCustomChangeHandlers.delete(event.customPropertyName);
+            }
         });
     }
 

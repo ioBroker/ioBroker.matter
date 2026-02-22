@@ -39,6 +39,7 @@ import {
     getWiFiVersionName,
     parseExtendedAddressToHex,
     buildExtAddrMap,
+    buildRloc16Map,
     buildThreadConnections,
     findUnknownDevices,
     getRoutableDestinationsCount,
@@ -204,8 +205,9 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
             // Thread: use neighbor table connections
             const threadNodes = data.nodes.filter(n => n.networkType === 'thread');
             const extAddrMap = buildExtAddrMap(threadNodes);
-            const unknownDevices = findUnknownDevices(threadNodes, extAddrMap);
-            const connections = buildThreadConnections(threadNodes, extAddrMap, unknownDevices);
+            const rloc16Map = buildRloc16Map(threadNodes);
+            const unknownDevices = findUnknownDevices(threadNodes, extAddrMap, rloc16Map);
+            const connections = buildThreadConnections(threadNodes, extAddrMap, unknownDevices, rloc16Map);
 
             for (const conn of connections) {
                 if (conn.fromNodeId === selectedNodeId) {
@@ -247,7 +249,8 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
 
         const threadNodes = data.nodes.filter(n => n.networkType === 'thread');
         const extAddrMap = buildExtAddrMap(threadNodes);
-        const connections = getNodeConnections(node.nodeId, threadNodes, extAddrMap);
+        const rloc16Map = buildRloc16Map(threadNodes);
+        const connections = getNodeConnections(node.nodeId, threadNodes, extAddrMap, rloc16Map);
 
         if (connections.length === 0) {
             return null;

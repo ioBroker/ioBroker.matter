@@ -833,8 +833,8 @@ export class MatterAdapter extends Adapter {
             // Object does not exist
             return null;
         }
-        if (obj.type === 'device' || obj.type === 'channel') {
-            // Because it seems we are also fine with just a channel return also then
+        if (obj.type === 'device' || obj.type === 'channel' || obj.type === 'meta') {
+            // Because it seems we are also fine with just a channel or meta as root return also then
             // We found a device object, use this
             return id;
         }
@@ -859,7 +859,7 @@ export class MatterAdapter extends Adapter {
             searchDeviceComingFromLevel ?? parts.length + 1,
         );
         if (foundDevice === null) {
-            if (/*obj.type === 'channel' ||*/ obj.type === 'state') {
+            if (obj.type === 'state') {
                 return id;
             }
             // ok we did not find anything better, go back

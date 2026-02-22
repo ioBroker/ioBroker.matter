@@ -408,6 +408,9 @@ class Controller implements GeneralNode {
                     return;
                 }
                 // Use the new method that persists to state
+                this.#adapter.log.info(
+                    `Software update available for node ${nodeIdStr}: version ${info.softwareVersionString} (${info.softwareVersion}), source: ${info.source}`,
+                );
                 node.setSoftwareUpdateAvailable(info);
                 // Refresh UI to show the update available icon
                 this.#adapter.refreshControllerDevices();
@@ -430,6 +433,23 @@ class Controller implements GeneralNode {
                     this.#adapter.log.error(`Error handling update complete for node ${nodeIdStr}: ${error}`);
                 });
                 // Refresh UI to remove the update available icon
+                this.#adapter.refreshControllerDevices();
+            },
+        );
+        this.#observers.on(
+            this.#commissioningController.otaProvider.eventsOf(SoftwareUpdateManager).updateFailed,
+            peerAddress => {
+                const nodeIdStr = peerAddress.nodeId.toString();
+                const node = this.#nodes.get(nodeIdStr);
+                if (node === undefined) {
+                    return;
+                }
+                this.#adapter.log.warn(`Software update failed for node ${nodeIdStr}`);
+                // Notify the node that the update failed (closes progress dialog, shows error)
+                node.onSoftwareUpdateFailed().catch(error => {
+                    this.#adapter.log.error(`Error handling update failure for node ${nodeIdStr}: ${error}`);
+                });
+                // Refresh UI
                 this.#adapter.refreshControllerDevices();
             },
         );
@@ -745,7 +765,7 @@ class Controller implements GeneralNode {
 
                 // Create another stream for storing
                 const stream2 = Readable.toWeb(createReadStream(filePath)) as ReadableStream<Uint8Array>;
-                await otaService.store(stream2, updateInfo, false);
+                await otaService.store(stream2, updateInfo, 'local');
 
                 imported++;
                 this.#adapter.log.info(`Successfully imported OTA file: ${file}`);
@@ -791,13 +811,14 @@ class Controller implements GeneralNode {
         this.#adapter.log.debug(`Refreshing network data for nodes: ${nodeIds.join(', ')}`);
 
         // Thread Network Diagnostics cluster ID: 0x0035 (53)
-        // Attribute IDs: channel=0, routingRole=1, neighborTable=7, routeTable=8
+        // Attribute IDs: channel=0, routingRole=1, neighborTable=7, routeTable=8, rloc16=64
         const threadClusterId = ClusterId(0x0035);
         const threadAttributes = [
             { endpointId: EndpointNumber(0), clusterId: threadClusterId, attributeId: AttributeId(0) }, // channel
             { endpointId: EndpointNumber(0), clusterId: threadClusterId, attributeId: AttributeId(1) }, // routingRole
             { endpointId: EndpointNumber(0), clusterId: threadClusterId, attributeId: AttributeId(7) }, // neighborTable
             { endpointId: EndpointNumber(0), clusterId: threadClusterId, attributeId: AttributeId(8) }, // routeTable
+            { endpointId: EndpointNumber(0), clusterId: threadClusterId, attributeId: AttributeId(64) }, // rloc16
         ];
 
         // WiFi Network Diagnostics cluster ID: 0x0036 (54)

@@ -28,7 +28,7 @@
         "noImplicitAny": true,
         "skipLibCheck": true,
         "verbatimModuleSyntax": true,
-        "lib": ["es2018", "DOM"],
+        "lib": ["es2022", "DOM"],
         "jsx": "react",
         "types": ["@iobroker/types"]
     },

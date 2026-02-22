@@ -323,9 +323,8 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                             await this.#ioBrokerDevice.setMode(ThermostatMode.Cool);
                         }
                         const coolingTemp =
-                            // @ts-expect-error Workaround a matter.js instancing/typing error
-                            this.#matterEndpointThermostat.stateOf(IoThermostatServer).occupiedCoolingSetpoint;
-                        if (coolingTemp !== undefined) {
+                            this.#matterEndpointThermostat.stateOf('thermostat').occupiedCoolingSetpoint;
+                        if (typeof coolingTemp === 'number') {
                             await this.#ioBrokerDevice.setLevel(this.temperatureFromMatter(coolingTemp));
                         }
                         break;
@@ -359,33 +358,37 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
         );
 
         if (this.#supportedModes.includes(ThermostatMode.Heat)) {
-            this.matterEvents.on(
-                // @ts-expect-error Workaround a matter.js instancing/typing error
-                this.#matterEndpointThermostat.eventsOf(IoThermostatServer).occupiedHeatingSetpoint$Changed,
-                // @ts-expect-error Workaround a matter.js instancing/typing error
-                (_value: unknown, _oldValue: unknown, context: ActionContext) => {
-                    if (hasLocalActor(context)) {
-                        return;
-                    }
+            const event = this.#matterEndpointThermostat.eventsOf('thermostat')?.occupiedHeatingSetpoint$Changed;
+            if (event !== undefined) {
+                this.matterEvents.on(
+                    event,
+                    // @ts-expect-error Workaround a matter.js instancing/typing error
+                    (_value: unknown, _oldValue: unknown, context: ActionContext) => {
+                        if (hasLocalActor(context)) {
+                            return;
+                        }
 
-                    this.#updateSetPointTemperature();
-                },
-            );
+                        this.#updateSetPointTemperature();
+                    },
+                );
+            }
         }
 
         if (this.#supportedModes.includes(ThermostatMode.Cool)) {
-            this.matterEvents.on(
-                // @ts-expect-error Workaround a matter.js instancing/typing error
-                this.#matterEndpointThermostat.eventsOf(IoThermostatServer).occupiedCoolingSetpoint$Changed,
-                // @ts-expect-error Workaround a matter.js instancing/typing error
-                (_value: unknown, _oldValue: unknown, context: ActionContext) => {
-                    if (hasLocalActor(context)) {
-                        return;
-                    }
+            const event = this.#matterEndpointThermostat.eventsOf('thermostat')?.occupiedCoolingSetpoint$Changed;
+            if (event !== undefined) {
+                this.matterEvents.on(
+                    event,
+                    // @ts-expect-error Workaround a matter.js instancing/typing error
+                    (_value: unknown, _oldValue: unknown, context: ActionContext) => {
+                        if (hasLocalActor(context)) {
+                            return;
+                        }
 
-                    this.#updateSetPointTemperature();
-                },
-            );
+                        this.#updateSetPointTemperature();
+                    },
+                );
+            }
         }
 
         if (this.#matterEndpointBoost) {

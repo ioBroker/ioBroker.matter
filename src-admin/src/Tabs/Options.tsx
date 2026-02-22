@@ -10,12 +10,8 @@ import {
     DialogContent,
     DialogTitle,
     Fab,
-    FormControl,
     FormControlLabel,
     IconButton,
-    InputLabel,
-    MenuItem,
-    Select,
     TextField,
     Tooltip,
     Typography,
@@ -171,11 +167,6 @@ class Options extends Component<OptionsProps, OptionsState> {
     }
 
     render(): React.JSX.Element {
-        const bridge = this.props.matter.bridges.find(bridge => bridge.uuid === this.props.native.defaultBridge) || {
-            uuid: '_',
-            name: I18n.t('Unknown'),
-        };
-
         return (
             <div style={styles.panel}>
                 {this.renderConfirmDialog()}
@@ -240,61 +231,6 @@ class Options extends Component<OptionsProps, OptionsState> {
                     socket={this.props.socket}
                     host={this.props.common.host}
                 />
-
-                <Box sx={{ marginTop: 2 }}>
-                    {this.props.expertMode ? null : <InfoBox type="info">{I18n.t('Info about Alexa Bridge')}</InfoBox>}
-                    <FormControl style={styles.inputLong}>
-                        <InputLabel
-                            sx={{
-                                '&.MuiFormLabel-root': {
-                                    transform: 'translate(0px, -9px) scale(0.75)',
-                                },
-                            }}
-                        >
-                            {I18n.t('Default bridge (Alexa-compatible)')}
-                        </InputLabel>
-                        <Select
-                            variant="standard"
-                            style={styles.inputLong}
-                            value={this.props.native.defaultBridge || '_'}
-                            renderValue={() => {
-                                if (!bridge) {
-                                    return null;
-                                }
-
-                                return (
-                                    <span
-                                        style={{
-                                            fontWeight: bridge.uuid === '_' ? 'bold' : undefined,
-                                        }}
-                                    >
-                                        {bridge.uuid === '_' ? I18n.t('Select default bridge') : bridge.name}
-                                        {bridge.uuid === '_' ? null : <span style={styles.address}>{bridge.uuid}</span>}
-                                    </span>
-                                );
-                            }}
-                            onChange={e => {
-                                void this.props.onChange('defaultBridge', e.target.value);
-                            }}
-                        >
-                            {this.props.matter.bridges.map((it, i) => (
-                                <MenuItem
-                                    key={i}
-                                    value={it.uuid}
-                                >
-                                    <span
-                                        style={{
-                                            fontWeight: it.uuid === '_' ? 'bold' : undefined,
-                                        }}
-                                    >
-                                        {it.name}
-                                        <span style={styles.address}>{it.uuid}</span>
-                                    </span>
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-                </Box>
 
                 <div style={{ marginTop: 50 }}>
                     <Typography sx={styles.header}>{I18n.t('Controller Settings')}</Typography>

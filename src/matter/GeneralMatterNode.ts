@@ -422,7 +422,7 @@ export class GeneralMatterNode {
 
         this.#softwareUpdateInProgress = true;
         this.adapter.log.info(
-            `Starting software update for node ${this.nodeId} to version ${updateInfo.softwareVersionString}`,
+            `Starting software update for node ${this.nodeId} to version ${updateInfo.softwareVersionString} (${updateInfo.softwareVersion}), source: ${updateInfo.source}`,
         );
 
         // Show the initial progress dialog with cancel support
@@ -555,6 +555,30 @@ export class GeneralMatterNode {
         await this.adapter.sendToGui({
             command: 'progress',
             progress: { close: true },
+        });
+    }
+
+    /**
+     * Called when the software update fails or is cancelled (from ControllerNode event handler).
+     */
+    async onSoftwareUpdateFailed(): Promise<void> {
+        if (!this.#softwareUpdateInProgress) {
+            return;
+        }
+
+        this.adapter.log.warn(`Software update failed or was cancelled for node ${this.nodeId}`);
+        this.#cleanupUpdateObservers();
+        this.#softwareUpdateInProgress = false;
+
+        // Close the progress dialog
+        await this.adapter.sendToGui({
+            command: 'progress',
+            progress: { close: true },
+        });
+
+        // Show failure dialog
+        await this.adapter.sendToGui({
+            command: 'updateFailed',
         });
     }
 
@@ -1427,8 +1451,8 @@ export class GeneralMatterNode {
             result.node.productId = toUpperCaseHex(details.productId);
             result.node.nodeLabel = details.nodeLabel;
             result.node.location = details.location;
-            result.node.hardwareVersion = details.hardwareVersionString;
-            result.node.softwareVersion = details.softwareVersionString;
+            result.node.hardwareVersion = `${details.hardwareVersionString} (${details.hardwareVersion})`;
+            result.node.softwareVersion = `${details.softwareVersionString} (${details.softwareVersion})`;
             if (details.productUrl) {
                 result.node.productUrl = details.productUrl;
             }

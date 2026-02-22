@@ -408,6 +408,9 @@ class Controller implements GeneralNode {
                     return;
                 }
                 // Use the new method that persists to state
+                this.#adapter.log.info(
+                    `Software update available for node ${nodeIdStr}: version ${info.softwareVersionString} (${info.softwareVersion}), source: ${info.source}`,
+                );
                 node.setSoftwareUpdateAvailable(info);
                 // Refresh UI to show the update available icon
                 this.#adapter.refreshControllerDevices();

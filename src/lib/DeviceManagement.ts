@@ -555,6 +555,13 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const currentVersion = node.node.basicInformation.softwareVersionString;
         const currentVersionNum = node.node.basicInformation.softwareVersion;
 
+        const sourceLabels: Record<string, string> = {
+            'dcl-prod': 'OTA Update Source dcl-prod',
+            'dcl-test': 'OTA Update Source dcl-test',
+            local: 'OTA Update Source local',
+        };
+        const sourceLabel = this.#adapter.getText(sourceLabels[info.source] ?? info.source);
+
         const items: Record<string, ConfigItemAny> = {
             _header: {
                 type: 'staticText',
@@ -585,6 +592,28 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 label: this.#adapter.getText('New Version'),
                 data: `${info.softwareVersionString} (${info.softwareVersion})`,
             },
+            updateSource: {
+                type: 'staticInfo',
+                label: this.#adapter.getText('Update Source'),
+                data: sourceLabel,
+            },
+            ...(info.source !== 'dcl-prod'
+                ? {
+                      _untrustedWarning: {
+                          type: 'staticText',
+                          text: this.#adapter.getText('Unverified OTA Update Source Warning'),
+                          icon: 'warning',
+                          style: {
+                              marginTop: 12,
+                              padding: '8px 12px',
+                              backgroundColor: '#fff3cd',
+                              color: '#856404',
+                              border: '1px solid #ffc107',
+                              borderRadius: 4,
+                          },
+                      },
+                  }
+                : {}),
             ...(info.releaseNotesUrl
                 ? {
                       releaseNotes: {
@@ -932,7 +961,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const updates = (await this.#adapter?.controllerNode?.queryUpdates()) ?? [];
 
         const message =
-            this.#adapter?.t('%d updates available', updates.length) ?? `${updates.length} updates available`;
+            this.#adapter?.t('%s updates available', updates.length) ?? `${updates.length} updates available`;
         await context.showMessage(message);
 
         return { refresh: !!updates.length };

@@ -61,6 +61,7 @@ For testing pre-release or community firmware:
 1. Go to **General** tab → **Custom OTA Updates** section
 2. Enable **Allow custom/unofficial OTA updates**
 3. Optionally set a custom path (default: `<instance data>/custom-ota`)
+4. The path will be created on the next restart of the adapter if not already existing
 
 **Adding files:**
 - Place `.ota` files in the custom updates directory
@@ -141,9 +142,12 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 ### **WORK IN PROGRESS**
 * This version will not be in ioBroker Latest repository and used for Alpha testing!
 * IMPORTANT: The first start of the controller with this version takes a bit longer to connect all devices because internal data are migrated
-* Updated to matter.js 0.16.10
-* Fix some OTA issues and optimize a lot more
-* Enhances the Thread network graph
+* (@Apollon77) Updated to matter.js 0.16.10
+  * Fixes some OTA issues and optimize Networking and reconnection handling
+* (@Apollon77) Enhances the Thread network graph
+* (@Apollon77) Enhances display of software versions and warn on non-production updates, Display update sources 
+* (@Apollon77) Detect duplicate commands/writes and prevent them from being sent out again if the first command is still in progress
+* 
 
 ### 0.6.1 (2026-02-04)
 * This version will not be in ioBroker Latest repository and used for Alpha testing!

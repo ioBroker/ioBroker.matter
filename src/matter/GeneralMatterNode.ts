@@ -422,7 +422,7 @@ export class GeneralMatterNode {
 
         this.#softwareUpdateInProgress = true;
         this.adapter.log.info(
-            `Starting software update for node ${this.nodeId} to version ${updateInfo.softwareVersionString}`,
+            `Starting software update for node ${this.nodeId} to version ${updateInfo.softwareVersionString} (${updateInfo.softwareVersion}), source: ${updateInfo.source}`,
         );
 
         // Show the initial progress dialog with cancel support
@@ -1451,8 +1451,8 @@ export class GeneralMatterNode {
             result.node.productId = toUpperCaseHex(details.productId);
             result.node.nodeLabel = details.nodeLabel;
             result.node.location = details.location;
-            result.node.hardwareVersion = details.hardwareVersionString;
-            result.node.softwareVersion = details.softwareVersionString;
+            result.node.hardwareVersion = `${details.hardwareVersionString} (${details.hardwareVersion})`;
+            result.node.softwareVersion = `${details.softwareVersionString} (${details.softwareVersion})`;
             if (details.productUrl) {
                 result.node.productUrl = details.productUrl;
             }

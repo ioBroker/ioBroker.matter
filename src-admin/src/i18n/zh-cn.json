@@ -217,6 +217,8 @@
     "Unselect all rooms": "取消选择所有房间",
     "Update cancelled": "更新已取消",
     "Update successful": "更新成功",
+    "Update failed": "更新失败",
+    "The software update has failed or was cancelled. The device might need some time before a new update attempt can be started.": "软件更新失败或已取消。设备可能需要一些时间才能开始新的更新尝试。",
     "Use last value for ON": "通过 ON 使用最后一个值",
     "Value": "价值",
     "Vendor ID": "供应商ID",

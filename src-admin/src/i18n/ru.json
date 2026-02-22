@@ -217,6 +217,8 @@
     "Unselect all rooms": "Отменить выбор всех номеров",
     "Update cancelled": "Обновление отменено",
     "Update successful": "Обновление успешно",
+    "Update failed": "Ошибка обновления",
+    "The software update has failed or was cancelled. The device might need some time before a new update attempt can be started.": "Обновление программного обеспечения не удалось или было отменено. Устройству может потребоваться некоторое время, прежде чем можно будет начать новую попытку обновления.",
     "Use last value for ON": "Использовать последнее значение при включении",
     "Value": "Значение",
     "Vendor ID": "Идентификатор поставщика",

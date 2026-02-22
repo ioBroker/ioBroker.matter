@@ -215,6 +215,8 @@
     "Unselect all rooms": "Désélectionner toutes les pièces",
     "Update cancelled": "Mise à jour annulée",
     "Update successful": "Mise à jour réussie",
+    "Update failed": "Échec de la mise à jour",
+    "The software update has failed or was cancelled. The device might need some time before a new update attempt can be started.": "La mise à jour du logiciel a échoué ou a été annulée. L'appareil peut avoir besoin d'un certain temps avant qu'une nouvelle tentative de mise à jour puisse être lancée.",
     "Use last value for ON": "Utiliser la dernière valeur par ON",
     "Value": "Valeur",
     "Vendor ID": "Fournisseur ID",

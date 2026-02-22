@@ -215,6 +215,8 @@
     "Unselect all rooms": "Deseleccionar todas las habitaciones",
     "Update cancelled": "Actualización cancelada",
     "Update successful": "Actualización exitosa",
+    "Update failed": "Error en la actualización",
+    "The software update has failed or was cancelled. The device might need some time before a new update attempt can be started.": "La actualización de software ha fallado o fue cancelada. El dispositivo podría necesitar algo de tiempo antes de que se pueda iniciar un nuevo intento de actualización.",
     "Use last value for ON": "Utilice el último valor de ON",
     "Value": "Valor",
     "Vendor ID": "ID del proveedor",

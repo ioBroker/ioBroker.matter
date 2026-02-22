@@ -122,6 +122,7 @@ interface AppState extends GenericAppState {
     localExpertMode: boolean;
     cancelUpdateInfo: boolean;
     updateSuccessInfo: boolean;
+    updateFailedInfo: boolean;
 }
 
 class App extends GenericApp<GenericAppProps, AppState> {
@@ -198,6 +199,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
             localExpertMode: window.localStorage.getItem(`${this.adapterName}.${this.instance}.expertMode`) === 'true',
             cancelUpdateInfo: false,
             updateSuccessInfo: false,
+            updateFailedInfo: false,
         } as Partial<AppState>);
 
         this.alert = window.alert;
@@ -474,6 +476,8 @@ class App extends GenericApp<GenericAppProps, AppState> {
             }
         } else if (update.command === 'updateSuccess') {
             this.setState({ updateSuccessInfo: true });
+        } else if (update.command === 'updateFailed') {
+            this.setState({ updateFailedInfo: true });
         } else {
             this.controllerMessageHandler && this.controllerMessageHandler(update);
         }
@@ -863,6 +867,38 @@ class App extends GenericApp<GenericAppProps, AppState> {
         );
     }
 
+    renderUpdateFailedDialog(): React.JSX.Element | null {
+        if (!this.state.updateFailedInfo) {
+            return null;
+        }
+
+        return (
+            <Dialog
+                open={!0}
+                onClose={() => this.setState({ updateFailedInfo: false })}
+                maxWidth="sm"
+            >
+                <DialogTitle>{I18n.t('Update failed')}</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        {I18n.t(
+                            'The software update has failed or was cancelled. The device might need some time before a new update attempt can be started.',
+                        )}
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        onClick={() => this.setState({ updateFailedInfo: false })}
+                        color="primary"
+                        autoFocus
+                    >
+                        {I18n.t('Close')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        );
+    }
+
     renderIdentifyToast(): React.JSX.Element[] | null {
         if (!this.state.identifyUuids.length) {
             return null;
@@ -964,6 +1000,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                     {this.renderProgressDialog()}
                     {this.renderCancelUpdateInfoDialog()}
                     {this.renderUpdateSuccessDialog()}
+                    {this.renderUpdateFailedDialog()}
                     {this.renderWelcomeDialog()}
                     <div
                         className="App"

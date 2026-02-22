@@ -216,6 +216,8 @@
     "Update Connections": "Update Connections",
     "Update %s node(s)": "Update %s node(s)",
     "Update successful": "Update successful",
+    "Update failed": "Update failed",
+    "The software update has failed or was cancelled. The device might need some time before a new update attempt can be started.": "The software update has failed or was cancelled. The device might need some time before a new update attempt can be started.",
     "Updating...": "Updating...",
     "No nodes to update": "No nodes to update",
     "Refresh network information for \"%s\".": "Refresh network information for \"%s\".",

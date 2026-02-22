@@ -217,6 +217,8 @@
     "Unselect all rooms": "Скасувати вибір усіх кімнат",
     "Update cancelled": "Оновлення скасовано",
     "Update successful": "Оновлення успішне",
+    "Update failed": "Помилка оновлення",
+    "The software update has failed or was cancelled. The device might need some time before a new update attempt can be started.": "Оновлення програмного забезпечення не вдалося або було скасовано. Пристрою може знадобитися деякий час, перш ніж можна буде розпочати нову спробу оновлення.",
     "Use last value for ON": "Використовуйте останнє значення за ON",
     "Value": "Значення",
     "Vendor ID": "ID постачальника",

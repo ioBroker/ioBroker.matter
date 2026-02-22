@@ -215,6 +215,8 @@
     "Unselect all rooms": "Deselecteer alle kamers",
     "Update cancelled": "Update geannuleerd",
     "Update successful": "Update succesvol",
+    "Update failed": "Update mislukt",
+    "The software update has failed or was cancelled. The device might need some time before a new update attempt can be started.": "De software-update is mislukt of geannuleerd. Het apparaat heeft mogelijk enige tijd nodig voordat een nieuwe updatepoging kan worden gestart.",
     "Use last value for ON": "Gebruik de laatste waarde bij AAN",
     "Value": "Waarde",
     "Vendor ID": "Verkopers ID",

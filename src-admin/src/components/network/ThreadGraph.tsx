@@ -7,6 +7,7 @@ import BaseNetworkGraph, { type BaseNetworkGraphProps, type BaseNetworkGraphStat
 import type { NetworkGraphNode, NetworkGraphEdge, ThreadRoutingRole } from './NetworkTypes';
 import {
     buildExtAddrMap,
+    buildRloc16Map,
     findUnknownDevices,
     buildThreadConnections,
     getThreadRoleName,
@@ -27,14 +28,15 @@ class ThreadGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGra
         // Filter Thread nodes
         const threadNodes = allNodes.filter(n => n.networkType === 'thread');
 
-        // Build extended address map for matching
+        // Build address maps for matching
         const extAddrMap = buildExtAddrMap(threadNodes);
+        const rloc16Map = buildRloc16Map(threadNodes);
 
         // Find unknown devices in neighbor tables (computed locally, not stored in state)
-        const unknownDevices = findUnknownDevices(threadNodes, extAddrMap);
+        const unknownDevices = findUnknownDevices(threadNodes, extAddrMap, rloc16Map);
 
         // Build connections
-        const connections = buildThreadConnections(threadNodes, extAddrMap, unknownDevices);
+        const connections = buildThreadConnections(threadNodes, extAddrMap, unknownDevices, rloc16Map);
 
         // Create graph nodes
         const graphNodes: NetworkGraphNode[] = [];
@@ -61,11 +63,12 @@ class ThreadGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGra
             });
         }
 
-        // Add unknown devices
+        // Add external devices (genuinely not on our fabric)
         for (const unknown of unknownDevices) {
+            const externalLabel = unknown.isRouter ? 'External Router' : 'External Device';
             graphNodes.push({
                 id: unknown.id,
-                label: `Unknown\n${unknown.extAddressHex.slice(-8)}`,
+                label: `${externalLabel}\n${unknown.extAddressHex.slice(-8)}`,
                 shape: 'dot',
                 size: 12,
                 color: {
@@ -73,7 +76,7 @@ class ThreadGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGra
                     border: '#FFA000',
                 },
                 font: { color: darkMode ? '#e0e0e0' : '#333333' },
-                title: `Unknown Device\nAddress: ${unknown.extAddressHex}\n${unknown.isRouter ? 'Router' : 'End Device'}\nSeen by: ${unknown.seenBy.length} device(s)`,
+                title: `${externalLabel}\nAddress: ${unknown.extAddressHex}\nSeen by: ${unknown.seenBy.length} device(s)`,
                 networkType: 'thread',
                 isUnknown: true,
             });

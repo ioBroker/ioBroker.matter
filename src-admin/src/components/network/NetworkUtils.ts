@@ -178,10 +178,32 @@ export function buildExtAddrMap(nodes: NetworkNodeData[]): Map<string, string> {
 }
 
 /**
- * Find unknown Thread devices from neighbor tables
- * These are devices seen in neighbor tables but not commissioned to this controller
+ * Build a map of RLOC16 short addresses to node IDs for Thread devices.
+ * Used as fallback when extended address matching fails.
+ * RLOC16 is ephemeral (changes on rejoin or role transition) but works well
+ * when connection data has been recently refreshed.
  */
-export function findUnknownDevices(nodes: NetworkNodeData[], extAddrMap: Map<string, string>): UnknownThreadDevice[] {
+export function buildRloc16Map(nodes: NetworkNodeData[]): Map<number, string> {
+    const map = new Map<number, string>();
+    for (const node of nodes) {
+        if (node.thread?.rloc16 != null && node.thread.rloc16 !== 0) {
+            map.set(node.thread.rloc16, node.nodeId);
+        }
+    }
+    return map;
+}
+
+/**
+ * Find unknown Thread devices from neighbor tables.
+ * These are devices seen in neighbor tables but not commissioned to this controller.
+ * Uses RLOC16 fallback to reduce false "unknown" classifications when extended
+ * address matching fails (format edge cases, stale data, missing NetworkInterfaces).
+ */
+export function findUnknownDevices(
+    nodes: NetworkNodeData[],
+    extAddrMap: Map<string, string>,
+    rloc16Map: Map<number, string>,
+): UnknownThreadDevice[] {
     const unknownMap = new Map<string, UnknownThreadDevice>();
 
     for (const node of nodes) {
@@ -192,8 +214,13 @@ export function findUnknownDevices(nodes: NetworkNodeData[], extAddrMap: Map<str
         for (const neighbor of node.thread.neighborTable) {
             const extAddrHex = parseExtendedAddressToHex(neighbor.extAddress);
 
-            // Check if this neighbor is in our known devices
+            // Check if this neighbor is in our known devices by extended address
             if (extAddrMap.has(extAddrHex)) {
+                continue;
+            }
+
+            // RLOC16 fallback: check by short address before classifying as unknown
+            if (neighbor.rloc16 !== 0 && rloc16Map.has(neighbor.rloc16)) {
                 continue;
             }
 
@@ -433,12 +460,14 @@ export function getRouteBidirectionalLqi(route: ThreadRouteEntry): number | unde
 }
 
 /**
- * Build Thread mesh connections from neighbor tables with route table enhancement
+ * Build Thread mesh connections from neighbor tables with route table enhancement.
+ * Uses RLOC16 fallback when extended address matching fails.
  */
 export function buildThreadConnections(
     nodes: NetworkNodeData[],
     extAddrMap: Map<string, string>,
     unknownDevices: UnknownThreadDevice[],
+    rloc16Map: Map<number, string>,
 ): ThreadConnection[] {
     const connections: ThreadConnection[] = [];
     const seenConnections = new Set<string>();
@@ -458,11 +487,16 @@ export function buildThreadConnections(
         for (const neighbor of node.thread.neighborTable) {
             const neighborExtAddrHex = parseExtendedAddressToHex(neighbor.extAddress);
 
-            // Try to find in known devices first
+            // Try to find in known devices first by extended address
             let toNodeId: string | undefined = extAddrMap.get(neighborExtAddrHex);
             let isUnknown = false;
 
-            // If not found, check unknown devices
+            // RLOC16 fallback for known devices
+            if (toNodeId === undefined && neighbor.rloc16 !== 0) {
+                toNodeId = rloc16Map.get(neighbor.rloc16);
+            }
+
+            // If not found in known devices, check unknown devices
             if (toNodeId === undefined) {
                 toNodeId = unknownExtAddrMap.get(neighborExtAddrHex);
                 isUnknown = true;
@@ -511,11 +545,16 @@ export function buildThreadConnections(
 
                 const routeExtAddrHex = parseExtendedAddressToHex(route.extAddress);
 
-                // Try to find in known devices first
+                // Try to find in known devices first by extended address
                 let toNodeId: string | undefined = extAddrMap.get(routeExtAddrHex);
                 let isUnknown = false;
 
-                // If not found, check unknown devices
+                // RLOC16 fallback for known devices
+                if (toNodeId === undefined && route.rloc16 !== 0) {
+                    toNodeId = rloc16Map.get(route.rloc16);
+                }
+
+                // If not found in known devices, check unknown devices
                 if (toNodeId === undefined) {
                     toNodeId = unknownExtAddrMap.get(routeExtAddrHex);
                     isUnknown = true;
@@ -568,11 +607,13 @@ export function buildThreadConnections(
  * @param nodeId - Node ID to get connections for
  * @param nodes - All nodes
  * @param extAddrMap - Map of extended addresses to node IDs
+ * @param rloc16Map - Map of RLOC16 short addresses to node IDs (fallback)
  */
 export function getNodeConnections(
     nodeId: string,
     nodes: NetworkNodeData[],
     extAddrMap: Map<string, string>,
+    rloc16Map: Map<number, string>,
 ): NodeConnection[] {
     const connections: NodeConnection[] = [];
     const seenConnectedIds = new Set<string>();
@@ -589,10 +630,12 @@ export function getNodeConnections(
     if (node.thread?.neighborTable) {
         for (const neighbor of node.thread.neighborTable) {
             const neighborExtAddrHex = parseExtendedAddressToHex(neighbor.extAddress);
-            const connectedNodeId = extAddrMap.get(neighborExtAddrHex);
+            const connectedNodeId =
+                extAddrMap.get(neighborExtAddrHex) ??
+                (neighbor.rloc16 !== 0 ? rloc16Map.get(neighbor.rloc16) : undefined);
             const connectedNode = connectedNodeId ? nodes.find(n => n.nodeId === connectedNodeId) : undefined;
             const isUnknown = connectedNodeId === undefined;
-            const displayId = isUnknown ? `unknown_${neighborExtAddrHex}` : connectedNodeId;
+            const displayId: string = isUnknown ? `unknown_${neighborExtAddrHex}` : connectedNodeId;
 
             seenConnectedIds.add(displayId);
 

@@ -216,6 +216,8 @@
     "Update Connections": "Verbindungen aktualisieren",
     "Update %s node(s)": "%s Knoten aktualisieren",
     "Update successful": "Update erfolgreich",
+    "Update failed": "Update fehlgeschlagen",
+    "The software update has failed or was cancelled. The device might need some time before a new update attempt can be started.": "Das Software-Update ist fehlgeschlagen oder wurde abgebrochen. Das Gerät benötigt möglicherweise etwas Zeit, bevor ein neuer Update-Versuch gestartet werden kann.",
     "Updating...": "Aktualisiere...",
     "No nodes to update": "Keine Knoten zu aktualisieren",
     "Refresh network information for \"%s\".": "Netzwerkinformationen für \"%s\" aktualisieren.",

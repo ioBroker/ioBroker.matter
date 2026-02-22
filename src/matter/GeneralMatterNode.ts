@@ -559,6 +559,30 @@ export class GeneralMatterNode {
     }
 
     /**
+     * Called when the software update fails or is cancelled (from ControllerNode event handler).
+     */
+    async onSoftwareUpdateFailed(): Promise<void> {
+        if (!this.#softwareUpdateInProgress) {
+            return;
+        }
+
+        this.adapter.log.warn(`Software update failed or was cancelled for node ${this.nodeId}`);
+        this.#cleanupUpdateObservers();
+        this.#softwareUpdateInProgress = false;
+
+        // Close the progress dialog
+        await this.adapter.sendToGui({
+            command: 'progress',
+            progress: { close: true },
+        });
+
+        // Show failure dialog
+        await this.adapter.sendToGui({
+            command: 'updateFailed',
+        });
+    }
+
+    /**
      * Called when the software update completes (from ControllerNode event handler).
      */
     async onSoftwareUpdateComplete(completed: boolean): Promise<void> {

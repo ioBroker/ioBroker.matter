@@ -138,8 +138,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 -->
 
 ## Changelog
-
-### **WORK IN PROGRESS**
+### 0.6.2 (2026-02-22)
 * (@Apollon77) Updated to matter.js 0.16.10: Fixes some OTA issues and optimize Networking and reconnection handling
 * (@Apollon77) Enhances the Thread network graph
 * (@Apollon77) Enhances display of software versions and warn on non-production updates, Display update sources 

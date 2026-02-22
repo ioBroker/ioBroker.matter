@@ -8,6 +8,10 @@ export interface MatterAdapterConfig extends ioBroker.AdapterConfig {
     /** UUID of the default (alexa-compatible - port 5540)bridge */
     defaultBridge: string;
     controllerFabricLabel: string;
+    /** Allow unofficial/custom OTA updates */
+    allowUnofficialUpdates: boolean;
+    /** Custom path for OTA update files (default: instanceDataDir/custom-ota) */
+    customUpdatesPath: string;
 }
 
 export interface BridgeDeviceDescription {
@@ -163,10 +167,15 @@ export interface GUIMessage {
         | 'progress'
         | 'processing'
         | 'identifyPopup'
-        | 'updateController';
+        | 'updateController'
+        | 'updateSuccess'
+        | 'updateFailed'
+        | 'networkGraphUpdate';
     states?: { [uuid: string]: NodeStateResponse };
     device?: CommissionableDevice;
     processing?: { id: string; inProgress: boolean }[] | null;
+    /** Network graph data update */
+    networkGraphData?: NetworkGraphData;
 
     /** Used for identify popup */
     identifyUuid?: string;
@@ -177,12 +186,95 @@ export interface GUIMessage {
         close?: boolean;
         title?: string;
         text?: string;
+        /** Secondary text shown below progress (e.g., patience notice) */
+        subText?: string;
         indeterminate?: boolean;
         value?: number;
+        /** Whether the progress dialog can be cancelled */
+        cancelable?: boolean;
+        /** Node ID for cancel action (for OTA updates) */
+        cancelNodeId?: string;
     };
 }
+
+/** OTA Update states from Matter specification */
+export type OtaUpdateState =
+    | 'Unknown'
+    | 'Idle'
+    | 'Querying'
+    | 'DelayedOnQuery'
+    | 'Downloading'
+    | 'Applying'
+    | 'DelayedOnApply'
+    | 'RollingBack'
+    | 'DelayedOnUserConsent';
 
 export interface CommissioningInfo {
     bridges: Record<string, boolean>;
     devices: Record<string, boolean>;
+}
+
+// Network Graph Types - shared between backend and frontend
+export type NetworkType = 'thread' | 'wifi' | 'ethernet' | 'unknown';
+
+export interface NetworkGraphData {
+    nodes: NetworkNodeData[];
+    timestamp: number;
+}
+
+export interface NetworkNodeData {
+    nodeId: string;
+    name: string;
+    vendorId?: string;
+    productId?: string;
+    isConnected: boolean;
+    networkType: NetworkType;
+    wifi?: WiFiDiagnosticsData;
+    thread?: ThreadDiagnosticsData;
+}
+
+export interface WiFiDiagnosticsData {
+    bssid: string | null;
+    rssi: number | null;
+    channel: number | null;
+    securityType: number | null;
+    wifiVersion: number | null;
+}
+
+export interface ThreadDiagnosticsData {
+    channel: number | null;
+    routingRole: number | null;
+    extendedPanId: string | null;
+    rloc16: number | null;
+    extendedAddress: string | null;
+    neighborTable: ThreadNeighborEntry[];
+    routeTable: ThreadRouteEntry[];
+}
+
+export interface ThreadNeighborEntry {
+    extAddress: string;
+    rloc16: number;
+    age: number;
+    averageRssi: number | null;
+    lastRssi: number | null;
+    lqi: number;
+    frameErrorRate: number;
+    messageErrorRate: number;
+    rxOnWhenIdle: boolean;
+    fullThreadDevice: boolean;
+    fullNetworkData: boolean;
+    isChild: boolean;
+}
+
+export interface ThreadRouteEntry {
+    extAddress: string;
+    rloc16: number;
+    routerId: number;
+    nextHop: number;
+    pathCost: number;
+    lqiIn: number;
+    lqiOut: number;
+    age: number;
+    allocated: boolean;
+    linkEstablished: boolean;
 }

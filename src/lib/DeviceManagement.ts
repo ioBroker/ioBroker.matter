@@ -1,19 +1,18 @@
 import type { MatterAdapter } from '../main';
-import {
-    type ActionContext,
-    type ApiVersion,
-    type ConfigItemAny,
-    type DeviceDetails,
-    type DeviceInfo,
-    type DeviceRefresh,
-    type DeviceStatus,
-    type InstanceDetails,
-    type JsonFormSchema,
-    type JsonFormData,
-    type ConfigConnectionType,
-    DeviceManagement,
-    ACTIONS,
+import type {
+    ActionContext,
+    ApiVersion,
+    ConfigItemAny,
+    DeviceDetails,
+    DeviceInfo,
+    DeviceRefresh,
+    DeviceStatus,
+    InstanceDetails,
+    JsonFormSchema,
+    JsonFormData,
+    ConfigConnectionType,
 } from '@iobroker/dm-utils';
+import { DeviceManagement, ACTIONS } from '@iobroker/dm-utils';
 import { GeneralMatterNode, type NodeDetails } from '../matter/GeneralMatterNode';
 import { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIoBroker';
 import type { DeviceAction } from '@iobroker/dm-utils/build/types/base';
@@ -21,6 +20,7 @@ import { inspect } from 'util';
 import { convertDataToJsonConfig } from './JsonConfigUtils';
 import { logControllerEndpoint } from '../matter/ControllerEndpointStructureInspector';
 import { SpecificationVersion } from '@matter/main/types';
+import { isObject } from '@matter/main';
 
 function strToBool(str: string): boolean | null {
     if (str === 'true') {
@@ -45,25 +45,38 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             ...(await super.getInstanceInfo()),
             apiVersion: 'v1' as ApiVersion,
             actions: [
-                /*{
-                    id: 'newDevice',
-                    icon: 'fas fa-plus',
-                    title: '',
-                    description: {
-                        en: 'Add new device to Zigbee',
-                        de: 'Neues Gerät zu Zigbee hinzufügen',
-                        ru: 'Добавить новое устройство в Zigbee',
-                        pt: 'Adicionar novo dispositivo ao Zigbee',
-                        nl: 'Voeg nieuw apparaat toe aan Zigbee',
-                        fr: 'Ajouter un nouvel appareil à Zigbee',
-                        it: 'Aggiungi nuovo dispositivo a Zigbee',
-                        es: 'Agregar nuevo dispositivo a Zigbee',
-                        pl: 'Dodaj nowe urządzenie do Zigbee',
-
-                        uk: 'Додати новий пристрій до Zigbee',
+                {
+                    id: 'checkNodeUpdates',
+                    icon: 'update',
+                    title: {
+                        en: 'Check Updates',
+                        de: 'Updates prüfen',
+                        ru: 'Проверка обновлений',
+                        pt: 'Verificar actualizações',
+                        nl: 'Updates controleren',
+                        fr: 'Vérifier les mises à jour',
+                        it: 'Controllare gli aggiornamenti',
+                        es: 'Comprobar actualizaciones',
+                        pl: 'Sprawdź aktualizacje',
+                        uk: 'Перевірте оновлення',
+                        'zh-cn': 'Check Updates',
                     },
-                    handler: this.handleNewDevice.bind(this),
-                },*/
+                    description: {
+                        en: 'Check for Node updates',
+                        de: 'Node-Updates prüfen',
+                        ru: 'Проверьте наличие обновлений узла',
+                        pt: 'Verificar se há actualizações do Node',
+                        nl: 'Controleren op Node-updates',
+                        fr: 'Vérifier les mises à jour de Node',
+                        it: 'Verifica degli aggiornamenti dei nodi',
+                        es: 'Buscar actualizaciones de nodos',
+                        pl: 'Sprawdź aktualizacje węzła',
+                        uk: 'Перевірте наявність оновлень вузла',
+                        'zh-cn': 'Check for Node updates',
+                    },
+                    handler: this.checkNodeUpdates.bind(this),
+                    timeout: 30_000,
+                },
             ],
         };
     }
@@ -131,11 +144,23 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const id = ioNode.nodeId;
         const details = ioNode.details;
 
+        let updateAvailableMessage: string | undefined = undefined;
+        if (ioNode.softwareUpdateAvailable !== undefined) {
+            const info = ioNode.softwareUpdateAvailable;
+            updateAvailableMessage = '';
+            if (ioNode.node.basicInformation) {
+                updateAvailableMessage = `${ioNode.node.basicInformation.softwareVersionString} (${ioNode.node.basicInformation.softwareVersion})`;
+            }
+            updateAvailableMessage += ` → ${info.softwareVersionString} (${info.softwareVersion})`;
+            updateAvailableMessage = updateAvailableMessage.trim();
+        }
+
         let actions: (DeviceAction<'adapter'> | null)[] = [
             {
                 // This is a special action when the user clicks on the status icon
                 id: ACTIONS.STATUS,
                 handler: (_id, context) => this.#handleOnStatusNode(ioNode, context),
+                timeout: 20_000,
             },
             {
                 // This is a special action when the user clicks on the enabled icon
@@ -147,6 +172,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 icon: 'delete',
                 description: this.#adapter.getText('Unpair this node'),
                 handler: (_id, context) => this.#handleDeleteNode(ioNode, context),
+                timeout: 30_000,
             },
             {
                 id: 'renameNode',
@@ -161,6 +187,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                       icon: 'qrcode',
                       description: this.#adapter.getText('Generate new pairing code'),
                       handler: (_id, context) => this.#handlePairingCode(ioNode, context),
+                      timeout: 20_000,
                   }
                 : null,
             isConnected
@@ -177,6 +204,15 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 description: this.#adapter.getText('Output Debug details for this node'),
                 handler: (_id, context) => this.#handleLogDebugNode(ioNode, context),
             },
+            // Show software update action if an update is available
+            updateAvailableMessage
+                ? {
+                      id: 'softwareUpdate',
+                      icon: 'update',
+                      description: updateAvailableMessage,
+                      handler: (_id, context) => this.#handleSoftwareUpdateNode(ioNode, context),
+                  }
+                : null,
         ];
 
         // remove null actions
@@ -278,6 +314,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 icon: 'identify',
                 description: this.#adapter.getText('Identify this device'),
                 handler: (id, context) => this.#handleIdentifyDevice(device, context),
+                timeout: 10_000,
             });
         }
 
@@ -505,6 +542,148 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         return { refresh: false };
     }
 
+    async #handleSoftwareUpdateNode(
+        node: GeneralMatterNode,
+        context: ActionContext,
+    ): Promise<{ refresh: DeviceRefresh }> {
+        const info = node.softwareUpdateAvailable;
+        if (!info || !node.node.basicInformation) {
+            await context.showMessage(this.#adapter.t('No software update information available'));
+            return { refresh: false };
+        }
+
+        const currentVersion = node.node.basicInformation.softwareVersionString;
+        const currentVersionNum = node.node.basicInformation.softwareVersion;
+
+        const sourceLabels: Record<string, string> = {
+            'dcl-prod': 'OTA Update Source dcl-prod',
+            'dcl-test': 'OTA Update Source dcl-test',
+            local: 'OTA Update Source local',
+        };
+        const sourceLabel = this.#adapter.getText(sourceLabels[info.source] ?? info.source);
+
+        const items: Record<string, ConfigItemAny> = {
+            _header: {
+                type: 'staticText',
+                text: this.#adapter.getText('A software update is available for this device.'),
+                style: { marginBottom: 16 },
+            },
+            _divider1: {
+                type: 'divider',
+            },
+            _currentVersionHeader: {
+                type: 'header',
+                text: this.#adapter.getText('Current Version'),
+                size: 5,
+            },
+            currentVersion: {
+                type: 'staticInfo',
+                label: this.#adapter.getText('Version'),
+                data: `${currentVersion} (${currentVersionNum})`,
+            },
+            _newVersionHeader: {
+                type: 'header',
+                text: this.#adapter.getText('New Version'),
+                size: 5,
+                newLine: true,
+            },
+            newVersion: {
+                type: 'staticInfo',
+                label: this.#adapter.getText('New Version'),
+                data: `${info.softwareVersionString} (${info.softwareVersion})`,
+            },
+            updateSource: {
+                type: 'staticInfo',
+                label: this.#adapter.getText('Update Source'),
+                data: sourceLabel,
+            },
+            ...(info.source !== 'dcl-prod'
+                ? {
+                      _untrustedWarning: {
+                          type: 'staticText',
+                          text: this.#adapter.getText('Unverified OTA Update Source Warning'),
+                          icon: 'warning',
+                          style: {
+                              marginTop: 12,
+                              padding: '8px 12px',
+                              backgroundColor: '#fff3cd',
+                              color: '#856404',
+                              border: '1px solid #ffc107',
+                              borderRadius: 4,
+                          },
+                      },
+                  }
+                : {}),
+            ...(info.releaseNotesUrl
+                ? {
+                      releaseNotes: {
+                          type: 'staticText',
+                          label: this.#adapter.getText('Release Notes'),
+                          text: this.#adapter.getText('Release Notes'),
+                          href: info.releaseNotesUrl,
+                          target: '_blank',
+                          button: true,
+                          variant: 'outlined',
+                          newLine: true,
+                          style: { marginTop: 16 },
+                      },
+                  }
+                : {}),
+            _divider2: {
+                type: 'divider',
+                style: { marginTop: 16 },
+            },
+            _patienceNotice: {
+                type: 'staticText',
+                text: this.#adapter.getText(
+                    'Software updates can take several minutes depending on the device and connection type (Thread, WiFi). The update may appear stuck at times - please be patient and do not interrupt the process.',
+                ),
+                style: { marginTop: 8, fontStyle: 'italic', fontSize: '0.9em' },
+            },
+        };
+
+        const result = await context.showForm(
+            {
+                type: 'panel',
+                items,
+                style: {
+                    minWidth: 350,
+                },
+            },
+            {
+                data: { confirmUpdate: true },
+                title: this.#adapter.getText('Software Update Available'),
+                buttons: [
+                    {
+                        type: 'cancel',
+                        label: this.#adapter.getText('Close'),
+                    },
+                    {
+                        type: 'apply',
+                        label: this.#adapter.getText('Update now'),
+                        color: 'primary',
+                    },
+                ],
+                ignoreApplyDisabled: true,
+            },
+        );
+
+        if (isObject(result)) {
+            // User clicked "Update now" - start the update process
+            this.adapter.log.info(`User requested software update for node ${node.nodeId}`);
+
+            // Start the update process directly on the node
+            // Progress will be shown via sendToGui with cancel support
+            try {
+                await node.startSoftwareUpdate();
+            } catch (error) {
+                await context.showMessage(`${this.#adapter.t('Failed to start software update')}: ${error}`);
+            }
+        }
+
+        return { refresh: false };
+    }
+
     async #handleConfigureNodeOrDevice(
         title: ioBroker.StringOrTranslated,
         baseId: string,
@@ -581,7 +760,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             // Because of a Matter SDK Bug setting the subscriptionMaxIntervalS only makes sense
             // for Matter versions >= 1.3
             const specVersion = node.node.basicInformation?.specificationVersion;
-            if (typeof specVersion === 'number') {
+            if (typeof specVersion === 'number' && specVersion !== 0) {
                 const { major, minor } = SpecificationVersion.decode(specVersion);
                 const matterVersion = parseFloat((major + minor / 100).toFixed(1));
                 if (matterVersion >= 1.3) {
@@ -786,6 +965,16 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const schema = convertDataToJsonConfig(device.getDeviceDetails(node.isConnected), this.#adapter);
 
         return { id, schema, data: {} };
+    }
+
+    async checkNodeUpdates(context: ActionContext): Promise<{ refresh: boolean }> {
+        const updates = (await this.#adapter?.controllerNode?.queryUpdates()) ?? [];
+
+        const message =
+            this.#adapter?.t('%s updates available', updates.length) ?? `${updates.length} updates available`;
+        await context.showMessage(message);
+
+        return { refresh: !!updates.length };
     }
 
     async close(): Promise<void> {

@@ -9,13 +9,14 @@ import {
 import type { MatterAdapter } from '../../main';
 import { BasicInformation, BridgedDeviceBasicInformation, Identify, PowerSource } from '@matter/main/clusters';
 import type { DecodedEventData } from '@matter/main/protocol';
-import type { Endpoint, PairedNode, DeviceBasicInformation } from '@project-chip/matter.js/device';
+import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
 import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DeviceOptions } from '../../lib/devices/GenericDevice';
 import { decamelize, toHex } from '../../lib/utils';
 import type { StructuredJsonFormData } from '../../lib/JsonConfigUtils';
 import type { DeviceStatus } from '@iobroker/dm-utils';
+import type { CustomStateDefinition, CustomStateNames, CustomStatesRecord, EmptyCustomStates } from './custom-states';
 
 export interface EnabledProperty {
     common?: Partial<ioBroker.StateCommon>;
@@ -43,6 +44,18 @@ export type GenericDeviceConfiguration = {
     pollInterval?: number;
 };
 
+/** Property definition for custom state attribute mappings */
+export interface EnabledCustomAttributeProperty {
+    type: 'attribute';
+    endpointId?: EndpointNumber;
+    clusterId?: ClusterId;
+    attributeId?: AttributeId;
+    attributeName?: string;
+    convertValue?: (value: any) => MaybePromise<any>;
+    changeHandler?: (value: any) => MaybePromise<void> | void;
+    pollAttribute?: boolean;
+}
+
 function attributePathToString(path: {
     endpointId: EndpointNumber;
     clusterId: ClusterId;
@@ -56,7 +69,7 @@ function eventPathToString(path: { endpointId: EndpointNumber; clusterId: Cluste
 }
 
 /** Base class to map an ioBroker device to a matter device. */
-export abstract class GenericDeviceToIoBroker {
+export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = EmptyCustomStates> {
     readonly #adapter: MatterAdapter;
     readonly baseId: string;
     readonly #node: PairedNode;
@@ -76,6 +89,17 @@ export abstract class GenericDeviceToIoBroker {
     #initialized = false;
     #pollInterval?: number;
     #hasAttributesToPoll = false;
+    /** Tracks in-progress changeHandler calls: property → value currently being handled */
+    #inProgressChangeHandlers = new Map<PropertyType, unknown>();
+    /** Tracks in-progress custom changeHandler calls: customPropertyName → value currently being handled */
+    #inProgressCustomChangeHandlers = new Map<string, unknown>();
+
+    /** Custom state definitions passed to this converter */
+    protected readonly customStateDefinitions: C;
+    /** Enabled custom attribute properties - keyed by custom property name */
+    #enabledCustomAttributeProperties = new Map<string, EnabledCustomAttributeProperty>();
+    /** Matter path mappings for custom states - maps path to custom property name or handler */
+    #customMatterMappings = new Map<string, string | ((value: any) => MaybePromise<any>)>();
 
     protected constructor(
         adapter: MatterAdapter,
@@ -86,6 +110,7 @@ export abstract class GenericDeviceToIoBroker {
         deviceTypeName: string,
         defaultConnectionStateId: string,
         defaultName: string,
+        customStateDefinitions?: C,
     ) {
         this.#adapter = adapter;
         this.#node = node;
@@ -95,6 +120,7 @@ export abstract class GenericDeviceToIoBroker {
         this.#defaultName = defaultName;
         this.deviceType = deviceTypeName;
         this.#connectionStateId = defaultConnectionStateId;
+        this.customStateDefinitions = customStateDefinitions ?? ({} as C);
 
         this.#deviceOptions = {
             additionalStateData: {},
@@ -131,12 +157,16 @@ export abstract class GenericDeviceToIoBroker {
         return this.#connectionStateId;
     }
 
-    get nodeBasicInformation(): Partial<DeviceBasicInformation> {
+    get nodeBasicInformation(): Record<string, unknown> {
         return this.#node.basicInformation ?? {};
     }
 
     get node(): PairedNode {
         return this.#node;
+    }
+
+    protected get adapter(): MatterAdapter {
+        return this.#adapter;
     }
 
     /**
@@ -346,6 +376,125 @@ export abstract class GenericDeviceToIoBroker {
         this.#enabledEventProperties.set(type, knownEvents);
     }
 
+    /**
+     * Enable a custom state for a Matter attribute.
+     * Uses type-safe custom property names from the generic type parameter C.
+     *
+     * @param customPropertyName - The custom property name (must be a key in C)
+     * @param data - Attribute mapping data (endpoint, cluster, attribute, converters)
+     */
+    protected enableCustomStateForAttribute<K extends CustomStateNames<C>>(
+        customPropertyName: K,
+        data?: {
+            endpointId?: EndpointNumber;
+            clusterId?: ClusterId;
+            convertValue?: (value: any) => MaybePromise<any>;
+            changeHandler?: (value: any) => MaybePromise<void> | void;
+            pollAttribute?: boolean;
+        } & ({ vendorSpecificAttributeId: AttributeId } | { attributeName?: string }),
+    ): void {
+        // Get definition from custom state definitions
+        const definition = this.customStateDefinitions[customPropertyName] as CustomStateDefinition | undefined;
+        if (!definition) {
+            this.#adapter.log.warn(`Custom state definition not found for: ${customPropertyName}`);
+            return;
+        }
+
+        // Check if already enabled
+        if (this.#enabledCustomAttributeProperties.has(customPropertyName)) {
+            this.#adapter.log.debug(`Custom state ${customPropertyName} already enabled`);
+            return;
+        }
+
+        if (data !== undefined) {
+            const { endpointId, clusterId, convertValue, changeHandler, pollAttribute } = data;
+            let attributeId: AttributeId | undefined;
+            const attributeName =
+                'vendorSpecificAttributeId' in data
+                    ? `unknownAttribute_${Diagnostic.hex(data.vendorSpecificAttributeId)}`
+                    : data.attributeName;
+
+            // Verify the attribute exists on the cluster
+            if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
+                const cluster =
+                    endpointId === 0
+                        ? this.#rootEndpoint.getClusterClientById(clusterId)
+                        : this.appEndpoint.getClusterClientById(clusterId);
+                if (!cluster || !cluster.isAttributeSupportedByName(attributeName)) {
+                    return;
+                }
+                attributeId = cluster.attributes[attributeName].id;
+            }
+
+            // Register the Matter path mapping
+            if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
+                const pathId = attributePathToString({ endpointId, clusterId, attributeName });
+                this.#customMatterMappings.set(pathId, customPropertyName);
+            }
+
+            // Store the enabled property
+            this.#enabledCustomAttributeProperties.set(customPropertyName, {
+                type: 'attribute',
+                endpointId,
+                clusterId,
+                attributeId,
+                attributeName,
+                convertValue,
+                changeHandler,
+                pollAttribute,
+            });
+        }
+    }
+
+    /** Get the Matter state value for a custom property */
+    getCustomMatterState(customPropertyName: string): any {
+        const matterLocation = this.#enabledCustomAttributeProperties.get(customPropertyName);
+        if (matterLocation === undefined || matterLocation.type !== 'attribute') {
+            return;
+        }
+        const { endpointId, clusterId, attributeName } = matterLocation;
+        if (endpointId === undefined || clusterId === undefined || attributeName === undefined) {
+            return;
+        }
+
+        const cluster =
+            endpointId === 0
+                ? this.#rootEndpoint.getClusterClientById(clusterId)
+                : endpointId === this.appEndpoint.number
+                  ? this.appEndpoint.getClusterClientById(clusterId)
+                  : undefined;
+        if (!cluster) {
+            return;
+        }
+        return cluster.attributes[attributeName].getLocal();
+    }
+
+    /** Update an ioBroker custom state with a value from Matter */
+    async updateCustomIoBrokerState(customPropertyName: string, value: any): Promise<void> {
+        const properties = this.#enabledCustomAttributeProperties.get(customPropertyName);
+        if (properties === undefined || properties.type !== 'attribute') {
+            return;
+        }
+        const { convertValue } = properties;
+        if (convertValue !== undefined) {
+            value = await convertValue(value);
+        }
+        if (value !== undefined) {
+            try {
+                await this.ioBrokerDevice.updateCustomValue(customPropertyName, value);
+            } catch (e) {
+                this.#adapter.log.error(
+                    `Error updating custom property ${customPropertyName} with value ${value}: ${e}`,
+                );
+            }
+        }
+    }
+
+    /** Get enabled custom property names */
+    get enabledCustomPropertyNames(): string[] {
+        return Array.from(this.#enabledCustomAttributeProperties.keys());
+    }
+
     getMatterState(property: PropertyType): any {
         const matterLocation = this.#enabledAttributeProperties.get(property);
         if (matterLocation === undefined || matterLocation.type !== 'attribute') {
@@ -398,15 +547,27 @@ export abstract class GenericDeviceToIoBroker {
         value: any;
     }): Promise<void> {
         const pathId = attributePathToString(data);
+
+        // Check standard property mappings first
         const pathProperty = this.#matterMappings.get(pathId);
-        if (pathProperty === undefined) {
+        if (pathProperty !== undefined) {
+            if (typeof pathProperty === 'function') {
+                await pathProperty(data.value);
+                return;
+            }
+            await this.updateIoBrokerState(pathProperty, data.value);
             return;
         }
-        if (typeof pathProperty === 'function') {
-            await pathProperty(data.value);
-            return;
+
+        // Check custom state mappings
+        const customProperty = this.#customMatterMappings.get(pathId);
+        if (customProperty !== undefined) {
+            if (typeof customProperty === 'function') {
+                await customProperty(data.value);
+                return;
+            }
+            await this.updateCustomIoBrokerState(customProperty, data.value);
         }
-        await this.updateIoBrokerState(pathProperty, data.value);
     }
 
     async handleTriggeredEvent(data: {
@@ -526,21 +687,81 @@ export abstract class GenericDeviceToIoBroker {
             if (changeHandler === undefined) {
                 return;
             }
+            // Skip duplicate: same property with same value is already being handled
+            if (
+                this.#inProgressChangeHandlers.has(event.property) &&
+                this.#inProgressChangeHandlers.get(event.property) === event.value
+            ) {
+                this.#adapter.log.info(
+                    `Skipping duplicate change event for ${event.property} with value ${JSON.stringify(event.value)} (handler already in progress)`,
+                );
+                return;
+            }
             this.#adapter.log.debug(
                 `Handle change event for ${event.property} with value ${JSON.stringify(event.value)}`,
             );
-            await changeHandler(event.value);
+            this.#inProgressChangeHandlers.set(event.property, event.value);
+            try {
+                await changeHandler(event.value);
+            } finally {
+                this.#inProgressChangeHandlers.delete(event.property);
+            }
+        });
+
+        // Handle custom state changes from ioBroker side
+        this.ioBrokerDevice.onCustomChange(async (event: { customPropertyName: string; value: unknown }) => {
+            const matterLocation = this.#enabledCustomAttributeProperties.get(event.customPropertyName);
+            if (matterLocation === undefined || matterLocation.type !== 'attribute') {
+                return;
+            }
+            const { changeHandler } = matterLocation;
+            if (changeHandler === undefined) {
+                return;
+            }
+            // Skip duplicate: same custom property with same value is already being handled
+            if (
+                this.#inProgressCustomChangeHandlers.has(event.customPropertyName) &&
+                this.#inProgressCustomChangeHandlers.get(event.customPropertyName) === event.value
+            ) {
+                this.#adapter.log.info(
+                    `Skipping duplicate custom change event for ${event.customPropertyName} with value ${JSON.stringify(event.value)} (handler already in progress)`,
+                );
+                return;
+            }
+            this.#adapter.log.debug(
+                `Handle custom change event for ${event.customPropertyName} with value ${JSON.stringify(event.value)}`,
+            );
+            this.#inProgressCustomChangeHandlers.set(event.customPropertyName, event.value);
+            try {
+                await changeHandler(event.value);
+            } finally {
+                this.#inProgressCustomChangeHandlers.delete(event.customPropertyName);
+            }
         });
     }
 
     /** Initialize the states of the ioBroker device with the current values from the matter device. */
     async initializeStates(): Promise<void> {
+        // Initialize standard property states
         for (const property of this.#enabledAttributeProperties.keys()) {
             const value = this.getMatterState(property);
             if (value !== undefined) {
                 await this.updateIoBrokerState(property, value);
             }
         }
+
+        // Initialize custom states
+        for (const customPropertyName of this.#enabledCustomAttributeProperties.keys()) {
+            // Initialize the custom state in the device
+            await this.ioBrokerDevice.initCustomState(customPropertyName, `${this.baseId}.`);
+
+            // Set initial value from Matter
+            const value = this.getCustomMatterState(customPropertyName);
+            if (value !== undefined) {
+                await this.updateCustomIoBrokerState(customPropertyName, value);
+            }
+        }
+
         this.#initAttributePolling();
     }
 
@@ -554,6 +775,8 @@ export abstract class GenericDeviceToIoBroker {
             clusterId: ClusterId;
             attributeId: AttributeId;
         }>();
+
+        // Add standard property attributes for polling
         for (const property of this.#enabledAttributeProperties.values()) {
             if (property.type === 'attribute' && property.pollAttribute) {
                 const { endpointId, clusterId, attributeId } = property;
@@ -562,6 +785,17 @@ export abstract class GenericDeviceToIoBroker {
                 }
             }
         }
+
+        // Add custom state attributes for polling
+        for (const property of this.#enabledCustomAttributeProperties.values()) {
+            if (property.type === 'attribute' && property.pollAttribute) {
+                const { endpointId, clusterId, attributeId } = property;
+                if (endpointId !== undefined && clusterId !== undefined && attributeId !== undefined) {
+                    pollingAttributes.push({ endpointId, clusterId, attributeId });
+                }
+            }
+        }
+
         if (pollingAttributes.length) {
             this.#hasAttributesToPoll = true;
             this.#pollTimeout = setTimeout(() => this.#pollAttributes(pollingAttributes), this.pollInterval);
@@ -595,24 +829,6 @@ export abstract class GenericDeviceToIoBroker {
                 // Maximum read for 9 attribute paths is allowed, so split in chunks of 9
                 const chunk = attributes.slice(i, i + 9);
 
-                // Collect the endpoints and clusters and get the last known data version for each to use as filter
-                const endpointClusters = new Map<string, { endpointId: EndpointNumber; clusterId: ClusterId }>();
-                for (const { endpointId, clusterId } of chunk) {
-                    const key = `${endpointId}-${clusterId}`;
-                    endpointClusters.set(key, { endpointId, clusterId });
-                }
-                const dataVersionFilters = new Array<{
-                    endpointId: EndpointNumber;
-                    clusterId: ClusterId;
-                    dataVersion: number;
-                }>();
-                for (const data of endpointClusters.values()) {
-                    const filter = client.getCachedClusterDataVersions(data);
-                    if (filter.length) {
-                        dataVersionFilters.push(filter[0]);
-                    }
-                }
-
                 try {
                     // Query the attributes
                     const result = await client.getMultipleAttributes({
@@ -621,7 +837,6 @@ export abstract class GenericDeviceToIoBroker {
                             clusterId,
                             attributeId,
                         })),
-                        dataVersionFilters,
                     });
 
                     // Handle the results as if they would have come as subscription update

@@ -20,21 +20,22 @@ export function decamelize(camlized: string): string {
     return str[0].toUpperCase() + str.slice(1);
 }
 
-export function bytesToMac(bytes: Uint8Array): string {
+export function bytesToMac(bytes: Bytes): string {
     return Bytes.toHex(bytes)
         .match(/.{1,2}/g)!
         .join(':');
 }
 
-export function bytesToIpV4(bytes: Uint8Array): string {
-    return Array.from(bytes).join('.');
+export function bytesToIpV4(bytes: Bytes): string {
+    return Array.from(Bytes.of(bytes)).join('.');
 }
 
-export function bytesToIpV6(bytes: Uint8Array): string {
+export function bytesToIpV6(bytes: Bytes): string {
+    const data = Bytes.of(bytes);
     // Convert the byte array to an array of 8 groups of 16-bit numbers
     const groups = [];
     for (let i = 0; i < 16; i += 2) {
-        groups.push(((bytes[i] << 8) | bytes[i + 1]).toString(16));
+        groups.push(((data[i] << 8) | data[i + 1]).toString(16));
     }
 
     // Join the groups with colons

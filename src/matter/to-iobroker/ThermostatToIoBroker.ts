@@ -90,6 +90,8 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
         if (thermostat !== undefined) {
             const features = thermostat.supportedFeatures;
             modes = {};
+            // We assume OFF is always supported by Matter Thermostat cluster, no way to determine exactly
+            modes[ThermostatModeNumbers[ThermostatMode.Off]] = ThermostatMode.Off;
             if (features?.heating) {
                 modes[ThermostatModeNumbers[ThermostatMode.Heat]] = ThermostatMode.Heat;
             }
@@ -110,10 +112,10 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
                 let ioMode: ThermostatMode | undefined = undefined;
                 switch (value) {
                     case MatterThermostat.SystemMode.Off:
-                        /*if (this.ioBrokerDevice.getPower()) {
+                        if (this.ioBrokerDevice.hasPower() && this.ioBrokerDevice.getPower()) {
                             await this.ioBrokerDevice.updatePower(false);
-                        }*/
-                        break;
+                        }
+                        return ThermostatMode.Off;
                     case MatterThermostat.SystemMode.Heat:
                         ioMode = ThermostatMode.Heat;
                         break;
@@ -124,9 +126,9 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
                         ioMode = ThermostatMode.Auto;
                 }
                 if (ioMode !== undefined) {
-                    /*if (!this.ioBrokerDevice.getPower()) {
+                    if (this.ioBrokerDevice.hasPower() && !this.ioBrokerDevice.getPower()) {
                         await this.ioBrokerDevice.updatePower(true);
-                    }*/
+                    }
                     if (ioMode === ThermostatMode.Heat) {
                         const heatSetpoint = this.appEndpoint
                             .getClusterClient(MatterThermostat.Complete)

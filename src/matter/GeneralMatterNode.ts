@@ -1,4 +1,5 @@
-import { capitalize, ClusterId, type NodeId, serialize, Diagnostic } from '@matter/main';
+import { capitalize, ClusterId, serialize, Diagnostic, SoftwareUpdateManager, ObserverGroup } from '@matter/main';
+import type { NodeId, SoftwareUpdateInfo } from '@matter/main';
 import {
     BasicInformationCluster,
     BridgedDeviceBasicInformation,
@@ -6,23 +7,23 @@ import {
     WiFiNetworkDiagnosticsCluster,
     ThreadNetworkDiagnostics,
     OperationalCredentialsCluster,
+    OtaSoftwareUpdateRequestor,
 } from '@matter/main/clusters';
+import { PeerAddress } from '@matter/main/protocol';
+import { FabricIndex, GlobalAttributes, SpecificationVersion } from '@matter/main/types';
 import { AttributeModel, ClusterModel, CommandModel, MatterModel } from '@matter/main/model';
-import {
-    type DecodedAttributeReportValue,
-    type DecodedEventReportValue,
-    SupportedAttributeClient,
-    UnknownSupportedAttributeClient,
-} from '@matter/main/protocol';
-import { GlobalAttributes, SpecificationVersion } from '@matter/main/types';
+import { type DecodedAttributeReportValue, type DecodedEventReportValue } from '@matter/main/protocol';
 import { AggregatorEndpointDefinition, BridgedNodeEndpointDefinition } from '@matter/main/endpoints';
+import { OtaSoftwareUpdateRequestorClient } from '@matter/main/behaviors';
 import {
     type Endpoint,
     NodeStates as PairedNodeStates,
     type PairedNode,
     type CommissioningControllerNodeOptions,
 } from '@project-chip/matter.js/device';
-import type { MatterControllerConfig } from '../../src-admin/src/types';
+import type { CommissioningController } from '@project-chip/matter.js';
+import { SupportedAttributeClient, UnknownSupportedAttributeClient } from '@project-chip/matter.js/cluster';
+import type { MatterControllerConfig } from '../ioBrokerStorageTypes';
 import { SubscribeManager } from '../lib';
 import type { SubscribeCallback } from '../lib/SubscribeManager';
 import { bytesToIpV4, bytesToIpV6, bytesToMac, decamelize, toHex, toUpperCaseHex } from '../lib/utils';
@@ -85,6 +86,7 @@ export class GeneralMatterNode {
     readonly connectionStateId: string;
     readonly connectionStatusId: string;
     readonly connectedAddressStateId: string;
+    readonly updateAvailableStateId: string;
     exposeMatterApplicationClusterData: boolean;
     exposeMatterSystemClusterData: boolean;
     #endpointMap = new Map<number, { baseId: string; endpoint: Endpoint }>();
@@ -99,17 +101,23 @@ export class GeneralMatterNode {
     #enabled = true;
     #subscriptionMaxIntervalS?: number;
     #connectOptions?: CommissioningControllerNodeOptions;
+    #softwareUpdateAvailable?: SoftwareUpdateInfo;
+    #softwareUpdateInProgress = false;
+    #currentUpdateState?: OtaSoftwareUpdateRequestor.UpdateState;
+    #updateObservers?: ObserverGroup;
 
     constructor(
         protected readonly adapter: MatterAdapter,
         readonly node: PairedNode,
         controllerConfig: MatterControllerConfig,
+        private readonly commissioningController?: CommissioningController,
     ) {
         this.nodeId = node.nodeId.toString();
         this.nodeBaseId = `controller.${this.nodeId}`;
         this.connectionStateId = `${this.nodeBaseId}.info.connection`;
         this.connectionStatusId = `${this.nodeBaseId}.info.status`;
         this.connectedAddressStateId = `${this.nodeBaseId}.info.connectedAddress`;
+        this.updateAvailableStateId = `${this.nodeBaseId}.info.updateAvailable`;
         this.exposeMatterApplicationClusterData = controllerConfig.defaultExposeMatterApplicationClusterData ?? false;
         this.exposeMatterSystemClusterData = controllerConfig.defaultExposeMatterSystemClusterData ?? false;
     }
@@ -165,11 +173,11 @@ export class GeneralMatterNode {
             this.adapter.log.warn(
                 `Node "${this.node.nodeId}" has not yet been initialized! Waiting for initial connection.`,
             );
-            const handler = async (state: PairedNodeStates): Promise<void> => {
+            const handler = (state: PairedNodeStates): void => {
                 if (state === PairedNodeStates.Connected) {
                     this.node.events.stateChanged.off(handler);
                     this.adapter.log.info(`Node "${this.node.nodeId}" has been delayed connected. Initialize now!`);
-                    await this.initialize();
+                    this.initialize().catch(error => this.adapter.log.info(`Error while initializing node: ${error}`));
                 }
             };
             this.node.events.stateChanged.on(handler);
@@ -291,11 +299,26 @@ export class GeneralMatterNode {
             native: {},
         });
 
+        await this.adapter.setObjectNotExists(this.updateAvailableStateId, {
+            type: 'state',
+            common: {
+                name: 'Update Available',
+                role: 'json',
+                type: 'string',
+                read: true,
+                write: false,
+            },
+            native: {},
+        });
+
         await this.adapter.setState(this.connectionStateId, this.node.isConnected, true);
-        await this.adapter.setState(this.connectionStatusId, this.node.state, true);
+        await this.adapter.setState(this.connectionStatusId, this.node.connectionState, true);
 
         this.#connectedAddress = nodeDetails?.operationalAddress?.substring(6);
         await this.adapter.setState(this.connectedAddressStateId, this.#connectedAddress ?? null, true);
+
+        // Restore update info from persisted state if available
+        await this.#restoreUpdateInfoFromState();
 
         await this.#processRootEndpointStructure(rootEndpoint, {
             endpointBaseName: deviceObj.native.nodeLabel || deviceObj.common.name,
@@ -338,6 +361,321 @@ export class GeneralMatterNode {
 
     get details(): NodeDetails {
         return this.#details;
+    }
+
+    /** Get the software update availability message if an update is available */
+    get softwareUpdateAvailable(): SoftwareUpdateInfo | undefined {
+        return this.#softwareUpdateAvailable;
+    }
+
+    /**
+     * Set the software update availability and persist to state.
+     *
+     * @param info The update info or undefined to clear
+     */
+    setSoftwareUpdateAvailable(info: SoftwareUpdateInfo | undefined): void {
+        this.#softwareUpdateAvailable = info;
+        // Persist to state (fire and forget)
+        this.adapter
+            .setState(this.updateAvailableStateId, info !== undefined ? JSON.stringify(info) : null, true)
+            .catch(error => {
+                this.adapter.log.warn(`Failed to persist update available state: ${error}`);
+            });
+    }
+
+    /**
+     * Clear the software update availability and persist to state.
+     * This should be called when an update is completed or no longer available.
+     */
+    async clearSoftwareUpdateAvailable(): Promise<void> {
+        this.#softwareUpdateAvailable = undefined;
+        await this.adapter.setState(this.updateAvailableStateId, null, true);
+    }
+
+    /** Check if a software update is currently in progress */
+    get softwareUpdateInProgress(): boolean {
+        return this.#softwareUpdateInProgress;
+    }
+
+    /**
+     * Start a software update for this node.
+     * Shows progress via sendToGui with cancel support during Querying/Downloading states.
+     */
+    async startSoftwareUpdate(): Promise<void> {
+        const updateInfo = this.#softwareUpdateAvailable;
+        if (!updateInfo) {
+            throw new Error('No software update available');
+        }
+
+        if (!this.commissioningController) {
+            throw new Error('Commissioning controller not available');
+        }
+
+        if (this.#softwareUpdateInProgress) {
+            throw new Error('Software update already in progress');
+        }
+
+        const basicInfo = this.node.basicInformation;
+        if (!basicInfo) {
+            throw new Error('Node basic information not available');
+        }
+
+        this.#softwareUpdateInProgress = true;
+        this.adapter.log.info(
+            `Starting software update for node ${this.nodeId} to version ${updateInfo.softwareVersionString} (${updateInfo.softwareVersion}), source: ${updateInfo.source}`,
+        );
+
+        // Show the initial progress dialog with cancel support
+        await this.adapter.sendToGui({
+            command: 'progress',
+            progress: {
+                title: 'Software Update',
+                text: 'Querying for update...',
+                subText: 'Updates can take several minutes and may appear stuck. Please be patient.',
+                indeterminate: true,
+                cancelable: true,
+                cancelNodeId: this.nodeId,
+            },
+        });
+
+        // Get the OTA events from the ClientNode
+        const otaEvents = this.node.node.eventsOf(OtaSoftwareUpdateRequestorClient);
+
+        // Set up observers for OTA progress events
+        this.#updateObservers = new ObserverGroup();
+
+        // Listen for stateTransition events
+        this.#updateObservers.on(otaEvents.stateTransition, async (payload, _context) => {
+            const { newState, previousState, targetSoftwareVersion } = payload;
+            this.adapter.log.debug(
+                `OTA state transition for node ${this.nodeId}: ${OtaSoftwareUpdateRequestor.UpdateState[newState]} (target: ${targetSoftwareVersion})`,
+            );
+            await this.updateSoftwareUpdateProgress(newState, previousState);
+        });
+
+        // Listen for updateStateProgress attribute changes
+        this.#updateObservers.on(otaEvents.updateStateProgress$Changed, async (value, _oldValue, _context) => {
+            if (value !== null) {
+                await this.updateSoftwareUpdateProgress(undefined, undefined, value);
+            }
+        });
+
+        try {
+            // Trigger the update via the OTA provider
+            await this.commissioningController.otaProvider.act(agent => {
+                return agent
+                    .get(SoftwareUpdateManager)
+                    .forceUpdate(
+                        PeerAddress({ nodeId: this.node.nodeId, fabricIndex: FabricIndex(1) }),
+                        basicInfo.vendorId,
+                        basicInfo.productId,
+                        updateInfo.softwareVersion,
+                    );
+            });
+
+            // The progress updates will now come from the OTA Update Requestor cluster events
+            // via the observers we set up above. When the update completes, the updateDone event
+            // from the SoftwareUpdateManager will call onSoftwareUpdateComplete() which cleans up.
+        } catch (error) {
+            this.#cleanupUpdateObservers();
+            this.#softwareUpdateInProgress = false;
+            // Close the progress dialog on error
+            await this.adapter.sendToGui({
+                command: 'progress',
+                progress: { close: true },
+            });
+            throw error;
+        }
+    }
+
+    /**
+     * Clean up the update observers.
+     */
+    #cleanupUpdateObservers(): void {
+        if (this.#updateObservers) {
+            this.#updateObservers.close();
+            this.#updateObservers = undefined;
+        }
+        this.#currentUpdateState = undefined;
+    }
+
+    /**
+     * Restore update info from persisted state.
+     * This is called during initialization and when the node connects.
+     * It compares the persisted update version with the current software version
+     * and clears the state if the update has been applied.
+     */
+    async #restoreUpdateInfoFromState(): Promise<void> {
+        try {
+            const state = await this.adapter.getStateAsync(this.updateAvailableStateId);
+            if (!state?.val || state.val === 'null') {
+                return;
+            }
+
+            const persistedInfo = JSON.parse(state.val as string) as SoftwareUpdateInfo;
+            const currentSoftwareVersion = this.node.basicInformation?.softwareVersion;
+
+            if (currentSoftwareVersion !== undefined && currentSoftwareVersion >= persistedInfo.softwareVersion) {
+                // Update has been applied (or a newer version is installed), clear the state
+                this.adapter.log.debug(
+                    `Node ${this.nodeId}: Current version ${currentSoftwareVersion} >= persisted update version ${persistedInfo.softwareVersion}, clearing update state`,
+                );
+                await this.clearSoftwareUpdateAvailable();
+            } else if (this.#softwareUpdateAvailable === undefined) {
+                // Restore the update info if we don't have any in memory
+                this.adapter.log.info(
+                    `Node ${this.nodeId}: Restoring update info from state (version ${persistedInfo.softwareVersion})`,
+                );
+                this.#softwareUpdateAvailable = persistedInfo;
+            }
+        } catch (error) {
+            this.adapter.log.warn(`Failed to restore update info from state for node ${this.nodeId}: ${error}`);
+        }
+    }
+
+    /**
+     * Cancel an ongoing software update.
+     */
+    async cancelSoftwareUpdate(): Promise<void> {
+        if (!this.#softwareUpdateInProgress || !this.commissioningController) {
+            return;
+        }
+
+        this.adapter.log.info(`Cancelling software update for node ${this.nodeId}`);
+
+        await this.commissioningController.otaProvider.act(agent =>
+            agent
+                .get(SoftwareUpdateManager)
+                .removeConsent(PeerAddress({ nodeId: this.node.nodeId, fabricIndex: FabricIndex(1) })),
+        );
+        this.#cleanupUpdateObservers();
+        this.#softwareUpdateInProgress = false;
+
+        // Close the progress dialog
+        await this.adapter.sendToGui({
+            command: 'progress',
+            progress: { close: true },
+        });
+    }
+
+    /**
+     * Called when the software update fails or is cancelled (from ControllerNode event handler).
+     */
+    async onSoftwareUpdateFailed(): Promise<void> {
+        if (!this.#softwareUpdateInProgress) {
+            return;
+        }
+
+        this.adapter.log.warn(`Software update failed or was cancelled for node ${this.nodeId}`);
+        this.#cleanupUpdateObservers();
+        this.#softwareUpdateInProgress = false;
+
+        // Close the progress dialog
+        await this.adapter.sendToGui({
+            command: 'progress',
+            progress: { close: true },
+        });
+
+        // Show failure dialog
+        await this.adapter.sendToGui({
+            command: 'updateFailed',
+        });
+    }
+
+    /**
+     * Called when the software update completes (from ControllerNode event handler).
+     */
+    async onSoftwareUpdateComplete(completed: boolean): Promise<void> {
+        if (!this.#softwareUpdateInProgress) {
+            return;
+        }
+
+        if (completed) {
+            this.adapter.log.info(`Software update successfully completed for node ${this.nodeId}`);
+        } else {
+            this.adapter.log.info(`Software update ended or cancelled for node ${this.nodeId}`);
+        }
+        this.#cleanupUpdateObservers();
+        this.#softwareUpdateInProgress = false;
+
+        // Close the progress dialog
+        await this.adapter.sendToGui({
+            command: 'progress',
+            progress: { close: true },
+        });
+
+        // Show success dialog if update completed successfully
+        if (completed) {
+            await this.adapter.sendToGui({
+                command: 'updateSuccess',
+            });
+        }
+    }
+
+    /**
+     * Update the software update progress.
+     */
+    async updateSoftwareUpdateProgress(
+        newState?: OtaSoftwareUpdateRequestor.UpdateState,
+        previousState?: OtaSoftwareUpdateRequestor.UpdateState,
+        progress?: number,
+    ): Promise<void> {
+        if (!this.#softwareUpdateInProgress) {
+            return;
+        }
+
+        const prevState = previousState ?? this.#currentUpdateState ?? OtaSoftwareUpdateRequestor.UpdateState.Idle;
+        // Update state if provided, otherwise use the last known state
+        if (newState !== undefined) {
+            this.#currentUpdateState = newState;
+        }
+        const currentState = this.#currentUpdateState;
+
+        let text: string;
+        let indeterminate = true;
+        let value: number | undefined;
+        // Cancel is only available during Querying and Downloading states
+        let cancelable = false;
+
+        switch (currentState) {
+            case OtaSoftwareUpdateRequestor.UpdateState.Querying:
+            case OtaSoftwareUpdateRequestor.UpdateState.DelayedOnQuery:
+                text = 'Querying for update...';
+                cancelable = true;
+                break;
+            case OtaSoftwareUpdateRequestor.UpdateState.Downloading:
+                value = progress ?? 0;
+                text = `Downloading update... ${value}%`;
+                indeterminate = false;
+                cancelable = true;
+                break;
+            case OtaSoftwareUpdateRequestor.UpdateState.Applying:
+            case OtaSoftwareUpdateRequestor.UpdateState.DelayedOnApply:
+                text = 'Applying update...';
+                break;
+            case OtaSoftwareUpdateRequestor.UpdateState.RollingBack:
+                text = 'Rolling back update...';
+                break;
+            case OtaSoftwareUpdateRequestor.UpdateState.Idle:
+                // Update complete or canceled, consider finished
+                await this.onSoftwareUpdateComplete(prevState === OtaSoftwareUpdateRequestor.UpdateState.Applying);
+                return;
+            default:
+                text = `Update state: ${currentState}`;
+        }
+
+        await this.adapter.sendToGui({
+            command: 'progress',
+            progress: {
+                title: 'Software Update',
+                text,
+                subText: 'Updates can take several minutes and may appear stuck. Please be patient.',
+                indeterminate,
+                value,
+                cancelable,
+                cancelNodeId: this.nodeId,
+            },
+        });
     }
 
     get nodeConfiguration(): { subscriptionMaxIntervalS?: number } {
@@ -1035,6 +1373,10 @@ export class GeneralMatterNode {
                         `Node "${this.nodeId}" subscription interval was requested with ${this.#subscriptionMaxIntervalS}s but device returned ${this.node.currentSubscriptionIntervalSeconds}s`,
                     );
                 }
+                // Check persisted update info and compare with current version
+                this.#restoreUpdateInfoFromState().catch(error => {
+                    this.adapter.log.warn(`Failed to restore update info on connect: ${error}`);
+                });
                 break;
             case PairedNodeStates.Disconnected:
                 this.adapter.log.info(`Node "${this.nodeId}" disconnected`);
@@ -1104,13 +1446,13 @@ export class GeneralMatterNode {
             result.node = {};
 
             result.node.vendorName = details.vendorName;
-            result.node.vendorId = toUpperCaseHex(details.vendorId as number);
+            result.node.vendorId = toUpperCaseHex(details.vendorId);
             result.node.productName = details.productName;
-            result.node.productId = toUpperCaseHex(details.productId as number);
+            result.node.productId = toUpperCaseHex(details.productId);
             result.node.nodeLabel = details.nodeLabel;
             result.node.location = details.location;
-            result.node.hardwareVersion = details.hardwareVersionString;
-            result.node.softwareVersion = details.softwareVersionString;
+            result.node.hardwareVersion = `${details.hardwareVersionString} (${details.hardwareVersion})`;
+            result.node.softwareVersion = `${details.softwareVersionString} (${details.softwareVersion})`;
             if (details.productUrl) {
                 result.node.productUrl = details.productUrl;
             }
@@ -1163,7 +1505,7 @@ export class GeneralMatterNode {
             }
 
             result.specification = {};
-            if (typeof details.specificationVersion === 'number') {
+            if (typeof details.specificationVersion === 'number' && details.specificationVersion !== 0) {
                 const { major, minor, patch } = SpecificationVersion.decode(details.specificationVersion);
                 result.specification.specificationVersion = `${major}.${minor}.${patch}`;
             } else {
@@ -1223,7 +1565,7 @@ export class GeneralMatterNode {
 
         if (!this.node.initialized) {
             status.warning = 'The Node is not yet initialized ... Trying to connect.';
-        } else if (this.node.state === PairedNodeStates.Reconnecting) {
+        } else if (this.node.connectionState === PairedNodeStates.Reconnecting) {
             status.warning = 'The Node is currently reconnecting ...';
         }
 
@@ -1332,7 +1674,7 @@ export class GeneralMatterNode {
                 : this.#enabled
                   ? 'The node is currently not connected.'
                   : 'The node is disabled.',
-            status: decamelize(PairedNodeStates[this.node.state]),
+            status: decamelize(PairedNodeStates[this.node.connectionState]),
         };
 
         result.connection.address = this.#connectedAddress;

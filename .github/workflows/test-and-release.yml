@@ -30,9 +30,9 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - uses: actions/checkout@v5
+            - uses: actions/checkout@v6
             - name: Use Node.js 22.x
-              uses: actions/setup-node@v5
+              uses: actions/setup-node@v6
               with:
                   node-version: 22.x
 
@@ -50,7 +50,7 @@ jobs:
 
             ## add caching for the build step including /admin and /build to reuse in later steps
             - name: Cache build output
-              uses: actions/cache/save@v4
+              uses: actions/cache/save@v5
               with:
                 path: |
                   admin
@@ -73,10 +73,10 @@ jobs:
                       node-version: 24.x
 
         steps:
-            - uses: actions/checkout@v5
+            - uses: actions/checkout@v6
 
             - name: Restore build output cache
-              uses: actions/cache/restore@v4
+              uses: actions/cache/restore@v5
               with:
                 path: |
                   admin
@@ -85,7 +85,7 @@ jobs:
                 enableCrossOsArchive: true
 
             - name: Use Node.js ${{ matrix.node-version }}
-              uses: actions/setup-node@v5
+              uses: actions/setup-node@v6
               with:
                   node-version: ${{ matrix.node-version }}
 
@@ -123,14 +123,14 @@ jobs:
 
             - name: Checkout repository
               if: steps.automerge.outputs.mergeResult == 'merged'
-              uses: actions/checkout@v5
+              uses: actions/checkout@v6
               with:
                   fetch-depth: 0 # Fetch the history, or this action won't work
                   ref: 'main'
 
             - name: Use Node.js 22
               if: steps.automerge.outputs.mergeResult == 'merged'
-              uses: actions/setup-node@v5
+              uses: actions/setup-node@v6
               with:
                   node-version: 22
 
@@ -172,7 +172,6 @@ jobs:
               if: steps.automerge.outputs.mergeResult == 'merged'
               run: |
                   npm install -g npm@latest
-                  npm whoami
                   npm publish ${{ steps.extract_release.outputs.TAG }}
 
             - name: Create Github Release
@@ -188,8 +187,9 @@ jobs:
                   body: ${{ steps.extract_release.outputs.BODY }}
 
             - name: Notify Sentry.io about the release
+              if: steps.automerge.outputs.mergeResult == 'merged'
               run: |
-                  npm i -g @sentry/cli
+                  npm i -g @sentry/cli@2.58.4
                   export SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
                   export SENTRY_URL=https://sentry.iobroker.net
                   export SENTRY_ORG=iobroker

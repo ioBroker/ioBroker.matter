@@ -15,10 +15,7 @@ export type StructuredJsonFormData = Record<string, Record<string, unknown>>;
  * The logic expects a two level object structure. By default, it returns a tabs structure. If only one key is used on
  * first level only one panel is returned.
  */
-export function convertDataToJsonConfig(
-    data: StructuredJsonFormData,
-    adapter?: MatterAdapter,
-): JsonFormSchema {
+export function convertDataToJsonConfig(data: StructuredJsonFormData, adapter?: MatterAdapter): JsonFormSchema {
     const items: Record<string, ConfigItemPanel> = {};
 
     let panelCount = 0;

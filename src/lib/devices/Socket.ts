@@ -1,13 +1,19 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { ElectricityDataDevice } from './ElectricityDataDevice';
 import { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import type { CustomStatesRecord } from '../../matter/to-iobroker/custom-states';
 
 export class Socket extends ElectricityDataDevice {
     #setPowerState?: DeviceStateObject<boolean>;
     #getPowerState?: DeviceStateObject<boolean>;
 
-    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
-        super(detectedDevice, adapter, options);
+    constructor(
+        detectedDevice: DetectedDevice,
+        adapter: ioBroker.Adapter,
+        options?: DeviceOptions,
+        customStateDefinitions?: CustomStatesRecord,
+    ) {
+        super(detectedDevice, adapter, options, customStateDefinitions);
 
         this._construction.push(
             this.addDeviceStates([

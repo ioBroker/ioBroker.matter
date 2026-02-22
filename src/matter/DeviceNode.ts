@@ -91,7 +91,10 @@ class Device extends BaseServerNode {
             throw new Error(`ioBroker Device "${this.#device.deviceType}" is not supported`);
         }
 
-        mappingDevice.validChanged.on(() => this.updateUiState());
+        mappingDevice.validChanged.on(
+            () =>
+                void this.updateUiState().catch(error => this.adapter.log.info(`Could not update UI state: ${error}`)),
+        );
         this.#mappingDevice = mappingDevice;
         const endpoints = mappingDevice.matterEndpoints;
 

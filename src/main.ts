@@ -1,8 +1,17 @@
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import fs from 'node:fs/promises';
-import { Environment, LogLevel, LogFormat, Logger, StorageService, PromiseQueue } from '@matter/main';
-import { MdnsService } from '@matter/main/protocol';
+import path from 'node:path';
+import {
+    Environment,
+    LogLevel,
+    LogFormat,
+    Logger,
+    StorageService,
+    Semaphore,
+    SoftwareUpdateManager,
+} from '@matter/main';
+import { StorageBackendDisk } from '@matter/nodejs';
 import { inspect } from 'util';
 
 import { type AdapterOptions, Adapter, getAbsoluteInstanceDataDir, I18n } from '@iobroker/adapter-core';
@@ -14,12 +23,12 @@ import ChannelDetector, {
 } from '@iobroker/type-detector';
 import type { JsonFormSchema, BackEndCommandJsonFormOptions } from '@iobroker/dm-utils';
 
-import type { MatterControllerConfig } from '../src-admin/src/types';
 import type {
     BridgeDescription,
     BridgeDeviceDescription,
     DeviceDescription,
     MatterAdapterConfig,
+    MatterControllerConfig,
 } from './ioBrokerStorageTypes';
 import { DeviceFactory, type GenericDevice, SubscribeManager } from './lib';
 import MatterAdapterDeviceManagement from './lib/DeviceManagement';
@@ -62,6 +71,7 @@ const DEVICE_DEFAULT_NAME: Partial<Record<Types, string>> = {
     [Types.rgbSingle]: 'CIE',
     [Types.rgbwSingle]: 'RGB',
     [Types.slider]: 'SET',
+    [Types.percentage]: 'SET',
     [Types.socket]: 'SET',
     [Types.temperature]: 'ACTUAL',
     [Types.thermostat]: 'SET',
@@ -94,6 +104,10 @@ export class MatterAdapter extends Adapter {
     readonly #deviceManagement: MatterAdapterDeviceManagement;
     #nextPortNumber: number = 5541;
     #instanceDataDir?: string;
+    /** Get the instance data directory path */
+    get instanceDataDir(): string {
+        return this.#instanceDataDir ?? '';
+    }
     t: (word: string, ...args: (string | number | boolean | null)[]) => string;
     getText: (word: string, ...args: (string | number | boolean | null)[]) => ioBroker.Translated;
     #closing = false;
@@ -106,7 +120,7 @@ export class MatterAdapter extends Adapter {
     }>();
     #objectProcessQueueTimeout?: NodeJS.Timeout;
     #currentObjectProcessPromise?: Promise<void>;
-    #controllerActionQueue = new PromiseQueue();
+    #controllerActionQueue = new Semaphore('controller-action');
     #blockGuiUpdates = false;
 
     public constructor(options: Partial<AdapterOptions> = {}) {
@@ -149,7 +163,7 @@ export class MatterAdapter extends Adapter {
         return this.#controller;
     }
 
-    get controllerUpdateQueue(): PromiseQueue {
+    get controllerUpdateQueue(): Semaphore {
         return this.#controllerActionQueue;
     }
 
@@ -185,8 +199,9 @@ export class MatterAdapter extends Adapter {
             }
         }
         this.#bridges.clear();
-        // TODO with next matter.js : if (this.#controllerActionQueue.count)
-        this.#controllerActionQueue.clear(false);
+        if (this.#controllerActionQueue.count > 0) {
+            this.#controllerActionQueue.clear();
+        }
         try {
             await this.#controller?.stop();
         } catch (error) {
@@ -204,7 +219,19 @@ export class MatterAdapter extends Adapter {
             await device?.start();
         }
 
-        await this.#controller?.start();
+        if (this.#controller) {
+            await this.#controller.start();
+
+            // Import custom OTA updates after the controller is started
+            if ((this.config as MatterAdapterConfig).allowUnofficialUpdates && this.#controller.otaProvider) {
+                await this.#controller.otaProvider.setStateOf(SoftwareUpdateManager, {
+                    allowTestOtaImages: true,
+                });
+                this.log.info('Enabled test OTA images (test-net DCL)');
+
+                await this.#controller.importCustomOtaUpdates();
+            }
+        }
     }
 
     async onTotalReset(): Promise<void> {
@@ -220,7 +247,8 @@ export class MatterAdapter extends Adapter {
     }
 
     async handleControllerCommand(obj: ioBroker.Message): Promise<void> {
-        await this.#controllerActionQueue.add(async () => {
+        const slot = await this.#controllerActionQueue.obtainSlot();
+        try {
             if (this.#controller) {
                 try {
                     const result = await this.#controller?.handleCommand(obj);
@@ -236,7 +264,9 @@ export class MatterAdapter extends Adapter {
             } else if (obj.callback) {
                 this.sendTo(obj.from, obj.command, { error: 'Controller not enabled' }, obj.callback);
             }
-        });
+        } finally {
+            slot.close();
+        }
     }
 
     async handleDeviceCommand(obj: ioBroker.Message): Promise<void> {
@@ -353,6 +383,37 @@ export class MatterAdapter extends Adapter {
                 this.sendTo(obj.from, obj.command, result, obj.callback);
                 break;
             }
+            case 'getDefaultCustomOtaPath': {
+                const customOtaPath = path.join(this.instanceDataDir, 'custom-ota');
+                if (obj.callback) {
+                    this.sendTo(obj.from, obj.command, { path: customOtaPath }, obj.callback);
+                }
+                break;
+            }
+            case 'importCustomOtaUpdates': {
+                if (!this.#controller) {
+                    if (obj.callback) {
+                        this.sendTo(obj.from, obj.command, { error: 'Controller is not active' }, obj.callback);
+                    }
+                    break;
+                }
+                try {
+                    const imported = await this.#controller.importCustomOtaUpdates();
+
+                    if (imported > 0) {
+                        await this.#controller.queryUpdates();
+                    }
+
+                    if (obj.callback) {
+                        this.sendTo(obj.from, obj.command, { imported }, obj.callback);
+                    }
+                } catch (error) {
+                    if (obj.callback) {
+                        this.sendTo(obj.from, obj.command, { error: `${error}` }, obj.callback);
+                    }
+                }
+                break;
+            }
             default:
                 if (obj.callback) {
                     this.sendTo(obj.from, obj.command, { error: `Unknown command "${obj.command}"` }, obj.callback);
@@ -464,7 +525,7 @@ export class MatterAdapter extends Adapter {
         /**
          * Initialize the storage system.
          *
-         * The storage manager is then also used by the Matter server, so this code block in general is required,
+         * The Matter server then also uses the storage manager, so this code block in general is required,
          * but you can choose a different storage backend as long as it implements the required API.
          */
         await this.extendObjectAsync('storage', {
@@ -477,14 +538,30 @@ export class MatterAdapter extends Adapter {
         });
 
         const storageService = this.#matterEnvironment.get(StorageService);
-        storageService.factory = (namespace: string) =>
-            new IoBrokerObjectStorage(
+        storageService.factory = (namespace: string) => {
+            // We put special namespaces with temporary data into the filesystem
+            // We reuse the dir of the normal storage but use subdirectories, so should be fine
+            if (namespace === 'ota' || namespace === 'certificates' || namespace === 'vendors') {
+                const namespacePath = path.join(this.#instanceDataDir!, `ns-${namespace}`);
+                return new StorageBackendDisk(namespacePath, false);
+            }
+            return new IoBrokerObjectStorage(
                 this,
                 namespace,
                 false,
                 namespace === 'controller' ? this.#instanceDataDir : undefined,
-                namespace === 'controller' ? 'node-' : undefined,
+                namespace === 'controller'
+                    ? (contexts: string[]): boolean =>
+                          // Legacy node data
+                          contexts[0]?.startsWith('node-') ||
+                          // Or new node data for endpoints (not internal clusters)
+                          (contexts[0] === 'nodes' &&
+                              contexts[2] === 'endpoints' &&
+                              contexts[1]?.startsWith('peer') &&
+                              !Number.isNaN(contexts[4]))
+                    : undefined,
             );
+        };
         storageService.location = `${this.namespace}.storage`; // For logging
 
         if (config.interface) {
@@ -593,7 +670,7 @@ export class MatterAdapter extends Adapter {
         }
         if (this.#objectProcessQueueTimeout) {
             clearTimeout(this.#objectProcessQueueTimeout);
-            this.#controllerActionQueue.clear(false);
+            this.#controllerActionQueue.clear();
         }
         if (this.#objectProcessQueue.length && this.#objectProcessQueue[0].inProgress) {
             const promise = this.#currentObjectProcessPromise;
@@ -621,12 +698,6 @@ export class MatterAdapter extends Adapter {
         try {
             await this.shutDownMatterNodes();
             // close Environment/MDNS?
-        } catch {
-            // ignore
-        }
-
-        try {
-            this.#matterEnvironment.close(MdnsService);
         } catch {
             // ignore
         }
@@ -762,8 +833,8 @@ export class MatterAdapter extends Adapter {
             // Object does not exist
             return null;
         }
-        if (obj.type === 'device' || obj.type === 'channel') {
-            // Because it seems we are also fine with just a channel return also then
+        if (obj.type === 'device' || obj.type === 'channel' || obj.type === 'meta') {
+            // Because it seems we are also fine with just a channel or meta as root return also then
             // We found a device object, use this
             return id;
         }
@@ -788,7 +859,7 @@ export class MatterAdapter extends Adapter {
             searchDeviceComingFromLevel ?? parts.length + 1,
         );
         if (foundDevice === null) {
-            if (/*obj.type === 'channel' ||*/ obj.type === 'state') {
+            if (obj.type === 'state') {
                 return id;
             }
             // ok we did not find anything better, go back
@@ -1420,18 +1491,22 @@ export class MatterAdapter extends Adapter {
         this.log.debug('Sync done');
     }
 
-    syncControllerNode(nodeId: string, obj: ioBroker.FolderObject, forcedUpdate = false): Promise<void> {
-        return this.#controllerActionQueue.add(async () => {
+    async syncControllerNode(nodeId: string, obj: ioBroker.FolderObject, forcedUpdate = false): Promise<void> {
+        const slot = await this.#controllerActionQueue.obtainSlot();
+        try {
             if (!this.#controller) {
                 return;
             } // not active
             await this.#controller.applyPairedNodeConfiguration(nodeId, obj.native as PairedNodeConfig, forcedUpdate);
-        });
+        } finally {
+            slot.close();
+        }
     }
 
     async applyControllerConfiguration(config: MatterControllerConfig, handleStart = true): Promise<MessageResponse> {
         // Make sure to not overlap controller config updates
-        return this.#controllerActionQueue.add(async () => {
+        const slot = await this.#controllerActionQueue.obtainSlot();
+        try {
             if (config.enabled) {
                 if (this.#controller) {
                     this.#controller.applyConfiguration(config);
@@ -1445,17 +1520,25 @@ export class MatterAdapter extends Adapter {
 
                 if (handleStart) {
                     await this.#controller.start();
+                    // Import custom OTA updates after controller is started
+                    if ((this.config as MatterAdapterConfig).allowUnofficialUpdates) {
+                        this.#controller.importCustomOtaUpdates().catch(error => {
+                            this.log.warn(`Failed to import custom OTA updates: ${error}`);
+                        });
+                    }
                 }
             } else if (this.#controller) {
                 // Controller should be disabled but is not
                 const controller = this.#controller;
                 this.#controller = undefined;
-                this.#controllerActionQueue.clear(false);
+                this.#controllerActionQueue.clear();
                 await controller.stop();
             }
 
             return { result: true };
-        });
+        } finally {
+            slot.close();
+        }
     }
 
     async stopBridgeOrDevice(type: 'bridge' | 'device', id: string): Promise<void> {

@@ -27,12 +27,12 @@ jobs:
 
         steps:
             - name: Checkout code
-              uses: actions/checkout@v5
+              uses: actions/checkout@v6
               with:
                   fetch-depth: 0 # Fetch the history, or this action won't work
 
             - name: Use Node.js ${{ matrix.node }}
-              uses: actions/setup-node@v5
+              uses: actions/setup-node@v6
               with:
                   node-version: ${{ matrix.node }}
 
@@ -79,7 +79,7 @@ jobs:
 
             - name: Create Pull Request
               id: cpr
-              uses: peter-evans/create-pull-request@v7
+              uses: peter-evans/create-pull-request@v8
               with:
                   token: ${{ secrets.PR_TOKEN }}
                   commit-message: '[OFFICIAL RELEASE] ${{ steps.version.outputs.result }}'

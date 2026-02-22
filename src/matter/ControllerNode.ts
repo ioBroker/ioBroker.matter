@@ -1,25 +1,56 @@
-import { Diagnostic, NodeId, singleton, VendorId, type ServerAddressIp } from '@matter/main';
-import { GeneralCommissioning } from '@matter/main/clusters';
+import type { Endpoint, ServerAddressUdp, SoftwareUpdateInfo } from '@matter/main';
 import {
-    Ble,
-    type CommissionableDevice,
-    type ControllerCommissioningFlowOptions,
-    type DiscoveryData,
-    CommissioningError,
+    ObserverGroup,
+    SoftwareUpdateManager,
+    Diagnostic,
+    NodeId,
+    VendorId,
+    Seconds,
+    ClusterId,
+    EndpointNumber,
+    AttributeId,
+} from '@matter/main';
+import {
+    GeneralCommissioning,
+    GeneralDiagnosticsCluster,
+    NetworkCommissioning,
+    ThreadNetworkDiagnostics,
+    WiFiNetworkDiagnosticsCluster,
+} from '@matter/main/clusters';
+import type {
+    PeerAddress,
+    CommissionableDevice,
+    ControllerCommissioningFlowOptions,
+    DiscoveryData,
 } from '@matter/main/protocol';
+import { CommissioningError, DclOtaUpdateService } from '@matter/main/protocol';
 import { ManualPairingCodeCodec, QrPairingCodeCodec, DiscoveryCapabilitiesSchema } from '@matter/main/types';
-import { NodeJsBle } from '@matter/nodejs-ble';
 import { CommissioningController, type NodeCommissioningOptions } from '@project-chip/matter.js';
 import {
     NodeStates as PairedNodeStates,
     type CommissioningControllerNodeOptions,
     type PairedNode,
 } from '@project-chip/matter.js/device';
-import type { MatterControllerConfig } from '../../src-admin/src/types';
 import type { MatterAdapter } from '../main';
+import type {
+    MatterAdapterConfig,
+    MatterControllerConfig,
+    NetworkGraphData,
+    NetworkNodeData,
+    NetworkType,
+    WiFiDiagnosticsData,
+    ThreadDiagnosticsData,
+    ThreadNeighborEntry,
+    ThreadRouteEntry,
+} from '../ioBrokerStorageTypes';
 import { GeneralMatterNode, type PairedNodeConfig } from './GeneralMatterNode';
 import type { GeneralNode, MessageResponse } from './GeneralNode';
 import { inspect } from 'util';
+import { createReadStream } from 'fs';
+import { readdir, stat, mkdir, unlink } from 'fs/promises';
+import { Readable } from 'stream';
+import { join } from 'path';
+import type { OtaProviderEndpoint } from '@matter/main/endpoints';
 
 export interface ControllerCreateOptions {
     adapter: MatterAdapter;
@@ -34,6 +65,9 @@ interface AddDeviceResult {
     error?: string;
     nodeId?: string;
 }
+
+// Re-export network types for external use
+export type { NetworkGraphData, NetworkNodeData, NetworkType, WiFiDiagnosticsData, ThreadDiagnosticsData };
 
 type EndUserCommissioningOptions = (
     | { qrCode: string }
@@ -51,6 +85,8 @@ class Controller implements GeneralNode {
     #discovering = false;
     #useBle = false;
     #commissioningStatus = new Map<number, { status: 'finished' | 'error' | 'inprogress'; result?: MessageResponse }>();
+    #observers = new ObserverGroup();
+    #networkGraphUpdateTimer?: ReturnType<typeof setTimeout>;
 
     constructor(options: ControllerCreateOptions) {
         const { adapter, controllerOptions, updateCallback, fabricLabel } = options;
@@ -64,6 +100,10 @@ class Controller implements GeneralNode {
         return this.#nodes;
     }
 
+    get otaProvider(): Endpoint<OtaProviderEndpoint> | undefined {
+        return this.#commissioningController?.otaProvider;
+    }
+
     init(): void {
         if (this.#parameters.ble) {
             if (
@@ -71,15 +111,12 @@ class Controller implements GeneralNode {
                 (this.#parameters.threadNetworkName !== undefined &&
                     this.#parameters.threadOperationalDataSet !== undefined)
             ) {
-                try {
-                    const hciId = this.#parameters.hciId === undefined ? undefined : parseInt(this.#parameters.hciId);
-                    Ble.get = singleton(() => new NodeJsBle({ hciId }));
-                    this.#useBle = true;
-                } catch (error) {
-                    this.#adapter.log.warn(`Failed to initialize BLE: ${error.message}`);
-                    this.#parameters.ble = false;
-                    return;
+                this.#adapter.matterEnvironment.vars.set('ble.enable', true);
+                const hciId = this.#parameters.hciId === undefined ? undefined : parseInt(this.#parameters.hciId);
+                if (hciId !== undefined && (hciId < 0 || hciId > 255)) {
+                    this.#adapter.matterEnvironment.vars.set('ble.hci.id', hciId);
                 }
+                this.#useBle = true;
             } else {
                 this.#adapter.log.warn(
                     `BLE enabled but no WiFi or Thread configuration provided. BLE will stay disabled.`,
@@ -198,6 +235,30 @@ class Controller implements GeneralNode {
                 case 'controllerCompletePaseCommissioning':
                     // Completes a commissioning process that was started by the mobile app in the main controller
                     return await this.completeCommissioningForNode(message.peerNodeId, message.discoveryData);
+                case 'controllerCancelUpdate': {
+                    // Cancel an ongoing software update for a node
+                    const nodeId = message.nodeId as string;
+                    const node = this.#nodes.get(nodeId);
+                    if (!node) {
+                        return { error: `Node ${nodeId} not found` };
+                    }
+                    await node.cancelSoftwareUpdate();
+                    return { result: 'ok' };
+                }
+                case 'controllerNetworkGraphData': {
+                    // Get network graph data for visualization
+                    const data = this.getNetworkGraphData();
+                    return { result: data };
+                }
+                case 'controllerRefreshNodeNetworkData': {
+                    // Refresh network diagnostics data for specified nodes
+                    const nodeIds = message.nodeIds as string[];
+                    if (!Array.isArray(nodeIds) || nodeIds.length === 0) {
+                        return { error: 'No node IDs provided' };
+                    }
+                    await this.refreshNodeNetworkData(nodeIds);
+                    return { result: 'ok' };
+                }
             }
         } catch (error) {
             const errorText = inspect(error, { depth: 10 });
@@ -214,6 +275,11 @@ class Controller implements GeneralNode {
                 .get(node.nodeId.toString())
                 ?.handleChangedAttribute(data)
                 .catch(error => this.#adapter.log.error(`Error handling attribute change: ${error}`));
+
+            // Check if this is a network-relevant attribute change and send update to GUI
+            if (this.#isNetworkRelevantCluster(data.path.clusterId)) {
+                this.#sendNetworkGraphUpdate();
+            }
         });
         node.events.eventTriggered.on(data => {
             this.#nodes
@@ -237,10 +303,16 @@ class Controller implements GeneralNode {
                 }
             }
             this.#updateCallback();
+
+            // Send network graph update on connection state changes
+            this.#sendNetworkGraphUpdate();
         });
-        node.events.structureChanged.on(async () => {
+        node.events.structureChanged.on(() => {
             this.#adapter.log.info(`Node "${node.nodeId}" structure changed`);
-            await this.nodeToIoBrokerStructure(node);
+            this.nodeToIoBrokerStructure(node).then(
+                () => this.#updateCallback(),
+                error => this.#adapter.log.info(`Error while updating structure: ${error}`),
+            );
             this.#updateCallback();
         });
         node.events.decommissioned.on(() => {
@@ -276,6 +348,7 @@ class Controller implements GeneralNode {
                 id: 'controller',
             },
             adminFabricLabel: this.#fabricLabel,
+            enableOtaProvider: true,
         });
 
         await this.#adapter.extendObjectAsync('controller.info', {
@@ -325,6 +398,61 @@ class Controller implements GeneralNode {
                 this.#adapter.log.info(`Failed to connect to node "${nodeId}": ${error.stack}`);
             }
         }
+
+        this.#observers.on(
+            this.#commissioningController.otaProvider.eventsOf(SoftwareUpdateManager).updateAvailable,
+            (peerAddress, info) => {
+                const nodeIdStr = peerAddress.nodeId.toString();
+                const node = this.#nodes.get(nodeIdStr);
+                if (node === undefined) {
+                    return;
+                }
+                // Use the new method that persists to state
+                this.#adapter.log.info(
+                    `Software update available for node ${nodeIdStr}: version ${info.softwareVersionString} (${info.softwareVersion}), source: ${info.source}`,
+                );
+                node.setSoftwareUpdateAvailable(info);
+                // Refresh UI to show the update available icon
+                this.#adapter.refreshControllerDevices();
+            },
+        );
+        this.#observers.on(
+            this.#commissioningController.otaProvider.eventsOf(SoftwareUpdateManager).updateDone,
+            peerAddress => {
+                const nodeIdStr = peerAddress.nodeId.toString();
+                const node = this.#nodes.get(nodeIdStr);
+                if (node === undefined) {
+                    return;
+                }
+                // Use the new method that clears the persisted state
+                node.clearSoftwareUpdateAvailable().catch(error => {
+                    this.#adapter.log.error(`Error clearing update available state for node ${nodeIdStr}: ${error}`);
+                });
+                // Notify the node that the update is complete (closes progress dialog)
+                node.onSoftwareUpdateComplete(true).catch(error => {
+                    this.#adapter.log.error(`Error handling update complete for node ${nodeIdStr}: ${error}`);
+                });
+                // Refresh UI to remove the update available icon
+                this.#adapter.refreshControllerDevices();
+            },
+        );
+        this.#observers.on(
+            this.#commissioningController.otaProvider.eventsOf(SoftwareUpdateManager).updateFailed,
+            peerAddress => {
+                const nodeIdStr = peerAddress.nodeId.toString();
+                const node = this.#nodes.get(nodeIdStr);
+                if (node === undefined) {
+                    return;
+                }
+                this.#adapter.log.warn(`Software update failed for node ${nodeIdStr}`);
+                // Notify the node that the update failed (closes progress dialog, shows error)
+                node.onSoftwareUpdateFailed().catch(error => {
+                    this.#adapter.log.error(`Error handling update failure for node ${nodeIdStr}: ${error}`);
+                });
+                // Refresh UI
+                this.#adapter.refreshControllerDevices();
+            },
+        );
     }
 
     async nodeToIoBrokerStructure(
@@ -338,7 +466,7 @@ class Controller implements GeneralNode {
         const oldDevice = this.#nodes.get(nodeIdStr);
         await oldDevice?.destroy();
 
-        const device = new GeneralMatterNode(this.#adapter, node, this.#parameters);
+        const device = new GeneralMatterNode(this.#adapter, node, this.#parameters, this.#commissioningController);
         this.#nodes.set(nodeIdStr, device);
         await device.initialize(nodeDetails);
         device.connect(connectOptions);
@@ -384,7 +512,7 @@ class Controller implements GeneralNode {
         let longDiscriminator: number | undefined = undefined;
         let productId: number | undefined = undefined;
         let vendorId: VendorId | undefined = undefined;
-        let knownAddress: ServerAddressIp | undefined = undefined;
+        let knownAddress: ServerAddressUdp | undefined = undefined;
         if ('manualCode' in data && data.manualCode.length > 0) {
             const pairingCodeCodec = ManualPairingCodeCodec.decode(data.manualCode);
             shortDiscriminator = pairingCodeCodec.shortDiscriminator;
@@ -519,7 +647,7 @@ class Controller implements GeneralNode {
                             .catch(error => this.#adapter.log.info(`Error sending to GUI: ${error}`));
                     }
                 },
-                60, // timeoutSeconds
+                Seconds(60), // timeoutSeconds
             )
             .then(result => {
                 this.#adapter.log.info(`Discovering stopped. Found ${result.length} devices.`);
@@ -570,10 +698,439 @@ class Controller implements GeneralNode {
         return null;
     }
 
+    /**
+     * Import custom OTA update files from a directory.
+     *
+     * @param customPath Optional custom path. If not provided, uses adapter config or default.
+     * @returns Number of imported files
+     */
+    async importCustomOtaUpdates(customPath?: string): Promise<number> {
+        const adapterConfig = this.#adapter.config as MatterAdapterConfig;
+
+        // Determine the path to scan
+        const path = customPath || adapterConfig.customUpdatesPath || join(this.#adapter.instanceDataDir, 'custom-ota');
+
+        // Check if custom updates are enabled
+        if (!adapterConfig.allowUnofficialUpdates) {
+            this.#adapter.log.debug('Custom OTA updates are disabled');
+            return 0;
+        }
+
+        // Ensure directory exists
+        try {
+            await mkdir(path, { recursive: true });
+        } catch {
+            // Directory might already exist
+        }
+
+        // Get the OTA service from the environment
+        const otaService = this.#adapter.matterEnvironment.get(DclOtaUpdateService);
+
+        // Find all .ota files in the directory
+        let files: string[];
+        try {
+            const entries = await readdir(path);
+            files = entries.filter(f => f.toLowerCase().endsWith('.ota'));
+        } catch (error) {
+            this.#adapter.log.warn(`Cannot read custom OTA directory "${path}": ${error}`);
+            return 0;
+        }
+
+        if (files.length === 0) {
+            this.#adapter.log.info(`No OTA files found in "${path}"`);
+            return 0;
+        }
+
+        this.#adapter.log.info(`Found ${files.length} OTA files in "${path}"`);
+        let imported = 0;
+
+        for (const file of files) {
+            const filePath = join(path, file);
+            try {
+                // Check if file exists and is readable
+                const fileStat = await stat(filePath);
+                if (!fileStat.isFile()) {
+                    continue;
+                }
+
+                this.#adapter.log.debug(`Importing OTA file: ${file}`);
+
+                // Create a stream for reading header info
+                const stream1 = Readable.toWeb(createReadStream(filePath)) as ReadableStream<Uint8Array>;
+                const updateInfo = await otaService.updateInfoFromStream(stream1, `file://${filePath}`);
+
+                this.#adapter.log.info(
+                    `OTA file "${file}": vendorId=${updateInfo.vid}, productId=${updateInfo.pid}, version=${updateInfo.softwareVersion}`,
+                );
+
+                // Create another stream for storing
+                const stream2 = Readable.toWeb(createReadStream(filePath)) as ReadableStream<Uint8Array>;
+                await otaService.store(stream2, updateInfo, 'local');
+
+                imported++;
+                this.#adapter.log.info(`Successfully imported OTA file: ${file}`);
+
+                // Delete the original file after a successful import
+                await unlink(filePath);
+                this.#adapter.log.debug(`Deleted original OTA file: ${file}`);
+            } catch (error) {
+                this.#adapter.log.warn(`Failed to import OTA file "${file}": ${error}`);
+            }
+        }
+
+        this.#adapter.log.info(`Imported ${imported} of ${files.length} OTA files`);
+        return imported;
+    }
+
+    /**
+     * Get network graph data for all connected nodes.
+     * Collects WiFi and Thread diagnostics data for visualization.
+     */
+    getNetworkGraphData(): NetworkGraphData {
+        const nodes: NetworkNodeData[] = [];
+
+        for (const [nodeId, node] of this.#nodes) {
+            try {
+                const nodeData = this.#collectNodeNetworkData(nodeId, node);
+                if (nodeData) {
+                    nodes.push(nodeData);
+                }
+            } catch (error) {
+                this.#adapter.log.debug(`Error collecting network data for node ${nodeId}: ${error}`);
+            }
+        }
+
+        return { nodes, timestamp: Date.now() };
+    }
+
+    /**
+     * Refresh network diagnostics data for specified nodes by re-reading cluster attributes.
+     * Uses getMultipleAttributes to send one efficient request per node.
+     */
+    async refreshNodeNetworkData(nodeIds: string[]): Promise<void> {
+        this.#adapter.log.debug(`Refreshing network data for nodes: ${nodeIds.join(', ')}`);
+
+        // Thread Network Diagnostics cluster ID: 0x0035 (53)
+        // Attribute IDs: channel=0, routingRole=1, neighborTable=7, routeTable=8, rloc16=64
+        const threadClusterId = ClusterId(0x0035);
+        const threadAttributes = [
+            { endpointId: EndpointNumber(0), clusterId: threadClusterId, attributeId: AttributeId(0) }, // channel
+            { endpointId: EndpointNumber(0), clusterId: threadClusterId, attributeId: AttributeId(1) }, // routingRole
+            { endpointId: EndpointNumber(0), clusterId: threadClusterId, attributeId: AttributeId(7) }, // neighborTable
+            { endpointId: EndpointNumber(0), clusterId: threadClusterId, attributeId: AttributeId(8) }, // routeTable
+            { endpointId: EndpointNumber(0), clusterId: threadClusterId, attributeId: AttributeId(64) }, // rloc16
+        ];
+
+        // WiFi Network Diagnostics cluster ID: 0x0036 (54)
+        // Attribute IDs: bssid=0, securityType=1, wiFiVersion=2, channelNumber=3, rssi=4
+        const wifiClusterId = ClusterId(0x0036);
+        const wifiAttributes = [
+            { endpointId: EndpointNumber(0), clusterId: wifiClusterId, attributeId: AttributeId(0) }, // bssid
+            { endpointId: EndpointNumber(0), clusterId: wifiClusterId, attributeId: AttributeId(1) }, // securityType
+            { endpointId: EndpointNumber(0), clusterId: wifiClusterId, attributeId: AttributeId(2) }, // wiFiVersion
+            { endpointId: EndpointNumber(0), clusterId: wifiClusterId, attributeId: AttributeId(3) }, // channelNumber
+            { endpointId: EndpointNumber(0), clusterId: wifiClusterId, attributeId: AttributeId(4) }, // rssi
+        ];
+
+        const refreshPromises = nodeIds.map(async nodeIdStr => {
+            const node = this.#nodes.get(nodeIdStr);
+            if (!node) {
+                this.#adapter.log.debug(`Node ${nodeIdStr} not found for refresh`);
+                return;
+            }
+
+            if (!node.isConnected) {
+                this.#adapter.log.debug(`Node ${nodeIdStr} is offline, skipping refresh`);
+                return;
+            }
+
+            try {
+                // Get interaction client for this node
+                const client = await node.node.getInteractionClient();
+
+                // Determine network type and read appropriate diagnostics
+                const networkType = this.#getNetworkType(node);
+                const attributes =
+                    networkType === 'thread' ? threadAttributes : networkType === 'wifi' ? wifiAttributes : [];
+
+                if (attributes.length === 0) {
+                    this.#adapter.log.debug(`Node ${nodeIdStr} has no network diagnostics to refresh`);
+                    return;
+                }
+
+                // Read all attributes in one request
+                await client.getMultipleAttributes({ attributes });
+
+                this.#adapter.log.debug(`Successfully refreshed network data for node ${nodeIdStr}`);
+            } catch (error) {
+                this.#adapter.log.debug(`Error refreshing network data for node ${nodeIdStr}: ${error}`);
+            }
+        });
+
+        await Promise.all(refreshPromises);
+
+        // Send updated network graph data
+        this.#sendNetworkGraphUpdate();
+    }
+
+    /**
+     * Send network graph update to GUI with debouncing to avoid excessive updates.
+     * Debounce time is 1 second to batch rapid changes.
+     */
+    #sendNetworkGraphUpdate(): void {
+        if (this.#networkGraphUpdateTimer) {
+            clearTimeout(this.#networkGraphUpdateTimer);
+        }
+        this.#networkGraphUpdateTimer = setTimeout(async () => {
+            try {
+                const data = this.getNetworkGraphData();
+                await this.#adapter.sendToGui({
+                    command: 'networkGraphUpdate',
+                    networkGraphData: data,
+                });
+            } catch (error) {
+                this.#adapter.log.debug(`Error sending network graph update: ${error}`);
+            }
+        }, 1000);
+    }
+
+    /**
+     * Check if the cluster ID is relevant for network graph visualization.
+     */
+    #isNetworkRelevantCluster(clusterId: number): boolean {
+        // WiFiNetworkDiagnostics cluster ID: 0x0036 (54)
+        // ThreadNetworkDiagnostics cluster ID: 0x0035 (53)
+        // NetworkCommissioning cluster ID: 0x0031 (49)
+        return clusterId === 0x0036 || clusterId === 0x0035 || clusterId === 0x0031;
+    }
+
+    #collectNodeNetworkData(nodeId: string, node: GeneralMatterNode): NetworkNodeData | null {
+        const networkType = this.#getNetworkType(node);
+        const wifiDiagnostics = this.#getWiFiDiagnostics(node);
+        const threadDiagnostics = this.#getThreadDiagnostics(node);
+
+        // Get vendorId and productId from basicInformation
+        const basicInfo = node.node.basicInformation;
+        const vendorId =
+            basicInfo?.vendorId !== undefined ? `0x${basicInfo.vendorId.toString(16).toUpperCase()}` : undefined;
+        const productId =
+            basicInfo?.productId !== undefined ? `0x${basicInfo.productId.toString(16).toUpperCase()}` : undefined;
+
+        return {
+            nodeId,
+            name: node.name,
+            vendorId,
+            productId,
+            isConnected: node.isConnected,
+            networkType,
+            wifi: wifiDiagnostics,
+            thread: threadDiagnostics,
+        };
+    }
+
+    #getNetworkType(node: GeneralMatterNode): NetworkType {
+        // Use the deviceInformation from PairedNode which is more reliable
+        if (node.node.deviceInformation?.threadConnected) {
+            return 'thread';
+        }
+        if (node.node.deviceInformation?.wifiConnected) {
+            return 'wifi';
+        }
+        if (node.node.deviceInformation?.ethernetConnected) {
+            return 'ethernet';
+        }
+
+        // Fallback: try to detect from NetworkCommissioning cluster feature map
+        try {
+            const networkCommissioning = node.node.getRootClusterClient(NetworkCommissioning.Complete);
+            if (networkCommissioning) {
+                const features = networkCommissioning.supportedFeatures;
+                if (features.threadNetworkInterface) {
+                    return 'thread';
+                }
+                if (features.wiFiNetworkInterface) {
+                    return 'wifi';
+                }
+                if (features.ethernetNetworkInterface) {
+                    return 'ethernet';
+                }
+            }
+        } catch {
+            // Ignore errors
+        }
+
+        return 'unknown';
+    }
+
+    #getWiFiDiagnostics(node: GeneralMatterNode): WiFiDiagnosticsData | undefined {
+        if (!node.isConnected) {
+            return undefined;
+        }
+
+        try {
+            const cluster = node.node.getRootClusterClient(WiFiNetworkDiagnosticsCluster);
+            if (!cluster) {
+                return undefined;
+            }
+
+            const bssidRaw = cluster.isAttributeSupportedByName('bssid') ? cluster.getBssidAttributeFromCache() : null;
+            let bssid: string | null = null;
+            if (bssidRaw) {
+                // Convert Uint8Array to base64 string
+                bssid = Buffer.from(new Uint8Array(bssidRaw as ArrayBuffer)).toString('base64');
+            }
+
+            return {
+                bssid,
+                rssi: cluster.isAttributeSupportedByName('rssi') ? (cluster.getRssiAttributeFromCache() ?? null) : null,
+                channel: cluster.isAttributeSupportedByName('channelNumber')
+                    ? (cluster.getChannelNumberAttributeFromCache() ?? null)
+                    : null,
+                securityType: cluster.isAttributeSupportedByName('securityType')
+                    ? ((cluster.getSecurityTypeAttributeFromCache() as number | null | undefined) ?? null)
+                    : null,
+                wifiVersion: cluster.isAttributeSupportedByName('wiFiVersion')
+                    ? ((cluster.getWiFiVersionAttributeFromCache() as number | null | undefined) ?? null)
+                    : null,
+            };
+        } catch {
+            return undefined;
+        }
+    }
+
+    #getThreadDiagnostics(node: GeneralMatterNode): ThreadDiagnosticsData | undefined {
+        if (!node.isConnected) {
+            return undefined;
+        }
+
+        try {
+            const cluster = node.node.getRootClusterClient(ThreadNetworkDiagnostics.Cluster);
+            if (!cluster) {
+                return undefined;
+            }
+
+            // Get extended address from General Diagnostics cluster
+            const extendedAddress = this.#getExtendedAddress(node);
+
+            // Get neighbor table
+            const neighborTableRaw = cluster.isAttributeSupportedByName('neighborTable')
+                ? (cluster.getNeighborTableAttributeFromCache() ?? [])
+                : [];
+
+            const neighborTable: ThreadNeighborEntry[] = neighborTableRaw.map(entry => ({
+                extAddress: this.#bigIntToBase64(entry.extAddress),
+                rloc16: entry.rloc16,
+                age: entry.age,
+                averageRssi: entry.averageRssi,
+                lastRssi: entry.lastRssi,
+                lqi: entry.lqi,
+                frameErrorRate: entry.frameErrorRate,
+                messageErrorRate: entry.messageErrorRate,
+                rxOnWhenIdle: entry.rxOnWhenIdle,
+                fullThreadDevice: entry.fullThreadDevice,
+                fullNetworkData: entry.fullNetworkData,
+                isChild: entry.isChild,
+            }));
+
+            // Get route table
+            const routeTableRaw = cluster.isAttributeSupportedByName('routeTable')
+                ? (cluster.getRouteTableAttributeFromCache() ?? [])
+                : [];
+
+            const routeTable: ThreadRouteEntry[] = routeTableRaw.map(entry => ({
+                extAddress: this.#bigIntToBase64(entry.extAddress),
+                rloc16: entry.rloc16,
+                routerId: entry.routerId,
+                nextHop: entry.nextHop,
+                pathCost: entry.pathCost,
+                lqiIn: entry.lqiIn,
+                lqiOut: entry.lqiOut,
+                age: entry.age,
+                allocated: entry.allocated,
+                linkEstablished: entry.linkEstablished,
+            }));
+
+            // Get extended PAN ID
+            let extendedPanId: string | null = null;
+            if (cluster.isAttributeSupportedByName('extendedPanId')) {
+                const extPanIdRaw = cluster.getExtendedPanIdAttributeFromCache();
+                if (extPanIdRaw !== undefined && extPanIdRaw !== null) {
+                    extendedPanId = this.#bigIntToBase64(extPanIdRaw);
+                }
+            }
+
+            return {
+                channel: cluster.isAttributeSupportedByName('channel')
+                    ? (cluster.getChannelAttributeFromCache() ?? null)
+                    : null,
+                routingRole: cluster.isAttributeSupportedByName('routingRole')
+                    ? ((cluster.getRoutingRoleAttributeFromCache() as number | null | undefined) ?? null)
+                    : null,
+                extendedPanId,
+                rloc16: cluster.isAttributeSupportedByName('rloc16')
+                    ? (cluster.getRloc16AttributeFromCache() ?? null)
+                    : null,
+                extendedAddress,
+                neighborTable,
+                routeTable,
+            };
+        } catch {
+            return undefined;
+        }
+    }
+
+    #getExtendedAddress(node: GeneralMatterNode): string | null {
+        try {
+            const cluster = node.node.getRootClusterClient(GeneralDiagnosticsCluster);
+            if (!cluster) {
+                return null;
+            }
+
+            const networkInterfaces = cluster.isAttributeSupportedByName('networkInterfaces')
+                ? cluster.getNetworkInterfacesAttributeFromCache()
+                : null;
+
+            if (!networkInterfaces?.length) {
+                return null;
+            }
+
+            // Find Thread interface (type 4) or use first with hardware address
+            const threadIface = networkInterfaces.find(i => i.type === 4) || networkInterfaces[0];
+            if (!threadIface?.hardwareAddress) {
+                return null;
+            }
+
+            return Buffer.from(new Uint8Array(threadIface.hardwareAddress as ArrayBuffer)).toString('base64');
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * Convert a bigint (like extended address) to base64 string
+     */
+    #bigIntToBase64(value: bigint | number): string {
+        const bigValue = typeof value === 'number' ? BigInt(value) : value;
+        // Convert bigint to 8-byte buffer (big-endian)
+        const bytes = new Uint8Array(8);
+        let remaining = bigValue;
+        for (let i = 7; i >= 0; i--) {
+            bytes[i] = Number(remaining & 0xffn);
+            remaining >>= 8n;
+        }
+        return Buffer.from(bytes).toString('base64');
+    }
+
     async stop(): Promise<void> {
         this.#adapter.log.info(`Stopping Controller...`);
         if (this.#discovering) {
             await this.#discoveryStop();
+        }
+
+        // Clear any pending network graph update timer
+        if (this.#networkGraphUpdateTimer) {
+            clearTimeout(this.#networkGraphUpdateTimer);
+            this.#networkGraphUpdateTimer = undefined;
         }
 
         for (const node of this.#nodes.values()) {
@@ -583,6 +1140,7 @@ class Controller implements GeneralNode {
         this.#nodes.clear();
 
         if (this.#commissioningController) {
+            this.#observers.close();
             await this.#commissioningController.close();
             this.#commissioningController = undefined;
         }
@@ -598,6 +1156,26 @@ class Controller implements GeneralNode {
         );
         this.#nodes.delete(nodeId);
         this.#updateCallback();
+    }
+
+    async queryUpdates(): Promise<
+        {
+            peerAddress: PeerAddress;
+            info: SoftwareUpdateInfo;
+        }[]
+    > {
+        if (!this.otaProvider) {
+            this.#adapter.log.warn('No OTA provider available, cannot query for updates');
+            return [];
+        }
+        // Query OTA provider for updates using dynamic behavior access
+        const updatesAvailable = await this.otaProvider.act(agent =>
+            agent.get(SoftwareUpdateManager).queryUpdates({
+                includeStoredUpdates: true,
+            }),
+        );
+        this.#adapter.log.info(`OTA updates available for ${updatesAvailable.length} nodes`);
+        return updatesAvailable;
     }
 }
 

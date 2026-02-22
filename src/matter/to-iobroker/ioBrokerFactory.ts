@@ -34,7 +34,7 @@ export function identifyDeviceTypes(endpoint: Endpoint): {
     matterDeviceTypes.forEach(deviceType => {
         const deviceTypeDetails = MatterModel.standard.get(DeviceTypeModel, deviceType.code);
         if (deviceTypeDetails === undefined) {
-            // Found unknown Endpoint Devicetype
+            // Found an unknown Endpoint Device type
             return;
         }
         if (deviceTypeDetails.classification === DeviceClassification.Utility) {
@@ -66,7 +66,7 @@ async function ioBrokerDeviceFabric(
     const mainDeviceTypeName = primaryDeviceType?.deviceType.name ?? 'Unknown';
     adapter.log.info(`Node ${node.nodeId}: Creating device for ${mainDeviceTypeName} (endpoint ${endpoint.number})`);
 
-    let DeviceType: ClassExtends<GenericDeviceToIoBroker>;
+    let DeviceType: ClassExtends<GenericDeviceToIoBroker<any>>;
     let isSupportedDeviceType = true;
     switch (primaryDeviceType?.deviceType.id) {
         case Devices.ColorTemperatureLightDeviceDefinition.deviceType:

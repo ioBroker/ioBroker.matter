@@ -4,23 +4,20 @@ import {
     Box,
     Button,
     Checkbox,
+    CircularProgress,
     Dialog,
     DialogActions,
     DialogContent,
     DialogTitle,
     Fab,
-    FormControl,
     FormControlLabel,
     IconButton,
-    InputLabel,
-    MenuItem,
-    Select,
     TextField,
     Tooltip,
     Typography,
 } from '@mui/material';
 
-import { Check, Close, LayersClear, AutoAwesome, Clear } from '@mui/icons-material';
+import { Check, Close, LayersClear, AutoAwesome, Clear, CloudUpload } from '@mui/icons-material';
 
 import { type AdminConnection, I18n, Logo, InfoBox, IconExpert } from '@iobroker/adapter-react-v5';
 
@@ -80,6 +77,10 @@ interface OptionsProps {
 interface OptionsState {
     showDialog: boolean;
     dialogLevel: number;
+    /** Default path for custom OTA updates (from backend) */
+    defaultCustomOtaPath: string;
+    /** If we are currently waiting for backend processing */
+    backendProcessingActive: boolean;
 }
 
 class Options extends Component<OptionsProps, OptionsState> {
@@ -88,7 +89,21 @@ class Options extends Component<OptionsProps, OptionsState> {
         this.state = {
             showDialog: false,
             dialogLevel: 0,
+            defaultCustomOtaPath: '',
+            backendProcessingActive: false,
         };
+    }
+
+    componentDidMount(): void {
+        // Fetch default custom OTA path from backend
+        this.props.socket
+            .sendTo(`matter.${this.props.instance}`, 'getDefaultCustomOtaPath', {})
+            .then((result: { path?: string }) => {
+                if (result?.path) {
+                    this.setState({ defaultCustomOtaPath: result.path });
+                }
+            })
+            .catch(e => console.error(`Cannot get default custom OTA path: ${e}`));
     }
 
     renderConfirmDialog(): React.JSX.Element | null {
@@ -152,11 +167,6 @@ class Options extends Component<OptionsProps, OptionsState> {
     }
 
     render(): React.JSX.Element {
-        const bridge = this.props.matter.bridges.find(bridge => bridge.uuid === this.props.native.defaultBridge) || {
-            uuid: '_',
-            name: I18n.t('Unknown'),
-        };
-
         return (
             <div style={styles.panel}>
                 {this.renderConfirmDialog()}
@@ -222,61 +232,6 @@ class Options extends Component<OptionsProps, OptionsState> {
                     host={this.props.common.host}
                 />
 
-                <Box sx={{ marginTop: 2 }}>
-                    {this.props.expertMode ? null : <InfoBox type="info">{I18n.t('Info about Alexa Bridge')}</InfoBox>}
-                    <FormControl style={styles.inputLong}>
-                        <InputLabel
-                            sx={{
-                                '&.MuiFormLabel-root': {
-                                    transform: 'translate(0px, -9px) scale(0.75)',
-                                },
-                            }}
-                        >
-                            {I18n.t('Default bridge (Alexa-compatible)')}
-                        </InputLabel>
-                        <Select
-                            variant="standard"
-                            style={styles.inputLong}
-                            value={this.props.native.defaultBridge || '_'}
-                            renderValue={() => {
-                                if (!bridge) {
-                                    return null;
-                                }
-
-                                return (
-                                    <span
-                                        style={{
-                                            fontWeight: bridge.uuid === '_' ? 'bold' : undefined,
-                                        }}
-                                    >
-                                        {bridge.uuid === '_' ? I18n.t('Select default bridge') : bridge.name}
-                                        {bridge.uuid === '_' ? null : <span style={styles.address}>{bridge.uuid}</span>}
-                                    </span>
-                                );
-                            }}
-                            onChange={e => {
-                                void this.props.onChange('defaultBridge', e.target.value);
-                            }}
-                        >
-                            {this.props.matter.bridges.map((it, i) => (
-                                <MenuItem
-                                    key={i}
-                                    value={it.uuid}
-                                >
-                                    <span
-                                        style={{
-                                            fontWeight: it.uuid === '_' ? 'bold' : undefined,
-                                        }}
-                                    >
-                                        {it.name}
-                                        <span style={styles.address}>{it.uuid}</span>
-                                    </span>
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-                </Box>
-
                 <div style={{ marginTop: 50 }}>
                     <Typography sx={styles.header}>{I18n.t('Controller Settings')}</Typography>
                     {this.props.expertMode ? null : (
@@ -317,6 +272,81 @@ class Options extends Component<OptionsProps, OptionsState> {
                             maxWidth: 350,
                         }}
                     />
+
+                    <Box sx={{ marginTop: 3 }}>
+                        <Typography sx={{ ...styles.header, fontSize: 16 }}>{I18n.t('Custom OTA Updates')}</Typography>
+                        {this.props.expertMode ? null : (
+                            <InfoBox
+                                type="info"
+                                closeable
+                                storeId="matter.controller.customOta"
+                            >
+                                {I18n.t('Custom OTA Updates Infotext')}
+                            </InfoBox>
+                        )}
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={!!this.props.native.allowUnofficialUpdates}
+                                    onChange={e => this.props.onChange('allowUnofficialUpdates', e.target.checked)}
+                                    color="primary"
+                                />
+                            }
+                            label={I18n.t('Allow custom/unofficial OTA updates')}
+                        />
+                        {this.props.native.allowUnofficialUpdates ? (
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 1 }}>
+                                <TextField
+                                    variant="standard"
+                                    label={I18n.t('Custom OTA updates path')}
+                                    value={this.props.native.customUpdatesPath || ''}
+                                    placeholder={this.state.defaultCustomOtaPath}
+                                    helperText={
+                                        this.state.defaultCustomOtaPath
+                                            ? `${I18n.t('Default')}: ${this.state.defaultCustomOtaPath}`
+                                            : ''
+                                    }
+                                    onChange={e => this.props.onChange('customUpdatesPath', e.target.value)}
+                                    style={{ ...styles.input, maxWidth: 500 }}
+                                />
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    disabled={!this.props.alive || this.state.backendProcessingActive}
+                                    onClick={async () => {
+                                        this.setState({ backendProcessingActive: true });
+                                        try {
+                                            const result = await this.props.socket.sendTo(
+                                                `matter.${this.props.instance}`,
+                                                'importCustomOtaUpdates',
+                                                {},
+                                            );
+                                            if (result.error) {
+                                                this.props.onError(result.error);
+                                            } else if (result.imported !== undefined) {
+                                                this.props.showToast(
+                                                    I18n.t('Imported %s OTA update files', result.imported.toString()),
+                                                );
+                                            }
+                                        } catch (e) {
+                                            this.props.onError(`${e}`);
+                                        }
+                                        this.setState({ backendProcessingActive: false });
+                                    }}
+                                    startIcon={
+                                        this.state.backendProcessingActive ? (
+                                            <CircularProgress size={20} />
+                                        ) : (
+                                            <CloudUpload />
+                                        )
+                                    }
+                                    sx={{ maxWidth: 250 }}
+                                >
+                                    {I18n.t('Import updates now')}
+                                </Button>
+                            </Box>
+                        ) : null}
+                    </Box>
                 </div>
 
                 <div style={{ marginTop: 50 }}>

@@ -94,11 +94,11 @@ export class UtilityOnlyToIoBroker extends GenericElectricityDataDeviceToIoBroke
 
         const unsupportedInfo = {
             __header__UnsupportedNotice: 'This Device type is not automatically mapped to ioBroker!',
-            __text__UnsupportedNotice1: this.node.adapter.t(
+            __text__UnsupportedNotice1: this.adapter.t(
                 'For this device type (%s) no mapping is defined yet to ioBroker device structures. Please report this as an Issue with the Debug details from the Node tile and Endpoint information.',
                 this.deviceType,
             ),
-            __text__UnsupportedNotice2: this.node.adapter.t(
+            __text__UnsupportedNotice2: this.adapter.t(
                 'The Matter Application cluster details have been exposed in the ioBroker objects. You can see all attributes and information and also invoke commands on the device. For commands you might need to consult the Matter Application Cluster specification.',
             ),
         };

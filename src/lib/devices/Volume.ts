@@ -38,7 +38,7 @@ export class Volume extends GenericDevice {
     }
 
     getLevel(): number | undefined {
-        if (!this.#getLevelState || !this.#setLevelState) {
+        if (!this.#getLevelState && !this.#setLevelState) {
             throw new Error('Level state not found');
         }
         return (this.#getLevelState || this.#setLevelState)?.value;
@@ -73,6 +73,10 @@ export class Volume extends GenericDevice {
         await this.#getLevelState.updateValue(value);
     }
 
+    hasLevelActual(): boolean {
+        return this.#getLevelState !== undefined;
+    }
+
     getMute(): boolean | undefined {
         if (!this.#muteState) {
             throw new Error('Mute state not found');
@@ -85,5 +89,9 @@ export class Volume extends GenericDevice {
             throw new Error('Mute state not found');
         }
         return this.#muteState.setValue(value);
+    }
+
+    hasMute(): boolean {
+        return this.#muteState !== undefined;
     }
 }

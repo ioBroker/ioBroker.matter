@@ -50,6 +50,14 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
                 actuatorEnabled: true,
                 lockState: DoorLock.LockState.Locked, // Will be corrected later
                 doorState: this.#ioBrokerDevice.hasDoorState() ? DoorLock.DoorState.DoorClosed : undefined,
+                operatingMode: DoorLock.OperatingMode.Normal,
+                supportedOperatingModes: {
+                    normal: false,
+                    vacation: true,
+                    privacy: true,
+                    passage: true,
+                    alwaysSet: 2047,
+                },
             },
         });
     }
@@ -74,8 +82,7 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
             },
         });
         if (this.#ioBrokerDevice.hasDoorState()) {
-            await this.#matterEndpoint.setStateOf(EventedDoorLockServer, {
-                // @ts-expect-error Workaround a matter.js instancing/typing error
+            await this.#matterEndpoint.setStateOf('doorLock', {
                 doorState: this.#ioBrokerDevice.getDoorState()
                     ? DoorLock.DoorState.DoorOpen
                     : DoorLock.DoorState.DoorClosed,
@@ -113,8 +120,7 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
                     });
                     break;
                 case PropertyType.DoorState:
-                    await this.#matterEndpoint.setStateOf(EventedDoorLockServer, {
-                        // @ts-expect-error Workaround a matter.js instancing/typing error
+                    await this.#matterEndpoint.setStateOf('doorLock', {
                         doorState: event.value ? DoorLock.DoorState.DoorOpen : DoorLock.DoorState.DoorClosed,
                     });
                     break;

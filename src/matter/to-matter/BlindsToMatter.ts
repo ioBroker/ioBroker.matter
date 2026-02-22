@@ -90,8 +90,7 @@ export class BlindsToMatter extends GenericDeviceToMatter {
             this.#supportedFeatures.includes(WindowCovering.Feature.Tilt) &&
             this.#supportedFeatures.includes(WindowCovering.Feature.PositionAwareTilt)
         ) {
-            await this.#matterEndpoint.setStateOf(EventedWindowCoveringServer, {
-                // @ts-expect-error Workaround a matter.js instancing/typing error
+            await this.#matterEndpoint.setStateOf('windowCovering', {
                 currentPositionTiltPercent100ths: Math.round(100 - (this.#ioBrokerDevice.getTiltLevel() ?? 0)) * 100,
                 targetPositionTiltPercent100ths: Math.round(100 - (this.#ioBrokerDevice.getTiltLevel() ?? 0)) * 100,
             });
@@ -100,8 +99,7 @@ export class BlindsToMatter extends GenericDeviceToMatter {
             this.#supportedFeatures.includes(WindowCovering.Feature.Lift) &&
             this.#supportedFeatures.includes(WindowCovering.Feature.PositionAwareLift)
         ) {
-            await this.#matterEndpoint.setStateOf(EventedWindowCoveringServer, {
-                // @ts-expect-error Workaround a matter.js instancing/typing error
+            await this.#matterEndpoint.setStateOf('windowCovering', {
                 currentPositionLiftPercent100ths:
                     Math.round(100 - ((this.#ioBrokerDevice as Blind).getLevel() ?? 0)) * 100,
                 targetPositionLiftPercent100ths:
@@ -194,41 +192,41 @@ export class BlindsToMatter extends GenericDeviceToMatter {
         this.#ioBrokerDevice.onChange(async event => {
             switch (event.property) {
                 case PropertyType.TiltLevel:
-                case PropertyType.TiltLevelActual:
+                case PropertyType.TiltLevelActual: {
+                    const percentage = event.value as number;
                     if (
                         this.#supportedFeatures.includes(WindowCovering.Feature.Tilt) &&
                         this.#supportedFeatures.includes(WindowCovering.Feature.PositionAwareTilt)
                     ) {
-                        await this.#matterEndpoint.setStateOf(EventedWindowCoveringServer, {
-                            // @ts-expect-error Workaround a matter.js instancing/typing error
-                            currentPositionTiltPercent100ths: Math.round(100 - event.value) * 100,
+                        await this.#matterEndpoint.setStateOf('windowCovering', {
+                            currentPositionTiltPercent100ths: Math.round(100 - percentage) * 100,
                         });
                         if (event.property === PropertyType.TiltLevel) {
-                            await this.#matterEndpoint.setStateOf(EventedWindowCoveringServer, {
-                                // @ts-expect-error Workaround a matter.js instancing/typing error
-                                targetPositionTiltPercent100ths: Math.round(100 - event.value) * 100,
+                            await this.#matterEndpoint.setStateOf('windowCovering', {
+                                targetPositionTiltPercent100ths: Math.round(100 - percentage) * 100,
                             });
                         }
                     }
                     break;
+                }
                 case PropertyType.Level:
-                case PropertyType.LevelActual:
+                case PropertyType.LevelActual: {
+                    const percentage = event.value as number;
                     if (
                         this.#supportedFeatures.includes(WindowCovering.Feature.Lift) &&
                         this.#supportedFeatures.includes(WindowCovering.Feature.PositionAwareLift)
                     ) {
-                        await this.#matterEndpoint.setStateOf(EventedWindowCoveringServer, {
-                            // @ts-expect-error Workaround a matter.js instancing/typing error
-                            currentPositionLiftPercent100ths: Math.round(100 - event.value) * 100,
+                        await this.#matterEndpoint.setStateOf('windowCovering', {
+                            currentPositionLiftPercent100ths: Math.round(100 - percentage) * 100,
                         });
                         if (event.property === PropertyType.Level) {
-                            await this.#matterEndpoint.setStateOf(EventedWindowCoveringServer, {
-                                // @ts-expect-error Workaround a matter.js instancing/typing error
-                                targetPositionLiftPercent100ths: Math.round(100 - event.value) * 100,
+                            await this.#matterEndpoint.setStateOf('windowCovering', {
+                                targetPositionLiftPercent100ths: Math.round(100 - percentage) * 100,
                             });
                         }
                     }
                     break;
+                }
             }
         });
     }

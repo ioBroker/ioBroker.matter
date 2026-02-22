@@ -688,7 +688,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                 this.#inProgressChangeHandlers.has(event.property) &&
                 this.#inProgressChangeHandlers.get(event.property) === event.value
             ) {
-                this.#adapter.log.debug(
+                this.#adapter.log.info(
                     `Skipping duplicate change event for ${event.property} with value ${JSON.stringify(event.value)} (handler already in progress)`,
                 );
                 return;
@@ -719,7 +719,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                 this.#inProgressCustomChangeHandlers.has(event.customPropertyName) &&
                 this.#inProgressCustomChangeHandlers.get(event.customPropertyName) === event.value
             ) {
-                this.#adapter.log.debug(
+                this.#adapter.log.info(
                     `Skipping duplicate custom change event for ${event.customPropertyName} with value ${JSON.stringify(event.value)} (handler already in progress)`,
                 );
                 return;

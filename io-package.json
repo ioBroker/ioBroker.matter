@@ -1,224 +1,246 @@
 {
-    "common": {
-        "name": "matter",
-        "version": "0.6.1",
-        "news": {
-            "0.6.1": {
-                "en": "This version will not be in ioBroker Latest repository and used for Alpha testing!\nUpdated to Matter 1.4 2 (matter.js to 0.16.0)\nAlso covert values for unit \"mired\" for Color temperatures\nIncreases default color temperature range to 1.000 to 20.000 K\nHighlight the devices in GUI when hovering over the device in the device list\nReplaced I18n package\nAdded support for volume, volumeGroup ioBroker devices to matter\nAdd Off mode for Thermostats for Matter devices",
-                "de": "Diese Version wird nicht in ioBroker Neueste Repository und verwendet für Alpha-Tests!\nAktualisiert auf Matter 1.4 2 (matter.js bis 0.16.0)\nAuch verdeckte Werte für Einheit \"bewundert\" für Farbtemperaturen\nErhöht den Standard-Farbtemperaturbereich auf 1.000 bis 20.000 K\nMarkieren Sie die Geräte in der GUI beim Hochfahren über das Gerät in der Geräteliste\nErsatzpaket I18n\nUnterstützung für Volumen, Volumen Gruppe ioBroker-Geräte zu Materie\nOff-Modus für Thermostate für Matter-Geräte hinzufügen",
-                "ru": "Эта версия не будет в репозитории ioBroker и использоваться для альфа-тестирования!\nОбновлено до 1.4 2 (matter.js до 0.16.0)\nТакже скрытые значения для единицы «погрязли» для цветовых температур\nУвеличивает диапазон цветовой температуры по умолчанию до 1000-20000 К\nВыделите устройства в GUI при наведении на устройство в списке устройств\nЗамена пакета I18n\nДобавлена поддержка объема, объема Устройства группы ioBroker имеют значение\nРежим Add Off для термостатов для устройств Matter",
-                "pt": "Esta versão não será usada no repositório ioBroker Last e usada para testes Alpha!\nActualizado para a matéria 1.4 2 (mater.js para 0.16.0)\nTambém valores encobertos para a unidade \"semeada\" para temperaturas de cor\nAumenta a faixa de temperatura de cor padrão para 1.000 a 20.000 K\nRealçar os dispositivos na interface gráfica ao passar sobre o dispositivo na lista de dispositivos\nPacote I18n substituído\nAdicionado suporte para volume, volume Grupo ioBroker dispositivos para importar\nAdicionar modo desligado para termostatos para dispositivos Matter",
-                "nl": "Deze versie wordt niet in ioBroker Laatste repository en gebruikt voor Alpha testen!\nBijgewerkt naar onderwerp 1.4 2 (materie.js tot 0.16.0)\nOok geheime waarden voor eenheid \"gespiegeld\" voor kleurtemperaturen\nVerhoogt standaard kleurtemperatuurbereik tot 1.000 tot 20.000 K\nDe apparaten in de GUI markeren bij het zweven over het apparaat in de lijst met apparaten\nVervangen I18n pakket\nOndersteuning toegevoegd voor volume, volume ioBroker-apparaten van groep\nUit-modus toevoegen voor thermostaten voor materie-apparaten",
-                "fr": "Cette version ne sera pas dans ioBroker Dernier dépôt et utilisé pour les tests Alpha!\nMise à jour à la matière 1.4 2 (matière.js à 0.16.0)\nAussi des valeurs cachées pour l'unité \"miré\" pour les températures de couleur\nAugmente la plage de température de couleur par défaut à 1.000 à 20.000 K\nMettre en évidence les appareils en interface graphique lorsque vous survolez l'appareil dans la liste des appareils\nColis I18n remplacé\nSoutien supplémentaire au volume, au volume Groupe ioBroker dispositifs à la matière\nAjouter le mode hors tension pour les thermostats pour les dispositifs de matière",
-                "it": "Questa versione non sarà in ioBroker Ultimo repository e utilizzato per il test Alpha!\nAggiornato a Matter 1.4 2 (matter.js a 0.16.0)\nAnche i valori nascosti per unità \"mired\" per temperature di colore\nAumenta l'intervallo di temperatura di colore predefinito a 1.000 a 20.000 K\nEvidenziare i dispositivi in GUI quando si passa sopra il dispositivo nell'elenco dei dispositivi\nSostituito pacchetto I18n\nAggiunto supporto per volume, volume Gruppo ioBroker dispositivi per la materia\nAggiungere la modalità Off per termostati per dispositivi Matter",
-                "es": "Esta versión no estará en ioBroker Repositorio más reciente y se utilizará para pruebas alfa!\nActualizado a Matter 1.4 2 (matter.js a 0.16.0)\nValores también encubiertos para la unidad \"mirada\" para temperaturas de color\nAumenta el rango de temperatura de color predeterminado a 1.000 a 20.000 K\nDestacar los dispositivos en GUI cuando se mueve sobre el dispositivo en la lista de dispositivos\nPaquete I18n reemplazado\nAñadido soporte para volumen, volumen Grupo ioBroker dispositivos para importar\nAgregar modo Off para termostatos para dispositivos de la máquina",
-                "pl": "Ta wersja nie będzie w jOBroker Najnowsze repozytorium i używane do testów Alpha!\nAktualizacja do materii 1.4 2 (matter.js do 0.16.0)\nRównież ukryte wartości dla jednostki \"mired\" dla temperatury kolorów\nZwiększa domyślny zakres temperatury kolorów do 1.000 do 20.000 K\nZaznacz urządzenia w GUI podczas unoszenia się nad urządzeniem na liście urządzeń\nZastąpiony pakiet I18n\nDodano wsparcie dla głośności, głośności Urządzenia joBroker grupy do znaczenia\nDodaj tryb wyłączenia dla termostatów dla urządzeń Matter",
-                "uk": "Ця версія не буде в ioBroker Останні репозитори і використовується для тестування Альфа!\nОновлено в Matter 1.4 2 (маттер.js до 0.16.0)\nТакож значення покривала для блоку \"здивовані\" для температур кольору\nПідвищує діапазон температури за замовчуванням до 1.000 до 20.000 Р\nВиділіть пристрої в GUI при переховуванні пристрою в списку пристроїв\nЗамінний пакет I18n\nДодано підтримку обсягу, об'єм Група ioBroker пристроїв для матерії\nДодати режим вимкнення термостатів для пристроїв Matter",
-                "zh-cn": "这个版本将不会在ioBroker最新存储器中使用,并用于阿尔法测试!\n更新为物质1.42(事项js至0.16.0)\n颜色温度单位“ 迷恋” 的隐蔽值\n将默认颜色温度范围提高到1 000至20 000 K级\n在设备列表中盘旋设备时突出显示图形用户界面中的设备\n已替换的 I18n 软件包\n添加对音量、音量的支持 组合 ioBroker 设备以显示物质\n为物质设备的自动调温器添加关闭模式"
-            },
-            "0.5.6": {
-                "en": "Type detector update, should detect single states in non-device structures better",
-                "de": "Typ-Detektor-Update, sollte einzelne Zustände in Nicht-Gerät-Strukturen besser erkennen",
-                "ru": "Обновление детектора типа должно лучше обнаруживать отдельные состояния в структурах, не относящихся к устройству",
-                "pt": "Tipo de atualização detector, deve detectar estados únicos em estruturas não-dispositivos melhor",
-                "nl": "Type detector update, moet afzonderlijke staten in niet-apparaat structuren beter detecteren",
-                "fr": "Mise à jour du détecteur de type, devrait détecter les états uniques dans les structures non-appareils mieux",
-                "it": "Tipo rivelatore aggiornamento, dovrebbe rilevare singoli stati in strutture non-dispositivi meglio",
-                "es": "Tipo detector de actualización, debe detectar estados individuales en estructuras no dispositivos mejor",
-                "pl": "Aktualizacja detektora typu, powinna wykrywać pojedyncze stany w strukturach innych niż urządzenia lepiej",
-                "uk": "Оновлення датчика типу, слід виявити односторонні стани в нерозробних конструкціях краще",
-                "zh-cn": "类型探测器更新,应更好地检测非探测结构中的单个状态"
-            },
-            "0.5.5": {
-                "en": "Optimizes Battery drain information\nCorrectly shows \"in progress changes\" in UI when adjusting devices to ovoid overlapping actions\nFix HSV to RGB calculation for some cases\nUpdated matter.js to 0.15.6\nOptimizes shutdown process to ensure everything is properly closed",
-                "de": "Optimiert die Informationen zum Batterieabfluss\nKorrekt zeigt \"in Fortschritt Änderungen\" in UI bei der Einstellung von Geräten zu Oid Überlappungsaktionen\nFix HSV zu RGB Berechnung für einige Fälle\nAktualisierte Sache.js bis 0,15.6\nOptimiert den Stilllegungsprozess, um sicherzustellen, dass alles richtig geschlossen ist",
-                "ru": "Оптимизация информации о сливе батареи\nПравильно показывает «в прогрессе изменения» в пользовательском интерфейсе при настройке устройств на перекрытие яйцеклеток\nИсправьте расчет HSV в RGB для некоторых случаев\nОбновленный matter.js до 0.15.6\nОптимизация процесса отключения, чтобы убедиться, что все правильно закрыто",
-                "pt": "Otimiza a informação de drenagem da bateria\nMostra corretamente \"mudanças em andamento\" na IU ao ajustar dispositivos para ações ovóides sobrepostas\nCorrigir o cálculo HSV para RGB para alguns casos\nUpdated matter.js to 0.15.6\nOtimiza o processo de desligamento para garantir que tudo esteja devidamente fechado",
-                "nl": "Optimaliseert Batterij afvoer informatie\nCorrect toont \"in voortgang veranderingen\" in UI bij het aanpassen van apparaten om overlappende acties te voorkomen\nFix HSV naar RGB berekening voor sommige gevallen\nBijgewerkte materie.js tot 0,15.6\nOptimaliseer het afsluiten om ervoor te zorgen dat alles goed gesloten is",
-                "fr": "Optimise l'information sur le drain de batterie\nAffiche correctement les « changements en cours » dans l'assurance-chômage lorsqu'il s'agit d'ajuster les appareils pour éviter les chevauchements\nFixer le calcul HSV à RGB pour certains cas\nMatière mise à jour.js à 0.15.6\nOptimise le processus d'arrêt pour s'assurer que tout est correctement fermé",
-                "it": "Ottimizzare le informazioni sullo scarico della batteria\nCorrettivamente mostra \"in cambiamenti di progresso\" nell'interfaccia utente quando si regolano i dispositivi per ovoidi azioni sovrapposte\nFissare il calcolo HSV a RGB per alcuni casi\nQuestion.js aggiornato a 0.15.6\nOttimizza il processo di spegnimento per garantire che tutto sia correttamente chiuso",
-                "es": "Optimiza la información de desagüe de batería\nMuestra correctamente \"en cambios de progreso\" en la interfaz de usuario al ajustar dispositivos para omitir acciones superpuestas\nFijar el HSV a cálculo RGB para algunos casos\nActualizado matter.js a 0.15.6\nOptimiza el proceso de cierre para asegurar que todo esté bien cerrado",
-                "pl": "Optymalizacja informacji o odprowadzaniu baterii\nPrawidłowo pokazuje \"w postępie zmian\" w UI podczas regulacji urządzeń do omijania nakładających się działań\nFix HSV do RGB obliczenia dla niektórych przypadków\nAktualizacja mater.js do 0.15.6\nOptymalizuje proces zamykania, aby wszystko było odpowiednio zamknięte",
-                "uk": "Оптимізуйте інформацію про злив акумулятора\nКорисно показує \"в змінах прогресу\" в UI при регулюванні пристроїв на обмоткані дії\nВиправлення HSV до RGB обчислення для деяких випадків\nОновлена справа.js до 0.15.6\nОптимізуйте процес відключення, щоб забезпечити все правильно закрито",
-                "zh-cn": "优化电池排水信息\n调整设备到 ovoid 重叠动作时正确显示 UI 中的“ 进行中更改 ”\n将 HSV 修正为某些情况的 RGB 计算\n更新为0.15.6\n优化关闭程序,确保一切正常关闭"
-            },
-            "0.5.4": {
-                "en": "Updated matter.js to 0.15.5",
-                "de": "Aktualisierte Materie.js bis 0,15.5",
-                "ru": "Обновленный matter.js до 0,15,5",
-                "pt": "Updated matter.js to 0.15.5",
-                "nl": "Bijgewerkte materie.js tot 0,15.5",
-                "fr": "Matière mise à jour.js à 0.15.5",
-                "it": "Question.js aggiornato a 0.15.5",
-                "es": "Actualizado matter.js a 0.15.5",
-                "pl": "Aktualizacja mater.js do 0.15.5",
-                "uk": "Оновлена справа.js до 0.15.5",
-                "zh-cn": "更新为0.15.5"
-            },
-            "0.5.3": {
-                "en": "Updated matter.js to 0.15.4",
-                "de": "Matter.js auf Version 0.15.4 aktualisiert.",
-                "ru": "Обновлен matter.js до версии 0.15.4",
-                "pt": "Atualizado o matter.js para 0.15.4",
-                "nl": "Matter.js bijgewerkt naar 0.15.4",
-                "fr": "Mise à jour de matter.js en version 0.15.4",
-                "it": "Aggiornato matter.js a 0.15.4",
-                "es": "Se actualizó matter.js a la versión 0.15.4",
-                "pl": "Zaktualizowano bibliotekę matter.js do wersji 0.15.4",
-                "uk": "Оновлено matter.js до версії 0.15.4",
-                "zh-cn": "将matter.js更新到0.15.4"
-            },
-            "0.5.2": {
-                "en": "Updated matter.js to 0.15.2 with many performance- and other improvements\nCorrected the checking of the licenses if they were stacked\nUse attributes from cache instead of requesting them from the device\nIgnoring invalid min/max for color temperature from objects\nPrevents update loops for Thermostat on/off state changes\nFixes invalid color state updates when multiple attributes are adjusted together\nRounds RSSI values to prevent digits",
-                "de": "Aktualisierte matter.js bis 0,15.2 mit vielen Leistungs- und anderen Verbesserungen\nKorrektur der Überprüfung der Lizenzen, wenn sie gestapelt wurden\nVerwenden Sie Attribute aus dem Cache, anstatt sie vom Gerät anzufordern\nUngültige min/max für Farbtemperatur von Objekten ignorieren\nVerhindert Aktualisierungsschleifen für Thermostat-Ein-/Aus-Zustandsänderungen\nBehebt ungültige Farbzustandsupdates, wenn mehrere Attribute zusammen angepasst werden\nRunden RSSI-Werte, um Ziffern zu verhindern",
-                "ru": "Обновленный matter.js до 0,15.2 со многими улучшениями производительности\nИсправлена проверка лицензий, если они были сложены\nИспользуйте атрибуты из кэша вместо того, чтобы запрашивать их с устройства\nИгнорирование недействительных min/max для цветовой температуры от объектов\nПредотвращение циклов обновления для изменений состояния включения / выключения термостата\nИсправляет недействительные обновления состояния цвета, когда несколько атрибутов регулируются вместе\nОкругление значений RSSI для предотвращения цифр",
-                "pt": "Updated matter.js to 0.15.2 com muitos desempenhos e outras melhorias\nCorrigido a verificação das licenças se eles foram empilhados\nUsar atributos da 'cache' em vez de os solicitar do dispositivo\nIgnorando min/max inválido para a temperatura de cor de objetos\nPrevine a atualização de loops para as mudanças de estado do termostato\nCorrige atualizações de estado de cor inválidas quando vários atributos são ajustados juntos\nRedondas Valores RSSI para evitar dígitos",
-                "nl": "Bijgewerkt materie.js naar 0,15.2 met veel prestaties- en andere verbeteringen\nCorrectie van de controle van de licenties als ze werden gestapeld\nAttributen uit cache gebruiken in plaats van ze van het apparaat te vragen\nOngeldige min/max voor kleurtemperatuur van objecten negeren\nVoorkomt update loops voor thermostat aan/uit toestand wijzigingen\nFixeert ongeldige kleurstatus-updates wanneer meerdere attributen samen worden aangepast\nRounds RSSI-waarden om cijfers te voorkomen",
-                "fr": "Matière mise à jour.js à 0.15.2 avec de nombreuses améliorations - et d'autres améliorations\nCorrection de la vérification des licences si elles étaient empilées\nUtiliser les attributs du cache au lieu de les demander à partir du périphérique\nIgnorer min/max invalide pour la température de couleur des objets\nEmpêche les boucles de mise à jour pour les changements d'état de Thermostat\nCorrection des mises à jour d'état de couleur invalides lorsque plusieurs attributs sont ajustés ensemble\nRondles valeurs RSSI pour empêcher les chiffres",
-                "it": "Question.js aggiornato a 0.15.2 con molte prestazioni- e altri miglioramenti\nCorretto il controllo delle licenze se sono stati impilati\nUtilizzare gli attributi dalla cache invece di richiederli dal dispositivo\nIgnorando min/max non valido per temperatura di colore da oggetti\nPreviene i loop di aggiornamento per le modifiche dello stato di termostato\nRisolve gli aggiornamenti di stato di colore non validi quando più attributi vengono regolati insieme\nTondi valori RSSI per prevenire le cifre",
-                "es": "Updated matter.js to 0.15.2 with many performance- and other improvements\nCorregido la comprobación de las licencias si fueron apilados\nUtilice atributos de caché en lugar de solicitarlos del dispositivo\nIgnorando min/max inválido para la temperatura de color de los objetos\nEvita los bucles de actualización para los cambios de estado de termostato\nFija actualizaciones de estado de color inválidas cuando se ajustan múltiples atributos juntos\nValores RSSI para prevenir dígitos",
-                "pl": "Aktualizacja mater.js do 0.15.2 z wielu wykonania- i innych ulepszeń\nPoprawiono sprawdzanie licencji, jeśli zostały ułożone\nUżyj atrybutów z pamięci podręcznej zamiast żądać ich z urządzenia\nIgnorowanie nieprawidłowego min / max dla temperatury barw obiektów\nZapobiega aktualizacji pętli dla zmian stanu włączenia / wyłączenia termostatu\nFixes błędne aktualizacje stanu kolorów, gdy wiele atrybutów są dopasowane razem\nZaokrągla wartości RSSI, aby zapobiec cyfrom",
-                "uk": "Оновлена справа.js до 0.15.2 з багатьма перформансами та іншими вдосконаленнями\nВиправлено перевірку ліцензій, якщо вони були складені\nВикористовуйте атрибути кешу замість запиту їх з пристрою\nПрогнозування недійсним хв/максу за температуру кольору від предметів\nЗапобігає відновленню петель термостату за змінами стану\nВиправлення недійсних оновлення стану кольору при багаторазових атрибутах регулюється разом\nКруглі значення RSSI для запобігання цифр",
-                "zh-cn": "更新为0.15.2,并改进了许多业绩和其他\n纠正了对许可证的检查,如果这些许可证被堆放\n使用缓存中的属性而不是请求设备中的属性\n忽略对象颜色温度的无效分/ 最大值\n防止打开/关闭自动调温器的更新循环\n当多个属性一起调整时修复无效的颜色状态更新\n圆 RSSI 值防止位数"
-            }
-        },
-        "titleLang": {
-            "en": "Matter protocol",
-            "de": "Matter Protokoll",
-            "ru": "Протокол Matter",
-            "pt": "Protocolo de Matter",
-            "nl": "Matter protocol",
-            "fr": "Matter protocol",
-            "it": "Protocollo della Matter",
-            "es": "Protocolo de la Matter",
-            "pl": "Protokół Matter",
-            "uk": "Протокол Маттер",
-            "zh-cn": "Matter"
-        },
-        "desc": {
-            "en": "Controlling and simulation of matter devices",
-            "de": "Steuerung und Simulation von Matter-Geräten",
-            "ru": "Контроль и моделирование Matter-устройств",
-            "pt": "Controle e simulação de Matter-dispositivos",
-            "nl": "Controleren en simulatie van Matter-apparaten",
-            "fr": "Contrôle et simulation des Matter-dispositifs",
-            "it": "Controllo e simulazione di Matter-dispositivi",
-            "es": "Control y simulación de Matter-dispositivos",
-            "pl": "Kontrola i symulacja Matter-urządzeń",
-            "uk": "Контроль та імітація Matter-пристроїв",
-            "zh-cn": "控制和模拟事故装置"
-        },
-        "authors": ["Denis Haev <dogafox@gmail.com>"],
-        "platform": "Javascript/Node.js",
-        "mode": "daemon",
-        "nogit": true,
-        "loglevel": "info",
-        "readme": "https://github.com/ioBroker/ioBroker.matter/blob/master/README.md",
-        "icon": "matter.svg",
-        "connectionType": "local",
-        "dataSource": "push",
-        "adminTab": {
-            "singleton": false,
-            "name": "Matter"
-        },
-        "adminUI": {
-            "config": "materialize",
-            "tab": "materialize"
-        },
-        "tier": 3,
-        "keywords": ["matter"],
-        "eraseOnUpload": true,
-        "stopTimeout": 30000,
-        "stopBeforeUpdate": true,
-        "enabled": true,
-        "compact": false,
-        "singletonHost": true,
-        "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.matter/master/admin/matter.svg",
-        "type": "iot-systems",
-        "messagebox": true,
-        "plugins": {
-            "sentry": {
-                "dsn": "https://de38f4a20c964ce395d2e236c64aa075@sentry.iobroker.net/234"
-            }
-        },
-        "licenseInformation": {
-            "type": "free",
-            "license": "Apache-2.0"
-        },
-        "supportedMessages": {
-            "deviceManager": true
-        },
-        "dependencies": [
-            {
-                "js-controller": ">=5.0.19"
-            }
-        ],
-        "globalDependencies": [
-            {
-                "admin": ">=7.6.17"
-            }
-        ]
+  "common": {
+    "name": "matter",
+    "version": "0.6.2",
+    "news": {
+      "0.6.2": {
+        "en": "Updated to matter.js 0.16.10: Fixes some OTA issues and optimize Networking and reconnection handling\nEnhances the Thread network graph\nEnhances display of software versions and warn on non-production updates, Display update sources \nDetect duplicate commands/writes and prevent them from being sent out again if the first command is still in progress",
+        "de": "Aktualisiert auf matter.js 0.16.10: Behebt einige OTA-Probleme und optimiert das Netzwerk- und Reconnection-Handling\nVerbessert das Netzwerkdiagramm Thread\nVerbessert die Anzeige von Software-Versionen und warnen auf Nicht-Produktions-Updates, Anzeigen-Update-Quellen\nErkennen Sie doppelte Befehle/Schreibe und verhindern Sie, dass diese wieder gesendet werden, wenn der erste Befehl noch im Gang ist",
+        "ru": "Обновлено на matter.js 0.16.10: Исправляет некоторые проблемы OTA и оптимизирует обработку сетей и переподключение\nУлучшает сетевой граф Thread\nУлучшает отображение версий программного обеспечения и предупреждает о непроизводственных обновлениях, источниках обновления дисплея\nОбнаружить дубликаты команд/записей и предотвратить их повторное отправку, если первая команда все еще находится в процессе выполнения",
+        "pt": "Atualizado para matter.js 0.16.10: Corrige alguns problemas de OTA e otimiza o manuseio de rede e reconexão\nMelhora o gráfico de rede Thread\nMelhora a visualização de versões de software e alerta sobre atualizações de não-produção, Exibir fontes de atualização\nDetectar comandos/escritas duplicadas e impedi-los de serem enviados novamente se o primeiro comando ainda estiver em andamento",
+        "nl": "Bijgewerkt naar matter.js 0.16.10: Repareert sommige OTA-problemen en optimaliseert Networking en reconnection handling\nVerbetert de Thread netwerk grafiek\nVerbetert de weergave van softwareversies en waarschuwt voor niet-productie-updates, weergave-updatebronnen\nDupliceer commando's/writes detecteren en voorkomen dat ze opnieuw verzonden worden als het eerste commando nog bezig is",
+        "fr": "Mise à jour de matter.js 0.16.10: Répare certains problèmes en OTA et optimise la gestion des réseaux et des connexions\nAméliore le graphique réseau Thread\nAméliore l'affichage des versions logicielles et met en garde contre les mises à jour hors production, Afficher les sources de mise à jour\nDétecter les commandes/écritures dupliquées et les empêcher d'être envoyées à nouveau si la première commande est encore en cours",
+        "it": "Aggiornato a materia.js 0.16.10: Risolve alcuni problemi OTA e ottimizza la gestione di rete e riconnessione\nMigliora il grafico della rete Thread\nMigliora la visualizzazione delle versioni del software e avvertire gli aggiornamenti non di produzione, Mostra fonti di aggiornamento\nRileva i comandi/scritture duplicati e impedisce loro di essere inviati di nuovo se il primo comando è ancora in corso",
+        "es": "Actualizado a matter.js 0.16.10: Arregla algunos problemas de OTA y optimice el manejo de red y reconexión\nMejora el gráfico de la red de hilos\nMejora la visualización de versiones de software y advierte sobre actualizaciones de no producción, Mostrar fuentes de actualización\nDetectar comandos/escrituras duplicados y evitar que sean enviados de nuevo si el primer comando sigue en curso",
+        "pl": "Aktualizacja do matter.js 0.16.10: Fixes niektóre problemy OTA i optymalizacji obsługi sieciowej i ponownego połączenia\nUlepsza wykres sieci gwintów\nUlepsza wyświetlanie wersji oprogramowania i ostrzega o aktualizacjach niezwiązanych z produkcją, Wyświetl źródła aktualizacji\nWykrywanie duplikatów komend / pisów i zapobieganie ich wysyłaniu, jeśli pierwsze polecenie jest nadal w toku",
+        "uk": "Оновлено до problem.js 0.16.10: Виправлення деяких питань OTA та оптимізації мережного та відключення\nПідвищує графік мережі Thread\nПокращує відображення версій програмного забезпечення та попереджає про непродукційні оновлення, джерела оновлення дисплея\nВиявлення дублікатів команд / записів і запобігання їх знову, якщо перша команда все ще перебуває в прогресі",
+        "zh-cn": "更新为matter.js0.16.10:解决一些OTA问题并优化网络和重联处理\n增强线程网络图\n增强软件版本的显示并警告不生产更新, 显示更新源\n检测重复的命令/ 写入, 如果第一个命令仍在执行中, 则防止它们再次发出"
+      },
+      "0.6.1": {
+        "en": "This version will not be in ioBroker Latest repository and used for Alpha testing!\nUpdated to Matter 1.4 2 (matter.js to 0.16.0)\nAlso covert values for unit \"mired\" for Color temperatures\nIncreases default color temperature range to 1.000 to 20.000 K\nHighlight the devices in GUI when hovering over the device in the device list\nReplaced I18n package\nAdded support for volume, volumeGroup ioBroker devices to matter\nAdd Off mode for Thermostats for Matter devices",
+        "de": "Diese Version wird nicht in ioBroker Neueste Repository und verwendet für Alpha-Tests!\nAktualisiert auf Matter 1.4 2 (matter.js bis 0.16.0)\nAuch verdeckte Werte für Einheit \"bewundert\" für Farbtemperaturen\nErhöht den Standard-Farbtemperaturbereich auf 1.000 bis 20.000 K\nMarkieren Sie die Geräte in der GUI beim Hochfahren über das Gerät in der Geräteliste\nErsatzpaket I18n\nUnterstützung für Volumen, Volumen Gruppe ioBroker-Geräte zu Materie\nOff-Modus für Thermostate für Matter-Geräte hinzufügen",
+        "ru": "Эта версия не будет в репозитории ioBroker и использоваться для альфа-тестирования!\nОбновлено до 1.4 2 (matter.js до 0.16.0)\nТакже скрытые значения для единицы «погрязли» для цветовых температур\nУвеличивает диапазон цветовой температуры по умолчанию до 1000-20000 К\nВыделите устройства в GUI при наведении на устройство в списке устройств\nЗамена пакета I18n\nДобавлена поддержка объема, объема Устройства группы ioBroker имеют значение\nРежим Add Off для термостатов для устройств Matter",
+        "pt": "Esta versão não será usada no repositório ioBroker Last e usada para testes Alpha!\nActualizado para a matéria 1.4 2 (mater.js para 0.16.0)\nTambém valores encobertos para a unidade \"semeada\" para temperaturas de cor\nAumenta a faixa de temperatura de cor padrão para 1.000 a 20.000 K\nRealçar os dispositivos na interface gráfica ao passar sobre o dispositivo na lista de dispositivos\nPacote I18n substituído\nAdicionado suporte para volume, volume Grupo ioBroker dispositivos para importar\nAdicionar modo desligado para termostatos para dispositivos Matter",
+        "nl": "Deze versie wordt niet in ioBroker Laatste repository en gebruikt voor Alpha testen!\nBijgewerkt naar onderwerp 1.4 2 (materie.js tot 0.16.0)\nOok geheime waarden voor eenheid \"gespiegeld\" voor kleurtemperaturen\nVerhoogt standaard kleurtemperatuurbereik tot 1.000 tot 20.000 K\nDe apparaten in de GUI markeren bij het zweven over het apparaat in de lijst met apparaten\nVervangen I18n pakket\nOndersteuning toegevoegd voor volume, volume ioBroker-apparaten van groep\nUit-modus toevoegen voor thermostaten voor materie-apparaten",
+        "fr": "Cette version ne sera pas dans ioBroker Dernier dépôt et utilisé pour les tests Alpha!\nMise à jour à la matière 1.4 2 (matière.js à 0.16.0)\nAussi des valeurs cachées pour l'unité \"miré\" pour les températures de couleur\nAugmente la plage de température de couleur par défaut à 1.000 à 20.000 K\nMettre en évidence les appareils en interface graphique lorsque vous survolez l'appareil dans la liste des appareils\nColis I18n remplacé\nSoutien supplémentaire au volume, au volume Groupe ioBroker dispositifs à la matière\nAjouter le mode hors tension pour les thermostats pour les dispositifs de matière",
+        "it": "Questa versione non sarà in ioBroker Ultimo repository e utilizzato per il test Alpha!\nAggiornato a Matter 1.4 2 (matter.js a 0.16.0)\nAnche i valori nascosti per unità \"mired\" per temperature di colore\nAumenta l'intervallo di temperatura di colore predefinito a 1.000 a 20.000 K\nEvidenziare i dispositivi in GUI quando si passa sopra il dispositivo nell'elenco dei dispositivi\nSostituito pacchetto I18n\nAggiunto supporto per volume, volume Gruppo ioBroker dispositivi per la materia\nAggiungere la modalità Off per termostati per dispositivi Matter",
+        "es": "Esta versión no estará en ioBroker Repositorio más reciente y se utilizará para pruebas alfa!\nActualizado a Matter 1.4 2 (matter.js a 0.16.0)\nValores también encubiertos para la unidad \"mirada\" para temperaturas de color\nAumenta el rango de temperatura de color predeterminado a 1.000 a 20.000 K\nDestacar los dispositivos en GUI cuando se mueve sobre el dispositivo en la lista de dispositivos\nPaquete I18n reemplazado\nAñadido soporte para volumen, volumen Grupo ioBroker dispositivos para importar\nAgregar modo Off para termostatos para dispositivos de la máquina",
+        "pl": "Ta wersja nie będzie w jOBroker Najnowsze repozytorium i używane do testów Alpha!\nAktualizacja do materii 1.4 2 (matter.js do 0.16.0)\nRównież ukryte wartości dla jednostki \"mired\" dla temperatury kolorów\nZwiększa domyślny zakres temperatury kolorów do 1.000 do 20.000 K\nZaznacz urządzenia w GUI podczas unoszenia się nad urządzeniem na liście urządzeń\nZastąpiony pakiet I18n\nDodano wsparcie dla głośności, głośności Urządzenia joBroker grupy do znaczenia\nDodaj tryb wyłączenia dla termostatów dla urządzeń Matter",
+        "uk": "Ця версія не буде в ioBroker Останні репозитори і використовується для тестування Альфа!\nОновлено в Matter 1.4 2 (маттер.js до 0.16.0)\nТакож значення покривала для блоку \"здивовані\" для температур кольору\nПідвищує діапазон температури за замовчуванням до 1.000 до 20.000 Р\nВиділіть пристрої в GUI при переховуванні пристрою в списку пристроїв\nЗамінний пакет I18n\nДодано підтримку обсягу, об'єм Група ioBroker пристроїв для матерії\nДодати режим вимкнення термостатів для пристроїв Matter",
+        "zh-cn": "这个版本将不会在ioBroker最新存储器中使用,并用于阿尔法测试!\n更新为物质1.42(事项js至0.16.0)\n颜色温度单位“ 迷恋” 的隐蔽值\n将默认颜色温度范围提高到1 000至20 000 K级\n在设备列表中盘旋设备时突出显示图形用户界面中的设备\n已替换的 I18n 软件包\n添加对音量、音量的支持 组合 ioBroker 设备以显示物质\n为物质设备的自动调温器添加关闭模式"
+      },
+      "0.5.6": {
+        "en": "Type detector update, should detect single states in non-device structures better",
+        "de": "Typ-Detektor-Update, sollte einzelne Zustände in Nicht-Gerät-Strukturen besser erkennen",
+        "ru": "Обновление детектора типа должно лучше обнаруживать отдельные состояния в структурах, не относящихся к устройству",
+        "pt": "Tipo de atualização detector, deve detectar estados únicos em estruturas não-dispositivos melhor",
+        "nl": "Type detector update, moet afzonderlijke staten in niet-apparaat structuren beter detecteren",
+        "fr": "Mise à jour du détecteur de type, devrait détecter les états uniques dans les structures non-appareils mieux",
+        "it": "Tipo rivelatore aggiornamento, dovrebbe rilevare singoli stati in strutture non-dispositivi meglio",
+        "es": "Tipo detector de actualización, debe detectar estados individuales en estructuras no dispositivos mejor",
+        "pl": "Aktualizacja detektora typu, powinna wykrywać pojedyncze stany w strukturach innych niż urządzenia lepiej",
+        "uk": "Оновлення датчика типу, слід виявити односторонні стани в нерозробних конструкціях краще",
+        "zh-cn": "类型探测器更新,应更好地检测非探测结构中的单个状态"
+      },
+      "0.5.5": {
+        "en": "Optimizes Battery drain information\nCorrectly shows \"in progress changes\" in UI when adjusting devices to ovoid overlapping actions\nFix HSV to RGB calculation for some cases\nUpdated matter.js to 0.15.6\nOptimizes shutdown process to ensure everything is properly closed",
+        "de": "Optimiert die Informationen zum Batterieabfluss\nKorrekt zeigt \"in Fortschritt Änderungen\" in UI bei der Einstellung von Geräten zu Oid Überlappungsaktionen\nFix HSV zu RGB Berechnung für einige Fälle\nAktualisierte Sache.js bis 0,15.6\nOptimiert den Stilllegungsprozess, um sicherzustellen, dass alles richtig geschlossen ist",
+        "ru": "Оптимизация информации о сливе батареи\nПравильно показывает «в прогрессе изменения» в пользовательском интерфейсе при настройке устройств на перекрытие яйцеклеток\nИсправьте расчет HSV в RGB для некоторых случаев\nОбновленный matter.js до 0.15.6\nОптимизация процесса отключения, чтобы убедиться, что все правильно закрыто",
+        "pt": "Otimiza a informação de drenagem da bateria\nMostra corretamente \"mudanças em andamento\" na IU ao ajustar dispositivos para ações ovóides sobrepostas\nCorrigir o cálculo HSV para RGB para alguns casos\nUpdated matter.js to 0.15.6\nOtimiza o processo de desligamento para garantir que tudo esteja devidamente fechado",
+        "nl": "Optimaliseert Batterij afvoer informatie\nCorrect toont \"in voortgang veranderingen\" in UI bij het aanpassen van apparaten om overlappende acties te voorkomen\nFix HSV naar RGB berekening voor sommige gevallen\nBijgewerkte materie.js tot 0,15.6\nOptimaliseer het afsluiten om ervoor te zorgen dat alles goed gesloten is",
+        "fr": "Optimise l'information sur le drain de batterie\nAffiche correctement les « changements en cours » dans l'assurance-chômage lorsqu'il s'agit d'ajuster les appareils pour éviter les chevauchements\nFixer le calcul HSV à RGB pour certains cas\nMatière mise à jour.js à 0.15.6\nOptimise le processus d'arrêt pour s'assurer que tout est correctement fermé",
+        "it": "Ottimizzare le informazioni sullo scarico della batteria\nCorrettivamente mostra \"in cambiamenti di progresso\" nell'interfaccia utente quando si regolano i dispositivi per ovoidi azioni sovrapposte\nFissare il calcolo HSV a RGB per alcuni casi\nQuestion.js aggiornato a 0.15.6\nOttimizza il processo di spegnimento per garantire che tutto sia correttamente chiuso",
+        "es": "Optimiza la información de desagüe de batería\nMuestra correctamente \"en cambios de progreso\" en la interfaz de usuario al ajustar dispositivos para omitir acciones superpuestas\nFijar el HSV a cálculo RGB para algunos casos\nActualizado matter.js a 0.15.6\nOptimiza el proceso de cierre para asegurar que todo esté bien cerrado",
+        "pl": "Optymalizacja informacji o odprowadzaniu baterii\nPrawidłowo pokazuje \"w postępie zmian\" w UI podczas regulacji urządzeń do omijania nakładających się działań\nFix HSV do RGB obliczenia dla niektórych przypadków\nAktualizacja mater.js do 0.15.6\nOptymalizuje proces zamykania, aby wszystko było odpowiednio zamknięte",
+        "uk": "Оптимізуйте інформацію про злив акумулятора\nКорисно показує \"в змінах прогресу\" в UI при регулюванні пристроїв на обмоткані дії\nВиправлення HSV до RGB обчислення для деяких випадків\nОновлена справа.js до 0.15.6\nОптимізуйте процес відключення, щоб забезпечити все правильно закрито",
+        "zh-cn": "优化电池排水信息\n调整设备到 ovoid 重叠动作时正确显示 UI 中的“ 进行中更改 ”\n将 HSV 修正为某些情况的 RGB 计算\n更新为0.15.6\n优化关闭程序,确保一切正常关闭"
+      },
+      "0.5.4": {
+        "en": "Updated matter.js to 0.15.5",
+        "de": "Aktualisierte Materie.js bis 0,15.5",
+        "ru": "Обновленный matter.js до 0,15,5",
+        "pt": "Updated matter.js to 0.15.5",
+        "nl": "Bijgewerkte materie.js tot 0,15.5",
+        "fr": "Matière mise à jour.js à 0.15.5",
+        "it": "Question.js aggiornato a 0.15.5",
+        "es": "Actualizado matter.js a 0.15.5",
+        "pl": "Aktualizacja mater.js do 0.15.5",
+        "uk": "Оновлена справа.js до 0.15.5",
+        "zh-cn": "更新为0.15.5"
+      },
+      "0.5.3": {
+        "en": "Updated matter.js to 0.15.4",
+        "de": "Matter.js auf Version 0.15.4 aktualisiert.",
+        "ru": "Обновлен matter.js до версии 0.15.4",
+        "pt": "Atualizado o matter.js para 0.15.4",
+        "nl": "Matter.js bijgewerkt naar 0.15.4",
+        "fr": "Mise à jour de matter.js en version 0.15.4",
+        "it": "Aggiornato matter.js a 0.15.4",
+        "es": "Se actualizó matter.js a la versión 0.15.4",
+        "pl": "Zaktualizowano bibliotekę matter.js do wersji 0.15.4",
+        "uk": "Оновлено matter.js до версії 0.15.4",
+        "zh-cn": "将matter.js更新到0.15.4"
+      },
+      "0.5.2": {
+        "en": "Updated matter.js to 0.15.2 with many performance- and other improvements\nCorrected the checking of the licenses if they were stacked\nUse attributes from cache instead of requesting them from the device\nIgnoring invalid min/max for color temperature from objects\nPrevents update loops for Thermostat on/off state changes\nFixes invalid color state updates when multiple attributes are adjusted together\nRounds RSSI values to prevent digits",
+        "de": "Aktualisierte matter.js bis 0,15.2 mit vielen Leistungs- und anderen Verbesserungen\nKorrektur der Überprüfung der Lizenzen, wenn sie gestapelt wurden\nVerwenden Sie Attribute aus dem Cache, anstatt sie vom Gerät anzufordern\nUngültige min/max für Farbtemperatur von Objekten ignorieren\nVerhindert Aktualisierungsschleifen für Thermostat-Ein-/Aus-Zustandsänderungen\nBehebt ungültige Farbzustandsupdates, wenn mehrere Attribute zusammen angepasst werden\nRunden RSSI-Werte, um Ziffern zu verhindern",
+        "ru": "Обновленный matter.js до 0,15.2 со многими улучшениями производительности\nИсправлена проверка лицензий, если они были сложены\nИспользуйте атрибуты из кэша вместо того, чтобы запрашивать их с устройства\nИгнорирование недействительных min/max для цветовой температуры от объектов\nПредотвращение циклов обновления для изменений состояния включения / выключения термостата\nИсправляет недействительные обновления состояния цвета, когда несколько атрибутов регулируются вместе\nОкругление значений RSSI для предотвращения цифр",
+        "pt": "Updated matter.js to 0.15.2 com muitos desempenhos e outras melhorias\nCorrigido a verificação das licenças se eles foram empilhados\nUsar atributos da 'cache' em vez de os solicitar do dispositivo\nIgnorando min/max inválido para a temperatura de cor de objetos\nPrevine a atualização de loops para as mudanças de estado do termostato\nCorrige atualizações de estado de cor inválidas quando vários atributos são ajustados juntos\nRedondas Valores RSSI para evitar dígitos",
+        "nl": "Bijgewerkt materie.js naar 0,15.2 met veel prestaties- en andere verbeteringen\nCorrectie van de controle van de licenties als ze werden gestapeld\nAttributen uit cache gebruiken in plaats van ze van het apparaat te vragen\nOngeldige min/max voor kleurtemperatuur van objecten negeren\nVoorkomt update loops voor thermostat aan/uit toestand wijzigingen\nFixeert ongeldige kleurstatus-updates wanneer meerdere attributen samen worden aangepast\nRounds RSSI-waarden om cijfers te voorkomen",
+        "fr": "Matière mise à jour.js à 0.15.2 avec de nombreuses améliorations - et d'autres améliorations\nCorrection de la vérification des licences si elles étaient empilées\nUtiliser les attributs du cache au lieu de les demander à partir du périphérique\nIgnorer min/max invalide pour la température de couleur des objets\nEmpêche les boucles de mise à jour pour les changements d'état de Thermostat\nCorrection des mises à jour d'état de couleur invalides lorsque plusieurs attributs sont ajustés ensemble\nRondles valeurs RSSI pour empêcher les chiffres",
+        "it": "Question.js aggiornato a 0.15.2 con molte prestazioni- e altri miglioramenti\nCorretto il controllo delle licenze se sono stati impilati\nUtilizzare gli attributi dalla cache invece di richiederli dal dispositivo\nIgnorando min/max non valido per temperatura di colore da oggetti\nPreviene i loop di aggiornamento per le modifiche dello stato di termostato\nRisolve gli aggiornamenti di stato di colore non validi quando più attributi vengono regolati insieme\nTondi valori RSSI per prevenire le cifre",
+        "es": "Updated matter.js to 0.15.2 with many performance- and other improvements\nCorregido la comprobación de las licencias si fueron apilados\nUtilice atributos de caché en lugar de solicitarlos del dispositivo\nIgnorando min/max inválido para la temperatura de color de los objetos\nEvita los bucles de actualización para los cambios de estado de termostato\nFija actualizaciones de estado de color inválidas cuando se ajustan múltiples atributos juntos\nValores RSSI para prevenir dígitos",
+        "pl": "Aktualizacja mater.js do 0.15.2 z wielu wykonania- i innych ulepszeń\nPoprawiono sprawdzanie licencji, jeśli zostały ułożone\nUżyj atrybutów z pamięci podręcznej zamiast żądać ich z urządzenia\nIgnorowanie nieprawidłowego min / max dla temperatury barw obiektów\nZapobiega aktualizacji pętli dla zmian stanu włączenia / wyłączenia termostatu\nFixes błędne aktualizacje stanu kolorów, gdy wiele atrybutów są dopasowane razem\nZaokrągla wartości RSSI, aby zapobiec cyfrom",
+        "uk": "Оновлена справа.js до 0.15.2 з багатьма перформансами та іншими вдосконаленнями\nВиправлено перевірку ліцензій, якщо вони були складені\nВикористовуйте атрибути кешу замість запиту їх з пристрою\nПрогнозування недійсним хв/максу за температуру кольору від предметів\nЗапобігає відновленню петель термостату за змінами стану\nВиправлення недійсних оновлення стану кольору при багаторазових атрибутах регулюється разом\nКруглі значення RSSI для запобігання цифр",
+        "zh-cn": "更新为0.15.2,并改进了许多业绩和其他\n纠正了对许可证的检查,如果这些许可证被堆放\n使用缓存中的属性而不是请求设备中的属性\n忽略对象颜色温度的无效分/ 最大值\n防止打开/关闭自动调温器的更新循环\n当多个属性一起调整时修复无效的颜色状态更新\n圆 RSSI 值防止位数"
+      }
     },
-    "protectedNative": ["pass", "login"],
-    "encryptedNative": ["pass"],
-    "native": {
-        "interface": "",
-        "debug": false,
-        "login": "",
-        "pass": "",
-        "defaultBridge": "",
-        "controllerFabricLabel": "",
-        "allowUnofficialUpdates": false,
-        "customUpdatesPath": ""
+    "titleLang": {
+      "en": "Matter protocol",
+      "de": "Matter Protokoll",
+      "ru": "Протокол Matter",
+      "pt": "Protocolo de Matter",
+      "nl": "Matter protocol",
+      "fr": "Matter protocol",
+      "it": "Protocollo della Matter",
+      "es": "Protocolo de la Matter",
+      "pl": "Protokół Matter",
+      "uk": "Протокол Маттер",
+      "zh-cn": "Matter"
     },
-    "objects": [],
-    "instanceObjects": [
-        {
-            "_id": "bridges",
-            "type": "folder",
-            "common": {
-                "name": "Matter Bridges",
-                "desc": "Configuration and Details for Matter Bridges"
-            },
-            "native": {}
-        },
-        {
-            "_id": "devices",
-            "type": "folder",
-            "common": {
-                "name": "Matter Devices",
-                "desc": "Configuration and Details for Matter Devices"
-            },
-            "native": {}
-        },
-        {
-            "_id": "controller",
-            "type": "folder",
-            "common": {
-                "name": "Matter Controller",
-                "desc": "States for paired Matter Devices"
-            },
-            "native": {}
-        },
-        {
-            "_id": "info",
-            "type": "folder",
-            "common": {
-                "name": "Information"
-            },
-            "native": {}
-        },
-        {
-            "_id": "info.welcomeDialog",
-            "type": "state",
-            "common": {
-                "name": "Welcome dialog showed",
-                "role": "indicator",
-                "type": "boolean",
-                "read": true,
-                "write": false
-            },
-            "native": {}
-        }
+    "desc": {
+      "en": "Controlling and simulation of matter devices",
+      "de": "Steuerung und Simulation von Matter-Geräten",
+      "ru": "Контроль и моделирование Matter-устройств",
+      "pt": "Controle e simulação de Matter-dispositivos",
+      "nl": "Controleren en simulatie van Matter-apparaten",
+      "fr": "Contrôle et simulation des Matter-dispositifs",
+      "it": "Controllo e simulazione di Matter-dispositivi",
+      "es": "Control y simulación de Matter-dispositivos",
+      "pl": "Kontrola i symulacja Matter-urządzeń",
+      "uk": "Контроль та імітація Matter-пристроїв",
+      "zh-cn": "控制和模拟事故装置"
+    },
+    "authors": [
+      "Denis Haev <dogafox@gmail.com>"
+    ],
+    "platform": "Javascript/Node.js",
+    "mode": "daemon",
+    "nogit": true,
+    "loglevel": "info",
+    "readme": "https://github.com/ioBroker/ioBroker.matter/blob/master/README.md",
+    "icon": "matter.svg",
+    "connectionType": "local",
+    "dataSource": "push",
+    "adminTab": {
+      "singleton": false,
+      "name": "Matter"
+    },
+    "adminUI": {
+      "config": "materialize",
+      "tab": "materialize"
+    },
+    "tier": 3,
+    "keywords": [
+      "matter"
+    ],
+    "eraseOnUpload": true,
+    "stopTimeout": 30000,
+    "stopBeforeUpdate": true,
+    "enabled": true,
+    "compact": false,
+    "singletonHost": true,
+    "extIcon": "https://raw.githubusercontent.com/ioBroker/ioBroker.matter/master/admin/matter.svg",
+    "type": "iot-systems",
+    "messagebox": true,
+    "plugins": {
+      "sentry": {
+        "dsn": "https://de38f4a20c964ce395d2e236c64aa075@sentry.iobroker.net/234"
+      }
+    },
+    "licenseInformation": {
+      "type": "free",
+      "license": "Apache-2.0"
+    },
+    "supportedMessages": {
+      "deviceManager": true
+    },
+    "dependencies": [
+      {
+        "js-controller": ">=5.0.19"
+      }
+    ],
+    "globalDependencies": [
+      {
+        "admin": ">=7.6.17"
+      }
     ]
+  },
+  "protectedNative": [
+    "pass",
+    "login"
+  ],
+  "encryptedNative": [
+    "pass"
+  ],
+  "native": {
+    "interface": "",
+    "debug": false,
+    "login": "",
+    "pass": "",
+    "defaultBridge": "",
+    "controllerFabricLabel": "",
+    "allowUnofficialUpdates": false,
+    "customUpdatesPath": ""
+  },
+  "objects": [],
+  "instanceObjects": [
+    {
+      "_id": "bridges",
+      "type": "folder",
+      "common": {
+        "name": "Matter Bridges",
+        "desc": "Configuration and Details for Matter Bridges"
+      },
+      "native": {}
+    },
+    {
+      "_id": "devices",
+      "type": "folder",
+      "common": {
+        "name": "Matter Devices",
+        "desc": "Configuration and Details for Matter Devices"
+      },
+      "native": {}
+    },
+    {
+      "_id": "controller",
+      "type": "folder",
+      "common": {
+        "name": "Matter Controller",
+        "desc": "States for paired Matter Devices"
+      },
+      "native": {}
+    },
+    {
+      "_id": "info",
+      "type": "folder",
+      "common": {
+        "name": "Information"
+      },
+      "native": {}
+    },
+    {
+      "_id": "info.welcomeDialog",
+      "type": "state",
+      "common": {
+        "name": "Welcome dialog showed",
+        "role": "indicator",
+        "type": "boolean",
+        "read": true,
+        "write": false
+      },
+      "native": {}
+    }
+  ]
 }

@@ -189,7 +189,7 @@ jobs:
             - name: Notify Sentry.io about the release
               if: steps.automerge.outputs.mergeResult == 'merged'
               run: |
-                  npm i -g @sentry/cli@2.58.4
+                  npm i -g @sentry/cli
                   export SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
                   export SENTRY_URL=https://sentry.iobroker.net
                   export SENTRY_ORG=iobroker

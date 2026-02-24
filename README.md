@@ -138,22 +138,16 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 -->
 
 ## Changelog
-### 0.6.2 (2026-02-22)
-* (@Apollon77) Updated to matter.js 0.16.10: Fixes some OTA issues and optimize Networking and reconnection handling
-* (@Apollon77) Enhances the Thread network graph
-* (@Apollon77) Enhances display of software versions and warn on non-production updates, Display update sources 
-* (@Apollon77) Detect duplicate commands/writes and prevent them from being sent out again if the first command is still in progress
 
-### 0.6.1 (2026-02-04)
-* This version will not be in ioBroker Latest repository and used for Alpha testing!
+### **WORK IN PROGRESS**
 * IMPORTANT: The first start of the controller with this version takes a bit longer to connect all devices because internal data are migrated
 * (@Apollon77) Updated to Matter 1.4.2 (matter.js to 0.16) including many optimizations and fixes
 * (@Apollon77) Also convert values for unit "mired" for Color temperatures
   * (@Apollon77) Increases default color temperature range to 1.000-20.000 K
 * (@Apollon77) Added support for OTA updates (checked roughly 15 mins after adapter start and then daily)
 * (@Apollon77) Added Thread and Wifi topology overview with data from the devices. See Readme for details.
+* (@Apollon77) Detect duplicate commands/writes and prevent them from being sent out again if the first command is still in progress
 * (@GermanBluefox) Highlight the devices in GUI when hovering over the device in the device list
-* (@GermanBluefox) Replaced I18n package
 * (@tarikweiss) Added support for volume, volumeGroup ioBroker devices to matter
 * (@Tyraenor/Apollon77) Add Off mode for Thermostats for Matter devices
 

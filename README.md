@@ -138,8 +138,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 -->
 
 ## Changelog
-
-### **WORK IN PROGRESS**
+### 1.0.0 (2026-02-25)
 * IMPORTANT: The first start of the controller with this version takes a bit longer to connect all devices because internal data are migrated
 * (@Apollon77) Updated to Matter 1.4.2 (matter.js to 0.16) including many optimizations and fixes
 * (@Apollon77) Also convert values for unit "mired" for Color temperatures

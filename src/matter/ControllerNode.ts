@@ -45,11 +45,11 @@ import type {
 } from '../ioBrokerStorageTypes';
 import { GeneralMatterNode, type PairedNodeConfig } from './GeneralMatterNode';
 import type { GeneralNode, MessageResponse } from './GeneralNode';
-import { inspect } from 'util';
-import { createReadStream } from 'fs';
+import { inspect } from 'node:util';
+import { createReadStream } from 'node:fs';
 import { readdir, stat, mkdir, unlink } from 'fs/promises';
-import { Readable } from 'stream';
-import { join } from 'path';
+import { Readable } from 'node:stream';
+import { join } from 'node:path';
 import type { OtaProviderEndpoint } from '@matter/main/endpoints';
 
 export interface ControllerCreateOptions {

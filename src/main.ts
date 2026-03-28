@@ -12,7 +12,7 @@ import {
     SoftwareUpdateManager,
 } from '@matter/main';
 import { StorageBackendDisk } from '@matter/nodejs';
-import { inspect } from 'util';
+import { inspect } from 'node:util';
 
 import { type AdapterOptions, Adapter, getAbsoluteInstanceDataDir, I18n } from '@iobroker/adapter-core';
 import ChannelDetector, {

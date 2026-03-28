@@ -4,7 +4,7 @@ import type { DetectorState, Types, StateType } from '@iobroker/type-detector';
 import type { BridgeDeviceDescription } from '../../ioBrokerStorageTypes';
 import type { CustomStatesRecord } from '../../matter/to-iobroker/custom-states';
 import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 
 export interface DeviceOptions extends BridgeDeviceDescription {
     additionalStateData?: { [key: string]: Partial<DetectorState> };

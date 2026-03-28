@@ -16,7 +16,7 @@ import { DeviceManagement, ACTIONS } from '@iobroker/dm-utils';
 import { GeneralMatterNode, type NodeDetails } from '../matter/GeneralMatterNode';
 import { GenericDeviceToIoBroker } from '../matter/to-iobroker/GenericDeviceToIoBroker';
 import type { DeviceAction } from '@iobroker/dm-utils/build/types/base';
-import { inspect } from 'util';
+import { inspect } from 'node:util';
 import { convertDataToJsonConfig } from './JsonConfigUtils';
 import { logControllerEndpoint } from '../matter/ControllerEndpointStructureInspector';
 import { SpecificationVersion } from '@matter/main/types';

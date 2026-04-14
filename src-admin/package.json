@@ -8,7 +8,7 @@
         "@iobroker/dm-gui-components": "^8.0.9",
         "@iobroker/type-detector": "^5.0.10",
         "@types/react-dom": "^18.3.7",
-        "@vitejs/plugin-react": "^5.1.4",
+        "@vitejs/plugin-react": "^6.0.1",
         "@yudiel/react-qr-scanner": "^2.5.1",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",

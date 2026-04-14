@@ -29,7 +29,7 @@
     "@iobroker/adapter-core": "^3.3.2",
     "@iobroker/dm-utils": "^2.0.1",
     "@iobroker/type-detector": "^5.0.10",
-    "@matter/main": "0.16.10",
+    "@matter/main": "0.16.11",
     "@matter/nodejs": "0.16.10",
     "@project-chip/matter.js": "0.16.10",
     "axios": "^1.13.5",

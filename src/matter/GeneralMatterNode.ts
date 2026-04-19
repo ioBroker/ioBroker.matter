@@ -22,7 +22,6 @@ import {
     type CommissioningControllerNodeOptions,
 } from '@project-chip/matter.js/device';
 import type { CommissioningController } from '@project-chip/matter.js';
-import { SupportedAttributeClient, UnknownSupportedAttributeClient } from '@project-chip/matter.js/cluster';
 import type { MatterControllerConfig } from '../ioBrokerStorageTypes';
 import { SubscribeManager } from '../lib';
 import type { SubscribeCallback } from '../lib/SubscribeManager';
@@ -78,6 +77,32 @@ export type NodeDetails = {
     model?: string;
     color?: string;
     backgroundColor?: string;
+};
+
+type CommandStateDefinition = {
+    hasArguments: boolean;
+    asTimedRequest: boolean;
+    strictJsonPayload?: boolean;
+    validatePayload?: (payload: any) => string | undefined;
+};
+
+type CommandPayloadParseResult =
+    | {
+          valid: true;
+          payload: any;
+      }
+    | {
+          valid: false;
+      };
+
+type RuntimeAttributeClient = {
+    id: number;
+    clusterId: number;
+    name: string;
+    attribute: {
+        writable: boolean;
+    };
+    getLocal(): Promise<any>;
 };
 
 export class GeneralMatterNode {
@@ -311,8 +336,17 @@ export class GeneralMatterNode {
             native: {},
         });
 
+        const connectionState =
+            this.node.connectionState ??
+            (this.node.isConnected ? PairedNodeStates.Connected : PairedNodeStates.Disconnected);
+        if (this.node.connectionState === undefined) {
+            this.adapter.log.warn(
+                `Node "${this.nodeId}" has no connection state during initialization. Using fallback state ${connectionState}.`,
+            );
+        }
+
         await this.adapter.setState(this.connectionStateId, this.node.isConnected, true);
-        await this.adapter.setState(this.connectionStatusId, this.node.connectionState, true);
+        await this.adapter.setState(this.connectionStatusId, connectionState, true);
 
         this.#connectedAddress = nodeDetails?.operationalAddress?.substring(6);
         await this.adapter.setState(this.connectedAddressStateId, this.#connectedAddress ?? null, true);
@@ -1006,6 +1040,105 @@ export class GeneralMatterNode {
         return { type, states: Object.keys(states).length > 0 ? states : undefined };
     }
 
+    #isRuntimeAttributeClient(attribute: unknown): attribute is RuntimeAttributeClient {
+        if (attribute === null || typeof attribute !== 'object') {
+            return false;
+        }
+        const candidate = attribute as Partial<RuntimeAttributeClient>;
+        return (
+            typeof candidate.id === 'number' &&
+            typeof candidate.clusterId === 'number' &&
+            typeof candidate.name === 'string' &&
+            typeof candidate.getLocal === 'function' &&
+            candidate.attribute !== undefined &&
+            typeof candidate.attribute === 'object' &&
+            candidate.attribute !== null &&
+            'writable' in candidate.attribute
+        );
+    }
+
+    #isUnknownRuntimeAttributeClient(attribute: RuntimeAttributeClient): boolean {
+        return attribute.name.startsWith('unknownAttribute_');
+    }
+
+    #getCommandModel(clusterId: ClusterId, commandName: string): CommandModel | undefined {
+        const clusterModel = MatterModel.standard.get(ClusterModel, clusterId);
+        if (clusterModel === undefined) {
+            return undefined;
+        }
+
+        const matterCommandName = capitalize(commandName);
+        return (
+            clusterModel.get(CommandModel, matterCommandName) ??
+            clusterModel.commands.find(commandModel => commandModel.name === matterCommandName)
+        );
+    }
+
+    #validateChangeToModePayload(payload: any): string | undefined {
+        if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+            return 'Payload must be a JSON object like {"newMode":1}.';
+        }
+        if (!('newMode' in payload)) {
+            return 'Payload must contain the mandatory field "newMode".';
+        }
+        if (typeof payload.newMode !== 'number' || !Number.isFinite(payload.newMode)) {
+            return 'Payload field "newMode" must be a number.';
+        }
+        return undefined;
+    }
+
+    #getCommandStateDefinition(clusterId: ClusterId, commandName: string): CommandStateDefinition | undefined {
+        const commandModel = this.#getCommandModel(clusterId, commandName);
+        if (commandModel !== undefined) {
+            return {
+                hasArguments: commandModel.children?.length > 0,
+                asTimedRequest: commandModel.effectiveAccess.timed ?? false,
+                strictJsonPayload: commandName === 'changeToMode',
+                validatePayload:
+                    commandName === 'changeToMode' ? payload => this.#validateChangeToModePayload(payload) : undefined,
+            };
+        }
+
+        if (commandName === 'changeToMode') {
+            // Mode-based clusters can inherit this command from a base cluster, so the direct model lookup may miss it.
+            return {
+                hasArguments: true,
+                asTimedRequest: false,
+                strictJsonPayload: true,
+                validatePayload: payload => this.#validateChangeToModePayload(payload),
+            };
+        }
+
+        return undefined;
+    }
+
+    #parseCommandPayload(
+        commandBaseId: string,
+        value: ioBroker.StateValue,
+        strictJsonPayload = false,
+    ): CommandPayloadParseResult {
+        const rawValue = typeof value === 'string' ? value : String(value);
+
+        try {
+            return {
+                valid: true,
+                payload: JSON.parse(rawValue),
+            };
+        } catch {
+            if (!strictJsonPayload) {
+                return {
+                    valid: true,
+                    payload: rawValue,
+                };
+            }
+        }
+
+        this.adapter.log.warn(
+            `Node ${this.node.nodeId}: Invalid payload for ${commandBaseId}: Could not parse ${rawValue} as JSON.`,
+        );
+        return { valid: false };
+    }
+
     async initializeEndpointRawDataStates(
         endpoint: Endpoint,
         endpointDeviceBaseDataId: string,
@@ -1088,14 +1221,14 @@ export class GeneralMatterNode {
                 if (attribute === undefined) {
                     continue;
                 }
-                if (!(attribute instanceof SupportedAttributeClient)) {
+                if (!this.#isRuntimeAttributeClient(attribute)) {
                     continue;
                 }
                 // TODO make Configurable
                 if (attributeName in globalAttributes) {
                     continue;
                 }
-                const unknown = attribute instanceof UnknownSupportedAttributeClient;
+                const unknown = this.#isUnknownRuntimeAttributeClient(attribute);
                 const attributeBaseId = `${clusterBaseId}.attributes.${attribute.name.replace('unknownAttribute_', '')}`;
 
                 const { type: targetType, states: targetStates } = this.#determineIoBrokerDatatype(
@@ -1200,14 +1333,12 @@ export class GeneralMatterNode {
                 }
                 const commandBaseId = `${clusterBaseId}.commands.${commandName}`;
 
-                const commandModel = MatterModel.standard
-                    .get(ClusterModel, clusterId)
-                    ?.get(CommandModel, capitalize(commandName));
-                if (!commandModel) {
+                const commandStateDefinition = this.#getCommandStateDefinition(clusterId, commandName);
+                if (!commandStateDefinition) {
                     continue;
                 }
 
-                const hasArguments = commandModel.children?.length > 0;
+                const { hasArguments, asTimedRequest, strictJsonPayload, validatePayload } = commandStateDefinition;
 
                 await this.adapter.extendObjectAsync(commandBaseId, {
                     type: 'state',
@@ -1229,17 +1360,22 @@ export class GeneralMatterNode {
 
                     let parsedValue: any;
                     if (hasArguments) {
-                        try {
-                            parsedValue = JSON.parse(state.val as string);
-                        } catch {
-                            try {
-                                parsedValue = JSON.parse(`"${state.val}"`);
-                            } catch {
-                                this.adapter.log.info(
-                                    `Node ${this.node.nodeId}: ERROR: Could not parse value ${state.val} as JSON.`,
-                                );
-                                return;
-                            }
+                        const parsedPayload = this.#parseCommandPayload(
+                            commandBaseId,
+                            state.val,
+                            strictJsonPayload,
+                        );
+                        if (!parsedPayload.valid) {
+                            return;
+                        }
+                        parsedValue = parsedPayload.payload;
+
+                        const validationError = validatePayload?.(parsedValue);
+                        if (validationError !== undefined) {
+                            this.adapter.log.warn(
+                                `Node ${this.node.nodeId}: Invalid payload for ${commandBaseId}: ${validationError}`,
+                            );
+                            return;
                         }
                     } else {
                         parsedValue = undefined;
@@ -1247,7 +1383,7 @@ export class GeneralMatterNode {
 
                     try {
                         await command(parsedValue, {
-                            asTimedRequest: commandModel.effectiveAccess.timed,
+                            asTimedRequest,
                         });
                     } catch (e: unknown) {
                         this.adapter.log.warn(`Node ${this.node.nodeId}: Error: ${(e as Error).message}`);

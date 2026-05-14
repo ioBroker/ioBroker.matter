@@ -45,7 +45,7 @@
     "@iobroker/eslint-config": "^2.2.0",
     "@iobroker/legacy-testing": "^2.0.2",
     "@iobroker/testing": "^5.2.2",
-    "@iobroker/types": "^7.1.0",
+    "@iobroker/types": "^7.1.2",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.3.0",
     "colorette": "^2.0.20",

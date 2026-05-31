@@ -46,6 +46,7 @@
     "@iobroker/legacy-testing": "^2.0.2",
     "@iobroker/testing": "^5.2.2",
     "@iobroker/types": "^7.1.0",
+    "@tsconfig/node20": "^20.1.9",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.3.0",
     "colorette": "^2.0.20",

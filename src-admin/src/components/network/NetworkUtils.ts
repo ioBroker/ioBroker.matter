@@ -391,7 +391,7 @@ export function categorizeNodes(nodes: NetworkNodeData[]): {
 }
 
 /**
- * Format a numeric node ID as hex string in the format @1:hexvalue
+ * Format a numeric node ID as hex string in the format \@1:hexvalue
  */
 export function formatNodeIdHex(nodeId: number | bigint | string): string {
     let numericId: bigint;

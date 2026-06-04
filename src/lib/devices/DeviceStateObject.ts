@@ -299,7 +299,7 @@ export class DeviceStateObject<T> extends EventEmitter {
         await this.adapter.extendObjectAsync(this.#id, {
             ...obj,
             common: { ...obj.common, name: undefined } as Partial<ioBroker.StateCommon>,
-        } as ioBroker.PartialObject);
+        });
         return obj;
     }
 
@@ -497,7 +497,7 @@ export class DeviceStateObject<T> extends EventEmitter {
             this.adapter.log.debug(
                 `Set ${this.#id} to "${realValue}" after min/max-correction (ack = ${!this.#isIoBrokerState})`,
             );
-            await this.adapter.setForeignStateAsync(this.#id, realValue as ioBroker.StateValue, !this.#isIoBrokerState);
+            await this.adapter.setForeignStateAsync(this.#id, realValue, !this.#isIoBrokerState);
         } else {
             // convert value
             if (typeof value !== valueType) {
@@ -512,11 +512,7 @@ export class DeviceStateObject<T> extends EventEmitter {
                     this.adapter.log.debug(
                         `Set ${this.#id} to (boolean) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
                     );
-                    await this.adapter.setForeignStateAsync(
-                        this.#id,
-                        realValue as ioBroker.StateValue,
-                        !this.#isIoBrokerState,
-                    );
+                    await this.adapter.setForeignStateAsync(this.#id, realValue, !this.#isIoBrokerState);
                 } else if (valueType === 'number') {
                     const realValue: number = parseFloat(value as string);
 
@@ -530,31 +526,19 @@ export class DeviceStateObject<T> extends EventEmitter {
                     this.adapter.log.debug(
                         `Set ${this.#id} to (number) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
                     );
-                    await this.adapter.setForeignStateAsync(
-                        this.#id,
-                        realValue as ioBroker.StateValue,
-                        !this.#isIoBrokerState,
-                    );
+                    await this.adapter.setForeignStateAsync(this.#id, realValue, !this.#isIoBrokerState);
                 } else if (valueType === 'string') {
                     const realValue = String(value);
                     this.adapter.log.debug(
                         `Set ${this.#id} to (string) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
                     );
-                    await this.adapter.setForeignStateAsync(
-                        this.#id,
-                        realValue as ioBroker.StateValue,
-                        !this.#isIoBrokerState,
-                    );
+                    await this.adapter.setForeignStateAsync(this.#id, realValue, !this.#isIoBrokerState);
                 } else if (valueType === 'json') {
                     const realValue: string = JSON.stringify(value);
                     this.adapter.log.debug(
                         `Set ${this.#id} to (json) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
                     );
-                    await this.adapter.setForeignStateAsync(
-                        this.#id,
-                        realValue as ioBroker.StateValue,
-                        !this.#isIoBrokerState,
-                    );
+                    await this.adapter.setForeignStateAsync(this.#id, realValue, !this.#isIoBrokerState);
                 } else if (valueType === 'mixed') {
                     this.adapter.log.debug(
                         `Set ${this.#id} to (mixed) ${JSON.stringify(value)} (ack = ${!this.#isIoBrokerState})`,
@@ -581,7 +565,7 @@ export class DeviceStateObject<T> extends EventEmitter {
                             typeof realValue === 'string' &&
                             realValue.match(/^[0-9]+$/)
                         ) {
-                            realValue = parseFloat(realValue as string);
+                            realValue = parseFloat(realValue);
                             this.adapter.log.debug(`Converted enum value to number: ${realValue}`);
                         }
                     } else {
@@ -590,11 +574,7 @@ export class DeviceStateObject<T> extends EventEmitter {
                     this.adapter.log.debug(
                         `Set ${this.#id} to (enum) "${realValue?.toString()}" (ack = ${!this.#isIoBrokerState})`,
                     );
-                    await this.adapter.setForeignStateAsync(
-                        this.#id,
-                        realValue as ioBroker.StateValue,
-                        !this.#isIoBrokerState,
-                    );
+                    await this.adapter.setForeignStateAsync(this.#id, realValue as number, !this.#isIoBrokerState);
                 }
                 return;
             }

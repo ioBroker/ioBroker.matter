@@ -111,10 +111,8 @@ interface DevicesState extends BridgesAndDevicesState {
 }
 
 class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
-    protected readonly isDevice = true;
-
     constructor(props: DevicesProps) {
-        super(props);
+        super(props, true);
         Object.assign(this.state, {
             addDeviceDialog: null,
             addCustomDeviceDialog: null,
@@ -604,7 +602,12 @@ class Devices extends BridgesAndDevices<DevicesProps, DevicesState> {
                     theme={this.props.theme}
                     onClose={() => this.setState({ addDeviceDialog: null })}
                     onOk={async (_oid, name) => {
-                        const oid: string | undefined = Array.isArray(_oid) ? _oid[0] : (_oid as string);
+                        const oid: string | undefined = Array.isArray(_oid) ? _oid[0] : _oid;
+
+                        if (!oid) {
+                            this.setState({ message: I18n.t('Nothing selected') });
+                            return;
+                        }
 
                         // Find out if this OID is already in the list
                         if (this.props.matter.devices.find(dev => dev.oid === oid)) {

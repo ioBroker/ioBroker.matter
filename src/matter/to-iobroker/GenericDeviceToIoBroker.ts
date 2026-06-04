@@ -951,9 +951,9 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                 .join(', '),
             endpoint: this.appEndpoint.number,
             ...(nodeConnected ? this.getMatterStates() : {}),
-        } as Record<string, unknown>;
+        };
 
-        result.matterClusters = {} as Record<string, unknown>;
+        result.matterClusters = {};
         for (const client of this.appEndpoint.getAllClusterClients()) {
             const activeFeatures = new Array<string>();
             Object.keys(client.supportedFeatures).forEach(f => client.supportedFeatures[f] && activeFeatures.push(f));

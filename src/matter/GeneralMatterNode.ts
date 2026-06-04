@@ -1537,7 +1537,7 @@ export class GeneralMatterNode {
 
         const rootEndpoint = this.node.getRootEndpoint();
         if (rootEndpoint) {
-            result.rootEndpointClusters = {} as Record<string, unknown>;
+            result.rootEndpointClusters = {};
             for (const client of rootEndpoint.getAllClusterClients()) {
                 const activeFeatures = new Array<string>();
                 Object.keys(client.supportedFeatures).forEach(

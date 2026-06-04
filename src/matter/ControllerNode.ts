@@ -987,10 +987,10 @@ class Controller implements GeneralNode {
                     ? (cluster.getChannelNumberAttributeFromCache() ?? null)
                     : null,
                 securityType: cluster.isAttributeSupportedByName('securityType')
-                    ? ((cluster.getSecurityTypeAttributeFromCache() as number | null | undefined) ?? null)
+                    ? (cluster.getSecurityTypeAttributeFromCache() ?? null)
                     : null,
                 wifiVersion: cluster.isAttributeSupportedByName('wiFiVersion')
-                    ? ((cluster.getWiFiVersionAttributeFromCache() as number | null | undefined) ?? null)
+                    ? (cluster.getWiFiVersionAttributeFromCache() ?? null)
                     : null,
             };
         } catch {
@@ -1064,7 +1064,7 @@ class Controller implements GeneralNode {
                     ? (cluster.getChannelAttributeFromCache() ?? null)
                     : null,
                 routingRole: cluster.isAttributeSupportedByName('routingRole')
-                    ? ((cluster.getRoutingRoleAttributeFromCache() as number | null | undefined) ?? null)
+                    ? (cluster.getRoutingRoleAttributeFromCache() ?? null)
                     : null,
                 extendedPanId,
                 rloc16: cluster.isAttributeSupportedByName('rloc16')

@@ -125,13 +125,13 @@ export class BlindsToMatter extends GenericDeviceToMatter {
                     } else {
                         if (direction === MovementDirection.Open || reversed) {
                             if (this.#ioBrokerDevice.hasLiftButtons()) {
-                                await (this.#ioBrokerDevice as BlindButtons).setOpen();
+                                await this.#ioBrokerDevice.setOpen();
                             } else if (this.#ioBrokerDevice.hasLiftLevel()) {
                                 await (this.#ioBrokerDevice as Blind).setLevel(reversed ? 0 : 100);
                             }
                         } else {
                             if (this.#ioBrokerDevice.hasLiftButtons()) {
-                                await (this.#ioBrokerDevice as BlindButtons).setClose();
+                                await this.#ioBrokerDevice.setClose();
                             } else if (this.#ioBrokerDevice.hasLiftLevel()) {
                                 await (this.#ioBrokerDevice as Blind).setLevel(reversed ? 100 : 0);
                             }
@@ -150,13 +150,13 @@ export class BlindsToMatter extends GenericDeviceToMatter {
                     } else {
                         if (direction === MovementDirection.Open || reversed) {
                             if (this.#ioBrokerDevice.hasTiltButtons()) {
-                                await (this.#ioBrokerDevice as BlindButtons).setTiltOpen();
+                                await this.#ioBrokerDevice.setTiltOpen();
                             } else if (this.#ioBrokerDevice.hasTiltLevel()) {
                                 await (this.#ioBrokerDevice as Blind).setLevel(reversed ? 0 : 100);
                             }
                         } else {
                             if (this.#ioBrokerDevice.hasTiltButtons()) {
-                                await (this.#ioBrokerDevice as BlindButtons).setTiltClose();
+                                await this.#ioBrokerDevice.setTiltClose();
                             } else if (this.#ioBrokerDevice.hasTiltLevel()) {
                                 await (this.#ioBrokerDevice as Blind).setLevel(reversed ? 100 : 0);
                             }

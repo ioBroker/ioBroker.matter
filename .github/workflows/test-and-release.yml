@@ -92,6 +92,9 @@ jobs:
             - name: Install Base Dependencies
               run: npm ci && cd src-admin && npm ci
 
+            - name: Install chrome
+              run: npx puppeteer browsers install chrome
+
             - name: Run local tests
               run: npm test
 

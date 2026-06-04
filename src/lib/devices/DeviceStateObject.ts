@@ -574,7 +574,7 @@ export class DeviceStateObject<T> extends EventEmitter {
                     this.adapter.log.debug(
                         `Set ${this.#id} to (enum) "${realValue?.toString()}" (ack = ${!this.#isIoBrokerState})`,
                     );
-                    await this.adapter.setForeignStateAsync(this.#id, realValue as number, !this.#isIoBrokerState);
+                    await this.adapter.setForeignStateAsync(this.#id, realValue as string, !this.#isIoBrokerState);
                 }
                 return;
             }

@@ -141,14 +141,19 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             return;
         }
         const nodes = this.#adapter.controllerNode.nodes;
-        context.setTotalDevices(nodes.size);
 
         let colorCounter = 0;
+        const allDevices: DeviceInfo<string>[] = [];
         for (const ioNode of nodes.values()) {
             const devices = this.#getNodeEntry(ioNode, colorCounter++ % 2 === 0 ? 'primary' : 'secondary');
-            for (const device of devices) {
-                context.addDevice(device);
-            }
+            allDevices.push(...devices);
+        }
+
+        // Report the actual number of entries (node entry + its endpoint devices per node),
+        // not nodes.size, otherwise totalDevices would be smaller than the number added.
+        context.setTotalDevices(allDevices.length);
+        for (const device of allDevices) {
+            context.addDevice(device);
         }
     }
 

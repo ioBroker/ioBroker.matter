@@ -32,7 +32,7 @@ import type {
 } from './ioBrokerStorageTypes';
 import { DeviceFactory, type GenericDevice, SubscribeManager } from './lib';
 import MatterAdapterDeviceManagement from './lib/DeviceManagement';
-import type { DetectedDevice, DeviceOptions } from './lib/devices/GenericDevice';
+import type { DetectedDevice } from './lib/devices/GenericDevice';
 import type { NodeStateResponse } from './matter/BaseServerNode';
 import BridgedDevice, { type BridgeCreateOptions } from './matter/BridgedDevicesNode';
 import MatterController from './matter/ControllerNode';
@@ -731,7 +731,7 @@ export class MatterAdapter extends Adapter {
                     deleted: true,
                     uuid: objParts[1],
                 },
-            } as ioBroker.Object;
+            };
         }
         // matter.0.bridges.a6e61de9-e450-47bb-8f27-ee360350bdd8
         if (
@@ -739,11 +739,11 @@ export class MatterAdapter extends Adapter {
                 (objParts[0] === 'bridges' && objPartsLength === 2)) &&
             obj?.type === 'channel'
         ) {
-            await this.syncDevices(obj as ioBroker.ChannelObject);
+            await this.syncDevices(obj);
         } else if (objParts[0] === 'controller' && objPartsLength === 2 && obj?.type === 'folder') {
             // controller sub node changed
             const nodeId = objParts[1];
-            await this.syncControllerNode(nodeId, obj as ioBroker.FolderObject);
+            await this.syncControllerNode(nodeId, obj);
         } else if (objParts[0] === 'controller' && objPartsLength > 2 && obj?.type === 'device') {
             // controller node device sub node changed
             const nodeId = objParts[1];
@@ -956,7 +956,7 @@ export class MatterAdapter extends Adapter {
                     return {
                         ...controlsWithType[0],
                         isIoBrokerDevice: true,
-                    } as DetectedDevice;
+                    };
                 }
             }
         } else {
@@ -1142,7 +1142,7 @@ export class MatterAdapter extends Adapter {
                 continue;
             }
             try {
-                const deviceObject = await DeviceFactory(detectedDevice, this, deviceOptions as DeviceOptions, false);
+                const deviceObject = await DeviceFactory(detectedDevice, this, deviceOptions, false);
                 if (addedDevices >= 5) {
                     if (!(await this.checkLicense())) {
                         this.log.error(
@@ -1222,7 +1222,7 @@ export class MatterAdapter extends Adapter {
             return null;
         }
         try {
-            const device = await DeviceFactory(detectedDevice, this, options as DeviceOptions, false);
+            const device = await DeviceFactory(detectedDevice, this, options, false);
             return {
                 parameters: {
                     port: assignedPort ?? this.#nextPortNumber++,

@@ -33,7 +33,8 @@ import {
     TextField,
     Tooltip,
 } from '@mui/material';
-import { SiAmazonalexa, SiApple, SiGoogleassistant, SiSmartthings } from 'react-icons/si';
+import { SiApple, SiGoogleassistant, SiSmartthings } from 'react-icons/si';
+import { BsAlexa } from 'react-icons/bs';
 
 import { type ConfigItemPanel, type ConfigItemTabs, JsonConfigComponent } from '@iobroker/json-config';
 import {
@@ -127,10 +128,12 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
     TProps,
     TState
 > {
-    protected isDevice: boolean;
+    protected readonly isDevice: boolean;
 
-    constructor(props: TProps) {
+    constructor(props: TProps, isDevice: boolean) {
         super(props);
+
+        this.isDevice = isDevice;
 
         this.state = {
             showQrCode: null,
@@ -179,7 +182,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         if (VendorIdsAmazon.includes(vendorId)) {
             // AmazonLab126
             return (
-                <SiAmazonalexa
+                <BsAlexa
                     title={this.getVendorName(vendorId)}
                     style={{
                         ...STYLES.vendorIcon,
@@ -284,7 +287,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                 }): void => {
                     this.setState({
                         jsonConfig: {
-                            schema: schema as ConfigItemPanel | ConfigItemTabs,
+                            schema: schema,
                             options,
                             changed: false,
                             data: options?.data || {},
@@ -542,7 +545,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         this.setState({ jsonConfig: null });
     }
 
-    getOkButton(button?: ActionButton | 'apply' | 'cancel'): React.JSX.Element {
+    getOkButton(button?: ActionButton | 'apply' | 'cancel' | 'close'): React.JSX.Element {
         if (typeof button === 'string') {
             button = undefined;
         }
@@ -648,7 +651,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
         let buttons: React.JSX.Element[];
         if (this.state.jsonConfig.options?.buttons) {
             buttons = [];
-            this.state.jsonConfig.options.buttons.forEach((button: ActionButton | 'apply' | 'cancel'): void => {
+            this.state.jsonConfig.options.buttons.forEach(button => {
                 if (typeof button === 'object' && button.type === 'copyToClipboard') {
                     buttons.push(
                         <Button

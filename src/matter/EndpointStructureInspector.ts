@@ -1,4 +1,3 @@
-import type { Val } from '@matter/main/protocol';
 import { Diagnostic, type Endpoint, type Behavior, type ClusterBehavior, serialize } from '@matter/main';
 import { FeatureSet } from '@matter/main/model';
 import { GlobalAttributes, VoidSchema } from '@matter/main/types';
@@ -60,7 +59,7 @@ function logServerClusterServer(
         }`,
     );
     const elements = endpoint.behaviors.elementsOf(type);
-    const state = endpoint.stateOf(type);
+    const state = endpoint.stateOf(type) as Record<string, unknown>;
 
     if (options.logClusterGlobalAttributes !== false) {
         const subResult = new Array<NestedArray<string>>();
@@ -72,7 +71,7 @@ function logServerClusterServer(
             }
             const attribute = cluster.attributes[attributeName];
 
-            const value = (state as Val.Struct)[attributeName] as any;
+            const value = state[attributeName];
             subSub.push(
                 `"${attributeName}" (${Diagnostic.hex(attribute.id)})${value !== undefined ? `: value = ${shortenString(serialize(value))}` : ''}`,
             );
@@ -93,7 +92,7 @@ function logServerClusterServer(
                 continue;
             }
 
-            const value = (state as Val.Struct)[attributeName] as any;
+            const value = state[attributeName];
             subSub.push(
                 `"${attributeName}" (${Diagnostic.hex(attribute.id)})${value !== undefined ? `: value = ${shortenString(serialize(value))}` : ''}`,
             );

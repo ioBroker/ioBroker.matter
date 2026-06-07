@@ -633,7 +633,7 @@ export abstract class GenericDevice extends EventEmitter {
                     read: accessType === StateAccessType.Read || accessType === StateAccessType.ReadWrite,
                     defaultRole: mergedCommon.role ?? 'state',
                     defaultUnit: mergedCommon.unit,
-                    defaultStates: mergedCommon.states as { [key: string]: string } | undefined,
+                    defaultStates: mergedCommon.states,
                     defaultType: defaultType as StateType | undefined,
                     defaultMin: mergedCommon.min,
                     defaultMax: mergedCommon.max,

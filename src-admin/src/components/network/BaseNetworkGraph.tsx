@@ -152,6 +152,7 @@ abstract class BaseNetworkGraph<
             edges: {
                 width: 2,
                 smooth: {
+                    enabled: true,
                     type: 'continuous',
                     roundness: 0.5,
                 },
@@ -409,7 +410,7 @@ abstract class BaseNetworkGraph<
             this.autoFreezeApplied = true; // Prevent future auto-freeze
         }
 
-        this.setState({ physicsEnabled: enabled } as S);
+        this.setState({ physicsEnabled: enabled });
         this.network?.setOptions({
             physics: { enabled },
         });

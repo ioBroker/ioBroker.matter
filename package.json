@@ -30,7 +30,7 @@
         "@iobroker/dm-utils": "^3.0.19",
         "@iobroker/type-detector": "^5.0.13",
         "@matter/main": "0.16.10",
-        "@matter/nodejs": "0.16.10",
+        "@matter/nodejs": "0.17.2",
         "@project-chip/matter.js": "0.16.10",
         "axios": "^1.17.0",
         "jsonwebtoken": "^9.0.3"

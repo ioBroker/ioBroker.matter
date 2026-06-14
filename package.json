@@ -26,7 +26,7 @@
         "@matter/nodejs-ble": "0.16.10"
     },
     "dependencies": {
-        "@iobroker/adapter-core": "^3.3.2",
+        "@iobroker/adapter-core": "^3.4.1",
         "@iobroker/dm-utils": "^3.0.19",
         "@iobroker/type-detector": "^5.0.13",
         "@matter/main": "0.16.10",

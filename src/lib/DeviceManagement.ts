@@ -263,7 +263,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 icon: 'node',
             },
             update: {
-                available: { stateId: '' },
+                available: { stateId: `${this.#adapter.namespace}.${ioNode.updateAvailableStateId}` },
                 version,
                 newVersion,
             },

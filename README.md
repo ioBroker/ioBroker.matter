@@ -138,7 +138,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 -->
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 1.1.0 (2026-06-22)
 * (@GermanBluefox) Update to Device management v3 and more dependencies
 * (@Apollon77) Update to Matter 1.5.1 (matter.js 0.17.3) including many optimizations and fixes
 * (@Apollon77) Parallelizing the  startup of controller and devices and optimize subscription resumptions

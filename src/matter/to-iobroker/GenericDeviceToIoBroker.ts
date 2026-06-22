@@ -232,7 +232,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         });
         endpoint
             .eventsOf(PowerSourceClient)
-            .batPercentRemaining$Changed.on(() => this.#adapter.refreshControllerDevices());
+            .batPercentRemaining$Changed?.on(() => this.#adapter.refreshControllerDevices());
         return true;
     }
 

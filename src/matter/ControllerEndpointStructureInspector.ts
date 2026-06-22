@@ -1,6 +1,6 @@
-import type { Endpoint as LegacyEndpoint } from '@project-chip/matter.js/device';
+import type { Endpoint } from '@matter/main';
 import { LogFormat } from '@matter/main';
 
-export function logControllerEndpoint(endpoint: LegacyEndpoint): string {
-    return LogFormat('plain')(endpoint.endpoint);
+export function logControllerEndpoint(endpoint: Endpoint): string {
+    return LogFormat('plain')(endpoint);
 }

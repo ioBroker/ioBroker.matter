@@ -7,7 +7,7 @@ import {
     type EventId,
     type NodeId,
     type SoftwareUpdateInfo,
-    type Endpoint as NewEndpoint,
+    type Endpoint,
     serialize,
     Diagnostic,
     SoftwareUpdateManager,
@@ -25,13 +25,12 @@ import {
     OperationalCredentialsClient,
     OtaSoftwareUpdateRequestorClient,
 } from '@matter/main/behaviors';
+import type { DecodedAttributeReportValue, DecodedEventReportValue } from '@matter/main/protocol';
 import { PeerAddress } from '@matter/main/protocol';
 import { FabricIndex, SpecificationVersion } from '@matter/main/types';
 import { AttributeModel, ClusterModel, CommandModel, EventModel, MatterModel } from '@matter/main/model';
-import { type DecodedAttributeReportValue, type DecodedEventReportValue } from '@matter/main/protocol';
 import { AggregatorEndpointDefinition, BridgedNodeEndpointDefinition } from '@matter/main/endpoints';
 import {
-    type Endpoint,
     NodeStates as PairedNodeStates,
     type PairedNode,
     type CommissioningControllerNodeOptions,
@@ -103,7 +102,7 @@ export class GeneralMatterNode {
     readonly updateAvailableStateId: string;
     exposeMatterApplicationClusterData: boolean;
     exposeMatterSystemClusterData: boolean;
-    #endpointMap = new Map<number, { baseId: string; endpoint: NewEndpoint }>();
+    #endpointMap = new Map<number, { baseId: string; endpoint: Endpoint }>();
     #deviceMap = new Map<number, GenericDeviceToIoBroker>();
     #attributeTypeMap = new Map<string, ioBroker.CommonType>();
     #eventMap = new Set<string>();
@@ -198,7 +197,7 @@ export class GeneralMatterNode {
             return;
         }
 
-        const rootEndpoint = this.node.getRootEndpoint();
+        const rootEndpoint = this.node.node;
         if (rootEndpoint === undefined) {
             this.adapter.log.warn(`Node "${this.node.nodeId}" has not yet been initialized! Should not happen`);
             return;
@@ -236,7 +235,7 @@ export class GeneralMatterNode {
             },
         };
 
-        const info = this.node.node.maybeStateOf(BasicInformationClient);
+        const info = rootEndpoint.maybeStateOf(BasicInformationClient);
         if (info !== undefined) {
             this.#details = {
                 manufacturer: info.vendorName,
@@ -725,7 +724,7 @@ export class GeneralMatterNode {
         this.exposeMatterApplicationClusterData = config.exposeMatterApplicationClusterData;
         this.exposeMatterSystemClusterData = config.exposeMatterSystemClusterData;
 
-        const rootEndpoint = this.node.getRootEndpoint();
+        const rootEndpoint = this.node.node;
         if (rootEndpoint === undefined) {
             this.adapter.log.warn(`Node "${this.node.nodeId}" has not yet been initialized! Should not not happen`);
             return;
@@ -744,7 +743,7 @@ export class GeneralMatterNode {
     ): Promise<void> {
         await this.#endpointToIoBrokerDevices(rootEndpoint, rootEndpoint, this.nodeBaseId, options);
 
-        for (const childEndpoint of rootEndpoint.getChildEndpoints()) {
+        for (const childEndpoint of rootEndpoint.parts) {
             await this.#endpointToIoBrokerDevices(childEndpoint, rootEndpoint, this.nodeBaseId, options);
         }
     }
@@ -762,21 +761,21 @@ export class GeneralMatterNode {
     ): Promise<void> {
         const id = endpoint.number;
         if (id === undefined) {
-            this.adapter.log.warn(`Node ${this.node.nodeId}: Endpoint ${endpoint.name} has no number!`);
+            this.adapter.log.warn(`Node ${this.node.nodeId}: Endpoint ${endpoint.id} has no number!`);
             return;
         }
 
-        const { appTypes, primaryDeviceType } = identifyDeviceTypes(endpoint.endpoint);
+        const { appTypes, primaryDeviceType } = identifyDeviceTypes(endpoint);
         if (appTypes.length > 1) {
             this.adapter.log.info(
                 `Node ${this.node.nodeId}: Multiple device types detected: ${appTypes.map(t => t.deviceType.name).join(', ')}`,
             );
         }
 
-        const deviceTypeName = primaryDeviceType?.deviceType.name ?? endpoint.name ?? 'Unknown';
+        const deviceTypeName = primaryDeviceType?.deviceType.name ?? endpoint.id ?? 'Unknown';
 
         this.adapter.log.info(
-            `Node ${this.node.nodeId}: Endpoint ${id} to ioBroker Devices ${endpoint.name} / ${deviceTypeName}`,
+            `Node ${this.node.nodeId}: Endpoint ${id} to ioBroker Devices ${endpoint.id} / ${deviceTypeName}`,
         );
 
         const endpointDeviceBaseId = `${baseId}.${deviceTypeName}-${id}`;
@@ -809,7 +808,7 @@ export class GeneralMatterNode {
 
         if (primaryDeviceType === undefined) {
             this.adapter.log.warn(
-                `Node ${this.node.nodeId}: Unknown device type: ${serialize(endpoint.deviceType)}. Please report this issue.`,
+                `Node ${this.node.nodeId}: Unknown device type: ${serialize(endpoint.type.name)}. Please report this issue.`,
             );
         } else if (
             primaryDeviceType.deviceType.id === AggregatorEndpointDefinition.deviceType ||
@@ -840,12 +839,12 @@ export class GeneralMatterNode {
             if (primaryDeviceType.deviceType.name === 'BridgedNode') {
                 const ioBrokerDevice = await ioBrokerDeviceFabric(
                     this.node,
-                    endpoint.endpoint,
-                    rootEndpoint.endpoint,
+                    endpoint,
+                    rootEndpoint,
                     this.adapter,
                     endpointDeviceBaseId,
                     connectionStateId,
-                    endpointBaseName ?? String(endpoint.endpoint.type?.name ?? endpoint.number),
+                    endpointBaseName ?? String(endpoint.type?.name ?? endpoint.number),
                 );
                 if (ioBrokerDevice !== null) {
                     connectionStateId = ioBrokerDevice.connectionStateId;
@@ -853,7 +852,7 @@ export class GeneralMatterNode {
                 }
             }
 
-            for (const childEndpoint of endpoint.getChildEndpoints()) {
+            for (const childEndpoint of endpoint.parts) {
                 // Recursive call to process all sub endpoints for raw states
                 await this.#endpointToIoBrokerDevices(childEndpoint, rootEndpoint, endpointDeviceBaseId, {
                     connectionStateId,
@@ -876,12 +875,12 @@ export class GeneralMatterNode {
                 // Ignore the root endpoint
                 const ioBrokerDevice = await ioBrokerDeviceFabric(
                     this.node,
-                    endpoint.endpoint,
-                    rootEndpoint.endpoint,
+                    endpoint,
+                    rootEndpoint,
                     this.adapter,
                     endpointDeviceBaseId,
                     connectionStateId,
-                    endpointBaseName ?? String(endpoint.endpoint.type?.name ?? endpoint.number),
+                    endpointBaseName ?? String(endpoint.type?.name ?? endpoint.number),
                 );
                 if (ioBrokerDevice !== null) {
                     this.#deviceMap.set(id, ioBrokerDevice);
@@ -901,14 +900,14 @@ export class GeneralMatterNode {
             }
         }
 
-        await this.#processEndpointRawDataStructure(endpoint.endpoint, endpointDeviceBaseId, {
+        await this.#processEndpointRawDataStructure(endpoint, endpointDeviceBaseId, {
             exposeMatterSystemClusterData: customExposeMatterSystemClusterData,
             exposeMatterApplicationClusterData: customExposeMatterApplicationClusterData,
         });
     }
 
     async #processEndpointRawDataStructure(
-        endpoint: NewEndpoint,
+        endpoint: Endpoint,
         endpointDeviceBaseId: string,
         options?: {
             exposeMatterSystemClusterData?: boolean;
@@ -1019,7 +1018,7 @@ export class GeneralMatterNode {
     }
 
     async initializeEndpointRawDataStates(
-        endpoint: NewEndpoint,
+        endpoint: Endpoint,
         endpointDeviceBaseDataId: string,
         options:
             | {
@@ -1540,15 +1539,14 @@ export class GeneralMatterNode {
             }
         }
 
-        const rootEndpoint = this.node.getRootEndpoint();
+        const rootEndpoint = this.node.node;
         if (rootEndpoint) {
             result.rootEndpointClusters = {};
-            const rootNewEndpoint = rootEndpoint.endpoint;
-            for (const [behaviorId, BehaviorType] of Object.entries(rootNewEndpoint.behaviors.supported)) {
+            for (const [behaviorId, BehaviorType] of Object.entries(rootEndpoint.behaviors.supported)) {
                 if (!ClusterBehavior.is(BehaviorType)) {
                     continue;
                 }
-                const clusterState = (rootNewEndpoint.state as any)[behaviorId];
+                const clusterState = (rootEndpoint.state as any)[behaviorId];
                 if (!clusterState) {
                     continue;
                 }

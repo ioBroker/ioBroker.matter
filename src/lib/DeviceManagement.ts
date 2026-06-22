@@ -525,7 +525,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     async #handleLogDebugNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        const rootEndpoint = node.node.getRootEndpoint();
+        const rootEndpoint = node.node.node;
 
         const debugInfos = rootEndpoint ? logControllerEndpoint(rootEndpoint) : 'No root endpoint found';
 

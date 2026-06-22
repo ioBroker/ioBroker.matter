@@ -138,8 +138,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 -->
 
 ## Changelog
-
-### **WORK IN PROGRESS**
+### 1.1.1 (2026-06-22)
 * (@Apollon77) Fixes Update availability flag in UI
 
 ### 1.1.0 (2026-06-22)

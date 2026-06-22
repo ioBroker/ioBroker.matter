@@ -2,11 +2,11 @@ import { Endpoint } from '@matter/main';
 import { LightSensorDevice } from '@matter/main/devices';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { Illuminance } from '../../lib/devices/Illuminance';
-import { GenericDeviceToMatter } from './GenericDeviceToMatter';
+import { GenericDeviceToMatter, luxToMatterMeasuredValue } from './GenericDeviceToMatter';
 import { IoIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 
-/** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */
+/** Mapping Logic to map a ioBroker Illuminance device to a Matter LightSensorDevice. */
 export class IlluminanceToMatter extends GenericDeviceToMatter {
     readonly #ioBrokerDevice: Illuminance;
     readonly #matterEndpoint: Endpoint<LightSensorDevice>;
@@ -31,17 +31,14 @@ export class IlluminanceToMatter extends GenericDeviceToMatter {
         return this.#ioBrokerDevice;
     }
 
-    convertBrightnessValue(value: number): number {
-        return Math.round(10_000 * Math.log10(value) + 1);
-    }
-
     async registerHandlersAndInitialize(): Promise<void> {
         await super.registerHandlersAndInitialize();
 
-        const humidity = this.#ioBrokerDevice.getBrightness();
+        const brightness = this.#ioBrokerDevice.getBrightness();
         await this.#matterEndpoint.set({
             illuminanceMeasurement: {
-                measuredValue: typeof humidity === 'number' ? this.convertBrightnessValue(humidity) : null,
+                measuredValue:
+                    typeof brightness === 'number' ? luxToMatterMeasuredValue(this.#ioBrokerDevice, brightness) : null,
             },
         });
 
@@ -51,7 +48,7 @@ export class IlluminanceToMatter extends GenericDeviceToMatter {
                     if (this.#matterEndpoint?.owner !== undefined) {
                         await this.#matterEndpoint?.set({
                             illuminanceMeasurement: {
-                                measuredValue: this.convertBrightnessValue(event.value as number),
+                                measuredValue: luxToMatterMeasuredValue(this.#ioBrokerDevice, event.value as number),
                             },
                         });
                     }

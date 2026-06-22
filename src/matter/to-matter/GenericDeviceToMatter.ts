@@ -2,6 +2,14 @@ import { capitalize, Observable, type Endpoint, ObserverGroup, type MaybePromise
 import type { GenericDevice } from '../../lib';
 import type { StructuredJsonFormData } from '../../lib/JsonConfigUtils';
 
+/**
+ * Convert an illuminance value in lux to a Matter IlluminanceMeasurement MeasuredValue.
+ * Matter MeasuredValue = 10000*log10(lux)+1 for lux >= 1; 0 means too-low-to-measure. log10(<=0) is -Infinity, cropped to 0.
+ */
+export function luxToMatterMeasuredValue(device: GenericDevice, lux: number): number {
+    return Math.round(device.cropValue(10_000 * Math.log10(lux) + 1, 0, 0xfffe, false));
+}
+
 /** Base class to map an ioBroker device to a matter device. */
 export abstract class GenericDeviceToMatter {
     #name: string;

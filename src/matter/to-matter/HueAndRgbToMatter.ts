@@ -25,7 +25,7 @@ const IoBrokerExtendedColorLightDevice = ExtendedColorLightDevice.with(
 );
 type IoBrokerExtendedColorLightDevice = typeof IoBrokerExtendedColorLightDevice;
 
-/** Mapping Logic to map a ioBroker Dimmer device to a Matter DimmableLightDevice. */
+/** Mapping Logic to map a ioBroker Hue/RGB device to a Matter ExtendedColorLightDevice. */
 export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
     readonly #ioBrokerDevice: Hue | Rgb | RgbSingle | RgbwSingle;
     readonly #matterEndpoint: Endpoint<IoBrokerExtendedColorLightDevice>;

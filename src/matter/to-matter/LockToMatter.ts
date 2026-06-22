@@ -20,7 +20,7 @@ type IoBrokerDoorLockDevice = typeof IoBrokerDoorLockDevice;
 //const DoorPositionDoorLockServer = EventedDoorLockServer.with(DoorLock.Feature.DoorPositionSensor);
 //const UnboltingDoorLockServer = EventedDoorLockServer.with(DoorLock.Feature.Unbolting);
 
-/** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
+/** Mapping Logic to map a ioBroker Lock device to a Matter DoorLockDevice. */
 export class LockToMatter extends GenericElectricityDataDeviceToMatter {
     readonly #ioBrokerDevice: Lock;
     readonly #matterEndpoint: Endpoint<IoBrokerDoorLockDevice>;

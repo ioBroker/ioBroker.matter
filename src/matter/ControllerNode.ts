@@ -98,7 +98,7 @@ class Controller implements GeneralNode {
             ) {
                 this.#adapter.matterEnvironment.vars.set('ble.enable', true);
                 const hciId = this.#parameters.hciId === undefined ? undefined : parseInt(this.#parameters.hciId);
-                if (hciId !== undefined && (hciId < 0 || hciId > 255)) {
+                if (hciId !== undefined && (hciId >= 0 || hciId <= 255)) {
                     this.#adapter.matterEnvironment.vars.set('ble.hci.id', hciId);
                 }
                 this.#useBle = true;

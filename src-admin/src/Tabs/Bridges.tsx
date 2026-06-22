@@ -239,10 +239,9 @@ interface BridgesState extends BridgesAndDevicesState {
 
 export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
     private bridgeIndex: number | null = null;
-    protected readonly isDevice = false;
 
     constructor(props: BridgesProps) {
-        super(props);
+        super(props, false);
         let bridgesOpened: Record<string, boolean> = {};
         try {
             const bridgesOpenedStr = window.localStorage.getItem(`matter.${props.instance}.bridgesOpened`);
@@ -933,7 +932,12 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                     theme={this.props.theme}
                     onClose={() => this.setState({ addDeviceDialog: null })}
                     onOk={async (_oid, name) => {
-                        const oid: string | undefined = Array.isArray(_oid) ? _oid[0] : (_oid as string);
+                        const oid: string | undefined = Array.isArray(_oid) ? _oid[0] : _oid;
+
+                        if (!oid) {
+                            this.setState({ message: I18n.t('Nothing selected') });
+                            return;
+                        }
 
                         // Find out if this OID is already in the list
                         if (this.props.matter.bridges[this.bridgeIndex as number].list.find(dev => dev.oid === oid)) {

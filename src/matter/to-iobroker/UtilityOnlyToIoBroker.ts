@@ -1,6 +1,7 @@
 import ChannelDetector from '@iobroker/type-detector';
-import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
-import { PowerSource } from '@matter/main/clusters';
+import type { Endpoint } from '@matter/main';
+import type { PairedNode } from '@project-chip/matter.js/device';
+import { PowerSourceClient } from '@matter/main/behaviors';
 import type { ElectricityDataDevice } from '../../lib/devices/ElectricityDataDevice';
 import type { DetectedDevice } from '../../lib/devices/GenericDevice';
 import { Light } from '../../lib/devices/Light';
@@ -55,18 +56,13 @@ export class UtilityOnlyToIoBroker extends GenericElectricityDataDeviceToIoBroke
             case 'BridgedNode':
                 return 'node';
             case 'PowerSource': {
-                const powerSource = this.appEndpoint.getClusterClient(PowerSource.Complete);
+                const powerSource = this.appEndpoint.maybeStateOf(PowerSourceClient);
                 if (powerSource) {
-                    if (
-                        (powerSource.supportedFeatures.battery && !powerSource.supportedFeatures.wired) ||
-                        powerSource.isAttributeSupportedByName('batChargeLevel')
-                    ) {
+                    const features = this.appEndpoint.behaviors.typeFor(PowerSourceClient)?.features;
+                    if ((features?.battery && !features?.wired) || powerSource.batChargeLevel !== undefined) {
                         // Battery icon
                         return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+DQogICAgPHBhdGggZmlsbD0iY3VycmVudENvbG9yIiBkPSJNMTUuNjcgNEgxNFYyaC00djJIOC4zM0M3LjYgNCA3IDQuNiA3IDUuMzN2MTUuMzNDNyAyMS40IDcuNiAyMiA4LjMzIDIyaDcuMzNjLjc0IDAgMS4zNC0uNiAxLjM0LTEuMzNWNS4zM0MxNyA0LjYgMTYuNCA0IDE1LjY3IDQiIC8+DQo8L3N2Zz4=';
-                    } else if (
-                        powerSource.supportedFeatures.wired ||
-                        powerSource.isAttributeSupportedByName('wiredCurrentType')
-                    ) {
+                    } else if (features?.wired || powerSource.wiredCurrentType !== undefined) {
                         // Wired icon
                         return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+DQogICAgPHBhdGggZmlsbD0iY3VycmVudENvbG9yIiBkPSJNMTYuMDEgNyAxNiAzaC0ydjRoLTRWM0g4djRoLS4wMUM3IDYuOTkgNiA3Ljk5IDYgOC45OXY1LjQ5TDkuNSAxOHYzaDV2LTNsMy41LTMuNTF2LTUuNWMwLTEtMS0yLTEuOTktMS45OSIgLz4NCjwvc3ZnPg==';
                     }

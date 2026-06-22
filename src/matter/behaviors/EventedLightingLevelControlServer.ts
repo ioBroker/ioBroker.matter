@@ -1,5 +1,4 @@
 import { type Behavior, type MaybePromise, type Transitions } from '@matter/main';
-import type { TypeFromPartialBitSchema } from '@matter/main/types';
 import { DimmableLightRequirements } from '@matter/main/devices';
 import type { LevelControl } from '@matter/main/clusters';
 import { IoBrokerEvents } from './IoBrokerEvents';
@@ -18,8 +17,8 @@ export class EventedLightingLevelControlServer extends DimmableLightRequirements
         level: number,
         transitionTime: number | null,
         withOnOff: boolean,
-        options: TypeFromPartialBitSchema<typeof LevelControl.Options>,
-    ): MaybePromise<void> {
+        options?: LevelControl.Options,
+    ): MaybePromise {
         this.internal.currentTransitionTime = transitionTime;
         return super.moveToLevelLogic(level, transitionTime, withOnOff, options);
     }
@@ -28,8 +27,8 @@ export class EventedLightingLevelControlServer extends DimmableLightRequirements
         moveMode: LevelControl.MoveMode,
         rate: number | null,
         withOnOff: boolean,
-        options: TypeFromPartialBitSchema<typeof LevelControl.Options>,
-    ): MaybePromise<void> {
+        options?: LevelControl.Options,
+    ): MaybePromise {
         this.internal.currentTransitionTime = undefined;
         return super.moveLogic(moveMode, rate, withOnOff, options);
     }
@@ -39,13 +38,13 @@ export class EventedLightingLevelControlServer extends DimmableLightRequirements
         stepSize: number,
         transitionTime: number | null,
         withOnOff: boolean,
-        options: TypeFromPartialBitSchema<typeof LevelControl.Options>,
-    ): MaybePromise<void> {
+        options?: LevelControl.Options,
+    ): MaybePromise {
         this.internal.currentTransitionTime = transitionTime;
         return super.stepLogic(stepMode, stepSize, transitionTime, withOnOff, options);
     }
 
-    override stopLogic(options: TypeFromPartialBitSchema<typeof LevelControl.Options>): MaybePromise<void> {
+    override stopLogic(options?: LevelControl.Options): MaybePromise {
         this.internal.currentTransitionTime = undefined;
         return super.stopLogic(options);
     }

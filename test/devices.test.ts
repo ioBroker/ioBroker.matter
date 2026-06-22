@@ -1,10 +1,8 @@
 // Import types and dependencies
 import { Types } from '@iobroker/type-detector';
-
-// Import from TypeScript source files directly  
-const { SubscribeManager } = require('../src/lib/SubscribeManager');
-const { StateAccessType } = require('../src/lib/devices/GenericDevice');
-const { ValueType } = require('../src/lib/devices/DeviceStateObject');
+import { SubscribeManager } from '../src/lib/SubscribeManager';
+import { StateAccessType } from '../src/lib/devices/GenericDevice';
+import { ValueType } from '../src/lib/devices/DeviceStateObject';
 
 const excludedTypes: string[] = [
     'unknown',
@@ -239,7 +237,7 @@ class Adapter {
         this.subscribeManager = subscribeManager;
     }
 
-    async getForeignObjectAsync(id: string): Promise<MockObject> {
+    async getForeignObjectAsync(id: string): Promise<MockObject | null> {
         const entry = detectedDevices.states.find(state => state.id === id);
         if (entry && (entry.type === 'boolean' || entry.type === 'string')) {
             return {
@@ -632,7 +630,7 @@ describe('Test Custom States', function () {
 
         async getForeignObjectAsync(id: string): Promise<MockObject | null> {
             if (id.startsWith('matter.') && !this.createdObjects[id]) {
-                return null as any;
+                return null;
             }
             if (this.createdObjects[id]) {
                 return this.createdObjects[id];
@@ -696,7 +694,7 @@ describe('Test Custom States', function () {
 
         // Test: updateCustomValue updates state from Matter side
         await deviceObj.updateCustomValue('testReadOnly', 42);
-        if (deviceObj.getCustomValue<number>('testReadOnly') !== 42) {
+        if (deviceObj.getCustomValue('testReadOnly') !== 42) {
             throw new Error('Expected custom value to be 42');
         }
 
@@ -705,7 +703,7 @@ describe('Test Custom States', function () {
         if (state !== state2) {
             throw new Error('initCustomState should return existing state on re-initialization');
         }
-        if (deviceObj.getCustomValue<number>('testReadOnly') !== 42) {
+        if (deviceObj.getCustomValue('testReadOnly') !== 42) {
             throw new Error('Value should be preserved after re-initialization');
         }
 
@@ -738,7 +736,7 @@ describe('Test Custom States', function () {
 
         // Test: setCustomValue on read-write state
         await deviceObj.setCustomValue('testReadWrite', 75);
-        if (deviceObj.getCustomValue<number>('testReadWrite') !== 75) {
+        if (deviceObj.getCustomValue('testReadWrite') !== 75) {
             throw new Error('Expected custom value to be 75');
         }
 

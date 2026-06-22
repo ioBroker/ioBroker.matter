@@ -2,10 +2,9 @@ import { Endpoint } from '@matter/main';
 import { OccupancySensing } from '@matter/main/clusters';
 import { LightSensorDevice, OccupancySensorDevice } from '@matter/main/devices';
 import { OccupancySensingServer } from '@matter/main/behaviors/occupancy-sensing';
-import type { TypeFromBitSchema } from '@matter/main/types';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { Motion } from '../../lib/devices/Motion';
-import { GenericDeviceToMatter } from './GenericDeviceToMatter';
+import { GenericDeviceToMatter, luxToMatterMeasuredValue } from './GenericDeviceToMatter';
 import { IoIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 
@@ -16,7 +15,7 @@ const IoOccupancySensingDevice = OccupancySensorDevice.with(
 );
 type IoOccupancySensingDevice = typeof IoOccupancySensingDevice;
 
-/** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */
+/** Mapping Logic to map a ioBroker Motion device to a Matter OccupancySensorDevice. */
 export class MotionToMatter extends GenericDeviceToMatter {
     readonly #ioBrokerDevice: Motion;
     readonly #matterEndpointOccupancy: Endpoint<IoOccupancySensingDevice>;
@@ -54,12 +53,8 @@ export class MotionToMatter extends GenericDeviceToMatter {
         return this.#ioBrokerDevice;
     }
 
-    convertMotionValue(value: boolean): TypeFromBitSchema<typeof OccupancySensing.Occupancy> {
+    convertMotionValue(value: boolean): OccupancySensing.Occupancy {
         return { occupied: value };
-    }
-
-    convertBrightnessValue(value: number): number {
-        return Math.round(10_000 * Math.log10(value) + 1);
     }
 
     async registerHandlersAndInitialize(): Promise<void> {
@@ -72,10 +67,13 @@ export class MotionToMatter extends GenericDeviceToMatter {
         });
 
         if (this.#matterEndpointLightSensor && this.#matterEndpointLightSensor?.owner !== undefined) {
-            const humidity = this.#ioBrokerDevice.getBrightness();
+            const brightness = this.#ioBrokerDevice.getBrightness();
             await this.#matterEndpointLightSensor.set({
                 illuminanceMeasurement: {
-                    measuredValue: typeof humidity === 'number' ? this.convertBrightnessValue(humidity) : null,
+                    measuredValue:
+                        typeof brightness === 'number'
+                            ? luxToMatterMeasuredValue(this.#ioBrokerDevice, brightness)
+                            : null,
                 },
             });
         }
@@ -93,7 +91,7 @@ export class MotionToMatter extends GenericDeviceToMatter {
                     if (this.#matterEndpointLightSensor?.owner !== undefined) {
                         await this.#matterEndpointLightSensor?.set({
                             illuminanceMeasurement: {
-                                measuredValue: this.convertBrightnessValue(event.value as number),
+                                measuredValue: luxToMatterMeasuredValue(this.#ioBrokerDevice, event.value as number),
                             },
                         });
                     }

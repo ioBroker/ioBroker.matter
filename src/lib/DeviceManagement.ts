@@ -1,7 +1,6 @@
 import type { MatterAdapter } from '../main';
 import type {
     ActionContext,
-    ApiVersion,
     ConfigItemAny,
     DeviceDetails,
     DeviceInfo,
@@ -11,6 +10,7 @@ import type {
     JsonFormSchema,
     JsonFormData,
     ConfigConnectionType,
+    DeviceLoadContext,
 } from '@iobroker/dm-utils';
 import { DeviceManagement, ACTIONS } from '@iobroker/dm-utils';
 import { GeneralMatterNode, type NodeDetails } from '../matter/GeneralMatterNode';
@@ -41,55 +41,57 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     async getInstanceInfo(): Promise<InstanceDetails> {
+        const actions = [];
+        if (this.#adapter.controllerNode?.nodes.size) {
+            actions.push({
+                id: 'checkNodeUpdates',
+                icon: 'update',
+                title: {
+                    en: 'Check Updates',
+                    de: 'Updates prüfen',
+                    ru: 'Проверка обновлений',
+                    pt: 'Verificar actualizações',
+                    nl: 'Updates controleren',
+                    fr: 'Vérifier les mises à jour',
+                    it: 'Controllare gli aggiornamenti',
+                    es: 'Comprobar actualizaciones',
+                    pl: 'Sprawdź aktualizacje',
+                    uk: 'Перевірте оновлення',
+                    'zh-cn': 'Check Updates',
+                },
+                description: {
+                    en: 'Check for Node updates',
+                    de: 'Node-Updates prüfen',
+                    ru: 'Проверьте наличие обновлений узла',
+                    pt: 'Verificar se há actualizações do Node',
+                    nl: 'Controleren op Node-updates',
+                    fr: 'Vérifier les mises à jour de Node',
+                    it: 'Verifica degli aggiornamenti dei nodi',
+                    es: 'Buscar actualizaciones de nodos',
+                    pl: 'Sprawdź aktualizacje węzła',
+                    uk: 'Перевірте наявність оновлень вузла',
+                    'zh-cn': 'Check for Node updates',
+                },
+                handler: this.checkNodeUpdates.bind(this),
+                timeout: 30_000,
+            });
+        }
         return {
             ...(await super.getInstanceInfo()),
-            apiVersion: 'v1' as ApiVersion,
-            actions: [
-                {
-                    id: 'checkNodeUpdates',
-                    icon: 'update',
-                    title: {
-                        en: 'Check Updates',
-                        de: 'Updates prüfen',
-                        ru: 'Проверка обновлений',
-                        pt: 'Verificar actualizações',
-                        nl: 'Updates controleren',
-                        fr: 'Vérifier les mises à jour',
-                        it: 'Controllare gli aggiornamenti',
-                        es: 'Comprobar actualizaciones',
-                        pl: 'Sprawdź aktualizacje',
-                        uk: 'Перевірте оновлення',
-                        'zh-cn': 'Check Updates',
-                    },
-                    description: {
-                        en: 'Check for Node updates',
-                        de: 'Node-Updates prüfen',
-                        ru: 'Проверьте наличие обновлений узла',
-                        pt: 'Verificar se há actualizações do Node',
-                        nl: 'Controleren op Node-updates',
-                        fr: 'Vérifier les mises à jour de Node',
-                        it: 'Verifica degli aggiornamenti dei nodi',
-                        es: 'Buscar actualizaciones de nodos',
-                        pl: 'Sprawdź aktualizacje węzła',
-                        uk: 'Перевірте наявність оновлень вузла',
-                        'zh-cn': 'Check for Node updates',
-                    },
-                    handler: this.checkNodeUpdates.bind(this),
-                    timeout: 30_000,
-                },
-            ],
+            apiVersion: 'v3',
+            actions,
         };
     }
 
     // contents see in the next chapters
-    listDevices(): DeviceInfo[] {
+    listDevices(): DeviceInfo<string>[] {
         if (!this.#adapter.controllerNode) {
             return []; // TODO How to return that no controller is started?
         }
 
         const nodes = this.#adapter.controllerNode.nodes;
 
-        const arrDevices: DeviceInfo[] = [];
+        const arrDevices: DeviceInfo<string>[] = [];
         let colorCounter = 0;
         for (const ioNode of nodes.values()) {
             const devices = this.#getNodeEntry(ioNode, colorCounter++ % 2 === 0 ? 'primary' : 'secondary');
@@ -134,10 +136,32 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         return arrDevices;
     }
 
+    loadDevices(context: DeviceLoadContext<string>): void {
+        if (!this.#adapter.controllerNode) {
+            context.setTotalDevices(0);
+            return;
+        }
+        const nodes = this.#adapter.controllerNode.nodes;
+
+        let colorCounter = 0;
+        const allDevices: DeviceInfo<string>[] = [];
+        for (const ioNode of nodes.values()) {
+            const devices = this.#getNodeEntry(ioNode, colorCounter++ % 2 === 0 ? 'primary' : 'secondary');
+            allDevices.push(...devices);
+        }
+
+        // Report the actual number of entries (node entry + its endpoint devices per node),
+        // not nodes.size, otherwise totalDevices would be smaller than the number added.
+        context.setTotalDevices(allDevices.length);
+        for (const device of allDevices) {
+            context.addDevice(device);
+        }
+    }
+
     /**
      * Create the "Node" device entry and also add all Endpoint-"Devices" for Device-Manager
      */
-    #getNodeEntry(ioNode: GeneralMatterNode, backgroundColor: 'primary' | 'secondary'): DeviceInfo[] {
+    #getNodeEntry(ioNode: GeneralMatterNode, backgroundColor: 'primary' | 'secondary'): DeviceInfo<string>[] {
         const status: DeviceStatus = ioNode.getStatus();
         const isEnabled = ioNode.isEnabled;
         const isConnected = ioNode.isConnected;
@@ -145,14 +169,15 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const details = ioNode.details;
 
         let updateAvailableMessage: string | undefined = undefined;
+        let version: string | undefined = undefined;
+        let newVersion: string | undefined = undefined;
+        if (ioNode.node.basicInformation) {
+            version = `${ioNode.node.basicInformation.softwareVersionString} (${ioNode.node.basicInformation.softwareVersion})`;
+        }
         if (ioNode.softwareUpdateAvailable !== undefined) {
             const info = ioNode.softwareUpdateAvailable;
-            updateAvailableMessage = '';
-            if (ioNode.node.basicInformation) {
-                updateAvailableMessage = `${ioNode.node.basicInformation.softwareVersionString} (${ioNode.node.basicInformation.softwareVersion})`;
-            }
-            updateAvailableMessage += ` → ${info.softwareVersionString} (${info.softwareVersion})`;
-            updateAvailableMessage = updateAvailableMessage.trim();
+            newVersion = `${info.softwareVersionString} (${info.softwareVersion})`;
+            updateAvailableMessage = `${version} → ${newVersion})`;
         }
 
         let actions: (DeviceAction<'adapter'> | null)[] = [
@@ -207,7 +232,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             // Show software update action if an update is available
             updateAvailableMessage
                 ? {
-                      id: 'softwareUpdate',
+                      id: ACTIONS.UPDATE,
                       icon: 'update',
                       description: updateAvailableMessage,
                       handler: (_id, context) => this.#handleSoftwareUpdateNode(ioNode, context),
@@ -219,8 +244,8 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         actions = actions?.filter(it => it) || [];
 
         const connectionType = ioNode.connectionType;
-        const res = new Array<DeviceInfo>();
-        const node: DeviceInfo = {
+        const res = new Array<DeviceInfo<string>>();
+        const node: DeviceInfo<string> = {
             id,
             name: `Node ${ioNode.name}`,
             icon: undefined,
@@ -229,13 +254,18 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             enabled: isEnabled,
             connectionType,
             hasDetails: true,
-            actions: actions.length ? (actions as DeviceAction<'adapter'>[]) : undefined,
+            actions: actions.length ? (actions as DeviceAction<'adapter', string>[]) : undefined,
             backgroundColor,
             color: '#FFFFFF',
             group: {
                 key: 'node',
                 name: this.#adapter.getText('Node'),
                 icon: 'node',
+            },
+            update: {
+                available: { stateId: '' },
+                version,
+                newVersion,
             },
         };
 
@@ -274,9 +304,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         nodeConnected: boolean,
         nodeConnectionType: ConfigConnectionType,
         backgroundColor: 'primary' | 'secondary',
-    ): DeviceInfo {
+    ): DeviceInfo<string> {
         const icon = device.iconDeviceType;
-        const data: DeviceInfo = {
+        const data: DeviceInfo<string> = {
             id: `${nodeId}-${device.number}`,
             name: device.name,
             icon,
@@ -331,7 +361,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     this.#adapter.t('Are you sure you want to disable and disconnect the node?'),
                 ))
             ) {
-                return { refresh: false };
+                return { refresh: 'none' };
             }
         }
         await node.setEnabled(!node.isEnabled);
@@ -344,7 +374,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             );
         }
 
-        return { refresh: true };
+        return { refresh: 'devices' };
     }
 
     async #handleOnStatusNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
@@ -362,13 +392,13 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             ],
         });
 
-        return { refresh: false };
+        return { refresh: 'none' };
     }
 
     async #handleDeleteNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
         this.adapter.log.info(`Delete node ${node.nodeId}`);
         if (!(await context.showConfirmation(this.#adapter.t('Are you sure?')))) {
-            return { refresh: false };
+            return { refresh: 'none' };
         }
 
         if (!node.node.isConnected) {
@@ -379,7 +409,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     ),
                 ))
             ) {
-                return { refresh: false };
+                return { refresh: 'none' };
             }
         }
 
@@ -412,7 +442,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         if (errorHappened) {
             await context.showMessage(this.#adapter.t('Error happened during unpairing. Please check the log.'));
         }
-        return { refresh: true };
+        return { refresh: 'devices' };
     }
 
     async #handleRenameNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
@@ -442,9 +472,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         if (result?.name !== undefined && result.name !== node.name) {
             this.adapter.log.info(`Rename node ${node.nodeId} to "${result.name}"`);
             await node.rename(result.name);
-            return { refresh: true };
+            return { refresh: 'devices' };
         }
-        return { refresh: false };
+        return { refresh: 'none' };
     }
 
     /**
@@ -491,11 +521,11 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             await context.showMessage(this.#adapter.t('No paring code received'));
         }
 
-        return { refresh: false };
+        return { refresh: 'none' };
     }
 
     async #handleLogDebugNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        const rootEndpoint = node.node.getRootEndpoint();
+        const rootEndpoint = node.node.node;
 
         const debugInfos = rootEndpoint ? logControllerEndpoint(rootEndpoint) : 'No root endpoint found';
 
@@ -539,7 +569,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
         );
 
-        return { refresh: false };
+        return { refresh: 'none' };
     }
 
     async #handleSoftwareUpdateNode(
@@ -549,7 +579,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const info = node.softwareUpdateAvailable;
         if (!info || !node.node.basicInformation) {
             await context.showMessage(this.#adapter.t('No software update information available'));
-            return { refresh: false };
+            return { refresh: 'none' };
         }
 
         const currentVersion = node.node.basicInformation.softwareVersionString;
@@ -681,7 +711,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             }
         }
 
-        return { refresh: false };
+        return { refresh: 'none' };
     }
 
     async #handleConfigureNodeOrDevice(
@@ -836,7 +866,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 },
             });
         }
-        return { refresh: false };
+        return { refresh: 'none' };
     }
 
     async #handleConfigureNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
@@ -862,7 +892,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         await context.showMessage(this.#adapter.t(`The device should now identify itself for 10 seconds.`));
 
-        return { refresh: false };
+        return { refresh: 'none' };
     }
 
     /*async handleControlDevice(
@@ -922,12 +952,12 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         if (result?.name !== undefined && result.name !== device.name) {
             this.adapter.log.info(`Rename device ${device.name} to "${result.name}"`);
             await device.rename(result.name);
-            return { refresh: true };
+            return { refresh: 'devices' };
         }
-        return { refresh: false };
+        return { refresh: 'none' };
     }
 
-    getDeviceDetails(id: string): DeviceDetails | null | { error: string } {
+    getDeviceDetails(id: string): DeviceDetails<string> | null | { error: string } {
         this.adapter.log.debug(`Get details ${id}`);
 
         const idParts = id.split('-');

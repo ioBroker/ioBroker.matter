@@ -73,7 +73,7 @@ export default class NetworkSelector extends Component<NetworkSelectorProps, Net
 
     onHostChange = (_id: string, hostObj: ioBroker.Object | null | undefined): void => {
         if (hostObj?.type === 'host') {
-            this.parseNetworkInterfaces(hostObj as ioBroker.HostObject);
+            this.parseNetworkInterfaces(hostObj);
         }
     };
 

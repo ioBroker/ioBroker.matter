@@ -1,11 +1,18 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { LevelControl, OnOff, ColorControl } from '@matter/main/clusters';
-import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
+import type { Endpoint } from '@matter/main';
+import type { PairedNode } from '@project-chip/matter.js/device';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { Ct } from '../../lib/devices/Ct';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
-import { kelvinToMireds, miredsToKelvin } from '@matter/main/behaviors';
+import {
+    kelvinToMireds,
+    miredsToKelvin,
+    LevelControlClient,
+    OnOffClient,
+    ColorControlClient,
+} from '@matter/main/behaviors';
 import type { MatterAdapter } from '../../main';
 import { ColorLightCustomStates, type ColorLightCustomStatesType } from './custom-states';
 
@@ -55,25 +62,18 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
     override async init(): Promise<void> {
         await super.init();
 
-        const levelControl = this.appEndpoint.getClusterClient(LevelControl.Complete);
-        if (levelControl) {
-            this.#isLighting = !!levelControl.supportedFeatures.lighting; // Should always be the case
-            const minLevel = levelControl.isAttributeSupportedByName('minLevel')
-                ? levelControl.getMinLevelAttributeFromCache()
-                : undefined;
-            this.#minLevel = minLevel ?? (this.#isLighting ? 1 : 0);
-            const maxLevel = levelControl.isAttributeSupportedByName('maxLevel')
-                ? levelControl.getMaxLevelAttributeFromCache()
-                : undefined;
-            this.#maxLevel = maxLevel ?? 254;
+        const lc = this.appEndpoint.behaviors.typeFor(LevelControlClient);
+        const levelControl = this.appEndpoint.stateOf(LevelControlClient);
+        if (levelControl && lc) {
+            this.#isLighting = lc.features.lighting; // Should always be the case
+            this.#minLevel = levelControl.minLevel ?? (this.#isLighting ? 1 : 0);
+            this.#maxLevel = levelControl.maxLevel ?? 254;
         }
 
-        const colorControl = this.appEndpoint.getClusterClient(ColorControl.Complete);
+        const colorControl = this.appEndpoint.stateOf(ColorControlClient);
         if (colorControl) {
-            this.#colorTemperatureMinMireds =
-                colorControl.getColorTempPhysicalMinMiredsAttributeFromCache() ?? kelvinToMireds(20_000);
-            this.#colorTemperatureMaxMireds =
-                colorControl.getColorTempPhysicalMaxMiredsAttributeFromCache() ?? kelvinToMireds(1_000);
+            this.#colorTemperatureMinMireds = colorControl.colorTempPhysicalMinMireds ?? kelvinToMireds(20_000);
+            this.#colorTemperatureMaxMireds = colorControl.colorTempPhysicalMaxMireds ?? kelvinToMireds(1_000);
         }
     }
 
@@ -83,16 +83,14 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
         this.enableDeviceTypeStateForAttribute(PropertyType.TransitionTime);
 
         this.enableDeviceTypeStateForAttribute(PropertyType.Power, {
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: OnOff.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: OnOff.id,
             attributeName: 'onOff',
             changeHandler: async value => {
                 if (value) {
                     if (this.#ioBrokerDevice.hasDimmer()) {
                         // Check if the Dimmer in ioBroker still matches the Device Dimmer and correct if needed
-                        const currentLevel = this.appEndpoint
-                            .getClusterClient(LevelControl.Cluster)
-                            ?.getCurrentLevelAttributeFromCache();
+                        const currentLevel = this.appEndpoint.maybeStateOf(LevelControlClient)?.currentLevel;
                         if (typeof currentLevel === 'number' && currentLevel <= 1) {
                             const ioLevel = Math.round((currentLevel / 100) * 254);
                             if (ioLevel !== this.#ioBrokerDevice.getDimmer()) {
@@ -100,15 +98,15 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                             }
                         }
                     }
-                    await this.appEndpoint.getClusterClient(OnOff.Complete)?.on();
+                    await this.appEndpoint.commandsOf(OnOffClient).on();
                 } else {
-                    await this.appEndpoint.getClusterClient(OnOff.Complete)?.off();
+                    await this.appEndpoint.commandsOf(OnOffClient).off();
                 }
             },
         });
         this.enableDeviceTypeStateForAttribute(PropertyType.PowerActual, {
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: OnOff.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: OnOff.id,
             attributeName: 'onOff',
             convertValue: async value => {
                 await this.#ioBrokerDevice.updatePower(value); // Also Ack Power Set State
@@ -117,14 +115,14 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
         });
 
         this.enableDeviceTypeStateForAttribute(PropertyType.Dimmer, {
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: LevelControl.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: LevelControl.id,
             attributeName: 'currentLevel',
             changeHandler: async value => {
                 if (value === 0) {
                     // ioBroker users expect that it turns off when level is set to 0
                     await this.#ioBrokerDevice.updateDimmer(0);
-                    await this.appEndpoint.getClusterClient(OnOff.Complete)?.off();
+                    await this.appEndpoint.commandsOf(OnOffClient).off();
                     return;
                 }
                 let level = Math.round((value / 100) * 254);
@@ -136,7 +134,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                 const isOn = this.#ioBrokerDevice.getPower() ?? false;
                 const transitionTime = isOn ? (this.ioBrokerDevice.getTransitionTime() ?? null) : null;
 
-                await this.appEndpoint.getClusterClient(LevelControl.Complete)?.moveToLevel({
+                await this.appEndpoint.commandsOf(LevelControlClient).moveToLevel({
                     level,
                     transitionTime: transitionTime !== null ? Math.round(transitionTime / 100) : null,
                     optionsMask: { executeIfOff: true },
@@ -144,15 +142,15 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                 });
 
                 if (!isOn) {
-                    await this.appEndpoint.getClusterClient(OnOff.Complete)?.on();
+                    await this.appEndpoint.commandsOf(OnOffClient).on();
                 }
             },
             convertValue: value => Math.round((value / 254) * 100),
         });
 
         this.enableDeviceTypeStateForAttribute(PropertyType.Temperature, {
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: ColorControl.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: ColorControl.id,
             attributeName: 'colorTemperatureMireds',
             changeHandler: async value => {
                 let colorTemperatureMireds = kelvinToMireds(value);
@@ -165,7 +163,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                 const isOn = this.#ioBrokerDevice.getPower() ?? false;
                 const transitionTime = isOn ? Math.round((this.ioBrokerDevice.getTransitionTime() ?? 0) / 100) : 0;
 
-                await this.appEndpoint.getClusterClient(ColorControl.Complete)?.moveToColorTemperature({
+                await this.appEndpoint.commandsOf(ColorControlClient).moveToColorTemperature({
                     colorTemperatureMireds,
                     transitionTime,
                     optionsMask: { executeIfOff: true },
@@ -178,22 +176,16 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
     }
 
     #enableCustomStates(): void {
-        const endpointId = this.appEndpoint.getNumber();
+        const endpointId = this.appEndpoint.number;
 
         // StartUp On/Off - defines device behavior on power-up
         this.enableCustomStateForAttribute('startUpOnOff', {
             endpointId,
-            clusterId: OnOff.Cluster.id,
+            clusterId: OnOff.id,
             attributeName: 'startUpOnOff',
-            changeHandler: async (value: number | null) => {
-                const client = await this.node.getInteractionClient();
-                await client.setAttribute({
-                    attributeData: {
-                        endpointId,
-                        clusterId: OnOff.Complete.id,
-                        attribute: OnOff.Complete.attributes.startUpOnOff,
-                        value,
-                    },
+            changeHandler: async (startUpOnOff: number | null) => {
+                await this.appEndpoint.setStateOf(OnOffClient, {
+                    startUpOnOff,
                 });
             },
         });
@@ -201,18 +193,12 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
         // StartUp Current Level - defines the brightness level on power-up (0-100% in ioBroker, 0-254 in Matter)
         this.enableCustomStateForAttribute('startUpCurrentLevel', {
             endpointId,
-            clusterId: LevelControl.Cluster.id,
+            clusterId: LevelControl.id,
             attributeName: 'startUpCurrentLevel',
             changeHandler: async (value: number | null) => {
-                const matterValue = value !== null ? Math.round((value / 100) * 254) : null;
-                const client = await this.node.getInteractionClient();
-                await client.setAttribute({
-                    attributeData: {
-                        endpointId,
-                        clusterId: LevelControl.Complete.id,
-                        attribute: LevelControl.Complete.attributes.startUpCurrentLevel,
-                        value: matterValue,
-                    },
+                const startUpCurrentLevel = value !== null ? Math.round((value / 100) * 254) : null;
+                await this.appEndpoint.setStateOf(LevelControlClient, {
+                    startUpCurrentLevel,
                 });
             },
             convertValue: value => (value !== null ? Math.round((value / 254) * 100) : null),
@@ -221,18 +207,12 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
         // StartUp Color Temperature - defines the color temperature on power-up (Kelvin in ioBroker, Mireds in Matter)
         this.enableCustomStateForAttribute('startUpColorTemperatureMireds', {
             endpointId,
-            clusterId: ColorControl.Cluster.id,
+            clusterId: ColorControl.id,
             attributeName: 'startUpColorTemperatureMireds',
             changeHandler: async (value: number | null) => {
-                const matterValue = value !== null ? kelvinToMireds(value) : null;
-                const client = await this.node.getInteractionClient();
-                await client.setAttribute({
-                    attributeData: {
-                        endpointId,
-                        clusterId: ColorControl.Complete.id,
-                        attribute: ColorControl.Complete.attributes.startUpColorTemperatureMireds,
-                        value: matterValue,
-                    },
+                const startUpColorTemperatureMireds = value !== null ? kelvinToMireds(value) : null;
+                await this.appEndpoint.setStateOf(ColorControlClient, {
+                    startUpColorTemperatureMireds,
                 });
             },
             convertValue: value => (value !== null ? Math.round(miredsToKelvin(value)) : null),

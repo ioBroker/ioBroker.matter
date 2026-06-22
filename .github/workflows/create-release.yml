@@ -23,7 +23,7 @@ jobs:
 
         strategy:
             matrix:
-                node: [22.x] # This should be LTS
+                node: [24.x] # This should be LTS
 
         steps:
             - name: Checkout code
@@ -57,7 +57,7 @@ jobs:
 
             - name: Determine the version bump
               id: version
-              uses: actions/github-script@v8
+              uses: actions/github-script@v9
               with:
                   result-encoding: string
                   script: |

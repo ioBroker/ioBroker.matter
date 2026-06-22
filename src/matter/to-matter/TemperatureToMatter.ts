@@ -43,11 +43,13 @@ export class TemperatureToMatter extends GenericDeviceToMatter {
     }
 
     convertHumidityValue(value: number): number {
-        return value * 100;
+        // Matter MeasuredValue = %RH * 100, uint16 constrained to 0..10000.
+        return Math.round(this.#ioBrokerDevice.cropValue(value * 100, 0, 10_000));
     }
 
     convertTemperatureValue(value: number): number {
-        return value * 100;
+        // Matter MeasuredValue = °C * 100, int16 constrained to -27315..32767.
+        return Math.round(this.#ioBrokerDevice.cropValue(value * 100, -27_315, 32_767));
     }
 
     async registerHandlersAndInitialize(): Promise<void> {

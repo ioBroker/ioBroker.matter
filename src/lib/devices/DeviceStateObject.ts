@@ -299,7 +299,7 @@ export class DeviceStateObject<T> extends EventEmitter {
         await this.adapter.extendObjectAsync(this.#id, {
             ...obj,
             common: { ...obj.common, name: undefined } as Partial<ioBroker.StateCommon>,
-        } as ioBroker.PartialObject);
+        });
         return obj;
     }
 
@@ -420,6 +420,27 @@ export class DeviceStateObject<T> extends EventEmitter {
         return Object.keys(modes).map(key => modes[key]);
     }
 
+    /**
+     * Convert a display value (enum label) back to its raw state key.
+     * No-op for non-enum states or when the value does not match a mode label.
+     */
+    getRawEnumValue(value: T): T {
+        if (this.valueType !== ValueType.Enum || !this.modes) {
+            return value;
+        }
+        const isNumberType = this.object?.common?.type === 'number';
+        for (const [key, label] of Object.entries(this.modes)) {
+            if (label === value) {
+                return isNumberType && /^[0-9]+$/.test(key) ? (parseInt(key, 10) as T) : (key as T);
+            }
+        }
+        // Not a label: coerce a numeric string back to a number when the state should be numeric
+        if (isNumberType && typeof value === 'string' && /^[0-9]+$/.test(value)) {
+            return parseInt(value, 10) as T;
+        }
+        return value;
+    }
+
     async updateModes(modes: { [key: string]: T }): Promise<void> {
         if (!this.object) {
             throw new Error(`Object not initialized`);
@@ -455,7 +476,7 @@ export class DeviceStateObject<T> extends EventEmitter {
 
     /** Used for Matter devices to update the value */
     updateValue(value: T): Promise<void> {
-        return this.setValue(value, true);
+        return this.setValue((value === undefined ? null : value) as T, true);
     }
 
     /** Used for ioBroker states to update the value */
@@ -497,7 +518,7 @@ export class DeviceStateObject<T> extends EventEmitter {
             this.adapter.log.debug(
                 `Set ${this.#id} to "${realValue}" after min/max-correction (ack = ${!this.#isIoBrokerState})`,
             );
-            await this.adapter.setForeignStateAsync(this.#id, realValue as ioBroker.StateValue, !this.#isIoBrokerState);
+            await this.adapter.setForeignStateAsync(this.#id, realValue, !this.#isIoBrokerState);
         } else {
             // convert value
             if (typeof value !== valueType) {
@@ -512,11 +533,7 @@ export class DeviceStateObject<T> extends EventEmitter {
                     this.adapter.log.debug(
                         `Set ${this.#id} to (boolean) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
                     );
-                    await this.adapter.setForeignStateAsync(
-                        this.#id,
-                        realValue as ioBroker.StateValue,
-                        !this.#isIoBrokerState,
-                    );
+                    await this.adapter.setForeignStateAsync(this.#id, realValue, !this.#isIoBrokerState);
                 } else if (valueType === 'number') {
                     const realValue: number = parseFloat(value as string);
 
@@ -530,31 +547,19 @@ export class DeviceStateObject<T> extends EventEmitter {
                     this.adapter.log.debug(
                         `Set ${this.#id} to (number) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
                     );
-                    await this.adapter.setForeignStateAsync(
-                        this.#id,
-                        realValue as ioBroker.StateValue,
-                        !this.#isIoBrokerState,
-                    );
+                    await this.adapter.setForeignStateAsync(this.#id, realValue, !this.#isIoBrokerState);
                 } else if (valueType === 'string') {
                     const realValue = String(value);
                     this.adapter.log.debug(
                         `Set ${this.#id} to (string) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
                     );
-                    await this.adapter.setForeignStateAsync(
-                        this.#id,
-                        realValue as ioBroker.StateValue,
-                        !this.#isIoBrokerState,
-                    );
+                    await this.adapter.setForeignStateAsync(this.#id, realValue, !this.#isIoBrokerState);
                 } else if (valueType === 'json') {
                     const realValue: string = JSON.stringify(value);
                     this.adapter.log.debug(
                         `Set ${this.#id} to (json) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
                     );
-                    await this.adapter.setForeignStateAsync(
-                        this.#id,
-                        realValue as ioBroker.StateValue,
-                        !this.#isIoBrokerState,
-                    );
+                    await this.adapter.setForeignStateAsync(this.#id, realValue, !this.#isIoBrokerState);
                 } else if (valueType === 'mixed') {
                     this.adapter.log.debug(
                         `Set ${this.#id} to (mixed) ${JSON.stringify(value)} (ack = ${!this.#isIoBrokerState})`,
@@ -581,7 +586,7 @@ export class DeviceStateObject<T> extends EventEmitter {
                             typeof realValue === 'string' &&
                             realValue.match(/^[0-9]+$/)
                         ) {
-                            realValue = parseFloat(realValue as string);
+                            realValue = parseInt(realValue, 10);
                             this.adapter.log.debug(`Converted enum value to number: ${realValue}`);
                         }
                     } else {
@@ -590,11 +595,7 @@ export class DeviceStateObject<T> extends EventEmitter {
                     this.adapter.log.debug(
                         `Set ${this.#id} to (enum) "${realValue?.toString()}" (ack = ${!this.#isIoBrokerState})`,
                     );
-                    await this.adapter.setForeignStateAsync(
-                        this.#id,
-                        realValue as ioBroker.StateValue,
-                        !this.#isIoBrokerState,
-                    );
+                    await this.adapter.setForeignStateAsync(this.#id, realValue as string, !this.#isIoBrokerState);
                 }
                 return;
             }
@@ -648,7 +649,8 @@ export class DeviceStateObject<T> extends EventEmitter {
 
         let value = state.val;
         if (this.valueType === ValueType.Enum && this.modes) {
-            value = this.modes[value as string] as ioBroker.StateValue;
+            const mapped = this.modes[value as string] as ioBroker.StateValue | undefined;
+            value = mapped !== undefined ? mapped : (value ?? null);
         } else if (typeof value === 'number') {
             // Convert the value from the unit of the state to the Default unit
             value = this.convertValue(value, true);

@@ -32,7 +32,7 @@ import type {
 } from './ioBrokerStorageTypes';
 import { DeviceFactory, type GenericDevice, SubscribeManager } from './lib';
 import MatterAdapterDeviceManagement from './lib/DeviceManagement';
-import type { DetectedDevice, DeviceOptions } from './lib/devices/GenericDevice';
+import type { DetectedDevice } from './lib/devices/GenericDevice';
 import type { NodeStateResponse } from './matter/BaseServerNode';
 import BridgedDevice, { type BridgeCreateOptions } from './matter/BridgedDevicesNode';
 import MatterController from './matter/ControllerNode';
@@ -95,10 +95,10 @@ export class MatterAdapter extends Adapter {
     readonly #devices = new Map<string, { device?: MatterDevice; error?: string }>();
     readonly #bridges = new Map<string, { bridge?: BridgedDevice; error?: string }>();
     #controller?: MatterController;
-    #sendControllerUpdateTimeout?: NodeJS.Timeout;
+    #sendControllerUpdateTimeout?: ioBroker.Timeout;
     #_guiSubscribes: { clientId: string; ts: number }[] | null = null;
     readonly #matterEnvironment: Environment;
-    #stateTimeout?: NodeJS.Timeout;
+    #stateTimeout?: ioBroker.Timeout;
     #license: { [key: string]: boolean | undefined } = {};
     sysLanguage: ioBroker.Languages = 'en';
     readonly #deviceManagement: MatterAdapterDeviceManagement;
@@ -118,7 +118,7 @@ export class MatterAdapter extends Adapter {
         earliest: number;
         inProgress?: boolean;
     }>();
-    #objectProcessQueueTimeout?: NodeJS.Timeout;
+    #objectProcessQueueTimeout?: ioBroker.Timeout;
     #currentObjectProcessPromise?: Promise<void>;
     #controllerActionQueue = new Semaphore('controller-action');
     #blockGuiUpdates = false;
@@ -437,9 +437,9 @@ export class MatterAdapter extends Adapter {
         if (!sub) {
             this.#_guiSubscribes.push({ clientId, ts: Date.now() });
             if (this.#stateTimeout) {
-                clearTimeout(this.#stateTimeout);
+                this.clearTimeout(this.#stateTimeout);
             }
-            this.#stateTimeout = setTimeout(async () => {
+            this.#stateTimeout = this.setTimeout(async () => {
                 this.#stateTimeout = undefined;
                 const states = await this.requestNodeStates();
                 await this.sendToGui({ command: 'bridgeStates', states });
@@ -488,7 +488,7 @@ export class MatterAdapter extends Adapter {
         }
         this.#sendControllerUpdateTimeout =
             this.#sendControllerUpdateTimeout ??
-            setTimeout(() => {
+            this.setTimeout(() => {
                 this.#sendControllerUpdateTimeout = undefined;
                 this.sendToGui({
                     command: 'updateController',
@@ -537,32 +537,45 @@ export class MatterAdapter extends Adapter {
             native: {},
         });
 
+        const adapter = this;
+        const instanceDataDir = this.#instanceDataDir;
+        if (instanceDataDir !== undefined) {
+            this.#matterEnvironment.vars.set('storage.path', instanceDataDir);
+        }
         const storageService = this.#matterEnvironment.get(StorageService);
-        storageService.factory = (namespace: string) => {
-            // We put special namespaces with temporary data into the filesystem
-            // We reuse the dir of the normal storage but use subdirectories, so should be fine
-            if (namespace === 'ota' || namespace === 'certificates' || namespace === 'vendors') {
-                const namespacePath = path.join(this.#instanceDataDir!, `ns-${namespace}`);
-                return new StorageBackendDisk(namespacePath, false);
-            }
-            return new IoBrokerObjectStorage(
-                this,
-                namespace,
-                false,
-                namespace === 'controller' ? this.#instanceDataDir : undefined,
-                namespace === 'controller'
-                    ? (contexts: string[]): boolean =>
-                          // Legacy node data
-                          contexts[0]?.startsWith('node-') ||
-                          // Or new node data for endpoints (not internal clusters)
-                          (contexts[0] === 'nodes' &&
-                              contexts[2] === 'endpoints' &&
-                              contexts[1]?.startsWith('peer') &&
-                              !Number.isNaN(contexts[4]))
-                    : undefined,
-            );
-        };
-        storageService.location = `${this.namespace}.storage`; // For logging
+        storageService.registerDriver({
+            id: 'iobroker',
+            create: async ns => {
+                const namespace = ns.namespace;
+                // We put special namespaces with temporary data into the filesystem
+                // We reuse the dir of the normal storage but use subdirectories, so should be fine
+                if (namespace === 'ota' || namespace === 'certificates' || namespace === 'vendors') {
+                    const namespacePath = path.join(instanceDataDir!, `ns-${namespace}`);
+                    const store = new StorageBackendDisk(namespacePath, false);
+                    await store.initialize();
+                    return store;
+                }
+                const store = new IoBrokerObjectStorage(
+                    adapter,
+                    namespace,
+                    false,
+                    namespace === 'controller' ? instanceDataDir : undefined,
+                    namespace === 'controller'
+                        ? (contexts: string[]): boolean =>
+                              // Legacy node data
+                              contexts[0]?.startsWith('node-') ||
+                              // Or new node data for endpoints (not internal clusters)
+                              (contexts[0] === 'nodes' &&
+                                  contexts[2] === 'endpoints' &&
+                                  contexts[1]?.startsWith('peer') &&
+                                  !Number.isNaN(contexts[4]))
+                        : undefined,
+                );
+                await store.initialize();
+                return store;
+            },
+        });
+        storageService.configuredDriver = 'iobroker';
 
         if (config.interface) {
             this.#matterEnvironment.vars.set('mdns.networkInterface', config.interface);
@@ -661,15 +674,15 @@ export class MatterAdapter extends Adapter {
     async #onUnload(callback: () => void): Promise<void> {
         this.#closing = true;
         if (this.#stateTimeout) {
-            clearTimeout(this.#stateTimeout);
+            this.clearTimeout(this.#stateTimeout);
             this.#stateTimeout = undefined;
         }
         if (this.#sendControllerUpdateTimeout) {
-            clearTimeout(this.#sendControllerUpdateTimeout);
+            this.clearTimeout(this.#sendControllerUpdateTimeout);
             this.#sendControllerUpdateTimeout = undefined;
         }
         if (this.#objectProcessQueueTimeout) {
-            clearTimeout(this.#objectProcessQueueTimeout);
+            this.clearTimeout(this.#objectProcessQueueTimeout);
             this.#controllerActionQueue.clear();
         }
         if (this.#objectProcessQueue.length && this.#objectProcessQueue[0].inProgress) {
@@ -731,7 +744,7 @@ export class MatterAdapter extends Adapter {
                     deleted: true,
                     uuid: objParts[1],
                 },
-            } as ioBroker.Object;
+            };
         }
         // matter.0.bridges.a6e61de9-e450-47bb-8f27-ee360350bdd8
         if (
@@ -739,11 +752,11 @@ export class MatterAdapter extends Adapter {
                 (objParts[0] === 'bridges' && objPartsLength === 2)) &&
             obj?.type === 'channel'
         ) {
-            await this.syncDevices(obj as ioBroker.ChannelObject);
+            await this.syncDevices(obj);
         } else if (objParts[0] === 'controller' && objPartsLength === 2 && obj?.type === 'folder') {
             // controller sub node changed
             const nodeId = objParts[1];
-            await this.syncControllerNode(nodeId, obj as ioBroker.FolderObject);
+            await this.syncControllerNode(nodeId, obj);
         } else if (objParts[0] === 'controller' && objPartsLength > 2 && obj?.type === 'device') {
             // controller node device sub node changed
             const nodeId = objParts[1];
@@ -769,7 +782,7 @@ export class MatterAdapter extends Adapter {
         }
 
         if (this.#objectProcessQueueTimeout) {
-            clearTimeout(this.#objectProcessQueueTimeout);
+            this.clearTimeout(this.#objectProcessQueueTimeout);
         }
 
         const now = Date.now();
@@ -778,7 +791,7 @@ export class MatterAdapter extends Adapter {
         // When next is in 100ms then we do it directly ... no need to start another timer for that :-)
         // That also prevents issues with too short timers and such
         if (diffToFirstEntry > 100) {
-            this.#objectProcessQueueTimeout = setTimeout(() => {
+            this.#objectProcessQueueTimeout = this.setTimeout(() => {
                 this.#objectProcessQueueTimeout = undefined;
                 this.#processObjectChangeQueue();
             }, diffToFirstEntry);
@@ -829,11 +842,11 @@ export class MatterAdapter extends Adapter {
 
     async findDeviceFromId(id: string, searchDeviceComingFromLevel?: number): Promise<string | null> {
         const obj = await this.getForeignObjectAsync(id);
-        if (!obj) {
+        if (!obj || obj.type === 'meta') {
             // Object does not exist
             return null;
         }
-        if (obj.type === 'device' || obj.type === 'channel' || obj.type === 'meta') {
+        if (obj.type === 'device' || obj.type === 'channel') {
             // Because it seems we are also fine with just a channel or meta as root return also then
             // We found a device object, use this
             return id;
@@ -859,6 +872,11 @@ export class MatterAdapter extends Adapter {
             searchDeviceComingFromLevel ?? parts.length + 1,
         );
         if (foundDevice === null) {
+            const upperObj = await this.getForeignObjectAsync(upperLevelObjectId);
+            if (upperObj && upperObj.type === 'folder') {
+                return upperLevelObjectId;
+            }
+
             if (obj.type === 'state') {
                 return id;
             }
@@ -956,7 +974,7 @@ export class MatterAdapter extends Adapter {
                     return {
                         ...controlsWithType[0],
                         isIoBrokerDevice: true,
-                    } as DetectedDevice;
+                    };
                 }
             }
         } else {
@@ -1142,7 +1160,7 @@ export class MatterAdapter extends Adapter {
                 continue;
             }
             try {
-                const deviceObject = await DeviceFactory(detectedDevice, this, deviceOptions as DeviceOptions, false);
+                const deviceObject = await DeviceFactory(detectedDevice, this, deviceOptions, false);
                 if (addedDevices >= 5) {
                     if (!(await this.checkLicense())) {
                         this.log.error(
@@ -1222,7 +1240,7 @@ export class MatterAdapter extends Adapter {
             return null;
         }
         try {
-            const device = await DeviceFactory(detectedDevice, this, options as DeviceOptions, false);
+            const device = await DeviceFactory(detectedDevice, this, options, false);
             return {
                 parameters: {
                     port: assignedPort ?? this.#nextPortNumber++,

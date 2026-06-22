@@ -1,8 +1,9 @@
 import { DeviceClassification, DeviceTypeModel, MatterModel } from '@matter/main/model';
-import type { ClassExtends } from '@matter/main';
+import type { ClassExtends, Endpoint } from '@matter/main';
 import * as Devices from '@matter/main/devices';
 import * as Endpoints from '@matter/main/endpoints';
-import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
+import { DescriptorClient } from '@matter/main/behaviors';
+import type { PairedNode } from '@project-chip/matter.js/device';
 import { ContactSensorToIoBroker } from './ContactSensorToIoBroker';
 import { DimmableToIoBroker } from './DimmableToIoBroker';
 import { DoorLockToIoBroker } from './DoorLockToIoBroker';
@@ -27,7 +28,12 @@ export function identifyDeviceTypes(endpoint: Endpoint): {
     appTypes: { deviceType: DeviceTypeModel; revision: number }[];
     primaryDeviceType?: { deviceType: DeviceTypeModel; revision: number };
 } {
-    const matterDeviceTypes = endpoint.getDeviceTypes();
+    const deviceTypeList: { deviceType: number; revision: number }[] =
+        (endpoint as any).stateOf(DescriptorClient)?.deviceTypeList ?? [];
+    const matterDeviceTypes = deviceTypeList.map(({ deviceType, revision }) => ({
+        code: deviceType,
+        revision,
+    }));
 
     const utilityTypes = new Array<{ deviceType: DeviceTypeModel; revision: number }>();
     const appTypes = new Array<{ deviceType: DeviceTypeModel; revision: number }>();

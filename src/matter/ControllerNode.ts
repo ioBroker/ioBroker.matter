@@ -1,28 +1,12 @@
 import type { Endpoint, ServerAddressUdp, SoftwareUpdateInfo } from '@matter/main';
+import { ObserverGroup, SoftwareUpdateManager, Diagnostic, NodeId, VendorId, Seconds } from '@matter/main';
+import { GeneralCommissioning } from '@matter/main/clusters';
 import {
-    ObserverGroup,
-    SoftwareUpdateManager,
-    Diagnostic,
-    NodeId,
-    VendorId,
-    Seconds,
-    ClusterId,
-    EndpointNumber,
-    AttributeId,
-} from '@matter/main';
-import {
-    GeneralCommissioning,
-    GeneralDiagnosticsCluster,
-    NetworkCommissioning,
-    ThreadNetworkDiagnostics,
-    WiFiNetworkDiagnosticsCluster,
-} from '@matter/main/clusters';
-import type {
-    PeerAddress,
-    CommissionableDevice,
-    ControllerCommissioningFlowOptions,
-    DiscoveryData,
-} from '@matter/main/protocol';
+    GeneralDiagnosticsClient,
+    ThreadNetworkDiagnosticsClient,
+    WiFiNetworkDiagnosticsClient,
+} from '@matter/main/behaviors';
+import type { PeerAddress, CommissionableDevice, DiscoveryData } from '@matter/main/protocol';
 import { CommissioningError, DclOtaUpdateService } from '@matter/main/protocol';
 import { ManualPairingCodeCodec, QrPairingCodeCodec, DiscoveryCapabilitiesSchema } from '@matter/main/types';
 import { CommissioningController, type NodeCommissioningOptions } from '@project-chip/matter.js';
@@ -86,7 +70,8 @@ class Controller implements GeneralNode {
     #useBle = false;
     #commissioningStatus = new Map<number, { status: 'finished' | 'error' | 'inprogress'; result?: MessageResponse }>();
     #observers = new ObserverGroup();
-    #networkGraphUpdateTimer?: ReturnType<typeof setTimeout>;
+    #networkGraphUpdateTimer?: ioBroker.Timeout;
+    #closing = false;
 
     constructor(options: ControllerCreateOptions) {
         const { adapter, controllerOptions, updateCallback, fabricLabel } = options;
@@ -197,7 +182,12 @@ class Controller implements GeneralNode {
                                     result: { error: error.message },
                                 });
                             })
-                            .finally(() => setTimeout(() => this.#commissioningStatus.delete(pollingId), 60 * 60_000));
+                            .finally(() =>
+                                this.#adapter.setTimeout(
+                                    () => this.#commissioningStatus.delete(pollingId),
+                                    60 * 60_000,
+                                ),
+                            );
                         return { result: { pollingId } };
                     }
                     return await this.commissionDevice(options);
@@ -347,6 +337,8 @@ class Controller implements GeneralNode {
                 environment: this.#adapter.matterEnvironment,
                 id: 'controller',
             },
+            tcp: true,
+            transportPreference: 'tcp',
             adminFabricLabel: this.#fabricLabel,
             enableOtaProvider: true,
         });
@@ -480,7 +472,7 @@ class Controller implements GeneralNode {
         if (!this.#commissioningController) {
             return { error: 'Controller is not activated.', result: false };
         }
-        const commissioningOptions: ControllerCommissioningFlowOptions = {
+        const commissioningOptions: NodeCommissioningOptions['commissioning'] = {
             regulatoryLocation: GeneralCommissioning.RegulatoryLocationType.IndoorOutdoor,
             regulatoryCountryCode: 'XX',
         };
@@ -810,28 +802,6 @@ class Controller implements GeneralNode {
     async refreshNodeNetworkData(nodeIds: string[]): Promise<void> {
         this.#adapter.log.debug(`Refreshing network data for nodes: ${nodeIds.join(', ')}`);
 
-        // Thread Network Diagnostics cluster ID: 0x0035 (53)
-        // Attribute IDs: channel=0, routingRole=1, neighborTable=7, routeTable=8, rloc16=64
-        const threadClusterId = ClusterId(0x0035);
-        const threadAttributes = [
-            { endpointId: EndpointNumber(0), clusterId: threadClusterId, attributeId: AttributeId(0) }, // channel
-            { endpointId: EndpointNumber(0), clusterId: threadClusterId, attributeId: AttributeId(1) }, // routingRole
-            { endpointId: EndpointNumber(0), clusterId: threadClusterId, attributeId: AttributeId(7) }, // neighborTable
-            { endpointId: EndpointNumber(0), clusterId: threadClusterId, attributeId: AttributeId(8) }, // routeTable
-            { endpointId: EndpointNumber(0), clusterId: threadClusterId, attributeId: AttributeId(64) }, // rloc16
-        ];
-
-        // WiFi Network Diagnostics cluster ID: 0x0036 (54)
-        // Attribute IDs: bssid=0, securityType=1, wiFiVersion=2, channelNumber=3, rssi=4
-        const wifiClusterId = ClusterId(0x0036);
-        const wifiAttributes = [
-            { endpointId: EndpointNumber(0), clusterId: wifiClusterId, attributeId: AttributeId(0) }, // bssid
-            { endpointId: EndpointNumber(0), clusterId: wifiClusterId, attributeId: AttributeId(1) }, // securityType
-            { endpointId: EndpointNumber(0), clusterId: wifiClusterId, attributeId: AttributeId(2) }, // wiFiVersion
-            { endpointId: EndpointNumber(0), clusterId: wifiClusterId, attributeId: AttributeId(3) }, // channelNumber
-            { endpointId: EndpointNumber(0), clusterId: wifiClusterId, attributeId: AttributeId(4) }, // rssi
-        ];
-
         const refreshPromises = nodeIds.map(async nodeIdStr => {
             const node = this.#nodes.get(nodeIdStr);
             if (!node) {
@@ -845,21 +815,29 @@ class Controller implements GeneralNode {
             }
 
             try {
-                // Get interaction client for this node
-                const client = await node.node.getInteractionClient();
-
                 // Determine network type and read appropriate diagnostics
                 const networkType = this.#getNetworkType(node);
-                const attributes =
-                    networkType === 'thread' ? threadAttributes : networkType === 'wifi' ? wifiAttributes : [];
 
-                if (attributes.length === 0) {
+                if (networkType === 'thread') {
+                    await node.node.node.getStateOf(ThreadNetworkDiagnosticsClient, [
+                        'channel',
+                        'routingRole',
+                        'neighborTable',
+                        'routeTable',
+                        'rloc16',
+                    ]);
+                } else if (networkType === 'wifi') {
+                    await node.node.node.getStateOf(WiFiNetworkDiagnosticsClient, [
+                        'bssid',
+                        'securityType',
+                        'wiFiVersion',
+                        'channelNumber',
+                        'rssi',
+                    ]);
+                } else {
                     this.#adapter.log.debug(`Node ${nodeIdStr} has no network diagnostics to refresh`);
                     return;
                 }
-
-                // Read all attributes in one request
-                await client.getMultipleAttributes({ attributes });
 
                 this.#adapter.log.debug(`Successfully refreshed network data for node ${nodeIdStr}`);
             } catch (error) {
@@ -879,9 +857,12 @@ class Controller implements GeneralNode {
      */
     #sendNetworkGraphUpdate(): void {
         if (this.#networkGraphUpdateTimer) {
-            clearTimeout(this.#networkGraphUpdateTimer);
+            this.#adapter.clearTimeout(this.#networkGraphUpdateTimer);
         }
-        this.#networkGraphUpdateTimer = setTimeout(async () => {
+        if (this.#closing) {
+            return;
+        }
+        this.#networkGraphUpdateTimer = this.#adapter.setTimeout(async () => {
             try {
                 const data = this.getNetworkGraphData();
                 await this.#adapter.sendToGui({
@@ -930,33 +911,14 @@ class Controller implements GeneralNode {
 
     #getNetworkType(node: GeneralMatterNode): NetworkType {
         // Use the deviceInformation from PairedNode which is more reliable
-        if (node.node.deviceInformation?.threadConnected) {
+        if (node.node.deviceInformation?.threadActive || node.node.deviceInformation?.supportsThread) {
             return 'thread';
         }
-        if (node.node.deviceInformation?.wifiConnected) {
+        if (node.node.deviceInformation?.supportsWifi) {
             return 'wifi';
         }
-        if (node.node.deviceInformation?.ethernetConnected) {
+        if (node.node.deviceInformation?.supportsEthernet) {
             return 'ethernet';
-        }
-
-        // Fallback: try to detect from NetworkCommissioning cluster feature map
-        try {
-            const networkCommissioning = node.node.getRootClusterClient(NetworkCommissioning.Complete);
-            if (networkCommissioning) {
-                const features = networkCommissioning.supportedFeatures;
-                if (features.threadNetworkInterface) {
-                    return 'thread';
-                }
-                if (features.wiFiNetworkInterface) {
-                    return 'wifi';
-                }
-                if (features.ethernetNetworkInterface) {
-                    return 'ethernet';
-                }
-            }
-        } catch {
-            // Ignore errors
         }
 
         return 'unknown';
@@ -967,35 +929,25 @@ class Controller implements GeneralNode {
             return undefined;
         }
 
-        try {
-            const cluster = node.node.getRootClusterClient(WiFiNetworkDiagnosticsCluster);
-            if (!cluster) {
-                return undefined;
-            }
-
-            const bssidRaw = cluster.isAttributeSupportedByName('bssid') ? cluster.getBssidAttributeFromCache() : null;
-            let bssid: string | null = null;
-            if (bssidRaw) {
-                // Convert Uint8Array to base64 string
-                bssid = Buffer.from(new Uint8Array(bssidRaw as ArrayBuffer)).toString('base64');
-            }
-
-            return {
-                bssid,
-                rssi: cluster.isAttributeSupportedByName('rssi') ? (cluster.getRssiAttributeFromCache() ?? null) : null,
-                channel: cluster.isAttributeSupportedByName('channelNumber')
-                    ? (cluster.getChannelNumberAttributeFromCache() ?? null)
-                    : null,
-                securityType: cluster.isAttributeSupportedByName('securityType')
-                    ? (cluster.getSecurityTypeAttributeFromCache() ?? null)
-                    : null,
-                wifiVersion: cluster.isAttributeSupportedByName('wiFiVersion')
-                    ? (cluster.getWiFiVersionAttributeFromCache() ?? null)
-                    : null,
-            };
-        } catch {
+        const wifiState = node.node.node.maybeStateOf(WiFiNetworkDiagnosticsClient);
+        if (wifiState === undefined) {
             return undefined;
         }
+
+        const bssidRaw = wifiState.bssid ?? null;
+        let bssid: string | null = null;
+        if (bssidRaw) {
+            // Convert Uint8Array to base64 string
+            bssid = Buffer.from(new Uint8Array(bssidRaw as ArrayBuffer)).toString('base64');
+        }
+
+        return {
+            bssid,
+            rssi: wifiState.rssi ?? null,
+            channel: wifiState.channelNumber ?? null,
+            securityType: wifiState.securityType ?? null,
+            wifiVersion: wifiState.wiFiVersion ?? null,
+        };
     }
 
     #getThreadDiagnostics(node: GeneralMatterNode): ThreadDiagnosticsData | undefined {
@@ -1004,8 +956,8 @@ class Controller implements GeneralNode {
         }
 
         try {
-            const cluster = node.node.getRootClusterClient(ThreadNetworkDiagnostics.Cluster);
-            if (!cluster) {
+            const threadState = node.node.node.maybeStateOf(ThreadNetworkDiagnosticsClient);
+            if (threadState === undefined) {
                 return undefined;
             }
 
@@ -1013,9 +965,7 @@ class Controller implements GeneralNode {
             const extendedAddress = this.#getExtendedAddress(node);
 
             // Get neighbor table
-            const neighborTableRaw = cluster.isAttributeSupportedByName('neighborTable')
-                ? (cluster.getNeighborTableAttributeFromCache() ?? [])
-                : [];
+            const neighborTableRaw = threadState.neighborTable ?? [];
 
             const neighborTable: ThreadNeighborEntry[] = neighborTableRaw.map(entry => ({
                 extAddress: this.#bigIntToBase64(entry.extAddress),
@@ -1033,9 +983,7 @@ class Controller implements GeneralNode {
             }));
 
             // Get route table
-            const routeTableRaw = cluster.isAttributeSupportedByName('routeTable')
-                ? (cluster.getRouteTableAttributeFromCache() ?? [])
-                : [];
+            const routeTableRaw = threadState.routeTable ?? [];
 
             const routeTable: ThreadRouteEntry[] = routeTableRaw.map(entry => ({
                 extAddress: this.#bigIntToBase64(entry.extAddress),
@@ -1052,24 +1000,16 @@ class Controller implements GeneralNode {
 
             // Get extended PAN ID
             let extendedPanId: string | null = null;
-            if (cluster.isAttributeSupportedByName('extendedPanId')) {
-                const extPanIdRaw = cluster.getExtendedPanIdAttributeFromCache();
-                if (extPanIdRaw !== undefined && extPanIdRaw !== null) {
-                    extendedPanId = this.#bigIntToBase64(extPanIdRaw);
-                }
+            const extPanIdRaw = threadState.extendedPanId;
+            if (extPanIdRaw !== undefined && extPanIdRaw !== null) {
+                extendedPanId = this.#bigIntToBase64(extPanIdRaw);
             }
 
             return {
-                channel: cluster.isAttributeSupportedByName('channel')
-                    ? (cluster.getChannelAttributeFromCache() ?? null)
-                    : null,
-                routingRole: cluster.isAttributeSupportedByName('routingRole')
-                    ? (cluster.getRoutingRoleAttributeFromCache() ?? null)
-                    : null,
+                channel: threadState.channel ?? null,
+                routingRole: threadState.routingRole ?? null,
                 extendedPanId,
-                rloc16: cluster.isAttributeSupportedByName('rloc16')
-                    ? (cluster.getRloc16AttributeFromCache() ?? null)
-                    : null,
+                rloc16: threadState.rloc16 ?? null,
                 extendedAddress,
                 neighborTable,
                 routeTable,
@@ -1081,14 +1021,12 @@ class Controller implements GeneralNode {
 
     #getExtendedAddress(node: GeneralMatterNode): string | null {
         try {
-            const cluster = node.node.getRootClusterClient(GeneralDiagnosticsCluster);
-            if (!cluster) {
+            const diagState = node.node.node.maybeStateOf(GeneralDiagnosticsClient);
+            if (diagState === undefined) {
                 return null;
             }
 
-            const networkInterfaces = cluster.isAttributeSupportedByName('networkInterfaces')
-                ? cluster.getNetworkInterfacesAttributeFromCache()
-                : null;
+            const networkInterfaces = diagState.networkInterfaces ?? null;
 
             if (!networkInterfaces?.length) {
                 return null;
@@ -1122,6 +1060,7 @@ class Controller implements GeneralNode {
     }
 
     async stop(): Promise<void> {
+        this.#closing = true;
         this.#adapter.log.info(`Stopping Controller...`);
         if (this.#discovering) {
             await this.#discoveryStop();
@@ -1129,7 +1068,7 @@ class Controller implements GeneralNode {
 
         // Clear any pending network graph update timer
         if (this.#networkGraphUpdateTimer) {
-            clearTimeout(this.#networkGraphUpdateTimer);
+            this.#adapter.clearTimeout(this.#networkGraphUpdateTimer);
             this.#networkGraphUpdateTimer = undefined;
         }
 

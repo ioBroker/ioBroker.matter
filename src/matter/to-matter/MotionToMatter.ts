@@ -2,7 +2,6 @@ import { Endpoint } from '@matter/main';
 import { OccupancySensing } from '@matter/main/clusters';
 import { LightSensorDevice, OccupancySensorDevice } from '@matter/main/devices';
 import { OccupancySensingServer } from '@matter/main/behaviors/occupancy-sensing';
-import type { TypeFromBitSchema } from '@matter/main/types';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { Motion } from '../../lib/devices/Motion';
 import { GenericDeviceToMatter } from './GenericDeviceToMatter';
@@ -54,7 +53,7 @@ export class MotionToMatter extends GenericDeviceToMatter {
         return this.#ioBrokerDevice;
     }
 
-    convertMotionValue(value: boolean): TypeFromBitSchema<typeof OccupancySensing.Occupancy> {
+    convertMotionValue(value: boolean): OccupancySensing.Occupancy {
         return { occupied: value };
     }
 

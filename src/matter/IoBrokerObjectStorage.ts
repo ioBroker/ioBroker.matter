@@ -1,11 +1,13 @@
-import type { Bytes, Storage, SupportedStorageTypes } from '@matter/main';
-import { fromJson, StorageError, toJson } from '@matter/main';
+import type { Bytes, SupportedStorageTypes, MaybePromise } from '@matter/main';
+import { fromJson, StorageError, StorageDriver, toJson } from '@matter/main';
 import { StorageBackendDisk } from '@matter/nodejs';
 
 /**
  * Class that implements the storage for one Node in the Matter ecosystem
  */
-export class IoBrokerObjectStorage implements Storage {
+export class IoBrokerObjectStorage extends StorageDriver {
+    static readonly id = 'iobroker';
+
     #existingObjectIds = new Set<string>();
     readonly #storageRootOid: string;
     readonly #nodeDataStorageDirectory?: string;
@@ -23,6 +25,7 @@ export class IoBrokerObjectStorage implements Storage {
         nodeDataStorageDirectory?: string,
         storeLocalChecker?: (contexts: string[]) => boolean,
     ) {
+        super();
         this.#adapter = adapter;
         this.#namespace = namespace;
         this.#clear = clear;
@@ -124,7 +127,7 @@ export class IoBrokerObjectStorage implements Storage {
             throw new StorageError('[STORAGE] Context and key must not be empty strings!');
         }
         if (this.#localStorageManager && this.#isLocallyStored(contexts)) {
-            return this.#localStorageManager.get<T>(contexts, key);
+            return await this.#localStorageManager.get<T>(contexts, key);
         }
         const oid = this.buildKey(contexts, key);
         try {
@@ -232,8 +235,7 @@ export class IoBrokerObjectStorage implements Storage {
         value?: SupportedStorageTypes,
     ): Promise<void> {
         if (this.#localStorageManager && this.#isLocallyStored(contexts)) {
-            // @ts-expect-error we have multi type parameters here
-            return this.#localStorageManager.set(contexts, keyOrValue, value);
+            return this.#localStorageManager.set(contexts, keyOrValue as string, value);
         }
 
         if (typeof keyOrValue === 'string') {
@@ -242,6 +244,10 @@ export class IoBrokerObjectStorage implements Storage {
         for (const key in keyOrValue) {
             await this.#setKey(contexts, key, keyOrValue[key]);
         }
+    }
+
+    begin(): MaybePromise<StorageDriver.Transaction> {
+        return new StorageDriver.Transaction(this);
     }
 
     async delete(contexts: string[], key: string): Promise<void> {

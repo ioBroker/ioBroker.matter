@@ -1,20 +1,35 @@
-import { capitalize, ClusterId, serialize, Diagnostic, SoftwareUpdateManager, ObserverGroup } from '@matter/main';
-import type { NodeId, SoftwareUpdateInfo } from '@matter/main';
 import {
-    BasicInformationCluster,
-    BridgedDeviceBasicInformation,
-    GeneralDiagnosticsCluster,
-    WiFiNetworkDiagnosticsCluster,
-    ThreadNetworkDiagnostics,
-    OperationalCredentialsCluster,
-    OtaSoftwareUpdateRequestor,
-} from '@matter/main/clusters';
+    camelize,
+    ClusterBehavior,
+    ClusterId,
+    type AttributeId,
+    type CommandId,
+    type EventId,
+    type NodeId,
+    type SoftwareUpdateInfo,
+    type Endpoint as NewEndpoint,
+    serialize,
+    Diagnostic,
+    SoftwareUpdateManager,
+    ObserverGroup,
+    deepCopy,
+} from '@matter/main';
+import type { ThreadNetworkDiagnostics } from '@matter/main/clusters';
+import { OtaSoftwareUpdateRequestor } from '@matter/main/clusters';
+import {
+    BasicInformationClient,
+    BridgedDeviceBasicInformationClient,
+    GeneralDiagnosticsClient,
+    WiFiNetworkDiagnosticsClient,
+    ThreadNetworkDiagnosticsClient,
+    OperationalCredentialsClient,
+    OtaSoftwareUpdateRequestorClient,
+} from '@matter/main/behaviors';
 import { PeerAddress } from '@matter/main/protocol';
-import { FabricIndex, GlobalAttributes, SpecificationVersion } from '@matter/main/types';
-import { AttributeModel, ClusterModel, CommandModel, MatterModel } from '@matter/main/model';
+import { FabricIndex, SpecificationVersion } from '@matter/main/types';
+import { AttributeModel, ClusterModel, CommandModel, EventModel, MatterModel } from '@matter/main/model';
 import { type DecodedAttributeReportValue, type DecodedEventReportValue } from '@matter/main/protocol';
 import { AggregatorEndpointDefinition, BridgedNodeEndpointDefinition } from '@matter/main/endpoints';
-import { OtaSoftwareUpdateRequestorClient } from '@matter/main/behaviors';
 import {
     type Endpoint,
     NodeStates as PairedNodeStates,
@@ -22,7 +37,6 @@ import {
     type CommissioningControllerNodeOptions,
 } from '@project-chip/matter.js/device';
 import type { CommissioningController } from '@project-chip/matter.js';
-import { SupportedAttributeClient, UnknownSupportedAttributeClient } from '@project-chip/matter.js/cluster';
 import type { MatterControllerConfig } from '../ioBrokerStorageTypes';
 import { SubscribeManager } from '../lib';
 import type { SubscribeCallback } from '../lib/SubscribeManager';
@@ -89,7 +103,7 @@ export class GeneralMatterNode {
     readonly updateAvailableStateId: string;
     exposeMatterApplicationClusterData: boolean;
     exposeMatterSystemClusterData: boolean;
-    #endpointMap = new Map<number, { baseId: string; endpoint: Endpoint }>();
+    #endpointMap = new Map<number, { baseId: string; endpoint: NewEndpoint }>();
     #deviceMap = new Map<number, GenericDeviceToIoBroker>();
     #attributeTypeMap = new Map<string, ioBroker.CommonType>();
     #eventMap = new Set<string>();
@@ -222,28 +236,24 @@ export class GeneralMatterNode {
             },
         };
 
-        const info = this.node.getRootClusterClient(BasicInformationCluster);
+        const info = this.node.node.maybeStateOf(BasicInformationClient);
         if (info !== undefined) {
             this.#details = {
-                manufacturer: info.getVendorNameAttributeFromCache(),
-                model: info.getProductNameAttributeFromCache(),
+                manufacturer: info.vendorName,
+                model: info.productName,
             };
 
             if (existingObject && existingObject.common.name) {
                 deviceObj.common.name = existingObject.common.name;
             } else {
-                deviceObj.common.name = info.getProductNameAttributeFromCache() ?? 'Unknown';
+                deviceObj.common.name = info.productName ?? 'Unknown';
             }
-            deviceObj.native.vendorId = toUpperCaseHex(info.getVendorIdAttributeFromCache() ?? 0);
+            deviceObj.native.vendorId = toUpperCaseHex(info.vendorId ?? 0);
             deviceObj.native.vendorName = this.#details.manufacturer;
             deviceObj.native.productId = this.#details.model;
-            deviceObj.native.nodeLabel = info.getNodeLabelAttributeFromCache();
-            deviceObj.native.productLabel = info.isAttributeSupportedByName('productLabel')
-                ? info.getProductLabelAttributeFromCache()
-                : undefined;
-            deviceObj.native.serialNumber = info.isAttributeSupportedByName('serialNumber')
-                ? info.getSerialNumberAttributeFromCache()
-                : undefined;
+            deviceObj.native.nodeLabel = info.nodeLabel;
+            deviceObj.native.productLabel = info.productLabel;
+            deviceObj.native.serialNumber = info.serialNumber;
         }
         this.#name = (deviceObj.common.name || this.nodeId) as string;
 
@@ -756,7 +766,7 @@ export class GeneralMatterNode {
             return;
         }
 
-        const { appTypes, primaryDeviceType } = identifyDeviceTypes(endpoint);
+        const { appTypes, primaryDeviceType } = identifyDeviceTypes(endpoint.endpoint);
         if (appTypes.length > 1) {
             this.adapter.log.info(
                 `Node ${this.node.nodeId}: Multiple device types detected: ${appTypes.map(t => t.deviceType.name).join(', ')}`,
@@ -788,10 +798,8 @@ export class GeneralMatterNode {
         let connectionStateId = options?.connectionStateId ?? `${this.adapter.namespace}.${this.connectionStateId}`;
 
         // TODO: Add TagList support
-        const bridgedBasicInfo = endpoint.getClusterClient(BridgedDeviceBasicInformation.Cluster);
-        const endpointName = bridgedBasicInfo?.isAttributeSupportedByName('nodeLabel')
-            ? bridgedBasicInfo.getNodeLabelAttributeFromCache()
-            : `${deviceTypeName}-${id}`;
+        const bridgedBasicInfo = endpoint.maybeStateOf(BridgedDeviceBasicInformationClient);
+        const endpointName = bridgedBasicInfo?.nodeLabel ?? `${deviceTypeName}-${id}`;
         const endpointBaseName =
             primaryDeviceType?.deviceType.id === AggregatorEndpointDefinition.deviceType
                 ? options?.endpointBaseName
@@ -832,12 +840,12 @@ export class GeneralMatterNode {
             if (primaryDeviceType.deviceType.name === 'BridgedNode') {
                 const ioBrokerDevice = await ioBrokerDeviceFabric(
                     this.node,
-                    endpoint,
-                    rootEndpoint,
+                    endpoint.endpoint,
+                    rootEndpoint.endpoint,
                     this.adapter,
                     endpointDeviceBaseId,
                     connectionStateId,
-                    endpointBaseName ?? endpoint.name,
+                    endpointBaseName ?? String(endpoint.endpoint.type?.name ?? endpoint.number),
                 );
                 if (ioBrokerDevice !== null) {
                     connectionStateId = ioBrokerDevice.connectionStateId;
@@ -868,12 +876,12 @@ export class GeneralMatterNode {
                 // Ignore the root endpoint
                 const ioBrokerDevice = await ioBrokerDeviceFabric(
                     this.node,
-                    endpoint,
-                    rootEndpoint,
+                    endpoint.endpoint,
+                    rootEndpoint.endpoint,
                     this.adapter,
                     endpointDeviceBaseId,
                     connectionStateId,
-                    endpointBaseName ?? endpoint.name,
+                    endpointBaseName ?? String(endpoint.endpoint.type?.name ?? endpoint.number),
                 );
                 if (ioBrokerDevice !== null) {
                     this.#deviceMap.set(id, ioBrokerDevice);
@@ -893,14 +901,14 @@ export class GeneralMatterNode {
             }
         }
 
-        await this.#processEndpointRawDataStructure(endpoint, endpointDeviceBaseId, {
+        await this.#processEndpointRawDataStructure(endpoint.endpoint, endpointDeviceBaseId, {
             exposeMatterSystemClusterData: customExposeMatterSystemClusterData,
             exposeMatterApplicationClusterData: customExposeMatterApplicationClusterData,
         });
     }
 
     async #processEndpointRawDataStructure(
-        endpoint: Endpoint,
+        endpoint: NewEndpoint,
         endpointDeviceBaseId: string,
         options?: {
             exposeMatterSystemClusterData?: boolean;
@@ -908,7 +916,9 @@ export class GeneralMatterNode {
         },
         path?: number[],
     ): Promise<void> {
-        this.adapter.log.info(`${''.padStart((path?.length ?? 0) * 2)}Endpoint ${endpoint.number} (${endpoint.name}):`);
+        this.adapter.log.info(
+            `${''.padStart((path?.length ?? 0) * 2)}Endpoint ${endpoint.number} (${String(endpoint.type?.name ?? endpoint.number)}):`,
+        );
 
         const exposeMatterSystemClusterData =
             options?.exposeMatterSystemClusterData ?? this.exposeMatterSystemClusterData;
@@ -917,7 +927,9 @@ export class GeneralMatterNode {
 
         const id = endpoint.number;
         if (id === undefined) {
-            this.adapter.log.warn(`Node ${this.node.nodeId}: Endpoint ${endpoint.name} has no number!`);
+            this.adapter.log.warn(
+                `Node ${this.node.nodeId}: Endpoint ${String(endpoint.type?.name ?? 'unknown')} has no number!`,
+            );
             return;
         }
         const endpointPath = path === undefined ? [id] : [...path, id];
@@ -939,7 +951,7 @@ export class GeneralMatterNode {
         await this.initializeEndpointRawDataStates(endpoint, endpointDeviceBaseDataId, options, endpointPath.join('-'));
 
         if (id !== 0) {
-            for (const childEndpoint of endpoint.getChildEndpoints()) {
+            for (const childEndpoint of endpoint.parts) {
                 // Recursive call to process all sub endpoints for raw states
                 await this.#processEndpointRawDataStructure(
                     childEndpoint,
@@ -1007,7 +1019,7 @@ export class GeneralMatterNode {
     }
 
     async initializeEndpointRawDataStates(
-        endpoint: Endpoint,
+        endpoint: NewEndpoint,
         endpointDeviceBaseDataId: string,
         options:
             | {
@@ -1018,7 +1030,9 @@ export class GeneralMatterNode {
         path: string,
     ): Promise<void> {
         if (endpoint.number === undefined) {
-            this.adapter.log.warn(`Node ${this.node.nodeId}: Endpoint ${endpoint.name} has no number!`);
+            this.adapter.log.warn(
+                `Node ${this.node.nodeId}: Endpoint ${String(endpoint.type?.name ?? 'unknown')} has no number!`,
+            );
             return;
         }
         const endpointBaseId = `${endpointDeviceBaseDataId}.${path}`;
@@ -1036,11 +1050,15 @@ export class GeneralMatterNode {
             native: {},
         });
 
-        // Ignore ClusterServers for now
-        // Process ClusterClients
-        const clusters = endpoint.getAllClusterClients();
-        for (const clusterClient of clusters) {
-            const clusterId = clusterClient.id;
+        for (const [behaviorId, BehaviorType] of Object.entries(endpoint.behaviors.supported)) {
+            if (!ClusterBehavior.is(BehaviorType)) {
+                continue;
+            }
+            const clusterId = BehaviorType.cluster.id;
+            const clusterState = (endpoint.state as any)[behaviorId];
+            if (!clusterState) {
+                continue;
+            }
             // TODO make Configurable
             const clusterBaseId = `${endpointBaseId}.${toHex(clusterId)}`;
             if (!exposeMatterSystemClusterData && SystemClusters.includes(clusterId)) {
@@ -1048,10 +1066,12 @@ export class GeneralMatterNode {
                 continue;
             }
 
+            const clusterName =
+                MatterModel.standard.get(ClusterModel, clusterId)?.name ?? `Cluster_${toHex(clusterId)}`;
             await this.adapter.setObjectNotExists(clusterBaseId, {
                 type: 'folder',
                 common: {
-                    name: clusterClient.name,
+                    name: clusterName,
                 },
                 native: {
                     nodeId: this.nodeId,
@@ -1060,14 +1080,11 @@ export class GeneralMatterNode {
                 },
             });
 
-            const { supportedFeatures: features } = clusterClient;
-            const globalAttributes = GlobalAttributes<any>(features);
-            const supportedFeatures = new Array<string>();
-            for (const featureName in features) {
-                if (features[featureName] === true) {
-                    supportedFeatures.push(featureName);
-                }
-            }
+            const featureMap: Record<string, boolean> = clusterState.featureMap ?? {};
+            const globalIds = AttributeModel.globalIds;
+            const supportedFeatures = Object.entries(featureMap)
+                .filter(([, v]) => v === true)
+                .map(([k]) => k);
             await this.adapter.setObjectNotExists(`${clusterBaseId}.supportedFeatures`, {
                 type: 'state',
                 common: {
@@ -1081,37 +1098,32 @@ export class GeneralMatterNode {
             });
             await this.adapter.setState(`${clusterBaseId}.supportedFeatures`, supportedFeatures.join(', '), true);
 
-            const attributes = clusterClient.attributes;
+            const attributeList: AttributeId[] = clusterState.attributeList ?? [];
             let addedAttributes = 0;
-            for (const attributeName in attributes) {
-                const attribute = attributes[attributeName];
-                if (attribute === undefined) {
+            for (const attributeId of attributeList) {
+                if (globalIds.has(attributeId)) {
                     continue;
                 }
-                if (!(attribute instanceof SupportedAttributeClient)) {
-                    continue;
-                }
-                // TODO make Configurable
-                if (attributeName in globalAttributes) {
-                    continue;
-                }
-                const unknown = attribute instanceof UnknownSupportedAttributeClient;
-                const attributeBaseId = `${clusterBaseId}.attributes.${attribute.name.replace('unknownAttribute_', '')}`;
+                const attrModel = MatterModel.standard.get(ClusterModel, clusterId)?.get(AttributeModel, attributeId);
+                const unknown = !attrModel;
+                const attrName = attrModel ? camelize(attrModel.name) : `unknownAttribute_${toHex(attributeId)}`;
+                const attributeBaseId = `${clusterBaseId}.attributes.${attrName.replace('unknownAttribute_', '')}`;
 
                 const { type: targetType, states: targetStates } = this.#determineIoBrokerDatatype(
                     endpoint.number,
-                    attribute.clusterId,
-                    attribute.id,
+                    clusterId,
+                    attributeId,
                     unknown,
                 );
+                const writable = attrModel?.effectiveAccess?.writable ?? false;
                 await this.adapter.extendObjectAsync(attributeBaseId, {
                     type: 'state',
                     common: {
-                        name: attribute.name,
+                        name: attrName,
                         role: 'state',
                         type: targetType,
                         read: true,
-                        write: attribute.attribute.writable,
+                        write: writable,
                         states: targetStates,
                     },
                     native: {},
@@ -1119,8 +1131,7 @@ export class GeneralMatterNode {
                 addedAttributes++;
 
                 if (this.node.isConnected) {
-                    // Only request values when connected, else old values should still be current
-                    const attributeValue = await attribute.getLocal(); // Only use locally cached values, do not request from remote
+                    const attributeValue = clusterState[attrName];
                     if (attributeValue !== undefined) {
                         await this.adapter.setState(
                             attributeBaseId,
@@ -1130,13 +1141,15 @@ export class GeneralMatterNode {
                     }
                 }
 
-                if (attribute.attribute.writable) {
+                if (writable && !unknown) {
+                    const capturedBehaviorId = behaviorId;
+                    const capturedAttrName = attrName;
                     const handler: SubscribeCallback = async state => {
                         if (!state || state.ack) {
                             return;
-                        } // Only controls are processed
+                        }
                         try {
-                            await attribute.set(state.val);
+                            await (endpoint as any).setStateOf(capturedBehaviorId, { [capturedAttrName]: state.val });
                         } catch (e: unknown) {
                             this.adapter.log.warn(`Error: ${(e as Error).message}`);
                         }
@@ -1156,19 +1169,20 @@ export class GeneralMatterNode {
             }
 
             let addedEvents = 0;
-            const events = clusterClient.events;
-            for (const eventName in events) {
-                const event = events[eventName];
-                if (event === undefined) {
+            const eventList: EventId[] = clusterState.eventList ?? [];
+            for (const eventId of eventList) {
+                const eventModel = MatterModel.standard.get(ClusterModel, clusterId)?.get(EventModel, eventId);
+                if (!eventModel) {
                     continue;
                 }
-                const eventBaseId = `${clusterBaseId}.events.${event.name}`;
+                const eventName = camelize(eventModel.name);
+                const eventBaseId = `${clusterBaseId}.events.${eventName}`;
 
-                this.#eventMap.add(this.#getEventMapId(endpoint.number, event.clusterId, event.id));
+                this.#eventMap.add(this.#getEventMapId(endpoint.number, clusterId, eventId));
                 await this.adapter.extendObjectAsync(eventBaseId, {
                     type: 'state',
                     common: {
-                        name: event.name,
+                        name: eventName,
                         role: 'state',
                         type: 'object',
                         read: true,
@@ -1189,30 +1203,21 @@ export class GeneralMatterNode {
             }
 
             let addedCommands = 0;
-            const commands = clusterClient.commands;
-            for (const commandName in commands) {
-                if (!clusterClient.isCommandSupportedByName(commandName)) {
-                    continue;
-                }
-                const command = commands[commandName];
-                if (command === undefined) {
-                    continue;
-                }
-                const commandBaseId = `${clusterBaseId}.commands.${commandName}`;
-
-                const commandModel = MatterModel.standard
-                    .get(ClusterModel, clusterId)
-                    ?.get(CommandModel, capitalize(commandName));
+            const acceptedCommandList: CommandId[] = clusterState.acceptedCommandList ?? [];
+            for (const commandId of acceptedCommandList) {
+                const commandModel = MatterModel.standard.get(ClusterModel, clusterId)?.get(CommandModel, commandId);
                 if (!commandModel) {
                     continue;
                 }
+                const commandName = camelize(commandModel.name);
+                const commandBaseId = `${clusterBaseId}.commands.${commandName}`;
 
                 const hasArguments = commandModel.children?.length > 0;
 
                 await this.adapter.extendObjectAsync(commandBaseId, {
                     type: 'state',
                     common: {
-                        name: command.name,
+                        name: commandName,
                         role: hasArguments ? 'json' : 'button',
                         type: hasArguments ? 'string' : 'boolean',
                         read: false,
@@ -1246,7 +1251,7 @@ export class GeneralMatterNode {
                     }
 
                     try {
-                        await command(parsedValue, {
+                        await (endpoint as any).commandsOf(BehaviorType)[commandName](parsedValue, {
                             asTimedRequest: commandModel.effectiveAccess.timed,
                         });
                     } catch (e: unknown) {
@@ -1475,10 +1480,10 @@ export class GeneralMatterNode {
                 result.network = {
                     connectedAddress: this.#connectedAddress,
                 };
-                const generalDiag = this.node.getRootClusterClient(GeneralDiagnosticsCluster);
-                if (generalDiag) {
+                const generalDiag = this.node.node.maybeStateOf(GeneralDiagnosticsClient);
+                if (generalDiag !== undefined) {
                     try {
-                        const networkInterfaces = generalDiag.getNetworkInterfacesAttributeFromCache();
+                        const networkInterfaces = generalDiag.networkInterfaces;
                         if (networkInterfaces) {
                             const interfaces = networkInterfaces.filter(({ isOperational }) => isOperational);
                             if (interfaces.length) {
@@ -1538,16 +1543,24 @@ export class GeneralMatterNode {
         const rootEndpoint = this.node.getRootEndpoint();
         if (rootEndpoint) {
             result.rootEndpointClusters = {};
-            for (const client of rootEndpoint.getAllClusterClients()) {
-                const activeFeatures = new Array<string>();
-                Object.keys(client.supportedFeatures).forEach(
-                    f => client.supportedFeatures[f] && activeFeatures.push(f),
-                );
-                result.rootEndpointClusters[`__header__${client.name}`] = decamelize(client.name);
-                result.rootEndpointClusters[`${client.name}__Features`] = activeFeatures.length
-                    ? activeFeatures.map(name => decamelize(name)).join(', ')
+            const rootNewEndpoint = rootEndpoint.endpoint;
+            for (const [behaviorId, BehaviorType] of Object.entries(rootNewEndpoint.behaviors.supported)) {
+                if (!ClusterBehavior.is(BehaviorType)) {
+                    continue;
+                }
+                const clusterState = (rootNewEndpoint.state as any)[behaviorId];
+                if (!clusterState) {
+                    continue;
+                }
+                const featureMap: Record<string, boolean> = clusterState.featureMap ?? {};
+                const activeFeatures = Object.entries(featureMap)
+                    .filter(([, v]) => v === true)
+                    .map(([k]) => decamelize(k));
+                result.rootEndpointClusters[`__header__${behaviorId}`] = decamelize(behaviorId);
+                result.rootEndpointClusters[`${behaviorId}__Features`] = activeFeatures.length
+                    ? activeFeatures.join(', ')
                     : 'Basic features set';
-                result.rootEndpointClusters[`${client.name}__Revision`] = client.revision;
+                result.rootEndpointClusters[`${behaviorId}__Revision`] = clusterState.clusterRevision;
             }
         }
 
@@ -1566,23 +1579,17 @@ export class GeneralMatterNode {
         }
 
         if (this.node.isConnected) {
-            const wifiNetworkDiagnostics = this.node.getRootClusterClient(WiFiNetworkDiagnosticsCluster);
-            if (wifiNetworkDiagnostics !== undefined && wifiNetworkDiagnostics.isAttributeSupportedByName('rssi')) {
-                const rssi = wifiNetworkDiagnostics.getRssiAttributeFromCache();
-                if (rssi !== null) {
-                    status.rssi = rssi;
-                }
+            const wifiNetworkDiagnostics = this.node.node.maybeStateOf(WiFiNetworkDiagnosticsClient);
+            const rssi = wifiNetworkDiagnostics?.rssi;
+            if (rssi !== null) {
+                status.rssi = rssi;
             }
+
             if (status.rssi === undefined) {
-                const threadNetworkDiagnostics = this.node.getRootClusterClient(ThreadNetworkDiagnostics.Cluster);
-                if (
-                    threadNetworkDiagnostics !== undefined &&
-                    threadNetworkDiagnostics.isAttributeSupportedByName('neighborTable')
-                ) {
-                    const neighborTable = threadNetworkDiagnostics.getNeighborTableAttributeFromCache() ?? [];
-                    const routeTable = threadNetworkDiagnostics.isAttributeSupportedByName('routeTable')
-                        ? (threadNetworkDiagnostics.getRouteTableAttributeFromCache() ?? [])
-                        : [];
+                const threadNetworkDiagnostics = this.node.node.maybeStateOf(ThreadNetworkDiagnosticsClient);
+                if (threadNetworkDiagnostics?.neighborTable !== undefined) {
+                    const neighborTable = threadNetworkDiagnostics?.neighborTable;
+                    const routeTable = threadNetworkDiagnostics.routeTable ?? [];
                     const rssi = this.#calculateThreadRssi(neighborTable, routeTable);
                     if (rssi !== undefined) {
                         status.rssi = rssi;
@@ -1595,8 +1602,8 @@ export class GeneralMatterNode {
     }
 
     #calculateThreadRssi(
-        neighborTable: ThreadNetworkDiagnostics.NeighborTable[],
-        routeTable: ThreadNetworkDiagnostics.RouteTable[],
+        neighborTable: Readonly<ThreadNetworkDiagnostics.NeighborTable[]>,
+        routeTable: Readonly<ThreadNetworkDiagnostics.RouteTable[]>,
     ): number | undefined {
         // Create a lookup for router information
         const routerLookup = routeTable.reduce(
@@ -1612,18 +1619,20 @@ export class GeneralMatterNode {
         }
 
         // sort by frameErrorRate
-        neighborTable.sort((a, b) => a.frameErrorRate - b.frameErrorRate);
+        const neighbors = (deepCopy(neighborTable) as ThreadNetworkDiagnostics.NeighborTable[]).sort(
+            (a, b) => a.frameErrorRate - b.frameErrorRate,
+        );
 
         // Filter valid neighbors
         // When the first neighbor has a frame error rate of 0, we filter all error free,
         // else we use the first neighbor because least errors
         const validNeighbors =
             neighborTable[0]?.frameErrorRate === 0
-                ? neighborTable.filter(neighbor => {
+                ? neighbors.filter(neighbor => {
                       const rssi = neighbor.averageRssi ?? neighbor.lastRssi;
                       return rssi !== null && neighbor.frameErrorRate === 0;
                   })
-                : [neighborTable[0]];
+                : [neighbors[0]];
 
         if (!validNeighbors.length) {
             return undefined;
@@ -1653,9 +1662,9 @@ export class GeneralMatterNode {
     }
 
     get connectionType(): ConfigConnectionType {
-        if (this.node.deviceInformation?.threadConnected) {
+        if (this.node.deviceInformation?.threadActive || this.node.deviceInformation?.supportsThread) {
             return 'thread';
-        } else if (this.node.deviceInformation?.wifiConnected) {
+        } else if (this.node.deviceInformation?.supportsWifi) {
             return 'wifi';
         }
         return 'lan';
@@ -1674,31 +1683,37 @@ export class GeneralMatterNode {
         };
 
         result.connection.address = this.#connectedAddress;
-        if (this.node.deviceInformation?.threadConnected) {
+        if (this.node.deviceInformation?.threadActive || this.node.deviceInformation?.supportsThread) {
             result.connection.connectedVia = 'Thread';
-        } else if (this.node.deviceInformation?.wifiConnected) {
+        } else if (this.node.deviceInformation?.supportsWifi) {
             result.connection.connectedVia = 'WiFi';
-        } else if (this.node.deviceInformation?.ethernetConnected) {
+        } else if (this.node.deviceInformation?.supportsEthernet) {
             result.connection.connectedVia = 'Ethernet';
         }
 
         if (this.node.isConnected) {
             result.connection.subscriptionMaximumInterval = `${this.node.currentSubscriptionIntervalSeconds}s`;
-            const operationalCredentials = this.node.getRootClusterClient(OperationalCredentialsCluster);
-            if (operationalCredentials) {
+            const operationalCredentials = this.node.node.maybeStateOf(OperationalCredentialsClient);
+            if (operationalCredentials !== undefined) {
                 result.connection.__header__operationalCredentials = 'Connected Fabrics';
-                const ownFabricIndex = operationalCredentials.getCurrentFabricIndexAttributeFromCache();
-                const fabrics = await operationalCredentials.getFabricsAttribute(true, false);
-                fabrics.forEach(fabric => {
-                    const fabricId = fabric.fabricId;
-                    const vendorId = fabric.vendorId;
-                    const vendorName = VendorIds[vendorId]
-                        ? `${VendorIds[vendorId]} (${toUpperCaseHex(vendorId)})`
-                        : toUpperCaseHex(vendorId);
-                    result.connection[`fabric${fabricId}__${vendorName}`] =
-                        `${fabric.label}${ownFabricIndex === fabric.fabricIndex ? ' (Own)' : ''}`;
-                    // TODO Add name lookup and button to manage beside own Fabric index
-                });
+                const ownFabricIndex = operationalCredentials.currentFabricIndex;
+                const fabrics = (
+                    await this.node.node.getStateOf(OperationalCredentialsClient, ['fabrics'], {
+                        fabricFilter: false,
+                    })
+                )?.fabrics;
+                if (fabrics) {
+                    fabrics.forEach(fabric => {
+                        const fabricId = fabric.fabricId;
+                        const vendorId = fabric.vendorId;
+                        const vendorName = VendorIds[vendorId]
+                            ? `${VendorIds[vendorId]} (${toUpperCaseHex(vendorId)})`
+                            : toUpperCaseHex(vendorId);
+                        result.connection[`fabric${fabricId}__${vendorName}`] =
+                            `${fabric.label}${ownFabricIndex === fabric.fabricIndex ? ' (Own)' : ''}`;
+                        // TODO Add name lookup and button to manage beside own Fabric index
+                    });
+                }
             }
         }
 

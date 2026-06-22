@@ -282,9 +282,10 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
             }
         }
 
-        this.matterEvents.on(
-            this.#matterEndpointThermostat.eventsOf(ThermostatServer).systemMode$Changed,
-            async (value, _oldValue, context) => {
+        const events = this.#matterEndpointThermostat.eventsOf('thermostat');
+        if (events?.systemMode$Changed !== undefined) {
+            // @ts-expect-error typing stuff
+            this.matterEvents.on(events.systemMode$Changed, async (value, _oldValue, context) => {
                 if (hasLocalActor(context)) {
                     return;
                 }
@@ -354,14 +355,13 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                         }
                         break;
                 }
-            },
-        );
+            });
+        }
 
         if (this.#supportedModes.includes(ThermostatMode.Heat)) {
-            const event = this.#matterEndpointThermostat.eventsOf('thermostat')?.occupiedHeatingSetpoint$Changed;
-            if (event !== undefined) {
+            if (events?.occupiedHeatingSetpoint$Changed !== undefined) {
                 this.matterEvents.on(
-                    event,
+                    events?.occupiedHeatingSetpoint$Changed,
                     // @ts-expect-error Workaround a matter.js instancing/typing error
                     (_value: unknown, _oldValue: unknown, context: ActionContext) => {
                         if (hasLocalActor(context)) {
@@ -375,10 +375,9 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
         }
 
         if (this.#supportedModes.includes(ThermostatMode.Cool)) {
-            const event = this.#matterEndpointThermostat.eventsOf('thermostat')?.occupiedCoolingSetpoint$Changed;
-            if (event !== undefined) {
+            if (events?.occupiedCoolingSetpoint$Changed !== undefined) {
                 this.matterEvents.on(
-                    event,
+                    events?.occupiedCoolingSetpoint$Changed,
                     // @ts-expect-error Workaround a matter.js instancing/typing error
                     (_value: unknown, _oldValue: unknown, context: ActionContext) => {
                         if (hasLocalActor(context)) {

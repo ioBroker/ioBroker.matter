@@ -1,7 +1,7 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { OccupancySensing } from '@matter/main/clusters';
-import type { TypeFromBitSchema } from '@matter/main/types';
-import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
+import type { Endpoint } from '@matter/main';
+import type { PairedNode } from '@project-chip/matter.js/device';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { Motion } from '../../lib/devices/Motion';
@@ -41,10 +41,10 @@ export class OccupancyToIoBroker extends GenericDeviceToIoBroker {
 
     protected enableDeviceTypeStates(): DeviceOptions {
         this.enableDeviceTypeStateForAttribute(PropertyType.Motion, {
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: OccupancySensing.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: OccupancySensing.id,
             attributeName: 'occupancy',
-            convertValue: (value: TypeFromBitSchema<typeof OccupancySensing.Occupancy>) => value.occupied,
+            convertValue: (value: OccupancySensing.Occupancy) => !!value.occupied,
         });
         return super.enableDeviceTypeStates();
     }

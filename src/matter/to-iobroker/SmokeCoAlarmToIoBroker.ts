@@ -1,6 +1,8 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { SmokeCoAlarm, PowerSource } from '@matter/main/clusters';
-import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
+import { SmokeCoAlarmClient, PowerSourceClient } from '@matter/main/behaviors';
+import type { Endpoint } from '@matter/main';
+import type { PairedNode } from '@project-chip/matter.js/device';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
@@ -37,8 +39,8 @@ export class SmokeCoAlarmToIoBroker extends GenericDeviceToIoBroker {
             adapter,
             this.enableDeviceTypeStates(),
         );
-        const smokeAlarm = this.appEndpoint.getClusterClient(SmokeCoAlarm.Complete);
-        if (smokeAlarm && !smokeAlarm.supportedFeatures.smokeAlarm) {
+        const features = this.appEndpoint.behaviors.typeFor(SmokeCoAlarmClient)?.features;
+        if (!features?.smokeAlarm) {
             adapter.log.info(
                 'Smoke alarm is not supported by device, but ioBroker does not support CO2 alarm currently.',
             );
@@ -48,8 +50,8 @@ export class SmokeCoAlarmToIoBroker extends GenericDeviceToIoBroker {
 
     protected enableDeviceTypeStates(): DeviceOptions {
         this.enableDeviceTypeStateForAttribute(PropertyType.Value, {
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: SmokeCoAlarm.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: SmokeCoAlarm.id,
             attributeName: 'smokeState',
             convertValue: (value: SmokeCoAlarm.AlarmState) => value !== SmokeCoAlarm.AlarmState.Normal,
         });
@@ -61,21 +63,20 @@ export class SmokeCoAlarmToIoBroker extends GenericDeviceToIoBroker {
     }
 
     #enableCustomLowPowerMapping(endpoint: Endpoint, appEndpoint: Endpoint): boolean {
-        const powerSource = endpoint.getClusterClient(PowerSource.Complete);
+        const powerSource = endpoint.maybeStateOf(PowerSourceClient);
         if (powerSource === undefined) {
             return false;
         }
-        const smokeCo = appEndpoint.getClusterClient(SmokeCoAlarm.Complete);
+        const smokeCo = appEndpoint.maybeStateOf(SmokeCoAlarmClient);
         this.enableDeviceTypeStateForAttribute(PropertyType.LowBattery, {
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: PowerSource.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: PowerSource.id,
             attributeName: 'batChargeLevel',
             convertValue: value => {
                 if (value !== PowerSource.BatChargeLevel.Ok) {
                     return true;
                 }
-                const smokeBatteryState =
-                    smokeCo?.getBatteryAlertAttributeFromCache() ?? SmokeCoAlarm.AlarmState.Normal;
+                const smokeBatteryState = smokeCo?.batteryAlert ?? SmokeCoAlarm.AlarmState.Normal;
                 return smokeBatteryState !== SmokeCoAlarm.AlarmState.Normal;
             },
             pollAttribute: true,

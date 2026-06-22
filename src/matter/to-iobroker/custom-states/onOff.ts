@@ -22,7 +22,7 @@ export const OnOffCustomStates = {
         accessType: StateAccessType.ReadWrite,
         common: {
             type: 'number',
-            role: 'level.setting.mode',
+            role: 'level.setting',
             states: {
                 0: 'Off',
                 1: 'On',

@@ -2,7 +2,7 @@
 
 import type { DetectorState, Types, StateType } from '@iobroker/type-detector';
 import type { BridgeDeviceDescription } from '../../ioBrokerStorageTypes';
-import type { CustomStatesRecord } from '../../matter/to-iobroker/custom-states';
+import type { CustomStateCommon, CustomStatesRecord } from '../../matter/to-iobroker/custom-states';
 import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { EventEmitter } from 'events';
 
@@ -576,6 +576,7 @@ export abstract class GenericDevice extends EventEmitter {
     async initCustomState(
         customPropertyName: string,
         stateIdPrefix: string,
+        commonOverride?: CustomStateCommon,
     ): Promise<DeviceStateObject<any> | undefined> {
         const definition = this.#customStateDefinitions?.[customPropertyName];
         if (!definition) {
@@ -591,8 +592,7 @@ export abstract class GenericDevice extends EventEmitter {
         const stateId = `${stateIdPrefix}${definition.name}`;
         const { valueType, accessType, common } = definition;
 
-        // Use common from definition
-        const mergedCommon = common ?? {};
+        const mergedCommon = { ...(common ?? {}), ...(commonOverride ?? {}) };
 
         // Derive defaultType from common.type or valueType
         let defaultType: 'number' | 'string' | 'boolean' | undefined = mergedCommon.type as
@@ -688,10 +688,11 @@ export abstract class GenericDevice extends EventEmitter {
             );
             return;
         }
+        const value = object.getRawEnumValue(object.value);
         for (const handler of this.#customHandlers) {
             await handler({
                 customPropertyName,
-                value: object.value,
+                value,
                 device: this,
             });
         }

@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "news": {
+      "1.1.1": {
+        "en": "Fixes Update availability flag in UI",
+        "de": "Behebt das Problem mit dem Update-Verfügbarkeitsflag in der Benutzeroberfläche",
+        "ru": "Исправлена ошибка, из-за которой в пользовательском интерфейсе отображался флаг доступности обновления.",
+        "pt": "Corrige a atualização do indicador de disponibilidade na interface do usuário.",
+        "nl": "Oplossing voor het probleem met de beschikbaarheidsvlag van de update in de gebruikersinterface.",
+        "fr": "Correction de l'indicateur de disponibilité des mises à jour dans l'interface utilisateur",
+        "it": "Corregge l'indicatore di disponibilità degli aggiornamenti nell'interfaccia utente.",
+        "es": "Corrige el indicador de disponibilidad de actualización en la interfaz de usuario.",
+        "pl": "Naprawiono flagę dostępności aktualizacji w interfejsie użytkownika",
+        "uk": "Виправлення прапорця доступності оновлень в інтерфейсі користувача",
+        "zh-cn": "修复了用户界面中的“更新可用性标志”问题。"
+      },
       "1.1.0": {
         "en": "Update to Device management v3 and more dependencies\nUpdate to Matter 1.5.1 (matter.js 0.17.3) including many optimizations and fixes\nParallelizing the  startup of controller and devices and optimize subscription resumptions\nFixes detection of 0_userdata.0 objects again\nFixes handling of special attributes (e.g. startupOnOff) when null and add relevant States lists\nFixes handling if custom attribute states\nFixes calculation of illuminance when measurements are <=0 (aka fully dark)\nFixes initialization of HCI IDs when using BLE",
         "de": "Aktualisierung auf Geräteverwaltung v3 und weitere Abhängigkeiten\nAktualisierung auf Matter 1.5.1 (matter.js 0.17.3) inklusive zahlreicher Optimierungen und Fehlerbehebungen\nParallelisierung des Startvorgangs von Controller und Geräten und Optimierung der Abonnementwiederaufnahme\nBehebt erneut die Erkennung von 0_userdata.0-Objekten\nBehebt das Problem mit der Behandlung spezieller Attribute (z. B. startupOnOff), wenn diese null sind, und fügt entsprechende Statuslisten hinzu.\nBehebt die Behandlung von Zuständen benutzerdefinierter Attribute\nKorrigiert die Berechnung der Beleuchtungsstärke, wenn die Messwerte <=0 sind (d. h. völlig dunkel).\nBehebt die Initialisierung von HCI-IDs bei Verwendung von BLE",
@@ -80,19 +93,6 @@
         "pl": "Zaktualizowano bibliotekę matter.js do wersji 0.15.4",
         "uk": "Оновлено matter.js до версії 0.15.4",
         "zh-cn": "将matter.js更新到0.15.4"
-      },
-      "0.5.2": {
-        "en": "Updated matter.js to 0.15.2 with many performance- and other improvements\nCorrected the checking of the licenses if they were stacked\nUse attributes from cache instead of requesting them from the device\nIgnoring invalid min/max for color temperature from objects\nPrevents update loops for Thermostat on/off state changes\nFixes invalid color state updates when multiple attributes are adjusted together\nRounds RSSI values to prevent digits",
-        "de": "Aktualisierte matter.js bis 0,15.2 mit vielen Leistungs- und anderen Verbesserungen\nKorrektur der Überprüfung der Lizenzen, wenn sie gestapelt wurden\nVerwenden Sie Attribute aus dem Cache, anstatt sie vom Gerät anzufordern\nUngültige min/max für Farbtemperatur von Objekten ignorieren\nVerhindert Aktualisierungsschleifen für Thermostat-Ein-/Aus-Zustandsänderungen\nBehebt ungültige Farbzustandsupdates, wenn mehrere Attribute zusammen angepasst werden\nRunden RSSI-Werte, um Ziffern zu verhindern",
-        "ru": "Обновленный matter.js до 0,15.2 со многими улучшениями производительности\nИсправлена проверка лицензий, если они были сложены\nИспользуйте атрибуты из кэша вместо того, чтобы запрашивать их с устройства\nИгнорирование недействительных min/max для цветовой температуры от объектов\nПредотвращение циклов обновления для изменений состояния включения / выключения термостата\nИсправляет недействительные обновления состояния цвета, когда несколько атрибутов регулируются вместе\nОкругление значений RSSI для предотвращения цифр",
-        "pt": "Updated matter.js to 0.15.2 com muitos desempenhos e outras melhorias\nCorrigido a verificação das licenças se eles foram empilhados\nUsar atributos da 'cache' em vez de os solicitar do dispositivo\nIgnorando min/max inválido para a temperatura de cor de objetos\nPrevine a atualização de loops para as mudanças de estado do termostato\nCorrige atualizações de estado de cor inválidas quando vários atributos são ajustados juntos\nRedondas Valores RSSI para evitar dígitos",
-        "nl": "Bijgewerkt materie.js naar 0,15.2 met veel prestaties- en andere verbeteringen\nCorrectie van de controle van de licenties als ze werden gestapeld\nAttributen uit cache gebruiken in plaats van ze van het apparaat te vragen\nOngeldige min/max voor kleurtemperatuur van objecten negeren\nVoorkomt update loops voor thermostat aan/uit toestand wijzigingen\nFixeert ongeldige kleurstatus-updates wanneer meerdere attributen samen worden aangepast\nRounds RSSI-waarden om cijfers te voorkomen",
-        "fr": "Matière mise à jour.js à 0.15.2 avec de nombreuses améliorations - et d'autres améliorations\nCorrection de la vérification des licences si elles étaient empilées\nUtiliser les attributs du cache au lieu de les demander à partir du périphérique\nIgnorer min/max invalide pour la température de couleur des objets\nEmpêche les boucles de mise à jour pour les changements d'état de Thermostat\nCorrection des mises à jour d'état de couleur invalides lorsque plusieurs attributs sont ajustés ensemble\nRondles valeurs RSSI pour empêcher les chiffres",
-        "it": "Question.js aggiornato a 0.15.2 con molte prestazioni- e altri miglioramenti\nCorretto il controllo delle licenze se sono stati impilati\nUtilizzare gli attributi dalla cache invece di richiederli dal dispositivo\nIgnorando min/max non valido per temperatura di colore da oggetti\nPreviene i loop di aggiornamento per le modifiche dello stato di termostato\nRisolve gli aggiornamenti di stato di colore non validi quando più attributi vengono regolati insieme\nTondi valori RSSI per prevenire le cifre",
-        "es": "Updated matter.js to 0.15.2 with many performance- and other improvements\nCorregido la comprobación de las licencias si fueron apilados\nUtilice atributos de caché en lugar de solicitarlos del dispositivo\nIgnorando min/max inválido para la temperatura de color de los objetos\nEvita los bucles de actualización para los cambios de estado de termostato\nFija actualizaciones de estado de color inválidas cuando se ajustan múltiples atributos juntos\nValores RSSI para prevenir dígitos",
-        "pl": "Aktualizacja mater.js do 0.15.2 z wielu wykonania- i innych ulepszeń\nPoprawiono sprawdzanie licencji, jeśli zostały ułożone\nUżyj atrybutów z pamięci podręcznej zamiast żądać ich z urządzenia\nIgnorowanie nieprawidłowego min / max dla temperatury barw obiektów\nZapobiega aktualizacji pętli dla zmian stanu włączenia / wyłączenia termostatu\nFixes błędne aktualizacje stanu kolorów, gdy wiele atrybutów są dopasowane razem\nZaokrągla wartości RSSI, aby zapobiec cyfrom",
-        "uk": "Оновлена справа.js до 0.15.2 з багатьма перформансами та іншими вдосконаленнями\nВиправлено перевірку ліцензій, якщо вони були складені\nВикористовуйте атрибути кешу замість запиту їх з пристрою\nПрогнозування недійсним хв/максу за температуру кольору від предметів\nЗапобігає відновленню петель термостату за змінами стану\nВиправлення недійсних оновлення стану кольору при багаторазових атрибутах регулюється разом\nКруглі значення RSSI для запобігання цифр",
-        "zh-cn": "更新为0.15.2,并改进了许多业绩和其他\n纠正了对许可证的检查,如果这些许可证被堆放\n使用缓存中的属性而不是请求设备中的属性\n忽略对象颜色温度的无效分/ 最大值\n防止打开/关闭自动调温器的更新循环\n当多个属性一起调整时修复无效的颜色状态更新\n圆 RSSI 值防止位数"
       }
     },
     "titleLang": {

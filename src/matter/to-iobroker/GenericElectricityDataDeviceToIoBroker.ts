@@ -1,5 +1,6 @@
 import { AttributeId, ClusterId } from '@matter/main';
 import { ElectricalEnergyMeasurement, ElectricalPowerMeasurement } from '@matter/main/clusters';
+import { ElectricalEnergyMeasurementClient, ElectricalPowerMeasurementClient } from '@matter/main/behaviors';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
@@ -24,13 +25,13 @@ export abstract class GenericElectricityDataDeviceToIoBroker<
     }
 
     #enableMatterElectricalMeasurementStates(): boolean {
-        const endpointId = this.appEndpoint.getNumber();
+        const endpointId = this.appEndpoint.number;
 
         let found = false;
         // TODO check for other attributes and feature combinations or also other information
-        const electricalPower = this.appEndpoint.getClusterClient(ElectricalPowerMeasurement.Complete);
+        const electricalPower = this.appEndpoint.maybeStateOf(ElectricalPowerMeasurementClient);
         if (electricalPower !== undefined) {
-            const clusterId = ElectricalPowerMeasurement.Cluster.id;
+            const clusterId = ElectricalPowerMeasurement.id;
             this.enableDeviceTypeStateForAttribute(PropertyType.ElectricPower, {
                 endpointId,
                 clusterId,
@@ -59,11 +60,11 @@ export abstract class GenericElectricityDataDeviceToIoBroker<
         }
 
         // TODO check for other attributes and feature combinations or also other information
-        const electricalEnergy = this.appEndpoint.getClusterClient(ElectricalEnergyMeasurement.Complete);
+        const electricalEnergy = this.appEndpoint.maybeStateOf(ElectricalEnergyMeasurementClient);
         if (electricalEnergy !== undefined) {
             this.enableDeviceTypeStateForAttribute(PropertyType.Consumption, {
                 endpointId,
-                clusterId: ElectricalEnergyMeasurement.Cluster.id,
+                clusterId: ElectricalEnergyMeasurement.id,
                 attributeName: 'cumulativeEnergy',
             });
             found = true;
@@ -72,11 +73,11 @@ export abstract class GenericElectricityDataDeviceToIoBroker<
     }
 
     #enableCustomEveMeasurementStates(): boolean {
-        const endpointId = this.appEndpoint.getNumber();
+        const endpointId = this.appEndpoint.number;
         // TODO Add polling when this is present and with the Eve vendor id 4874 (0x130a)
         const isEveDevice = this.nodeBasicInformation.vendorId === 0x130a; // Only poll real Eve devices
         const clusterId = ClusterId(0x130afc01);
-        const eveCluster = this.appEndpoint.getClusterClientById(clusterId);
+        const eveCluster = this.appEndpoint.maybeStateOf(clusterId.toString());
         if (eveCluster !== undefined) {
             // Label="timesOpened", Tag=0x130A0006, Type=int
             // Label="wattAccumulatedControlPoint", Tag=0x130A000E, Type=float32
@@ -116,10 +117,10 @@ export abstract class GenericElectricityDataDeviceToIoBroker<
     }
 
     #enableCustomNeoMeasurementStates(): boolean {
-        const endpointId = this.appEndpoint.getNumber();
+        const endpointId = this.appEndpoint.number;
         // Vendor ID 4991 (0x137F)
         const clusterId = ClusterId(0x00125dfc11);
-        const neoCluster = this.appEndpoint.getClusterClientById(clusterId);
+        const neoCluster = this.appEndpoint.maybeStateOf(clusterId.toString());
         if (neoCluster !== undefined) {
             this.enableDeviceTypeStateForAttribute(PropertyType.ElectricPower, {
                 endpointId,

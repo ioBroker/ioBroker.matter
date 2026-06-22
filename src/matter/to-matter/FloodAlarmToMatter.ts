@@ -6,7 +6,7 @@ import { GenericDeviceToMatter } from './GenericDeviceToMatter';
 import { IoIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 
-/** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */
+/** Mapping Logic to map a ioBroker FloodAlarm device to a Matter WaterLeakDetectorDevice. */
 export class FloodAlarmToMatter extends GenericDeviceToMatter {
     readonly #ioBrokerDevice: FloodAlarm;
     readonly #matterEndpoint: Endpoint<WaterLeakDetectorDevice>;

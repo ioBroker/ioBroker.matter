@@ -1,6 +1,8 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { OnOff } from '@matter/main/clusters';
-import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
+import { OnOffClient } from '@matter/main/behaviors';
+import type { Endpoint } from '@matter/main';
+import type { PairedNode } from '@project-chip/matter.js/device';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { Light } from '../../lib/devices/Light';
@@ -45,20 +47,20 @@ export class OnOffLightToIoBroker extends GenericElectricityDataDeviceToIoBroker
         this.#enableCustomStates();
 
         this.enableDeviceTypeStateForAttribute(PropertyType.Power, {
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: OnOff.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: OnOff.id,
             attributeName: 'onOff',
             changeHandler: async value => {
                 if (value) {
-                    await this.appEndpoint.getClusterClient(OnOff.Complete)?.on();
+                    await this.appEndpoint.commandsOf(OnOffClient).on();
                 } else {
-                    await this.appEndpoint.getClusterClient(OnOff.Complete)?.off();
+                    await this.appEndpoint.commandsOf(OnOffClient).off();
                 }
             },
         });
         this.enableDeviceTypeStateForAttribute(PropertyType.PowerActual, {
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: OnOff.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: OnOff.id,
             attributeName: 'onOff',
             convertValue: async value => {
                 await this.#ioBrokerDevice.updatePower(value); // Also Ack Power Set State
@@ -69,22 +71,16 @@ export class OnOffLightToIoBroker extends GenericElectricityDataDeviceToIoBroker
     }
 
     #enableCustomStates(): void {
-        const endpointId = this.appEndpoint.getNumber();
+        const endpointId = this.appEndpoint.number;
 
         // StartUp On/Off - defines device behavior on power-up
         this.enableCustomStateForAttribute('startUpOnOff', {
             endpointId,
-            clusterId: OnOff.Cluster.id,
+            clusterId: OnOff.id,
             attributeName: 'startUpOnOff',
-            changeHandler: async (value: number | null) => {
-                const client = await this.node.getInteractionClient();
-                await client.setAttribute({
-                    attributeData: {
-                        endpointId,
-                        clusterId: OnOff.Complete.id,
-                        attribute: OnOff.Complete.attributes.startUpOnOff,
-                        value,
-                    },
+            changeHandler: async (startUpOnOff: number | null) => {
+                await this.appEndpoint.setStateOf(OnOffClient, {
+                    startUpOnOff,
                 });
             },
         });

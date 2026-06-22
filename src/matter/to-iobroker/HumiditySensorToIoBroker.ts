@@ -1,6 +1,7 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { RelativeHumidityMeasurement } from '@matter/main/clusters';
-import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
+import type { Endpoint } from '@matter/main';
+import type { PairedNode } from '@project-chip/matter.js/device';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { Humidity } from '../../lib/devices/Humidity';
@@ -40,8 +41,8 @@ export class HumiditySensorToIoBroker extends GenericElectricityDataDeviceToIoBr
 
     protected enableDeviceTypeStates(): DeviceOptions {
         this.enableDeviceTypeStateForAttribute(PropertyType.Humidity, {
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: RelativeHumidityMeasurement.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: RelativeHumidityMeasurement.id,
             attributeName: 'measuredValue',
             convertValue: value => value / 100, // TODO Validate
         });

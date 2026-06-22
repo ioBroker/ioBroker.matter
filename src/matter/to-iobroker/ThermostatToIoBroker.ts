@@ -1,6 +1,8 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { Thermostat as MatterThermostat } from '@matter/main/clusters';
-import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
+import { ThermostatClient } from '@matter/main/behaviors';
+import type { Endpoint } from '@matter/main';
+import type { PairedNode } from '@project-chip/matter.js/device';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { Thermostat, ThermostatMode, ThermostatModeNumbers } from '../../lib/devices/Thermostat';
@@ -63,8 +65,8 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
 
     protected enableDeviceTypeStates(): DeviceOptions {
         this.enableDeviceTypeStateForAttribute(PropertyType.Temperature, {
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: MatterThermostat.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: MatterThermostat.id,
             attributeName: 'localTemperature',
             convertValue: value => this.temperatureFromMatter(value),
         });
@@ -72,40 +74,39 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
             changeHandler: async value => {
                 const mode = this.ioBrokerDevice.getMode();
                 if (mode === ThermostatMode.Heat || mode === ThermostatMode.Auto) {
-                    await this.appEndpoint
-                        .getClusterClient(MatterThermostat.Complete)
-                        ?.setOccupiedHeatingSetpointAttribute(this.temperatureToMatter(value));
+                    await this.appEndpoint.setStateOf(ThermostatClient, {
+                        occupiedHeatingSetpoint: this.temperatureToMatter(value),
+                    });
                 }
                 if (mode === ThermostatMode.Cool || mode === ThermostatMode.Auto) {
-                    await this.appEndpoint
-                        .getClusterClient(MatterThermostat.Complete)
-                        ?.setOccupiedCoolingSetpointAttribute(this.temperatureToMatter(value));
+                    await this.appEndpoint.setStateOf(ThermostatClient, {
+                        occupiedCoolingSetpoint: this.temperatureToMatter(value),
+                    });
                 }
             },
         });
 
         let modes: { [key: number]: ThermostatMode } | undefined = undefined;
 
-        const thermostat = this.appEndpoint.getClusterClient(MatterThermostat.Complete);
-        if (thermostat !== undefined) {
-            const features = thermostat.supportedFeatures;
+        const features = this.appEndpoint.behaviors.typeFor(ThermostatClient)?.features;
+        if (features !== undefined) {
             modes = {};
             // We assume OFF is always supported by Matter Thermostat cluster, no way to determine exactly
             modes[ThermostatModeNumbers[ThermostatMode.Off]] = ThermostatMode.Off;
-            if (features?.heating) {
+            if (features.heating) {
                 modes[ThermostatModeNumbers[ThermostatMode.Heat]] = ThermostatMode.Heat;
             }
-            if (features?.cooling) {
+            if (features.cooling) {
                 modes[ThermostatModeNumbers[ThermostatMode.Cool]] = ThermostatMode.Cool;
             }
-            if (features?.autoMode) {
+            if (features.autoMode) {
                 modes[ThermostatModeNumbers[ThermostatMode.Auto]] = ThermostatMode.Auto;
             }
         }
 
         this.enableDeviceTypeStateForAttribute(PropertyType.Mode, {
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: MatterThermostat.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: MatterThermostat.id,
             attributeName: 'systemMode',
             modes,
             convertValue: async (value: MatterThermostat.SystemMode) => {
@@ -130,16 +131,12 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
                         await this.ioBrokerDevice.updatePower(true);
                     }
                     if (ioMode === ThermostatMode.Heat) {
-                        const heatSetpoint = this.appEndpoint
-                            .getClusterClient(MatterThermostat.Complete)
-                            ?.getOccupiedHeatingSetpointAttributeFromCache();
+                        const heatSetpoint = this.appEndpoint.maybeStateOf(ThermostatClient)?.occupiedHeatingSetpoint;
                         if (heatSetpoint !== undefined) {
                             await this.ioBrokerDevice.updateLevel(this.temperatureFromMatter(heatSetpoint));
                         }
                     } else if (ioMode === ThermostatMode.Cool) {
-                        const coolSetpoint = this.appEndpoint
-                            .getClusterClient(MatterThermostat.Complete)
-                            ?.getOccupiedCoolingSetpointAttributeFromCache();
+                        const coolSetpoint = this.appEndpoint.maybeStateOf(ThermostatClient)?.occupiedCoolingSetpoint;
                         if (coolSetpoint !== undefined) {
                             await this.ioBrokerDevice.updateLevel(this.temperatureFromMatter(coolSetpoint));
                         }
@@ -168,18 +165,18 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
                     );
                     return;
                 }
-                await this.appEndpoint.getClusterClient(MatterThermostat.Complete)?.setSystemModeAttribute(mode);
+                await this.appEndpoint.setStateOf(ThermostatClient, { systemMode: mode });
             },
         });
         this.registerStateChangeHandlerForAttribute({
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: MatterThermostat.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: MatterThermostat.id,
             attributeName: 'occupiedHeatingSetpoint',
             matterValueChanged: (value: number) => this.#handleUpdatedMatterTemperature(ThermostatMode.Heat, value),
         });
         this.registerStateChangeHandlerForAttribute({
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: MatterThermostat.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: MatterThermostat.id,
             attributeName: 'occupiedCoolingSetpoint',
             matterValueChanged: (value: number) => this.#handleUpdatedMatterTemperature(ThermostatMode.Heat, value),
         });
@@ -192,41 +189,32 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
     override async init(): Promise<void> {
         await super.init(true);
 
-        const thermostat = this.appEndpoint.getClusterClient(MatterThermostat.Complete);
+        const thermostat = this.appEndpoint.maybeStateOf(ThermostatClient);
         if (thermostat === undefined) {
             return;
         }
-
-        const features = thermostat.supportedFeatures;
+        const features = this.appEndpoint.behaviors.typeFor(ThermostatClient)?.features;
 
         // Determine global Min/Max values from Heat and Cool modes
         let min: number | undefined = undefined;
         let max: number | undefined = undefined;
         if (features?.heating) {
-            this.#minHeatSetpointLimit = thermostat.isAttributeSupportedByName('absMinHeatSetpointLimit')
-                ? thermostat.getAbsMinHeatSetpointLimitAttributeFromCache()
-                : undefined;
+            this.#minHeatSetpointLimit = thermostat.absMinHeatSetpointLimit;
             if (this.#minHeatSetpointLimit !== undefined) {
                 min = Math.min(min ?? this.#minHeatSetpointLimit, this.#minHeatSetpointLimit);
             }
-            this.#maxHeatSetpointLimit = thermostat.isAttributeSupportedByName('absMaxHeatSetpointLimit')
-                ? thermostat.getAbsMaxHeatSetpointLimitAttributeFromCache()
-                : undefined;
+            this.#maxHeatSetpointLimit = thermostat.absMaxHeatSetpointLimit;
             if (this.#maxHeatSetpointLimit !== undefined) {
                 max = Math.max(max ?? this.#maxHeatSetpointLimit, this.#maxHeatSetpointLimit);
             }
         }
 
         if (features?.cooling) {
-            this.#minCoolSetpointLimit = thermostat.isAttributeSupportedByName('absMinCoolSetpointLimit')
-                ? thermostat.getAbsMinCoolSetpointLimitAttributeFromCache()
-                : undefined;
+            this.#minCoolSetpointLimit = thermostat.absMinCoolSetpointLimit;
             if (this.#minCoolSetpointLimit !== undefined) {
                 min = Math.min(min ?? this.#minCoolSetpointLimit, this.#minCoolSetpointLimit);
             }
-            this.#maxCoolSetpointLimit = thermostat.isAttributeSupportedByName('absMaxCoolSetpointLimit')
-                ? thermostat.getAbsMaxCoolSetpointLimitAttributeFromCache()
-                : undefined;
+            this.#maxCoolSetpointLimit = thermostat.absMaxCoolSetpointLimit;
             if (this.#maxCoolSetpointLimit !== undefined) {
                 max = Math.max(max ?? this.#maxCoolSetpointLimit, this.#maxCoolSetpointLimit);
             }

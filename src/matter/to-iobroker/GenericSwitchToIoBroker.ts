@@ -1,6 +1,8 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { Switch } from '@matter/main/clusters';
-import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
+import { SwitchClient } from '@matter/main/behaviors';
+import type { Endpoint } from '@matter/main';
+import type { PairedNode } from '@project-chip/matter.js/device';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { ButtonSensor } from '../../lib/devices/ButtonSensor';
@@ -32,7 +34,9 @@ export class GenericSwitchToIoBroker extends GenericDeviceToIoBroker {
             defaultName,
         );
 
-        if (this.appEndpoint.getClusterClient(Switch.Complete)?.supportedFeatures.momentarySwitch) {
+        const features = this.appEndpoint.behaviors.typeFor(SwitchClient)?.features;
+
+        if (features?.momentarySwitch) {
             // Momentary switch is mapped to a ButtonSensor
             this.#ioBrokerDevice = new ButtonSensor(
                 { ...ChannelDetector.getPatterns().buttonSensor, isIoBrokerDevice: false } as DetectedDevice,
@@ -51,31 +55,30 @@ export class GenericSwitchToIoBroker extends GenericDeviceToIoBroker {
 
     protected enableMomentarySwitchDeviceTypeStates(): DeviceOptions {
         /*this.enableDeviceTypeStateForAttribute(PropertyType.Press, {
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: Switch.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: Switch.id,
             attributeName: 'currentPosition',
             convertValue: value => value !== 0,
         });*/
         // Move to event for now
         this.enableDeviceTypeStateForEvent(PropertyType.Press, {
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: Switch.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: Switch.id,
             eventName: 'initialPress',
             convertValue: () => true,
         });
 
-        const hasLongPress = this.appEndpoint.getClusterClient(Switch.Complete)?.supportedFeatures
-            .momentarySwitchLongPress;
-        if (hasLongPress) {
+        const features = this.appEndpoint.behaviors.typeFor(SwitchClient)?.features;
+        if (features?.momentarySwitchLongPress) {
             this.enableDeviceTypeStateForEvent(PropertyType.PressLong, {
-                endpointId: this.appEndpoint.getNumber(),
-                clusterId: Switch.Cluster.id,
+                endpointId: this.appEndpoint.number,
+                clusterId: Switch.id,
                 eventName: 'longPress',
                 convertValue: () => true,
             });
             this.enableDeviceTypeStateForEvent(PropertyType.PressLong, {
-                endpointId: this.appEndpoint.getNumber(),
-                clusterId: Switch.Cluster.id,
+                endpointId: this.appEndpoint.number,
+                clusterId: Switch.id,
                 eventName: 'longRelease',
                 convertValue: () => false,
             });
@@ -85,8 +88,8 @@ export class GenericSwitchToIoBroker extends GenericDeviceToIoBroker {
 
     protected enableLatchingSwitchDeviceTypeStates(): DeviceOptions {
         this.enableDeviceTypeStateForAttribute(PropertyType.PowerActual, {
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: Switch.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: Switch.id,
             attributeName: 'currentPosition',
             convertValue: value => value !== 0,
         });

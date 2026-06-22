@@ -1,7 +1,6 @@
 import type { MatterAdapter } from '../main';
 import type {
     ActionContext,
-    ApiVersion,
     ConfigItemAny,
     DeviceDetails,
     DeviceInfo,
@@ -42,43 +41,45 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     async getInstanceInfo(): Promise<InstanceDetails> {
+        const actions = [];
+        if (this.#adapter.controllerNode?.nodes.size) {
+            actions.push({
+                id: 'checkNodeUpdates',
+                icon: 'update',
+                title: {
+                    en: 'Check Updates',
+                    de: 'Updates prüfen',
+                    ru: 'Проверка обновлений',
+                    pt: 'Verificar actualizações',
+                    nl: 'Updates controleren',
+                    fr: 'Vérifier les mises à jour',
+                    it: 'Controllare gli aggiornamenti',
+                    es: 'Comprobar actualizaciones',
+                    pl: 'Sprawdź aktualizacje',
+                    uk: 'Перевірте оновлення',
+                    'zh-cn': 'Check Updates',
+                },
+                description: {
+                    en: 'Check for Node updates',
+                    de: 'Node-Updates prüfen',
+                    ru: 'Проверьте наличие обновлений узла',
+                    pt: 'Verificar se há actualizações do Node',
+                    nl: 'Controleren op Node-updates',
+                    fr: 'Vérifier les mises à jour de Node',
+                    it: 'Verifica degli aggiornamenti dei nodi',
+                    es: 'Buscar actualizaciones de nodos',
+                    pl: 'Sprawdź aktualizacje węzła',
+                    uk: 'Перевірте наявність оновлень вузла',
+                    'zh-cn': 'Check for Node updates',
+                },
+                handler: this.checkNodeUpdates.bind(this),
+                timeout: 30_000,
+            });
+        }
         return {
             ...(await super.getInstanceInfo()),
-            apiVersion: 'v1' as ApiVersion,
-            actions: [
-                {
-                    id: 'checkNodeUpdates',
-                    icon: 'update',
-                    title: {
-                        en: 'Check Updates',
-                        de: 'Updates prüfen',
-                        ru: 'Проверка обновлений',
-                        pt: 'Verificar actualizações',
-                        nl: 'Updates controleren',
-                        fr: 'Vérifier les mises à jour',
-                        it: 'Controllare gli aggiornamenti',
-                        es: 'Comprobar actualizaciones',
-                        pl: 'Sprawdź aktualizacje',
-                        uk: 'Перевірте оновлення',
-                        'zh-cn': 'Check Updates',
-                    },
-                    description: {
-                        en: 'Check for Node updates',
-                        de: 'Node-Updates prüfen',
-                        ru: 'Проверьте наличие обновлений узла',
-                        pt: 'Verificar se há actualizações do Node',
-                        nl: 'Controleren op Node-updates',
-                        fr: 'Vérifier les mises à jour de Node',
-                        it: 'Verifica degli aggiornamenti dei nodi',
-                        es: 'Buscar actualizaciones de nodos',
-                        pl: 'Sprawdź aktualizacje węzła',
-                        uk: 'Перевірте наявність оновлень вузла',
-                        'zh-cn': 'Check for Node updates',
-                    },
-                    handler: this.checkNodeUpdates.bind(this),
-                    timeout: 30_000,
-                },
-            ],
+            apiVersion: 'v3',
+            actions,
         };
     }
 
@@ -168,14 +169,15 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const details = ioNode.details;
 
         let updateAvailableMessage: string | undefined = undefined;
+        let version: string | undefined = undefined;
+        let newVersion: string | undefined = undefined;
+        if (ioNode.node.basicInformation) {
+            version = `${ioNode.node.basicInformation.softwareVersionString} (${ioNode.node.basicInformation.softwareVersion})`;
+        }
         if (ioNode.softwareUpdateAvailable !== undefined) {
             const info = ioNode.softwareUpdateAvailable;
-            updateAvailableMessage = '';
-            if (ioNode.node.basicInformation) {
-                updateAvailableMessage = `${ioNode.node.basicInformation.softwareVersionString} (${ioNode.node.basicInformation.softwareVersion})`;
-            }
-            updateAvailableMessage += ` → ${info.softwareVersionString} (${info.softwareVersion})`;
-            updateAvailableMessage = updateAvailableMessage.trim();
+            newVersion = `${info.softwareVersionString} (${info.softwareVersion})`;
+            updateAvailableMessage = `${version} → ${newVersion})`;
         }
 
         let actions: (DeviceAction<'adapter'> | null)[] = [
@@ -230,7 +232,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             // Show software update action if an update is available
             updateAvailableMessage
                 ? {
-                      id: 'softwareUpdate',
+                      id: ACTIONS.UPDATE,
                       icon: 'update',
                       description: updateAvailableMessage,
                       handler: (_id, context) => this.#handleSoftwareUpdateNode(ioNode, context),
@@ -259,6 +261,11 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 key: 'node',
                 name: this.#adapter.getText('Node'),
                 icon: 'node',
+            },
+            update: {
+                available: { stateId: '' },
+                version,
+                newVersion,
             },
         };
 
@@ -518,7 +525,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     async #handleLogDebugNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        const rootEndpoint = node.node.getRootEndpoint();
+        const rootEndpoint = node.node.node;
 
         const debugInfos = rootEndpoint ? logControllerEndpoint(rootEndpoint) : 'No root endpoint found';
 

@@ -32,7 +32,8 @@ export class HumidityToMatter extends GenericDeviceToMatter {
     }
 
     convertHumidityValue(value: number): number {
-        return value * 100;
+        // Matter MeasuredValue = %RH * 100, uint16 constrained to 0..10000.
+        return Math.round(this.#ioBrokerDevice.cropValue(value * 100, 0, 10_000));
     }
 
     async registerHandlersAndInitialize(): Promise<void> {

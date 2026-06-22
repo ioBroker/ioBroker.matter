@@ -1,6 +1,8 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { DoorLock } from '@matter/main/clusters';
-import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
+import { DoorLockClient } from '@matter/main/behaviors';
+import type { Endpoint } from '@matter/main';
+import type { PairedNode } from '@project-chip/matter.js/device';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { Lock } from '../../lib/devices/Lock';
@@ -34,8 +36,7 @@ export class DoorLockToIoBroker extends GenericElectricityDataDeviceToIoBroker<D
             DoorLockCustomStates,
         );
 
-        this.#unboltingSupported =
-            this.appEndpoint.getClusterClient(DoorLock.Complete)?.supportedFeatures.unbolting ?? false;
+        this.#unboltingSupported = !!this.appEndpoint.behaviors.typeFor(DoorLockClient)?.features.unbolting;
         this.#ioBrokerDevice = new Lock(
             { ...ChannelDetector.getPatterns().lock, isIoBrokerDevice: false } as DetectedDevice,
             adapter,
@@ -49,38 +50,38 @@ export class DoorLockToIoBroker extends GenericElectricityDataDeviceToIoBroker<D
         this.#enableCustomStates();
 
         this.enableDeviceTypeStateForAttribute(PropertyType.LockState, {
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: DoorLock.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: DoorLock.id,
             attributeName: 'lockState',
             changeHandler: async value => {
                 if (value) {
                     // Unlock
                     if (this.#unboltingSupported) {
-                        await this.appEndpoint.getClusterClient(DoorLock.Complete)?.unboltDoor({});
+                        await this.appEndpoint.commandsOf(DoorLockClient)?.unboltDoor({});
                     } else {
-                        await this.appEndpoint.getClusterClient(DoorLock.Complete)?.unlockDoor({});
+                        await this.appEndpoint.commandsOf(DoorLockClient)?.unlockDoor({});
                     }
                 } else {
                     // Lock
-                    await this.appEndpoint.getClusterClient(DoorLock.Complete)?.lockDoor({});
+                    await this.appEndpoint.commandsOf(DoorLockClient)?.lockDoor({});
                 }
             },
             convertValue: value => value === DoorLock.LockState.Unlocked,
         });
         this.enableDeviceTypeStateForAttribute(PropertyType.LockStateActual, {
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: DoorLock.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: DoorLock.id,
             attributeName: 'lockState',
             convertValue: (state: DoorLock.LockState | null) => state === DoorLock.LockState.Unlocked,
         });
         this.enableDeviceTypeStateForAttribute(PropertyType.Open, {
             changeHandler: async () => {
-                await this.appEndpoint.getClusterClient(DoorLock.Complete)?.unlockDoor({});
+                await this.appEndpoint.commandsOf(DoorLockClient)?.unlockDoor({});
             },
         });
         this.enableDeviceTypeStateForAttribute(PropertyType.DoorState, {
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: DoorLock.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: DoorLock.id,
             attributeName: 'doorState',
             convertValue: (state: DoorLock.DoorState | null) =>
                 state === DoorLock.DoorState.DoorOpen || state === DoorLock.DoorState.DoorForcedOpen,
@@ -92,22 +93,16 @@ export class DoorLockToIoBroker extends GenericElectricityDataDeviceToIoBroker<D
      * Enable custom states for DoorLock cluster attributes.
      */
     #enableCustomStates(): void {
-        const endpointId = this.appEndpoint.getNumber();
+        const endpointId = this.appEndpoint.number;
 
         // Auto Relock Time - writable attribute
         this.enableCustomStateForAttribute('autoRelockTime', {
             endpointId,
-            clusterId: DoorLock.Cluster.id,
+            clusterId: DoorLock.id,
             attributeName: 'autoRelockTime',
-            changeHandler: async (value: number) => {
-                const client = await this.node.getInteractionClient();
-                await client.setAttribute({
-                    attributeData: {
-                        endpointId,
-                        clusterId: DoorLock.Cluster.id,
-                        attribute: DoorLock.Cluster.attributes.autoRelockTime,
-                        value,
-                    },
+            changeHandler: async (autoRelockTime: number) => {
+                await this.appEndpoint.setStateOf(DoorLockClient, {
+                    autoRelockTime,
                 });
             },
         });

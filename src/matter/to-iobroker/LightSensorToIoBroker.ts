@@ -1,6 +1,7 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { IlluminanceMeasurement } from '@matter/main/clusters';
-import type { Endpoint, PairedNode } from '@project-chip/matter.js/device';
+import type { Endpoint } from '@matter/main';
+import type { PairedNode } from '@project-chip/matter.js/device';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
@@ -40,8 +41,8 @@ export class LightSensorToIoBroker extends GenericDeviceToIoBroker {
 
     protected enableDeviceTypeStates(): DeviceOptions {
         this.enableDeviceTypeStateForAttribute(PropertyType.Brightness, {
-            endpointId: this.appEndpoint.getNumber(),
-            clusterId: IlluminanceMeasurement.Cluster.id,
+            endpointId: this.appEndpoint.number,
+            clusterId: IlluminanceMeasurement.id,
             attributeName: 'measuredValue',
             convertValue: (value: number) => Math.round(Math.pow(10, (value - 1) / 10000)),
         });

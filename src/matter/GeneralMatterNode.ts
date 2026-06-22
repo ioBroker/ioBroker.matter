@@ -28,7 +28,7 @@ import {
 import type { DecodedAttributeReportValue, DecodedEventReportValue } from '@matter/main/protocol';
 import { PeerAddress } from '@matter/main/protocol';
 import { FabricIndex, SpecificationVersion } from '@matter/main/types';
-import { AttributeModel, ClusterModel, CommandModel, EventModel, MatterModel } from '@matter/main/model';
+import { AttributeModel, Matter } from '@matter/main/model';
 import { AggregatorEndpointDefinition, BridgedNodeEndpointDefinition } from '@matter/main/endpoints';
 import {
     NodeStates as PairedNodeStates,
@@ -966,6 +966,11 @@ export class GeneralMatterNode {
         return `${endpointId}.${clusterId}.${attributeId}`;
     }
 
+    #getAttributeStateLeafId(clusterId: number, attributeId: number, attrModel?: AttributeModel): string {
+        attrModel = attrModel ?? Matter.clusters(clusterId)?.attributes(attributeId);
+        return attrModel ? camelize(attrModel.name) : toHex(attributeId);
+    }
+
     #getEventMapId(endpointId: number, clusterId: number, eventId: number): string {
         return `${endpointId}.${clusterId}.${eventId}`;
     }
@@ -986,7 +991,7 @@ export class GeneralMatterNode {
         if (isUnknown) {
             type = 'mixed';
         } else {
-            const attributeModel = MatterModel.standard.get(ClusterModel, clusterId)?.get(AttributeModel, attributeId);
+            const attributeModel = Matter.clusters(clusterId)?.attributes(attributeId);
             const effectiveType = attributeModel?.effectiveType;
             const metatype = attributeModel?.effectiveMetatype;
             if (metatype === undefined) {
@@ -1065,8 +1070,8 @@ export class GeneralMatterNode {
                 continue;
             }
 
-            const clusterName =
-                MatterModel.standard.get(ClusterModel, clusterId)?.name ?? `Cluster_${toHex(clusterId)}`;
+            const clusterModel = Matter.clusters(clusterId);
+            const clusterName = clusterModel?.name ?? `Cluster_${toHex(clusterId)}`;
             await this.adapter.setObjectNotExists(clusterBaseId, {
                 type: 'folder',
                 common: {
@@ -1103,10 +1108,10 @@ export class GeneralMatterNode {
                 if (globalIds.has(attributeId)) {
                     continue;
                 }
-                const attrModel = MatterModel.standard.get(ClusterModel, clusterId)?.get(AttributeModel, attributeId);
+                const attrModel = clusterModel?.attributes(attributeId);
                 const unknown = !attrModel;
                 const attrName = attrModel ? camelize(attrModel.name) : `unknownAttribute_${toHex(attributeId)}`;
-                const attributeBaseId = `${clusterBaseId}.attributes.${attrName.replace('unknownAttribute_', '')}`;
+                const attributeBaseId = `${clusterBaseId}.attributes.${this.#getAttributeStateLeafId(clusterId, attributeId, attrModel)}`;
 
                 const { type: targetType, states: targetStates } = this.#determineIoBrokerDatatype(
                     endpoint.number,
@@ -1130,7 +1135,7 @@ export class GeneralMatterNode {
                 addedAttributes++;
 
                 if (this.node.isConnected) {
-                    const attributeValue = clusterState[attrName];
+                    const attributeValue = clusterState[attributeId];
                     if (attributeValue !== undefined) {
                         await this.adapter.setState(
                             attributeBaseId,
@@ -1170,7 +1175,7 @@ export class GeneralMatterNode {
             let addedEvents = 0;
             const eventList: EventId[] = clusterState.eventList ?? [];
             for (const eventId of eventList) {
-                const eventModel = MatterModel.standard.get(ClusterModel, clusterId)?.get(EventModel, eventId);
+                const eventModel = clusterModel?.events(eventId);
                 if (!eventModel) {
                     continue;
                 }
@@ -1204,7 +1209,7 @@ export class GeneralMatterNode {
             let addedCommands = 0;
             const acceptedCommandList: CommandId[] = clusterState.acceptedCommandList ?? [];
             for (const commandId of acceptedCommandList) {
-                const commandModel = MatterModel.standard.get(ClusterModel, clusterId)?.get(CommandModel, commandId);
+                const commandModel = clusterModel?.commands(commandId);
                 if (!commandModel) {
                     continue;
                 }
@@ -1309,7 +1314,7 @@ export class GeneralMatterNode {
             return;
         }
         await this.adapter.setState(
-            `${endpointBaseId}.${toHex(clusterId)}.attributes.${attributeName.replace('unknownAttribute_', '')}`,
+            `${endpointBaseId}.${toHex(clusterId)}.attributes.${this.#getAttributeStateLeafId(clusterId, attributeId)}`,
             this.#formatAttributeServerValue(endpointId, value, targetType),
             true,
         );

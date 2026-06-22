@@ -144,6 +144,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) Parallelizing the  startup of controller and devices and optimize subscription resumptions
 * (@Apollon77) Fixes detection of 0_userdata.0 objects again
 * (@Apollon77) Fixes handling of special attributes (e.g. startupOnOff) when null and add relevant States lists
+* (@Apollon77) Fixes handling if custom attribute states
 
 ### 1.0.0 (2026-02-25)
 * IMPORTANT: The first start of the controller with this version takes a bit longer to connect all devices because internal data are migrated

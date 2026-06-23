@@ -2,6 +2,10 @@ import type { DetectorState, StateType } from '@iobroker/type-detector';
 import { SubscribeManager } from '../SubscribeManager';
 import { EventEmitter } from 'events';
 
+function isFiniteNumber(value: unknown): value is number {
+    return typeof value === 'number' && Number.isFinite(value);
+}
+
 export enum ValueType {
     String = 'string',
     Number = 'number',
@@ -320,20 +324,23 @@ export class DeviceStateObject<T> extends EventEmitter {
         }
 
         const changes: Partial<ioBroker.StateCommon> = {};
-        if (minMax.min !== undefined && minMax.min !== this.min) {
-            this.min = minMax.min;
-            this.object.common.min = minMax.min;
-            changes.min = minMax.min;
+        const min = this.#sanitizeLimit(minMax.min, 'min');
+        if (min !== undefined && min !== this.min) {
+            this.min = min;
+            this.object.common.min = min;
+            changes.min = min;
         }
-        if (minMax.max !== undefined && minMax.max !== this.max) {
-            this.max = minMax.max;
-            this.object.common.max = minMax.max;
-            changes.max = minMax.max;
+        const max = this.#sanitizeLimit(minMax.max, 'max');
+        if (max !== undefined && max !== this.max) {
+            this.max = max;
+            this.object.common.max = max;
+            changes.max = max;
         }
-        if (minMax.step !== undefined && minMax.step !== this.step) {
-            this.step = minMax.step;
-            this.object.common.step = minMax.step;
-            changes.step = minMax.step;
+        const step = this.#sanitizeLimit(minMax.step, 'step');
+        if (step !== undefined && step !== this.step) {
+            this.step = step;
+            this.object.common.step = step;
+            changes.step = step;
         }
         if (Object.keys(changes).length > 0) {
             await this.adapter.extendObjectAsync(this.#id, { common: changes });
@@ -356,6 +363,19 @@ export class DeviceStateObject<T> extends EventEmitter {
         return this.#valid;
     }
 
+    #sanitizeLimit(value: unknown, name: 'min' | 'max' | 'step'): number | undefined {
+        if (value === undefined || value === null) {
+            return undefined;
+        }
+        if (isFiniteNumber(value)) {
+            return value;
+        }
+        this.adapter.log.warn(
+            `Ignoring invalid ${name} value ${JSON.stringify(value)} for state ${this.#id} of object`,
+        );
+        return undefined;
+    }
+
     protected parseMinMax(percent = false): void {
         if (!this.object) {
             throw new Error(`Object not initialized`);
@@ -364,16 +384,16 @@ export class DeviceStateObject<T> extends EventEmitter {
         if (percent) {
             this.min = 0;
             this.max = 100;
-            this.realMin = obj?.common?.min || 0;
-            this.realMax = obj?.common?.max === undefined || obj?.common?.max === null ? 100 : obj?.common?.max;
+            this.realMin = this.#sanitizeLimit(obj?.common?.min, 'min') ?? 0;
+            this.realMax = this.#sanitizeLimit(obj?.common?.max, 'max') ?? 100;
             this.unit = '%';
             if (obj.common.type !== 'number') {
                 throw new Error(`State ${this.#id} is not a number`);
             }
         } else {
             // Use min/max from object common (which may have been set from state definition)
-            this.min = obj?.common?.min ?? this.state.defaultMin;
-            this.max = obj?.common?.max ?? this.state.defaultMax;
+            this.min = this.#sanitizeLimit(obj?.common?.min, 'min') ?? this.state.defaultMin;
+            this.max = this.#sanitizeLimit(obj?.common?.max, 'max') ?? this.state.defaultMax;
             if (this.min !== undefined && this.max === undefined) {
                 this.max = 100;
             } else if (this.min === undefined && this.max !== undefined) {
@@ -381,7 +401,7 @@ export class DeviceStateObject<T> extends EventEmitter {
             }
             this.unit = obj?.common?.unit ?? this.state.defaultUnit;
         }
-        this.step = obj?.common?.step ?? this.state.defaultStep;
+        this.step = this.#sanitizeLimit(obj?.common?.step, 'step') ?? this.state.defaultStep;
     }
 
     protected parseMode(): void {
@@ -508,10 +528,10 @@ export class DeviceStateObject<T> extends EventEmitter {
             let realValue: number = parseFloat(value as string);
             realValue = (realValue / 100) * (this.realMax - this.realMin) + this.realMin;
 
-            if (object.common.min !== undefined && realValue < object.common.min) {
+            if (isFiniteNumber(object.common.min) && realValue < object.common.min) {
                 throw new Error(`Value ${realValue} is less than min ${object.common.min}`);
             }
-            if (object.common.max !== undefined && realValue > object.common.max) {
+            if (isFiniteNumber(object.common.max) && realValue > object.common.max) {
                 throw new Error(`Value ${realValue} is greater than max ${object.common.max}`);
             }
 
@@ -537,10 +557,10 @@ export class DeviceStateObject<T> extends EventEmitter {
                 } else if (valueType === 'number') {
                     const realValue: number = parseFloat(value as string);
 
-                    if (object.common.min !== undefined && realValue < object.common.min) {
+                    if (isFiniteNumber(object.common.min) && realValue < object.common.min) {
                         throw new Error(`Value ${JSON.stringify(value)} is less than min ${object.common.min}`);
                     }
-                    if (object.common.max !== undefined && realValue > object.common.max) {
+                    if (isFiniteNumber(object.common.max) && realValue > object.common.max) {
                         throw new Error(`Value ${JSON.stringify(value)} is greater than max ${object.common.max}`);
                     }
 
@@ -601,10 +621,10 @@ export class DeviceStateObject<T> extends EventEmitter {
             }
 
             if (valueType === 'number') {
-                if (object.common.min !== undefined && value < object.common.min) {
+                if (isFiniteNumber(object.common.min) && Number(value) < object.common.min) {
                     throw new Error(`Value ${JSON.stringify(value)} is less than min ${object.common.min}`);
                 }
-                if (object.common.max !== undefined && value > object.common.max) {
+                if (isFiniteNumber(object.common.max) && Number(value) > object.common.max) {
                     throw new Error(`Value ${JSON.stringify(value)} is greater than max ${object.common.max}`);
                 }
 

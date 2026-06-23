@@ -1007,7 +1007,7 @@ export class MatterAdapter extends Adapter {
                 },
             });
         } catch (e) {
-            if (e.response.status === 401) {
+            if (e.response?.status === 401) {
                 this.#license[key] = false;
                 this.log.error(`User login or password is wrong`);
             } else {

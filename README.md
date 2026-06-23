@@ -138,6 +138,10 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 -->
 
 ## Changelog
+
+### **WORK IN PROGRESS**
+* (@Apollon77) Ignores invalid min/max/step settings in linked objects
+
 ### 1.1.1 (2026-06-22)
 * (@Apollon77) Fixes Update availability flag in UI
 

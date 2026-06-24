@@ -2,7 +2,7 @@ import { Endpoint, ServerNode, VendorId } from '@matter/main';
 import { BridgedDeviceBasicInformationServer, NetworkCommissioningServer } from '@matter/main/behaviors';
 import { AggregatorEndpoint, BridgedNodeEndpoint } from '@matter/main/endpoints';
 import { NetworkCommissioning } from '@matter/main/clusters';
-import { inspect } from 'util';
+import { inspect } from 'node:util';
 import type { BridgeDeviceDescription } from '../ioBrokerStorageTypes';
 import type { GenericDevice } from '../lib';
 import { md5, toUpperCaseHex } from '../lib/utils';

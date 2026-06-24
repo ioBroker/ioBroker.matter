@@ -1,6 +1,6 @@
 import type { DetectorState, StateType } from '@iobroker/type-detector';
 import { SubscribeManager } from '../SubscribeManager';
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events';
 
 function isFiniteNumber(value: unknown): value is number {
     return typeof value === 'number' && Number.isFinite(value);

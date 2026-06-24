@@ -1,5 +1,5 @@
 import { Bytes } from '@matter/main';
-import { createHash } from 'crypto';
+import { createHash } from 'node:crypto';
 
 /** MD5 hash a string */
 export function md5(str: string): string {

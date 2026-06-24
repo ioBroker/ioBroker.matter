@@ -1,7 +1,7 @@
 import { ServerNode, VendorId } from '@matter/main';
 import { NetworkCommissioningServer } from '@matter/main/behaviors';
 import { NetworkCommissioning } from '@matter/main/clusters';
-import { inspect } from 'util';
+import { inspect } from 'node:util';
 import type { DeviceDescription } from '../ioBrokerStorageTypes';
 import type { GenericDevice } from '../lib';
 import { md5, toUpperCaseHex } from '../lib/utils';

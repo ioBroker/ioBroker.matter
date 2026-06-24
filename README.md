@@ -461,6 +461,8 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 ### 0.0.2 (2023-10-23)
 * (@GermanBluefox) Initial commit
 
+[Older changelogs can be found there](CHANGELOG_OLD.md)
+
 ## License
 Apache-2.0
 

@@ -275,5 +275,11 @@
     "primary": "主",
     "secondary": "备",
     "External Router": "外部路由器",
-    "External Device": "外部设备"
+    "External Device": "外部设备",
+    "Bidirectional LQI": "双向 LQI",
+    "Path Cost": "路径开销",
+    "Route table only": "仅路由表",
+    "Connected devices": "已连接设备",
+    "Signal: Unknown": "信号：未知",
+    "stale": "已过期"
 }

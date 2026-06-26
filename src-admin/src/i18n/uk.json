@@ -275,5 +275,11 @@
     "primary": "основний",
     "secondary": "резервний",
     "External Router": "Зовнішній маршрутизатор",
-    "External Device": "Зовнішній пристрій"
+    "External Device": "Зовнішній пристрій",
+    "Bidirectional LQI": "Двонаправлений LQI",
+    "Path Cost": "Вартість маршруту",
+    "Route table only": "Лише таблиця маршрутизації",
+    "Connected devices": "Підключені пристрої",
+    "Signal: Unknown": "Сигнал: невідомо",
+    "stale": "застаріло"
 }

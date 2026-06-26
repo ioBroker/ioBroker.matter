@@ -3,6 +3,7 @@
  * Shows Thread devices, Border Routers and their mesh connections with signal quality
  */
 
+import { I18n } from '@iobroker/adapter-react-v5';
 import BaseNetworkGraph, { type BaseNetworkGraphProps, type BaseNetworkGraphState } from './BaseNetworkGraph';
 import type { NetworkGraphNode, NetworkGraphEdge, ThreadRoutingRole, BorderRouterEntry } from './NetworkTypes';
 import {
@@ -90,7 +91,7 @@ class ThreadGraph extends BaseNetworkGraph<ThreadGraphProps, BaseNetworkGraphSta
                 image: createNodeIconDataUrl(node.deviceType, role, isOffline),
                 size: 24,
                 font: { color: darkMode ? '#e0e0e0' : '#333333' },
-                title: `${node.name}\nRole: ${roleName}\nAddress: ${extAddrHex}\n${isOffline ? 'Offline' : 'Connected'}`,
+                title: `${node.name}\n${I18n.t('Role')}: ${roleName}\n${I18n.t('Extended Address')}: ${extAddrHex}\n${isOffline ? I18n.t('Offline') : I18n.t('Connected')}`,
                 networkType: 'thread',
                 threadRole: role ?? undefined,
                 offline: isOffline,
@@ -131,7 +132,7 @@ class ThreadGraph extends BaseNetworkGraph<ThreadGraphProps, BaseNetworkGraphSta
 
             if (device.kind === 'br') {
                 const hostname = device.hostname !== undefined ? stripMdnsHostname(device.hostname) : undefined;
-                const top = (hostname ?? device.networkName ?? 'Border Router').slice(0, 24);
+                const top = (hostname ?? device.networkName ?? I18n.t('Border Router')).slice(0, 24);
                 const suffix =
                     hostname !== undefined && device.networkName !== undefined && device.networkName !== top
                         ? `\n${device.networkName}`
@@ -140,11 +141,11 @@ class ThreadGraph extends BaseNetworkGraph<ThreadGraphProps, BaseNetworkGraphSta
                 const isLeader = decoded?.threadRoleValue === 3;
                 const isPrimaryBbr = decoded?.bbr === true && decoded.bbrFunction === 'primary';
                 const tooltip = [
-                    device.networkName ? `Network: ${device.networkName}` : undefined,
-                    device.vendorName ? `Vendor: ${device.vendorName}` : undefined,
-                    device.threadVersion ? `Thread: ${device.threadVersion}` : undefined,
-                    device.addresses.length ? `Addresses:\n  ${device.addresses.join('\n  ')}` : undefined,
-                    device.sources.length === 0 ? '(stale)' : undefined,
+                    device.networkName ? `${I18n.t('Network')}: ${device.networkName}` : undefined,
+                    device.vendorName ? `${I18n.t('Vendor')}: ${device.vendorName}` : undefined,
+                    device.threadVersion ? `${I18n.t('Thread Version')}: ${device.threadVersion}` : undefined,
+                    device.addresses.length ? `${I18n.t('Addresses')}:\n  ${device.addresses.join('\n  ')}` : undefined,
+                    device.sources.length === 0 ? `(${I18n.t('stale')})` : undefined,
                 ]
                     .filter(Boolean)
                     .join('\n');
@@ -155,12 +156,12 @@ class ThreadGraph extends BaseNetworkGraph<ThreadGraphProps, BaseNetworkGraphSta
                     image: createBorderRouterIconDataUrl(false, isLeader, isPrimaryBbr),
                     size: 26,
                     font: { color: darkMode ? '#e0e0e0' : '#333333' },
-                    title: tooltip || (hostname ?? 'Border Router'),
+                    title: tooltip || (hostname ?? I18n.t('Border Router')),
                     networkType: 'thread',
                     hidden: shouldHide,
                 });
             } else {
-                const typeLabel = device.isRouter ? 'External Router' : 'External Device';
+                const typeLabel = device.isRouter ? I18n.t('External Router') : I18n.t('External Device');
                 const suffix = device.networkName !== undefined ? `\n${device.networkName}` : '';
                 graphNodes.push({
                     id: device.id,
@@ -169,7 +170,7 @@ class ThreadGraph extends BaseNetworkGraph<ThreadGraphProps, BaseNetworkGraphSta
                     image: createUnknownDeviceIconDataUrl(device.isRouter),
                     size: 20,
                     font: { color: darkMode ? '#e0e0e0' : '#333333' },
-                    title: `${typeLabel}\nAddress: ${device.extAddressHex}\nSeen by: ${device.seenBy.length} device(s)`,
+                    title: `${typeLabel}\n${I18n.t('Extended Address')}: ${device.extAddressHex}\n${I18n.t('Seen by')}: ${device.seenBy.length}`,
                     networkType: 'thread',
                     isUnknown: true,
                     hidden: shouldHide,
@@ -206,13 +207,13 @@ class ThreadGraph extends BaseNetworkGraph<ThreadGraphProps, BaseNetworkGraphSta
             }
             tooltipLines.push(`LQI: ${conn.lqi}`);
             if (conn.bidirectionalLqi !== undefined) {
-                tooltipLines.push(`Bidirectional LQI: ${conn.bidirectionalLqi}`);
+                tooltipLines.push(`${I18n.t('Bidirectional LQI')}: ${conn.bidirectionalLqi}`);
             }
             if (conn.pathCost !== undefined) {
-                tooltipLines.push(`Path Cost: ${conn.pathCost}`);
+                tooltipLines.push(`${I18n.t('Path Cost')}: ${conn.pathCost}`);
             }
             if (conn.fromRouteTable) {
-                tooltipLines.push('(Route table only)');
+                tooltipLines.push(`(${I18n.t('Route table only')})`);
             }
 
             graphEdges.push({

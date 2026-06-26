@@ -13,6 +13,7 @@ import {
     getWiFiVersionName,
 } from './NetworkUtils';
 import { createNodeIconDataUrl, createWiFiApIconDataUrl } from './NetworkIcons';
+import { I18n } from '@iobroker/adapter-react-v5';
 
 class WiFiGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGraphState> {
     // eslint-disable-next-line class-methods-use-this
@@ -66,7 +67,7 @@ class WiFiGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGraph
                 image: createWiFiApIconDataUrl(),
                 size: 26,
                 font: { color: darkMode ? '#e0e0e0' : '#333333' },
-                title: `Access Point\nBSSID: ${ap.bssidFormatted}\nConnected devices: ${ap.connectedNodes.length}`,
+                title: `${I18n.t('Access Point')}\n${I18n.t('BSSID')}: ${ap.bssidFormatted}\n${I18n.t('Connected devices')}: ${ap.connectedNodes.length}`,
                 networkType: 'wifi',
                 isAccessPoint: true,
             });
@@ -87,7 +88,7 @@ class WiFiGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGraph
                 image: createNodeIconDataUrl(node.deviceType, null, isOffline),
                 size: 24,
                 font: { color: darkMode ? '#e0e0e0' : '#333333' },
-                title: `${node.name}\n${node.isConnected ? 'Connected' : 'Offline'}${rssi !== null ? `\nRSSI: ${rssi} dBm` : ''}${channel !== null ? `\nChannel: ${channel}` : ''}\nSecurity: ${securityType}\nWiFi: ${wifiVersion}`,
+                title: `${node.name}\n${node.isConnected ? I18n.t('Connected') : I18n.t('Offline')}${rssi !== null ? `\nRSSI: ${rssi} dBm` : ''}${channel !== null ? `\n${I18n.t('Channel')}: ${channel}` : ''}\n${I18n.t('Security')}: ${securityType}\n${I18n.t('WiFi Version')}: ${wifiVersion}`,
                 networkType: 'wifi',
                 offline: isOffline,
             });
@@ -116,7 +117,7 @@ class WiFiGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGraph
                     highlight: signalColor.highlight,
                 },
                 width: 2,
-                title: rssi !== null ? `RSSI: ${rssi} dBm` : 'Signal: Unknown',
+                title: rssi !== null ? `RSSI: ${rssi} dBm` : I18n.t('Signal: Unknown'),
                 dashes: isOffline,
             });
         }

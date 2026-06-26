@@ -275,5 +275,11 @@
     "primary": "основной",
     "secondary": "резервный",
     "External Router": "Внешний маршрутизатор",
-    "External Device": "Внешнее устройство"
+    "External Device": "Внешнее устройство",
+    "Bidirectional LQI": "Двунаправленный LQI",
+    "Path Cost": "Стоимость маршрута",
+    "Route table only": "Только таблица маршрутизации",
+    "Connected devices": "Подключённые устройства",
+    "Signal: Unknown": "Сигнал: неизвестно",
+    "stale": "устарело"
 }

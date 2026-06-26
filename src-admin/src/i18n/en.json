@@ -298,5 +298,11 @@
     "primary": "primary",
     "secondary": "secondary",
     "External Router": "External Router",
-    "External Device": "External Device"
+    "External Device": "External Device",
+    "Bidirectional LQI": "Bidirectional LQI",
+    "Path Cost": "Path Cost",
+    "Route table only": "Route table only",
+    "Connected devices": "Connected devices",
+    "Signal: Unknown": "Signal: Unknown",
+    "stale": "stale"
 }

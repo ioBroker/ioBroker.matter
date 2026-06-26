@@ -275,5 +275,11 @@
     "primary": "podstawowy",
     "secondary": "zapasowy",
     "External Router": "Router zewnętrzny",
-    "External Device": "Urządzenie zewnętrzne"
+    "External Device": "Urządzenie zewnętrzne",
+    "Bidirectional LQI": "Dwukierunkowy LQI",
+    "Path Cost": "Koszt trasy",
+    "Route table only": "Tylko tablica routingu",
+    "Connected devices": "Podłączone urządzenia",
+    "Signal: Unknown": "Sygnał: nieznany",
+    "stale": "nieaktualny"
 }

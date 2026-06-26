@@ -252,5 +252,15 @@
     "status_disconnected": "Losgekoppeld",
     "status_waitingForCommissioning": "Wachten op inbedrijfstelling",
     "status_waitingForDeviceDiscovery": "Wachten op apparaatdetectie",
-    "to bridge": "overbruggen"
+    "to bridge": "overbruggen",
+    "BSSID": "BSSID",
+    "Border Router": "Border Router",
+    "Click a node to see details": "Klik op een knooppunt voor details",
+    "Filter": "Filter",
+    "Hide medium links": "Gemiddelde verbindingen verbergen",
+    "Hide offline nodes": "Offline knooppunten verbergen",
+    "Hide strong links": "Sterke verbindingen verbergen",
+    "Hide weak links": "Zwakke verbindingen verbergen",
+    "Search mesh": "Mesh doorzoeken",
+    "Thread Version": "Thread-versie"
 }

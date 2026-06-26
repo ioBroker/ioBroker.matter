@@ -12,3 +12,4 @@ export type { SelectedNodeType } from './UpdateConnectionsDialog';
 
 export * from './NetworkTypes';
 export * from './NetworkUtils';
+export * from './NetworkIcons';

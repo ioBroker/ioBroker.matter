@@ -33,7 +33,7 @@ import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
 import { clone } from '../Utils';
 import QrCodeDialog from '../components/QrCodeDialog';
 import DiscoveredDevicesDialog from '../components/DiscoveredDevicesDialog';
-import { NetworkGraphDialog, type NetworkGraphData } from '../components/network';
+import { NetworkGraphDialog, type NetworkGraphData, type BorderRouterEntry } from '../components/network';
 
 /**
  * Validates that an object conforms to the NetworkGraphData structure
@@ -145,6 +145,8 @@ interface ComponentState {
     networkGraphData: NetworkGraphData | null;
     /** Network graph loading error */
     networkGraphError: string | null;
+    /** mDNS-discovered Thread Border Routers */
+    networkBorderRouters: BorderRouterEntry[];
 }
 
 class Controller extends Component<ComponentProps, ComponentState> {
@@ -169,6 +171,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
             networkGraphDialogType: null,
             networkGraphData: null,
             networkGraphError: null,
+            networkBorderRouters: [],
         };
     }
 
@@ -571,6 +574,21 @@ class Controller extends Component<ComponentProps, ComponentState> {
             console.error('Failed to load network graph data:', error);
             this.setState({ networkGraphError: errorMessage });
         }
+
+        // Thread Border Routers are discovered independently via mDNS; failure here must not
+        // block the graph (it stays usable without BR enrichment).
+        try {
+            const brResult = await this.props.socket.sendTo(
+                `matter.${this.props.instance}`,
+                'controllerThreadBorderRouters',
+                {},
+            );
+            if (brResult?.result && Array.isArray(brResult.result)) {
+                this.setState({ networkBorderRouters: brResult.result as BorderRouterEntry[] });
+            }
+        } catch (error) {
+            console.error('Failed to load Thread border routers:', error);
+        }
     };
 
     /**
@@ -605,6 +623,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 onUpdateConnections={this.updateNetworkConnections}
                 darkMode={this.props.themeType === 'dark'}
                 networkType={this.state.networkGraphDialogType}
+                borderRouters={this.state.networkBorderRouters}
             />
         );
     }
@@ -637,7 +656,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             });
                         } else {
                             window.alert(I18n.t('Connected'));
-                            this.refDeviceManager.current?.loadData();
+                            void this.refDeviceManager.current?.loadAllData();
                         }
                     } else {
                         this.setState({ showQrCodeDialog: false });
@@ -658,7 +677,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 registerDiscoveryMessageHandler={(handler: null | ((device: CommissionableDevice) => void)): void => {
                     this.onDiscoveryMessageHandler = handler;
                 }}
-                triggerDeviceManagerLoad={() => this.refDeviceManager.current?.loadData()}
+                triggerDeviceManagerLoad={() => this.refDeviceManager.current?.loadAllData()}
                 onClose={(): void => this.setState({ showDiscoveryDialog: false })}
                 ble={!!this.props.matter.controller.ble}
                 instance={this.props.instance}

@@ -252,5 +252,15 @@
     "status_disconnected": "已断开连接",
     "status_waitingForCommissioning": "等待调试",
     "status_waitingForDeviceDiscovery": "等待设备发现",
-    "to bridge": "桥接"
+    "to bridge": "桥接",
+    "BSSID": "BSSID",
+    "Border Router": "边界路由器",
+    "Click a node to see details": "点击节点查看详情",
+    "Filter": "筛选",
+    "Hide medium links": "隐藏中等连接",
+    "Hide offline nodes": "隐藏离线节点",
+    "Hide strong links": "隐藏强连接",
+    "Hide weak links": "隐藏弱连接",
+    "Search mesh": "搜索网格",
+    "Thread Version": "Thread 版本"
 }

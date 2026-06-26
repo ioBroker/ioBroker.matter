@@ -252,5 +252,15 @@
     "status_disconnected": "Отключено",
     "status_waitingForCommissioning": "Ожидание ввода в эксплуатацию",
     "status_waitingForDeviceDiscovery": "Ожидание обнаружения устройства",
-    "to bridge": "преодолеть"
+    "to bridge": "преодолеть",
+    "BSSID": "BSSID",
+    "Border Router": "Пограничный маршрутизатор",
+    "Click a node to see details": "Нажмите на узел для просмотра деталей",
+    "Filter": "Фильтр",
+    "Hide medium links": "Скрыть средние соединения",
+    "Hide offline nodes": "Скрыть офлайн-узлы",
+    "Hide strong links": "Скрыть сильные соединения",
+    "Hide weak links": "Скрыть слабые соединения",
+    "Search mesh": "Поиск в сети",
+    "Thread Version": "Версия Thread"
 }

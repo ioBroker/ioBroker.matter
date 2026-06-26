@@ -3,7 +3,7 @@ import { BridgedDeviceBasicInformationServer, NetworkCommissioningServer } from 
 import { AggregatorEndpoint, BridgedNodeEndpoint } from '@matter/main/endpoints';
 import { NetworkCommissioning } from '@matter/main/clusters';
 import { inspect } from 'util';
-import type { BridgeDeviceDescription } from '../ioBrokerStorageTypes';
+import type { BridgeDeviceDescription } from '../ioBrokerTypes';
 import type { GenericDevice } from '../lib';
 import { md5, toUpperCaseHex } from '../lib/utils';
 import type { MatterAdapter } from '../main';

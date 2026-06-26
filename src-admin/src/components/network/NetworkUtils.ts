@@ -8,18 +8,22 @@ import type {
     ThreadNeighborEntry,
     ThreadRouteEntry,
     SignalColor,
-    UnknownThreadDevice,
+    SignalLevel,
+    ThreadExternalDevice,
+    BorderRouterEntry,
     WiFiAccessPoint,
     ThreadRoutingRole,
 } from './NetworkTypes';
 
-// Signal strength thresholds (dBm)
+// WiFi RSSI thresholds (dBm). Used only for the WiFi graph; Thread edges are LQI-driven.
 const SIGNAL_STRONG_THRESHOLD = -70;
 const SIGNAL_MEDIUM_THRESHOLD = -85;
 
-// LQI thresholds (0-255)
-const LQI_STRONG_THRESHOLD = 200;
-const LQI_MEDIUM_THRESHOLD = 100;
+// Thread LQI thresholds. Spec types LQI as uint8 (0-255), but OpenThread — the dominant
+// Thread stack — only ever reports 0-3, so we classify on that scale: 3=strong, 2=medium,
+// 1=weak, 0=no link (stale/dead neighbor entry).
+const LQI_STRONG_THRESHOLD = 2;
+const LQI_MEDIUM_THRESHOLD = 1;
 
 // Signal colors
 export const SIGNAL_COLORS = {
@@ -89,27 +93,105 @@ export function getSignalColorFromRssi(rssi: number | null): SignalColor {
 }
 
 /**
- * Get signal color based on LQI value (0-255)
+ * Map an LQI value to a signal level. OpenThread reports 0-3 in practice (see thresholds);
+ * 0 = "none" (no recent valid frames — stale/dead link).
  */
-export function getSignalColorFromLqi(lqi: number): SignalColor {
+export function getSignalLevelFromLqi(lqi: number): SignalLevel {
+    if (lqi <= 0) {
+        return 'none';
+    }
     if (lqi > LQI_STRONG_THRESHOLD) {
-        return SIGNAL_COLORS.strong;
+        return 'strong';
     }
     if (lqi > LQI_MEDIUM_THRESHOLD) {
-        return SIGNAL_COLORS.medium;
+        return 'medium';
     }
-    return SIGNAL_COLORS.weak;
+    return 'weak';
 }
 
 /**
- * Get signal color from neighbor entry (prefers RSSI, falls back to LQI)
+ * Get signal color based on LQI value (0-3 on OpenThread; 0 = no link → grey).
+ */
+export function getSignalColorFromLqi(lqi: number): SignalColor {
+    switch (getSignalLevelFromLqi(lqi)) {
+        case 'strong':
+            return SIGNAL_COLORS.strong;
+        case 'medium':
+            return SIGNAL_COLORS.medium;
+        case 'weak':
+            return SIGNAL_COLORS.weak;
+        default:
+            return SIGNAL_COLORS.unknown;
+    }
+}
+
+/**
+ * Get signal color for a Thread neighbor. Thread edges are LQI-driven (OpenThread 0-3);
+ * RSSI is retained for tooltips/details only, not for edge coloring.
  */
 export function getSignalColorFromNeighbor(neighbor: ThreadNeighborEntry): SignalColor {
-    const rssi = neighbor.averageRssi ?? neighbor.lastRssi;
-    if (rssi !== null) {
-        return getSignalColorFromRssi(rssi);
-    }
     return getSignalColorFromLqi(neighbor.lqi);
+}
+
+/** Strips trailing dot and `.local` suffix from an mDNS hostname for display. */
+export function stripMdnsHostname(hostname: string): string {
+    return hostname.replace(/\.$/, '').replace(/\.local$/i, '');
+}
+
+/**
+ * Decoded form of the MeshCoP `_meshcop` TXT `sb` (state bitmap) field. Layout per OpenThread's
+ * border-agent service publication (the de-facto reference for Thread Border Routers):
+ *   bit  7     BBR Active
+ *   bit  8     BBR Is Primary (only meaningful when BBR Active)
+ *   bits 9-10  Thread Role (0=Detached, 1=Child, 2=Router, 3=Leader)
+ */
+export interface DecodedStateBitmap {
+    bbr: boolean;
+    /** "primary" / "secondary" — only meaningful when bbr is true. */
+    bbrFunction?: 'primary' | 'secondary';
+    threadRoleValue: number;
+}
+
+/** Decodes a MeshCoP state bitmap hex string (e.g. "000005B1"); undefined if not valid hex. */
+export function decodeMeshcopStateBitmap(hex: string | undefined): DecodedStateBitmap | undefined {
+    if (hex === undefined || !/^[0-9a-fA-F]{1,8}$/.test(hex)) {
+        return undefined;
+    }
+    const value = parseInt(hex, 16);
+    if (!Number.isFinite(value)) {
+        return undefined;
+    }
+    const bbr = ((value >> 7) & 0x1) === 1;
+    const bbrIsPrimary = ((value >> 8) & 0x1) === 1;
+    return {
+        bbr,
+        bbrFunction: bbr ? (bbrIsPrimary ? 'primary' : 'secondary') : undefined,
+        threadRoleValue: (value >> 9) & 0x3,
+    };
+}
+
+/**
+ * Snapshot of mDNS-discovered Thread Border Routers, keyed by uppercase 16-char xa hex so callers
+ * can join against neighbor-table extended addresses normalized to the same casing.
+ */
+export class BorderRouterStore {
+    #entries: ReadonlyMap<string, BorderRouterEntry> = new Map();
+
+    get entries(): ReadonlyMap<string, BorderRouterEntry> {
+        return this.#entries;
+    }
+
+    setFromList(list: BorderRouterEntry[]): void {
+        const next = new Map<string, BorderRouterEntry>();
+        for (const entry of list) {
+            next.set(entry.extAddressHex.toUpperCase(), entry);
+        }
+        this.#entries = next;
+    }
+
+    reset(): void {
+        this.#entries = new Map();
+    }
 }
 
 /**
@@ -199,17 +281,38 @@ export function buildRloc16Map(nodes: NetworkNodeData[]): Map<number, string> {
  * Uses RLOC16 fallback to reduce false "unknown" classifications when extended
  * address matching fails (format edge cases, stale data, missing NetworkInterfaces).
  */
+interface ExternalAggregate {
+    extAddress: string;
+    extAddressHex: string;
+    seenBy: string[];
+    isRouter: boolean;
+    bestRssi: number | null;
+    /** xp of the first observing node; all neighbors of a Thread node share its network. */
+    extendedPanIdHex?: string;
+}
+
+/**
+ * Find external Thread devices — addresses seen in neighbor tables that don't match any
+ * commissioned device. Classifies each against the optional Border Router registry: matched
+ * ones become kind:"br" with full mDNS enrichment, the rest stay kind:"unknown". Uses RLOC16
+ * as fallback when extended address matching fails.
+ */
 export function findUnknownDevices(
     nodes: NetworkNodeData[],
     extAddrMap: Map<string, string>,
     rloc16Map: Map<number, string>,
-): UnknownThreadDevice[] {
-    const unknownMap = new Map<string, UnknownThreadDevice>();
+    borderRouters?: ReadonlyMap<string, BorderRouterEntry>,
+): ThreadExternalDevice[] {
+    const aggregates = new Map<string, ExternalAggregate>();
 
     for (const node of nodes) {
         if (node.networkType !== 'thread' || !node.thread?.neighborTable) {
             continue;
         }
+
+        const observerXpHex = node.thread.extendedPanId
+            ? parseExtendedAddressToHex(node.thread.extendedPanId)
+            : undefined;
 
         for (const neighbor of node.thread.neighborTable) {
             const extAddrHex = parseExtendedAddressToHex(neighbor.extAddress);
@@ -219,45 +322,79 @@ export function findUnknownDevices(
                 continue;
             }
 
-            // RLOC16 fallback: check by short address before classifying as unknown
+            // RLOC16 fallback: check by short address before classifying as external
             if (neighbor.rloc16 !== 0 && rloc16Map.has(neighbor.rloc16)) {
                 continue;
             }
 
-            const id = `unknown_${extAddrHex}`;
-
-            if (!unknownMap.has(id)) {
-                unknownMap.set(id, {
-                    id,
+            let agg = aggregates.get(extAddrHex);
+            if (agg === undefined) {
+                agg = {
                     extAddress: neighbor.extAddress,
                     extAddressHex: extAddrHex,
                     seenBy: [],
                     isRouter: false,
                     bestRssi: null,
-                });
+                    extendedPanIdHex: observerXpHex,
+                };
+                aggregates.set(extAddrHex, agg);
+            } else if (agg.extendedPanIdHex === undefined && observerXpHex !== undefined) {
+                agg.extendedPanIdHex = observerXpHex;
             }
 
-            const unknown = unknownMap.get(id)!;
-
-            // Add this node to seenBy if not already there
-            if (!unknown.seenBy.includes(node.nodeId)) {
-                unknown.seenBy.push(node.nodeId);
+            if (!agg.seenBy.includes(node.nodeId)) {
+                agg.seenBy.push(node.nodeId);
             }
-
-            // Update router status (rxOnWhenIdle indicates router-like behavior)
             if (neighbor.rxOnWhenIdle) {
-                unknown.isRouter = true;
+                agg.isRouter = true;
             }
-
-            // Track best signal
             const rssi = neighbor.averageRssi ?? neighbor.lastRssi;
-            if (rssi !== null && (unknown.bestRssi === null || rssi > unknown.bestRssi)) {
-                unknown.bestRssi = rssi;
+            if (rssi !== null && (agg.bestRssi === null || rssi > agg.bestRssi)) {
+                agg.bestRssi = rssi;
             }
         }
     }
 
-    return Array.from(unknownMap.values());
+    // Pre-compute xp → networkName from the BR registry so unknowns can be labeled by network.
+    const networkNameByXp = new Map<string, string>();
+    if (borderRouters !== undefined) {
+        for (const br of borderRouters.values()) {
+            if (br.extendedPanIdHex !== undefined && br.networkName !== undefined) {
+                networkNameByXp.set(br.extendedPanIdHex, br.networkName);
+            }
+        }
+    }
+
+    const out = new Array<ThreadExternalDevice>();
+    for (const agg of aggregates.values()) {
+        const br = borderRouters?.get(agg.extAddressHex);
+        if (br !== undefined) {
+            out.push({
+                kind: 'br',
+                ...br,
+                id: `br_${agg.extAddressHex}`,
+                extAddressHex: agg.extAddressHex,
+                seenBy: agg.seenBy,
+                isRouter: agg.isRouter,
+                bestRssi: agg.bestRssi,
+            });
+        } else {
+            const networkName =
+                agg.extendedPanIdHex !== undefined ? networkNameByXp.get(agg.extendedPanIdHex) : undefined;
+            out.push({
+                kind: 'unknown',
+                id: `unknown_${agg.extAddressHex}`,
+                extAddress: agg.extAddress,
+                extAddressHex: agg.extAddressHex,
+                seenBy: agg.seenBy,
+                isRouter: agg.isRouter,
+                bestRssi: agg.bestRssi,
+                extendedPanIdHex: agg.extendedPanIdHex,
+                networkName,
+            });
+        }
+    }
+    return out;
 }
 
 /**
@@ -313,6 +450,19 @@ export function getThreadRoleName(role: ThreadRoutingRole | number | null): stri
         default:
             return 'Unknown';
     }
+}
+
+/**
+ * Human-readable Thread version from the NetworkCommissioning ThreadVersion TLV.
+ * Unmapped values render with the raw TLV so newer-than-table devices stay visible.
+ */
+export function formatThreadVersion(tlv: number | null): string | null {
+    if (tlv === null) {
+        return null;
+    }
+    const names: Record<number, string> = { 1: '1.0', 2: '1.1', 3: '1.2', 4: '1.3', 5: '1.4' };
+    const name = names[tlv];
+    return name !== undefined ? `Thread ${name}` : `Thread unknown (${tlv})`;
 }
 
 /**
@@ -466,7 +616,7 @@ export function getRouteBidirectionalLqi(route: ThreadRouteEntry): number | unde
 export function buildThreadConnections(
     nodes: NetworkNodeData[],
     extAddrMap: Map<string, string>,
-    unknownDevices: UnknownThreadDevice[],
+    unknownDevices: ThreadExternalDevice[],
     rloc16Map: Map<number, string>,
 ): ThreadConnection[] {
     const connections: ThreadConnection[] = [];

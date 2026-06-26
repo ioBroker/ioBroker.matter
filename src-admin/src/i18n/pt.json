@@ -252,5 +252,15 @@
     "status_disconnected": "Desconectado",
     "status_waitingForCommissioning": "Aguardando comissionamento",
     "status_waitingForDeviceDiscovery": "Aguardando descoberta do dispositivo",
-    "to bridge": "fazer uma ponte"
+    "to bridge": "fazer uma ponte",
+    "BSSID": "BSSID",
+    "Border Router": "Roteador de borda",
+    "Click a node to see details": "Clique num nó para ver os detalhes",
+    "Filter": "Filtro",
+    "Hide medium links": "Ocultar ligações médias",
+    "Hide offline nodes": "Ocultar nós offline",
+    "Hide strong links": "Ocultar ligações fortes",
+    "Hide weak links": "Ocultar ligações fracas",
+    "Search mesh": "Pesquisar malha",
+    "Thread Version": "Versão do Thread"
 }

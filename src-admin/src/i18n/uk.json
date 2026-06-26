@@ -252,5 +252,15 @@
     "status_disconnected": "Відключено",
     "status_waitingForCommissioning": "Очікування здачі в експлуатацію",
     "status_waitingForDeviceDiscovery": "Очікування виявлення пристрою",
-    "to bridge": "мостити"
+    "to bridge": "мостити",
+    "BSSID": "BSSID",
+    "Border Router": "Прикордонний маршрутизатор",
+    "Click a node to see details": "Натисніть вузол, щоб побачити деталі",
+    "Filter": "Фільтр",
+    "Hide medium links": "Сховати середні зʼєднання",
+    "Hide offline nodes": "Сховати офлайн-вузли",
+    "Hide strong links": "Сховати сильні зʼєднання",
+    "Hide weak links": "Сховати слабкі зʼєднання",
+    "Search mesh": "Пошук у мережі",
+    "Thread Version": "Версія Thread"
 }

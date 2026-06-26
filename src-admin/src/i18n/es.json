@@ -170,7 +170,7 @@
     "Reset to defaults": "Restablecer los valores predeterminados",
     "Reset to factory defaults": "Restablecer los valores predeterminados de fábrica",
     "Room plus device type names": "Nombres de tipo de habitación y dispositivo",
-    "Router": "Enrutador",
+    "Router": "Router",
     "Save": "Ahorrar",
     "Scan with the ioBroker cloud": "Escanee con la nube ioBroker",
     "Select default bridge": "Seleccionar puente predeterminado",
@@ -252,5 +252,15 @@
     "status_disconnected": "Desconectado",
     "status_waitingForCommissioning": "Esperando puesta en marcha",
     "status_waitingForDeviceDiscovery": "Esperando el descubrimiento del dispositivo",
-    "to bridge": "al puente"
+    "to bridge": "al puente",
+    "BSSID": "BSSID",
+    "Border Router": "Router de borde",
+    "Click a node to see details": "Haga clic en un nodo para ver los detalles",
+    "Filter": "Filtro",
+    "Hide medium links": "Ocultar enlaces medios",
+    "Hide offline nodes": "Ocultar nodos sin conexión",
+    "Hide strong links": "Ocultar enlaces fuertes",
+    "Hide weak links": "Ocultar enlaces débiles",
+    "Search mesh": "Buscar en la malla",
+    "Thread Version": "Versión de Thread"
 }

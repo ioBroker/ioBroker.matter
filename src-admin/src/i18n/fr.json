@@ -108,7 +108,7 @@
     "Info about Alexa Bridge": "Remarque : en raison des limitations du système Amazon Alexa, un seul pont ou appareil peut être associé à Alexa par hôte ioBroker ! Cette sélection détermine quel pont sera associé au système Alexa.",
     "Instance is not alive": "L'instance n'est pas vivante",
     "Interface": "Interface",
-    "Leader": "Responsable",
+    "Leader": "Leader",
     "Length of manual code must be 11 or 21 characters": "La longueur du code manuel doit être de 11 ou 21 caractères",
     "Logging": "Enregistrement",
     "Login and password will not be taken as incomplete. Discard changes?": "Le login et le mot de passe ne seront pas considérés comme incomplets. Annuler les modifications ?",
@@ -252,5 +252,15 @@
     "status_disconnected": "Débranché",
     "status_waitingForCommissioning": "En attente de mise en service",
     "status_waitingForDeviceDiscovery": "En attente de découverte de périphérique",
-    "to bridge": "ponter"
+    "to bridge": "ponter",
+    "BSSID": "BSSID",
+    "Border Router": "Routeur de bordure",
+    "Click a node to see details": "Cliquez sur un nœud pour voir les détails",
+    "Filter": "Filtre",
+    "Hide medium links": "Masquer les liens moyens",
+    "Hide offline nodes": "Masquer les nœuds hors ligne",
+    "Hide strong links": "Masquer les liens forts",
+    "Hide weak links": "Masquer les liens faibles",
+    "Search mesh": "Rechercher dans le maillage",
+    "Thread Version": "Version Thread"
 }

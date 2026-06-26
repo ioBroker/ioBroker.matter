@@ -275,5 +275,15 @@
     "status_disconnected": "Getrennt",
     "status_waitingForCommissioning": "Warten auf die Inbetriebnahme",
     "status_waitingForDeviceDiscovery": "Warten auf Geräteerkennung",
-    "to bridge": "überbrücken"
+    "to bridge": "überbrücken",
+    "BSSID": "BSSID",
+    "Border Router": "Border Router",
+    "Click a node to see details": "Knoten anklicken für Details",
+    "Filter": "Filter",
+    "Hide medium links": "Mittlere Verbindungen ausblenden",
+    "Hide offline nodes": "Offline-Knoten ausblenden",
+    "Hide strong links": "Starke Verbindungen ausblenden",
+    "Hide weak links": "Schwache Verbindungen ausblenden",
+    "Search mesh": "Mesh durchsuchen",
+    "Thread Version": "Thread-Version"
 }

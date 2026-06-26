@@ -1,101 +1,205 @@
 /**
  * ThreadGraph - Thread mesh network visualization
- * Shows Thread devices and their mesh connections with signal quality
+ * Shows Thread devices, Border Routers and their mesh connections with signal quality
  */
 
 import BaseNetworkGraph, { type BaseNetworkGraphProps, type BaseNetworkGraphState } from './BaseNetworkGraph';
-import type { NetworkGraphNode, NetworkGraphEdge, ThreadRoutingRole } from './NetworkTypes';
+import type { NetworkGraphNode, NetworkGraphEdge, ThreadRoutingRole, BorderRouterEntry } from './NetworkTypes';
 import {
     buildExtAddrMap,
     buildRloc16Map,
     findUnknownDevices,
     buildThreadConnections,
     getThreadRoleName,
+    getSignalLevelFromLqi,
+    decodeMeshcopStateBitmap,
+    stripMdnsHostname,
     parseExtendedAddressToHex,
 } from './NetworkUtils';
+import { createNodeIconDataUrl, createBorderRouterIconDataUrl, createUnknownDeviceIconDataUrl } from './NetworkIcons';
 
-class ThreadGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGraphState> {
+export interface ThreadGraphProps extends BaseNetworkGraphProps {
+    /** mDNS-discovered Thread Border Routers, keyed by uppercase xa hex */
+    borderRouters?: ReadonlyMap<string, BorderRouterEntry>;
+    hideOfflineNodes?: boolean;
+    hideWeakSignalEdges?: boolean;
+    hideMediumSignalEdges?: boolean;
+    hideStrongSignalEdges?: boolean;
+}
+
+class ThreadGraph extends BaseNetworkGraph<ThreadGraphProps, BaseNetworkGraphState> {
+    componentDidUpdate(prevProps: ThreadGraphProps): void {
+        super.componentDidUpdate(prevProps);
+        // BaseNetworkGraph only watches `nodes`/`darkMode`/`selectedNodeId`; rebuild also when the
+        // BR registry refreshes or any hide option changes (otherwise stale labels/icons/edges).
+        if (
+            prevProps.borderRouters !== this.props.borderRouters ||
+            prevProps.hideOfflineNodes !== this.props.hideOfflineNodes ||
+            prevProps.hideWeakSignalEdges !== this.props.hideWeakSignalEdges ||
+            prevProps.hideMediumSignalEdges !== this.props.hideMediumSignalEdges ||
+            prevProps.hideStrongSignalEdges !== this.props.hideStrongSignalEdges
+        ) {
+            this.updateGraph();
+        }
+    }
+
     protected updateGraph(): void {
         if (!this.nodesDataSet || !this.edgesDataSet) {
             return;
         }
 
-        // Clear stored edge colors since we're rebuilding the graph
         this.clearOriginalEdgeColors();
 
-        const { nodes: allNodes, darkMode } = this.props;
+        const { nodes: allNodes, darkMode, borderRouters } = this.props;
+        const hideOfflineNodes = this.props.hideOfflineNodes ?? false;
+        const hideWeakSignalEdges = this.props.hideWeakSignalEdges ?? false;
+        const hideMediumSignalEdges = this.props.hideMediumSignalEdges ?? false;
+        const hideStrongSignalEdges = this.props.hideStrongSignalEdges ?? false;
 
-        // Filter Thread nodes
         const threadNodes = allNodes.filter(n => n.networkType === 'thread');
 
-        // Build address maps for matching
         const extAddrMap = buildExtAddrMap(threadNodes);
         const rloc16Map = buildRloc16Map(threadNodes);
 
-        // Find unknown devices in neighbor tables (computed locally, not stored in state)
-        const unknownDevices = findUnknownDevices(threadNodes, extAddrMap, rloc16Map);
+        // External devices (seen in neighbor tables but not commissioned), classified against the
+        // BR registry so mDNS-known routers render distinctly.
+        const externalDevices = findUnknownDevices(threadNodes, extAddrMap, rloc16Map, borderRouters);
 
-        // Build connections
-        const connections = buildThreadConnections(threadNodes, extAddrMap, unknownDevices, rloc16Map);
+        const connections = buildThreadConnections(threadNodes, extAddrMap, externalDevices, rloc16Map);
 
-        // Create graph nodes
         const graphNodes: NetworkGraphNode[] = [];
+        const hiddenNodeIds = new Set<string>();
 
-        // Add known Thread devices
+        // Known Thread devices
         for (const node of threadNodes) {
             const role = node.thread?.routingRole as ThreadRoutingRole | null;
             const roleName = getThreadRoleName(role);
             const extAddrHex = node.thread?.extendedAddress
                 ? parseExtendedAddressToHex(node.thread.extendedAddress)
                 : '';
+            const isOffline = !node.isConnected;
+            const shouldHide = hideOfflineNodes && isOffline;
+            if (shouldHide) {
+                hiddenNodeIds.add(node.nodeId);
+            }
 
             graphNodes.push({
                 id: node.nodeId,
                 label: node.name,
-                shape: 'dot',
-                size: this.getNodeSize(role),
-                color: this.getThreadNodeColor(node.isConnected, role),
+                shape: 'image',
+                image: createNodeIconDataUrl(node.deviceType, role, isOffline),
+                size: 24,
                 font: { color: darkMode ? '#e0e0e0' : '#333333' },
-                title: `${node.name}\nRole: ${roleName}\nAddress: ${extAddrHex}\n${node.isConnected ? 'Connected' : 'Offline'}`,
+                title: `${node.name}\nRole: ${roleName}\nAddress: ${extAddrHex}\n${isOffline ? 'Offline' : 'Connected'}`,
                 networkType: 'thread',
                 threadRole: role ?? undefined,
-                offline: !node.isConnected,
+                offline: isOffline,
+                hidden: shouldHide,
             });
         }
 
-        // Add external devices (genuinely not on our fabric)
-        for (const unknown of unknownDevices) {
-            const externalLabel = unknown.isRouter ? 'External Router' : 'External Device';
-            graphNodes.push({
-                id: unknown.id,
-                label: `${externalLabel}\n${unknown.extAddressHex.slice(-8)}`,
-                shape: 'dot',
-                size: 12,
-                color: {
-                    background: '#FFC107',
-                    border: '#FFA000',
-                },
-                font: { color: darkMode ? '#e0e0e0' : '#333333' },
-                title: `${externalLabel}\nAddress: ${unknown.extAddressHex}\nSeen by: ${unknown.seenBy.length} device(s)`,
-                networkType: 'thread',
-                isUnknown: true,
-            });
-        }
-
-        // Build a map of nodeId -> isConnected for checking offline status
+        // Status map for offline-cascade on edges
         const nodeConnectionStatus = new Map<string, boolean>();
         for (const node of threadNodes) {
             nodeConnectionStatus.set(node.nodeId, node.isConnected);
         }
+        const neighborCount = new Map<string, number>();
+        for (const node of threadNodes) {
+            neighborCount.set(node.nodeId, node.thread?.neighborTable?.length ?? 0);
+        }
 
-        // Create graph edges
-        const graphEdges: NetworkGraphEdge[] = connections.map((conn, index) => {
-            // Check if either endpoint is offline - dashed lines indicate stale data
+        // External devices: known Border Routers (friendly label/icon) vs unidentified neighbors
+        for (const device of externalDevices) {
+            const hasOnlineObserver = device.seenBy.some(id => nodeConnectionStatus.get(id) === true);
+
+            // Unknown externals are pure neighbor-table inference. Two stale-cache signatures we
+            // always filter: (1) every observer offline (can't re-confirm); (2) a single observer
+            // that has other neighbors (single-source ghost from an otherwise-reachable node).
+            // BRs have independent mDNS evidence — honor only the user toggle for them.
+            let shouldHide: boolean;
+            if (device.kind === 'unknown') {
+                shouldHide = !hasOnlineObserver;
+                if (!shouldHide && device.seenBy.length === 1 && (neighborCount.get(device.seenBy[0]) ?? 0) > 1) {
+                    shouldHide = true;
+                }
+            } else {
+                shouldHide = hideOfflineNodes && !hasOnlineObserver;
+            }
+            if (shouldHide) {
+                hiddenNodeIds.add(device.id);
+            }
+
+            if (device.kind === 'br') {
+                const hostname = device.hostname !== undefined ? stripMdnsHostname(device.hostname) : undefined;
+                const top = (hostname ?? device.networkName ?? 'Border Router').slice(0, 24);
+                const suffix =
+                    hostname !== undefined && device.networkName !== undefined && device.networkName !== top
+                        ? `\n${device.networkName}`
+                        : '';
+                const decoded = decodeMeshcopStateBitmap(device.stateBitmapHex);
+                const isLeader = decoded?.threadRoleValue === 3;
+                const isPrimaryBbr = decoded?.bbr === true && decoded.bbrFunction === 'primary';
+                const tooltip = [
+                    device.networkName ? `Network: ${device.networkName}` : undefined,
+                    device.vendorName ? `Vendor: ${device.vendorName}` : undefined,
+                    device.threadVersion ? `Thread: ${device.threadVersion}` : undefined,
+                    device.addresses.length ? `Addresses:\n  ${device.addresses.join('\n  ')}` : undefined,
+                    device.sources.length === 0 ? '(stale)' : undefined,
+                ]
+                    .filter(Boolean)
+                    .join('\n');
+                graphNodes.push({
+                    id: device.id,
+                    label: `${top}${suffix}`,
+                    shape: 'image',
+                    image: createBorderRouterIconDataUrl(false, isLeader, isPrimaryBbr),
+                    size: 26,
+                    font: { color: darkMode ? '#e0e0e0' : '#333333' },
+                    title: tooltip || (hostname ?? 'Border Router'),
+                    networkType: 'thread',
+                    hidden: shouldHide,
+                });
+            } else {
+                const typeLabel = device.isRouter ? 'External Router' : 'External Device';
+                const suffix = device.networkName !== undefined ? `\n${device.networkName}` : '';
+                graphNodes.push({
+                    id: device.id,
+                    label: `${typeLabel} (${device.extAddressHex.slice(-8)})${suffix}`,
+                    shape: 'image',
+                    image: createUnknownDeviceIconDataUrl(device.isRouter),
+                    size: 20,
+                    font: { color: darkMode ? '#e0e0e0' : '#333333' },
+                    title: `${typeLabel}\nAddress: ${device.extAddressHex}\nSeen by: ${device.seenBy.length} device(s)`,
+                    networkType: 'thread',
+                    isUnknown: true,
+                    hidden: shouldHide,
+                });
+            }
+        }
+
+        // Edges
+        const graphEdges: NetworkGraphEdge[] = [];
+        connections.forEach((conn, index) => {
+            const level = getSignalLevelFromLqi(conn.lqi);
             const fromOffline = nodeConnectionStatus.get(conn.fromNodeId) === false;
             const toOffline = nodeConnectionStatus.get(conn.toNodeId) === false;
             const hasOfflineEndpoint = fromOffline || toOffline;
 
-            // Build tooltip with enhanced route table data
+            // No-link (LQI=0) edges are never drawn; apply signal-level filters + offline cascade.
+            let hidden = level === 'none';
+            if (!hidden && (hiddenNodeIds.has(conn.fromNodeId) || hiddenNodeIds.has(conn.toNodeId))) {
+                hidden = true;
+            }
+            if (!hidden && hideWeakSignalEdges && level === 'weak') {
+                hidden = true;
+            }
+            if (!hidden && hideMediumSignalEdges && level === 'medium') {
+                hidden = true;
+            }
+            if (!hidden && hideStrongSignalEdges && level === 'strong') {
+                hidden = true;
+            }
+
             const tooltipLines: string[] = [];
             if (conn.rssi !== null) {
                 tooltipLines.push(`RSSI: ${conn.rssi} dBm`);
@@ -111,83 +215,83 @@ class ThreadGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGra
                 tooltipLines.push('(Route table only)');
             }
 
-            return {
+            graphEdges.push({
                 id: `edge_${index}`,
                 from: conn.fromNodeId,
                 to: conn.toNodeId,
-                color: {
-                    color: conn.signalColor.color,
-                    highlight: conn.signalColor.highlight,
-                },
+                color: { color: conn.signalColor.color, highlight: conn.signalColor.highlight },
                 width: 2,
                 title: tooltipLines.join('\n'),
                 dashes: conn.isUnknown || hasOfflineEndpoint || conn.fromRouteTable,
-            };
+                hidden,
+            });
         });
 
-        // Update datasets
         this.nodesDataSet.clear();
         this.nodesDataSet.add(graphNodes);
-
         this.edgesDataSet.clear();
         this.edgesDataSet.add(graphEdges);
     }
 
-    // eslint-disable-next-line class-methods-use-this
-    private getNodeSize(role: ThreadRoutingRole | null): number {
-        switch (role) {
-            case 6: // Leader
-                return 22;
-            case 5: // Router
-                return 18;
-            case 4: // REED
-                return 16;
-            default:
-                return 14;
+    /**
+     * Selects a Thread node (known device or external) matching the query, in priority order:
+     * extended address (EUI-64; accepts `AABB...`, `AA:BB:...`, `0x...`), exact node id, then a
+     * case-insensitive device-name substring. Returns the matched id, or null when nothing matches.
+     */
+    public findNodeBySearch(query: string): string | null {
+        const trimmed = query.trim();
+        if (!trimmed) {
+            return null;
         }
-    }
+        const { nodes: allNodes, borderRouters } = this.props;
+        const hideOfflineNodes = this.props.hideOfflineNodes ?? false;
+        const threadNodes = allNodes.filter(n => n.networkType === 'thread' && !(hideOfflineNodes && !n.isConnected));
 
-    // eslint-disable-next-line class-methods-use-this
-    private getThreadNodeColor(
-        isConnected: boolean,
-        role: ThreadRoutingRole | null,
-    ): { background: string; border: string } {
-        if (!isConnected) {
-            return {
-                background: '#9E9E9E',
-                border: '#616161',
-            };
+        const normalized = normalizeExtendedAddressInput(trimmed);
+        if (normalized) {
+            for (const node of threadNodes) {
+                const hex = node.thread?.extendedAddress ? parseExtendedAddressToHex(node.thread.extendedAddress) : '';
+                if (hex === normalized) {
+                    return node.nodeId;
+                }
+            }
+            const extAddrMap = buildExtAddrMap(threadNodes);
+            const rloc16Map = buildRloc16Map(threadNodes);
+            const externalDevices = findUnknownDevices(threadNodes, extAddrMap, rloc16Map, borderRouters);
+            for (const device of externalDevices) {
+                if (device.extAddressHex === normalized) {
+                    return device.id;
+                }
+            }
         }
 
-        switch (role) {
-            case 6: // Leader
-                return {
-                    background: '#9C27B0',
-                    border: '#6A1B9A',
-                };
-            case 5: // Router
-                return {
-                    background: '#2196F3',
-                    border: '#1565C0',
-                };
-            case 4: // REED
-                return {
-                    background: '#03A9F4',
-                    border: '#0288D1',
-                };
-            case 3: // End Device
-            case 2: // Sleepy End Device
-                return {
-                    background: '#4CAF50',
-                    border: '#2E7D32',
-                };
-            default:
-                return {
-                    background: '#607D8B',
-                    border: '#455A64',
-                };
+        for (const node of threadNodes) {
+            if (node.nodeId === trimmed) {
+                return node.nodeId;
+            }
         }
+
+        const needle = trimmed.toLowerCase();
+        for (const node of threadNodes) {
+            if (node.name.toLowerCase().includes(needle)) {
+                return node.nodeId;
+            }
+        }
+        return null;
     }
+}
+
+function normalizeExtendedAddressInput(address: string): string | null {
+    const trimmed = address.trim();
+    if (!trimmed) {
+        return null;
+    }
+    const noPrefix = trimmed.startsWith('0x') || trimmed.startsWith('0X') ? trimmed.slice(2) : trimmed;
+    const hexOnly = noPrefix.replace(/[^a-fA-F0-9]/g, '');
+    if (hexOnly.length !== 16) {
+        return null;
+    }
+    return hexOnly.toUpperCase();
 }
 
 export default ThreadGraph;

@@ -275,5 +275,15 @@
     "status_disconnected": "Disconnected",
     "status_waitingForCommissioning": "Waiting for commissioning",
     "status_waitingForDeviceDiscovery": "Waiting for device discovery",
-    "to bridge": "to bridge"
+    "to bridge": "to bridge",
+    "BSSID": "BSSID",
+    "Border Router": "Border Router",
+    "Click a node to see details": "Click a node to see details",
+    "Filter": "Filter",
+    "Hide medium links": "Hide medium links",
+    "Hide offline nodes": "Hide offline nodes",
+    "Hide strong links": "Hide strong links",
+    "Hide weak links": "Hide weak links",
+    "Search mesh": "Search mesh",
+    "Thread Version": "Thread Version"
 }

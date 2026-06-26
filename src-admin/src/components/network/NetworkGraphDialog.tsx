@@ -37,13 +37,15 @@ import {
     Search as SearchIcon,
 } from '@mui/icons-material';
 
-import type { NetworkGraphData, NetworkNodeData, BorderRouterEntry } from './NetworkTypes';
+import type { NetworkGraphData, NetworkNodeData, BorderRouterEntry, ThreadExternalDevice } from './NetworkTypes';
 import {
     SIGNAL_COLORS,
     categorizeNodes,
+    decodeMeshcopStateBitmap,
     formatNodeIdHex,
     formatThreadVersion,
     getThreadRoleName,
+    stripMdnsHostname,
     getWiFiSecurityTypeName,
     getWiFiVersionName,
     parseExtendedAddressToHex,
@@ -236,6 +238,109 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
 
         const nodeType: SelectedNodeType = node.isConnected ? 'online' : 'offline';
         return { node, nodeType, isUnknown: false };
+    }
+
+    /**
+     * Resolve the selected graph node to an external Thread device (border router or
+     * unidentified neighbor) when its id is a `br_`/`unknown_` synthetic id.
+     */
+    getSelectedExternalDevice(): ThreadExternalDevice | null {
+        const { data, networkType } = this.props;
+        const { selectedNodeId } = this.state;
+        if (
+            !selectedNodeId ||
+            !data ||
+            networkType !== 'thread' ||
+            (!selectedNodeId.startsWith('br_') && !selectedNodeId.startsWith('unknown_'))
+        ) {
+            return null;
+        }
+        const threadNodes = data.nodes.filter(n => n.networkType === 'thread');
+        const extAddrMap = buildExtAddrMap(threadNodes);
+        const rloc16Map = buildRloc16Map(threadNodes);
+        const externals = findUnknownDevices(threadNodes, extAddrMap, rloc16Map, this.getBorderRoutersMap());
+        return externals.find(d => d.id === selectedNodeId) ?? null;
+    }
+
+    /** Body details for an external Thread device (border router or unidentified neighbor). */
+    renderExternalDeviceDetails(device: ThreadExternalDevice): React.ReactNode {
+        const { data } = this.props;
+        const observerNames = device.seenBy.map(id => data?.nodes.find(n => n.nodeId === id)?.name ?? id);
+        const rows: { label: string; value: React.ReactNode; mono?: boolean }[] = [];
+
+        if (device.networkName) {
+            rows.push({ label: I18n.t('Network'), value: device.networkName });
+        }
+        if (device.kind === 'br') {
+            if (device.vendorName) {
+                rows.push({ label: I18n.t('Vendor'), value: device.vendorName });
+            }
+            if (device.modelName) {
+                rows.push({ label: I18n.t('Model'), value: device.modelName });
+            }
+            if (device.threadVersion) {
+                rows.push({ label: I18n.t('Thread Version'), value: `Thread ${device.threadVersion}` });
+            }
+            const decoded = decodeMeshcopStateBitmap(device.stateBitmapHex);
+            if (decoded !== undefined) {
+                const roleNames = ['Detached', 'Child', 'Router', 'Leader'];
+                const role = I18n.t(roleNames[decoded.threadRoleValue]);
+                const bbr = decoded.bbr
+                    ? ` · ${I18n.t('Border Agent')} (${I18n.t(decoded.bbrFunction ?? 'secondary')})`
+                    : '';
+                rows.push({ label: I18n.t('Role'), value: `${role}${bbr}` });
+            }
+            if (device.partitionIdHex) {
+                rows.push({ label: I18n.t('Partition'), value: device.partitionIdHex, mono: true });
+            }
+        } else if (device.bestRssi !== null) {
+            rows.push({ label: I18n.t('RSSI'), value: `${device.bestRssi} dBm` });
+        }
+
+        return (
+            <>
+                <Divider />
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    <Typography
+                        variant="body2"
+                        sx={{ wordBreak: 'break-all' }}
+                    >
+                        <strong>{I18n.t('Extended Address')}:</strong>{' '}
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.85em' }}>{device.extAddressHex}</span>
+                    </Typography>
+                    {rows.map(row => (
+                        <Typography
+                            key={row.label}
+                            variant="body2"
+                            sx={{ wordBreak: 'break-all' }}
+                        >
+                            <strong>{row.label}:</strong>{' '}
+                            {row.mono ? (
+                                <span style={{ fontFamily: 'monospace', fontSize: '0.85em' }}>{row.value}</span>
+                            ) : (
+                                row.value
+                            )}
+                        </Typography>
+                    ))}
+                    {device.kind === 'br' && device.addresses.length > 0 && (
+                        <Typography
+                            variant="body2"
+                            sx={{ wordBreak: 'break-all' }}
+                        >
+                            <strong>{I18n.t('Addresses')}:</strong>{' '}
+                            <span style={{ fontFamily: 'monospace', fontSize: '0.8em' }}>
+                                {device.addresses.join(', ')}
+                            </span>
+                        </Typography>
+                    )}
+                    {observerNames.length > 0 && (
+                        <Typography variant="body2">
+                            <strong>{I18n.t('Seen by')}:</strong> {observerNames.join(', ')}
+                        </Typography>
+                    )}
+                </Box>
+            </>
+        );
     }
 
     /**
@@ -512,8 +617,25 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
             );
         }
 
-        const { node, nodeType, isUnknown, unknownExtAddress } = this.getSelectedNodeInfo();
+        const { node, nodeType } = this.getSelectedNodeInfo();
+        const externalDevice = this.getSelectedExternalDevice();
         const onlineNeighborIds = this.getOnlineNeighborIds();
+
+        let externalTitle = '';
+        let externalSubtitle: string | undefined;
+        if (externalDevice) {
+            if (externalDevice.kind === 'br') {
+                const hostname =
+                    externalDevice.hostname !== undefined ? stripMdnsHostname(externalDevice.hostname) : undefined;
+                externalTitle = hostname ?? externalDevice.networkName ?? I18n.t('Border Router');
+                externalSubtitle =
+                    externalDevice.networkName && externalDevice.networkName !== externalTitle
+                        ? externalDevice.networkName
+                        : undefined;
+            } else {
+                externalTitle = externalDevice.isRouter ? I18n.t('External Router') : I18n.t('External Device');
+            }
+        }
 
         return (
             <Paper
@@ -522,20 +644,22 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
             >
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                        {isUnknown ? (
+                        {externalDevice ? (
                             <>
                                 <Typography
                                     variant="subtitle2"
-                                    sx={{ fontWeight: 'bold' }}
+                                    sx={{ fontWeight: 'bold', wordBreak: 'break-word' }}
                                 >
-                                    {I18n.t('Unknown Device')}
+                                    {externalTitle}
                                 </Typography>
-                                <Typography
-                                    variant="caption"
-                                    sx={{ fontFamily: 'monospace', color: 'text.secondary', wordBreak: 'break-all' }}
-                                >
-                                    {unknownExtAddress}
-                                </Typography>
+                                {externalSubtitle && (
+                                    <Typography
+                                        variant="caption"
+                                        sx={{ color: 'text.secondary', display: 'block' }}
+                                    >
+                                        {externalSubtitle}
+                                    </Typography>
+                                )}
                             </>
                         ) : node ? (
                             <>
@@ -666,6 +790,8 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                     </>
                 )}
 
+                {externalDevice && this.renderExternalDeviceDetails(externalDevice)}
+
                 {/* Connections list for Thread nodes */}
                 {node && node.networkType === 'thread' && this.renderConnectionsList(node)}
 
@@ -674,7 +800,7 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                     <UpdateConnectionsDialog
                         open={this.state.updateDialogOpen}
                         selectedNodeType={nodeType}
-                        selectedNodeName={isUnknown ? I18n.t('Unknown Device') : (node?.name ?? '')}
+                        selectedNodeName={externalDevice ? externalTitle : (node?.name ?? '')}
                         selectedNodeId={selectedNodeId}
                         onlineNeighborIds={onlineNeighborIds}
                         onClose={this.handleCloseUpdateDialog}

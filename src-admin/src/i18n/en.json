@@ -285,5 +285,18 @@
     "Hide strong links": "Hide strong links",
     "Hide weak links": "Hide weak links",
     "Search mesh": "Search mesh",
-    "Thread Version": "Thread Version"
+    "Thread Version": "Thread Version",
+    "Network": "Network",
+    "Vendor": "Vendor",
+    "Model": "Model",
+    "Partition": "Partition",
+    "Addresses": "Addresses",
+    "Seen by": "Seen by",
+    "Border Agent": "Border Agent",
+    "Detached": "Detached",
+    "Child": "Child",
+    "primary": "primary",
+    "secondary": "secondary",
+    "External Router": "External Router",
+    "External Device": "External Device"
 }

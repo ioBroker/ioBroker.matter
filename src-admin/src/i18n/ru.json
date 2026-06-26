@@ -262,5 +262,18 @@
     "Hide strong links": "Скрыть сильные соединения",
     "Hide weak links": "Скрыть слабые соединения",
     "Search mesh": "Поиск в сети",
-    "Thread Version": "Версия Thread"
+    "Thread Version": "Версия Thread",
+    "Network": "Сеть",
+    "Vendor": "Производитель",
+    "Model": "Модель",
+    "Partition": "Раздел",
+    "Addresses": "Адреса",
+    "Seen by": "Виден узлами",
+    "Border Agent": "Border Agent",
+    "Detached": "Отключён",
+    "Child": "Дочерний",
+    "primary": "основной",
+    "secondary": "резервный",
+    "External Router": "Внешний маршрутизатор",
+    "External Device": "Внешнее устройство"
 }

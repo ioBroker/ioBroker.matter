@@ -262,5 +262,18 @@
     "Hide strong links": "Masquer les liens forts",
     "Hide weak links": "Masquer les liens faibles",
     "Search mesh": "Rechercher dans le maillage",
-    "Thread Version": "Version Thread"
+    "Thread Version": "Version Thread",
+    "Network": "Réseau",
+    "Vendor": "Fabricant",
+    "Model": "Modèle",
+    "Partition": "Partition",
+    "Addresses": "Adresses",
+    "Seen by": "Vu par",
+    "Border Agent": "Border Agent",
+    "Detached": "Détaché",
+    "Child": "Enfant",
+    "primary": "primaire",
+    "secondary": "secondaire",
+    "External Router": "Routeur externe",
+    "External Device": "Appareil externe"
 }

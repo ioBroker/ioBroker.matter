@@ -262,5 +262,18 @@
     "Hide strong links": "隐藏强连接",
     "Hide weak links": "隐藏弱连接",
     "Search mesh": "搜索网格",
-    "Thread Version": "Thread 版本"
+    "Thread Version": "Thread 版本",
+    "Network": "网络",
+    "Vendor": "厂商",
+    "Model": "型号",
+    "Partition": "分区",
+    "Addresses": "地址",
+    "Seen by": "可见于",
+    "Border Agent": "边界代理",
+    "Detached": "已分离",
+    "Child": "子节点",
+    "primary": "主",
+    "secondary": "备",
+    "External Router": "外部路由器",
+    "External Device": "外部设备"
 }

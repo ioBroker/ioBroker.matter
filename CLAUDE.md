@@ -22,7 +22,7 @@ Built on `@matter/main` (matter.js) library and follows the ioBroker adapter dev
 ioBroker.matter/
 ├── src/                      # Backend TypeScript source
 │   ├── main.ts              # Main adapter entry point (MatterAdapter class)
-│   ├── ioBrokerStorageTypes.ts  # Type definitions for ioBroker storage
+│   ├── ioBrokerTypes.ts  # Shared backend type definitions (config, descriptions, network data)
 │   ├── lib/                 # Core library code
 │   │   ├── devices/         # ioBroker device type implementations
 │   │   ├── DeviceFactory.ts # Factory for creating device instances
@@ -240,7 +240,7 @@ Verified via `iobroker.pro` API in `checkLicense()`.
 1. **Never import from `src-admin/` in backend code** - The backend tsconfig does not include src-admin
 2. **Never import from `src/` in frontend code** - The frontend tsconfig does not include src
 3. **Shared types must be duplicated** - If both projects need the same types, define them in both:
-   - Backend types: `src/ioBrokerStorageTypes.ts`
+   - Backend types: `src/ioBrokerTypes.ts`
    - Frontend types: `src-admin/src/types.d.ts`
 4. **Keep type definitions in sync manually** - When modifying shared types, update both files
 
@@ -255,8 +255,8 @@ Cross-project imports will:
 
 | Type Category | Backend Location | Frontend Location |
 |---------------|------------------|-------------------|
-| Config types | `src/ioBrokerStorageTypes.ts` | `src-admin/src/types.d.ts` |
-| Network graph types | `src/ioBrokerStorageTypes.ts` | `src-admin/src/types.d.ts` |
+| Config types | `src/ioBrokerTypes.ts` | `src-admin/src/types.d.ts` |
+| Network graph types | `src/ioBrokerTypes.ts` | `src-admin/src/types.d.ts` |
 | GUI message types | N/A (backend uses inline) | `src-admin/src/types.d.ts` |
 
 ## Development Tips
@@ -306,6 +306,6 @@ Set `debug: true` in adapter config to enable verbose matter.js logging.
 | `src/matter/to-iobroker/ioBrokerFactory.ts` | Creates ioBroker mappings for controller |
 | `src-admin/src/App.tsx` | Main React application |
 | `src-admin/src/components/ConfigHandler.tsx` | Config sync between UI and objects |
-| `src/ioBrokerStorageTypes.ts` | Backend TypeScript types |
+| `src/ioBrokerTypes.ts` | Backend TypeScript types |
 | `src-admin/src/types.d.ts` | Frontend TypeScript types |
 | `io-package.json` | ioBroker adapter metadata |

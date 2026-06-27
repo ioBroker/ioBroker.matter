@@ -12,7 +12,16 @@ export type {
     ThreadDiagnosticsData,
     ThreadNeighborEntry,
     ThreadRouteEntry,
+    BorderRouterEntry,
 } from '../../types';
+
+import type { BorderRouterEntry, NetworkType } from '../../types';
+
+/**
+ * Classification of a Thread mesh link based on LQI.
+ * "none" means LQI=0 — neighbor entry exists but no recent valid frames (dead/stale link).
+ */
+export type SignalLevel = 'strong' | 'medium' | 'weak' | 'none';
 
 /**
  * Thread Routing Role enum for display purposes
@@ -44,6 +53,8 @@ export interface NetworkGraphNode {
     offline?: boolean;
     isUnknown?: boolean;
     isAccessPoint?: boolean;
+    /** Whether the node should be hidden (filter options) */
+    hidden?: boolean;
 }
 
 export interface NetworkGraphEdge {
@@ -54,6 +65,8 @@ export interface NetworkGraphEdge {
     width: number;
     title?: string;
     dashes?: boolean;
+    /** Whether the edge should be hidden (filter options) */
+    hidden?: boolean;
 }
 
 export interface WiFiAccessPoint {
@@ -63,13 +76,40 @@ export interface WiFiAccessPoint {
 }
 
 export interface UnknownThreadDevice {
+    kind: 'unknown';
+    /** Unique graph ID, formatted "unknown_<XAHEX>". */
     id: string;
+    /** Extended address as base64 (as received in the neighbor table). */
     extAddress: string;
+    /** Extended address as 16-char uppercase hex — the join key. */
     extAddressHex: string;
     isRouter: boolean;
     bestRssi: number | null;
     seenBy: string[];
+    /** Extended PAN ID (16-char uppercase hex) inherited from the observing commissioned node. */
+    extendedPanIdHex?: string;
+    /** Friendly Thread network name resolved by joining extendedPanIdHex against the BR registry. */
+    networkName?: string;
 }
+
+/**
+ * Thread Border Router enriched via mDNS. Same neighbor-table aggregate fields as
+ * UnknownThreadDevice plus all BorderRouterEntry fields (network name, vendor, addresses, ...).
+ */
+export interface KnownBorderRouter extends BorderRouterEntry {
+    kind: 'br';
+    /** Graph ID, formatted "br_<XAHEX>". */
+    id: string;
+    isRouter: boolean;
+    bestRssi: number | null;
+    seenBy: string[];
+}
+
+/**
+ * External Thread device discriminated union — either a recognized Border Router
+ * or an unidentified neighbor.
+ */
+export type ThreadExternalDevice = KnownBorderRouter | UnknownThreadDevice;
 
 // Signal strength colors
 export interface SignalColor {

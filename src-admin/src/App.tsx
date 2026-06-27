@@ -634,7 +634,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                     await this.onChanged(config);
                 }}
                 showToast={(text: string) => this.showToast(text)}
-                checkLicenseOnAdd={(type: 'addBridge' | 'addDevice' | 'addDeviceToBridge', matter: MatterConfig) =>
+                checkLicenseOnAdd={(type: 'addBridge' | 'addDevice' | 'addDeviceToBridge', matter?: MatterConfig) =>
                     this.checkLicenseOnAdd(type, matter)
                 }
                 identifyUuids={this.state.identifyUuids}
@@ -674,7 +674,7 @@ class App extends GenericApp<GenericAppProps, AppState> {
                     await this.onChanged(config);
                 }}
                 showToast={(text: string) => this.showToast(text)}
-                checkLicenseOnAdd={(matter: MatterConfig) => this.checkLicenseOnAdd('addDevice', matter)}
+                checkLicenseOnAdd={(matter?: MatterConfig) => this.checkLicenseOnAdd('addDevice', matter)}
                 identifyUuids={this.state.identifyUuids}
                 expertMode={this.state.localExpertMode}
                 setExpertMode={localExpertMode => this.setLocalExpertMode(localExpertMode)}
@@ -1020,27 +1020,27 @@ class App extends GenericApp<GenericAppProps, AppState> {
                                     );
                                 }}
                                 scrollButtons="auto"
-                                sx={{ '& .MuiTabs-indicator': styles.indicator }}
+                                sx={{ '& .MuiTabs-indicator': styles.indicator(this.state.theme) }}
                             >
                                 {this.isTab ? null : (
                                     <Tab
-                                        sx={{ '&.Mui-selected': styles.selected }}
+                                        sx={{ '&.Mui-selected': styles.selected(this.state.theme) }}
                                         label={I18n.t('General')}
                                         value="options"
                                     />
                                 )}
                                 <Tab
-                                    sx={{ '&.Mui-selected': styles.selected }}
+                                    sx={{ '&.Mui-selected': styles.selected(this.state.theme) }}
                                     label={I18n.t('Controller')}
                                     value="controller"
                                 />
                                 <Tab
-                                    sx={{ '&.Mui-selected': styles.selected }}
+                                    sx={{ '&.Mui-selected': styles.selected(this.state.theme) }}
                                     label={I18n.t('Bridges')}
                                     value="bridges"
                                 />
                                 <Tab
-                                    sx={{ '&.Mui-selected': styles.selected }}
+                                    sx={{ '&.Mui-selected': styles.selected(this.state.theme) }}
                                     label={I18n.t('Devices')}
                                     value="devices"
                                 />

@@ -29,7 +29,7 @@ import type {
     DeviceDescription,
     MatterAdapterConfig,
     MatterControllerConfig,
-} from './ioBrokerStorageTypes';
+} from './ioBrokerTypes';
 import { DeviceFactory, type GenericDevice, SubscribeManager } from './lib';
 import MatterAdapterDeviceManagement from './lib/DeviceManagement';
 import type { DetectedDevice } from './lib/devices/GenericDevice';

@@ -17,6 +17,12 @@ import {
     CircularProgress,
     Paper,
     Divider,
+    Menu,
+    MenuItem,
+    Checkbox,
+    ListItemText,
+    TextField,
+    InputAdornment,
 } from '@mui/material';
 import {
     Close as CloseIcon,
@@ -27,17 +33,23 @@ import {
     ZoomOut as ZoomOutIcon,
     Pause as PauseIcon,
     PlayArrow as PlayArrowIcon,
+    FilterList as FilterListIcon,
+    Search as SearchIcon,
 } from '@mui/icons-material';
 
-import type { NetworkGraphData, NetworkNodeData } from './NetworkTypes';
+import type { NetworkGraphData, NetworkNodeData, BorderRouterEntry, ThreadExternalDevice } from './NetworkTypes';
 import {
     SIGNAL_COLORS,
     categorizeNodes,
+    decodeMeshcopStateBitmap,
     formatNodeIdHex,
+    formatThreadVersion,
     getThreadRoleName,
+    stripMdnsHostname,
     getWiFiSecurityTypeName,
     getWiFiVersionName,
     parseExtendedAddressToHex,
+    parseBssidToMac,
     buildExtAddrMap,
     buildRloc16Map,
     buildThreadConnections,
@@ -60,6 +72,8 @@ interface NetworkGraphDialogProps {
     darkMode: boolean;
     /** Which network type to display */
     networkType: 'thread' | 'wifi';
+    /** mDNS-discovered Thread Border Routers (controllerThreadBorderRouters) */
+    borderRouters?: BorderRouterEntry[];
 }
 
 interface NetworkGraphDialogState {
@@ -67,10 +81,20 @@ interface NetworkGraphDialogState {
     selectedNodeId: string | null;
     updateDialogOpen: boolean;
     physicsEnabled: boolean;
+    filterAnchorEl: HTMLElement | null;
+    hideOfflineNodes: boolean;
+    hideWeakSignalEdges: boolean;
+    hideMediumSignalEdges: boolean;
+    hideStrongSignalEdges: boolean;
+    searchQuery: string;
 }
 
 class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, NetworkGraphDialogState> {
     private graphRef = React.createRef<ThreadGraph | WiFiGraph>();
+
+    /** Cached BR map; rebuilt only when the source array reference changes. */
+    private brMapSource: BorderRouterEntry[] | undefined;
+    private brMap: ReadonlyMap<string, BorderRouterEntry> = new Map();
 
     constructor(props: NetworkGraphDialogProps) {
         super(props);
@@ -79,8 +103,36 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
             selectedNodeId: null,
             updateDialogOpen: false,
             physicsEnabled: true,
+            filterAnchorEl: null,
+            hideOfflineNodes: false,
+            hideWeakSignalEdges: false,
+            hideMediumSignalEdges: false,
+            hideStrongSignalEdges: false,
+            searchQuery: '',
         };
     }
+
+    private getBorderRoutersMap(): ReadonlyMap<string, BorderRouterEntry> {
+        if (this.props.borderRouters !== this.brMapSource) {
+            this.brMapSource = this.props.borderRouters;
+            const map = new Map<string, BorderRouterEntry>();
+            for (const br of this.props.borderRouters ?? []) {
+                map.set(br.extAddressHex.toUpperCase(), br);
+            }
+            this.brMap = map;
+        }
+        return this.brMap;
+    }
+
+    handleSearch = (): void => {
+        const graph = this.graphRef.current;
+        if (graph instanceof ThreadGraph) {
+            const matchId = graph.findNodeBySearch(this.state.searchQuery);
+            if (matchId) {
+                this.setState({ selectedNodeId: matchId });
+            }
+        }
+    };
 
     componentDidMount(): void {
         // Load data when dialog opens
@@ -189,6 +241,109 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
     }
 
     /**
+     * Resolve the selected graph node to an external Thread device (border router or
+     * unidentified neighbor) when its id is a `br_`/`unknown_` synthetic id.
+     */
+    getSelectedExternalDevice(): ThreadExternalDevice | null {
+        const { data, networkType } = this.props;
+        const { selectedNodeId } = this.state;
+        if (
+            !selectedNodeId ||
+            !data ||
+            networkType !== 'thread' ||
+            (!selectedNodeId.startsWith('br_') && !selectedNodeId.startsWith('unknown_'))
+        ) {
+            return null;
+        }
+        const threadNodes = data.nodes.filter(n => n.networkType === 'thread');
+        const extAddrMap = buildExtAddrMap(threadNodes);
+        const rloc16Map = buildRloc16Map(threadNodes);
+        const externals = findUnknownDevices(threadNodes, extAddrMap, rloc16Map, this.getBorderRoutersMap());
+        return externals.find(d => d.id === selectedNodeId) ?? null;
+    }
+
+    /** Body details for an external Thread device (border router or unidentified neighbor). */
+    renderExternalDeviceDetails(device: ThreadExternalDevice): React.ReactNode {
+        const { data } = this.props;
+        const observerNames = device.seenBy.map(id => data?.nodes.find(n => n.nodeId === id)?.name ?? id);
+        const rows: { label: string; value: React.ReactNode; mono?: boolean }[] = [];
+
+        if (device.networkName) {
+            rows.push({ label: I18n.t('Network'), value: device.networkName });
+        }
+        if (device.kind === 'br') {
+            if (device.vendorName) {
+                rows.push({ label: I18n.t('Vendor'), value: device.vendorName });
+            }
+            if (device.modelName) {
+                rows.push({ label: I18n.t('Model'), value: device.modelName });
+            }
+            if (device.threadVersion) {
+                rows.push({ label: I18n.t('Thread Version'), value: `Thread ${device.threadVersion}` });
+            }
+            const decoded = decodeMeshcopStateBitmap(device.stateBitmapHex);
+            if (decoded !== undefined) {
+                const roleNames = ['Detached', 'Child', 'Router', 'Leader'];
+                const role = I18n.t(roleNames[decoded.threadRoleValue]);
+                const bbr = decoded.bbr
+                    ? ` · ${I18n.t('Border Agent')} (${I18n.t(decoded.bbrFunction ?? 'secondary')})`
+                    : '';
+                rows.push({ label: I18n.t('Role'), value: `${role}${bbr}` });
+            }
+            if (device.partitionIdHex) {
+                rows.push({ label: I18n.t('Partition'), value: device.partitionIdHex, mono: true });
+            }
+        } else if (device.bestRssi !== null) {
+            rows.push({ label: I18n.t('RSSI'), value: `${device.bestRssi} dBm` });
+        }
+
+        return (
+            <>
+                <Divider />
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    <Typography
+                        variant="body2"
+                        sx={{ wordBreak: 'break-all' }}
+                    >
+                        <strong>{I18n.t('Extended Address')}:</strong>{' '}
+                        <span style={{ fontFamily: 'monospace', fontSize: '0.85em' }}>{device.extAddressHex}</span>
+                    </Typography>
+                    {rows.map(row => (
+                        <Typography
+                            key={row.label}
+                            variant="body2"
+                            sx={{ wordBreak: 'break-all' }}
+                        >
+                            <strong>{row.label}:</strong>{' '}
+                            {row.mono ? (
+                                <span style={{ fontFamily: 'monospace', fontSize: '0.85em' }}>{row.value}</span>
+                            ) : (
+                                row.value
+                            )}
+                        </Typography>
+                    ))}
+                    {device.kind === 'br' && device.addresses.length > 0 && (
+                        <Typography
+                            variant="body2"
+                            sx={{ wordBreak: 'break-all' }}
+                        >
+                            <strong>{I18n.t('Addresses')}:</strong>{' '}
+                            <span style={{ fontFamily: 'monospace', fontSize: '0.8em' }}>
+                                {device.addresses.join(', ')}
+                            </span>
+                        </Typography>
+                    )}
+                    {observerNames.length > 0 && (
+                        <Typography variant="body2">
+                            <strong>{I18n.t('Seen by')}:</strong> {observerNames.join(', ')}
+                        </Typography>
+                    )}
+                </Box>
+            </>
+        );
+    }
+
+    /**
      * Get online neighbor IDs for the selected node
      */
     getOnlineNeighborIds(): string[] {
@@ -266,9 +421,9 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                     {I18n.t('Connections')} ({connections.length})
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, maxHeight: 200, overflowY: 'auto' }}>
-                    {connections.map((conn, index) => (
+                    {connections.map(conn => (
                         <Box
-                            key={index}
+                            key={conn.connectedNodeId}
                             sx={{
                                 display: 'flex',
                                 alignItems: 'flex-start',
@@ -397,11 +552,11 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                             {I18n.t('Thread Roles')}:
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#9C27B0' }} />
+                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#F9A825' }} />
                             <Typography variant="caption">{I18n.t('Leader')}</Typography>
                         </Box>
                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#2196F3' }} />
+                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#1E88E5' }} />
                             <Typography variant="caption">{I18n.t('Router')}</Typography>
                         </Box>
                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
@@ -409,7 +564,11 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                             <Typography variant="caption">{I18n.t('End Device')}</Typography>
                         </Box>
                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#FFC107' }} />
+                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#03A9F4' }} />
+                            <Typography variant="caption">{I18n.t('Border Router')}</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                            <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#FF9800' }} />
                             <Typography variant="caption">{I18n.t('Unknown Device')}</Typography>
                         </Box>
                     </>
@@ -458,8 +617,25 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
             );
         }
 
-        const { node, nodeType, isUnknown, unknownExtAddress } = this.getSelectedNodeInfo();
+        const { node, nodeType } = this.getSelectedNodeInfo();
+        const externalDevice = this.getSelectedExternalDevice();
         const onlineNeighborIds = this.getOnlineNeighborIds();
+
+        let externalTitle = '';
+        let externalSubtitle: string | undefined;
+        if (externalDevice) {
+            if (externalDevice.kind === 'br') {
+                const hostname =
+                    externalDevice.hostname !== undefined ? stripMdnsHostname(externalDevice.hostname) : undefined;
+                externalTitle = hostname ?? externalDevice.networkName ?? I18n.t('Border Router');
+                externalSubtitle =
+                    externalDevice.networkName && externalDevice.networkName !== externalTitle
+                        ? externalDevice.networkName
+                        : undefined;
+            } else {
+                externalTitle = externalDevice.isRouter ? I18n.t('External Router') : I18n.t('External Device');
+            }
+        }
 
         return (
             <Paper
@@ -468,20 +644,22 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
             >
                 <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
-                        {isUnknown ? (
+                        {externalDevice ? (
                             <>
                                 <Typography
                                     variant="subtitle2"
-                                    sx={{ fontWeight: 'bold' }}
+                                    sx={{ fontWeight: 'bold', wordBreak: 'break-word' }}
                                 >
-                                    {I18n.t('Unknown Device')}
+                                    {externalTitle}
                                 </Typography>
-                                <Typography
-                                    variant="caption"
-                                    sx={{ fontFamily: 'monospace', color: 'text.secondary', wordBreak: 'break-all' }}
-                                >
-                                    {unknownExtAddress}
-                                </Typography>
+                                {externalSubtitle && (
+                                    <Typography
+                                        variant="caption"
+                                        sx={{ color: 'text.secondary', display: 'block' }}
+                                    >
+                                        {externalSubtitle}
+                                    </Typography>
+                                )}
                             </>
                         ) : node ? (
                             <>
@@ -543,6 +721,12 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                                         <strong>{I18n.t('Channel')}:</strong> {node.thread.channel}
                                     </Typography>
                                 )}
+                                {formatThreadVersion(node.thread.threadVersion ?? null) !== null && (
+                                    <Typography variant="body2">
+                                        <strong>{I18n.t('Thread Version')}:</strong>{' '}
+                                        {formatThreadVersion(node.thread.threadVersion ?? null)}
+                                    </Typography>
+                                )}
                                 {node.thread.extendedAddress && (
                                     <Typography
                                         variant="body2"
@@ -572,6 +756,17 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                         )}
                         {node.networkType === 'wifi' && node.wifi && (
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                {node.wifi.bssid && (
+                                    <Typography
+                                        variant="body2"
+                                        sx={{ wordBreak: 'break-all' }}
+                                    >
+                                        <strong>{I18n.t('BSSID')}:</strong>{' '}
+                                        <span style={{ fontFamily: 'monospace', fontSize: '0.85em' }}>
+                                            {parseBssidToMac(node.wifi.bssid)}
+                                        </span>
+                                    </Typography>
+                                )}
                                 {node.wifi.rssi !== null && (
                                     <Typography variant="body2">
                                         <strong>{I18n.t('RSSI')}:</strong> {node.wifi.rssi} dBm
@@ -595,6 +790,8 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                     </>
                 )}
 
+                {externalDevice && this.renderExternalDeviceDetails(externalDevice)}
+
                 {/* Connections list for Thread nodes */}
                 {node && node.networkType === 'thread' && this.renderConnectionsList(node)}
 
@@ -603,7 +800,7 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                     <UpdateConnectionsDialog
                         open={this.state.updateDialogOpen}
                         selectedNodeType={nodeType}
-                        selectedNodeName={isUnknown ? I18n.t('Unknown Device') : (node?.name ?? '')}
+                        selectedNodeName={externalDevice ? externalTitle : (node?.name ?? '')}
                         selectedNodeId={selectedNodeId}
                         onlineNeighborIds={onlineNeighborIds}
                         onClose={this.handleCloseUpdateDialog}
@@ -687,6 +884,11 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                             onNodeSelect={this.handleNodeSelect}
                             selectedNodeId={selectedNodeId}
                             onPhysicsChange={this.handlePhysicsChange}
+                            borderRouters={this.getBorderRoutersMap()}
+                            hideOfflineNodes={this.state.hideOfflineNodes}
+                            hideWeakSignalEdges={this.state.hideWeakSignalEdges}
+                            hideMediumSignalEdges={this.state.hideMediumSignalEdges}
+                            hideStrongSignalEdges={this.state.hideStrongSignalEdges}
                         />
                     ) : (
                         <WiFiGraph
@@ -717,8 +919,8 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                 onClose={onClose}
                 maxWidth="lg"
                 fullWidth
-                PaperProps={{
-                    sx: { height: '80vh' },
+                slotProps={{
+                    paper: { sx: { height: '80vh' } },
                 }}
             >
                 <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 1 }}>
@@ -728,6 +930,99 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                     >
                         {title}
                     </Typography>
+                    {networkType === 'thread' && (
+                        <>
+                            <TextField
+                                size="small"
+                                variant="outlined"
+                                placeholder={I18n.t('Search mesh')}
+                                value={this.state.searchQuery}
+                                onChange={e => this.setState({ searchQuery: e.target.value })}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter') {
+                                        this.handleSearch();
+                                    }
+                                }}
+                                sx={{ mr: 1, width: 200 }}
+                                slotProps={{
+                                    input: {
+                                        endAdornment: (
+                                            <InputAdornment position="end">
+                                                <IconButton
+                                                    onClick={this.handleSearch}
+                                                    size="small"
+                                                    edge="end"
+                                                >
+                                                    <SearchIcon fontSize="small" />
+                                                </IconButton>
+                                            </InputAdornment>
+                                        ),
+                                    },
+                                }}
+                            />
+                            <Tooltip title={I18n.t('Filter')}>
+                                <IconButton
+                                    onClick={e => this.setState({ filterAnchorEl: e.currentTarget })}
+                                    size="small"
+                                    sx={{ mr: 1 }}
+                                >
+                                    <FilterListIcon />
+                                </IconButton>
+                            </Tooltip>
+                            <Menu
+                                anchorEl={this.state.filterAnchorEl}
+                                open={Boolean(this.state.filterAnchorEl)}
+                                onClose={() => this.setState({ filterAnchorEl: null })}
+                            >
+                                <MenuItem
+                                    onClick={() => this.setState(s => ({ hideOfflineNodes: !s.hideOfflineNodes }))}
+                                >
+                                    <Checkbox
+                                        edge="start"
+                                        checked={this.state.hideOfflineNodes}
+                                        disableRipple
+                                    />
+                                    <ListItemText primary={I18n.t('Hide offline nodes')} />
+                                </MenuItem>
+                                <MenuItem
+                                    onClick={() =>
+                                        this.setState(s => ({ hideWeakSignalEdges: !s.hideWeakSignalEdges }))
+                                    }
+                                >
+                                    <Checkbox
+                                        edge="start"
+                                        checked={this.state.hideWeakSignalEdges}
+                                        disableRipple
+                                    />
+                                    <ListItemText primary={I18n.t('Hide weak links')} />
+                                </MenuItem>
+                                <MenuItem
+                                    onClick={() =>
+                                        this.setState(s => ({ hideMediumSignalEdges: !s.hideMediumSignalEdges }))
+                                    }
+                                >
+                                    <Checkbox
+                                        edge="start"
+                                        checked={this.state.hideMediumSignalEdges}
+                                        disableRipple
+                                    />
+                                    <ListItemText primary={I18n.t('Hide medium links')} />
+                                </MenuItem>
+                                <MenuItem
+                                    onClick={() =>
+                                        this.setState(s => ({ hideStrongSignalEdges: !s.hideStrongSignalEdges }))
+                                    }
+                                >
+                                    <Checkbox
+                                        edge="start"
+                                        checked={this.state.hideStrongSignalEdges}
+                                        disableRipple
+                                    />
+                                    <ListItemText primary={I18n.t('Hide strong links')} />
+                                </MenuItem>
+                            </Menu>
+                        </>
+                    )}
                     <Box sx={{ display: 'flex', gap: 0.5, mr: 1 }}>
                         <Tooltip title={I18n.t('Zoom in')}>
                             <IconButton

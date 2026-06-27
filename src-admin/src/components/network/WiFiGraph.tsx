@@ -12,6 +12,8 @@ import {
     getWiFiSecurityTypeName,
     getWiFiVersionName,
 } from './NetworkUtils';
+import { createNodeIconDataUrl, createWiFiApIconDataUrl } from './NetworkIcons';
+import { I18n } from '@iobroker/adapter-react-v5';
 
 class WiFiGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGraphState> {
     // eslint-disable-next-line class-methods-use-this
@@ -55,19 +57,17 @@ class WiFiGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGraph
         // Create graph nodes
         const graphNodes: NetworkGraphNode[] = [];
 
-        // Add access point nodes
+        // Add access point nodes — full BSSID in the label so dual-band radios that differ only in
+        // leading octets don't collapse into a single AP visually.
         for (const ap of accessPoints) {
             graphNodes.push({
                 id: `ap_${ap.bssid}`,
-                label: `AP\n${ap.bssidFormatted}`,
-                shape: 'dot',
-                size: 20,
-                color: {
-                    background: '#FF5722',
-                    border: '#D84315',
-                },
+                label: `AP ${ap.bssidFormatted}`,
+                shape: 'image',
+                image: createWiFiApIconDataUrl(),
+                size: 26,
                 font: { color: darkMode ? '#e0e0e0' : '#333333' },
-                title: `Access Point\nBSSID: ${ap.bssidFormatted}\nConnected devices: ${ap.connectedNodes.length}`,
+                title: `${I18n.t('Access Point')}\n${I18n.t('BSSID')}: ${ap.bssidFormatted}\n${I18n.t('Connected devices')}: ${ap.connectedNodes.length}`,
                 networkType: 'wifi',
                 isAccessPoint: true,
             });
@@ -79,17 +79,18 @@ class WiFiGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGraph
             const wifiVersion = getWiFiVersionName(node.wifi?.wifiVersion ?? null);
             const rssi = node.wifi?.rssi ?? null;
             const channel = node.wifi?.channel ?? null;
+            const isOffline = !node.isConnected;
 
             graphNodes.push({
                 id: node.nodeId,
                 label: node.name,
-                shape: 'dot',
-                size: 14,
-                color: this.getWiFiNodeColor(node.isConnected, rssi),
+                shape: 'image',
+                image: createNodeIconDataUrl(node.deviceType, null, isOffline),
+                size: 24,
                 font: { color: darkMode ? '#e0e0e0' : '#333333' },
-                title: `${node.name}\n${node.isConnected ? 'Connected' : 'Offline'}${rssi !== null ? `\nRSSI: ${rssi} dBm` : ''}${channel !== null ? `\nChannel: ${channel}` : ''}\nSecurity: ${securityType}\nWiFi: ${wifiVersion}`,
+                title: `${node.name}\n${node.isConnected ? I18n.t('Connected') : I18n.t('Offline')}${rssi !== null ? `\nRSSI: ${rssi} dBm` : ''}${channel !== null ? `\n${I18n.t('Channel')}: ${channel}` : ''}\n${I18n.t('Security')}: ${securityType}\n${I18n.t('WiFi Version')}: ${wifiVersion}`,
                 networkType: 'wifi',
-                offline: !node.isConnected,
+                offline: isOffline,
             });
         }
 
@@ -116,7 +117,7 @@ class WiFiGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGraph
                     highlight: signalColor.highlight,
                 },
                 width: 2,
-                title: rssi !== null ? `RSSI: ${rssi} dBm` : 'Signal: Unknown',
+                title: rssi !== null ? `RSSI: ${rssi} dBm` : I18n.t('Signal: Unknown'),
                 dashes: isOffline,
             });
         }
@@ -127,45 +128,6 @@ class WiFiGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGraph
 
         this.edgesDataSet.clear();
         this.edgesDataSet.add(graphEdges);
-    }
-
-    // eslint-disable-next-line class-methods-use-this
-    private getWiFiNodeColor(isConnected: boolean, rssi: number | null): { background: string; border: string } {
-        if (!isConnected) {
-            return {
-                background: '#9E9E9E',
-                border: '#616161',
-            };
-        }
-
-        // Color based on signal strength
-        const signalColor = getSignalColorFromRssi(rssi);
-        if (signalColor.color === '#4CAF50') {
-            // Strong
-            return {
-                background: '#4CAF50',
-                border: '#2E7D32',
-            };
-        }
-        if (signalColor.color === '#FF9800') {
-            // Medium
-            return {
-                background: '#FF9800',
-                border: '#EF6C00',
-            };
-        }
-        if (signalColor.color === '#F44336') {
-            // Weak
-            return {
-                background: '#F44336',
-                border: '#C62828',
-            };
-        }
-        // Unknown - use orange/amber to match Thread unknown devices
-        return {
-            background: '#FFC107',
-            border: '#FFA000',
-        };
     }
 }
 

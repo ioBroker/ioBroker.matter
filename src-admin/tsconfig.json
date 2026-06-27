@@ -3,7 +3,7 @@
 {
     "compilerOptions": {
         "module": "esnext",
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
         // check JS files
         "allowJs": true,
         // This is necessary for the automatic typing of the adapter config
@@ -18,7 +18,6 @@
         // "noUnusedParameters": true,
         "useUnknownInCatchVariables": false,
         "target": "ES2022",
-        "baseUrl": "./",
         "allowSyntheticDefaultImports": true,
         "checkJs": false,
         "noEmit": false,

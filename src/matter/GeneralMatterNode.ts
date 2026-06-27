@@ -36,7 +36,7 @@ import {
     type CommissioningControllerNodeOptions,
 } from '@project-chip/matter.js/device';
 import type { CommissioningController } from '@project-chip/matter.js';
-import type { MatterControllerConfig } from '../ioBrokerStorageTypes';
+import type { MatterControllerConfig } from '../ioBrokerTypes';
 import { SubscribeManager } from '../lib';
 import type { SubscribeCallback } from '../lib/SubscribeManager';
 import { bytesToIpV4, bytesToIpV6, bytesToMac, decamelize, toHex, toUpperCaseHex } from '../lib/utils';

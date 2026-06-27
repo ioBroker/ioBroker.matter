@@ -3,6 +3,7 @@ import { ObserverGroup, SoftwareUpdateManager, Diagnostic, NodeId, VendorId, Sec
 import { GeneralCommissioning } from '@matter/main/clusters';
 import {
     GeneralDiagnosticsClient,
+    NetworkCommissioningClient,
     ThreadNetworkDiagnosticsClient,
     WiFiNetworkDiagnosticsClient,
 } from '@matter/main/behaviors';
@@ -26,8 +27,11 @@ import type {
     ThreadDiagnosticsData,
     ThreadNeighborEntry,
     ThreadRouteEntry,
-} from '../ioBrokerStorageTypes';
+    BorderRouterEntry,
+} from '../ioBrokerTypes';
+import { BorderRouterDiscovery } from './BorderRouterDiscovery';
 import { GeneralMatterNode, type PairedNodeConfig } from './GeneralMatterNode';
+import { identifyDeviceTypes } from './to-iobroker/ioBrokerFactory';
 import type { GeneralNode, MessageResponse } from './GeneralNode';
 import { inspect } from 'util';
 import { createReadStream } from 'fs';
@@ -51,7 +55,14 @@ interface AddDeviceResult {
 }
 
 // Re-export network types for external use
-export type { NetworkGraphData, NetworkNodeData, NetworkType, WiFiDiagnosticsData, ThreadDiagnosticsData };
+export type {
+    NetworkGraphData,
+    NetworkNodeData,
+    NetworkType,
+    WiFiDiagnosticsData,
+    ThreadDiagnosticsData,
+    BorderRouterEntry,
+};
 
 type EndUserCommissioningOptions = (
     | { qrCode: string }
@@ -72,6 +83,7 @@ class Controller implements GeneralNode {
     #observers = new ObserverGroup();
     #networkGraphUpdateTimer?: ioBroker.Timeout;
     #closing = false;
+    #borderRouterDiscovery?: BorderRouterDiscovery;
 
     constructor(options: ControllerCreateOptions) {
         const { adapter, controllerOptions, updateCallback, fabricLabel } = options;
@@ -249,6 +261,11 @@ class Controller implements GeneralNode {
                     await this.refreshNodeNetworkData(nodeIds);
                     return { result: 'ok' };
                 }
+                case 'controllerThreadBorderRouters': {
+                    // Return Thread border routers discovered via mDNS
+                    const borderRouters: BorderRouterEntry[] = this.#borderRouterDiscovery?.list() ?? [];
+                    return { result: borderRouters };
+                }
             }
         } catch (error) {
             const errorText = inspect(error, { depth: 10 });
@@ -372,6 +389,14 @@ class Controller implements GeneralNode {
             const errorText = inspect(error, { depth: 10 });
             this.#adapter.log.error(`Failed to start the controller: ${errorText}`);
             return;
+        }
+
+        this.#borderRouterDiscovery = new BorderRouterDiscovery(this.#adapter.matterEnvironment);
+        try {
+            await this.#borderRouterDiscovery.start();
+        } catch (error) {
+            // Border router discovery is non-critical; never let it abort controller startup
+            this.#adapter.log.warn(`Failed to start Thread border router discovery: ${error}`);
         }
 
         const nodesDetails = this.#commissioningController.getCommissionedNodesDetails();
@@ -902,11 +927,61 @@ class Controller implements GeneralNode {
             name: node.name,
             vendorId,
             productId,
+            deviceType: this.#getPrimaryDeviceType(node),
             isConnected: node.isConnected,
             networkType,
             wifi: wifiDiagnostics,
             thread: threadDiagnostics,
         };
+    }
+
+    /**
+     * Primary application Matter device-type id of a node, for icon selection. Prefers an
+     * application device type on any endpoint over utility types (Root/OTA/Power), which are
+     * commonly reported alongside the real device type.
+     */
+    #getPrimaryDeviceType(node: GeneralMatterNode): number | undefined {
+        const rootEndpoint = node.node.node;
+        if (rootEndpoint === undefined) {
+            return undefined;
+        }
+        // Infrastructure device types that should never drive the node icon. The Matter
+        // DeviceClassification reports Aggregator as a non-utility ("simple") app type, so
+        // it lands in appTypes and would otherwise mask the real bridged device behind it.
+        const INFRA_DEVICE_TYPES = new Set<number>([
+            0x000e, // Aggregator
+            0x0013, // Bridged Node
+            0x0011, // Power Source
+            0x0012, // OTA Requestor
+            0x0014, // OTA Provider
+            0x0016, // Root Node
+            0x0019, // Secondary Network Interface
+        ]);
+        // Children first so a real device endpoint wins over the root/aggregator endpoint.
+        const endpoints = new Array<Endpoint>();
+        const collect = (endpoint: Endpoint): void => {
+            for (const child of endpoint.parts) {
+                collect(child);
+            }
+            endpoints.push(endpoint);
+        };
+        try {
+            collect(rootEndpoint);
+            let fallback: number | undefined;
+            for (const endpoint of endpoints) {
+                const { appTypes, utilityTypes } = identifyDeviceTypes(endpoint);
+                const appType = appTypes.find(t => !INFRA_DEVICE_TYPES.has(t.deviceType.id));
+                if (appType !== undefined) {
+                    return appType.deviceType.id;
+                }
+                if (fallback === undefined) {
+                    fallback = appTypes[0]?.deviceType.id ?? utilityTypes[0]?.deviceType.id;
+                }
+            }
+            return fallback;
+        } catch {
+            return undefined;
+        }
     }
 
     #getNetworkType(node: GeneralMatterNode): NetworkType {
@@ -1005,12 +1080,21 @@ class Controller implements GeneralNode {
                 extendedPanId = this.#bigIntToBase64(extPanIdRaw);
             }
 
+            // Thread spec version from NetworkCommissioning (only present on Thread interfaces)
+            let threadVersion: number | null = null;
+            const netCommState = node.node.node.maybeStateOf(NetworkCommissioningClient);
+            if (netCommState !== undefined && 'threadVersion' in netCommState) {
+                const v = netCommState.threadVersion;
+                threadVersion = typeof v === 'number' ? v : null;
+            }
+
             return {
                 channel: threadState.channel ?? null,
                 routingRole: threadState.routingRole ?? null,
                 extendedPanId,
                 rloc16: threadState.rloc16 ?? null,
                 extendedAddress,
+                threadVersion,
                 neighborTable,
                 routeTable,
             };
@@ -1070,6 +1154,11 @@ class Controller implements GeneralNode {
         if (this.#networkGraphUpdateTimer) {
             this.#adapter.clearTimeout(this.#networkGraphUpdateTimer);
             this.#networkGraphUpdateTimer = undefined;
+        }
+
+        if (this.#borderRouterDiscovery) {
+            this.#borderRouterDiscovery.stop();
+            this.#borderRouterDiscovery = undefined;
         }
 
         for (const node of this.#nodes.values()) {

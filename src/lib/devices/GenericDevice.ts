@@ -1,7 +1,7 @@
 // @iobroker/device-types
 
 import type { DetectorState, Types, StateType } from '@iobroker/type-detector';
-import type { BridgeDeviceDescription } from '../../ioBrokerStorageTypes';
+import type { BridgeDeviceDescription } from '../../ioBrokerTypes';
 import type { CustomStateCommon, CustomStatesRecord } from '../../matter/to-iobroker/custom-states';
 import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { EventEmitter } from 'events';

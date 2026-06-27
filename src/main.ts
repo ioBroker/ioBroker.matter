@@ -41,6 +41,10 @@ import type { PairedNodeConfig } from './matter/GeneralMatterNode';
 import type { MessageResponse } from './matter/GeneralNode';
 import { IoBrokerObjectStorage } from './matter/IoBrokerObjectStorage';
 import { type StructuredJsonFormData, convertDataToJsonConfig } from './lib/JsonConfigUtils';
+import { selectControlsForState } from './lib/deviceDetection';
+
+// Prepare BLE
+import '@matter/nodejs-ble';
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
 
@@ -933,22 +937,22 @@ export class MatterAdapter extends Adapter {
             controls = detector.detect(options);
         }
         if (controls?.length) {
-            let controlsToCheck = controls.filter((control: PatternControl) =>
-                control.states.some(({ id: foundId }) => foundId === id),
-            );
-            if (controlsToCheck.length) {
+            const controlsToCheck = selectControlsForState(controls, id, deviceId);
+            if (!controlsToCheck) {
                 this.log.debug(
-                    `Found ${controlsToCheck?.length} device types for ${id} in ${deviceId}: ${JSON.stringify(controlsToCheck)}`,
+                    `Selected state ${id} is not part of any detected device under ${deviceId}; use it as a single-state device.`,
                 );
-            } else {
-                controlsToCheck = controls;
+                return null;
             }
+            this.log.debug(
+                `Found ${controlsToCheck.length} device types mapping ${id} in ${deviceId}: ${JSON.stringify(controlsToCheck)}`,
+            );
             let controlsWithType = controlsToCheck;
             if (preferredType) {
                 controlsWithType = controlsToCheck.filter((control: PatternControl) => control.type === preferredType);
                 if (controlsWithType.length) {
                     this.log.debug(
-                        `Found ${controlsWithType?.length} device types for ${id} with preferred type ${preferredType}: ${JSON.stringify(
+                        `Found ${controlsWithType.length} device types for ${id} with preferred type ${preferredType}: ${JSON.stringify(
                             controlsWithType,
                         )}`,
                     );
@@ -957,25 +961,21 @@ export class MatterAdapter extends Adapter {
                 }
             }
             this.log.debug(
-                `Found ${controlsWithType?.length} device types for ${deviceId} : ${JSON.stringify(controlsWithType)}`,
+                `Found ${controlsWithType.length} device types for ${deviceId} : ${JSON.stringify(controlsWithType)}`,
             );
             const mainState = controlsWithType[0].states.find((state: DetectorState) => state.id);
-            if (mainState) {
-                const id = mainState.id;
-                if (id) {
-                    if (preferredType && controlsWithType[0].type !== preferredType) {
-                        this.log.warn(
-                            `Type detection mismatch for state ${id}: ${controlsWithType[0].type} !== ${preferredType}.`,
-                        );
-                    }
-                    // console.log(`In ${options.id} was detected "${controls[0].type}" with following states:`);
-                    controlsWithType[0].states = controlsWithType[0].states.filter((state: DetectorState) => state.id);
-
-                    return {
-                        ...controlsWithType[0],
-                        isIoBrokerDevice: true,
-                    };
+            if (mainState?.id) {
+                if (preferredType && controlsWithType[0].type !== preferredType) {
+                    this.log.warn(
+                        `Type detection mismatch for state ${mainState.id}: ${controlsWithType[0].type} !== ${preferredType}.`,
+                    );
                 }
+                controlsWithType[0].states = controlsWithType[0].states.filter((state: DetectorState) => state.id);
+
+                return {
+                    ...controlsWithType[0],
+                    isIoBrokerDevice: true,
+                };
             }
         } else {
             this.log.info(`No IoBroker device type found for ${options.id}`);
@@ -1094,29 +1094,35 @@ export class MatterAdapter extends Adapter {
     }
 
     async determineIoBrokerDevice(oid: string, type: string, auto: boolean): Promise<DetectedDevice | null> {
-        if (!auto) {
+        const obj = await this.getForeignObjectAsync(oid);
+        if (!obj) {
+            return null; // The configured object does not exist
+        }
+        if (!auto && (obj.type === 'device' || obj.type === 'channel')) {
             // Fix for wrong UI currently that sets auto to false when channel or device is selected
-            const obj = await this.getForeignObjectAsync(oid);
-            if (obj && (obj.type === 'device' || obj.type === 'channel')) {
-                auto = true;
-                this.log.debug(`Enable auto detection for ${oid} with type ${type} because object is ${obj.type}`);
-            }
+            auto = true;
+            this.log.debug(`Enable auto detection for ${oid} with type ${type} because object is ${obj.type}`);
         }
 
-        const detectedDevice = await this.getIoBrokerDeviceStates(oid, type);
-        if (!detectedDevice) {
-            return null;
-        }
-        if (detectedDevice.type === type && auto) {
+        const detectedDevice = auto ? await this.getIoBrokerDeviceStates(oid, type) : null;
+        if (detectedDevice && detectedDevice.type === type) {
             return detectedDevice;
         }
-        if (detectedDevice.type !== type) {
+        if (obj.type !== 'state') {
+            // No usable detection and the configured object is not a state, so there is nothing to expose
             this.log.error(
-                `Type detection mismatch for state ${oid}: ${detectedDevice?.type} !== ${type}. Initialize device with just this one state.`,
+                `Could not auto-detect a "${type}" device for ${oid} and it is no state. Check configuration.`,
             );
+            return null;
         }
-        this.log.debug(`No auto detection for ${oid} with type ${type} ... fallback to default for SET state only`);
-        // ignore all detected states and let only one
+        if (detectedDevice && detectedDevice.type !== type) {
+            this.log.error(
+                `Type detection mismatch for state ${oid}: ${detectedDevice.type} !== ${type}. Initialize device with just this one state.`,
+            );
+        } else {
+            this.log.debug(`No auto detection for ${oid} with type ${type} ... fallback to single ${type} state`);
+        }
+        // ignore all detected states and use only the explicitly configured one
         return {
             type: type as Types,
             states: [

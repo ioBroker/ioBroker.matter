@@ -76,12 +76,14 @@ export function convertDataToJsonConfig(data: StructuredJsonFormData): JsonFormS
             const subKeyLabel = decamelize(
                 subKeyShortenerIndex !== -1 ? tabItem.substring(subKeyShortenerIndex + 2) : tabItem,
             );
+            const value = data[tab][tabItem];
             tabItems[flatKey] = {
                 type: 'staticInfo',
                 label: subKeyLabel,
                 newLine: true,
                 noTranslation: true,
-                data: data[tab][tabItem] as number | string | boolean,
+                // BigInt (e.g. Thread PAN id) is not JSON-serializable on the way to the GUI
+                data: typeof value === 'bigint' ? value.toString() : (value as number | string | boolean),
             };
         }
 

@@ -1472,8 +1472,11 @@ export class GeneralMatterNode {
                 result.node.uniqueId = details.uniqueId;
             }
 
+            const { threadPan } = this.node.deviceInformation;
             result.capabilities = {
                 ...this.node.deviceInformation,
+
+                threadPan: threadPan !== undefined ? toUpperCaseHex(threadPan) : undefined,
 
                 // hide these two entries
                 dataRevision: undefined,

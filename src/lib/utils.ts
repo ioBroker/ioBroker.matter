@@ -6,7 +6,7 @@ export function md5(str: string): string {
     return createHash('md5').update(str).digest('hex');
 }
 
-export function toUpperCaseHex(value: number, minimumLength = 4): string {
+export function toUpperCaseHex(value: number | bigint, minimumLength = 4): string {
     return `0x${value.toString(16).padStart(minimumLength, '0').toUpperCase()}`;
 }
 

@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "1.1.1",
+    "version": "1.2.0",
     "news": {
+      "1.2.0": {
+        "en": "Enhanced Thread/WiFi network visualization: OTBR mDNS discovery, device-type and Thread role icons, border-router details and markers, LQI link colors, hide/search options and localized labels\nIgnores invalid min/max/step settings in linked objects\nImprove state detection to respect the selected state id\nUpdate to matter.js 0.17.4-alpha including many optimizations and fixes",
+        "de": "Erweiterte Visualisierung des Thread-/WLAN-Netzwerks: OTBR mDNS-Erkennung, Symbole für Gerätetyp und Thread-Rolle, Details und Markierungen von Border-Routern, LQI-Verbindungsfarben, Ausblend-/Suchoptionen und lokalisierte Bezeichnungen\nIgnoriert ungültige Min-/Max-/Schritt-Einstellungen in verknüpften Objekten\nDie Zustandserkennung sollte die ausgewählte Zustands-ID berücksichtigen.\nAktualisierung auf matter.js 0.17.4-alpha inklusive zahlreicher Optimierungen und Fehlerbehebungen",
+        "ru": "Улучшенная визуализация сети Thread/WiFi: обнаружение mDNS OTBR, значки типа устройства и роли Thread, подробная информация о пограничных маршрутизаторах и маркеры, цвета каналов LQI, параметры скрытия/поиска и локализованные метки.\nИгнорирует недопустимые значения min/max/step в связанных объектах.\nУлучшить обнаружение состояния, чтобы оно учитывало выбранный идентификатор состояния.\nОбновление до версии matter.js 0.17.4-alpha, включающее множество оптимизаций и исправлений.",
+        "pt": "Visualização aprimorada da rede Thread/WiFi: descoberta OTBR mDNS, ícones de tipo de dispositivo e função Thread, detalhes e marcadores do roteador de borda, cores de link LQI, opções de ocultar/pesquisar e rótulos localizados.\nIgnora configurações inválidas de mínimo/máximo/passo em objetos vinculados.\nMelhorar a detecção de estado para respeitar o ID do estado selecionado.\nAtualização para matter.js 0.17.4-alpha, incluindo diversas otimizações e correções.",
+        "nl": "Verbeterde visualisatie van Thread/WiFi-netwerken: OTBR mDNS-detectie, pictogrammen voor apparaattype en Thread-rol, details en markeringen van de grensrouter, LQI-linkkleuren, opties voor verbergen/zoeken en gelokaliseerde labels.\nNegeert ongeldige min/max/stap-instellingen in gekoppelde objecten.\nVerbeter de statusdetectie zodat deze rekening houdt met de geselecteerde status-ID.\nUpdate naar matter.js 0.17.4-alpha met veel optimalisaties en bugfixes.",
+        "fr": "Visualisation améliorée du réseau Thread/WiFi : découverte mDNS OTBR, icônes de type de périphérique et de rôle Thread, détails et marqueurs du routeur de bordure, couleurs des liens LQI, options de masquage/recherche et étiquettes localisées\nIgnore les paramètres min/max/pas invalides dans les objets liés\nAméliorer la détection d'état pour respecter l'identifiant d'état sélectionné\nMise à jour de matter.js 0.17.4-alpha incluant de nombreuses optimisations et corrections",
+        "it": "Visualizzazione migliorata della rete Thread/WiFi: rilevamento OTBR mDNS, icone per tipo di dispositivo e ruolo Thread, dettagli e marcatori del router di confine, colori dei collegamenti LQI, opzioni di nascondi/cerca ed etichette localizzate.\nIgnora le impostazioni min/max/step non valide negli oggetti collegati\nMigliorare il rilevamento dello stato per rispettare l'ID dello stato selezionato\nAggiornamento a matter.js 0.17.4-alpha che include numerose ottimizzazioni e correzioni.",
+        "es": "Visualización mejorada de la red Thread/WiFi: descubrimiento de mDNS OTBR, iconos de tipo de dispositivo y rol Thread, detalles y marcadores del enrutador de borde, colores de enlace LQI, opciones de ocultar/buscar y etiquetas localizadas.\nIgnora la configuración de mínimo/máximo/paso no válida en los objetos vinculados.\nMejorar la detección de estado para respetar el ID de estado seleccionado.\nActualización a matter.js 0.17.4-alpha que incluye numerosas optimizaciones y correcciones.",
+        "pl": "Ulepszona wizualizacja sieci Thread/WiFi: wykrywanie OTBR mDNS, ikony typu urządzenia i roli Thread, szczegóły i znaczniki routera granicznego, kolory łącza LQI, opcje ukrywania/wyszukiwania i zlokalizowane etykiety\nIgnoruje nieprawidłowe ustawienia min./maks./kroku w obiektach powiązanych\nPopraw wykrywanie stanu, aby uwzględniać wybrany identyfikator stanu\nAktualizacja do matter.js 0.17.4-alpha zawierająca wiele optymalizacji i poprawek",
+        "uk": "Покращена візуалізація мережі Thread/WiFi: виявлення mDNS OTBR, значки типу пристрою та ролі Thread, деталі та маркери граничного маршрутизатора, кольори посилань LQI, параметри приховування/пошуку та локалізовані мітки.\nІгнорує недійсні налаштування мін/макс/кроку у зв'язаних об'єктах\nПокращено визначення стану з урахуванням вибраного ідентифікатора стану\nОновлення до matter.js 0.17.4-alpha, включаючи багато оптимізацій та виправлень",
+        "zh-cn": "增强型 Thread/WiFi 网络可视化：OTBR mDNS 发现、设备类型和 Thread 角色图标、边界路由器详情和标记、LQI 链路颜色、隐藏/搜索选项和本地化标签\n忽略链接对象中无效的最小值/最大值/步长设置\n改进状态检测，使其符合所选状态 ID\nmatter.js 已更新至 0.17.4-alpha 版本，包含多项优化和修复。"
+      },
       "1.1.1": {
         "en": "Fixes Update availability flag in UI",
         "de": "Behebt das Problem mit dem Update-Verfügbarkeitsflag in der Benutzeroberfläche",
@@ -80,19 +93,6 @@
         "pl": "Aktualizacja mater.js do 0.15.5",
         "uk": "Оновлена справа.js до 0.15.5",
         "zh-cn": "更新为0.15.5"
-      },
-      "0.5.3": {
-        "en": "Updated matter.js to 0.15.4",
-        "de": "Matter.js auf Version 0.15.4 aktualisiert.",
-        "ru": "Обновлен matter.js до версии 0.15.4",
-        "pt": "Atualizado o matter.js para 0.15.4",
-        "nl": "Matter.js bijgewerkt naar 0.15.4",
-        "fr": "Mise à jour de matter.js en version 0.15.4",
-        "it": "Aggiornato matter.js a 0.15.4",
-        "es": "Se actualizó matter.js a la versión 0.15.4",
-        "pl": "Zaktualizowano bibliotekę matter.js do wersji 0.15.4",
-        "uk": "Оновлено matter.js до версії 0.15.4",
-        "zh-cn": "将matter.js更新到0.15.4"
       }
     },
     "titleLang": {

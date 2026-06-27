@@ -140,6 +140,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 ## Changelog
 
 ### **WORK IN PROGRESS**
+* (@Apollon77) Enhanced Thread/WiFi network visualization: OTBR mDNS discovery, device-type and Thread role icons, border-router details and markers, LQI link colors, hide/search options and localized labels
 * (@Apollon77) Ignores invalid min/max/step settings in linked objects
 
 ### 1.1.1 (2026-06-22)

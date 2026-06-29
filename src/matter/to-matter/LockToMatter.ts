@@ -24,6 +24,7 @@ type IoBrokerDoorLockDevice = typeof IoBrokerDoorLockDevice;
 export class LockToMatter extends GenericElectricityDataDeviceToMatter {
     readonly #ioBrokerDevice: Lock;
     readonly #matterEndpoint: Endpoint<IoBrokerDoorLockDevice>;
+    readonly #DoorLockServer;
 
     constructor(ioBrokerDevice: Lock, name: string, uuid: string) {
         super(name, uuid);
@@ -39,7 +40,8 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
             features.push(DoorLock.Feature.DoorPositionSensor);
         }
 
-        this.#matterEndpoint = new Endpoint(IoBrokerDoorLockDevice.with(EventedDoorLockServer.with(...features)), {
+        this.#DoorLockServer = EventedDoorLockServer.with(...features);
+        this.#matterEndpoint = new Endpoint(IoBrokerDoorLockDevice.with(this.#DoorLockServer), {
             id: uuid,
             ioBrokerContext: {
                 device: ioBrokerDevice,
@@ -82,7 +84,7 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
             },
         });
         if (this.#ioBrokerDevice.hasDoorState()) {
-            await this.#matterEndpoint.setStateOf('doorLock', {
+            await this.#matterEndpoint.setStateOf(this.#DoorLockServer, {
                 doorState: this.#ioBrokerDevice.getDoorState()
                     ? DoorLock.DoorState.DoorOpen
                     : DoorLock.DoorState.DoorClosed,
@@ -120,7 +122,7 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
                     });
                     break;
                 case PropertyType.DoorState:
-                    await this.#matterEndpoint.setStateOf('doorLock', {
+                    await this.#matterEndpoint.setStateOf(this.#DoorLockServer, {
                         doorState: event.value ? DoorLock.DoorState.DoorOpen : DoorLock.DoorState.DoorClosed,
                     });
                     break;

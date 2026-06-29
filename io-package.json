@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "news": {
+      "1.2.1": {
+        "en": "Fix Thermostat and WindowCovering state update errors\nUpdate to the latest matter.js 0.17.4-alpha including MDNS/CPU usage fixes",
+        "de": "Fix Thermostat und WindowCovering State Update Fehler\nUpdate auf die neueste matter.js 0.17.4-alpha inklusive MDNS/CPU-Usefixes",
+        "ru": "Исправьте ошибки обновления состояния Termostat и WindowCovering\nОбновление до последней версии matter.js 0.17.4-alpha, включая исправления использования MDNS/CPU",
+        "pt": "Corrigir os erros de atualização de estado do Thermostat e WindowCovering\nAtualizar para o último mats.js 0.17.4-alpha incluindo correções de uso MDNS/CPU",
+        "nl": "Fix Thermostat en WindowCovering state update fouten\nUpdate naar de nieuwste materie.js 0.17.4-alpha inclusief MDNS/CPU gebruik fixes",
+        "fr": "Correction des erreurs de mise à jour de l'état Thermostat et WindowCovering\nMise à jour de la dernière matière.js 0.17.4-alpha y compris les corrections d'utilisation MDNS/CPU",
+        "it": "Risolvere gli errori di aggiornamento Termostato e WindowCovering\nAggiornamento all'ultima versione.js 0.17.4-alpha compresi MDNS/CPU",
+        "es": "Fijar los errores de actualización de termostato y ventana\nActualización al último asunto.js 0.17.4-alpha incluyendo MDNS/CPU",
+        "pl": "Naprawiono błędy aktualizacji Thermostat i WindowCovening\nAktualizacja do najnowszego matter.js 0.17.4-alpha w tym MDNS / CPU poprawki użytkowania",
+        "uk": "Виправлення помилок термостату та вікна\nОновлення до останньої матерії.js 0.17.4-alpha, включаючи MDNS / CPU виправлення",
+        "zh-cn": "修正热点和窗口覆盖状态更新错误\n更新最新事项.js 0.17.4-alpha ,包括 MDNS/CPU 使用修正"
+      },
       "1.2.0": {
         "en": "Enhanced Thread/WiFi network visualization: OTBR mDNS discovery, device-type and Thread role icons, border-router details and markers, LQI link colors, hide/search options and localized labels\nIgnores invalid min/max/step settings in linked objects\nImprove state detection to respect the selected state id\nUpdate to matter.js 0.17.4-alpha including many optimizations and fixes",
         "de": "Erweiterte Visualisierung des Thread-/WLAN-Netzwerks: OTBR mDNS-Erkennung, Symbole für Gerätetyp und Thread-Rolle, Details und Markierungen von Border-Routern, LQI-Verbindungsfarben, Ausblend-/Suchoptionen und lokalisierte Bezeichnungen\nIgnoriert ungültige Min-/Max-/Schritt-Einstellungen in verknüpften Objekten\nDie Zustandserkennung sollte die ausgewählte Zustands-ID berücksichtigen.\nAktualisierung auf matter.js 0.17.4-alpha inklusive zahlreicher Optimierungen und Fehlerbehebungen",
@@ -80,19 +93,6 @@
         "pl": "Optymalizacja informacji o odprowadzaniu baterii\nPrawidłowo pokazuje \"w postępie zmian\" w UI podczas regulacji urządzeń do omijania nakładających się działań\nFix HSV do RGB obliczenia dla niektórych przypadków\nAktualizacja mater.js do 0.15.6\nOptymalizuje proces zamykania, aby wszystko było odpowiednio zamknięte",
         "uk": "Оптимізуйте інформацію про злив акумулятора\nКорисно показує \"в змінах прогресу\" в UI при регулюванні пристроїв на обмоткані дії\nВиправлення HSV до RGB обчислення для деяких випадків\nОновлена справа.js до 0.15.6\nОптимізуйте процес відключення, щоб забезпечити все правильно закрито",
         "zh-cn": "优化电池排水信息\n调整设备到 ovoid 重叠动作时正确显示 UI 中的“ 进行中更改 ”\n将 HSV 修正为某些情况的 RGB 计算\n更新为0.15.6\n优化关闭程序,确保一切正常关闭"
-      },
-      "0.5.4": {
-        "en": "Updated matter.js to 0.15.5",
-        "de": "Aktualisierte Materie.js bis 0,15.5",
-        "ru": "Обновленный matter.js до 0,15,5",
-        "pt": "Updated matter.js to 0.15.5",
-        "nl": "Bijgewerkte materie.js tot 0,15.5",
-        "fr": "Matière mise à jour.js à 0.15.5",
-        "it": "Question.js aggiornato a 0.15.5",
-        "es": "Actualizado matter.js a 0.15.5",
-        "pl": "Aktualizacja mater.js do 0.15.5",
-        "uk": "Оновлена справа.js до 0.15.5",
-        "zh-cn": "更新为0.15.5"
       }
     },
     "titleLang": {

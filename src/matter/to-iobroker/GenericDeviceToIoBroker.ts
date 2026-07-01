@@ -92,6 +92,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
     readonly #node: PairedNode;
     protected readonly appEndpoint: Endpoint;
     readonly #rootEndpoint: Endpoint;
+    readonly #behaviorIdCache = new Map<string, string | undefined>();
     #name?: string;
     #defaultName: string;
     readonly deviceType: string;
@@ -1026,23 +1027,29 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
     }
 
     #getClusterState(endpointId: EndpointNumber, clusterId: ClusterId): Record<string, any> | undefined {
-        const ep = endpointId === 0 ? this.#rootEndpoint : this.appEndpoint;
-        for (const [behaviorId, BehaviorType] of Object.entries(ep.behaviors.supported)) {
-            if (ClusterBehavior.is(BehaviorType) && BehaviorType.cluster.id === clusterId) {
-                return (ep.state as any)[behaviorId];
-            }
+        const behaviorId = this.#getBehaviorId(endpointId, clusterId);
+        if (behaviorId === undefined) {
+            return undefined;
         }
-        return undefined;
+        const ep = endpointId === 0 ? this.#rootEndpoint : this.appEndpoint;
+        return (ep.state as any)[behaviorId];
     }
 
     #getBehaviorId(endpointId: EndpointNumber, clusterId: ClusterId): string | undefined {
+        const cacheKey = `${endpointId}:${clusterId}`;
+        if (this.#behaviorIdCache.has(cacheKey)) {
+            return this.#behaviorIdCache.get(cacheKey);
+        }
         const ep = endpointId === 0 ? this.#rootEndpoint : this.appEndpoint;
-        for (const [behaviorId, BehaviorType] of Object.entries(ep.behaviors.supported)) {
+        let behaviorId: string | undefined;
+        for (const [id, BehaviorType] of Object.entries(ep.behaviors.supported)) {
             if (ClusterBehavior.is(BehaviorType) && BehaviorType.cluster.id === clusterId) {
-                return behaviorId;
+                behaviorId = id;
+                break;
             }
         }
-        return undefined;
+        this.#behaviorIdCache.set(cacheKey, behaviorId);
+        return behaviorId;
     }
 
     getStatus(nodeStatus: DeviceStatus): DeviceStatus {

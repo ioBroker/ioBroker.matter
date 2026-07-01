@@ -76,6 +76,8 @@ class BridgedDevices extends BaseServerNode {
             const name = mappingDevice.name;
             const endpoints = mappingDevice.matterEndpoints;
             const serialNumber = deviceOptions.uuid.replace(/-/g, '');
+            const matterName = name.substring(0, 32);
+            const productLabel = name.substring(0, 64);
             if (endpoints.length === 1 || deviceOptions.noComposed) {
                 let erroredCount = 0;
                 // When only one endpoint or non-composed we simply add all endpoints for itself to the bridge
@@ -92,11 +94,10 @@ class BridgedDevices extends BaseServerNode {
                         this.adapter.log.error(`Error closing endpoint ${endpoint.id} in bridge: ${errorText}`);
                     }
 
-                    const matterName = name.substring(0, 32);
                     endpoint.behaviors.require(BridgedDeviceBasicInformationServer, {
                         nodeLabel: matterName,
                         productName: matterName,
-                        productLabel: name.substring(0, 64),
+                        productLabel,
                         serialNumber,
                         uniqueId: md5(endpoint.id),
                         reachable: true,
@@ -130,13 +131,12 @@ class BridgedDevices extends BaseServerNode {
                     this.adapter.log.error(`Error closing endpoint ${id} in bridge: ${error}`);
                 }
 
-                const matterName = name.substring(0, 32);
                 const composedEndpoint = new Endpoint(BridgedNodeEndpoint, {
                     id,
                     bridgedDeviceBasicInformation: {
                         nodeLabel: matterName,
                         productName: matterName,
-                        productLabel: name.substring(0, 64),
+                        productLabel,
                         serialNumber,
                         uniqueId: md5(id),
                         reachable: true,

@@ -30,7 +30,7 @@ type IoBrokerWindowCoveringDevice = typeof IoBrokerWindowCoveringDevice;
 export class BlindsToMatter extends GenericDeviceToMatter {
     readonly #ioBrokerDevice: BlindButtons | Blind;
     readonly #matterEndpoint: Endpoint<IoBrokerWindowCoveringDevice>;
-    #supportedFeatures = new Array<WindowCovering.Feature>();
+    #supportedFeatures = new Set<WindowCovering.Feature>();
     readonly #WindowCoveringServer;
 
     constructor(ioBrokerDevice: BlindButtons | Blind, name: string, uuid: string) {
@@ -39,15 +39,15 @@ export class BlindsToMatter extends GenericDeviceToMatter {
         this.#ioBrokerDevice = ioBrokerDevice;
 
         if (this.#ioBrokerDevice.hasLiftButtons() || this.#ioBrokerDevice.hasLiftLevel()) {
-            this.#supportedFeatures.push(WindowCovering.Feature.Lift);
+            this.#supportedFeatures.add(WindowCovering.Feature.Lift);
             if (this.#ioBrokerDevice.hasLiftLevel()) {
-                this.#supportedFeatures.push(WindowCovering.Feature.PositionAwareLift);
+                this.#supportedFeatures.add(WindowCovering.Feature.PositionAwareLift);
             }
         }
         if (this.#ioBrokerDevice.hasTiltButtons() || this.#ioBrokerDevice.hasTiltLevel()) {
-            this.#supportedFeatures.push(WindowCovering.Feature.Tilt);
+            this.#supportedFeatures.add(WindowCovering.Feature.Tilt);
             if (this.#ioBrokerDevice.hasTiltLevel()) {
-                this.#supportedFeatures.push(WindowCovering.Feature.PositionAwareTilt);
+                this.#supportedFeatures.add(WindowCovering.Feature.PositionAwareTilt);
             }
         }
 
@@ -60,15 +60,15 @@ export class BlindsToMatter extends GenericDeviceToMatter {
             },
             windowCovering: {
                 type:
-                    this.#supportedFeatures.includes(WindowCovering.Feature.Lift) &&
-                    this.#supportedFeatures.includes(WindowCovering.Feature.Tilt)
+                    this.#supportedFeatures.has(WindowCovering.Feature.Lift) &&
+                    this.#supportedFeatures.has(WindowCovering.Feature.Tilt)
                         ? WindowCovering.WindowCoveringType.TiltBlindLift
-                        : this.#supportedFeatures.includes(WindowCovering.Feature.Lift)
+                        : this.#supportedFeatures.has(WindowCovering.Feature.Lift)
                           ? WindowCovering.WindowCoveringType.Rollershade
                           : WindowCovering.WindowCoveringType.TiltBlindTiltOnly,
                 endProductType:
-                    this.#supportedFeatures.includes(WindowCovering.Feature.Lift) &&
-                    !this.#supportedFeatures.includes(WindowCovering.Feature.Tilt)
+                    this.#supportedFeatures.has(WindowCovering.Feature.Lift) &&
+                    !this.#supportedFeatures.has(WindowCovering.Feature.Tilt)
                         ? WindowCovering.EndProductType.RollerShade
                         : WindowCovering.EndProductType.Unknown,
             },
@@ -87,8 +87,8 @@ export class BlindsToMatter extends GenericDeviceToMatter {
         super.registerHandlersAndInitialize();
 
         if (
-            this.#supportedFeatures.includes(WindowCovering.Feature.Tilt) &&
-            this.#supportedFeatures.includes(WindowCovering.Feature.PositionAwareTilt)
+            this.#supportedFeatures.has(WindowCovering.Feature.Tilt) &&
+            this.#supportedFeatures.has(WindowCovering.Feature.PositionAwareTilt)
         ) {
             await this.#matterEndpoint.setStateOf(this.#WindowCoveringServer, {
                 currentPositionTiltPercent100ths: Math.round(100 - (this.#ioBrokerDevice.getTiltLevel() ?? 0)) * 100,
@@ -96,8 +96,8 @@ export class BlindsToMatter extends GenericDeviceToMatter {
             });
         }
         if (
-            this.#supportedFeatures.includes(WindowCovering.Feature.Lift) &&
-            this.#supportedFeatures.includes(WindowCovering.Feature.PositionAwareLift)
+            this.#supportedFeatures.has(WindowCovering.Feature.Lift) &&
+            this.#supportedFeatures.has(WindowCovering.Feature.PositionAwareLift)
         ) {
             await this.#matterEndpoint.setStateOf(this.#WindowCoveringServer, {
                 currentPositionLiftPercent100ths:
@@ -115,9 +115,9 @@ export class BlindsToMatter extends GenericDeviceToMatter {
                 direction: MovementDirection,
                 targetPercent100ths?: number,
             ) => {
-                if (type === MovementType.Lift && this.#supportedFeatures.includes(WindowCovering.Feature.Lift)) {
+                if (type === MovementType.Lift && this.#supportedFeatures.has(WindowCovering.Feature.Lift)) {
                     if (
-                        this.#supportedFeatures.includes(WindowCovering.Feature.PositionAwareLift) &&
+                        this.#supportedFeatures.has(WindowCovering.Feature.PositionAwareLift) &&
                         targetPercent100ths !== undefined &&
                         this.#ioBrokerDevice.hasLiftLevel()
                     ) {
@@ -137,12 +137,9 @@ export class BlindsToMatter extends GenericDeviceToMatter {
                             }
                         }
                     }
-                } else if (
-                    type === MovementType.Tilt &&
-                    this.#supportedFeatures.includes(WindowCovering.Feature.Tilt)
-                ) {
+                } else if (type === MovementType.Tilt && this.#supportedFeatures.has(WindowCovering.Feature.Tilt)) {
                     if (
-                        this.#supportedFeatures.includes(WindowCovering.Feature.PositionAwareTilt) &&
+                        this.#supportedFeatures.has(WindowCovering.Feature.PositionAwareTilt) &&
                         targetPercent100ths !== undefined &&
                         this.#ioBrokerDevice.hasTiltLevel()
                     ) {
@@ -167,20 +164,20 @@ export class BlindsToMatter extends GenericDeviceToMatter {
         );
 
         this.matterEvents.on(this.#matterEndpoint.events.ioBrokerEvents.windowCoveringStopMovement, async () => {
-            if (this.#supportedFeatures.includes(WindowCovering.Feature.Lift)) {
+            if (this.#supportedFeatures.has(WindowCovering.Feature.Lift)) {
                 if (this.#ioBrokerDevice.hasLiftStopButton()) {
                     await this.#ioBrokerDevice.setStop();
-                } else if (this.#supportedFeatures.includes(WindowCovering.Feature.PositionAwareLift)) {
+                } else if (this.#supportedFeatures.has(WindowCovering.Feature.PositionAwareLift)) {
                     const currentLevel = (this.#ioBrokerDevice as Blind).getLevel();
                     if (currentLevel !== undefined) {
                         await (this.#ioBrokerDevice as Blind).setLevel(currentLevel);
                     }
                 }
             }
-            if (this.#supportedFeatures.includes(WindowCovering.Feature.Tilt)) {
+            if (this.#supportedFeatures.has(WindowCovering.Feature.Tilt)) {
                 if (this.#ioBrokerDevice.hasTiltStopButton()) {
                     await this.#ioBrokerDevice.setTiltStop();
-                } else if (this.#supportedFeatures.includes(WindowCovering.Feature.PositionAwareTilt)) {
+                } else if (this.#supportedFeatures.has(WindowCovering.Feature.PositionAwareTilt)) {
                     const currentTiltLevel = this.#ioBrokerDevice.getTiltLevel();
                     if (currentTiltLevel !== undefined) {
                         await this.#ioBrokerDevice.setTiltLevel(currentTiltLevel);
@@ -195,8 +192,8 @@ export class BlindsToMatter extends GenericDeviceToMatter {
                 case PropertyType.TiltLevelActual: {
                     const percentage = event.value as number;
                     if (
-                        this.#supportedFeatures.includes(WindowCovering.Feature.Tilt) &&
-                        this.#supportedFeatures.includes(WindowCovering.Feature.PositionAwareTilt)
+                        this.#supportedFeatures.has(WindowCovering.Feature.Tilt) &&
+                        this.#supportedFeatures.has(WindowCovering.Feature.PositionAwareTilt)
                     ) {
                         await this.#matterEndpoint.setStateOf(this.#WindowCoveringServer, {
                             currentPositionTiltPercent100ths: Math.round(100 - percentage) * 100,
@@ -213,8 +210,8 @@ export class BlindsToMatter extends GenericDeviceToMatter {
                 case PropertyType.LevelActual: {
                     const percentage = event.value as number;
                     if (
-                        this.#supportedFeatures.includes(WindowCovering.Feature.Lift) &&
-                        this.#supportedFeatures.includes(WindowCovering.Feature.PositionAwareLift)
+                        this.#supportedFeatures.has(WindowCovering.Feature.Lift) &&
+                        this.#supportedFeatures.has(WindowCovering.Feature.PositionAwareLift)
                     ) {
                         await this.#matterEndpoint.setStateOf(this.#WindowCoveringServer, {
                             currentPositionLiftPercent100ths: Math.round(100 - percentage) * 100,

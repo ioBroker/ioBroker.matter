@@ -53,7 +53,7 @@ export type PairedNodeConfig = {
     exposeMatterSystemClusterData: boolean;
 };
 
-const SystemClusters: ClusterId[] = [
+const SystemClusters = new Set<ClusterId>([
     ClusterId(0x0004), // Groups
     ClusterId(0x0005), // Scenes
     ClusterId(0x001d), // Descriptor
@@ -80,7 +80,7 @@ const SystemClusters: ClusterId[] = [
     ClusterId(0x003f), // Group Key Management
     ClusterId(0x0046), // ICD Management
     ClusterId(0x0062), // Scenes Management
-];
+]);
 
 export type GenericNodeConfiguration = {
     subscriptionMaxIntervalS?: number;
@@ -105,6 +105,7 @@ export class GeneralMatterNode {
     #endpointMap = new Map<number, { baseId: string; endpoint: Endpoint }>();
     #deviceMap = new Map<number, GenericDeviceToIoBroker>();
     #attributeTypeMap = new Map<string, ioBroker.CommonType>();
+    #attributeLeafIdMap = new Map<string, string>();
     #eventMap = new Set<string>();
     #subscriptions = new Map<string, SubscribeCallback>();
     #name?: string;
@@ -149,6 +150,7 @@ export class GeneralMatterNode {
 
         this.#endpointMap.clear();
         this.#attributeTypeMap.clear();
+        this.#attributeLeafIdMap.clear();
         this.#eventMap.clear();
     }
 
@@ -967,8 +969,17 @@ export class GeneralMatterNode {
     }
 
     #getAttributeStateLeafId(clusterId: number, attributeId: number, attrModel?: AttributeModel): string {
-        attrModel = attrModel ?? Matter.clusters(clusterId)?.attributes(attributeId);
-        return attrModel ? camelize(attrModel.name) : toHex(attributeId);
+        const cacheId = `${clusterId}.${attributeId}`;
+        if (attrModel === undefined) {
+            const cached = this.#attributeLeafIdMap.get(cacheId);
+            if (cached !== undefined) {
+                return cached;
+            }
+            attrModel = Matter.clusters(clusterId)?.attributes(attributeId);
+        }
+        const leafId = attrModel ? camelize(attrModel.name) : toHex(attributeId);
+        this.#attributeLeafIdMap.set(cacheId, leafId);
+        return leafId;
     }
 
     #getEventMapId(endpointId: number, clusterId: number, eventId: number): string {
@@ -980,6 +991,7 @@ export class GeneralMatterNode {
         clusterId: number,
         attributeId: number,
         isUnknown: boolean,
+        attrModel?: AttributeModel,
     ): { type: ioBroker.CommonType; states?: Record<number, string> } {
         const knownType = this.#attributeTypeMap.get(this.#getAttributeMapId(endpointId, clusterId, attributeId));
         if (knownType !== undefined) {
@@ -991,7 +1003,7 @@ export class GeneralMatterNode {
         if (isUnknown) {
             type = 'mixed';
         } else {
-            const attributeModel = Matter.clusters(clusterId)?.attributes(attributeId);
+            const attributeModel = attrModel ?? Matter.clusters(clusterId)?.attributes(attributeId);
             const effectiveType = attributeModel?.effectiveType;
             const metatype = attributeModel?.effectiveMetatype;
             if (metatype === undefined) {
@@ -1065,7 +1077,7 @@ export class GeneralMatterNode {
             }
             // TODO make Configurable
             const clusterBaseId = `${endpointBaseId}.${toHex(clusterId)}`;
-            if (!exposeMatterSystemClusterData && SystemClusters.includes(clusterId)) {
+            if (!exposeMatterSystemClusterData && SystemClusters.has(clusterId)) {
                 await this.adapter.delObjectAsync(clusterBaseId, { recursive: true });
                 continue;
             }
@@ -1118,6 +1130,7 @@ export class GeneralMatterNode {
                     clusterId,
                     attributeId,
                     unknown,
+                    attrModel,
                 );
                 const writable = attrModel?.effectiveAccess?.writable ?? false;
                 await this.adapter.extendObjectAsync(attributeBaseId, {

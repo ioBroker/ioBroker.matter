@@ -138,6 +138,9 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (@Apollon77) Optimized Matter data processing by caching repeated cluster/attribute lookups in hot paths
+
 ### 1.2.1 (2026-06-29)
 * (@Apollon77) Fix Thermostat and WindowCovering state update errors
 * (@Apollon77) Update to the latest matter.js 0.17.4-alpha including MDNS/CPU usage fixes

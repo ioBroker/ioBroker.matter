@@ -257,7 +257,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                 : data.attributeName;
         if (attributeName !== undefined) {
             const clusterState = this.#getClusterState(endpointId, clusterId);
-            if (!clusterState || !(attributeName in clusterState)) {
+            if (!clusterState || clusterState[attributeName] === undefined) {
                 return;
             }
         }
@@ -302,7 +302,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                     : data.attributeName;
             if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
                 const clusterState = this.#getClusterState(endpointId, clusterId);
-                if (!clusterState || !(attributeName in clusterState)) {
+                if (!clusterState || clusterState[attributeName] === undefined) {
                     return;
                 }
 
@@ -425,10 +425,12 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                     ? `unknownAttribute_${Diagnostic.hex(data.vendorSpecificAttributeId)}`
                     : data.attributeName;
 
-            // Verify the attribute exists on the cluster
+            // Verify the attribute exists on the cluster. The state key is present for every
+            // schema attribute, but non-conformant devices leave unsupported optional attributes
+            // undefined - so check the value, not just key presence (nullable attributes read null).
             if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
                 const clusterState = this.#getClusterState(endpointId, clusterId);
-                if (!clusterState || !(attributeName in clusterState)) {
+                if (!clusterState || clusterState[attributeName] === undefined) {
                     return;
                 }
                 attributeId = Matter.clusters(clusterId)?.attributes.find(m => camelize(m.name) === attributeName)

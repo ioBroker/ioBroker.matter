@@ -255,11 +255,8 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
             'vendorSpecificAttributeId' in data
                 ? `unknownAttribute_${Diagnostic.hex(data.vendorSpecificAttributeId)}`
                 : data.attributeName;
-        if (attributeName !== undefined) {
-            const clusterState = this.#getClusterState(endpointId, clusterId);
-            if (!clusterState || clusterState[attributeName] === undefined) {
-                return;
-            }
+        if (attributeName !== undefined && !this.#attributeIsSupported(endpointId, clusterId, attributeName)) {
+            return;
         }
 
         if (attributeName === undefined) {
@@ -301,8 +298,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                     ? `unknownAttribute_${Diagnostic.hex(data.vendorSpecificAttributeId)}`
                     : data.attributeName;
             if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
-                const clusterState = this.#getClusterState(endpointId, clusterId);
-                if (!clusterState || clusterState[attributeName] === undefined) {
+                if (!this.#attributeIsSupported(endpointId, clusterId, attributeName)) {
                     return;
                 }
 
@@ -425,12 +421,8 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                     ? `unknownAttribute_${Diagnostic.hex(data.vendorSpecificAttributeId)}`
                     : data.attributeName;
 
-            // Verify the attribute exists on the cluster. The state key is present for every
-            // schema attribute, but non-conformant devices leave unsupported optional attributes
-            // undefined - so check the value, not just key presence (nullable attributes read null).
             if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
-                const clusterState = this.#getClusterState(endpointId, clusterId);
-                if (!clusterState || clusterState[attributeName] === undefined) {
+                if (!this.#attributeIsSupported(endpointId, clusterId, attributeName)) {
                     return;
                 }
                 attributeId = Matter.clusters(clusterId)?.attributes.find(m => camelize(m.name) === attributeName)
@@ -1026,6 +1018,16 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         } else if (typeof voltage === 'number') {
             return `${voltage}mV`;
         }
+    }
+
+    /**
+     * Whether the paired device actually supports the attribute. The state key is present for every
+     * schema attribute, but non-conformant devices leave unsupported optional attributes undefined -
+     * so check the value, not just key presence (supported nullable attributes read null).
+     */
+    #attributeIsSupported(endpointId: EndpointNumber, clusterId: ClusterId, attributeName: string): boolean {
+        const clusterState = this.#getClusterState(endpointId, clusterId);
+        return clusterState !== undefined && clusterState[attributeName] !== undefined;
     }
 
     #getClusterState(endpointId: EndpointNumber, clusterId: ClusterId): Record<string, any> | undefined {

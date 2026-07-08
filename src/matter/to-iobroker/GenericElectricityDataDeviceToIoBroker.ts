@@ -41,13 +41,13 @@ export abstract class GenericElectricityDataDeviceToIoBroker<
             this.enableDeviceTypeStateForAttribute(PropertyType.Current, {
                 endpointId,
                 clusterId,
-                attributeName: 'activeCurrent',
-                // No conversion because also our default unit is mA
+                attributeName: 'rmsCurrent',
+                convertValue: value => value / 1000,
             });
             this.enableDeviceTypeStateForAttribute(PropertyType.Voltage, {
                 endpointId,
                 clusterId,
-                attributeName: 'voltage',
+                attributeName: 'rmsVoltage',
                 convertValue: value => value / 1000,
             });
             this.enableDeviceTypeStateForAttribute(PropertyType.Frequency, {
@@ -65,7 +65,8 @@ export abstract class GenericElectricityDataDeviceToIoBroker<
             this.enableDeviceTypeStateForAttribute(PropertyType.Consumption, {
                 endpointId,
                 clusterId: ElectricalEnergyMeasurement.id,
-                attributeName: 'cumulativeEnergy',
+                attributeName: 'cumulativeEnergyImported',
+                convertValue: value => Number(value?.energy ?? 0) / 1000,
             });
             found = true;
         }

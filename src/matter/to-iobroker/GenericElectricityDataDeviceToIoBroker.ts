@@ -41,13 +41,13 @@ export abstract class GenericElectricityDataDeviceToIoBroker<
             this.enableDeviceTypeStateForAttribute(PropertyType.Current, {
                 endpointId,
                 clusterId,
-                attributeName: 'rmsCurrent',
+                attributeName: ['activeCurrent', 'rmsCurrent'],
                 convertValue: value => value / 1000,
             });
             this.enableDeviceTypeStateForAttribute(PropertyType.Voltage, {
                 endpointId,
                 clusterId,
-                attributeName: 'rmsVoltage',
+                attributeName: ['voltage', 'rmsVoltage'],
                 convertValue: value => value / 1000,
             });
             this.enableDeviceTypeStateForAttribute(PropertyType.Frequency, {

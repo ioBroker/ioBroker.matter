@@ -282,7 +282,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
             changeHandler?: (value: any) => MaybePromise<void> | void;
             pollAttribute?: boolean;
             modes?: { [key: string]: string };
-        } & ({ vendorSpecificAttributeId: AttributeId } | { attributeName?: string }),
+        } & ({ vendorSpecificAttributeId: AttributeId } | { attributeName?: string | string[] }),
     ): void {
         const stateData = this.#deviceOptions.additionalStateData![type] ?? {};
         if (stateData.id !== undefined) {
@@ -293,12 +293,16 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         if (data !== undefined) {
             const { endpointId, clusterId, convertValue, changeHandler, pollAttribute, modes } = data;
             let attributeId: AttributeId | undefined;
-            const attributeName =
+            const requestedAttributeName =
                 'vendorSpecificAttributeId' in data
                     ? `unknownAttribute_${Diagnostic.hex(data.vendorSpecificAttributeId)}`
                     : data.attributeName;
-            if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
-                if (!this.#attributeIsSupported(endpointId, clusterId, attributeName)) {
+            let attributeName = Array.isArray(requestedAttributeName)
+                ? requestedAttributeName[0]
+                : requestedAttributeName;
+            if (endpointId !== undefined && clusterId !== undefined && requestedAttributeName !== undefined) {
+                attributeName = this.#firstSupportedAttributeName(endpointId, clusterId, requestedAttributeName);
+                if (attributeName === undefined) {
                     return;
                 }
 
@@ -1028,6 +1032,20 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
     #attributeIsSupported(endpointId: EndpointNumber, clusterId: ClusterId, attributeName: string): boolean {
         const clusterState = this.#getClusterState(endpointId, clusterId);
         return clusterState !== undefined && clusterState[attributeName] !== undefined;
+    }
+
+    /**
+     * Resolve the attribute name to use when a state maps to several candidate attributes that depend
+     * on the cluster feature set (e.g. activeCurrent vs rmsCurrent). Returns the first candidate the
+     * device actually supports, or undefined when none is supported.
+     */
+    #firstSupportedAttributeName(
+        endpointId: EndpointNumber,
+        clusterId: ClusterId,
+        attributeName: string | string[],
+    ): string | undefined {
+        const candidates = Array.isArray(attributeName) ? attributeName : [attributeName];
+        return candidates.find(name => this.#attributeIsSupported(endpointId, clusterId, name));
     }
 
     #getClusterState(endpointId: EndpointNumber, clusterId: ClusterId): Record<string, any> | undefined {

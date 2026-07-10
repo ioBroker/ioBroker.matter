@@ -286,7 +286,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
     ): void {
         const stateData = this.#deviceOptions.additionalStateData![type] ?? {};
         if (stateData.id !== undefined) {
-            console.log(`State ${type} already enabled`);
+            this.#adapter.log.debug(`State ${type} already enabled`);
             return;
         }
 
@@ -371,7 +371,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         const pathId = eventPathToString({ endpointId, clusterId, eventName });
         this.#deviceOptions.additionalStateData![type] = stateData;
         if (this.#matterMappings.get(pathId)) {
-            console.log(`State path ${pathId} already enabled, overwriting`);
+            this.#adapter.log.warn(`State path ${pathId} already enabled, overwriting`);
         }
         this.#matterMappings.set(pathId, type);
         const knownEvents = this.#enabledEventProperties.get(type) ?? [];

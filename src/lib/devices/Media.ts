@@ -24,6 +24,8 @@ export class Media extends GenericDevice {
     #getVolumeState?: DeviceStateObject<number>;
     #muteState?: DeviceStateObject<boolean>;
     #getConnectedState?: DeviceStateObject<boolean>;
+    #getPlayerNameState?: DeviceStateObject<string>;
+    #getPlayerTypeState?: DeviceStateObject<string>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
@@ -81,7 +83,7 @@ export class Media extends GenericDevice {
                 },
                 {
                     name: 'REPEAT',
-                    valueType: ValueType.Boolean,
+                    valueType: ValueType.Number,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Repeat,
                     callback: state => (this.#repeatState = state),
@@ -187,6 +189,20 @@ export class Media extends GenericDevice {
                     accessType: StateAccessType.Read,
                     type: PropertyType.Connected,
                     callback: state => (this.#getConnectedState = state),
+                },
+                {
+                    name: 'PLAYER_NAME',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.PlayerName,
+                    callback: state => (this.#getPlayerNameState = state),
+                },
+                {
+                    name: 'PLAYER_TYPE',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.PlayerType,
+                    callback: state => (this.#getPlayerTypeState = state),
                 },
             ]),
         );
@@ -365,5 +381,19 @@ export class Media extends GenericDevice {
             throw new Error('Connected state not found');
         }
         return this.#getConnectedState.value;
+    }
+
+    getPlayerName(): string | undefined {
+        if (!this.#getPlayerNameState) {
+            throw new Error('PlayerName state not found');
+        }
+        return this.#getPlayerNameState.value;
+    }
+
+    getPlayerType(): string | undefined {
+        if (!this.#getPlayerTypeState) {
+            throw new Error('PlayerType state not found');
+        }
+        return this.#getPlayerTypeState.value;
     }
 }

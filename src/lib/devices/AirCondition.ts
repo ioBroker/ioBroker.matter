@@ -1,15 +1,26 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { ElectricityDataDevice } from './ElectricityDataDevice';
 import { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { ThermostatMode } from './Thermostat';
 
 enum AirConditionerMode {
-    Auto = 'AUTO',
-    Cool = 'COOL',
-    Dry = 'DRY',
-    Eco = 'ECO',
-    FanOnly = 'FAN_ONLY',
-    Heat = 'HEAT',
-    Off = 'OFF',
+    Auto = ThermostatMode.Auto,
+    Cool = ThermostatMode.Cool,
+    Dry = ThermostatMode.Dry,
+    Eco = ThermostatMode.Eco,
+    FanOnly = ThermostatMode.FanOnly,
+    Heat = ThermostatMode.Heat,
+    Off = ThermostatMode.Off,
+}
+
+export enum AirConditionerModeNumbers {
+    AUTO = 0,
+    COOL = 3,
+    DRY = 4,
+    ECO = 5,
+    FAN_ONLY = 6,
+    HEAT = 7,
+    OFF = 8,
 }
 
 enum AirConditionerSpeed {
@@ -21,6 +32,15 @@ enum AirConditionerSpeed {
     Turbo = 'TURBO',
 }
 
+export enum AirConditionerSpeedNumbers {
+    AUTO = 0,
+    HIGH = 1,
+    LOW = 2,
+    MEDIUM = 3,
+    QUIET = 4,
+    TURBO = 5,
+}
+
 enum AirConditionerSwing {
     Auto = 'AUTO',
     Horizontal = 'HORIZONTAL',
@@ -28,10 +48,17 @@ enum AirConditionerSwing {
     Vertical = 'VERTICAL',
 }
 
+export enum AirConditionerSwingNumbers {
+    AUTO = 0,
+    HORIZONTAL = 1,
+    STATIONARY = 2,
+    VERTICAL = 3,
+}
+
 export class AirCondition extends ElectricityDataDevice {
     #levelState?: DeviceStateObject<number>;
     #getTemperatureState?: DeviceStateObject<number>;
-    #powerState?: DeviceStateObject<boolean>;
+    #powerState?: DeviceStateObject<boolean | number>;
     #getHumidityState?: DeviceStateObject<number>;
     #speedState?: DeviceStateObject<AirConditionerSpeed>;
     #boostState?: DeviceStateObject<boolean | number>;
@@ -88,7 +115,7 @@ export class AirCondition extends ElectricityDataDevice {
                 },
                 {
                     name: 'SWING',
-                    valueType: ValueType.Boolean,
+                    valueType: ValueType.Enum,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Swing,
                     callback: state => (this.#SwingState = state),
@@ -129,7 +156,8 @@ export class AirCondition extends ElectricityDataDevice {
         if (!this.#powerState) {
             throw new Error('Power state not found');
         }
-        return this.#powerState.value;
+        const value = this.#powerState.value;
+        return typeof value === 'number' ? value !== 0 : value;
     }
 
     setPower(value: boolean): Promise<void> {
@@ -137,6 +165,13 @@ export class AirCondition extends ElectricityDataDevice {
             throw new Error('Power state not found');
         }
         return this.#powerState.setValue(value);
+    }
+
+    updatePower(value: boolean | number): Promise<void> {
+        if (!this.#powerState) {
+            throw new Error('Power state not found');
+        }
+        return this.#powerState.updateValue(value);
     }
 
     getHumidity(): number | undefined {

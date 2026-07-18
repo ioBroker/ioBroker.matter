@@ -8,8 +8,8 @@ export type GateDirectionsNumbers = BlindDirectionsNumbers;
 export const GateDirectionsNumbers = BlindDirectionsNumbers;
 
 export class Gate extends GenericDevice {
-    #setLevelState?: DeviceStateObject<number>;
     #getLevelState?: DeviceStateObject<number>;
+    #powerState?: DeviceStateObject<boolean>;
     #setStopState?: DeviceStateObject<boolean>;
     #directionEnumState?: DeviceStateObject<GateDirections>;
 
@@ -18,7 +18,6 @@ export class Gate extends GenericDevice {
 
         this._construction.push(
             this.addDeviceStates([
-                // actual value first, as it will be read first
                 {
                     name: 'ACTUAL',
                     valueType: ValueType.NumberPercent,
@@ -28,10 +27,10 @@ export class Gate extends GenericDevice {
                 },
                 {
                     name: 'SET',
-                    valueType: ValueType.NumberPercent,
+                    valueType: ValueType.Boolean,
                     accessType: StateAccessType.ReadWrite,
-                    type: PropertyType.Level,
-                    callback: state => (this.#setLevelState = state),
+                    type: PropertyType.Power,
+                    callback: state => (this.#powerState = state),
                 },
                 {
                     name: 'STOP',
@@ -51,18 +50,43 @@ export class Gate extends GenericDevice {
         );
     }
 
-    getLevel(): number | undefined {
-        if (!this.#getLevelState && !this.#setLevelState) {
-            throw new Error('Level state not found');
+    getPower(): boolean | undefined {
+        if (!this.#powerState) {
+            throw new Error('Power state not found');
         }
-        return (this.#getLevelState || this.#setLevelState)?.value;
+        return this.#powerState.value;
     }
 
-    setLevel(value: number): Promise<void> {
-        if (!this.#setLevelState) {
+    setPower(value: boolean): Promise<void> {
+        if (!this.#powerState) {
+            throw new Error('Power state not found');
+        }
+        return this.#powerState.setValue(value);
+    }
+
+    updatePower(value: boolean): Promise<void> {
+        if (!this.#powerState) {
+            throw new Error('Power state not found');
+        }
+        return this.#powerState.updateValue(value);
+    }
+
+    getLevel(): number | undefined {
+        if (!this.#getLevelState) {
             throw new Error('Level state not found');
         }
-        return this.#setLevelState.setValue(value);
+        return this.#getLevelState.value;
+    }
+
+    updateLevel(value: number): Promise<void> {
+        if (!this.#getLevelState) {
+            throw new Error('Level state not found');
+        }
+        return this.#getLevelState.updateValue(value);
+    }
+
+    hasLevel(): boolean {
+        return !!this.#getLevelState;
     }
 
     setStop(): Promise<void> {
@@ -72,21 +96,21 @@ export class Gate extends GenericDevice {
         return this.#setStopState.setValue(true);
     }
 
-    getDirectionEnum(): BlindDirections | undefined {
+    getDirectionEnum(): GateDirections | undefined {
         if (!this.#directionEnumState) {
             throw new Error('Direction state not found');
         }
         return this.#directionEnumState.value;
     }
 
-    setDirectionENum(value: BlindDirections): Promise<void> {
+    setDirectionEnum(value: GateDirections): Promise<void> {
         if (!this.#directionEnumState) {
             throw new Error('Direction state not found');
         }
         return this.#directionEnumState.setValue(value);
     }
 
-    updateDirectionEnum(value: BlindDirections): Promise<void> {
+    updateDirectionEnum(value: GateDirections): Promise<void> {
         if (!this.#directionEnumState) {
             throw new Error('Direction state not found');
         }

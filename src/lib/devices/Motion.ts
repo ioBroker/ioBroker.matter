@@ -19,7 +19,7 @@ export class Motion extends GenericDevice {
                 },
                 {
                     name: 'SECOND',
-                    valueType: ValueType.NumberPercent,
+                    valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Brightness,
                     callback: state => (this.#getBrightnessState = state),

@@ -24,7 +24,7 @@ enum VacuumCleanerState {
 }
 
 export class VacuumCleaner extends GenericDevice {
-    #powerState?: DeviceStateObject<boolean>;
+    #powerState?: DeviceStateObject<boolean | number>;
     #modeState?: DeviceStateObject<VacuumCleanerMode>;
     #getMapBase64State?: DeviceStateObject<string>;
     #getMapUrlState?: DeviceStateObject<string>;
@@ -158,7 +158,8 @@ export class VacuumCleaner extends GenericDevice {
         if (!this.#powerState) {
             throw new Error('Power state not found');
         }
-        return this.#powerState.value;
+        const value = this.#powerState.value;
+        return typeof value === 'number' ? value !== 0 : value;
     }
 
     setPower(value: boolean): Promise<void> {
@@ -166,6 +167,13 @@ export class VacuumCleaner extends GenericDevice {
             throw new Error('Power state not found');
         }
         return this.#powerState.setValue(value);
+    }
+
+    updatePower(value: boolean | number): Promise<void> {
+        if (!this.#powerState) {
+            throw new Error('Power state not found');
+        }
+        return this.#powerState.updateValue(value);
     }
 
     getMode(): VacuumCleanerMode | undefined {

@@ -75,7 +75,7 @@ export class Rgb extends Ct {
 
     setGreen(value: number): Promise<void> {
         if (!this.#greenState) {
-            throw new Error('Red state not found');
+            throw new Error('Green state not found');
         }
         return this.#greenState.setValue(value);
     }
@@ -96,7 +96,7 @@ export class Rgb extends Ct {
 
     setBlue(value: number): Promise<void> {
         if (!this.#blueState) {
-            throw new Error('Red state not found');
+            throw new Error('Blue state not found');
         }
         return this.#blueState.setValue(value);
     }
@@ -110,14 +110,14 @@ export class Rgb extends Ct {
 
     getWhite(): number | undefined {
         if (!this.#whiteState) {
-            throw new Error('Blue state not found');
+            throw new Error('White state not found');
         }
         return this.#whiteState.value;
     }
 
     setWhite(value: number): Promise<void> {
         if (!this.#whiteState) {
-            throw new Error('Red state not found');
+            throw new Error('White state not found');
         }
         return this.#whiteState.setValue(value);
     }

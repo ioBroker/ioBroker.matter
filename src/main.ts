@@ -55,7 +55,7 @@ const DEVICE_DEFAULT_NAME: Partial<Record<Types, string>> = {
     [Types.blind]: 'SET',
     [Types.buttonSensor]: 'PRESS',
     [Types.button]: 'SET',
-    [Types.camera]: 'FILE',
+    [Types.camera]: 'URL',
     [Types.cie]: 'CIE',
     [Types.ct]: 'TEMPERATURE',
     [Types.dimmer]: 'SET',

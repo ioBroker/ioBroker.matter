@@ -191,11 +191,12 @@ export class Thermostat extends GenericDevice {
         return !!this.#getTemperatureState;
     }
 
-    getPower(): boolean | number | undefined {
+    getPower(): boolean | undefined {
         if (!this.#powerState) {
             throw new Error('Power state not found');
         }
-        return this.#powerState.value;
+        const value = this.#powerState.value;
+        return typeof value === 'number' ? value !== 0 : value;
     }
 
     setPower(value: boolean): Promise<void> {

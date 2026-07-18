@@ -4,7 +4,6 @@ import {
     type ClusterId,
     type EventId,
     type Endpoint,
-    camelize,
     ClusterBehavior,
     Diagnostic,
     EndpointNumber,
@@ -306,8 +305,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                     return;
                 }
 
-                attributeId = Matter.clusters(clusterId)?.attributes.find(m => camelize(m.name) === attributeName)
-                    ?.id as AttributeId | undefined;
+                attributeId = Matter.clusters(clusterId)?.attributes(attributeName)?.id as AttributeId | undefined;
             }
 
             if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
@@ -360,9 +358,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                 return;
             }
 
-            eventId = Matter.clusters(clusterId)?.events.find(m => camelize(m.name) === eventName)?.id as
-                | EventId
-                | undefined;
+            eventId = Matter.clusters(clusterId)?.events(eventName)?.id as EventId | undefined;
         }
 
         if (stateData.id === undefined) {
@@ -429,8 +425,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                 if (!this.#attributeIsSupported(endpointId, clusterId, attributeName)) {
                     return;
                 }
-                attributeId = Matter.clusters(clusterId)?.attributes.find(m => camelize(m.name) === attributeName)
-                    ?.id as AttributeId | undefined;
+                attributeId = Matter.clusters(clusterId)?.attributes(attributeName)?.id as AttributeId | undefined;
             }
 
             // Register the Matter path mapping

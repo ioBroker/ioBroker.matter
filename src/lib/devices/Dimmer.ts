@@ -9,6 +9,7 @@ export class Dimmer extends ElectricityDataDevice {
     #setPowerState?: DeviceStateObject<boolean>;
     #getPowerState?: DeviceStateObject<boolean>;
     #transitionTimeState?: DeviceStateObject<number>;
+    #effectState?: DeviceStateObject<string>;
     #lastNotZeroLevel?: number;
 
     constructor(
@@ -60,6 +61,13 @@ export class Dimmer extends ElectricityDataDevice {
                         s: (value: number, toDefaultUnit: boolean): number =>
                             toDefaultUnit ? value * 1000 : value * 0.001,
                     },
+                },
+                {
+                    name: 'EFFECT',
+                    valueType: ValueType.Enum,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.Effect,
+                    callback: state => (this.#effectState = state),
                 },
             ]),
         );
@@ -204,5 +212,37 @@ export class Dimmer extends ElectricityDataDevice {
             throw new Error('TransitionTime state not found');
         }
         return this.#transitionTimeState.updateValue(value);
+    }
+
+    hasEffect(): boolean {
+        return !!this.#effectState;
+    }
+
+    getEffect(): string | undefined {
+        if (!this.#effectState) {
+            throw new Error('Effect state not found');
+        }
+        return this.#effectState.value;
+    }
+
+    setEffect(value: string): Promise<void> {
+        if (!this.#effectState) {
+            throw new Error('Effect state not found');
+        }
+        return this.#effectState.setValue(value);
+    }
+
+    updateEffect(value: string): Promise<void> {
+        if (!this.#effectState) {
+            throw new Error('Effect state not found');
+        }
+        return this.#effectState.updateValue(value);
+    }
+
+    getEffectModes(): string[] {
+        if (!this.#effectState) {
+            throw new Error('Effect state not found');
+        }
+        return this.#effectState.getModes();
     }
 }

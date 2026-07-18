@@ -11,6 +11,7 @@ import { Cie } from './devices/Cie';
 import { Ct } from './devices/Ct';
 import { Dimmer } from './devices/Dimmer';
 import { Door } from './devices/Door';
+import { FillLevel } from './devices/FillLevel';
 import { FireAlarm } from './devices/FireAlarm';
 import { FloodAlarm } from './devices/FloodAlarm';
 import { Gate } from './devices/Gate';
@@ -56,6 +57,7 @@ const types: { [key in Types]: ClassExtends<GenericDevice> | null } = {
     [Types.chart]: Chart,
     [Types.dimmer]: Dimmer,
     [Types.door]: Door,
+    [Types.fillLevel]: FillLevel,
     [Types.fireAlarm]: FireAlarm,
     [Types.floodAlarm]: FloodAlarm,
     [Types.gate]: Gate,

@@ -138,7 +138,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 -->
 
 ## Changelog
-### **WORK IN PROGRESS**
+### 1.3.0 (2026-07-19)
 * (@Apollon77) Update to Matter 1.6.0 (matter.js 0.17.7-alpha)
 * (@Apollon77) Optimized Matter data processing by caching repeated cluster/attribute lookups in hot paths
 * (@Apollon77) Only register additional custom attributes when the node supports them

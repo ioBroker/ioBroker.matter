@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "1.2.1",
+    "version": "1.3.0",
     "news": {
+      "1.3.0": {
+        "en": "Update to Matter 1.6.0 (matter.js 0.17.7-alpha)\nOptimized Matter data processing by caching repeated cluster/attribute lookups in hot paths\nOnly register additional custom attributes when the node supports them\nPrevent errors when controlling paired devices that do not expose On/Off commands",
+        "de": "Aktualisierung auf Matter 1.6.0 (matter.js 0.17.7-alpha)\nOptimierte Matter-Datenverarbeitung durch Zwischenspeicherung wiederholter Cluster-/Attributabfragen in häufig genutzten Pfaden\nRegistrieren Sie zusätzliche benutzerdefinierte Attribute nur dann, wenn der Knoten diese unterstützt.\nVerhindern Sie Fehler bei der Steuerung gekoppelter Geräte, die keine Ein-/Ausschaltbefehle bereitstellen.",
+        "ru": "Обновление до Matter 1.6.0 (matter.js 0.17.7-alpha)\nОптимизированная обработка данных Matter путем кэширования повторяющихся запросов к кластерам/атрибутам в «горячих» путях.\nРегистрируйте дополнительные пользовательские атрибуты только в том случае, если узел их поддерживает.\nПредотвратите ошибки при управлении сопряженными устройствами, которые не предоставляют команды включения/выключения.",
+        "pt": "Atualização para Matter 1.6.0 (matter.js 0.17.7-alpha)\nProcessamento otimizado de dados do Matter através do armazenamento em cache de consultas repetidas de clusters/atributos em caminhos críticos.\nRegistre atributos personalizados adicionais somente quando o nó os suportar.\nEvite erros ao controlar dispositivos emparelhados que não possuem comandos Ligar/Desligar.",
+        "nl": "Update naar Matter 1.6.0 (matter.js 0.17.7-alpha)\nGeoptimaliseerde gegevensverwerking van Matter door herhaalde cluster-/attribuutzoekacties in veelgebruikte paden in de cache op te slaan.\nRegistreer alleen extra aangepaste attributen als het knooppunt deze ondersteunt.\nVoorkom fouten bij het aansturen van gekoppelde apparaten die geen aan/uit-commando's weergeven.",
+        "fr": "Mise à jour vers Matter 1.6.0 (matter.js 0.17.7-alpha)\nTraitement optimisé des données Matter grâce à la mise en cache des recherches répétées de clusters/attributs dans les chemins fréquemment utilisés.\nN'enregistrez des attributs personnalisés supplémentaires que si le nœud les prend en charge.\nPrévenir les erreurs lors du contrôle d'appareils appariés qui n'exposent pas de commandes Marche/Arrêt",
+        "it": "Aggiornamento a Matter 1.6.0 (matter.js 0.17.7-alpha)\nElaborazione ottimizzata dei dati Matter tramite la memorizzazione nella cache delle ricerche ripetute di cluster/attributi nei percorsi più utilizzati.\nRegistra attributi personalizzati aggiuntivi solo se il nodo li supporta.\nPrevenire errori durante il controllo di dispositivi associati che non espongono comandi di accensione/spegnimento.",
+        "es": "Actualización a Matter 1.6.0 (matter.js 0.17.7-alpha)\nProcesamiento optimizado de datos de materia mediante el almacenamiento en caché de búsquedas repetidas de clústeres/atributos en rutas de acceso frecuente.\nRegistre atributos personalizados adicionales únicamente cuando el nodo los admita.\nEvite errores al controlar dispositivos emparejados que no exponen comandos de encendido/apagado.",
+        "pl": "Aktualizacja do wersji Matter 1.6.0 (matter.js 0.17.7-alpha)\nZoptymalizowane przetwarzanie danych Matter poprzez buforowanie powtarzających się wyszukiwań klastrów/atrybutów w ścieżkach aktywnych\nRejestruj dodatkowe atrybuty niestandardowe tylko wtedy, gdy węzeł je obsługuje\nZapobiegaj błędom podczas sterowania sparowanymi urządzeniami, które nie udostępniają poleceń włączania/wyłączania",
+        "uk": "Оновлення до Matter 1.6.0 (matter.js 0.17.7-альфа)\nОптимізована обробка даних Matter шляхом кешування повторюваних пошуків кластерів/атрибутів у гарячих шляхах\nРеєструйте додаткові користувацькі атрибути лише тоді, коли вузол їх підтримує\nЗапобігання помилкам під час керування парними пристроями, які не надають доступ до команд увімкнення/вимкнення",
+        "zh-cn": "更新至 Matter 1.6.0 (matter.js 0.17.7-alpha)\n通过缓存热路径中重复的聚类/属性查找来优化 Matter 数据处理\n仅当节点支持时才注册额外的自定义属性。\n防止在控制未公开开/关命令的配对设备时出现错误"
+      },
       "1.2.1": {
         "en": "Fix Thermostat and WindowCovering state update errors\nUpdate to the latest matter.js 0.17.4-alpha including MDNS/CPU usage fixes",
         "de": "Fix Thermostat und WindowCovering State Update Fehler\nUpdate auf die neueste matter.js 0.17.4-alpha inklusive MDNS/CPU-Usefixes",
@@ -80,19 +93,6 @@
         "pl": "Aktualizacja detektora typu, powinna wykrywać pojedyncze stany w strukturach innych niż urządzenia lepiej",
         "uk": "Оновлення датчика типу, слід виявити односторонні стани в нерозробних конструкціях краще",
         "zh-cn": "类型探测器更新,应更好地检测非探测结构中的单个状态"
-      },
-      "0.5.5": {
-        "en": "Optimizes Battery drain information\nCorrectly shows \"in progress changes\" in UI when adjusting devices to ovoid overlapping actions\nFix HSV to RGB calculation for some cases\nUpdated matter.js to 0.15.6\nOptimizes shutdown process to ensure everything is properly closed",
-        "de": "Optimiert die Informationen zum Batterieabfluss\nKorrekt zeigt \"in Fortschritt Änderungen\" in UI bei der Einstellung von Geräten zu Oid Überlappungsaktionen\nFix HSV zu RGB Berechnung für einige Fälle\nAktualisierte Sache.js bis 0,15.6\nOptimiert den Stilllegungsprozess, um sicherzustellen, dass alles richtig geschlossen ist",
-        "ru": "Оптимизация информации о сливе батареи\nПравильно показывает «в прогрессе изменения» в пользовательском интерфейсе при настройке устройств на перекрытие яйцеклеток\nИсправьте расчет HSV в RGB для некоторых случаев\nОбновленный matter.js до 0.15.6\nОптимизация процесса отключения, чтобы убедиться, что все правильно закрыто",
-        "pt": "Otimiza a informação de drenagem da bateria\nMostra corretamente \"mudanças em andamento\" na IU ao ajustar dispositivos para ações ovóides sobrepostas\nCorrigir o cálculo HSV para RGB para alguns casos\nUpdated matter.js to 0.15.6\nOtimiza o processo de desligamento para garantir que tudo esteja devidamente fechado",
-        "nl": "Optimaliseert Batterij afvoer informatie\nCorrect toont \"in voortgang veranderingen\" in UI bij het aanpassen van apparaten om overlappende acties te voorkomen\nFix HSV naar RGB berekening voor sommige gevallen\nBijgewerkte materie.js tot 0,15.6\nOptimaliseer het afsluiten om ervoor te zorgen dat alles goed gesloten is",
-        "fr": "Optimise l'information sur le drain de batterie\nAffiche correctement les « changements en cours » dans l'assurance-chômage lorsqu'il s'agit d'ajuster les appareils pour éviter les chevauchements\nFixer le calcul HSV à RGB pour certains cas\nMatière mise à jour.js à 0.15.6\nOptimise le processus d'arrêt pour s'assurer que tout est correctement fermé",
-        "it": "Ottimizzare le informazioni sullo scarico della batteria\nCorrettivamente mostra \"in cambiamenti di progresso\" nell'interfaccia utente quando si regolano i dispositivi per ovoidi azioni sovrapposte\nFissare il calcolo HSV a RGB per alcuni casi\nQuestion.js aggiornato a 0.15.6\nOttimizza il processo di spegnimento per garantire che tutto sia correttamente chiuso",
-        "es": "Optimiza la información de desagüe de batería\nMuestra correctamente \"en cambios de progreso\" en la interfaz de usuario al ajustar dispositivos para omitir acciones superpuestas\nFijar el HSV a cálculo RGB para algunos casos\nActualizado matter.js a 0.15.6\nOptimiza el proceso de cierre para asegurar que todo esté bien cerrado",
-        "pl": "Optymalizacja informacji o odprowadzaniu baterii\nPrawidłowo pokazuje \"w postępie zmian\" w UI podczas regulacji urządzeń do omijania nakładających się działań\nFix HSV do RGB obliczenia dla niektórych przypadków\nAktualizacja mater.js do 0.15.6\nOptymalizuje proces zamykania, aby wszystko było odpowiednio zamknięte",
-        "uk": "Оптимізуйте інформацію про злив акумулятора\nКорисно показує \"в змінах прогресу\" в UI при регулюванні пристроїв на обмоткані дії\nВиправлення HSV до RGB обчислення для деяких випадків\nОновлена справа.js до 0.15.6\nОптимізуйте процес відключення, щоб забезпечити все правильно закрито",
-        "zh-cn": "优化电池排水信息\n调整设备到 ovoid 重叠动作时正确显示 UI 中的“ 进行中更改 ”\n将 HSV 修正为某些情况的 RGB 计算\n更新为0.15.6\n优化关闭程序,确保一切正常关闭"
       }
     },
     "titleLang": {

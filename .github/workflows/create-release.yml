@@ -23,7 +23,7 @@ jobs:
 
         strategy:
             matrix:
-                node: [24.15.0] # This should be LTS
+                node: [24.x] # This should be LTS
 
         steps:
             - name: Checkout code

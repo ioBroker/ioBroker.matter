@@ -98,9 +98,9 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                             }
                         }
                     }
-                    await this.appEndpoint.commandsOf(OnOffClient).on();
+                    await this.appEndpoint.commandsOf(OnOffClient)?.on();
                 } else {
-                    await this.appEndpoint.commandsOf(OnOffClient).off();
+                    await this.appEndpoint.commandsOf(OnOffClient)?.off();
                 }
             },
         });
@@ -122,7 +122,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                 if (value === 0) {
                     // ioBroker users expect that it turns off when level is set to 0
                     await this.#ioBrokerDevice.updateDimmer(0);
-                    await this.appEndpoint.commandsOf(OnOffClient).off();
+                    await this.appEndpoint.commandsOf(OnOffClient)?.off();
                     return;
                 }
                 let level = Math.round((value / 100) * 254);
@@ -142,7 +142,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                 });
 
                 if (!isOn) {
-                    await this.appEndpoint.commandsOf(OnOffClient).on();
+                    await this.appEndpoint.commandsOf(OnOffClient)?.on();
                 }
             },
             convertValue: value => Math.round((value / 254) * 100),

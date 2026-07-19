@@ -55,7 +55,7 @@ const DEVICE_DEFAULT_NAME: Partial<Record<Types, string>> = {
     [Types.blind]: 'SET',
     [Types.buttonSensor]: 'PRESS',
     [Types.button]: 'SET',
-    [Types.camera]: 'FILE',
+    [Types.camera]: 'URL',
     [Types.cie]: 'CIE',
     [Types.ct]: 'TEMPERATURE',
     [Types.dimmer]: 'SET',
@@ -180,6 +180,10 @@ export class MatterAdapter extends Adapter {
             versionStr: this.#version,
             versionNum: numVersion,
         };
+    }
+
+    get closing(): boolean {
+        return this.#closing;
     }
 
     get matterEnvironment(): Environment {
@@ -714,7 +718,6 @@ export class MatterAdapter extends Adapter {
 
         try {
             await this.shutDownMatterNodes();
-            // close Environment/MDNS?
         } catch {
             // ignore
         }

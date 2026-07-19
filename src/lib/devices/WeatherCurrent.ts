@@ -44,7 +44,7 @@ export class WeatherCurrent extends GenericDevice {
                 },
                 {
                     name: 'PRECIPITATION_TYPE',
-                    valueType: ValueType.NumberPercent,
+                    valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.PrecipitationType,
                     callback: state => (this.#getPrecipitationTypeState = state),

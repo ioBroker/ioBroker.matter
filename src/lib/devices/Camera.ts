@@ -1,17 +1,8 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-/*
-*	FILE	camera	file				/^camera(\.\w+)?$/
-AUTOFOCUS	switch.camera.autofocus	boolean	W			/^switch(\.camera)?\.autofocus$/
-AUTOWHITEBALANCE	switch.camera.autowhitebalance	boolean	W			/^switch(\.camera)?\.autowhitebalance$/
-BRIGHTNESS	switch.camera.brightness	boolean	W			/^switch(\.camera)?\.brightness$/
-NIGHTMODE	switch.camera.nightmode	boolean	W			/^switch(\.camera)?\.nightmode$/
-PTZ	level.camera.position	number	W			/^level(\.camera)?\.position$｜^level(\.camera)?(\.ptz)$/
-*/
-
 export class Camera extends GenericDevice {
-    #getFileState?: DeviceStateObject<string>;
+    #getUrlState?: DeviceStateObject<string>;
     #autoFocusState?: DeviceStateObject<boolean>;
     #autoWhiteBalanceState?: DeviceStateObject<boolean>;
     #brightnessState?: DeviceStateObject<boolean>;
@@ -24,11 +15,11 @@ export class Camera extends GenericDevice {
         this._construction.push(
             this.addDeviceStates([
                 {
-                    name: 'FILE',
+                    name: 'URL',
                     valueType: ValueType.String,
                     accessType: StateAccessType.Read,
-                    type: PropertyType.File,
-                    callback: state => (this.#getFileState = state),
+                    type: PropertyType.Url,
+                    callback: state => (this.#getUrlState = state),
                 },
                 {
                     name: 'AUTOFOCUS',
@@ -69,11 +60,11 @@ export class Camera extends GenericDevice {
         );
     }
 
-    getFile(): string | undefined {
-        if (!this.#getFileState) {
-            throw new Error('File state not found');
+    getUrl(): string | undefined {
+        if (!this.#getUrlState) {
+            throw new Error('URL state not found');
         }
-        return this.#getFileState.value;
+        return this.#getUrlState.value;
     }
 
     getAutoFocus(): boolean | undefined {

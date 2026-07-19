@@ -64,7 +64,7 @@ const detectedDevices: TestDetectedDevice = {
         { name: 'BOOST', id: '0_userdata.0.boost', type: 'boolean' },
         { name: 'MODE', id: '0_userdata.0.mode', type: 'enum' },
 
-        { name: 'SWING', id: '0_userdata.0.swing', type: 'boolean' },
+        { name: 'SWING', id: '0_userdata.0.swing', type: 'enum' },
         { name: 'STOP', id: '0_userdata.0.stop', type: 'boolean' },
         { name: 'OPEN', id: '0_userdata.0.open', type: 'boolean' },
         { name: 'CLOSE', id: '0_userdata.0.close', type: 'boolean' },
@@ -111,7 +111,7 @@ const detectedDevices: TestDetectedDevice = {
         { name: 'NEXT', id: '0_userdata.0.NEXT', type: 'boolean' },
         { name: 'PREV', id: '0_userdata.0.PREV', type: 'boolean' },
         { name: 'SHUFFLE', id: '0_userdata.0.SHUFFLE', type: 'boolean' },
-        { name: 'REPEAT', id: '0_userdata.0.REPEAT', type: 'boolean' },
+        { name: 'REPEAT', id: '0_userdata.0.REPEAT', type: 'number' },
         { name: 'ARTIST', id: '0_userdata.0.ARTIST', type: 'string' },
         { name: 'ALBUM', id: '0_userdata.0.ALBUM' },
         { name: 'TITLE', id: '0_userdata.0.TITLE' },
@@ -126,6 +126,8 @@ const detectedDevices: TestDetectedDevice = {
         { name: 'VOLUME_ACTUAL', id: '0_userdata.0.VOLUME_ACTUAL', type: 'number' },
         { name: 'MUTE', id: '0_userdata.0.MUTE' },
         { name: 'CONNECTED', id: '0_userdata.0.CONNECTED' },
+        { name: 'PLAYER_NAME', id: '0_userdata.0.PLAYER_NAME', type: 'string' },
+        { name: 'PLAYER_TYPE', id: '0_userdata.0.PLAYER_TYPE', type: 'string' },
 
         { name: 'MAP_BASE64', id: '0_userdata.0.MAP_BASE64' },
         { name: 'MAP_URL', id: '0_userdata.0.MAP_URL' },
@@ -180,6 +182,7 @@ const detectedDevices: TestDetectedDevice = {
         { name: 'HISTORY_CHART', id: '0_userdata.0.HISTORY_CHART' },
         { name: 'FORECAST_CHART', id: '0_userdata.0.FORECAST_CHART' },
         { name: 'PRECIPITATION', id: '0_userdata.0.PRECIPITATION' },
+        { name: 'LOCATION', id: '0_userdata.0.LOCATION', type: 'string' },
 
         { name: 'SECOND', id: '0_userdata.0.secondary' },
 
@@ -199,6 +202,7 @@ const detectedDevices: TestDetectedDevice = {
         { name: 'SATURATION', id: '0_userdata.0.saturation', type: 'number' },
         { name: 'TEMPERATURE', id: '0_userdata.0.temperature', type: 'number' },
         { name: 'TRANSITION_TIME', id: '0_userdata.0.TRANSITIONTIME', type: 'number' },
+        { name: 'EFFECT', id: '0_userdata.0.EFFECT', type: 'enum' },
 
         { name: 'LEVEL', id: '0_userdata.0.level', type: 'number' },
 

@@ -52,9 +52,9 @@ export class OnOffLightToIoBroker extends GenericElectricityDataDeviceToIoBroker
             attributeName: 'onOff',
             changeHandler: async value => {
                 if (value) {
-                    await this.appEndpoint.commandsOf(OnOffClient).on();
+                    await this.appEndpoint.commandsOf(OnOffClient)?.on();
                 } else {
-                    await this.appEndpoint.commandsOf(OnOffClient).off();
+                    await this.appEndpoint.commandsOf(OnOffClient)?.off();
                 }
             },
         });

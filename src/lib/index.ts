@@ -10,6 +10,7 @@ import { Cie } from './devices/Cie';
 import { Ct } from './devices/Ct';
 import { Dimmer } from './devices/Dimmer';
 import { Door } from './devices/Door';
+import { FillLevel } from './devices/FillLevel';
 import { FireAlarm } from './devices/FireAlarm';
 import { FloodAlarm } from './devices/FloodAlarm';
 import { Gate } from './devices/Gate';
@@ -54,6 +55,7 @@ export {
     DeviceFactory,
     Dimmer,
     Door,
+    FillLevel,
     FireAlarm,
     FloodAlarm,
     Gate,

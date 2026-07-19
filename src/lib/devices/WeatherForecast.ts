@@ -13,8 +13,9 @@ export class WeatherForecast extends GenericDevice {
     #getTempState?: DeviceStateObject<number>;
     #getPressureState?: DeviceStateObject<number>;
     #getHumidityState?: DeviceStateObject<number>;
-    #getTimeSunriseState?: DeviceStateObject<string>;
-    #getTimeSunsetState?: DeviceStateObject<string>;
+    #getTimeSunriseState?: DeviceStateObject<string | number>;
+    #getTimeSunsetState?: DeviceStateObject<string | number>;
+    #getLocationState?: DeviceStateObject<string>;
     #getWindChillState?: DeviceStateObject<number>;
     #getFeelsLikeState?: DeviceStateObject<number>;
     #getWindSpeedState?: DeviceStateObject<number>;
@@ -176,6 +177,13 @@ export class WeatherForecast extends GenericDevice {
                     type: PropertyType.ForecastChart,
                     callback: state => (this.#getForecastChartState = state),
                 },
+                {
+                    name: 'LOCATION',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Location,
+                    callback: state => (this.#getLocationState = state),
+                },
             ]),
         );
     }
@@ -257,14 +265,14 @@ export class WeatherForecast extends GenericDevice {
         return this.#getHumidityState.value;
     }
 
-    getTimeSunrise(): string | undefined {
+    getTimeSunrise(): string | number | undefined {
         if (!this.#getTimeSunriseState) {
             throw new Error('TimeSunrise state not found');
         }
         return this.#getTimeSunriseState.value;
     }
 
-    getTimeSunset(): string | undefined {
+    getTimeSunset(): string | number | undefined {
         if (!this.#getTimeSunsetState) {
             throw new Error('TimeSunset state not found');
         }
@@ -325,5 +333,12 @@ export class WeatherForecast extends GenericDevice {
             throw new Error('ForecastChart state not found');
         }
         return this.#getForecastChartState.value;
+    }
+
+    getLocation(): string | undefined {
+        if (!this.#getLocationState) {
+            throw new Error('Location state not found');
+        }
+        return this.#getLocationState.value;
     }
 }

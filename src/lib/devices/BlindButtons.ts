@@ -218,7 +218,7 @@ export class BlindButtons extends GenericDevice {
         return this.#directionEnumState.value;
     }
 
-    setDirectionENum(value: BlindDirections): Promise<void> {
+    setDirectionEnum(value: BlindDirections): Promise<void> {
         if (!this.#directionEnumState) {
             throw new Error('Direction state not found');
         }

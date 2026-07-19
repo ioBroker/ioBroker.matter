@@ -22,7 +22,7 @@ export class Lock extends GenericDevice {
     #setLockState?: DeviceStateObject<boolean>;
     #getLockState?: DeviceStateObject<boolean>;
     #setOpenState?: DeviceStateObject<boolean>;
-    #directionEnumState?: DeviceStateObject<LockMovementDirections>;
+    #lockDirectionState?: DeviceStateObject<LockMovementDirections>;
     #doorState?: DeviceStateObject<boolean>;
 
     constructor(
@@ -32,6 +32,12 @@ export class Lock extends GenericDevice {
         customStateDefinitions?: CustomStatesRecord,
     ) {
         super(detectedDevice, adapter, options, customStateDefinitions);
+
+        // Newer type-detector versions expose the enum movement direction as DIRECTION_ENUM to
+        // avoid clashing with the boolean DIRECTION indicator; older versions still name it DIRECTION.
+        const directionEnumName = detectedDevice.states.some(state => state.name === 'DIRECTION_ENUM')
+            ? 'DIRECTION_ENUM'
+            : 'DIRECTION';
 
         this._construction.push(
             this.addDeviceStates([
@@ -63,6 +69,13 @@ export class Lock extends GenericDevice {
                     accessType: StateAccessType.Read,
                     type: PropertyType.DoorState,
                     callback: state => (this.#doorState = state),
+                },
+                {
+                    name: directionEnumName,
+                    valueType: ValueType.Enum,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.LockDirection,
+                    callback: state => (this.#lockDirectionState = state),
                 },
             ]),
         );
@@ -116,29 +129,29 @@ export class Lock extends GenericDevice {
         return !!this.#setOpenState;
     }
 
-    getDirectionEnum(): LockMovementDirections | undefined {
-        if (!this.#directionEnumState) {
+    getLockDirection(): LockMovementDirections | undefined {
+        if (!this.#lockDirectionState) {
             throw new Error('Direction state not found');
         }
-        return this.#directionEnumState.value;
+        return this.#lockDirectionState.value;
     }
 
-    setDirectionENum(value: LockMovementDirections): Promise<void> {
-        if (!this.#directionEnumState) {
+    setLockDirection(value: LockMovementDirections): Promise<void> {
+        if (!this.#lockDirectionState) {
             throw new Error('Direction state not found');
         }
-        return this.#directionEnumState.setValue(value);
+        return this.#lockDirectionState.setValue(value);
     }
 
-    updateDirectionEnum(value: LockMovementDirections): Promise<void> {
-        if (!this.#directionEnumState) {
+    updateLockDirection(value: LockMovementDirections): Promise<void> {
+        if (!this.#lockDirectionState) {
             throw new Error('Direction state not found');
         }
-        return this.#directionEnumState.updateValue(value);
+        return this.#lockDirectionState.updateValue(value);
     }
 
-    hasDirectionEnum(): boolean {
-        return !!this.#directionEnumState;
+    hasLockDirection(): boolean {
+        return !!this.#lockDirectionState;
     }
 
     getDoorState(): boolean | undefined {

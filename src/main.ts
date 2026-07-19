@@ -182,6 +182,10 @@ export class MatterAdapter extends Adapter {
         };
     }
 
+    get closing(): boolean {
+        return this.#closing;
+    }
+
     get matterEnvironment(): Environment {
         return this.#matterEnvironment;
     }
@@ -714,7 +718,6 @@ export class MatterAdapter extends Adapter {
 
         try {
             await this.shutDownMatterNodes();
-            // close Environment/MDNS?
         } catch {
             // ignore
         }

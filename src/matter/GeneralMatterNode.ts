@@ -13,6 +13,7 @@ import {
     SoftwareUpdateManager,
     ObserverGroup,
     deepCopy,
+    CommissioningClient,
 } from '@matter/main';
 import type { ThreadNetworkDiagnostics } from '@matter/main/clusters';
 import { OtaSoftwareUpdateRequestor } from '@matter/main/clusters';
@@ -1467,6 +1468,13 @@ export class GeneralMatterNode {
         if (details) {
             result.node = {};
 
+            const peerAddress = PeerAddress(this.node.node.maybeStateOf(CommissioningClient)?.peerAddress);
+
+            result.node.nodeId = this.nodeId;
+            if (peerAddress) {
+                // eslint-disable-next-line @typescript-eslint/no-base-to-string
+                result.node.peerAddress = peerAddress.toString();
+            }
             result.node.vendorName = details.vendorName;
             result.node.vendorId = toUpperCaseHex(details.vendorId);
             result.node.productName = details.productName;

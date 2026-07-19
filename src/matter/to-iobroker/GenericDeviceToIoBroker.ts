@@ -841,7 +841,9 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
 
                 const ep = endpointId === 0 ? this.#rootEndpoint : this.appEndpoint;
                 try {
-                    const clusterState = (await (ep as any).getStateOf(behaviorId)) as Record<string, any>;
+                    const clusterState = (await (ep as any).getStateOf(behaviorId, {
+                        includeKnownVersions: true,
+                    })) as Record<string, any>;
                     for (const attr of group) {
                         if (attr.attributeName === undefined) {
                             continue;

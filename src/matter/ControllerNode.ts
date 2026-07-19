@@ -844,21 +844,17 @@ class Controller implements GeneralNode {
                 const networkType = this.#getNetworkType(node);
 
                 if (networkType === 'thread') {
-                    await node.node.node.getStateOf(ThreadNetworkDiagnosticsClient, [
-                        'channel',
-                        'routingRole',
-                        'neighborTable',
-                        'routeTable',
-                        'rloc16',
-                    ]);
+                    await node.node.node.getStateOf(
+                        ThreadNetworkDiagnosticsClient,
+                        ['channel', 'routingRole', 'neighborTable', 'routeTable', 'rloc16'],
+                        { includeKnownVersions: true },
+                    );
                 } else if (networkType === 'wifi') {
-                    await node.node.node.getStateOf(WiFiNetworkDiagnosticsClient, [
-                        'bssid',
-                        'securityType',
-                        'wiFiVersion',
-                        'channelNumber',
-                        'rssi',
-                    ]);
+                    await node.node.node.getStateOf(
+                        WiFiNetworkDiagnosticsClient,
+                        ['bssid', 'securityType', 'wiFiVersion', 'channelNumber', 'rssi'],
+                        { includeKnownVersions: true },
+                    );
                 } else {
                     this.#adapter.log.debug(`Node ${nodeIdStr} has no network diagnostics to refresh`);
                     return;
@@ -884,7 +880,7 @@ class Controller implements GeneralNode {
         if (this.#networkGraphUpdateTimer) {
             this.#adapter.clearTimeout(this.#networkGraphUpdateTimer);
         }
-        if (this.#closing) {
+        if (this.#closing || this.#adapter.closing) {
             return;
         }
         this.#networkGraphUpdateTimer = this.#adapter.setTimeout(async () => {

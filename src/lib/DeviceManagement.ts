@@ -20,7 +20,8 @@ import { inspect } from 'util';
 import { convertDataToJsonConfig } from './JsonConfigUtils';
 import { logControllerEndpoint } from '../matter/ControllerEndpointStructureInspector';
 import { SpecificationVersion } from '@matter/main/types';
-import { isObject } from '@matter/main';
+import { CommissioningClient, isObject } from '@matter/main';
+import { PeerAddress } from '@matter/main/protocol';
 
 function strToBool(str: string): boolean | null {
     if (str === 'true') {
@@ -526,8 +527,12 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
     async #handleLogDebugNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
         const rootEndpoint = node.node.node;
+        const peerAddress = PeerAddress(rootEndpoint.maybeStateOf(CommissioningClient)?.peerAddress);
 
-        const debugInfos = rootEndpoint ? logControllerEndpoint(rootEndpoint) : 'No root endpoint found';
+        const endpointInfos = rootEndpoint ? logControllerEndpoint(rootEndpoint) : 'No root endpoint found';
+
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
+        const debugInfos = `Node ID: ${node.nodeId}${peerAddress ? ` / ${peerAddress.toString()}` : ''}\n${endpointInfos}`;
 
         await context.showForm(
             {

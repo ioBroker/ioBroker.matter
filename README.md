@@ -74,7 +74,6 @@ For testing pre-release or community firmware:
 * Cleanup objects when devices/states are removed
 * ioBroker device types
   * (6) vacuumCleaner
-  * (5+/8) airCondition
   * (7) fireAlarm
   * (5) mediaPlayer
   * warning - how?
@@ -89,7 +88,6 @@ For testing pre-release or community firmware:
   * (6) Pressure Sensor -> ??? DEF
   * (6) Robot Vacuum cleaner -> vacuumCleaner
   * (4) Flow Sensor -> ??? DEF
-  * (5+) Room Air Conditioner -> airCondition
   * (5+) Dishwasher-> ???
   * (4+) Basic Video Player -> mediaPlayer
   * (4+) Laundry Washer -> ???
@@ -109,6 +107,18 @@ For testing pre-release or community firmware:
   * (1+) Solar Power -> ???
   * (1+) Battery Storage -> ???
   * (1+) Heat Pump -> ???
+
+## Device Mapping Notes
+
+### Air Conditioner (ioBroker `airCondition` ⇄ Matter Room Air Conditioner)
+
+Some ioBroker air conditioner capabilities have no direct Matter equivalent. When exposing an ioBroker device to Matter these are mapped as follows:
+
+* `MODE` `ECO` → Matter has no Eco system mode, controlled as `Auto`.
+* `SPEED` `QUIET` → Matter has no Quiet fan mode, controlled as `Low`.
+* `SPEED` `TURBO` → Matter has no Turbo fan mode, controlled as `High`.
+* `SWING` `AUTO` → Matter has no Auto swing, mapped to rocking enabled.
+* `BOOST` → Matter Room Air Conditioner has no boost cluster, exposed as an additional On/Off endpoint.
 
 ## Development
 
@@ -138,6 +148,10 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (@Apollon77) Add support for the Room Air Conditioner device type (controller and bridge/device mode) mapped to the ioBroker airCondition type
+* (@Apollon77) Fix Thermostat cooling setpoint changes from Matter being applied as heating setpoint
+
 ### 1.3.0 (2026-07-19)
 * (@Apollon77) Update to Matter 1.6.0 (matter.js 0.17.7-alpha)
 * (@Apollon77) Optimized Matter data processing by caching repeated cluster/attribute lookups in hot paths

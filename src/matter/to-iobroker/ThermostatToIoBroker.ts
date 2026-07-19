@@ -8,6 +8,7 @@ import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDev
 import { Thermostat, ThermostatMode, ThermostatModeNumbers } from '../../lib/devices/Thermostat';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 import type { MatterAdapter } from '../../main';
+import { MatterConverters } from '../ConversionUtils';
 
 export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Thermostat;
@@ -51,16 +52,8 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
             (currentMode === ThermostatMode.Heat && forMode === ThermostatMode.Heat) ||
             (currentMode === ThermostatMode.Cool && forMode === ThermostatMode.Cool)
         ) {
-            await this.ioBrokerDevice.updateLevel(this.temperatureFromMatter(value));
+            await this.ioBrokerDevice.updateLevel(MatterConverters.fromMatterHundredths(value));
         }
-    }
-
-    temperatureToMatter(value: number): number {
-        return Math.round(value * 100);
-    }
-
-    temperatureFromMatter(value: number): number {
-        return parseFloat((value / 100).toFixed(2));
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
@@ -68,19 +61,19 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
             endpointId: this.appEndpoint.number,
             clusterId: MatterThermostat.id,
             attributeName: 'localTemperature',
-            convertValue: value => this.temperatureFromMatter(value),
+            convertValue: value => MatterConverters.fromMatterHundredths(value),
         });
         this.enableDeviceTypeStateForAttribute(PropertyType.Level, {
             changeHandler: async value => {
                 const mode = this.ioBrokerDevice.getMode();
                 if (mode === ThermostatMode.Heat || mode === ThermostatMode.Auto) {
                     await this.appEndpoint.setStateOf(ThermostatClient, {
-                        occupiedHeatingSetpoint: this.temperatureToMatter(value),
+                        occupiedHeatingSetpoint: MatterConverters.toMatterHundredthsRounded(value),
                     });
                 }
                 if (mode === ThermostatMode.Cool || mode === ThermostatMode.Auto) {
                     await this.appEndpoint.setStateOf(ThermostatClient, {
-                        occupiedCoolingSetpoint: this.temperatureToMatter(value),
+                        occupiedCoolingSetpoint: MatterConverters.toMatterHundredthsRounded(value),
                     });
                 }
             },
@@ -133,12 +126,12 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
                     if (ioMode === ThermostatMode.Heat) {
                         const heatSetpoint = this.appEndpoint.maybeStateOf(ThermostatClient)?.occupiedHeatingSetpoint;
                         if (heatSetpoint !== undefined) {
-                            await this.ioBrokerDevice.updateLevel(this.temperatureFromMatter(heatSetpoint));
+                            await this.ioBrokerDevice.updateLevel(MatterConverters.fromMatterHundredths(heatSetpoint));
                         }
                     } else if (ioMode === ThermostatMode.Cool) {
                         const coolSetpoint = this.appEndpoint.maybeStateOf(ThermostatClient)?.occupiedCoolingSetpoint;
                         if (coolSetpoint !== undefined) {
-                            await this.ioBrokerDevice.updateLevel(this.temperatureFromMatter(coolSetpoint));
+                            await this.ioBrokerDevice.updateLevel(MatterConverters.fromMatterHundredths(coolSetpoint));
                         }
                     }
                     return ioMode;
@@ -178,7 +171,7 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
             endpointId: this.appEndpoint.number,
             clusterId: MatterThermostat.id,
             attributeName: 'occupiedCoolingSetpoint',
-            matterValueChanged: (value: number) => this.#handleUpdatedMatterTemperature(ThermostatMode.Heat, value),
+            matterValueChanged: (value: number) => this.#handleUpdatedMatterTemperature(ThermostatMode.Cool, value),
         });
 
         // TODO Add ControlSequenceOfOperation or such? And/Or Add power
@@ -220,10 +213,10 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
             }
         }
         if (min !== undefined) {
-            min = this.temperatureFromMatter(min);
+            min = MatterConverters.fromMatterHundredths(min);
         }
         if (max !== undefined) {
-            max = this.temperatureFromMatter(max);
+            max = MatterConverters.fromMatterHundredths(max);
         }
         await this.ioBrokerDevice.updateSetpointMinMax(min, max);
 

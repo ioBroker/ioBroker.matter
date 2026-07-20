@@ -34,6 +34,7 @@ const IoRoomAirConditionerDeviceWithFan = RoomAirConditionerDevice.with(
 const IoOnOffPlugInUnitDevice = OnOffPlugInUnitDevice.with(
     EventedOnOffPlugInUnitOnOffServer,
     IoBrokerEvents,
+    IoIdentifyServer,
     IoBrokerContext,
 );
 type IoOnOffPlugInUnitDevice = typeof IoOnOffPlugInUnitDevice;
@@ -173,18 +174,10 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
             this.#matterEndpointHumidity = new Endpoint(HumiditySensorDevice, { id: `${uuid}-Humidity` });
         }
         if (this.#ioBrokerDevice.hasBoost()) {
-            this.#matterEndpointBoost = new Endpoint(
-                OnOffPlugInUnitDevice.with(
-                    EventedOnOffPlugInUnitOnOffServer,
-                    IoBrokerEvents,
-                    IoIdentifyServer,
-                    IoBrokerContext,
-                ),
-                {
-                    id: `${uuid}-BoostOnOff`,
-                    ioBrokerContext: { device: ioBrokerDevice, adapter: ioBrokerDevice.adapter },
-                },
-            );
+            this.#matterEndpointBoost = new Endpoint(IoOnOffPlugInUnitDevice, {
+                id: `${uuid}-BoostOnOff`,
+                ioBrokerContext: { device: ioBrokerDevice, adapter: ioBrokerDevice.adapter },
+            });
         }
     }
 

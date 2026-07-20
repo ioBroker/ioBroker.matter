@@ -261,7 +261,7 @@ export class AirConditionerToIoBroker extends GenericElectricityDataDeviceToIoBr
             endpointId: this.appEndpoint.number,
             clusterId: RelativeHumidityMeasurement.id,
             attributeName: 'measuredValue',
-            convertValue: value => (value === null ? null : parseFloat((value / 100).toFixed(2))),
+            convertValue: value => (value === null ? null : MatterConverters.fromMatterHundredths(value)),
         });
 
         this.enableDeviceTypeStateForAttribute(PropertyType.Speed, {

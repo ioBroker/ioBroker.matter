@@ -10,6 +10,7 @@ import { IoIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 import { EventedOnOffPlugInUnitOnOffServer } from '../behaviors/EventedOnOffPlugInUnitOnOffServer';
 import { hasLocalActor } from '@matter/main/protocol';
+import { MatterConverters } from '../ConversionUtils';
 
 const IoThermostatDevice = ThermostatDevice.with(IoBrokerEvents, IoIdentifyServer, IoBrokerContext);
 type IoThermostatDevice = typeof IoThermostatDevice;
@@ -129,10 +130,10 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                           ? MatterThermostat.ControlSequenceOfOperation.CoolingOnly
                           : MatterThermostat.ControlSequenceOfOperation.HeatingOnly,
                 minSetpointDeadBand: clusterModes.includes(MatterThermostat.Feature.AutoMode) ? 0 : undefined,
-                absMinHeatSetpointLimit: hasHeating ? this.convertTemperatureValue(0) : undefined,
-                absMaxHeatSetpointLimit: hasHeating ? this.convertTemperatureValue(50) : undefined,
-                absMinCoolSetpointLimit: hasCooling ? this.convertTemperatureValue(0) : undefined,
-                absMaxCoolSetpointLimit: hasCooling ? this.convertTemperatureValue(50) : undefined,
+                absMinHeatSetpointLimit: hasHeating ? MatterConverters.toMatterHundredths(0) : undefined,
+                absMaxHeatSetpointLimit: hasHeating ? MatterConverters.toMatterHundredths(50) : undefined,
+                absMinCoolSetpointLimit: hasCooling ? MatterConverters.toMatterHundredths(0) : undefined,
+                absMaxCoolSetpointLimit: hasCooling ? MatterConverters.toMatterHundredths(50) : undefined,
             },
         });
         if (this.#ioBrokerDevice.hasHumidity()) {
@@ -172,18 +173,6 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
         return this.#ioBrokerDevice;
     }
 
-    convertHumidityValue(value: number): number {
-        return value * 100;
-    }
-
-    convertTemperatureValue(value: number): number {
-        return value * 100;
-    }
-
-    temperatureFromMatter(value: number): number {
-        return parseFloat((value / 100).toFixed(2));
-    }
-
     #mapModeToMatter(mode: ThermostatMode | undefined): MatterThermostat.SystemMode | undefined {
         if (mode === undefined || !this.#validModes.includes(mode)) {
             return;
@@ -203,10 +192,9 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
     }
 
     #updateSetPointTemperature(delay = 1500): void {
-        if (this.#temperatureDebounceTimeout !== undefined) {
-            this.#ioBrokerDevice.adapter.clearTimeout(this.#temperatureDebounceTimeout);
-        }
-        this.#temperatureDebounceTimeout = this.#ioBrokerDevice.adapter.setTimeout(() => {
+        this.clearDeviceTimeout(this.#temperatureDebounceTimeout);
+        this.#temperatureDebounceTimeout = this.setDeviceTimeout(() => {
+            this.#temperatureDebounceTimeout = undefined;
             const systemMode = this.#matterEndpointThermostat.stateOf(this.#ThermostatServer).systemMode;
             if (systemMode === MatterThermostat.SystemMode.Heat || systemMode === MatterThermostat.SystemMode.Auto) {
                 const heatingTemp = this.#matterEndpointThermostat.stateOf(
@@ -257,7 +245,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                   : MatterThermostat.ControlSequenceOfOperation.CoolingOnly;
         await this.#matterEndpointThermostat.setStateOf(this.#ThermostatServer, {
             externalMeasuredIndoorTemperature:
-                typeof temperature === 'number' ? this.convertTemperatureValue(temperature) : undefined,
+                typeof temperature === 'number' ? MatterConverters.toMatterHundredths(temperature) : undefined,
             systemMode,
             controlSequenceOfOperation,
         });
@@ -266,19 +254,19 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
             const data: any = {};
             if (this.#supportedModes.includes(ThermostatMode.Heat)) {
                 const minMax = this.#ioBrokerDevice.getSetpointMinMax() ?? { min: 7, max: 30 };
-                data.occupiedHeatingSetpoint = this.convertTemperatureValue(
+                data.occupiedHeatingSetpoint = MatterConverters.toMatterHundredths(
                     this.#ioBrokerDevice.cropValue(setpointTemperature, minMax.min, minMax.max, true),
                 );
-                data.minHeatSetpointLimit = this.convertTemperatureValue(Math.max(minMax.min, 0));
-                data.maxHeatSetpointLimit = this.convertTemperatureValue(Math.min(minMax.max, 50));
+                data.minHeatSetpointLimit = MatterConverters.toMatterHundredths(Math.max(minMax.min, 0));
+                data.maxHeatSetpointLimit = MatterConverters.toMatterHundredths(Math.min(minMax.max, 50));
             }
             if (this.#supportedModes.includes(ThermostatMode.Cool)) {
                 const minMax = this.#ioBrokerDevice.getSetpointMinMax() ?? { min: 16, max: 32 };
-                data.occupiedCoolingSetpoint = this.convertTemperatureValue(
+                data.occupiedCoolingSetpoint = MatterConverters.toMatterHundredths(
                     this.#ioBrokerDevice.cropValue(setpointTemperature, minMax.min, minMax.max, true),
                 );
-                data.minCoolSetpointLimit = this.convertTemperatureValue(Math.max(minMax.min, 0));
-                data.maxCoolSetpointLimit = this.convertTemperatureValue(Math.min(minMax.max, 50));
+                data.minCoolSetpointLimit = MatterConverters.toMatterHundredths(Math.max(minMax.min, 0));
+                data.maxCoolSetpointLimit = MatterConverters.toMatterHundredths(Math.min(minMax.max, 50));
             }
             if (Object.keys(data).length > 0) {
                 this.#ioBrokerDevice.adapter.log.debug(`Setting Thermostat setpoints to ${JSON.stringify(data)}`);
@@ -316,7 +304,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                             this.#ThermostatServer,
                         ).occupiedHeatingSetpoint;
                         if (heatingTemp !== undefined) {
-                            await this.#ioBrokerDevice.setLevel(this.temperatureFromMatter(heatingTemp));
+                            await this.#ioBrokerDevice.setLevel(MatterConverters.fromMatterHundredths(heatingTemp));
                         }
                         break;
                     }
@@ -331,7 +319,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                             this.#ThermostatServer,
                         ).occupiedCoolingSetpoint;
                         if (typeof coolingTemp === 'number') {
-                            await this.#ioBrokerDevice.setLevel(this.temperatureFromMatter(coolingTemp));
+                            await this.#ioBrokerDevice.setLevel(MatterConverters.fromMatterHundredths(coolingTemp));
                         }
                         break;
                     }
@@ -407,13 +395,13 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                 case PropertyType.Temperature:
                     if (typeof event.value === 'number') {
                         await this.#matterEndpointThermostat.setStateOf(this.#ThermostatServer, {
-                            externalMeasuredIndoorTemperature: this.convertTemperatureValue(event.value),
+                            externalMeasuredIndoorTemperature: MatterConverters.toMatterHundredths(event.value),
                         });
                     }
                     break;
                 case PropertyType.Level: {
                     const systemMode = this.#matterEndpointThermostat.stateOf(this.#ThermostatServer).systemMode;
-                    const value = this.convertTemperatureValue(event.value as number);
+                    const value = MatterConverters.toMatterHundredths(event.value as number);
                     if (
                         systemMode === MatterThermostat.SystemMode.Heat ||
                         systemMode === MatterThermostat.SystemMode.Auto
@@ -470,7 +458,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                     if (this.#matterEndpointHumidity?.owner !== undefined) {
                         await this.#matterEndpointHumidity?.set({
                             relativeHumidityMeasurement: {
-                                measuredValue: this.convertHumidityValue(event.value as number),
+                                measuredValue: MatterConverters.toMatterHundredths(event.value as number),
                             },
                         });
                     }
@@ -491,7 +479,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
             const humidity = this.#ioBrokerDevice.getHumidity();
             await this.#matterEndpointHumidity.set({
                 relativeHumidityMeasurement: {
-                    measuredValue: typeof humidity === 'number' ? this.convertHumidityValue(humidity) : null,
+                    measuredValue: typeof humidity === 'number' ? MatterConverters.toMatterHundredths(humidity) : null,
                 },
             });
         }

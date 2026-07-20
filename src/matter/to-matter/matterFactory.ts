@@ -1,5 +1,6 @@
 import { Types } from '@iobroker/type-detector';
 import type { GenericDevice } from '../../lib';
+import { AirConditionerToMatter } from './AirConditionerToMatter';
 import { DimmerToMatter } from './DimmerToMatter';
 import { DoorToMatter } from './DoorToMatter';
 import { FloodAlarmToMatter } from './FloodAlarmToMatter';
@@ -35,6 +36,9 @@ async function matterDeviceFabric(
     let ToMatter: ClassExtends<GenericDeviceToMatter>;
 
     switch (ioBrokerDeviceType) {
+        case Types.airCondition:
+            ToMatter = AirConditionerToMatter;
+            break;
         case Types.blind:
         case Types.blindButtons:
             ToMatter = BlindsToMatter;

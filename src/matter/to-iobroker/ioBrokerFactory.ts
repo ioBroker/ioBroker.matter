@@ -22,6 +22,7 @@ import { WindowCoveringToIoBroker } from './WindowCoveringToIoBroker';
 import { SpeakerToIoBroker } from './SpeakerToIoBroker';
 import { ThermostatToIoBroker } from './ThermostatToIoBroker';
 import { SmokeCoAlarmToIoBroker } from './SmokeCoAlarmToIoBroker';
+import { AirConditionerToIoBroker } from './AirConditionerToIoBroker';
 
 export function identifyDeviceTypes(endpoint: Endpoint): {
     utilityTypes: { deviceType: DeviceTypeModel; revision: number }[];
@@ -75,6 +76,9 @@ async function ioBrokerDeviceFabric(
     let DeviceType: ClassExtends<GenericDeviceToIoBroker<any>>;
     let isSupportedDeviceType = true;
     switch (primaryDeviceType?.deviceType.id) {
+        case Devices.RoomAirConditionerDeviceDefinition.deviceType:
+            DeviceType = AirConditionerToIoBroker;
+            break;
         case Devices.ColorTemperatureLightDeviceDefinition.deviceType:
             //DeviceType = ColorTemperatureLightToIoBroker;
             DeviceType = ExtendedColorLightToIoBroker; // Because it could be CT and Hue it is easier top map this way

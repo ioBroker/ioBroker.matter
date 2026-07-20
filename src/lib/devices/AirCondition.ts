@@ -3,7 +3,7 @@ import { ElectricityDataDevice } from './ElectricityDataDevice';
 import { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 import { ThermostatMode } from './Thermostat';
 
-enum AirConditionerMode {
+export enum AirConditionerMode {
     Auto = ThermostatMode.Auto,
     Cool = ThermostatMode.Cool,
     Dry = ThermostatMode.Dry,
@@ -23,7 +23,7 @@ export enum AirConditionerModeNumbers {
     OFF = 8,
 }
 
-enum AirConditionerSpeed {
+export enum AirConditionerSpeed {
     Auto = 'AUTO',
     High = 'HIGH',
     Low = 'LOW',
@@ -41,7 +41,7 @@ export enum AirConditionerSpeedNumbers {
     TURBO = 5,
 }
 
-enum AirConditionerSwing {
+export enum AirConditionerSwing {
     Auto = 'AUTO',
     Horizontal = 'HORIZONTAL',
     Stationary = 'STATIONARY',
@@ -256,5 +256,121 @@ export class AirCondition extends ElectricityDataDevice {
             throw new Error('Mode state not found');
         }
         return this.#modeState.getModes();
+    }
+
+    updateMode(mode: AirConditionerMode): Promise<void> {
+        if (!this.#modeState) {
+            throw new Error('Mode state not found');
+        }
+        return this.#modeState.updateValue(mode);
+    }
+
+    updateModes(modes: { [key: string]: AirConditionerMode }): Promise<void> {
+        if (!this.#modeState) {
+            throw new Error('Mode state not found');
+        }
+        return this.#modeState.updateModes(modes);
+    }
+
+    hasMode(): boolean {
+        return !!this.#modeState;
+    }
+
+    hasLevel(): boolean {
+        return !!this.#levelState;
+    }
+
+    updateLevel(value: number): Promise<void> {
+        if (!this.#levelState) {
+            throw new Error('Level state not found');
+        }
+        return this.#levelState.updateValue(value);
+    }
+
+    getSetpointMinMax(): { min: number; max: number } | null {
+        if (!this.#levelState) {
+            throw new Error('Level state not found');
+        }
+        return this.#levelState.getMinMax();
+    }
+
+    updateSetpointMinMax(min: number | undefined, max: number | undefined, step = 0.5): Promise<void> {
+        if (!this.#levelState) {
+            throw new Error('Level state not found');
+        }
+        return this.#levelState.updateMinMax({ min, max, step });
+    }
+
+    hasTemperature(): boolean {
+        return !!this.#getTemperatureState;
+    }
+
+    updateTemperature(value: number): Promise<void> {
+        if (!this.#getTemperatureState) {
+            throw new Error('Temperature state not found');
+        }
+        return this.#getTemperatureState.updateValue(value);
+    }
+
+    hasPower(): boolean {
+        return !!this.#powerState;
+    }
+
+    hasHumidity(): boolean {
+        return !!this.#getHumidityState;
+    }
+
+    updateHumidity(value: number): Promise<void> {
+        if (!this.#getHumidityState) {
+            throw new Error('Humidity state not found');
+        }
+        return this.#getHumidityState.updateValue(value);
+    }
+
+    hasBoost(): boolean {
+        return !!this.#boostState;
+    }
+
+    updateBoost(value: boolean | number): Promise<void> {
+        if (!this.#boostState) {
+            throw new Error('Boost state not found');
+        }
+        return this.#boostState.updateValue(value);
+    }
+
+    hasSpeed(): boolean {
+        return !!this.#speedState;
+    }
+
+    updateSpeed(value: AirConditionerSpeed): Promise<void> {
+        if (!this.#speedState) {
+            throw new Error('Speed state not found');
+        }
+        return this.#speedState.updateValue(value);
+    }
+
+    updateSpeedModes(modes: { [key: string]: AirConditionerSpeed }): Promise<void> {
+        if (!this.#speedState) {
+            throw new Error('Speed state not found');
+        }
+        return this.#speedState.updateModes(modes);
+    }
+
+    hasSwing(): boolean {
+        return !!this.#SwingState;
+    }
+
+    updateSwing(value: AirConditionerSwing): Promise<void> {
+        if (!this.#SwingState) {
+            throw new Error('Swing state not found');
+        }
+        return this.#SwingState.updateValue(value);
+    }
+
+    updateSwingModes(modes: { [key: string]: AirConditionerSwing }): Promise<void> {
+        if (!this.#SwingState) {
+            throw new Error('Swing state not found');
+        }
+        return this.#SwingState.updateModes(modes);
     }
 }

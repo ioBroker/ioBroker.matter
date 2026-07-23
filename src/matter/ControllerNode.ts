@@ -27,9 +27,20 @@ import type {
     ThreadDiagnosticsData,
     ThreadNeighborEntry,
     ThreadRouteEntry,
-    BorderRouterEntry,
 } from '../ioBrokerTypes';
-import { BorderRouterDiscovery } from './BorderRouterDiscovery';
+import { DEFAULT_CREDENTIAL_ID } from '../ioBrokerTypes';
+import { resolveThreadCredential, resolveWifiCredential } from './credentialResolver';
+import {
+    BorderRouterRegistry,
+    type BorderRouterEntry,
+    ThreadCredentialsRegistry,
+    OtbrRestClient,
+    OtbrRestDiagnosticSource,
+    connectMeshcop,
+} from '@matter/thread-br-client';
+import { ThreadDiagnosticsService, type ThreadDiagnosticsBatch } from './ThreadDiagnosticsService';
+import { parseRestBaseUrl, registerThreadCredentialsFromHex } from './threadCredentials';
+import { serializeBatch } from './serializeBatch';
 import { GeneralMatterNode, type PairedNodeConfig } from './GeneralMatterNode';
 import { identifyDeviceTypes } from './to-iobroker/ioBrokerFactory';
 import type { GeneralNode, MessageResponse } from './GeneralNode';
@@ -68,7 +79,7 @@ type EndUserCommissioningOptions = (
     | { qrCode: string }
     | { manualCode: string }
     | { passcode: number; vendorId: number; productId: number; ip: string; port: number }
-) & { device: CommissionableDevice };
+) & { device: CommissionableDevice; wifiCredentialId?: string; threadCredentialId?: string };
 
 class Controller implements GeneralNode {
     #parameters: MatterControllerConfig;
@@ -83,7 +94,9 @@ class Controller implements GeneralNode {
     #observers = new ObserverGroup();
     #networkGraphUpdateTimer?: ioBroker.Timeout;
     #closing = false;
-    #borderRouterDiscovery?: BorderRouterDiscovery;
+    #borderRouterRegistry?: BorderRouterRegistry;
+    readonly #threadCredentials = new ThreadCredentialsRegistry();
+    #threadDiagnostics?: ThreadDiagnosticsService;
 
     constructor(options: ControllerCreateOptions) {
         const { adapter, controllerOptions, updateCallback, fabricLabel } = options;
@@ -263,8 +276,22 @@ class Controller implements GeneralNode {
                 }
                 case 'controllerThreadBorderRouters': {
                     // Return Thread border routers discovered via mDNS
-                    const borderRouters: BorderRouterEntry[] = this.#borderRouterDiscovery?.list() ?? [];
+                    const borderRouters: BorderRouterEntry[] = this.#borderRouterRegistry?.list() ?? [];
                     return { result: borderRouters };
+                }
+                case 'controllerThreadDiagnostics': {
+                    // Query Thread mesh diagnostics from border routers (MeshCoP/CoAP or OTBR REST)
+                    if (!this.#threadDiagnostics) {
+                        return { result: [] };
+                    }
+                    const force = message.force as boolean | undefined;
+                    const extPanId = message.extPanId as string | undefined;
+                    if (extPanId) {
+                        const batch = await this.#threadDiagnostics.getOrFetch(extPanId, { force });
+                        return { result: batch ? serializeBatch(batch) : null };
+                    }
+                    this.#threadDiagnostics.refreshAllKnown({ force });
+                    return { result: this.#threadDiagnostics.listCached().map(serializeBatch) };
                 }
             }
         } catch (error) {
@@ -391,13 +418,7 @@ class Controller implements GeneralNode {
             return;
         }
 
-        this.#borderRouterDiscovery = new BorderRouterDiscovery(this.#adapter.matterEnvironment);
-        try {
-            await this.#borderRouterDiscovery.start();
-        } catch (error) {
-            // Border router discovery is non-critical; never let it abort controller startup
-            this.#adapter.log.warn(`Failed to start Thread border router discovery: ${error}`);
-        }
+        this.#startThreadDiagnostics();
 
         const nodesDetails = this.#commissioningController.getCommissionedNodesDetails();
         this.#adapter.log.info(
@@ -489,6 +510,62 @@ class Controller implements GeneralNode {
         device.connect(connectOptions);
     }
 
+    #registerStoredThreadCredentials(): void {
+        registerThreadCredentialsFromHex(
+            this.#threadCredentials,
+            this.#parameters.threadOperationalDataSet,
+            'stored:default',
+        );
+        for (const entry of this.#parameters.additionalThreadCredentials ?? []) {
+            registerThreadCredentialsFromHex(this.#threadCredentials, entry.operationalDataset, `stored:${entry.id}`);
+        }
+    }
+
+    #startThreadDiagnostics(): void {
+        // Thread diagnostics are non-critical; never let their setup abort controller startup
+        try {
+            this.#registerStoredThreadCredentials();
+
+            const env = this.#adapter.matterEnvironment;
+            const registry = new BorderRouterRegistry(env);
+            this.#borderRouterRegistry = registry;
+            registry.start().catch(error => {
+                this.#adapter.log.warn(`Failed to start Thread border router discovery: ${error}`);
+            });
+
+            const service = new ThreadDiagnosticsService({
+                enabled: true,
+                borderRouters: registry,
+                credentials: this.#threadCredentials,
+                makeRestSource: cap => {
+                    const { host, port } = parseRestBaseUrl(cap.baseUrl);
+                    return new OtbrRestDiagnosticSource(new OtbrRestClient({ host, port }), cap);
+                },
+                makeMeshcopSource: (creds, br) => connectMeshcop({ environment: env, creds, br }),
+                bootstrapCredentialsFromRest: async cap => {
+                    const { host, port } = parseRestBaseUrl(cap.baseUrl);
+                    const ds = await new OtbrRestClient({ host, port }).getActiveDataset();
+                    if (ds !== undefined) {
+                        this.#threadCredentials.register(ds);
+                    }
+                },
+            });
+            this.#threadDiagnostics = service;
+            this.#observers.on(service.events.batchUpdated, batch => this.#sendThreadDiagnosticsUpdate(batch));
+        } catch (error) {
+            this.#adapter.log.warn(`Failed to start Thread diagnostics: ${error}`);
+        }
+    }
+
+    #sendThreadDiagnosticsUpdate(batch: ThreadDiagnosticsBatch): void {
+        if (this.#closing || this.#adapter.closing) {
+            return;
+        }
+        this.#adapter
+            .sendToGui({ command: 'threadDiagnosticsUpdate', threadDiagnostics: serializeBatch(batch) })
+            .catch(error => this.#adapter.log.debug(`Error sending thread diagnostics update: ${error}`));
+    }
+
     async getState(): Promise<void> {
         // nothing to do
     }
@@ -503,24 +580,27 @@ class Controller implements GeneralNode {
         };
 
         if (this.#useBle) {
-            if (this.#parameters.wifiSSID && this.#parameters.wifiPassword) {
-                this.#adapter.log.debug(`Registering Commissioning over BLE with WiFi: ${this.#parameters.wifiSSID}`);
-                commissioningOptions.wifiNetwork = {
-                    wifiSsid: this.#parameters.wifiSSID,
-                    wifiCredentials: this.#parameters.wifiPassword,
-                };
-            }
-            if (
-                this.#parameters.threadNetworkName !== undefined &&
-                this.#parameters.threadOperationalDataSet !== undefined
-            ) {
-                this.#adapter.log.debug(
-                    `Registering Commissioning over BLE with Thread: ${this.#parameters.threadNetworkName}`,
+            const wifi = resolveWifiCredential(this.#parameters, data.wifiCredentialId);
+            if (wifi) {
+                this.#adapter.log.debug(`Registering Commissioning over BLE with WiFi: ${wifi.ssid}`);
+                commissioningOptions.wifiNetwork = { wifiSsid: wifi.ssid, wifiCredentials: wifi.password };
+            } else if (data.wifiCredentialId && data.wifiCredentialId !== DEFAULT_CREDENTIAL_ID) {
+                this.#adapter.log.warn(
+                    `WiFi credential set "${data.wifiCredentialId}" is not configured; commissioning without WiFi credentials.`,
                 );
+            }
+
+            const thread = resolveThreadCredential(this.#parameters, data.threadCredentialId);
+            if (thread) {
+                this.#adapter.log.debug(`Registering Commissioning over BLE with Thread: ${thread.networkName}`);
                 commissioningOptions.threadNetwork = {
-                    networkName: this.#parameters.threadNetworkName,
-                    operationalDataset: this.#parameters.threadOperationalDataSet,
+                    networkName: thread.networkName,
+                    operationalDataset: thread.operationalDataset,
                 };
+            } else if (data.threadCredentialId && data.threadCredentialId !== DEFAULT_CREDENTIAL_ID) {
+                this.#adapter.log.warn(
+                    `Thread credential set "${data.threadCredentialId}" is not configured; commissioning without Thread credentials.`,
+                );
             }
         }
 
@@ -1152,9 +1232,14 @@ class Controller implements GeneralNode {
             this.#networkGraphUpdateTimer = undefined;
         }
 
-        if (this.#borderRouterDiscovery) {
-            this.#borderRouterDiscovery.stop();
-            this.#borderRouterDiscovery = undefined;
+        // Stop diagnostics streams before the registry they depend on
+        if (this.#threadDiagnostics) {
+            await this.#threadDiagnostics.stop();
+            this.#threadDiagnostics = undefined;
+        }
+        if (this.#borderRouterRegistry) {
+            await this.#borderRouterRegistry.stop();
+            this.#borderRouterRegistry = undefined;
         }
 
         for (const node of this.#nodes.values()) {

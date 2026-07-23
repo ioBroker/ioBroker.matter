@@ -37,6 +37,21 @@ export interface DeviceDescription extends BridgeDeviceDescription {
     passcode: string;
 }
 
+/** Reserved id of the scalar (legacy) credential set stored directly on the controller config. */
+export const DEFAULT_CREDENTIAL_ID = 'default';
+
+export interface WifiCredentialEntry {
+    id: string;
+    ssid: string;
+    password: string;
+}
+
+export interface ThreadCredentialEntry {
+    id: string;
+    networkName: string;
+    operationalDataset: string;
+}
+
 export interface MatterControllerConfig {
     enabled?: boolean;
     ble?: boolean;
@@ -45,6 +60,10 @@ export interface MatterControllerConfig {
     wifiPassword?: string;
     threadNetworkName?: string;
     threadOperationalDataSet?: string;
+    /** Named WiFi credential sets in addition to the default scalar set. */
+    additionalWifiCredentials?: WifiCredentialEntry[];
+    /** Named Thread credential sets in addition to the default scalar set. */
+    additionalThreadCredentials?: ThreadCredentialEntry[];
     defaultExposeMatterApplicationClusterData?: boolean;
     defaultExposeMatterSystemClusterData?: boolean;
 }
@@ -118,55 +137,130 @@ export interface ThreadRouteEntry {
     linkEstablished: boolean;
 }
 
-/**
- * Single Thread Border Router record discovered via mDNS.
- *
- * The extended address (xa) is the 64-bit Thread MAC of the border agent and serves as
- * the primary key. It is the same value as ThreadNetworkDiagnostics.NeighborTable.extAddress
- * for a BR that is itself a Thread router, which is what allows the graph to join
- * BRs onto external-device entries seen in commissioned-node neighbor tables.
- */
-export interface BorderRouterEntry {
-    /** 16-char uppercase hex of the 64-bit Thread MAC. Primary key. */
-    extAddressHex: string;
-    /** 16-char uppercase hex of the extended PAN ID, when known. */
-    extendedPanIdHex?: string;
-    /** Friendly Thread network name (`_meshcop` TXT "nn"). */
-    networkName?: string;
-    /** Vendor name (`_meshcop` TXT "vn"). */
+// Thread diagnostics wire types — the serialized shape produced by serializeBatch() and sent to the
+// admin UI. Mirror of the frontend copies in src-admin/src/types.d.ts (keep in sync).
+
+export interface ThreadMode {
+    rxOnWhenIdle: boolean;
+    ftd: boolean;
+    fullNetworkData: boolean;
+}
+
+export interface ThreadConnectivity {
+    parentPriority: -1 | 0 | 1;
+    linkQuality3: number;
+    linkQuality2: number;
+    linkQuality1: number;
+    leaderCost: number;
+    idSequence: number;
+    activeRouters: number;
+    sedBufferSize: number;
+    sedDatagramCount: number;
+}
+
+export interface ThreadRoute64Entry {
+    routerId: number;
+    linkQualityIn: number;
+    linkQualityOut: number;
+    routeCost: number;
+}
+
+export interface ThreadRoute64 {
+    idSequence: number;
+    entries: ThreadRoute64Entry[];
+}
+
+export interface ThreadLeaderData {
+    partitionId: number;
+    weighting: number;
+    dataVersion: number;
+    stableDataVersion: number;
+    leaderRouterId: number;
+}
+
+export interface ThreadMacCounters {
+    ifInUnknownProtos: number;
+    ifInErrors: number;
+    ifOutErrors: number;
+    ifInUcastPkts: number;
+    ifInBroadcastPkts: number;
+    ifInDiscards: number;
+    ifOutUcastPkts: number;
+    ifOutBroadcastPkts: number;
+    ifOutDiscards: number;
+}
+
+export interface ThreadChildTableEntry {
+    timeoutExponent: number;
+    timeoutSeconds: number;
+    incomingLinkQuality: number;
+    childId: number;
+    mode: ThreadMode;
+}
+
+export interface ThreadMleCounters {
+    disabledRole: number;
+    detachedRole: number;
+    childRole: number;
+    routerRole: number;
+    leaderRole: number;
+    attachAttempts: number;
+    partitionIdChanges: number;
+    betterPartitionAttachAttempts: number;
+    parentChanges: number;
+    trackedTime: number;
+    disabledTime: number;
+    detachedTime: number;
+    childTime: number;
+    routerTime: number;
+    leaderTime: number;
+}
+
+export interface ThreadDiagnosticsNode {
+    extMacAddress?: string;
+    rloc16?: number;
+    mode?: ThreadMode;
+    timeout?: number;
+    connectivity?: ThreadConnectivity;
+    route64?: ThreadRoute64;
+    leaderData?: ThreadLeaderData;
+    networkData?: string;
+    ipv6Addresses?: string[];
+    macCounters?: ThreadMacCounters;
+    childTable?: ThreadChildTableEntry[];
+    channelPages?: number[];
+    maxChildTimeout?: number;
+    eui64?: string;
+    version?: number;
     vendorName?: string;
-    /** Model name (`_meshcop` TXT "mn"). */
-    modelName?: string;
-    /** mDNS hostname from the SRV target, e.g. "Kuche.local.". */
-    hostname?: string;
-    /** Sorted IPv4 + IPv6 addresses resolved from the SRV target's A/AAAA records. */
-    addresses: string[];
-    /** Service port from the `_meshcop` SRV record. */
-    meshcopPort?: number;
-    /** Service port from the `_trel` SRV record. */
-    trelPort?: number;
-    /** Thread version, e.g. "1.3.0" (`_meshcop` TXT "tv"). */
-    threadVersion?: string;
-    /** Border agent ID hex (`_meshcop` TXT "dd"); not always present. */
-    borderAgentIdHex?: string;
-    /** Raw 4-byte state bitmap as hex (`_meshcop` TXT "sb"). Flag parsing left to frontend. */
-    stateBitmapHex?: string;
-    /** Active timestamp as hex (`_meshcop` TXT "at"). */
-    activeTimestampHex?: string;
-    /** Partition ID as hex (`_meshcop` TXT "pt"). */
-    partitionIdHex?: string;
-    /** Vendor-specific data domain name (`_meshcop` TXT "dn"). */
-    domainName?: string;
-    /** Which mDNS source(s) contributed to this entry. */
-    sources: ('meshcop' | 'trel')[];
-    /**
-     * Epoch milliseconds of the most recent successful mDNS discovery for this entry.
-     * Frozen when `sources` becomes empty (the entry is "stale"); updated on every
-     * re-discovery. Stale entries are retained for at least 24h after `lastSeen`; the
-     * actual prune is lazy and happens on the next `get`, `list`, or mDNS discovery
-     * event after the window elapses, so an entry may linger longer than 24h if there
-     * is no activity. Consumers can derive stale state via `sources.length === 0` and
-     * stale age via `Date.now() - lastSeen`.
-     */
-    lastSeen: number;
+    vendorModel?: string;
+    vendorSwVersion?: string;
+    threadStackVersion?: string;
+    vendorAppUrl?: string;
+    mleCounters?: ThreadMleCounters;
+    batteryLevel?: number;
+    supplyVoltage?: number;
+    unknown?: Array<{ type: number; value: string }>;
+}
+
+export type ThreadDiagnosticsPartialReason =
+    | 'petition_rejected'
+    | 'dtls_failed'
+    | 'border_router_unreachable'
+    | 'no_credentials'
+    | 'no_source'
+    | 'rest_unreachable'
+    | 'rest_protocol'
+    | 'timeout'
+    | 'in_progress'
+    | 'meshcop_no_responses_yet'
+    | 'rest_no_responses_yet';
+
+export interface ThreadDiagnosticsBatch {
+    extPanIdHex: string;
+    networkName: string;
+    collectedAt: number;
+    source: 'meshcop' | 'otbr-rest' | 'none';
+    nodes: ThreadDiagnosticsNode[];
+    partialReason?: ThreadDiagnosticsPartialReason;
 }

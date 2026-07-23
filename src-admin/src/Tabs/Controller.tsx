@@ -33,7 +33,13 @@ import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
 import { clone } from '../Utils';
 import QrCodeDialog from '../components/QrCodeDialog';
 import DiscoveredDevicesDialog from '../components/DiscoveredDevicesDialog';
-import { NetworkGraphDialog, type NetworkGraphData, type BorderRouterEntry } from '../components/network';
+import CredentialsEditor from '../components/CredentialsEditor';
+import {
+    NetworkGraphDialog,
+    type NetworkGraphData,
+    type BorderRouterEntry,
+    type ThreadDiagnosticsBatch,
+} from '../components/network';
 
 /**
  * Validates that an object conforms to the NetworkGraphData structure
@@ -147,6 +153,8 @@ interface ComponentState {
     networkGraphError: string | null;
     /** mDNS-discovered Thread Border Routers */
     networkBorderRouters: BorderRouterEntry[];
+    /** Thread BR netdiag batches, keyed by uppercase extPanId hex */
+    networkThreadDiagnostics: Map<string, ThreadDiagnosticsBatch>;
 }
 
 class Controller extends Component<ComponentProps, ComponentState> {
@@ -172,6 +180,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
             networkGraphData: null,
             networkGraphError: null,
             networkBorderRouters: [],
+            networkThreadDiagnostics: new Map(),
         };
     }
 
@@ -310,6 +319,17 @@ class Controller extends Component<ComponentProps, ComponentState> {
             ) {
                 this.setState({ networkGraphData: message.networkGraphData });
             }
+        } else if (message?.command === 'threadDiagnosticsUpdate') {
+            // Upsert a single pushed batch (keyed by uppercase extPanId hex). Replace the Map so
+            // the new reference propagates to the dialog/graph via prop identity change.
+            const batch = message.threadDiagnostics;
+            if (batch?.extPanIdHex) {
+                this.setState(prev => {
+                    const next = new Map(prev.networkThreadDiagnostics);
+                    next.set(batch.extPanIdHex.toUpperCase(), batch);
+                    return { networkThreadDiagnostics: next };
+                });
+            }
         } else {
             console.log(`Unknown update: ${JSON.stringify(message)}`);
         }
@@ -342,7 +362,11 @@ class Controller extends Component<ComponentProps, ComponentState> {
         }
 
         return (
-            <Dialog open={!0}>
+            <Dialog
+                open={!0}
+                maxWidth="md"
+                fullWidth
+            >
                 <DialogTitle>{I18n.t('BLE Commissioning information')}</DialogTitle>
                 <DialogContent>
                     {this.props.expertMode ? null : (
@@ -371,7 +395,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         }}
                     />
 
-                    <Typography sx={styles.header}>{I18n.t('WLAN credentials')}</Typography>
+                    <Typography sx={styles.header}>{I18n.t('Default WiFi credentials')}</Typography>
                     <TextField
                         fullWidth
                         variant="standard"
@@ -410,7 +434,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         }}
                     />
 
-                    <Typography sx={styles.header}>{I18n.t('Thread credentials')}</Typography>
+                    <Typography sx={styles.header}>{I18n.t('Default Thread credentials')}</Typography>
                     <TextField
                         fullWidth
                         sx={styles.inputField}
@@ -451,6 +475,15 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         onChange={e => {
                             const matter = clone(this.props.matter);
                             matter.controller.threadOperationalDataSet = e.target.value;
+                            this.props.updateConfig(matter);
+                        }}
+                    />
+
+                    <CredentialsEditor
+                        config={this.props.matter.controller}
+                        onChange={controller => {
+                            const matter = clone(this.props.matter);
+                            matter.controller = controller;
                             this.props.updateConfig(matter);
                         }}
                     />
@@ -589,6 +622,54 @@ class Controller extends Component<ComponentProps, ComponentState> {
         } catch (error) {
             console.error('Failed to load Thread border routers:', error);
         }
+
+        // Thread BR netdiag is a best-effort feature; a failure (older server, transient error)
+        // must never block the graph. Seed the whole diagnostics map (no extPanId filter).
+        try {
+            const diagResult = await this.props.socket.sendTo(
+                `matter.${this.props.instance}`,
+                'controllerThreadDiagnostics',
+                {},
+            );
+            if (diagResult?.result && Array.isArray(diagResult.result)) {
+                const seed = diagResult.result as ThreadDiagnosticsBatch[];
+                // Merge onto prev, not replace: a live threadDiagnosticsUpdate push may land during the await.
+                this.setState(prev => {
+                    const next = new Map(prev.networkThreadDiagnostics);
+                    for (const batch of seed) {
+                        if (batch?.extPanIdHex) {
+                            next.set(batch.extPanIdHex.toUpperCase(), batch);
+                        }
+                    }
+                    return { networkThreadDiagnostics: next };
+                });
+            }
+        } catch (error) {
+            console.error('Failed to load Thread diagnostics:', error);
+        }
+    };
+
+    /**
+     * Force-refresh Thread diagnostics for a single network and upsert the result.
+     */
+    refreshThreadDiagnostics = async (extPanId: string): Promise<void> => {
+        try {
+            const result = await this.props.socket.sendTo(
+                `matter.${this.props.instance}`,
+                'controllerThreadDiagnostics',
+                { extPanId, force: true },
+            );
+            const batch = result?.result as ThreadDiagnosticsBatch | null | undefined;
+            if (batch?.extPanIdHex) {
+                this.setState(prev => {
+                    const next = new Map(prev.networkThreadDiagnostics);
+                    next.set(batch.extPanIdHex.toUpperCase(), batch);
+                    return { networkThreadDiagnostics: next };
+                });
+            }
+        } catch (error) {
+            console.error('Failed to refresh Thread diagnostics:', error);
+        }
     };
 
     /**
@@ -624,6 +705,8 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 darkMode={this.props.themeType === 'dark'}
                 networkType={this.state.networkGraphDialogType}
                 borderRouters={this.state.networkBorderRouters}
+                threadDiagnostics={this.state.networkThreadDiagnostics}
+                onRefreshDiagnostics={this.refreshThreadDiagnostics}
             />
         );
     }
@@ -635,7 +718,9 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
         return (
             <QrCodeDialog
-                onClose={async (manualCode?: string, qrCode?: string): Promise<void> => {
+                ble={this.props.matter.controller.ble}
+                controllerConfig={this.props.matter.controller}
+                onClose={async (manualCode?, qrCode?, credentialIds?): Promise<void> => {
                     if (manualCode || qrCode) {
                         this.setState({ showQrCodeDialog: false, backendProcessingActive: true });
 
@@ -645,6 +730,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             {
                                 qrCode,
                                 manualCode,
+                                ...credentialIds,
                             },
                         );
 
@@ -680,6 +766,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 triggerDeviceManagerLoad={() => this.refDeviceManager.current?.loadAllData()}
                 onClose={(): void => this.setState({ showDiscoveryDialog: false })}
                 ble={!!this.props.matter.controller.ble}
+                controllerConfig={this.props.matter.controller}
                 instance={this.props.instance}
                 themeType={this.props.themeType}
             />

@@ -13,6 +13,10 @@ import type {
     BorderRouterEntry,
     WiFiAccessPoint,
     ThreadRoutingRole,
+    ThreadDiagnosticsBatch,
+    ThreadDiagnosticsNode,
+    ThreadDiagnosticsPartialReason,
+    DiagnosticMeshNode,
 } from './NetworkTypes';
 
 // WiFi RSSI thresholds (dBm). Used only for the WiFi graph; Thread edges are LQI-driven.
@@ -176,9 +180,17 @@ export function decodeMeshcopStateBitmap(hex: string | undefined): DecodedStateB
  */
 export class BorderRouterStore {
     #entries: ReadonlyMap<string, BorderRouterEntry> = new Map();
+    // Keyed by the uppercase 16-char extPanId hex so callers can join against
+    // BorderRouterEntry.extendedPanIdHex. Replaced (not mutated) on every update so React
+    // consumers passing this map as a prop detect the change via the `===` identity compare.
+    #diagnostics: ReadonlyMap<string, ThreadDiagnosticsBatch> = new Map();
 
     get entries(): ReadonlyMap<string, BorderRouterEntry> {
         return this.#entries;
+    }
+
+    get diagnostics(): ReadonlyMap<string, ThreadDiagnosticsBatch> {
+        return this.#diagnostics;
     }
 
     setFromList(list: BorderRouterEntry[]): void {
@@ -189,8 +201,25 @@ export class BorderRouterStore {
         this.#entries = next;
     }
 
+    /** Replace the whole diagnostics map from a `controllerThreadDiagnostics` (no-filter) result. */
+    setDiagnosticsFromList(batches: ThreadDiagnosticsBatch[]): void {
+        const next = new Map<string, ThreadDiagnosticsBatch>();
+        for (const batch of batches) {
+            next.set(batch.extPanIdHex.toUpperCase(), batch);
+        }
+        this.#diagnostics = next;
+    }
+
+    /** Upsert a single batch (from a `threadDiagnosticsUpdate` event or a forced per-network refresh). */
+    applyBatch(batch: ThreadDiagnosticsBatch): void {
+        const next = new Map(this.#diagnostics);
+        next.set(batch.extPanIdHex.toUpperCase(), batch);
+        this.#diagnostics = next;
+    }
+
     reset(): void {
         this.#entries = new Map();
+        this.#diagnostics = new Map();
     }
 }
 
@@ -854,4 +883,334 @@ export function getNodeConnections(
     }
 
     return connections;
+}
+
+// ---------------------------------------------------------------------------
+// Thread Border Router diagnostics (netdiag) → graph merge
+//
+// Ported from the upstream matterjs-server dashboard topology derivation. Adapts the
+// bigint/attribute-map model to the ioBroker model where extended addresses are 16-char
+// uppercase hex strings and node IDs are strings. Diagnostic references (route64/childTable)
+// are rloc16-based and only unique WITHIN a network, so every diagnostic map is keyed by
+// "<EXTPANID>:<rloc16>" so identical rloc16 values across networks never cross-attach.
+// ---------------------------------------------------------------------------
+
+/** Resolver key joining a network's extPanId with an rloc16. */
+function diagRlocKey(extPanIdHex: string, rloc16: number): string {
+    return `${extPanIdHex.toUpperCase()}:${rloc16}`;
+}
+
+/** Convert a node's base64 extended PAN ID to the uppercase hex used as the diagnostic key. */
+function nodeExtPanIdHex(node: NetworkNodeData): string | undefined {
+    const xp = node.thread?.extendedPanId;
+    return xp ? parseExtendedAddressToHex(xp) : undefined;
+}
+
+/**
+ * Stable graph id for a diagnostic mesh node: prefer the globally-unique extMac, else an
+ * rloc16 namespaced by extPanId (rloc16 is only unique within a network).
+ */
+export function diagnosticNodeId(
+    node: Pick<ThreadDiagnosticsNode, 'extMacAddress' | 'rloc16'>,
+    extPanIdHex: string,
+): string {
+    if (node.extMacAddress !== undefined) {
+        return `thread_${node.extMacAddress.toUpperCase()}`;
+    }
+    return `meshrloc_${extPanIdHex.toUpperCase()}_${node.rloc16 ?? 'x'}`;
+}
+
+/**
+ * "<extPanId>:<rloc16>" → Matter node id, scoped per Thread network. rloc16 0 is treated as
+ * unset (matching the rest of this module), so it is not indexed.
+ */
+export function buildMatterRloc16ByXp(nodes: NetworkNodeData[]): Map<string, string> {
+    const map = new Map<string, string>();
+    for (const node of nodes) {
+        const rloc16 = node.thread?.rloc16;
+        const xpHex = nodeExtPanIdHex(node);
+        if (rloc16 == null || rloc16 === 0 || xpHex === undefined) {
+            continue;
+        }
+        map.set(diagRlocKey(xpHex, rloc16), node.nodeId);
+    }
+    return map;
+}
+
+/**
+ * Resolve a diagnostic node to the graph node id it is actually rendered under: a commissioned
+ * Matter device (by extMac), a known Border Router (`br_<xa>`), a neighbor-inferred unknown, or
+ * — when it matches none — its own diagnostic id.
+ */
+function diagnosticGraphNodeId(
+    node: ThreadDiagnosticsNode,
+    extPanIdHex: string,
+    matterExtAddrMap: Map<string, string>,
+    borderRouters: ReadonlyMap<string, BorderRouterEntry>,
+    unknownIdByExt: Map<string, string>,
+): string {
+    const up = node.extMacAddress?.toUpperCase();
+    if (up !== undefined) {
+        const matterId = matterExtAddrMap.get(up);
+        if (matterId !== undefined) {
+            return matterId;
+        }
+        if (borderRouters.has(up)) {
+            return `br_${up}`;
+        }
+        const unknownId = unknownIdByExt.get(up);
+        if (unknownId !== undefined) {
+            return unknownId;
+        }
+    }
+    return diagnosticNodeId(node, extPanIdHex);
+}
+
+/**
+ * "<extPanId>:<rloc16>" → graph node id across diagnostic batches, layered UNDER the Matter
+ * rloc16 map. Resolves route64/childTable references within the referencing node's own network
+ * to whatever id that node is drawn as (Matter / `br_` / `unknown_` / diagnostic).
+ */
+export function buildDiagnosticRloc16Map(
+    batches: ReadonlyMap<string, ThreadDiagnosticsBatch>,
+    matterRloc16ByXp: Map<string, string>,
+    matterExtAddrMap: Map<string, string>,
+    borderRouters: ReadonlyMap<string, BorderRouterEntry>,
+    unknownDevices: ThreadExternalDevice[],
+): Map<string, string> {
+    const unknownIdByExt = new Map<string, string>();
+    for (const d of unknownDevices) {
+        unknownIdByExt.set(d.extAddressHex.toUpperCase(), d.id);
+    }
+
+    const map = new Map<string, string>();
+    for (const batch of batches.values()) {
+        for (const node of batch.nodes) {
+            if (node.rloc16 === undefined) {
+                continue;
+            }
+            // A Matter device on THIS network (by rloc16) wins.
+            if (matterRloc16ByXp.has(diagRlocKey(batch.extPanIdHex, node.rloc16))) {
+                continue;
+            }
+            map.set(
+                diagRlocKey(batch.extPanIdHex, node.rloc16),
+                diagnosticGraphNodeId(node, batch.extPanIdHex, matterExtAddrMap, borderRouters, unknownIdByExt),
+            );
+        }
+    }
+    return map;
+}
+
+/**
+ * Build a per-network rloc16 resolver: a Matter device on the same Thread network wins, else the
+ * diagnostic node id within the same extPanId. Returns undefined when unresolved.
+ */
+export function makeDiagnosticRloc16Resolver(
+    matterRloc16ByXp: Map<string, string>,
+    diagRloc16Map: Map<string, string>,
+): (rloc16: number, extPanIdHex: string) => string | undefined {
+    return (rloc16, extPanIdHex) =>
+        matterRloc16ByXp.get(diagRlocKey(extPanIdHex, rloc16)) ?? diagRloc16Map.get(diagRlocKey(extPanIdHex, rloc16));
+}
+
+/**
+ * Materialize mesh nodes that exist only in diagnostics: router records whose rloc16/extMac
+ * matches no Matter device, BR, or already-found unknown. childTable children are surfaced as a
+ * count on their parent, not as individual floating nodes. Matter/BR/unknown matches are enriched
+ * in place elsewhere, not duplicated here.
+ */
+export function findDiagnosticMeshNodes(
+    batches: ReadonlyMap<string, ThreadDiagnosticsBatch>,
+    matterRloc16ByXp: Map<string, string>,
+    matterExtAddrMap: Map<string, string>,
+    borderRouters: ReadonlyMap<string, BorderRouterEntry>,
+    unknownDevices: ThreadExternalDevice[],
+): DiagnosticMeshNode[] {
+    const unknownExt = new Set<string>(unknownDevices.map(d => d.extAddressHex.toUpperCase()));
+    const out = new Map<string, DiagnosticMeshNode>();
+
+    const matchesExisting = (extPanIdHex: string, rloc16: number | undefined, extHex?: string): boolean => {
+        if (rloc16 !== undefined && matterRloc16ByXp.has(diagRlocKey(extPanIdHex, rloc16))) {
+            return true;
+        }
+        if (extHex !== undefined) {
+            const up = extHex.toUpperCase();
+            if (matterExtAddrMap.has(up) || borderRouters.has(up) || unknownExt.has(up)) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    for (const batch of batches.values()) {
+        for (const node of batch.nodes) {
+            if (node.rloc16 === undefined) {
+                continue;
+            }
+            if (matchesExisting(batch.extPanIdHex, node.rloc16, node.extMacAddress)) {
+                continue;
+            }
+            const id = diagnosticNodeId(node, batch.extPanIdHex);
+            out.set(id, {
+                kind: 'diagnostic',
+                id,
+                rloc16: node.rloc16,
+                extAddressHex: node.extMacAddress?.toUpperCase(),
+                // A router owns the low 10 child bits clear (childId 0).
+                isRouter: (node.rloc16 & 0x3ff) === 0,
+                vendorName: node.vendorName,
+                childCount: node.childTable?.length ?? 0,
+                networkName: batch.networkName,
+            });
+        }
+    }
+    return [...out.values()];
+}
+
+/**
+ * Merge route64 (router↔router) and childTable (router→child) edges from diagnostics into an
+ * existing flat connection list. `seenConnections` holds the canonical bidirectional pair keys
+ * already present (Matter/neighbor-table edges) — those win per pair; diagnostic edges only fill
+ * gaps. Unresolved references are dropped (no phantom nodes). All merged edges are rendered
+ * dashed via `fromRouteTable`.
+ */
+export function mergeDiagnosticEdges(
+    connections: ThreadConnection[],
+    seenConnections: Set<string>,
+    batches: ReadonlyMap<string, ThreadDiagnosticsBatch>,
+    resolveRloc16: (rloc16: number, extPanIdHex: string) => string | undefined,
+): void {
+    const addEdge = (fromNodeId: string, toNodeId: string, lqi: number, pathCost?: number): void => {
+        if (fromNodeId === toNodeId) {
+            return;
+        }
+        const key = [fromNodeId, toNodeId].sort().join('-');
+        if (seenConnections.has(key)) {
+            return; // existing (Matter/neighbor-table) edge wins
+        }
+        seenConnections.add(key);
+        connections.push({
+            fromNodeId,
+            toNodeId,
+            signalColor: getSignalColorFromLqi(lqi),
+            lqi,
+            rssi: null,
+            isUnknown: false,
+            pathCost,
+            fromRouteTable: true,
+        });
+    };
+
+    for (const batch of batches.values()) {
+        for (const node of batch.nodes) {
+            if (node.rloc16 === undefined) {
+                continue;
+            }
+            const xp = batch.extPanIdHex;
+            const fromId = resolveRloc16(node.rloc16, xp) ?? diagnosticNodeId(node, xp);
+            const routerId = (node.rloc16 >> 10) & 0x3f;
+            if (node.route64 !== undefined) {
+                for (const e of node.route64.entries) {
+                    if (e.routerId === routerId) {
+                        continue;
+                    }
+                    const toId = resolveRloc16((e.routerId << 10) & 0xffff, xp);
+                    if (toId === undefined) {
+                        continue;
+                    }
+                    addEdge(fromId, toId, e.linkQualityIn, e.routeCost);
+                }
+            }
+            if (node.childTable !== undefined) {
+                for (const child of node.childTable) {
+                    const childRloc16 = ((routerId << 10) | child.childId) & 0xffff;
+                    // Only link children that resolve to a real graph node (a commissioned Matter
+                    // device). Non-Matter leaves are a count on the parent, not floating nodes.
+                    const toId = resolveRloc16(childRloc16, xp);
+                    if (toId === undefined) {
+                        continue;
+                    }
+                    addEdge(fromId, toId, child.incomingLinkQuality);
+                }
+            }
+        }
+    }
+}
+
+/** Locate a diagnostic node entry across all known batches by uppercase extMacAddress hex. */
+export function findDiagnosticNodeByExtMac(
+    batches: ReadonlyMap<string, ThreadDiagnosticsBatch>,
+    extAddressHex: string,
+): ThreadDiagnosticsNode | undefined {
+    const target = extAddressHex.toUpperCase();
+    for (const batch of batches.values()) {
+        for (const node of batch.nodes) {
+            if (node.extMacAddress?.toUpperCase() === target) {
+                return node;
+            }
+        }
+    }
+    return undefined;
+}
+
+/**
+ * Tooltip-friendly long form of {@link getThreadRoleName}. Ported from upstream (#861).
+ */
+export function getThreadRoleDescription(role: ThreadRoutingRole | number | null): string {
+    switch (role) {
+        case 2:
+            return 'Sleepy End Device: keeps its radio off while idle to save battery and reaches the mesh only through a parent router. The links shown for it can include stale router-table entries for Thread addresses it no longer uses.';
+        case 3:
+            return 'End Device: a leaf node that reaches the mesh through a parent router and does not route for other nodes. The links shown for it can include stale router-table entries for old or unused Thread addresses.';
+        case 4:
+            return 'REED (Router-Eligible End Device): currently acts as an end device but can be promoted to a full Router when the mesh needs more routing capacity.';
+        case 5:
+            return 'Router: forwards traffic for other nodes in the Thread mesh.';
+        case 6:
+            return 'Leader: the elected node that manages router assignments for the Thread network.';
+        case 0:
+        case 1:
+            return 'Thread routing role is unassigned or unspecified.';
+        default:
+            return 'Thread routing role could not be determined.';
+    }
+}
+
+/**
+ * Cases a Thread node shown as unknown/external may actually be. Inferred from a commissioned
+ * node's neighbor table; the code cannot tell the cases apart, so it enumerates them.
+ */
+export const EXTERNAL_THREAD_DEVICE_CASES = [
+    'a device commissioned to another Matter fabric on the same Thread network',
+    'a native (non-Matter) Thread accessory',
+    'a Border Router whose Thread radio MAC differs from its MeshCoP border-agent ID (common with Apple and Aqara)',
+    'a stale neighbor entry for a device that has left',
+] as const;
+
+export const DIAGNOSTIC_MESH_NODE_EXPLANATION =
+    'Inferred from Border Router diagnostics (Route64 / child table) and not commissioned to this fabric, so no device details are available.';
+
+/**
+ * Human-readable message for a Thread diagnostics {@link ThreadDiagnosticsPartialReason}.
+ * Returns undefined for reasons that are not errors worth surfacing (no credentials / no source /
+ * still-streaming states). Ported from upstream `_formatPartialReason`.
+ */
+export function formatThreadDiagnosticsPartialReason(reason: ThreadDiagnosticsPartialReason): string | undefined {
+    switch (reason) {
+        case 'petition_rejected':
+            return 'Diagnostics unavailable: Border Router rejected the commissioner request. Stored credentials may not match this network.';
+        case 'dtls_failed':
+            return 'Diagnostics unavailable: secure handshake to the Border Router failed.';
+        case 'border_router_unreachable':
+            return 'Diagnostics unavailable: Border Router not reachable.';
+        case 'timeout':
+            return 'Diagnostics unavailable: query timed out.';
+        case 'rest_unreachable':
+            return 'Diagnostics unavailable: REST API not reachable.';
+        case 'rest_protocol':
+            return 'Diagnostics unavailable: REST API returned an unexpected response.';
+        default:
+            return undefined;
+    }
 }

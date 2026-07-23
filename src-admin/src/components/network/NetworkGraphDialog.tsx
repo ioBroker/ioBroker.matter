@@ -23,6 +23,7 @@ import {
     ListItemText,
     TextField,
     InputAdornment,
+    Alert,
 } from '@mui/material';
 import {
     Close as CloseIcon,
@@ -37,7 +38,13 @@ import {
     Search as SearchIcon,
 } from '@mui/icons-material';
 
-import type { NetworkGraphData, NetworkNodeData, BorderRouterEntry, ThreadExternalDevice } from './NetworkTypes';
+import type {
+    NetworkGraphData,
+    NetworkNodeData,
+    BorderRouterEntry,
+    ThreadExternalDevice,
+    ThreadDiagnosticsBatch,
+} from './NetworkTypes';
 import {
     SIGNAL_COLORS,
     categorizeNodes,
@@ -56,6 +63,9 @@ import {
     findUnknownDevices,
     getRoutableDestinationsCount,
     getNodeConnections,
+    getThreadRoleDescription,
+    findDiagnosticNodeByExtMac,
+    formatThreadDiagnosticsPartialReason,
 } from './NetworkUtils';
 import ThreadGraph from './ThreadGraph';
 import WiFiGraph from './WiFiGraph';
@@ -74,6 +84,10 @@ interface NetworkGraphDialogProps {
     networkType: 'thread' | 'wifi';
     /** mDNS-discovered Thread Border Routers (controllerThreadBorderRouters) */
     borderRouters?: BorderRouterEntry[];
+    /** Thread BR netdiag batches, keyed by uppercase extPanId hex (controllerThreadDiagnostics) */
+    threadDiagnostics?: ReadonlyMap<string, ThreadDiagnosticsBatch>;
+    /** Force-refresh diagnostics for a single Thread network (extPanId hex). */
+    onRefreshDiagnostics?: (extPanId: string) => Promise<void>;
 }
 
 interface NetworkGraphDialogState {
@@ -338,6 +352,129 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                             <strong>{I18n.t('Seen by')}:</strong> {observerNames.join(', ')}
                         </Typography>
                     )}
+                </Box>
+                {device.kind === 'br' && this.renderBorderRouterDiagnostics(device)}
+            </>
+        );
+    }
+
+    /**
+     * Thread BR netdiag detail section: routers/leader/partition/children + vendor/stack, with a
+     * partial-reason warning banner, and a force-refresh button for this network.
+     */
+    renderBorderRouterDiagnostics(br: BorderRouterEntry): React.ReactNode {
+        const { threadDiagnostics, onRefreshDiagnostics } = this.props;
+        if (br.extendedPanIdHex === undefined) {
+            return null;
+        }
+        const extPanIdHex = br.extendedPanIdHex.toUpperCase();
+        const batch: ThreadDiagnosticsBatch | undefined = threadDiagnostics?.get(extPanIdHex);
+
+        const refreshButton = onRefreshDiagnostics ? (
+            <Button
+                size="small"
+                variant="outlined"
+                startIcon={<RefreshIcon />}
+                onClick={() => {
+                    void onRefreshDiagnostics(extPanIdHex);
+                }}
+            >
+                {I18n.t('Refresh diagnostics')}
+            </Button>
+        ) : null;
+
+        if (batch === undefined) {
+            return (
+                <>
+                    <Divider />
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                        <Typography
+                            variant="subtitle2"
+                            sx={{ fontWeight: 'bold' }}
+                        >
+                            {I18n.t('Diagnostics')}
+                        </Typography>
+                        <Typography
+                            variant="body2"
+                            color="textSecondary"
+                        >
+                            {I18n.t('No diagnostics available yet')}
+                        </Typography>
+                        {refreshButton}
+                    </Box>
+                </>
+            );
+        }
+
+        const errorMessage =
+            batch.partialReason !== undefined ? formatThreadDiagnosticsPartialReason(batch.partialReason) : undefined;
+        const brNode = findDiagnosticNodeByExtMac(threadDiagnostics ?? new Map(), br.extAddressHex);
+        const routerCount = brNode?.route64?.entries.length ?? 0;
+        const childCount = brNode?.childTable?.length ?? 0;
+        const collected = new Date(batch.collectedAt).toLocaleTimeString();
+
+        const rows: { label: string; value: React.ReactNode; mono?: boolean }[] = [];
+        if (batch.source !== 'none') {
+            rows.push({ label: I18n.t('Source'), value: batch.source });
+        }
+        rows.push({ label: I18n.t('Updated'), value: collected });
+        if (routerCount > 0) {
+            rows.push({ label: I18n.t('Routers'), value: routerCount });
+        }
+        if (brNode?.leaderData !== undefined) {
+            rows.push({ label: I18n.t('Leader router id'), value: brNode.leaderData.leaderRouterId });
+            rows.push({
+                label: I18n.t('Partition'),
+                value: brNode.leaderData.partitionId.toString(16),
+                mono: true,
+            });
+        }
+        if (childCount > 0) {
+            rows.push({ label: I18n.t('Children'), value: childCount });
+        }
+        if (brNode?.vendorName !== undefined) {
+            rows.push({ label: I18n.t('Diagnostic vendor'), value: brNode.vendorName });
+        }
+        if (brNode?.vendorModel !== undefined) {
+            rows.push({ label: I18n.t('Diagnostic model'), value: brNode.vendorModel });
+        }
+        if (brNode?.threadStackVersion !== undefined) {
+            rows.push({ label: I18n.t('Stack version'), value: brNode.threadStackVersion });
+        }
+
+        return (
+            <>
+                <Divider />
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    <Typography
+                        variant="subtitle2"
+                        sx={{ fontWeight: 'bold' }}
+                    >
+                        {I18n.t('Diagnostics')}
+                    </Typography>
+                    {errorMessage !== undefined && (
+                        <Alert
+                            severity="warning"
+                            sx={{ py: 0, fontSize: '0.8em' }}
+                        >
+                            {errorMessage}
+                        </Alert>
+                    )}
+                    {rows.map(row => (
+                        <Typography
+                            key={row.label}
+                            variant="body2"
+                            sx={{ wordBreak: 'break-all' }}
+                        >
+                            <strong>{row.label}:</strong>{' '}
+                            {row.mono ? (
+                                <span style={{ fontFamily: 'monospace', fontSize: '0.85em' }}>{row.value}</span>
+                            ) : (
+                                row.value
+                            )}
+                        </Typography>
+                    ))}
+                    {refreshButton}
                 </Box>
             </>
         );
@@ -716,6 +853,13 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                                 <Typography variant="body2">
                                     <strong>{I18n.t('Role')}:</strong> {getThreadRoleName(node.thread.routingRole)}
                                 </Typography>
+                                <Typography
+                                    variant="caption"
+                                    color="textSecondary"
+                                    sx={{ display: 'block' }}
+                                >
+                                    {I18n.t(getThreadRoleDescription(node.thread.routingRole))}
+                                </Typography>
                                 {node.thread.channel !== null && (
                                     <Typography variant="body2">
                                         <strong>{I18n.t('Channel')}:</strong> {node.thread.channel}
@@ -885,6 +1029,7 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                             selectedNodeId={selectedNodeId}
                             onPhysicsChange={this.handlePhysicsChange}
                             borderRouters={this.getBorderRoutersMap()}
+                            threadDiagnostics={this.props.threadDiagnostics}
                             hideOfflineNodes={this.state.hideOfflineNodes}
                             hideWeakSignalEdges={this.state.hideWeakSignalEdges}
                             hideMediumSignalEdges={this.state.hideMediumSignalEdges}

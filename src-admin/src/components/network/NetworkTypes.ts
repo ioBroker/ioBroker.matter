@@ -13,6 +13,14 @@ export type {
     ThreadNeighborEntry,
     ThreadRouteEntry,
     BorderRouterEntry,
+    ThreadDiagnosticsBatch,
+    ThreadDiagnosticsNode,
+    ThreadDiagnosticsPartialReason,
+    ThreadRoute64,
+    ThreadRoute64Entry,
+    ThreadLeaderData,
+    ThreadChildTableEntry,
+    DiagnosticMeshNode,
 } from '../../types';
 
 import type { BorderRouterEntry, NetworkType } from '../../types';

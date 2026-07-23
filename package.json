@@ -31,6 +31,7 @@
     "@iobroker/type-detector": "^5.0.15",
     "@matter/main": "0.17.7-alpha.0-20260723-8a6b27aed",
     "@matter/nodejs": "0.17.7-alpha.0-20260723-8a6b27aed",
+    "@matter/thread-br-client": "0.17.7-alpha.0-20260723-8a6b27aed",
     "@project-chip/matter.js": "0.17.7-alpha.0-20260723-8a6b27aed",
     "axios": "^1.18.1",
     "jsonwebtoken": "^9.0.3"

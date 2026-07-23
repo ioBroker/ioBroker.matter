@@ -1,8 +1,21 @@
 {
   "common": {
     "name": "matter",
-    "version": "1.3.0",
+    "version": "1.3.1",
     "news": {
+      "1.3.1": {
+        "en": "Fix Attribute Polling\nFix Commissioning of new nodes",
+        "de": "Fix Attribute Polling\nBehebung der Inbetriebnahme neuer Nodes",
+        "ru": "Исправить атрибут Polling\nФиксация ввода в эксплуатацию новых узлов",
+        "pt": "Corrigir a Polação de Atributos\nFixar o envio de novos nós",
+        "nl": "Attribuutpolling herstellen\nInbedrijfstelling van nieuwe knooppunten vaststellen",
+        "fr": "Correction du sondage sur les attributs\nFixer la mise en service de nouveaux nœuds",
+        "it": "Riparare l'attributo\nFissare la Commissione di nuovi nodi",
+        "es": "Fijación de la contaminación atributiva\nCorrección de nuevos nodos",
+        "pl": "Popraw badanie atrybutu\nNapraw uruchomienie nowych węzłów",
+        "uk": "Фіксація Атрибутове покриття\nФіксація введення нових вузлів",
+        "zh-cn": "修正属性投票\n启用新节点"
+      },
       "1.3.0": {
         "en": "Update to Matter 1.6.0 (matter.js 0.17.7-alpha)\nOptimized Matter data processing by caching repeated cluster/attribute lookups in hot paths\nOnly register additional custom attributes when the node supports them\nPrevent errors when controlling paired devices that do not expose On/Off commands",
         "de": "Aktualisierung auf Matter 1.6.0 (matter.js 0.17.7-alpha)\nOptimierte Matter-Datenverarbeitung durch Zwischenspeicherung wiederholter Cluster-/Attributabfragen in häufig genutzten Pfaden\nRegistrieren Sie zusätzliche benutzerdefinierte Attribute nur dann, wenn der Knoten diese unterstützt.\nVerhindern Sie Fehler bei der Steuerung gekoppelter Geräte, die keine Ein-/Ausschaltbefehle bereitstellen.",
@@ -80,19 +93,6 @@
         "pl": "WAŻNE: Pierwszy początek sterownika z tą wersją trwa trochę dłużej, aby połączyć wszystkie urządzenia, ponieważ dane wewnętrzne są migrowane\nAktualizacja do materii 1.4.2 (matter.js do 0.16) w tym wiele optymalizacji i poprawek\nRównież przekonwertować wartości dla jednostki \"mired\" dla temperatury kolorów\nZwiększa domyślny zakres temperatury kolorów do 1.000- 20.000 K\nDodano wsparcie dla OTA aktualizacje (sprawdzone około 15 minut po uruchomieniu adaptera, a następnie codziennie)\nDodano przegląd topologii Thread i Wifi z danymi z urządzeń. Szczegóły można znaleźć w Readme.\nWykrywanie duplikatów komend / pisów i zapobieganie ich wysyłaniu, jeśli pierwsze polecenie jest nadal w toku\nZaznacz urządzenia w GUI podczas unoszenia się nad urządzeniem na liście urządzeń\nDodano wsparcie dla głośności, głośności Urządzenia joBroker grupy do znaczenia\nDodaj tryb wyłączenia dla termostatów dla urządzeń Matter",
         "uk": "IMPORTANT: Перший запуск контролера з цією версією займає трохи довше, щоб підключити всі пристрої, оскільки внутрішні дані мігруються\nОновлено в Matter 1.4.2 (маттер.js to 0.16), включаючи багато оптимізацій і фіксаторів\nТакож перетворюйте значення для блоку \"здивовані\" для кольорів\nПідвищує діапазон температури за замовчуванням до 1.000-20.000 Р\nДодано підтримку оновлень OTA (зчепивши приблизно 15 хвилин після запуску адаптера, а потім щодня)\nДодано огляд топології ниток та Wifi з даними з пристроїв. Див. опис.\nВиявлення дублікатів команд / записів і запобігання їх знову, якщо перша команда все ще перебуває в прогресі\nВиділіть пристрої в GUI при переховуванні пристрою в списку пристроїв\nДодано підтримку обсягу, об'єм Група ioBroker пристроїв для матерії\nДодати режим вимкнення термостатів для пристроїв Matter",
         "zh-cn": "IMPATANT:使用此版本控制器的首个启动需要一些时间来连接所有设备,因为内部数据已迁移\n更新到 Material 1.4.2( matter.js to 0. 16) 包括许多优化和修正\n还转换颜色温度单位“ 迷恋” 的值\n将默认颜色温度范围提高到1 000-20 000 K级\n增加了对OTA更新的支持( 在适配器启动后大约15分钟, 然后每天检查)\n以设备数据添加线索和wifi地形概览. 详情见Readme.\n检测重复的命令/ 写入, 如果第一个命令仍在执行中, 则防止它们再次发出\n在设备列表中盘旋设备时突出显示图形用户界面中的设备\n添加对音量、音量的支持 组合 ioBroker 设备以显示物质\n为物质设备的自动调温器添加关闭模式"
-      },
-      "0.5.6": {
-        "en": "Type detector update, should detect single states in non-device structures better",
-        "de": "Typ-Detektor-Update, sollte einzelne Zustände in Nicht-Gerät-Strukturen besser erkennen",
-        "ru": "Обновление детектора типа должно лучше обнаруживать отдельные состояния в структурах, не относящихся к устройству",
-        "pt": "Tipo de atualização detector, deve detectar estados únicos em estruturas não-dispositivos melhor",
-        "nl": "Type detector update, moet afzonderlijke staten in niet-apparaat structuren beter detecteren",
-        "fr": "Mise à jour du détecteur de type, devrait détecter les états uniques dans les structures non-appareils mieux",
-        "it": "Tipo rivelatore aggiornamento, dovrebbe rilevare singoli stati in strutture non-dispositivi meglio",
-        "es": "Tipo detector de actualización, debe detectar estados individuales en estructuras no dispositivos mejor",
-        "pl": "Aktualizacja detektora typu, powinna wykrywać pojedyncze stany w strukturach innych niż urządzenia lepiej",
-        "uk": "Оновлення датчика типу, слід виявити односторонні стани в нерозробних конструкціях краще",
-        "zh-cn": "类型探测器更新,应更好地检测非探测结构中的单个状态"
       }
     },
     "titleLang": {

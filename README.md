@@ -138,8 +138,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 -->
 
 ## Changelog
-
-### **WORK IN PROGRESS**
+### 1.3.1 (2026-07-23)
 * (@Apollon77) Fix Attribute Polling
 * (@Apollon77) Fix Commissioning of new nodes
 

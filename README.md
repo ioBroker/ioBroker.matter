@@ -141,6 +141,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 
 ### **WORK IN PROGRESS**
 * (@Apollon77) Fix Attribute Polling
+* (@Apollon77) Fix Commissioning of new nodes
 
 ### 1.3.0 (2026-07-19)
 * (@Apollon77) Update to Matter 1.6.0 (matter.js 0.17.7-alpha)

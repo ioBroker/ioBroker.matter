@@ -281,5 +281,19 @@
     "Route table only": "Лише таблиця маршрутизації",
     "Connected devices": "Підключені пристрої",
     "Signal: Unknown": "Сигнал: невідомо",
-    "stale": "застаріло"
+    "stale": "застаріло",
+    "Default WiFi credentials": "Облікові дані WiFi за замовчуванням",
+    "Default Thread credentials": "Облікові дані Thread за замовчуванням",
+    "Additional WiFi networks": "Додаткові мережі WiFi",
+    "Additional Thread networks": "Додаткові мережі Thread",
+    "Add WiFi network": "Додати мережу WiFi",
+    "Add Thread network": "Додати мережу Thread",
+    "Identifier is required": "Потрібен ідентифікатор",
+    "Identifier \"%s\" is reserved": "Ідентифікатор \"%s\" зарезервовано",
+    "Identifier \"%s\" is already used": "Ідентифікатор \"%s\" вже використовується",
+    "Network to configure on the device": "Мережа для налаштування на пристрої",
+    "WiFi network": "Мережа WiFi",
+    "Thread network": "Мережа Thread",
+    "Default": "За замовчуванням",
+    "Identifier": "Ідентифікатор"
 }

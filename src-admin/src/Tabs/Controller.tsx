@@ -33,6 +33,7 @@ import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
 import { clone } from '../Utils';
 import QrCodeDialog from '../components/QrCodeDialog';
 import DiscoveredDevicesDialog from '../components/DiscoveredDevicesDialog';
+import CredentialsEditor from '../components/CredentialsEditor';
 import { NetworkGraphDialog, type NetworkGraphData, type BorderRouterEntry } from '../components/network';
 
 /**
@@ -342,7 +343,11 @@ class Controller extends Component<ComponentProps, ComponentState> {
         }
 
         return (
-            <Dialog open={!0}>
+            <Dialog
+                open={!0}
+                maxWidth="md"
+                fullWidth
+            >
                 <DialogTitle>{I18n.t('BLE Commissioning information')}</DialogTitle>
                 <DialogContent>
                     {this.props.expertMode ? null : (
@@ -371,7 +376,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         }}
                     />
 
-                    <Typography sx={styles.header}>{I18n.t('WLAN credentials')}</Typography>
+                    <Typography sx={styles.header}>{I18n.t('Default WiFi credentials')}</Typography>
                     <TextField
                         fullWidth
                         variant="standard"
@@ -410,7 +415,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         }}
                     />
 
-                    <Typography sx={styles.header}>{I18n.t('Thread credentials')}</Typography>
+                    <Typography sx={styles.header}>{I18n.t('Default Thread credentials')}</Typography>
                     <TextField
                         fullWidth
                         sx={styles.inputField}
@@ -451,6 +456,15 @@ class Controller extends Component<ComponentProps, ComponentState> {
                         onChange={e => {
                             const matter = clone(this.props.matter);
                             matter.controller.threadOperationalDataSet = e.target.value;
+                            this.props.updateConfig(matter);
+                        }}
+                    />
+
+                    <CredentialsEditor
+                        config={this.props.matter.controller}
+                        onChange={controller => {
+                            const matter = clone(this.props.matter);
+                            matter.controller = controller;
                             this.props.updateConfig(matter);
                         }}
                     />
@@ -635,7 +649,9 @@ class Controller extends Component<ComponentProps, ComponentState> {
 
         return (
             <QrCodeDialog
-                onClose={async (manualCode?: string, qrCode?: string): Promise<void> => {
+                ble={this.props.matter.controller.ble}
+                controllerConfig={this.props.matter.controller}
+                onClose={async (manualCode?, qrCode?, credentialIds?): Promise<void> => {
                     if (manualCode || qrCode) {
                         this.setState({ showQrCodeDialog: false, backendProcessingActive: true });
 
@@ -645,6 +661,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                             {
                                 qrCode,
                                 manualCode,
+                                ...credentialIds,
                             },
                         );
 
@@ -680,6 +697,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 triggerDeviceManagerLoad={() => this.refDeviceManager.current?.loadAllData()}
                 onClose={(): void => this.setState({ showDiscoveryDialog: false })}
                 ble={!!this.props.matter.controller.ble}
+                controllerConfig={this.props.matter.controller}
                 instance={this.props.instance}
                 themeType={this.props.themeType}
             />

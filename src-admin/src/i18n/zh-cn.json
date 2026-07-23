@@ -281,5 +281,19 @@
     "Route table only": "仅路由表",
     "Connected devices": "已连接设备",
     "Signal: Unknown": "信号：未知",
-    "stale": "已过期"
+    "stale": "已过期",
+    "Default WiFi credentials": "默认 WiFi 凭据",
+    "Default Thread credentials": "默认 Thread 凭据",
+    "Additional WiFi networks": "其他 WiFi 网络",
+    "Additional Thread networks": "其他 Thread 网络",
+    "Add WiFi network": "添加 WiFi 网络",
+    "Add Thread network": "添加 Thread 网络",
+    "Identifier is required": "需要标识符",
+    "Identifier \"%s\" is reserved": "标识符 \"%s\" 已保留",
+    "Identifier \"%s\" is already used": "标识符 \"%s\" 已被使用",
+    "Network to configure on the device": "要在设备上配置的网络",
+    "WiFi network": "WiFi 网络",
+    "Thread network": "Thread 网络",
+    "Default": "默认",
+    "Identifier": "标识符"
 }

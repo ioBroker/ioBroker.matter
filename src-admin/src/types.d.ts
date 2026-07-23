@@ -67,6 +67,18 @@ export interface DetectedRoom {
     devices: DetectedDevice[];
 }
 
+export interface WifiCredentialEntry {
+    id: string;
+    ssid: string;
+    password: string;
+}
+
+export interface ThreadCredentialEntry {
+    id: string;
+    networkName: string;
+    operationalDataset: string;
+}
+
 export interface MatterControllerConfig {
     enabled?: boolean;
     ble?: boolean;
@@ -75,6 +87,10 @@ export interface MatterControllerConfig {
     wifiPassword?: string;
     threadNetworkName?: string;
     threadOperationalDataSet?: string;
+    /** Named WiFi credential sets in addition to the default scalar set. */
+    additionalWifiCredentials?: WifiCredentialEntry[];
+    /** Named Thread credential sets in addition to the default scalar set. */
+    additionalThreadCredentials?: ThreadCredentialEntry[];
     defaultExposeMatterApplicationClusterData?: boolean;
     defaultExposeMatterSystemClusterData?: boolean;
 }

@@ -281,5 +281,19 @@
     "Route table only": "Только таблица маршрутизации",
     "Connected devices": "Подключённые устройства",
     "Signal: Unknown": "Сигнал: неизвестно",
-    "stale": "устарело"
+    "stale": "устарело",
+    "Default WiFi credentials": "Учетные данные WiFi по умолчанию",
+    "Default Thread credentials": "Учетные данные Thread по умолчанию",
+    "Additional WiFi networks": "Дополнительные сети WiFi",
+    "Additional Thread networks": "Дополнительные сети Thread",
+    "Add WiFi network": "Добавить сеть WiFi",
+    "Add Thread network": "Добавить сеть Thread",
+    "Identifier is required": "Требуется идентификатор",
+    "Identifier \"%s\" is reserved": "Идентификатор \"%s\" зарезервирован",
+    "Identifier \"%s\" is already used": "Идентификатор \"%s\" уже используется",
+    "Network to configure on the device": "Сеть для настройки на устройстве",
+    "WiFi network": "Сеть WiFi",
+    "Thread network": "Сеть Thread",
+    "Default": "По умолчанию",
+    "Identifier": "Идентификатор"
 }

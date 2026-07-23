@@ -728,7 +728,7 @@ class BridgesAndDevices<TProps extends BridgesAndDevicesProps, TState extends Br
                         onError={() => {
                             // ignored
                         }}
-                        onChange={(_data: Record<string, any>) => {
+                        onChange={() => {
                             // ignored
                         }}
                         embedded

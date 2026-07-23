@@ -281,5 +281,19 @@
     "Route table only": "Alleen routeringstabel",
     "Connected devices": "Verbonden apparaten",
     "Signal: Unknown": "Signaal: onbekend",
-    "stale": "verouderd"
+    "stale": "verouderd",
+    "Default WiFi credentials": "Standaard WiFi-inloggegevens",
+    "Default Thread credentials": "Standaard Thread-inloggegevens",
+    "Additional WiFi networks": "Extra WiFi-netwerken",
+    "Additional Thread networks": "Extra Thread-netwerken",
+    "Add WiFi network": "WiFi-netwerk toevoegen",
+    "Add Thread network": "Thread-netwerk toevoegen",
+    "Identifier is required": "Identificatie is vereist",
+    "Identifier \"%s\" is reserved": "Identificatie \"%s\" is gereserveerd",
+    "Identifier \"%s\" is already used": "Identificatie \"%s\" is al in gebruik",
+    "Network to configure on the device": "Netwerk om op het apparaat te configureren",
+    "WiFi network": "WiFi-netwerk",
+    "Thread network": "Thread-netwerk",
+    "Default": "Standaard",
+    "Identifier": "Identificatie"
 }

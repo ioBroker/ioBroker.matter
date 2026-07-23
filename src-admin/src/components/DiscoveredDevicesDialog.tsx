@@ -20,7 +20,7 @@ import { type AdminConnection, I18n, type ThemeType, InfoBox } from '@iobroker/a
 import { IconButton } from '@foxriver76/iob-component-lib';
 
 import { getVendorName } from '../Utils';
-import type { CommissionableDevice } from '../types';
+import type { CommissionableDevice, MatterControllerConfig } from '../types';
 import QrCodeDialog from './QrCodeDialog';
 
 interface DiscoveredDevicesDialogProps {
@@ -28,6 +28,8 @@ interface DiscoveredDevicesDialogProps {
     onClose: () => void;
     ble: boolean;
     instance: number;
+    /** Controller config, forwarded to the QR dialog for the stored-credential picker. */
+    controllerConfig?: MatterControllerConfig;
     registerDiscoveryMessageHandler: (handler: null | ((device: CommissionableDevice) => void)) => void;
     themeType: ThemeType;
     triggerDeviceManagerLoad: () => void;
@@ -74,7 +76,9 @@ export default class DiscoveredDevicesDialog extends Component<
         return (
             <QrCodeDialog
                 name={`${this.state.showQrCodeDialog.DN} / ${getVendorName(this.state.showQrCodeDialog.V)}`}
-                onClose={async (manualCode?: string, qrCode?: string): Promise<void> => {
+                ble={this.props.ble}
+                controllerConfig={this.props.controllerConfig}
+                onClose={async (manualCode?, qrCode?, credentialIds?): Promise<void> => {
                     if (manualCode || qrCode) {
                         const device: CommissionableDevice = this.state.showQrCodeDialog!;
 
@@ -87,6 +91,7 @@ export default class DiscoveredDevicesDialog extends Component<
                                 device,
                                 qrCode,
                                 manualCode,
+                                ...credentialIds,
                             },
                         );
 

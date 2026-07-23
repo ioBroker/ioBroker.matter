@@ -304,5 +304,19 @@
     "Route table only": "Route table only",
     "Connected devices": "Connected devices",
     "Signal: Unknown": "Signal: Unknown",
-    "stale": "stale"
+    "stale": "stale",
+    "Default WiFi credentials": "Default WiFi credentials",
+    "Default Thread credentials": "Default Thread credentials",
+    "Additional WiFi networks": "Additional WiFi networks",
+    "Additional Thread networks": "Additional Thread networks",
+    "Add WiFi network": "Add WiFi network",
+    "Add Thread network": "Add Thread network",
+    "Identifier is required": "Identifier is required",
+    "Identifier \"%s\" is reserved": "Identifier \"%s\" is reserved",
+    "Identifier \"%s\" is already used": "Identifier \"%s\" is already used",
+    "Network to configure on the device": "Network to configure on the device",
+    "WiFi network": "WiFi network",
+    "Thread network": "Thread network",
+    "Default": "Default",
+    "Identifier": "Identifier"
 }

@@ -281,5 +281,19 @@
     "Route table only": "Tylko tablica routingu",
     "Connected devices": "Podłączone urządzenia",
     "Signal: Unknown": "Sygnał: nieznany",
-    "stale": "nieaktualny"
+    "stale": "nieaktualny",
+    "Default WiFi credentials": "Domyślne dane logowania WiFi",
+    "Default Thread credentials": "Domyślne dane logowania Thread",
+    "Additional WiFi networks": "Dodatkowe sieci WiFi",
+    "Additional Thread networks": "Dodatkowe sieci Thread",
+    "Add WiFi network": "Dodaj sieć WiFi",
+    "Add Thread network": "Dodaj sieć Thread",
+    "Identifier is required": "Identyfikator jest wymagany",
+    "Identifier \"%s\" is reserved": "Identyfikator \"%s\" jest zarezerwowany",
+    "Identifier \"%s\" is already used": "Identyfikator \"%s\" jest już używany",
+    "Network to configure on the device": "Sieć do skonfigurowania na urządzeniu",
+    "WiFi network": "Sieć WiFi",
+    "Thread network": "Sieć Thread",
+    "Default": "Domyślny",
+    "Identifier": "Identyfikator"
 }

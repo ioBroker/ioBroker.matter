@@ -37,6 +37,21 @@ export interface DeviceDescription extends BridgeDeviceDescription {
     passcode: string;
 }
 
+/** Reserved id of the scalar (legacy) credential set stored directly on the controller config. */
+export const DEFAULT_CREDENTIAL_ID = 'default';
+
+export interface WifiCredentialEntry {
+    id: string;
+    ssid: string;
+    password: string;
+}
+
+export interface ThreadCredentialEntry {
+    id: string;
+    networkName: string;
+    operationalDataset: string;
+}
+
 export interface MatterControllerConfig {
     enabled?: boolean;
     ble?: boolean;
@@ -45,6 +60,10 @@ export interface MatterControllerConfig {
     wifiPassword?: string;
     threadNetworkName?: string;
     threadOperationalDataSet?: string;
+    /** Named WiFi credential sets in addition to the default scalar set. */
+    additionalWifiCredentials?: WifiCredentialEntry[];
+    /** Named Thread credential sets in addition to the default scalar set. */
+    additionalThreadCredentials?: ThreadCredentialEntry[];
     defaultExposeMatterApplicationClusterData?: boolean;
     defaultExposeMatterSystemClusterData?: boolean;
 }

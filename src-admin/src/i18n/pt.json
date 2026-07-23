@@ -281,5 +281,19 @@
     "Route table only": "Apenas tabela de rotas",
     "Connected devices": "Dispositivos conectados",
     "Signal: Unknown": "Sinal: desconhecido",
-    "stale": "obsoleto"
+    "stale": "obsoleto",
+    "Default WiFi credentials": "Credenciais WiFi padrão",
+    "Default Thread credentials": "Credenciais Thread padrão",
+    "Additional WiFi networks": "Redes WiFi adicionais",
+    "Additional Thread networks": "Redes Thread adicionais",
+    "Add WiFi network": "Adicionar rede WiFi",
+    "Add Thread network": "Adicionar rede Thread",
+    "Identifier is required": "O identificador é obrigatório",
+    "Identifier \"%s\" is reserved": "O identificador \"%s\" está reservado",
+    "Identifier \"%s\" is already used": "O identificador \"%s\" já está em uso",
+    "Network to configure on the device": "Rede a configurar no dispositivo",
+    "WiFi network": "Rede WiFi",
+    "Thread network": "Rede Thread",
+    "Default": "Padrão",
+    "Identifier": "Identificador"
 }

@@ -29,6 +29,8 @@ import type {
     ThreadRouteEntry,
     BorderRouterEntry,
 } from '../ioBrokerTypes';
+import { DEFAULT_CREDENTIAL_ID } from '../ioBrokerTypes';
+import { resolveThreadCredential, resolveWifiCredential } from './credentialResolver';
 import { BorderRouterDiscovery } from './BorderRouterDiscovery';
 import { GeneralMatterNode, type PairedNodeConfig } from './GeneralMatterNode';
 import { identifyDeviceTypes } from './to-iobroker/ioBrokerFactory';
@@ -68,7 +70,7 @@ type EndUserCommissioningOptions = (
     | { qrCode: string }
     | { manualCode: string }
     | { passcode: number; vendorId: number; productId: number; ip: string; port: number }
-) & { device: CommissionableDevice };
+) & { device: CommissionableDevice; wifiCredentialId?: string; threadCredentialId?: string };
 
 class Controller implements GeneralNode {
     #parameters: MatterControllerConfig;
@@ -503,24 +505,27 @@ class Controller implements GeneralNode {
         };
 
         if (this.#useBle) {
-            if (this.#parameters.wifiSSID && this.#parameters.wifiPassword) {
-                this.#adapter.log.debug(`Registering Commissioning over BLE with WiFi: ${this.#parameters.wifiSSID}`);
-                commissioningOptions.wifiNetwork = {
-                    wifiSsid: this.#parameters.wifiSSID,
-                    wifiCredentials: this.#parameters.wifiPassword,
-                };
-            }
-            if (
-                this.#parameters.threadNetworkName !== undefined &&
-                this.#parameters.threadOperationalDataSet !== undefined
-            ) {
-                this.#adapter.log.debug(
-                    `Registering Commissioning over BLE with Thread: ${this.#parameters.threadNetworkName}`,
+            const wifi = resolveWifiCredential(this.#parameters, data.wifiCredentialId);
+            if (wifi) {
+                this.#adapter.log.debug(`Registering Commissioning over BLE with WiFi: ${wifi.ssid}`);
+                commissioningOptions.wifiNetwork = { wifiSsid: wifi.ssid, wifiCredentials: wifi.password };
+            } else if (data.wifiCredentialId && data.wifiCredentialId !== DEFAULT_CREDENTIAL_ID) {
+                this.#adapter.log.warn(
+                    `WiFi credential set "${data.wifiCredentialId}" is not configured; commissioning without WiFi credentials.`,
                 );
+            }
+
+            const thread = resolveThreadCredential(this.#parameters, data.threadCredentialId);
+            if (thread) {
+                this.#adapter.log.debug(`Registering Commissioning over BLE with Thread: ${thread.networkName}`);
                 commissioningOptions.threadNetwork = {
-                    networkName: this.#parameters.threadNetworkName,
-                    operationalDataset: this.#parameters.threadOperationalDataSet,
+                    networkName: thread.networkName,
+                    operationalDataset: thread.operationalDataset,
                 };
+            } else if (data.threadCredentialId && data.threadCredentialId !== DEFAULT_CREDENTIAL_ID) {
+                this.#adapter.log.warn(
+                    `Thread credential set "${data.threadCredentialId}" is not configured; commissioning without Thread credentials.`,
+                );
             }
         }
 

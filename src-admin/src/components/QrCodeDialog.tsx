@@ -2,15 +2,41 @@ import React, { Component } from 'react';
 
 import { Scanner } from '@yudiel/react-qr-scanner';
 
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField } from '@mui/material';
+import {
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    FormControl,
+    IconButton,
+    InputLabel,
+    MenuItem,
+    Select,
+    TextField,
+} from '@mui/material';
 import { Add, Clear, Close, QrCode } from '@mui/icons-material';
 
 import { I18n, type ThemeType, InfoBox } from '@iobroker/adapter-react-v5';
 
+import type { MatterControllerConfig } from '../types';
+
+/** Reserved id of the default (scalar) credential set. */
+const DEFAULT_CREDENTIAL_ID = 'default';
+
+export interface CommissioningCredentialIds {
+    wifiCredentialId?: string;
+    threadCredentialId?: string;
+}
+
 interface QrCodeDialogProps {
-    onClose: (manualCode?: string, qrCode?: string) => void;
+    onClose: (manualCode?: string, qrCode?: string, credentialIds?: CommissioningCredentialIds) => void;
     themeType: ThemeType;
     name?: string;
+    /** Controller config, required to offer the stored-credential picker (BLE commissioning only). */
+    controllerConfig?: MatterControllerConfig;
+    /** Whether BLE commissioning is active; the credential picker is only relevant then. */
+    ble?: boolean;
 }
 
 interface QrCodeDialogState {
@@ -19,6 +45,8 @@ interface QrCodeDialogState {
     qrError: string;
     hideQrCode: boolean;
     iframe: WindowProxy | null;
+    wifiCredentialId: string;
+    threadCredentialId: string;
 }
 
 export default class QrCodeDialog extends Component<QrCodeDialogProps, QrCodeDialogState> {
@@ -32,7 +60,92 @@ export default class QrCodeDialog extends Component<QrCodeDialogProps, QrCodeDia
             qrError: '',
             hideQrCode: false,
             iframe: null,
+            wifiCredentialId: DEFAULT_CREDENTIAL_ID,
+            threadCredentialId: DEFAULT_CREDENTIAL_ID,
         };
+    }
+
+    /**
+     * Keep only credential entries the resolver can look up: a non-blank id that is not the reserved
+     * `default`/`delete` and not a duplicate of an earlier entry. Blank/duplicate/reserved ids would either
+     * collide with the Default option or fall back to the default set silently, so they must not be offered.
+     */
+    private static selectableCredentials<T extends { id: string }>(list: T[]): T[] {
+        const seen = new Set<string>();
+        const result: T[] = [];
+        for (const entry of list) {
+            const id = entry.id.trim().toLowerCase();
+            if (!id || id === 'default' || id === 'delete' || seen.has(id)) {
+                continue;
+            }
+            seen.add(id);
+            result.push(entry);
+        }
+        return result;
+    }
+
+    /** Picker of the stored WiFi/Thread credential set to push during BLE commissioning. */
+    private renderCredentialPicker(): React.JSX.Element | null {
+        const config = this.props.controllerConfig;
+        if (!this.props.ble || !config) {
+            return null;
+        }
+        const wifi = QrCodeDialog.selectableCredentials(config.additionalWifiCredentials || []);
+        const thread = QrCodeDialog.selectableCredentials(config.additionalThreadCredentials || []);
+        if (!wifi.length && !thread.length) {
+            return null;
+        }
+
+        return (
+            <div style={{ marginTop: 16, maxWidth: 400 }}>
+                <div style={{ marginBottom: 8 }}>{I18n.t('Network to configure on the device')}</div>
+                {wifi.length ? (
+                    <FormControl
+                        variant="standard"
+                        fullWidth
+                        style={{ marginBottom: 8 }}
+                    >
+                        <InputLabel>{I18n.t('WiFi network')}</InputLabel>
+                        <Select
+                            value={this.state.wifiCredentialId}
+                            onChange={e => this.setState({ wifiCredentialId: e.target.value })}
+                        >
+                            <MenuItem value={DEFAULT_CREDENTIAL_ID}>{I18n.t('Default')}</MenuItem>
+                            {wifi.map(entry => (
+                                <MenuItem
+                                    key={entry.id}
+                                    value={entry.id}
+                                >
+                                    {entry.ssid || entry.id}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                ) : null}
+                {thread.length ? (
+                    <FormControl
+                        variant="standard"
+                        fullWidth
+                    >
+                        <InputLabel>{I18n.t('Thread network')}</InputLabel>
+                        <Select
+                            value={this.state.threadCredentialId}
+                            onChange={e => this.setState({ threadCredentialId: e.target.value })}
+                        >
+                            <MenuItem value={DEFAULT_CREDENTIAL_ID}>{I18n.t('Default')}</MenuItem>
+                            {thread.map(entry => (
+                                <MenuItem
+                                    key={entry.id}
+                                    value={entry.id}
+                                >
+                                    {entry.networkName || entry.id}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                ) : null}
+            </div>
+        );
     }
 
     onMessage = (event: { origin: string; data: any }): void => {
@@ -240,13 +353,19 @@ export default class QrCodeDialog extends Component<QrCodeDialogProps, QrCodeDia
                             {I18n.t('Scan with the ioBroker cloud')}
                         </Button>
                     ) : null}
+                    {this.renderCredentialPicker()}
                 </DialogContent>
                 <DialogActions>
                     <Button
                         variant="contained"
                         disabled={(!this.state.qrCode && !this.state.manualCode) || qrCodeError || manualCodeError}
                         color="primary"
-                        onClick={(): void => this.props.onClose(this.state.manualCode, this.state.qrCode)}
+                        onClick={(): void =>
+                            this.props.onClose(this.state.manualCode, this.state.qrCode, {
+                                wifiCredentialId: this.state.wifiCredentialId,
+                                threadCredentialId: this.state.threadCredentialId,
+                            })
+                        }
                         startIcon={<Add />}
                     >
                         {I18n.t('Add')}

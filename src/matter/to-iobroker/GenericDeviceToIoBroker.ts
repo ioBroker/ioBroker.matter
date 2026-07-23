@@ -253,7 +253,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         const { endpointId, clusterId, matterValueChanged } = data;
         const attributeName =
             'vendorSpecificAttributeId' in data
-                ? `unknownAttribute_${Diagnostic.hex(data.vendorSpecificAttributeId)}`
+                ? `attr$${data.vendorSpecificAttributeId.toString(16)}`
                 : data.attributeName;
         if (attributeName !== undefined && !this.#attributeIsSupported(endpointId, clusterId, attributeName)) {
             return;
@@ -295,7 +295,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
             let attributeId: AttributeId | undefined;
             const requestedAttributeName =
                 'vendorSpecificAttributeId' in data
-                    ? `unknownAttribute_${Diagnostic.hex(data.vendorSpecificAttributeId)}`
+                    ? `attr$${data.vendorSpecificAttributeId.toString(16)}`
                     : data.attributeName;
             let attributeName = Array.isArray(requestedAttributeName)
                 ? requestedAttributeName[0]
@@ -307,6 +307,9 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                 }
 
                 attributeId = Matter.clusters(clusterId)?.attributes(attributeName)?.id as AttributeId | undefined;
+                if (attributeId === undefined && 'vendorSpecificAttributeId' in data) {
+                    attributeId = data.vendorSpecificAttributeId;
+                }
             }
 
             if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
@@ -419,7 +422,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
             let attributeId: AttributeId | undefined;
             const attributeName =
                 'vendorSpecificAttributeId' in data
-                    ? `unknownAttribute_${Diagnostic.hex(data.vendorSpecificAttributeId)}`
+                    ? `attr$${data.vendorSpecificAttributeId.toString(16)}`
                     : data.attributeName;
 
             if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
@@ -427,6 +430,9 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                     return;
                 }
                 attributeId = Matter.clusters(clusterId)?.attributes(attributeName)?.id as AttributeId | undefined;
+                if (attributeId === undefined && 'vendorSpecificAttributeId' in data) {
+                    attributeId = data.vendorSpecificAttributeId;
+                }
             }
 
             // Register the Matter path mapping

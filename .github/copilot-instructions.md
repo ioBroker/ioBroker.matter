@@ -83,7 +83,7 @@ This is an ioBroker adapter for integrating Matter devices into the ioBroker hom
 ├── build/                        # Compiled backend code
 ├── admin/                        # Compiled frontend assets
 ├── test/                         # Test files
-├── tasks.js                      # Custom build scripts
+├── tasks.ts                      # Custom build scripts (run via ts-node)
 └── io-package.json               # ioBroker adapter metadata
 ```
 
@@ -135,14 +135,16 @@ npm test                 # Run tests
 npm run dev-server       # Start development server
 ```
 
-### Custom Build Tasks (tasks.js)
+### Custom Build Tasks (tasks.ts)
 ```bash
-node tasks.js --0-clean  # Clean build directories
-node tasks.js --1-npm    # Install frontend dependencies
-node tasks.js --2-build  # Build frontend with Vite
-node tasks.js --3-copy   # Copy files to admin directory
-node tasks.js --4-patch  # Patch HTML files for ioBroker
+npm run 0-clean   # Clean build directories
+npm run 1-npm     # Install frontend dependencies
+npm run 2-build   # Build frontend with Vite
+npm run 3-copy    # Copy files to admin directory
+npm run 4-patch   # Patch HTML files for ioBroker
 ```
+`tasks.ts` is executed with `ts-node --project tsconfig.tasks.json` so it runs on Node.js 20
+(no native TypeScript stripping required).
 
 ## Key Architectural Patterns
 

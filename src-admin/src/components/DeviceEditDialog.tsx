@@ -9,7 +9,7 @@ import {
     DialogTitle,
     FormControl,
     FormControlLabel,
-    IconButton as MuiIconButton,
+    IconButton,
     InputLabel,
     MenuItem,
     Select,
@@ -83,12 +83,12 @@ export default class DeviceEditDialog extends Component<DeviceEditDialogProps, D
                         title={I18n.t('Toggle expert mode')}
                         slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                     >
-                        <MuiIconButton
+                        <IconButton
                             onClick={() => this.props.setExpertMode(!this.props.expertMode)}
                             color={this.props.expertMode ? 'primary' : 'default'}
                         >
                             <IconExpert />
-                        </MuiIconButton>
+                        </IconButton>
                     </Tooltip>
                 </DialogTitle>
                 <DialogContent>
@@ -278,7 +278,7 @@ export default class DeviceEditDialog extends Component<DeviceEditDialogProps, D
                                     }
 
                                     const data = clone(this.state.data);
-                                    data.dimmerOnLevel = e.target.value as number;
+                                    data.dimmerOnLevel = e.target.value;
                                     this.setState({ data });
                                 }}
                                 renderValue={value => `${value}%`}

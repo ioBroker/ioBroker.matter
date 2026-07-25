@@ -702,7 +702,7 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                                     }
 
                                     const editDeviceDialog = clone(this.state.editDeviceDialog);
-                                    editDeviceDialog.dimmerOnLevel = e.target.value as number;
+                                    editDeviceDialog.dimmerOnLevel = e.target.value;
                                     this.setState({ editDeviceDialog });
                                 }}
                                 renderValue={value => `${value}%`}

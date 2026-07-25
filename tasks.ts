@@ -1,20 +1,20 @@
-const { existsSync, copyFileSync, readFileSync, statSync, writeFileSync } = require('node:fs');
-const { deleteFoldersRecursive, copyFiles, npmInstall, buildReact, patchHtmlFile } = require('@iobroker/build-tools');
+import { existsSync, copyFileSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { deleteFoldersRecursive, copyFiles, npmInstall, buildReact, patchHtmlFile } from '@iobroker/build-tools';
 
-function clean() {
+function clean(): void {
     deleteFoldersRecursive(`${__dirname}/admin`, ['matter.png', 'matter.svg']);
     deleteFoldersRecursive(`${__dirname}/src-admin/build`);
 }
 
-function copyAllFiles() {
+function copyAllFiles(): void {
     copyFiles(['src-admin/build/**/*', '!src-admin/build/index.html'], 'admin/');
 }
 
-function copyI18n() {
+function copyI18n(): void {
     copyFiles(['src/lib/i18n/**/*'], 'build/lib/i18n');
 }
 
-function sync2files(src, dst) {
+function sync2files(src: string, dst: string): void {
     const srcTxt = readFileSync(src).toString('utf8');
     const destTxt = readFileSync(dst).toString('utf8');
     if (srcTxt !== destTxt) {
@@ -28,7 +28,7 @@ function sync2files(src, dst) {
     }
 }
 
-async function patch() {
+async function patch(): Promise<void> {
     await patchHtmlFile(`${__dirname}/src-admin/build/index.html`, '../..');
     if (!existsSync(`${__dirname}/src-admin/build/index.html`)) {
         console.error('Index.html not found!');
@@ -41,23 +41,23 @@ async function patch() {
 if (process.argv.includes('--0-clean')) {
     clean();
 } else if (process.argv.includes('--1-npm')) {
-    npmInstall(`${__dirname}/src-admin`).catch(e => {
-        console.error(`Cannot install npm: ${e}`);
+    npmInstall(`${__dirname}/src-admin`).catch((e: unknown) => {
+        console.error(`Cannot install npm: ${e as string}`);
         process.exit(1);
     });
 } else if (process.argv.includes('--2-build')) {
     buildReact(`${__dirname}/src-admin/`, {
         rootDir: __dirname,
         vite: true,
-    }).catch(e => {
-        console.error(`Cannot build react: ${e}`);
+    }).catch((e: unknown) => {
+        console.error(`Cannot build react: ${e as string}`);
         process.exit(1);
     });
 } else if (process.argv.includes('--3-copy')) {
     copyAllFiles();
 } else if (process.argv.includes('--4-patch')) {
-    patch().catch(e => {
-        console.error(`Cannot patch: ${e}`);
+    patch().catch((e: unknown) => {
+        console.error(`Cannot patch: ${e as string}`);
         process.exit(1);
     });
 } else if (process.argv.includes('--build')) {
@@ -72,8 +72,8 @@ if (process.argv.includes('--0-clean')) {
         )
         .then(() => copyAllFiles())
         .then(() => patch())
-        .catch(e => {
-            console.error(`Cannot build: ${e}`);
+        .catch((e: unknown) => {
+            console.error(`Cannot build: ${e as string}`);
             process.exit(1);
         });
 } else if (process.argv.includes('--copy-i18n')) {
@@ -91,8 +91,8 @@ if (process.argv.includes('--0-clean')) {
         )
         .then(() => copyAllFiles())
         .then(() => patch())
-        .catch(e => {
-            console.error(`Cannot build admin controls: ${e}`);
+        .catch((e: unknown) => {
+            console.error(`Cannot build admin controls: ${e as string}`);
             process.exit(1);
         });
 }

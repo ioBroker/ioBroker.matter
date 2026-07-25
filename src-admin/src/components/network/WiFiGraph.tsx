@@ -13,7 +13,7 @@ import {
     getWiFiVersionName,
 } from './NetworkUtils';
 import { createNodeIconDataUrl, createWiFiApIconDataUrl } from './NetworkIcons';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 
 class WiFiGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGraphState> {
     // eslint-disable-next-line class-methods-use-this

@@ -30,7 +30,6 @@ import {
     Fab,
     FormControl,
     FormControlLabel,
-    IconButton as MuiIconButton,
     IconButton,
     InputLabel,
     MenuItem,
@@ -53,7 +52,7 @@ import {
     DeviceTypeIcon,
     InfoBox,
     IconExpert,
-} from '@iobroker/adapter-react-v5';
+} from '@iobroker/gui-components';
 
 import DeviceDialog, { SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import type {
@@ -403,12 +402,12 @@ export class Bridges extends BridgesAndDevices<BridgesProps, BridgesState> {
                         title={I18n.t('Toggle expert mode')}
                         slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                     >
-                        <MuiIconButton
+                        <IconButton
                             onClick={() => this.props.setExpertMode(!this.props.expertMode)}
                             color={this.props.expertMode ? 'primary' : 'default'}
                         >
                             <IconExpert />
-                        </MuiIconButton>
+                        </IconButton>
                     </Tooltip>
                 </DialogTitle>
                 <DialogContent>

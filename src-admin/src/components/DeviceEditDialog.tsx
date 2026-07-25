@@ -19,7 +19,7 @@ import {
 import { Close, Save } from '@mui/icons-material';
 
 import type { Types } from '@iobroker/type-detector';
-import { I18n, type ThemeType, DeviceTypeSelector, IconExpert } from '@iobroker/adapter-react-v5';
+import { I18n, type ThemeType, DeviceTypeSelector, IconExpert } from '@iobroker/gui-components';
 
 import { SUPPORTED_DEVICES } from './DeviceDialog';
 import { clone } from '../Utils';

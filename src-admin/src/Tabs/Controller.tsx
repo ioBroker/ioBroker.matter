@@ -26,7 +26,7 @@ import {
     DialogMessage,
     InfoBox,
     IconExpert,
-} from '@iobroker/adapter-react-v5';
+} from '@iobroker/gui-components';
 import DeviceManager from '@iobroker/dm-gui-components';
 
 import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';

@@ -1,4 +1,4 @@
-import { type AdminConnection, I18n } from '@iobroker/adapter-react-v5';
+import { type AdminConnection, I18n } from '@iobroker/gui-components';
 import { v4 as uuidv4 } from 'uuid';
 
 import type { BridgeDescription, CommissioningInfo, DeviceDescription, MatterConfig } from '../types';

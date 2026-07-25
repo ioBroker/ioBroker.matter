@@ -1,6 +1,13 @@
 import { existsSync, copyFileSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { deleteFoldersRecursive, copyFiles, npmInstall, buildReact, patchHtmlFile } from '@iobroker/build-tools';
 
+// ts-node appends its own bootstrap arguments (including the relative "--project tsconfig.tasks.json")
+// to process.execArgv, and child_process.fork() inherits them. The children started by
+// @iobroker/build-tools run with cwd=src-admin, where that relative tsconfig does not exist,
+// so they would die with "TS5083: Cannot read file .../src-admin/tsconfig.tasks.json".
+// The children are plain JS (vite) and do not need ts-node at all.
+process.execArgv = [];
+
 function clean(): void {
     deleteFoldersRecursive(`${__dirname}/admin`, ['matter.png', 'matter.svg']);
     deleteFoldersRecursive(`${__dirname}/src-admin/build`);

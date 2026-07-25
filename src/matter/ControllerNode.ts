@@ -1,15 +1,21 @@
 import type { Endpoint, ServerAddressUdp, SoftwareUpdateInfo } from '@matter/main';
-import { ObserverGroup, SoftwareUpdateManager, Diagnostic, NodeId, VendorId, Seconds } from '@matter/main';
+import { ObserverGroup, SoftwareUpdateManager, Diagnostic, NodeId, Time, VendorId, Seconds } from '@matter/main';
 import { GeneralCommissioning } from '@matter/main/clusters';
 import {
     GeneralDiagnosticsClient,
     NetworkCommissioningClient,
     ThreadNetworkDiagnosticsClient,
+    TimeSynchronizationClient,
     WiFiNetworkDiagnosticsClient,
 } from '@matter/main/behaviors';
-import type { PeerAddress, CommissionableDevice, DiscoveryData } from '@matter/main/protocol';
-import { CommissioningError, DclOtaUpdateService } from '@matter/main/protocol';
-import { ManualPairingCodeCodec, QrPairingCodeCodec, DiscoveryCapabilitiesSchema } from '@matter/main/types';
+import type { CommissionableDevice, DiscoveryData } from '@matter/main/protocol';
+import { CommissioningError, DclOtaUpdateService, PeerAddress } from '@matter/main/protocol';
+import {
+    ManualPairingCodeCodec,
+    QrPairingCodeCodec,
+    DiscoveryCapabilitiesSchema,
+    type FabricIndex,
+} from '@matter/main/types';
 import { CommissioningController, type NodeCommissioningOptions } from '@project-chip/matter.js';
 import {
     NodeStates as PairedNodeStates,
@@ -31,6 +37,13 @@ import type {
 } from '../ioBrokerTypes';
 import { BorderRouterDiscovery } from './BorderRouterDiscovery';
 import { GeneralMatterNode, type PairedNodeConfig } from './GeneralMatterNode';
+import { pushNodeTime, type TimeSyncInvokers } from './timeSync/timeSyncCommands';
+import {
+    readTimeSyncCapabilities,
+    TIME_FAILURE_EVENT_ID,
+    TIME_SYNC_CLUSTER_ID,
+    TimeSyncManager,
+} from './timeSync/TimeSyncManager';
 import { identifyDeviceTypes } from './to-iobroker/ioBrokerFactory';
 import type { GeneralNode, MessageResponse } from './GeneralNode';
 import { inspect } from 'util';
@@ -84,6 +97,8 @@ class Controller implements GeneralNode {
     #networkGraphUpdateTimer?: ioBroker.Timeout;
     #closing = false;
     #borderRouterDiscovery?: BorderRouterDiscovery;
+    #timeSyncManager?: TimeSyncManager;
+    #fabricIndex?: FabricIndex;
 
     constructor(options: ControllerCreateOptions) {
         const { adapter, controllerOptions, updateCallback, fabricLabel } = options;
@@ -293,6 +308,16 @@ class Controller implements GeneralNode {
                 .get(node.nodeId.toString())
                 ?.handleTriggeredEvent(data)
                 .catch(error => this.#adapter.log.error(`Error handling event: ${error}`));
+
+            if (data.path.clusterId === TIME_SYNC_CLUSTER_ID && data.path.eventId === TIME_FAILURE_EVENT_ID) {
+                const peer = this.#timeSyncPeer(node.nodeId);
+                if (peer !== undefined) {
+                    this.#adapter.log.debug(
+                        `Received timeFailure event from node ${node.nodeId}, triggering time sync`,
+                    );
+                    this.#timeSyncManager?.syncNode(peer);
+                }
+            }
         });
         node.events.stateChanged.on((info: PairedNodeStates) => {
             const nodeDetails = (this.#commissioningController?.getCommissionedNodesDetails() ?? []).find(
@@ -311,6 +336,10 @@ class Controller implements GeneralNode {
             }
             this.#updateCallback();
 
+            if (info === PairedNodeStates.Connected) {
+                this.#registerNodeForTimeSync(node);
+            }
+
             // Send network graph update on connection state changes
             this.#sendNetworkGraphUpdate();
         });
@@ -324,9 +353,14 @@ class Controller implements GeneralNode {
         });
         node.events.decommissioned.on(() => {
             this.#adapter.log.info(`Node "${node.nodeId}" decommissioned`);
+            this.#unregisterNodeFromTimeSync(node.nodeId);
             // TODO Delete the node from config and objects
             this.#updateCallback();
         });
+        // matter.js emits stateChanged(Connected) before it flips `initialized` and builds the
+        // endpoint structure, and never re-emits Connected while the node stays up. Nodes doing
+        // their first remote initialization would therefore never register via stateChanged.
+        node.events.initializedFromRemote.on(() => this.#registerNodeForTimeSync(node));
         node.events.connectionAlive.on(() => {
             const nodeIdStr = node.nodeId.toString();
             const deviceNode = this.#nodes.get(nodeIdStr);
@@ -390,6 +424,9 @@ class Controller implements GeneralNode {
             this.#adapter.log.error(`Failed to start the controller: ${errorText}`);
             return;
         }
+
+        this.#fabricIndex = this.#commissioningController.fabric.fabricIndex;
+        this.#startTimeSync();
 
         this.#borderRouterDiscovery = new BorderRouterDiscovery(this.#adapter.matterEnvironment);
         try {
@@ -487,6 +524,71 @@ class Controller implements GeneralNode {
         this.#nodes.set(nodeIdStr, device);
         await device.initialize(nodeDetails);
         device.connect(connectOptions);
+
+        // An already-connected node emits no further stateChanged, so register it here too
+        this.#registerNodeForTimeSync(node);
+    }
+
+    #timeSyncPeer(nodeId: NodeId): PeerAddress | undefined {
+        if (this.#timeSyncManager === undefined || this.#fabricIndex === undefined) {
+            return undefined;
+        }
+        return PeerAddress({ nodeId, fabricIndex: this.#fabricIndex });
+    }
+
+    #startTimeSync(): void {
+        const { enableTimeSync } = this.#adapter.config as MatterAdapterConfig;
+        if (enableTimeSync === false) {
+            this.#adapter.log.info('Time synchronization is disabled');
+            return;
+        }
+        this.#adapter.log.info('Time synchronization enabled');
+        this.#timeSyncManager = new TimeSyncManager({
+            syncTime: peer => this.#syncNodeTime(peer.nodeId),
+            nodeConnected: peer => this.#nodes.get(peer.nodeId.toString())?.isConnected ?? false,
+        });
+    }
+
+    #registerNodeForTimeSync(node: PairedNode): void {
+        const peer = this.#timeSyncPeer(node.nodeId);
+        const rootEndpoint = node.node;
+        if (peer === undefined || rootEndpoint === undefined || !node.initialized) {
+            return;
+        }
+        this.#timeSyncManager?.registerNode(peer, readTimeSyncCapabilities(rootEndpoint));
+    }
+
+    #unregisterNodeFromTimeSync(nodeId: NodeId): void {
+        const peer = this.#timeSyncPeer(nodeId);
+        if (peer !== undefined) {
+            this.#timeSyncManager?.unregisterNode(peer);
+        }
+    }
+
+    /**
+     * Push UTC time (and, for TimeZone-feature nodes, time zone + DST) to a node's
+     * TimeSynchronization cluster.
+     */
+    async #syncNodeTime(nodeId: NodeId): Promise<void> {
+        const rootEndpoint = this.#nodes.get(nodeId.toString())?.node.node;
+        if (rootEndpoint === undefined) {
+            throw new Error(`Node ${nodeId} is not available`);
+        }
+        const capabilities = readTimeSyncCapabilities(rootEndpoint);
+        if (!capabilities.supported) {
+            throw new Error(`Node ${nodeId} does not expose the TimeSynchronization cluster`);
+        }
+        const commands = rootEndpoint.commandsOf(TimeSynchronizationClient);
+        const invokers: TimeSyncInvokers = {
+            setUtcTime: async fields => {
+                await commands.setUtcTime(fields);
+            },
+            setTimeZone: fields => commands.setTimeZone(fields),
+            setDstOffset: async fields => {
+                await commands.setDstOffset(fields);
+            },
+        };
+        await pushNodeTime({ invokers, capabilities, nowMs: Time.nowMs });
     }
 
     async getState(): Promise<void> {
@@ -1157,6 +1259,20 @@ class Controller implements GeneralNode {
             this.#borderRouterDiscovery = undefined;
         }
 
+        if (this.#timeSyncManager) {
+            const manager = this.#timeSyncManager;
+            this.#timeSyncManager = undefined;
+            // An in-flight setUtcTime on a node that silently went offline is not cancelable and
+            // can outlast the adapter's stopTimeout, so never block shutdown on it. Adapter timers
+            // are unavailable during unload, hence the matter.js one.
+            const shutdownTimeout = Time.sleep('time-sync-shutdown', Seconds(2));
+            await Promise.race([
+                manager.stop().catch(error => this.#adapter.log.debug(`Error stopping time sync: ${error}`)),
+                shutdownTimeout,
+            ]);
+            shutdownTimeout.cancel();
+        }
+
         for (const node of this.#nodes.values()) {
             await node.destroy();
         }
@@ -1174,10 +1290,9 @@ class Controller implements GeneralNode {
         if (!this.#commissioningController) {
             throw new Error(`Can not decommission NodeId "${nodeId}" because controller not initialized.`);
         }
-        await this.#commissioningController.removeNode(
-            NodeId(BigInt(nodeId)),
-            !!this.#nodes.get(nodeId)?.node.isConnected,
-        );
+        const removedNodeId = NodeId(BigInt(nodeId));
+        await this.#commissioningController.removeNode(removedNodeId, !!this.#nodes.get(nodeId)?.node.isConnected);
+        this.#unregisterNodeFromTimeSync(removedNodeId);
         this.#nodes.delete(nodeId);
         this.#updateCallback();
     }

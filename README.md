@@ -138,6 +138,9 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 -->
 
 ## Changelog
+### **WORK IN PROGRESS**
+* (@Apollon77) Added time synchronization for controller nodes that support the Matter TimeSynchronization cluster (can be disabled in the settings)
+
 ### 1.3.1 (2026-07-23)
 * (@Apollon77) Fix Attribute Polling
 * (@Apollon77) Fix Commissioning of new nodes

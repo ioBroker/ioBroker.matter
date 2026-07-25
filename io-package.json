@@ -191,7 +191,8 @@
     "defaultBridge": "",
     "controllerFabricLabel": "",
     "allowUnofficialUpdates": false,
-    "customUpdatesPath": ""
+    "customUpdatesPath": "",
+    "enableTimeSync": true
   },
   "objects": [],
   "instanceObjects": [

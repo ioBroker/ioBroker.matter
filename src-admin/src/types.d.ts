@@ -12,6 +12,8 @@ export interface MatterAdapterConfig extends ioBroker.AdapterConfig {
     allowUnofficialUpdates: boolean;
     /** Custom path for OTA update files (default: instanceDataDir/custom-ota) */
     customUpdatesPath: string;
+    /** Push host time to paired nodes that support the TimeSynchronization cluster */
+    enableTimeSync: boolean;
 }
 
 export interface BridgeDeviceDescription {

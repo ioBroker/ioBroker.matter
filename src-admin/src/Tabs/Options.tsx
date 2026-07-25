@@ -274,6 +274,31 @@ class Options extends Component<OptionsProps, OptionsState> {
                     />
 
                     <Box sx={{ marginTop: 3 }}>
+                        <Typography sx={{ ...styles.header, fontSize: 16 }}>
+                            {I18n.t('Time Synchronization')}
+                        </Typography>
+                        {this.props.expertMode ? null : (
+                            <InfoBox
+                                type="info"
+                                closeable
+                                storeId="matter.controller.timeSync"
+                            >
+                                {I18n.t('Time Synchronization Infotext')}
+                            </InfoBox>
+                        )}
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={this.props.native.enableTimeSync !== false}
+                                    onChange={e => this.props.onChange('enableTimeSync', e.target.checked)}
+                                    color="primary"
+                                />
+                            }
+                            label={I18n.t('Synchronize time with paired devices')}
+                        />
+                    </Box>
+
+                    <Box sx={{ marginTop: 3 }}>
                         <Typography sx={{ ...styles.header, fontSize: 16 }}>{I18n.t('Custom OTA Updates')}</Typography>
                         {this.props.expertMode ? null : (
                             <InfoBox

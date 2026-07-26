@@ -81,7 +81,8 @@ describe('TimeSyncManager', () => {
         expect(connector.syncCalls.length).to.equal(1);
     });
 
-    it('holds off a timeFailure repeated inside the hour', async () => {
+    it('absorbs a burst of timeFailure events from one loss', async () => {
+        // Devices are observed emitting four within 49 s; only the first should be answered.
         manager.registerNode(PEER, CAPS);
         manager.completeStartup();
 
@@ -215,6 +216,42 @@ describe('TimeSyncManager', () => {
             const summary = lines.find(line => line.includes('Periodic resync complete'));
             expect(summary, 'the cycle must log a summary').to.not.equal(undefined);
             expect(summary).to.contain('synced 1 of 2 nodes');
+        });
+
+        it('does not re-push a peer the periodic cycle just handled', async () => {
+            cycling = new TimeSyncManager(
+                connector,
+                () => null,
+                () => 1,
+            );
+            cycling.registerNode(PEER, CAPS);
+            cycling.registerNode(PEER_2, CAPS);
+
+            await waitFor(() => connector.syncCalls.length >= 1, 6000);
+            const duringCycle = connector.syncCalls.length;
+
+            // Any reconnect signal re-registers a peer; here it lands inside the inter-node delay.
+            cycling.registerNode(PEER, CAPS);
+            await settle();
+            expect(connector.syncCalls.length, 'a routine re-register must not push again').to.equal(duringCycle);
+        });
+
+        it('still answers a timeFailure from a peer the cycle just handled', async () => {
+            cycling = new TimeSyncManager(
+                connector,
+                () => null,
+                () => 1,
+            );
+            cycling.registerNode(PEER, CAPS);
+            cycling.registerNode(PEER_2, CAPS);
+
+            await waitFor(() => connector.syncCalls.length >= 1, 6000);
+            const duringCycle = connector.syncCalls.length;
+
+            // The node reporting no usable time means the push did not take, so it must be answered.
+            cycling.syncNode(PEER, SyncTrigger.TimeFailure);
+            await settle();
+            expect(connector.syncCalls.length).to.equal(duringCycle + 1);
         });
 
         it('covers a node that registers while the first cycle is running', async () => {

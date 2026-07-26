@@ -313,9 +313,7 @@ class Controller implements GeneralNode {
             if (data.path.clusterId === TIME_SYNC_CLUSTER_ID && data.path.eventId === TIME_FAILURE_EVENT_ID) {
                 const peer = this.#timeSyncPeer(node.nodeId);
                 if (peer !== undefined) {
-                    this.#adapter.log.debug(
-                        `Received timeFailure event from node ${node.nodeId}, triggering time sync`,
-                    );
+                    this.#adapter.log.debug(`Received timeFailure event from node ${node.nodeId}`);
                     this.#timeSyncManager?.syncNode(peer, SyncTrigger.TimeFailure);
                 }
             }

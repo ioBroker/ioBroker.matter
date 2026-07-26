@@ -166,14 +166,20 @@ describe('TimeSyncManager', () => {
         // A cycle spaces its nodes 2 s apart, which overruns mocha's default timeout.
         this.timeout(15_000);
 
-        let cycling: TimeSyncManager;
+        let cycling: TimeSyncManager | undefined;
 
         afterEach(async () => {
-            await cycling.stop();
+            // Cleared so a test failing before assignment cannot re-stop the previous manager.
+            await cycling?.stop();
+            cycling = undefined;
         });
 
         it('syncs every registered peer', async () => {
-            cycling = new TimeSyncManager(connector, () => null, () => 1);
+            cycling = new TimeSyncManager(
+                connector,
+                () => null,
+                () => 1,
+            );
             cycling.registerNode(PEER, CAPS);
             cycling.registerNode(PEER_2, CAPS);
 
@@ -194,7 +200,11 @@ describe('TimeSyncManager', () => {
             };
             try {
                 connector.failNext = true;
-                cycling = new TimeSyncManager(connector, () => null, () => 1);
+                cycling = new TimeSyncManager(
+                    connector,
+                    () => null,
+                    () => 1,
+                );
                 cycling.registerNode(PEER, CAPS);
                 cycling.registerNode(PEER_2, CAPS);
 
@@ -210,7 +220,11 @@ describe('TimeSyncManager', () => {
         it('covers a node that registers while the first cycle is running', async () => {
             // The cycle snapshots its peer list up front, so a late arrival is not in it. It must
             // still be reachable through the immediate path, which opens as the cycle starts.
-            cycling = new TimeSyncManager(connector, () => null, () => 1);
+            cycling = new TimeSyncManager(
+                connector,
+                () => null,
+                () => 1,
+            );
             cycling.registerNode(PEER, CAPS);
             cycling.registerNode(PEER_2, CAPS);
 

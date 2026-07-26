@@ -11,6 +11,7 @@ import {
 const JAN_2026 = Date.UTC(2026, 0, 15);
 const JUL_2026 = Date.UTC(2026, 6, 1);
 const DAY_MS = 86_400_000;
+const HOUR_MS = 3_600_000;
 
 const BOTH_MAX = { maxRegimes: 2, maxWindows: 2 };
 const SINGLE_TIME_ZONE_ENTRY = { maxRegimes: 1, maxWindows: 2 };
@@ -53,6 +54,20 @@ function expectPlanMatchesZone(zone: string, atMs: number, limits = BOTH_MAX) {
     const plan = timeZonePlan(zone, atMs, limits);
     const label = `${zone} @ ${new Date(atMs).toISOString()}`;
     expect(nodeOffsetSeconds(plan, atMs), label).to.equal(offsetSecondsAt(zone, atMs));
+}
+
+/**
+ * A node holds a plan for up to the resync interval, so checking only the instant it was built
+ * proves nothing about the span it actually governs. The span walked here is deliberately not
+ * derived from the plan: a plan that under-reports a change would otherwise shrink its own
+ * window and pass.
+ */
+function expectPlanHoldsFor(zone: string, atMs: number, spanMs: number, limits = BOTH_MAX) {
+    const plan = timeZonePlan(zone, atMs, limits);
+    for (let t = atMs; t <= atMs + spanMs; t += HOUR_MS) {
+        const label = `${zone} @ ${new Date(t).toISOString()} (plan built ${new Date(atMs).toISOString()})`;
+        expect(nodeOffsetSeconds(plan, t), label).to.equal(offsetSecondsAt(zone, t));
+    }
 }
 
 describe('hostTimeZone', () => {
@@ -291,6 +306,29 @@ describe('hostTimeZone', () => {
             expectPlanMatchesZone('Asia/Almaty', Date.UTC(2024, 0, 15));
             expectPlanMatchesZone('Asia/Almaty', Date.UTC(2024, 1, 20));
             expectPlanMatchesZone('Asia/Almaty', Date.UTC(2024, 3, 1));
+        });
+
+        it('stays correct for the full day a node may hold it, across a transition', function () {
+            this.timeout(60_000);
+            // A node keeps a plan until the next resync, so each case starts shortly before a real
+            // boundary and walks past it: the window expiry, the spring-forward, and the instant a
+            // permanent regime takes over.
+            const cases: Array<[string, number]> = [
+                ['Europe/Berlin', Date.UTC(2026, 9, 24, 12)], // 13 h before DST ends
+                ['Europe/Berlin', Date.UTC(2026, 2, 28, 12)], // 13 h before DST starts
+                ['America/New_York', Date.UTC(2026, 10, 1, 0)], // 6 h before DST ends
+                ['Australia/Sydney', Date.UTC(2026, 3, 4, 12)], // southern autumn boundary
+                ['Asia/Almaty', Date.UTC(2024, 1, 29, 12)], // 6 h before a permanent -1 h
+                ['Europe/Istanbul', Date.UTC(2016, 2, 26, 12)], // 13 h before a permanent +1 h
+                ['America/Phoenix', Date.UTC(2026, 6, 1)], // no transition at all
+            ];
+            for (const [zone, atMs] of cases) {
+                for (const maxRegimes of [1, 2]) {
+                    for (const maxWindows of [1, 2]) {
+                        expectPlanHoldsFor(zone, atMs, DAY_MS, { maxRegimes, maxWindows });
+                    }
+                }
+            }
         });
 
         it("agrees with the zone's true offset across behaviours, dates and list sizes", function () {

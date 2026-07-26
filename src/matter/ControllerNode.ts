@@ -553,11 +553,10 @@ class Controller implements GeneralNode {
 
     #registerNodeForTimeSync(node: PairedNode): void {
         const peer = this.#timeSyncPeer(node.nodeId);
-        const rootEndpoint = node.node;
-        if (peer === undefined || rootEndpoint === undefined || !node.initialized) {
+        if (peer === undefined || !node.initialized) {
             return;
         }
-        this.#timeSyncManager?.registerNode(peer, readTimeSyncCapabilities(rootEndpoint));
+        this.#timeSyncManager?.registerNode(peer, readTimeSyncCapabilities(node.node));
     }
 
     #unregisterNodeFromTimeSync(nodeId: NodeId): void {

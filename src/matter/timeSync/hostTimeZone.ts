@@ -167,7 +167,7 @@ export interface TimeZonePlan {
 }
 
 export interface TimeZonePlanLimits {
-    /** The node's TimeZoneListMaxSize. The cluster permits 1 or 2. */
+    /** The node's TimeZoneListMaxSize. Values outside the cluster's range of 1 to 2 are brought into it. */
     maxRegimes: number;
     /** The node's DSTOffsetListMaxSize. Values below the spec minimum of 1 are raised. */
     maxWindows: number;
@@ -226,8 +226,10 @@ export function timeZonePlan(zone: string, fromMs: number, limits: TimeZonePlanL
     // the offset in effect now.
     const covered = segments.slice(currentIndex);
     const windowLimit = Math.max(1, limits.maxWindows);
+    // A TimeZone list always holds at least one entry and never more than two, whatever the node says.
+    const regimeLimit = Math.min(2, Math.max(1, limits.maxRegimes));
     // One TimeZone entry can only carry the change as a delta, which the whole-range minimum allows.
-    const splitIndex = limits.maxRegimes >= 2 ? permanentChangeIndex(covered) : undefined;
+    const splitIndex = regimeLimit >= 2 ? permanentChangeIndex(covered) : undefined;
 
     const runsFor = (index: number | undefined): OffsetSegment[][] =>
         index === undefined ? [covered] : [covered.slice(0, index), covered.slice(index)];

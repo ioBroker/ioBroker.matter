@@ -4,7 +4,7 @@ import { type PeerAddress, PeerAddressSet } from '@matter/main/protocol';
 const logger = Logger.get('NodeProcessor');
 
 // Timer.interval rejects anything outside the 32-bit signed range.
-const MAX_TIMER_DELAY_MS = 2_147_483_647;
+export const MAX_TIMER_DELAY_MS = 2_147_483_647;
 
 /**
  * Abstract base class for timer-driven periodic processing of registered nodes.
@@ -79,9 +79,19 @@ export abstract class NodeProcessor {
      * running, so callers must apply it before scheduleIfNeeded() starts the timer.
      */
     protected setNextCycleDelay(delayMs: number): boolean {
-        if (this.#timer.isRunning || this.#isProcessing || this.#closed) {
+        if (!this.cycleDelayAdjustable) {
             return false;
         }
+        return this.#applyInterval(delayMs);
+    }
+
+    /** Whether setNextCycleDelay() can still take effect, so callers can skip computing a delay. */
+    protected get cycleDelayAdjustable(): boolean {
+        return !this.#timer.isRunning && !this.#isProcessing && !this.#closed;
+    }
+
+    /** Both assignment paths go through here, since nextCycleDelay() is open to any subclass. */
+    #applyInterval(delayMs: number): boolean {
         if (!Number.isFinite(delayMs) || delayMs < 0) {
             // A NaN passes Timer.interval's range check and then fires immediately, every cycle.
             logger.warn(`Ignoring invalid cycle delay ${delayMs}`);
@@ -117,17 +127,16 @@ export abstract class NodeProcessor {
             return;
         }
 
-        let nextInterval = this.#targetInterval;
+        // A throw here would skip the finally below, leaving the timer stopped and this processor
+        // dead until a peer re-registers. The cadence is never worth that.
+        let nextInterval: Duration;
         try {
             nextInterval = this.nextCycleDelay();
         } catch (error) {
-            // The timer is one-shot and only scheduleIfNeeded() below re-arms it, so an override
-            // that throws here would stop the processor for the rest of the process lifetime.
-            logger.warn('Could not determine the next cycle delay, falling back to the interval:', error);
+            logger.warn('Falling back to the target interval, computing the next cycle delay failed:', error);
+            nextInterval = this.#targetInterval;
         }
-        if (this.#timer.interval !== nextInterval) {
-            this.#timer.interval = nextInterval;
-        }
+        this.#applyInterval(nextInterval);
 
         this.#isProcessing = true;
         let processedCount = 0;

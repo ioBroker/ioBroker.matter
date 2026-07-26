@@ -49,13 +49,15 @@ jobs:
               run: npm run build
 
             ## add caching for the build step including /admin and /build to reuse in later steps
+            ## the key must contain the commit sha: cache keys are immutable, so a key with only
+            ## github.ref would keep serving the build of the first run of a branch/PR to all later runs
             - name: Cache build output
               uses: actions/cache/save@v6
               with:
                 path: |
                   admin
                   build
-                key: ${{ github.ref }}-build
+                key: ${{ github.ref }}-${{ github.sha }}-build
 
     # Runs adapter tests on all supported node versions and OSes
     adapter-tests:
@@ -81,8 +83,9 @@ jobs:
                 path: |
                   admin
                   build
-                key: ${{ github.ref }}-build
+                key: ${{ github.ref }}-${{ github.sha }}-build
                 enableCrossOsArchive: true
+                fail-on-cache-miss: true
 
             - name: Use Node.js ${{ matrix.node-version }}
               uses: actions/setup-node@v6

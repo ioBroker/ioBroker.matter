@@ -149,17 +149,26 @@ function logSyncFailure(prefix: string, peer: PeerAddress, error: unknown): void
 export class TimeSyncManager extends NodeProcessor {
     readonly #connector: TimeSyncConnector;
     readonly #offsetChangeLookup: OffsetChangeLookup;
+    readonly #startupDelay: (commissionedNodeCount: number) => number;
     // Tracks in-flight immediate syncs per node to prevent parallel syncs
     #inFlightSyncs = new PeerAddressMap<Promise<void>>();
-    // Last trigger-driven sync attempt per node, measured against the cooldown for its trigger
-    #lastTriggerSyncMs = new PeerAddressMap<number>();
+    // Last sync attempt per node, kept per trigger. Sharing one stamp would let a failed
+    // reconnect attempt reinstate the 24 h block over a timeFailure's 1 h leash.
+    #lastReconnectSyncMs = new PeerAddressMap<number>();
+    #lastTimeFailureSyncMs = new PeerAddressMap<number>();
     // True after the first periodic resync cycle, enabling immediate syncs on reconnect
     #startupComplete = false;
 
-    constructor(connector: TimeSyncConnector, offsetChangeLookup: OffsetChangeLookup = defaultOffsetChangeLookup) {
-        super('time-sync-resync', STARTUP_BASE_DELAY, RESYNC_INTERVAL);
+    // startupDelay is only overridden by tests, which cannot wait out the real startup window.
+    constructor(
+        connector: TimeSyncConnector,
+        offsetChangeLookup: OffsetChangeLookup = defaultOffsetChangeLookup,
+        startupDelay: (commissionedNodeCount: number) => number = startupDelayMs,
+    ) {
+        super('time-sync-resync', startupDelay(0), RESYNC_INTERVAL);
         this.#connector = connector;
         this.#offsetChangeLookup = offsetChangeLookup;
+        this.#startupDelay = startupDelay;
     }
 
     /**
@@ -192,7 +201,7 @@ export class TimeSyncManager extends NodeProcessor {
                 // Scaling the delay is an optimization; it must not abort the node's registration.
                 logger.warn('Could not determine the commissioned node count:', error);
             }
-            const delay = startupDelayMs(nodeCount);
+            const delay = this.#startupDelay(nodeCount);
             if (this.setNextCycleDelay(delay)) {
                 logger.info(`First time synchronization in ${Duration.format(Millis(delay))}`);
             }
@@ -205,7 +214,8 @@ export class TimeSyncManager extends NodeProcessor {
      * Unregister a node from time sync tracking.
      */
     unregisterNode(peer: PeerAddress): void {
-        this.#lastTriggerSyncMs.delete(peer);
+        this.#lastReconnectSyncMs.delete(peer);
+        this.#lastTimeFailureSyncMs.delete(peer);
         if (this.unregisterPeer(peer)) {
             logger.info(`Unregistered node ${formatNodeId(peer)} from time synchronization`);
         }
@@ -228,15 +238,18 @@ export class TimeSyncManager extends NodeProcessor {
             logger.debug(`Time sync already in progress for node ${formatNodeId(peer)}, skipping`);
             return;
         }
-        const cooldown = trigger === SyncTrigger.TimeFailure ? TIME_FAILURE_SYNC_COOLDOWN : RECONNECT_SYNC_COOLDOWN;
-        const lastSync = this.#lastTriggerSyncMs.get(peer);
+        const { cooldown, stamps } =
+            trigger === SyncTrigger.TimeFailure
+                ? { cooldown: TIME_FAILURE_SYNC_COOLDOWN, stamps: this.#lastTimeFailureSyncMs }
+                : { cooldown: RECONNECT_SYNC_COOLDOWN, stamps: this.#lastReconnectSyncMs };
+        const lastSync = stamps.get(peer);
         if (lastSync !== undefined && Time.nowMs - lastSync < cooldown) {
             logger.debug(
                 `Time sync for node ${formatNodeId(peer)} skipped, within ${Duration.format(cooldown)} ${trigger} cooldown`,
             );
             return;
         }
-        this.#lastTriggerSyncMs.set(peer, Time.nowMs);
+        stamps.set(peer, Time.nowMs);
         const promise = this.#connector
             .syncTime(peer)
             .then(() => logger.info(`Synced time on node ${formatNodeId(peer)}`))
@@ -256,7 +269,8 @@ export class TimeSyncManager extends NodeProcessor {
         await super.stop();
         await Promise.allSettled(this.#inFlightSyncs.values());
         this.#inFlightSyncs.clear();
-        this.#lastTriggerSyncMs.clear();
+        this.#lastReconnectSyncMs.clear();
+        this.#lastTimeFailureSyncMs.clear();
         logger.info('Time sync manager stopped');
     }
 
@@ -296,11 +310,14 @@ export class TimeSyncManager extends NodeProcessor {
         await promise;
     }
 
-    protected override onCycleComplete(processedCount: number, intervalFormatted: string): void {
+    protected override onCycleStart(): void {
         if (!this.#startupComplete) {
             this.#startupComplete = true;
             logger.info('Time sync startup window complete, immediate syncs enabled on reconnect');
         }
+    }
+
+    protected override onCycleComplete(processedCount: number, intervalFormatted: string): void {
         if (processedCount > 0) {
             logger.info(
                 `Periodic resync complete: synced ${processedCount} nodes. Next resync in ${intervalFormatted}`,

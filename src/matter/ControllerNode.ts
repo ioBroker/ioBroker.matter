@@ -546,6 +546,7 @@ class Controller implements GeneralNode {
         this.#timeSyncManager = new TimeSyncManager({
             syncTime: peer => this.#syncNodeTime(peer.nodeId),
             nodeConnected: peer => this.#nodes.get(peer.nodeId.toString())?.isConnected ?? false,
+            commissionedNodeCount: () => this.#commissioningController?.getCommissionedNodes().length ?? 0,
         });
     }
 

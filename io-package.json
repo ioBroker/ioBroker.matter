@@ -135,17 +135,17 @@
     "adminTab": {
       "singleton": false,
       "name": {
-          "en": "Matter"
-          "de": "Matter",
-          "ru": "Маттер",
-          "pt": "Matter",
-          "nl": "Matter",
-          "fr": "Matter",
-          "it": "Matter",
-          "es": "Matter",
-          "pl": "Matter",
-          "uk": "Matter",
-          "zh-cn": "Matter"
+        "en": "Matter",
+        "de": "Matter",
+        "ru": "Маттер",
+        "pt": "Matter",
+        "nl": "Matter",
+        "fr": "Matter",
+        "it": "Matter",
+        "es": "Matter",
+        "pl": "Matter",
+        "uk": "Matter",
+        "zh-cn": "Matter"
       }
     },
     "adminUI": {

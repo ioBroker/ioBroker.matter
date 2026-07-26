@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { strictEqual } from 'node:assert';
 import { DeviceStateObject, PropertyType, ValueType } from '../src/lib/devices/DeviceStateObject';
 
 function makeAdapter(common: ioBroker.StateCommon): ioBroker.Adapter {
@@ -30,30 +30,30 @@ const numberEnumCommon: ioBroker.StateCommon = {
 describe('DeviceStateObject.getRawEnumValue', function () {
     it('maps an enum label back to its numeric key', async function () {
         const state = await createState(ValueType.Enum, numberEnumCommon);
-        expect(state.getRawEnumValue('Off')).to.equal(0);
-        expect(state.getRawEnumValue('On')).to.equal(1);
-        expect(state.getRawEnumValue('Toggle')).to.equal(2);
+        strictEqual(state.getRawEnumValue('Off'), 0);
+        strictEqual(state.getRawEnumValue('On'), 1);
+        strictEqual(state.getRawEnumValue('Toggle'), 2);
     });
 
     it('coerces a numeric string to a number when the state is numeric', async function () {
         const state = await createState(ValueType.Enum, numberEnumCommon);
-        expect(state.getRawEnumValue('1')).to.equal(1);
+        strictEqual(state.getRawEnumValue('1'), 1);
     });
 
     it('passes null through unchanged (nullable Matter attribute)', async function () {
         const state = await createState(ValueType.Enum, numberEnumCommon);
-        expect(state.getRawEnumValue(null)).to.equal(null);
+        strictEqual(state.getRawEnumValue(null), null);
     });
 
     it('passes an already-numeric value through unchanged', async function () {
         const state = await createState(ValueType.Enum, numberEnumCommon);
-        expect(state.getRawEnumValue(0)).to.equal(0);
-        expect(state.getRawEnumValue(2)).to.equal(2);
+        strictEqual(state.getRawEnumValue(0), 0);
+        strictEqual(state.getRawEnumValue(2), 2);
     });
 
     it('passes an unknown non-numeric string through unchanged', async function () {
         const state = await createState(ValueType.Enum, numberEnumCommon);
-        expect(state.getRawEnumValue('unknown')).to.equal('unknown');
+        strictEqual(state.getRawEnumValue('unknown'), 'unknown');
     });
 
     it('keeps string keys as strings for non-numeric enum states', async function () {
@@ -65,8 +65,8 @@ describe('DeviceStateObject.getRawEnumValue', function () {
             write: true,
             states: { open: 'Open', closed: 'Closed' },
         });
-        expect(state.getRawEnumValue('Open')).to.equal('open');
-        expect(state.getRawEnumValue('Closed')).to.equal('closed');
+        strictEqual(state.getRawEnumValue('Open'), 'open');
+        strictEqual(state.getRawEnumValue('Closed'), 'closed');
     });
 
     it('is a no-op for non-enum states', async function () {
@@ -77,8 +77,8 @@ describe('DeviceStateObject.getRawEnumValue', function () {
             read: true,
             write: true,
         });
-        expect(state.getRawEnumValue(42)).to.equal(42);
-        expect(state.getRawEnumValue('Off')).to.equal('Off');
-        expect(state.getRawEnumValue(null)).to.equal(null);
+        strictEqual(state.getRawEnumValue(42), 42);
+        strictEqual(state.getRawEnumValue('Off'), 'Off');
+        strictEqual(state.getRawEnumValue(null), null);
     });
 });

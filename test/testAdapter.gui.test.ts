@@ -1,6 +1,6 @@
-import engineHelper = require('@iobroker/legacy-testing/engineHelper');
-import guiHelper = require('@iobroker/legacy-testing/guiHelper');
-import packageJson = require('../package.json');
+import engineHelper from '@iobroker/legacy-testing/engineHelper';
+import guiHelper from '@iobroker/legacy-testing/guiHelper';
+import packageJson from '../package.json';
 
 const adapterName = packageJson.name.replace('iobroker.', '');
 let gPage: any;

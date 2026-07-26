@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import { deepStrictEqual, strictEqual } from 'node:assert';
 import { selectControlsForState } from '../src/lib/deviceDetection';
 
 interface TestControl {
@@ -17,14 +17,14 @@ describe('selectControlsForState', () => {
         it('returns the pattern where the selected state is the main state', () => {
             const socketS2 = control('socket', [{ name: 'SET', id: `${CHANNEL}.s2` }]);
             const result = selectControlsForState([socketS2], `${CHANNEL}.s2`, CHANNEL);
-            expect(result).to.deep.equal([socketS2]);
+            deepStrictEqual(result, [socketS2]);
         });
 
         it('returns null when the selected state is in no detected pattern (#594/#730 sibling)', () => {
             // The detector built a socket around the sibling s2; the user picked s1.
             const socketS2 = control('socket', [{ name: 'SET', id: `${CHANNEL}.s2` }]);
             const result = selectControlsForState([socketS2], `${CHANNEL}.s1`, CHANNEL);
-            expect(result).to.equal(null);
+            strictEqual(result, null);
         });
 
         it('keeps the full multi-state pattern when the selected state is a secondary slot', () => {
@@ -35,7 +35,7 @@ describe('selectControlsForState', () => {
                 { name: 'ON', id: `${CHANNEL}.on` },
             ]);
             const result = selectControlsForState([ct], `${CHANNEL}.on`, CHANNEL);
-            expect(result).to.deep.equal([ct]);
+            deepStrictEqual(result, [ct]);
         });
 
         it('prefers the pattern where the selected state is main over one where a sibling is main', () => {
@@ -45,7 +45,7 @@ describe('selectControlsForState', () => {
             ]);
             const socketAsMain = control('socket', [{ name: 'SET', id: `${CHANNEL}.s2` }]);
             const result = selectControlsForState([socketAsSibling, socketAsMain], `${CHANNEL}.s2`, CHANNEL);
-            expect(result).to.deep.equal([socketAsMain]);
+            deepStrictEqual(result, [socketAsMain]);
         });
 
         it('ignores state slots without an id when determining the main state', () => {
@@ -54,7 +54,7 @@ describe('selectControlsForState', () => {
                 { name: 'ACTUAL', id: `${CHANNEL}.actual` },
             ]);
             const result = selectControlsForState([dimmer], `${CHANNEL}.actual`, CHANNEL);
-            expect(result).to.deep.equal([dimmer]);
+            deepStrictEqual(result, [dimmer]);
         });
     });
 
@@ -63,14 +63,14 @@ describe('selectControlsForState', () => {
             const a = control('socket', [{ name: 'SET', id: `${CHANNEL}.s1` }]);
             const b = control('light', [{ name: 'SET', id: CHANNEL }]);
             const result = selectControlsForState([a, b], CHANNEL, CHANNEL);
-            expect(result).to.deep.equal([b]);
+            deepStrictEqual(result, [b]);
         });
 
         it('falls back to all controls when none contains the channel id (normal auto-detect)', () => {
             const a = control('socket', [{ name: 'SET', id: `${CHANNEL}.s1` }]);
             const b = control('light', [{ name: 'SET', id: `${CHANNEL}.s2` }]);
             const result = selectControlsForState([a, b], CHANNEL, CHANNEL);
-            expect(result).to.deep.equal([a, b]);
+            deepStrictEqual(result, [a, b]);
         });
     });
 });

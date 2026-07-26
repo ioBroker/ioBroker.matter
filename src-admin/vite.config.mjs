@@ -1,5 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { fileURLToPath } from 'node:url';
+
+const aceWorkerStub = fileURLToPath(new URL('./aceWorkerStub.js', import.meta.url));
 
 export default defineConfig(() => {
     return {
@@ -8,6 +11,13 @@ export default defineConfig(() => {
         },
         plugins: [react()],
         base: './',
+        resolve: {
+            alias: {
+                // ace worker scripts must not be bundled into the main chunk - see aceWorkerStub.js
+                'ace-builds/src-min-noconflict/worker-json': aceWorkerStub,
+                'ace-builds/src-min-noconflict/worker-yaml': aceWorkerStub,
+            },
+        },
         server: {
             port: 3000,
             proxy: {

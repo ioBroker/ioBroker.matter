@@ -152,10 +152,12 @@ export class TimeSyncManager extends NodeProcessor {
     readonly #startupDelay: (commissionedNodeCount: number) => number;
     // Tracks in-flight immediate syncs per node to prevent parallel syncs
     #inFlightSyncs = new PeerAddressMap<Promise<void>>();
-    // Last sync attempt per node, kept per trigger. Sharing one stamp would let a failed
-    // reconnect attempt reinstate the 24 h block over a timeFailure's 1 h leash.
+    // Last attempt per node, kept per trigger: a reconnect attempt must not spend the shorter leash
+    // a timeFailure is entitled to, least of all when that attempt failed.
     #lastReconnectSyncMs = new PeerAddressMap<number>();
     #lastTimeFailureSyncMs = new PeerAddressMap<number>();
+    // Successful syncs in the running cycle; the base class counts attempts.
+    #cycleSyncedCount = 0;
     // True after the first periodic resync cycle, enabling immediate syncs on reconnect
     #startupComplete = false;
 
@@ -301,7 +303,10 @@ export class TimeSyncManager extends NodeProcessor {
         // peer dedupes against the periodic push instead of double-sending.
         const promise = this.#connector
             .syncTime(peer)
-            .then(() => logger.info(`Periodic resync: synced time on node ${formatNodeId(peer)}`))
+            .then(() => {
+                this.#cycleSyncedCount++;
+                logger.info(`Periodic resync: synced time on node ${formatNodeId(peer)}`);
+            })
             .catch(error => logSyncFailure('Periodic resync: ', peer, error))
             .finally(() => {
                 this.#inFlightSyncs.delete(peer);
@@ -311,7 +316,10 @@ export class TimeSyncManager extends NodeProcessor {
     }
 
     protected override onCycleStart(): void {
+        this.#cycleSyncedCount = 0;
         if (!this.#startupComplete) {
+            // Opening the window here, not on completion: a node registering mid-cycle is absent from
+            // the peer snapshot, so it needs the immediate-sync path to be available already.
             this.#startupComplete = true;
             logger.info('Time sync startup window complete, immediate syncs enabled on reconnect');
         }
@@ -320,7 +328,8 @@ export class TimeSyncManager extends NodeProcessor {
     protected override onCycleComplete(processedCount: number, intervalFormatted: string): void {
         if (processedCount > 0) {
             logger.info(
-                `Periodic resync complete: synced ${processedCount} nodes. Next resync in ${intervalFormatted}`,
+                `Periodic resync complete: synced ${this.#cycleSyncedCount} of ${processedCount} nodes. ` +
+                    `Next resync in ${intervalFormatted}`,
             );
         }
     }

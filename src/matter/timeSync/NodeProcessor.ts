@@ -116,9 +116,8 @@ export abstract class NodeProcessor {
 
     /**
      * Called once a cycle is committed to running, before the peer list is snapshotted. A peer
-     * registering after this point is not in the snapshot, so anything a subclass gates on "the
-     * first cycle has run" has to open here rather than in onCycleComplete, or that peer is
-     * covered by neither.
+     * registering after this point is not in the snapshot, so anything a subclass gates on "the first
+     * cycle has run" must open here rather than in onCycleComplete, or that peer falls between the two.
      */
     protected onCycleStart(): void {}
 

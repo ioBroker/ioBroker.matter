@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { Hours, Millis, Time } from '@matter/main';
+import { Hours, Logger, Millis, Time } from '@matter/main';
 import { FabricIndex, NodeId } from '@matter/main/types';
 import { PeerAddress } from '@matter/main/protocol';
 import {
@@ -179,6 +179,32 @@ describe('TimeSyncManager', () => {
 
             await waitFor(() => connector.syncCalls.length >= 2, 6000);
             expect(connector.syncedNodeIds.slice(0, 2)).to.have.members(['1', '2']);
+        });
+
+        it('reports successes rather than attempts in the cycle-complete log', async () => {
+            // processNode swallows every error, so counting attempts would claim both nodes were
+            // synced when one invoke threw.
+            const lines = new Array<string>();
+            // Logger.log's setter composes destinations, so reassigning what its getter returns
+            // recurses; swap the destination's write instead.
+            const destination = Logger.destinations.default;
+            const originalWrite = destination.write;
+            destination.write = text => {
+                lines.push(text);
+            };
+            try {
+                connector.failNext = true;
+                cycling = new TimeSyncManager(connector, () => null, () => 1);
+                cycling.registerNode(PEER, CAPS);
+                cycling.registerNode(PEER_2, CAPS);
+
+                await waitFor(() => lines.some(line => line.includes('Periodic resync complete')), 8000);
+            } finally {
+                destination.write = originalWrite;
+            }
+            const summary = lines.find(line => line.includes('Periodic resync complete'));
+            expect(summary, 'the cycle must log a summary').to.not.equal(undefined);
+            expect(summary).to.contain('synced 1 of 2 nodes');
         });
 
         it('covers a node that registers while the first cycle is running', async () => {

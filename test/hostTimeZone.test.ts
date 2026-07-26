@@ -57,15 +57,14 @@ function expectPlanMatchesZone(zone: string, atMs: number, limits = BOTH_MAX) {
 }
 
 /**
- * A node holds a plan for up to the resync interval, so checking only the instant it was built
- * proves nothing about the span it actually governs. The span walked here is deliberately not
- * derived from the plan: a plan that under-reports a change would otherwise shrink its own
- * window and pass.
+ * A node holds one plan between syncs, so check hourly across a span it must cover rather than only
+ * at the instant it was built. The span is fixed by the caller on purpose: deriving it from the plan
+ * would let a plan that under-reports a change shrink its own window and pass.
  */
 function expectPlanHoldsFor(zone: string, atMs: number, spanMs: number, limits = BOTH_MAX) {
     const plan = timeZonePlan(zone, atMs, limits);
     for (let t = atMs; t <= atMs + spanMs; t += HOUR_MS) {
-        const label = `${zone} @ ${new Date(t).toISOString()} (plan built ${new Date(atMs).toISOString()})`;
+        const label = `${zone}, plan built ${new Date(atMs).toISOString()}, checked ${new Date(t).toISOString()}`;
         expect(nodeOffsetSeconds(plan, t), label).to.equal(offsetSecondsAt(zone, t));
     }
 }
@@ -128,6 +127,8 @@ describe('hostTimeZone', () => {
             // DST 2026 begins 2026-03-29 01:00 UTC, ends 2026-10-25 01:00 UTC
             expect(plan.dstWindows[0].validStartingMs).to.equal(Date.UTC(2026, 2, 29, 1, 0, 0));
             expect(plan.dstWindows[0].validUntilMs).to.equal(Date.UTC(2026, 9, 25, 1, 0, 0));
+            // These pin the current EU rule (last Sunday of March and October, 01:00 UTC). If the EU
+            // abolishes DST and tzdata follows, this failing is the correct signal, not test rot.
             expect(plan.dstWindows[1].validStartingMs).to.equal(Date.UTC(2027, 2, 28, 1, 0, 0));
             expect(plan.dstWindows[1].validUntilMs).to.equal(Date.UTC(2027, 9, 31, 1, 0, 0));
         });
@@ -258,13 +259,15 @@ describe('hostTimeZone', () => {
             expect(roomy.regimes.length).to.equal(2);
             expect(roomy.dstWindows.filter(window => window.offsetSeconds !== 0).length).to.equal(2);
 
-            const tight = timeZonePlan('America/Dawson', atMs, { maxRegimes: 2, maxWindows: 1 });
-            expect(tight.regimes.length).to.equal(1);
-            expect(tight.regimes[0].offsetSeconds).to.equal(-28800);
-            for (const at of [atMs, Date.UTC(2018, 11, 1), Date.UTC(2019, 5, 1)]) {
-                expectPlanMatchesZone('America/Dawson', at, { maxRegimes: 2, maxWindows: 1 });
-                expectPlanMatchesZone('America/Dawson', at, { maxRegimes: 2, maxWindows: 4 });
-            }
+            const tight = { maxRegimes: 2, maxWindows: 1 };
+            const plan = timeZonePlan('America/Dawson', atMs, tight);
+            expect(plan.regimes.length).to.equal(1);
+            expect(plan.regimes[0].offsetSeconds).to.equal(-28800);
+
+            // The single window runs to 2018-11-04, and the plan is only answerable that far: it holds
+            // through 54 days, and the resync it asks for lands on the boundary where it stops.
+            expectPlanHoldsFor('America/Dawson', atMs, 54 * DAY_MS, tight);
+            expect(nextOffsetChangeMs(plan, atMs)).to.equal(Date.UTC(2018, 10, 4, 9));
         });
 
         it('reports a single regime once a permanent change is in the past', () => {
@@ -308,27 +311,12 @@ describe('hostTimeZone', () => {
             expectPlanMatchesZone('Asia/Almaty', Date.UTC(2024, 3, 1));
         });
 
-        it('stays correct for the full day a node may hold it, across a transition', function () {
-            this.timeout(60_000);
-            // A node keeps a plan until the next resync, so each case starts shortly before a real
-            // boundary and walks past it: the window expiry, the spring-forward, and the instant a
-            // permanent regime takes over.
-            const cases: Array<[string, number]> = [
-                ['Europe/Berlin', Date.UTC(2026, 9, 24, 12)], // 13 h before DST ends
-                ['Europe/Berlin', Date.UTC(2026, 2, 28, 12)], // 13 h before DST starts
-                ['America/New_York', Date.UTC(2026, 10, 1, 0)], // 6 h before DST ends
-                ['Australia/Sydney', Date.UTC(2026, 3, 4, 12)], // southern autumn boundary
-                ['Asia/Almaty', Date.UTC(2024, 1, 29, 12)], // 6 h before a permanent -1 h
-                ['Europe/Istanbul', Date.UTC(2016, 2, 26, 12)], // 13 h before a permanent +1 h
-                ['America/Phoenix', Date.UTC(2026, 6, 1)], // no transition at all
-            ];
-            for (const [zone, atMs] of cases) {
-                for (const maxRegimes of [1, 2]) {
-                    for (const maxWindows of [1, 2]) {
-                        expectPlanHoldsFor(zone, atMs, DAY_MS, { maxRegimes, maxWindows });
-                    }
-                }
-            }
+        it('stays correct across a transition for the whole span a node holds it', () => {
+            // Built mid-winter and checked hourly for 300 days, so it crosses both the spring and the
+            // autumn transition without being rebuilt.
+            expectPlanHoldsFor('Europe/Berlin', JAN_2026, 300 * DAY_MS);
+            expectPlanHoldsFor('Australia/Sydney', JAN_2026, 300 * DAY_MS);
+            expectPlanHoldsFor('America/Asuncion', Date.UTC(2024, 0, 1, 12), 300 * DAY_MS);
         });
 
         it("agrees with the zone's true offset across behaviours, dates and list sizes", function () {

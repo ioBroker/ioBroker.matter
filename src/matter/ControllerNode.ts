@@ -40,6 +40,7 @@ import { GeneralMatterNode, type PairedNodeConfig } from './GeneralMatterNode';
 import { pushNodeTime, type TimeSyncInvokers } from './timeSync/timeSyncCommands';
 import {
     readTimeSyncCapabilities,
+    SyncTrigger,
     TIME_FAILURE_EVENT_ID,
     TIME_SYNC_CLUSTER_ID,
     TimeSyncManager,
@@ -315,7 +316,7 @@ class Controller implements GeneralNode {
                     this.#adapter.log.debug(
                         `Received timeFailure event from node ${node.nodeId}, triggering time sync`,
                     );
-                    this.#timeSyncManager?.syncNode(peer);
+                    this.#timeSyncManager?.syncNode(peer, SyncTrigger.TimeFailure);
                 }
             }
         });

@@ -151,7 +151,10 @@ export class NodeIcdManager {
             fabricFilter: false,
         });
         const ourFabricIndex = this.#node.node.maybeStateOf(OperationalCredentialsClient)?.currentFabricIndex;
-        return otherFabricClientCount(registrations.registeredClients ?? [], ourFabricIndex);
+        return otherFabricClientCount(
+            registrations.registeredClients ?? new Array<IcdManagement.MonitoringRegistration>(),
+            ourFabricIndex,
+        );
     }
 
     close(): void {

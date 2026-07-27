@@ -52,26 +52,26 @@ export interface WakeInstruction {
     text: string;
 }
 
-/** UserActiveModeTriggerBitmap per Matter 1.6 §9.17.5.2, mapped to short user instructions. */
-const WAKE_HINTS: [mask: number, key: string][] = [
-    [1 << 0, 'ICD wake hint power cycle'],
-    [1 << 1, 'ICD wake hint settings menu'],
-    [1 << 4, 'ICD wake hint actuate sensor'],
-    [1 << 8, 'ICD wake hint reset button'],
-    [1 << 12, 'ICD wake hint setup button'],
-    [1 << 16, 'ICD wake hint app defined button'],
+/** UserActiveModeTriggerHint flags per Matter 1.6 §9.17.5.2, in priority order, mapped to short user instructions. */
+const WAKE_HINT_FLAGS: [flag: keyof IcdManagement.UserActiveModeTrigger, key: string][] = [
+    ['powerCycle', 'ICD wake hint power cycle'],
+    ['settingsMenu', 'ICD wake hint settings menu'],
+    ['actuateSensor', 'ICD wake hint actuate sensor'],
+    ['resetButton', 'ICD wake hint reset button'],
+    ['setupButton', 'ICD wake hint setup button'],
+    ['appDefinedButton', 'ICD wake hint app defined button'],
 ];
-const CUSTOM_INSTRUCTION = 1 << 2;
 
-export function wakeInstruction(hint: number | undefined, instruction: string | undefined): WakeInstruction {
-    if (hint !== undefined && (hint & CUSTOM_INSTRUCTION) !== 0 && instruction !== undefined && instruction !== '') {
+export function wakeInstruction(
+    hint: IcdManagement.UserActiveModeTrigger | undefined,
+    instruction: string | undefined,
+): WakeInstruction {
+    if (hint?.customInstruction === true && instruction !== undefined && instruction !== '') {
         return { kind: 'custom', text: instruction };
     }
-    if (hint !== undefined) {
-        for (const [mask, key] of WAKE_HINTS) {
-            if ((hint & mask) !== 0) {
-                return { kind: 'mapped', text: key };
-            }
+    for (const [flag, key] of WAKE_HINT_FLAGS) {
+        if (hint?.[flag] === true) {
+            return { kind: 'mapped', text: key };
         }
     }
     return { kind: 'manual', text: 'ICD wake hint see manual' };

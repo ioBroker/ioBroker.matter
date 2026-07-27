@@ -55,42 +55,60 @@ describe('formatDuration', () => {
 });
 
 describe('wakeInstruction', () => {
-    it('prefers the device instruction when the custom bit is set', () => {
-        deepStrictEqual(wakeInstruction(0b100, 'Hold the pairing button'), {
+    it('prefers the device instruction when the custom flag is set', () => {
+        deepStrictEqual(wakeInstruction({ customInstruction: true }, 'Hold the pairing button'), {
             kind: 'custom',
             text: 'Hold the pairing button',
         });
     });
 
-    it('falls back to a mapped hint when the custom bit is set without an instruction', () => {
-        deepStrictEqual(wakeInstruction(0b101, undefined), { kind: 'mapped', text: 'ICD wake hint power cycle' });
+    it('falls back to a mapped hint when the custom flag is set without an instruction', () => {
+        deepStrictEqual(wakeInstruction({ customInstruction: true, powerCycle: true }, undefined), {
+            kind: 'mapped',
+            text: 'ICD wake hint power cycle',
+        });
     });
 
-    it('maps the settings-menu bit', () => {
-        deepStrictEqual(wakeInstruction(1 << 1, undefined), { kind: 'mapped', text: 'ICD wake hint settings menu' });
+    it('maps the settings-menu flag', () => {
+        deepStrictEqual(wakeInstruction({ settingsMenu: true }, undefined), {
+            kind: 'mapped',
+            text: 'ICD wake hint settings menu',
+        });
     });
 
-    it('maps the actuate-sensor bit', () => {
-        deepStrictEqual(wakeInstruction(1 << 4, undefined), { kind: 'mapped', text: 'ICD wake hint actuate sensor' });
+    it('maps the actuate-sensor flag', () => {
+        deepStrictEqual(wakeInstruction({ actuateSensor: true }, undefined), {
+            kind: 'mapped',
+            text: 'ICD wake hint actuate sensor',
+        });
     });
 
-    it('maps the reset-button bit', () => {
-        deepStrictEqual(wakeInstruction(1 << 8, undefined), { kind: 'mapped', text: 'ICD wake hint reset button' });
+    it('maps the reset-button flag', () => {
+        deepStrictEqual(wakeInstruction({ resetButton: true }, undefined), {
+            kind: 'mapped',
+            text: 'ICD wake hint reset button',
+        });
     });
 
-    it('maps the setup-button bit', () => {
-        deepStrictEqual(wakeInstruction(1 << 12, undefined), { kind: 'mapped', text: 'ICD wake hint setup button' });
+    it('maps the setup-button flag', () => {
+        deepStrictEqual(wakeInstruction({ setupButton: true }, undefined), {
+            kind: 'mapped',
+            text: 'ICD wake hint setup button',
+        });
     });
 
-    it('maps the app-defined-button bit', () => {
-        deepStrictEqual(wakeInstruction(1 << 16, undefined), {
+    it('maps the app-defined-button flag', () => {
+        deepStrictEqual(wakeInstruction({ appDefinedButton: true }, undefined), {
             kind: 'mapped',
             text: 'ICD wake hint app defined button',
         });
     });
 
-    it('returns the manual fallback for an unknown hint', () => {
-        deepStrictEqual(wakeInstruction(1 << 20, undefined), { kind: 'manual', text: 'ICD wake hint see manual' });
+    it('returns the manual fallback for an unmapped flag', () => {
+        deepStrictEqual(wakeInstruction({ deviceManual: true }, undefined), {
+            kind: 'manual',
+            text: 'ICD wake hint see manual',
+        });
     });
 
     it('returns the manual fallback without a hint', () => {

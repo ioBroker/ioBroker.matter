@@ -1441,9 +1441,11 @@ export class GeneralMatterNode {
         this.adapter.setState(this.connectionStatusId, state, true).catch(() => {});
 
         // A node offline at startup has no root endpoint behaviors yet, so retry ICD detection on connect.
+        const hadIcd = this.#icd !== undefined;
         this.#createIcdManager();
-        if (this.#icd !== undefined) {
+        if (hadIcd && this.#icd !== undefined) {
             // A reconnect after an adapter restart can arrive after the check-in window has already lapsed.
+            // (A freshly created manager already published from inside #createIcdManager().)
             this.#publishIcdMode();
         }
         if (connected && nodeDetails) {

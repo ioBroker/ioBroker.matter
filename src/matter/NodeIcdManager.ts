@@ -25,7 +25,6 @@ export interface IcdInfo {
     operatingMode: IcdManagement.OperatingMode | undefined;
     /** Seconds the device may stay asleep between check-ins. */
     idleModeDuration: number | undefined;
-    /** matter.js decodes this bitmap into named flags rather than a raw number; convert before calling `wakeInstruction`. */
     userActiveModeTriggerHint: IcdManagement.UserActiveModeTrigger | undefined;
     userActiveModeTriggerInstruction: string | undefined;
 }

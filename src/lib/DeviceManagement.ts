@@ -801,6 +801,10 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             await context.showMessage(this.#adapter.t('Battery Saver Mode is not supported by this device.'));
             return { refresh: 'none' };
         }
+        if (icd.pending) {
+            await context.showMessage(this.#adapter.t('ICD operation already running'));
+            return { refresh: 'none' };
+        }
 
         const info = icd.info;
         const idleDuration = info?.idleModeDuration;
@@ -819,7 +823,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
         };
 
-        if (registered && !icd.available) {
+        if (canResync) {
             items._offline = {
                 type: 'staticText',
                 newLine: true,
@@ -832,12 +836,14 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         if (info?.features.userActiveModeTrigger) {
             const wake = wakeInstruction(info.userActiveModeTriggerHint, info.userActiveModeTriggerInstruction);
+            // `custom` text is the peer device's own string; ConfigStaticText renders "<a "/"<br"/"<b>"/"<i>" as HTML, so strip "<" before display.
+            const customInstruction = wake.text.replace(/</g, '');
             items._wake = {
                 type: 'staticText',
                 newLine: true,
                 text:
                     wake.kind === 'custom'
-                        ? `${this.#adapter.t('To wake the device immediately, follow the device instructions:')} "${wake.text}"`
+                        ? `${this.#adapter.t('To wake the device immediately, follow the device instructions:')} "${customInstruction}"`
                         : `${this.#adapter.t('To wake the device immediately:')} ${this.#adapter.t(wake.text)}`,
             };
         }
@@ -923,8 +929,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
     /**
      * Keeps the card in `pending` and an indeterminate progress dialog open while the peer is contacted.
-     * `pending` is cleared in a `finally` so a rejected `openProgress`/`close` (e.g. a dropped GUI socket)
-     * cannot leave the card stuck on "changing" forever.
+     * dm-utils' dialog promises never reject, only hang, so `pending` is cleared in a `finally` here —
+     * that's what stops a closed browser tab (or dropped GUI socket) pinning the indicator on "changing"
+     * forever, since nothing else would ever settle those promises.
      */
     async #runIcdOperation(
         ioNode: GeneralMatterNode,
@@ -935,11 +942,13 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     ): Promise<{ refresh: DeviceRefresh }> {
         icd.pending = true;
         let progress: Awaited<ReturnType<ActionContext['openProgress']>> | undefined;
+        let failed = false;
         let error: unknown;
         try {
             progress = await context.openProgress(title, { indeterminate: true });
             await action();
         } catch (caught) {
+            failed = true;
             error = caught;
         } finally {
             icd.pending = false;
@@ -953,11 +962,19 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 );
             }
         }
-        if (error !== undefined) {
+        if (failed) {
             this.adapter.log.warn(`ICD operation failed for node ${ioNode.nodeId}: ${inspect(error, { depth: 5 })}`);
-            await context.showMessage(
-                `${this.#adapter.t('Battery Saver Mode operation failed')}: ${error instanceof Error ? error.message : inspect(error)}`,
-            );
+            try {
+                // A failed close() above leaves the dm-utils dialog "open", so this showMessage can itself
+                // throw synchronously; that must not escape and leave the action's result unsent.
+                await context.showMessage(
+                    `${this.#adapter.t('Battery Saver Mode operation failed')}: ${error instanceof Error ? error.message : inspect(error)}`,
+                );
+            } catch (showError) {
+                this.adapter.log.warn(
+                    `Failed to show ICD failure message for node ${ioNode.nodeId}: ${inspect(showError, { depth: 5 })}`,
+                );
+            }
         }
         return { refresh: 'devices' };
     }
@@ -1002,7 +1019,11 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         const names = conflict.vendorIds.length
             ? conflict.vendorIds
-                  .map(vendorId => VendorIds[vendorId] ?? `${this.#adapter.t('Vendor')} ${toUpperCaseHex(vendorId)}`)
+                  .map(vendorId =>
+                      VendorIds[vendorId]
+                          ? `${VendorIds[vendorId]} (${toUpperCaseHex(vendorId)})`
+                          : `${this.#adapter.t('Vendor')} ${toUpperCaseHex(vendorId)}`,
+                  )
                   .join(', ')
             : this.#adapter.t('unknown ecosystems');
         if (!(await context.showConfirmation(this.#adapter.t('ICD confirm multi admin', names)))) {

@@ -47,6 +47,7 @@ import ioBrokerDeviceFabric, { identifyDeviceTypes } from './to-iobroker/ioBroke
 import type { StructuredJsonFormData } from '../lib/JsonConfigUtils';
 import type { DeviceStatus, ConfigConnectionType } from '@iobroker/dm-utils';
 import { VendorIds } from '../lib/vendorIDs';
+import { NodeIcdManager } from './NodeIcdManager';
 
 export type PairedNodeConfig = {
     nodeId: NodeId;
@@ -101,6 +102,7 @@ export class GeneralMatterNode {
     readonly connectionStatusId: string;
     readonly connectedAddressStateId: string;
     readonly updateAvailableStateId: string;
+    readonly icdModeStateId: string;
     exposeMatterApplicationClusterData: boolean;
     exposeMatterSystemClusterData: boolean;
     #endpointMap = new Map<number, { baseId: string; endpoint: Endpoint }>();
@@ -120,6 +122,11 @@ export class GeneralMatterNode {
     #softwareUpdateInProgress = false;
     #currentUpdateState?: OtaSoftwareUpdateRequestor.UpdateState;
     #updateObservers?: ObserverGroup;
+    #icd?: NodeIcdManager;
+
+    get icd(): NodeIcdManager | undefined {
+        return this.#icd;
+    }
 
     constructor(
         protected readonly adapter: MatterAdapter,
@@ -133,12 +140,16 @@ export class GeneralMatterNode {
         this.connectionStatusId = `${this.nodeBaseId}.info.status`;
         this.connectedAddressStateId = `${this.nodeBaseId}.info.connectedAddress`;
         this.updateAvailableStateId = `${this.nodeBaseId}.info.updateAvailable`;
+        this.icdModeStateId = `${this.nodeBaseId}.info.icdMode`;
         this.exposeMatterApplicationClusterData = controllerConfig.defaultExposeMatterApplicationClusterData ?? false;
         this.exposeMatterSystemClusterData = controllerConfig.defaultExposeMatterSystemClusterData ?? false;
     }
 
     async clear(): Promise<void> {
         // Clear out all things from before
+        this.#icd?.close();
+        this.#icd = undefined;
+
         for (const [id, handler] of this.#subscriptions) {
             await SubscribeManager.unsubscribe(`${this.adapter.namespace}.${id}`, handler);
         }
@@ -299,6 +310,26 @@ export class GeneralMatterNode {
             native: {},
         });
 
+        await this.adapter.setObjectNotExists(this.icdModeStateId, {
+            type: 'state',
+            common: {
+                name: 'ICD mode',
+                type: 'string',
+                role: 'text',
+                read: true,
+                write: false,
+                def: '',
+                states: {
+                    '': 'Not applicable',
+                    sit: 'Standard',
+                    lit: 'Battery Saver',
+                    litOffline: 'Battery Saver (offline)',
+                    pending: 'Changing',
+                },
+            },
+            native: {},
+        });
+
         await this.adapter.setObjectNotExists(this.connectedAddressStateId, {
             type: 'state',
             common: {
@@ -325,6 +356,12 @@ export class GeneralMatterNode {
 
         await this.adapter.setState(this.connectionStateId, this.node.isConnected, true);
         await this.adapter.setState(this.connectionStatusId, this.node.connectionState, true);
+
+        this.#createIcdManager();
+        if (this.#icd === undefined) {
+            // Not ICD-capable (or not yet known to be): still record the "not applicable" mode explicitly.
+            this.#publishIcdMode();
+        }
 
         this.#connectedAddress = nodeDetails?.operationalAddress?.substring(6);
         await this.adapter.setState(this.connectedAddressStateId, this.#connectedAddress ?? null, true);
@@ -543,6 +580,28 @@ export class GeneralMatterNode {
         } catch (error) {
             this.adapter.log.warn(`Failed to restore update info from state for node ${this.nodeId}: ${error}`);
         }
+    }
+
+    #createIcdManager(): void {
+        if (this.#icd !== undefined) {
+            return;
+        }
+        const icd = new NodeIcdManager(this.node);
+        if (!icd.supported) {
+            icd.close();
+            return;
+        }
+        this.#icd = icd;
+        icd.changed.on(() => this.#publishIcdMode());
+        this.#publishIcdMode();
+    }
+
+    #publishIcdMode(): void {
+        const mode = this.#icd?.mode ?? '';
+        this.adapter.setState(this.icdModeStateId, mode, true).catch(() => {});
+        this.adapter.deviceManagement.updateNodeCard(this).catch(error => {
+            this.adapter.log.debug(`Could not push ICD update for node ${this.nodeId}: ${error}`);
+        });
     }
 
     /**
@@ -1380,6 +1439,13 @@ export class GeneralMatterNode {
         const connected = state === PairedNodeStates.Connected;
         this.adapter.setState(this.connectionStateId, connected, true).catch(() => {});
         this.adapter.setState(this.connectionStatusId, state, true).catch(() => {});
+
+        // A node offline at startup has no root endpoint behaviors yet, so retry ICD detection on connect.
+        this.#createIcdManager();
+        if (this.#icd !== undefined) {
+            // A reconnect after an adapter restart can arrive after the check-in window has already lapsed.
+            this.#publishIcdMode();
+        }
         if (connected && nodeDetails) {
             this.#connectedAddress = nodeDetails.operationalAddress?.substring(6);
             this.adapter.setState(this.connectedAddressStateId, this.#connectedAddress ?? null, true).catch(() => {});

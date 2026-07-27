@@ -1051,7 +1051,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         icd: NodeIcdManager,
         context: ActionContext,
     ): Promise<{ refresh: DeviceRefresh }> {
-        if (!(await context.showConfirmation(this.#adapter.t('ICD form resync explanation')))) {
+        if (!(await context.showConfirmation(this.#adapter.t('ICD confirm resync')))) {
             return { refresh: 'none' };
         }
         return this.#runIcdOperation(ioNode, icd, context, this.#adapter.t('Resyncing...'), () => icd.resync());

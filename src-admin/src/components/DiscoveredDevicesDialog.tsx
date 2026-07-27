@@ -16,8 +16,8 @@ import {
 } from '@mui/material';
 import { Close, SearchOff } from '@mui/icons-material';
 
-import { type AdminConnection, I18n, type ThemeType, InfoBox } from '@iobroker/adapter-react-v5';
-import { IconButton } from '@foxriver76/iob-component-lib';
+import { type AdminConnection, I18n, type ThemeType, InfoBox } from '@iobroker/gui-components';
+import IconButton from './IconButton';
 
 import { getVendorName } from '../Utils';
 import type { CommissionableDevice } from '../types';

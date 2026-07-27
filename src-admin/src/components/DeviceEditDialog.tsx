@@ -9,7 +9,7 @@ import {
     DialogTitle,
     FormControl,
     FormControlLabel,
-    IconButton as MuiIconButton,
+    IconButton,
     InputLabel,
     MenuItem,
     Select,
@@ -19,7 +19,7 @@ import {
 import { Close, Save } from '@mui/icons-material';
 
 import type { Types } from '@iobroker/type-detector';
-import { I18n, type ThemeType, DeviceTypeSelector, IconExpert } from '@iobroker/adapter-react-v5';
+import { I18n, type ThemeType, DeviceTypeSelector, IconExpert } from '@iobroker/gui-components';
 
 import { SUPPORTED_DEVICES } from './DeviceDialog';
 import { clone } from '../Utils';
@@ -83,12 +83,12 @@ export default class DeviceEditDialog extends Component<DeviceEditDialogProps, D
                         title={I18n.t('Toggle expert mode')}
                         slotProps={{ popper: { sx: { pointerEvents: 'none' } } }}
                     >
-                        <MuiIconButton
+                        <IconButton
                             onClick={() => this.props.setExpertMode(!this.props.expertMode)}
                             color={this.props.expertMode ? 'primary' : 'default'}
                         >
                             <IconExpert />
-                        </MuiIconButton>
+                        </IconButton>
                     </Tooltip>
                 </DialogTitle>
                 <DialogContent>
@@ -278,7 +278,7 @@ export default class DeviceEditDialog extends Component<DeviceEditDialogProps, D
                                     }
 
                                     const data = clone(this.state.data);
-                                    data.dimmerOnLevel = e.target.value as number;
+                                    data.dimmerOnLevel = e.target.value;
                                     this.setState({ data });
                                 }}
                                 renderValue={value => `${value}%`}

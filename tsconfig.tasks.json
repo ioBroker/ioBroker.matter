@@ -1,0 +1,21 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "noEmit": true,
+        "allowJs": false,
+        "checkJs": false,
+        "rootDir": ".",
+        "module": "node16",
+        "moduleResolution": "node16",
+        "types": ["node"]
+    },
+    "ts-node": {
+        "compilerOptions": {
+            "module": "node16",
+            "moduleResolution": "node16"
+        },
+        "transpileOnly": true
+    },
+    "include": ["tasks.ts"],
+    "exclude": ["node_modules/**", "src/**", "src-admin/**", "test/**", "build/**"]
+}

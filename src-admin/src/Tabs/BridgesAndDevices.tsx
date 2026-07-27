@@ -46,7 +46,7 @@ import {
     type ThemeType,
     Utils,
     InfoBox,
-} from '@iobroker/adapter-react-v5';
+} from '@iobroker/gui-components';
 
 import ioBroker from '../assets/ioBroker.svg';
 import { VendorIds, VendorIdsAmazon, VendorIdsApple, VendorIdsGoogle, VendorIdsSamsung } from '../utils/vendorIDs';

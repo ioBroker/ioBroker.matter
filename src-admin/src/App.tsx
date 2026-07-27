@@ -1,7 +1,6 @@
 import { StyledEngineProvider, ThemeProvider } from '@mui/material/styles';
 import React from 'react';
 
-import { IconButton as IconButton76 } from '@foxriver76/iob-component-lib';
 import {
     AppBar,
     Button,
@@ -30,9 +29,9 @@ import {
     type GenericAppState,
     type IobTheme,
     extendDeviceTypeTranslation,
-} from '@iobroker/adapter-react-v5';
+} from '@iobroker/gui-components';
 import { clone, getText } from './Utils';
-
+import IconButton76 from './components/IconButton';
 import ConfigHandler from './components/ConfigHandler';
 import BridgesTab from './Tabs/Bridges';
 import ControllerTab from './Tabs/Controller';

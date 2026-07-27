@@ -3,7 +3,7 @@
  * Shows Thread devices, Border Routers and their mesh connections with signal quality
  */
 
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 import BaseNetworkGraph, { type BaseNetworkGraphProps, type BaseNetworkGraphState } from './BaseNetworkGraph';
 import type { NetworkGraphNode, NetworkGraphEdge, ThreadRoutingRole, BorderRouterEntry } from './NetworkTypes';
 import {

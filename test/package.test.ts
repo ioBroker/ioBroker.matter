@@ -1,4 +1,4 @@
-import path = require('node:path');
+import path from 'node:path';
 import { tests } from '@iobroker/testing';
 
 // Validate the package files

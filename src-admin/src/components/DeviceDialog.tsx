@@ -28,7 +28,7 @@ import {
     type ThemeType,
     DeviceTypeIcon,
     IconExpert,
-} from '@iobroker/adapter-react-v5';
+} from '@iobroker/gui-components';
 import { Types } from '@iobroker/type-detector';
 
 import { clone, detectDevices, getText } from '../Utils';

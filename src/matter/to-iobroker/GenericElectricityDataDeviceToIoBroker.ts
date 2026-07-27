@@ -75,10 +75,9 @@ export abstract class GenericElectricityDataDeviceToIoBroker<
 
     #enableCustomEveMeasurementStates(): boolean {
         const endpointId = this.appEndpoint.number;
-        // TODO Add polling when this is present and with the Eve vendor id 4874 (0x130a)
         const isEveDevice = this.nodeBasicInformation.vendorId === 0x130a; // Only poll real Eve devices
         const clusterId = ClusterId(0x130afc01);
-        const eveCluster = this.appEndpoint.maybeStateOf(clusterId.toString());
+        const eveCluster = this.appEndpoint.maybeStateOf(`cluster$${clusterId.toString(16)}`);
         if (eveCluster !== undefined) {
             // Label="timesOpened", Tag=0x130A0006, Type=int
             // Label="wattAccumulatedControlPoint", Tag=0x130A000E, Type=float32
@@ -121,7 +120,7 @@ export abstract class GenericElectricityDataDeviceToIoBroker<
         const endpointId = this.appEndpoint.number;
         // Vendor ID 4991 (0x137F)
         const clusterId = ClusterId(0x00125dfc11);
-        const neoCluster = this.appEndpoint.maybeStateOf(clusterId.toString());
+        const neoCluster = this.appEndpoint.maybeStateOf(`cluster$${clusterId.toString(16)}`);
         if (neoCluster !== undefined) {
             this.enableDeviceTypeStateForAttribute(PropertyType.ElectricPower, {
                 endpointId,

@@ -17,7 +17,7 @@ import {
     IdentifyClient,
     PowerSourceClient,
 } from '@matter/main/behaviors';
-import type { DecodedEventData } from '@matter/main/protocol';
+import { type DecodedEventData, Read } from '@matter/main/protocol';
 import type { PairedNode } from '@project-chip/matter.js/device';
 import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
@@ -102,6 +102,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
     #connectionStateId: string;
     #hasBridgedReachabilityAttribute = false;
     #pollTimeout?: ioBroker.Timeout;
+    #pollGeneration = 0;
     #destroyed = false;
     #initialized = false;
     #pollInterval?: number;
@@ -252,7 +253,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         const { endpointId, clusterId, matterValueChanged } = data;
         const attributeName =
             'vendorSpecificAttributeId' in data
-                ? `unknownAttribute_${Diagnostic.hex(data.vendorSpecificAttributeId)}`
+                ? `attr$${data.vendorSpecificAttributeId.toString(16)}`
                 : data.attributeName;
         if (attributeName !== undefined && !this.#attributeIsSupported(endpointId, clusterId, attributeName)) {
             return;
@@ -294,7 +295,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
             let attributeId: AttributeId | undefined;
             const requestedAttributeName =
                 'vendorSpecificAttributeId' in data
-                    ? `unknownAttribute_${Diagnostic.hex(data.vendorSpecificAttributeId)}`
+                    ? `attr$${data.vendorSpecificAttributeId.toString(16)}`
                     : data.attributeName;
             let attributeName = Array.isArray(requestedAttributeName)
                 ? requestedAttributeName[0]
@@ -306,6 +307,9 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                 }
 
                 attributeId = Matter.clusters(clusterId)?.attributes(attributeName)?.id as AttributeId | undefined;
+                if (attributeId === undefined && 'vendorSpecificAttributeId' in data) {
+                    attributeId = data.vendorSpecificAttributeId;
+                }
             }
 
             if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
@@ -418,7 +422,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
             let attributeId: AttributeId | undefined;
             const attributeName =
                 'vendorSpecificAttributeId' in data
-                    ? `unknownAttribute_${Diagnostic.hex(data.vendorSpecificAttributeId)}`
+                    ? `attr$${data.vendorSpecificAttributeId.toString(16)}`
                     : data.attributeName;
 
             if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
@@ -426,6 +430,9 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                     return;
                 }
                 attributeId = Matter.clusters(clusterId)?.attributes(attributeName)?.id as AttributeId | undefined;
+                if (attributeId === undefined && 'vendorSpecificAttributeId' in data) {
+                    attributeId = data.vendorSpecificAttributeId;
+                }
             }
 
             // Register the Matter path mapping
@@ -766,18 +773,25 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
             this.#adapter.clearTimeout(this.#pollTimeout);
             this.#pollTimeout = undefined;
         }
+        // Invalidate any in-flight poll run so it stops rescheduling itself
+        const generation = ++this.#pollGeneration;
         const pollingAttributes = new Array<{
             endpointId: EndpointNumber;
             clusterId: ClusterId;
             attributeId: AttributeId;
-            attributeName?: string;
+            attributeName: string;
         }>();
 
         // Add standard property attributes for polling
         for (const property of this.#enabledAttributeProperties.values()) {
             if (property.type === 'attribute' && property.pollAttribute) {
                 const { endpointId, clusterId, attributeId, attributeName } = property;
-                if (endpointId !== undefined && clusterId !== undefined && attributeId !== undefined) {
+                if (
+                    endpointId !== undefined &&
+                    clusterId !== undefined &&
+                    attributeId !== undefined &&
+                    attributeName !== undefined
+                ) {
                     pollingAttributes.push({ endpointId, clusterId, attributeId, attributeName });
                 }
             }
@@ -787,7 +801,12 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         for (const property of this.#enabledCustomAttributeProperties.values()) {
             if (property.type === 'attribute' && property.pollAttribute) {
                 const { endpointId, clusterId, attributeId, attributeName } = property;
-                if (endpointId !== undefined && clusterId !== undefined && attributeId !== undefined) {
+                if (
+                    endpointId !== undefined &&
+                    clusterId !== undefined &&
+                    attributeId !== undefined &&
+                    attributeName !== undefined
+                ) {
                     pollingAttributes.push({ endpointId, clusterId, attributeId, attributeName });
                 }
             }
@@ -796,7 +815,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         if (pollingAttributes.length) {
             this.#hasAttributesToPoll = true;
             this.#pollTimeout = this.#adapter.setTimeout(
-                () => this.#pollAttributes(pollingAttributes),
+                () => this.#pollAttributes(pollingAttributes, generation),
                 this.pollInterval,
             );
         }
@@ -811,54 +830,57 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
             endpointId: EndpointNumber;
             clusterId: ClusterId;
             attributeId: AttributeId;
-            attributeName?: string;
+            attributeName: string;
         }[],
+        generation: number,
     ): Promise<void> {
         this.#pollTimeout = undefined;
-        if (this.#destroyed || attributes.length === 0) {
+        if (this.#destroyed || attributes.length === 0 || generation !== this.#pollGeneration) {
             return;
         }
 
         if (this.#node.isConnected) {
-            // Group by (endpointId, clusterId) → one remote read per cluster
-            const groupMap = new Map<string, typeof attributes>();
-            for (const attr of attributes) {
-                const key = `${attr.endpointId}:${attr.clusterId}`;
-                const group = groupMap.get(key) ?? [];
-                group.push(attr);
-                groupMap.set(key, group);
+            // The read result carries only numeric paths, so map (endpoint, cluster, attribute) back to its name
+            const attributeNames = new Map<string, string>();
+            for (const { endpointId, clusterId, attributeId, attributeName } of attributes) {
+                attributeNames.set(`${endpointId}:${clusterId}:${attributeId}`, attributeName);
             }
 
-            for (const [, group] of groupMap) {
-                if (this.#destroyed) {
+            // Matter guarantees only 9 read paths per request (CapabilityMinima), so query in chunks
+            for (let i = 0; i < attributes.length; i += 9) {
+                if (this.#destroyed || generation !== this.#pollGeneration) {
                     return;
                 }
-                const { endpointId, clusterId } = group[0];
-                const behaviorId = this.#getBehaviorId(endpointId, clusterId);
-                if (!behaviorId) {
-                    continue;
-                }
+                const request = Read({
+                    attributes: attributes.slice(i, i + 9).map(({ endpointId, clusterId, attributeId }) => ({
+                        endpointId,
+                        clusterId,
+                        attributeId,
+                    })),
+                });
 
-                const ep = endpointId === 0 ? this.#rootEndpoint : this.appEndpoint;
                 try {
-                    const clusterState = (await (ep as any).getStateOf(behaviorId, {
-                        includeKnownVersions: true,
-                    })) as Record<string, any>;
-                    for (const attr of group) {
-                        if (attr.attributeName === undefined) {
-                            continue;
+                    for await (const chunk of this.#node.node.interaction.read(request)) {
+                        for await (const report of chunk) {
+                            if (this.#destroyed || generation !== this.#pollGeneration) {
+                                return;
+                            }
+                            if (report.kind !== 'attr-value') {
+                                continue;
+                            }
+                            const { endpointId, clusterId, attributeId } = report.path;
+                            const attributeName = attributeNames.get(`${endpointId}:${clusterId}:${attributeId}`);
+                            if (attributeName === undefined) {
+                                continue;
+                            }
+                            await this.handleChangedAttribute({
+                                endpointId,
+                                clusterId,
+                                attributeId,
+                                attributeName,
+                                value: report.value,
+                            });
                         }
-                        const value = clusterState[attr.attributeName];
-                        if (value === undefined) {
-                            continue;
-                        }
-                        await this.handleChangedAttribute({
-                            clusterId: attr.clusterId,
-                            endpointId: attr.endpointId,
-                            attributeId: attr.attributeId,
-                            attributeName: attr.attributeName,
-                            value,
-                        });
                     }
                 } catch (e) {
                     this.#adapter.log.info(`Error polling attributes for node ${this.#node.nodeId}: ${e}`);
@@ -868,8 +890,11 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
             this.#adapter.log.debug(`Node ${this.#node.nodeId} is not connected, do not poll attributes`);
         }
 
-        if (!this.#destroyed) {
-            this.#pollTimeout = this.#adapter.setTimeout(() => this.#pollAttributes(attributes), this.pollInterval);
+        if (!this.#destroyed && generation === this.#pollGeneration) {
+            this.#pollTimeout = this.#adapter.setTimeout(
+                () => this.#pollAttributes(attributes, generation),
+                this.pollInterval,
+            );
         }
     }
 

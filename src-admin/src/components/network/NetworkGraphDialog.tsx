@@ -60,7 +60,7 @@ import {
 import ThreadGraph from './ThreadGraph';
 import WiFiGraph from './WiFiGraph';
 import UpdateConnectionsDialog, { type SelectedNodeType } from './UpdateConnectionsDialog';
-import { I18n } from '@iobroker/adapter-react-v5';
+import { I18n } from '@iobroker/gui-components';
 
 interface NetworkGraphDialogProps {
     open: boolean;

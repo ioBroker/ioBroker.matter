@@ -1,6 +1,6 @@
-import engineHelper = require('@iobroker/legacy-testing/engineHelper');
-import guiHelper = require('@iobroker/legacy-testing/guiHelper');
-import packageJson = require('../package.json');
+import { startIoBrokerAdapters, stopIoBrokerAdapters } from '@iobroker/legacy-testing/engineHelper';
+import { startBrowser, stopBrowser } from '@iobroker/legacy-testing/guiHelper';
+import packageJson from '../package.json';
 
 const adapterName = packageJson.name.replace('iobroker.', '');
 let gPage: any;
@@ -11,8 +11,8 @@ describe('test-admin-gui', () => {
         this.timeout(240_000);
 
         // install js-controller, admin and matter
-        await engineHelper.startIoBrokerAdapters();
-        const { page } = await guiHelper.startBrowser(adapterName, rootDir, process.env.CI === 'true');
+        await startIoBrokerAdapters();
+        const { page } = await startBrowser(adapterName, rootDir, process.env.CI === 'true');
         gPage = page;
     });
 
@@ -28,9 +28,9 @@ describe('test-admin-gui', () => {
 
     after(async function () {
         this.timeout(5000);
-        await guiHelper.stopBrowser();
+        await stopBrowser();
         console.log('BROWSER stopped');
-        await engineHelper.stopIoBrokerAdapters();
+        await stopIoBrokerAdapters();
         console.log('ioBroker stopped');
     });
 });

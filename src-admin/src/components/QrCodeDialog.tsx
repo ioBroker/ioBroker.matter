@@ -5,7 +5,7 @@ import { Scanner } from '@yudiel/react-qr-scanner';
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, TextField } from '@mui/material';
 import { Add, Clear, Close, QrCode } from '@mui/icons-material';
 
-import { I18n, type ThemeType, InfoBox } from '@iobroker/adapter-react-v5';
+import { I18n, type ThemeType, InfoBox } from '@iobroker/gui-components';
 
 interface QrCodeDialogProps {
     onClose: (manualCode?: string, qrCode?: string) => void;

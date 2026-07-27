@@ -1,4 +1,4 @@
-import { I18n, type AdminConnection } from '@iobroker/adapter-react-v5';
+import { I18n, type AdminConnection } from '@iobroker/gui-components';
 import ChannelDetector, { Types, type DetectOptions } from '@iobroker/type-detector';
 
 import type { DetectedDevice, DetectedRoom } from './types';

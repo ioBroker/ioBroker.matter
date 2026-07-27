@@ -152,6 +152,11 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) Add support for the Room Air Conditioner device type (controller and bridge/device mode) mapped to the ioBroker airCondition type
 * (@Apollon77) Fix Thermostat cooling setpoint changes from Matter being applied as heating setpoint
 * (@Apollon77) Add a request timeout to the license verification API calls
+* (@GermanBluefox) Updated GUI to React 19
+
+### 1.3.1 (2026-07-23)
+* (@Apollon77) Fix Attribute Polling
+* (@Apollon77) Fix Commissioning of new nodes
 
 ### 1.3.0 (2026-07-19)
 * (@Apollon77) Update to Matter 1.6.0 (matter.js 0.17.7-alpha)

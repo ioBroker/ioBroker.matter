@@ -1,5 +1,5 @@
 import type { Endpoint, ServerAddressUdp, SoftwareUpdateInfo } from '@matter/main';
-import { ObserverGroup, SoftwareUpdateManager, Diagnostic, NodeId, VendorId, Seconds } from '@matter/main';
+import { ObserverGroup, Semaphore, SoftwareUpdateManager, Diagnostic, NodeId, VendorId, Seconds } from '@matter/main';
 import { GeneralCommissioning } from '@matter/main/clusters';
 import {
     GeneralDiagnosticsClient,
@@ -77,6 +77,8 @@ class Controller implements GeneralNode {
     #fabricLabel: string;
     #commissioningController?: CommissioningController;
     #nodes = new Map<string, GeneralMatterNode>();
+    /** Serializes nodeToIoBrokerStructure per node id; entries are pruned once a node is decommissioned. */
+    #nodeLocks = new Map<string, Semaphore>();
     #discovering = false;
     #useBle = false;
     #commissioningStatus = new Map<number, { status: 'finished' | 'error' | 'inprogress'; result?: MessageResponse }>();
@@ -472,6 +474,15 @@ class Controller implements GeneralNode {
         );
     }
 
+    #getNodeLock(nodeIdStr: string): Semaphore {
+        let lock = this.#nodeLocks.get(nodeIdStr);
+        if (lock === undefined) {
+            lock = new Semaphore(`controller-node-${nodeIdStr}`);
+            this.#nodeLocks.set(nodeIdStr, lock);
+        }
+        return lock;
+    }
+
     async nodeToIoBrokerStructure(
         node: PairedNode,
         nodeDetails?: { operationalAddress?: string },
@@ -479,14 +490,24 @@ class Controller implements GeneralNode {
     ): Promise<void> {
         const nodeIdStr = node.nodeId.toString();
 
-        // find and clear the old device if existing
-        const oldDevice = this.#nodes.get(nodeIdStr);
-        await oldDevice?.destroy();
+        // One rebuild per node id at a time, so a losing GeneralMatterNode is never overwritten in #nodes undestroyed.
+        const slot = await this.#getNodeLock(nodeIdStr).obtainSlot();
+        try {
+            if (this.#closing || this.#adapter.closing) {
+                // A queued call may only get its slot after stop() already cleared #nodes.
+                return;
+            }
 
-        const device = new GeneralMatterNode(this.#adapter, node, this.#parameters, this.#commissioningController);
-        this.#nodes.set(nodeIdStr, device);
-        await device.initialize(nodeDetails);
-        device.connect(connectOptions);
+            const oldDevice = this.#nodes.get(nodeIdStr);
+            await oldDevice?.destroy();
+
+            const device = new GeneralMatterNode(this.#adapter, node, this.#parameters, this.#commissioningController);
+            this.#nodes.set(nodeIdStr, device);
+            await device.initialize(nodeDetails);
+            device.connect(connectOptions);
+        } finally {
+            slot.close();
+        }
     }
 
     async getState(): Promise<void> {
@@ -1174,11 +1195,23 @@ class Controller implements GeneralNode {
         if (!this.#commissioningController) {
             throw new Error(`Can not decommission NodeId "${nodeId}" because controller not initialized.`);
         }
-        await this.#commissioningController.removeNode(
-            NodeId(BigInt(nodeId)),
-            !!this.#nodes.get(nodeId)?.node.isConnected,
-        );
-        this.#nodes.delete(nodeId);
+        // Shares nodeToIoBrokerStructure's lock so a concurrent rebuild can't race the delete below.
+        const slot = await this.#getNodeLock(nodeId).obtainSlot();
+        try {
+            await this.#commissioningController.removeNode(
+                NodeId(BigInt(nodeId)),
+                !!this.#nodes.get(nodeId)?.node.isConnected,
+            );
+            this.#nodes.delete(nodeId);
+        } finally {
+            slot.close();
+        }
+        // Only prune if nothing is currently queued or running on this node's lock, so an in-flight
+        // nodeToIoBrokerStructure call never has its slot pulled out from under it.
+        const lock = this.#nodeLocks.get(nodeId);
+        if (lock !== undefined && lock.count === 0 && lock.running === 0) {
+            this.#nodeLocks.delete(nodeId);
+        }
         this.#updateCallback();
     }
 

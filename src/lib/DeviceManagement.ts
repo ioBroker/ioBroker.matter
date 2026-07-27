@@ -159,6 +159,11 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         }
     }
 
+    /** Re-sends one node card so indicator tooltips and the conditional actions follow a changed ICD state. */
+    async updateNodeCard(ioNode: GeneralMatterNode): Promise<void> {
+        await this.sendCommandToGui({ command: 'infoUpdate', deviceId: ioNode.nodeId });
+    }
+
     /**
      * Create the "Node" device entry and also add all Endpoint-"Devices" for Device-Manager
      */
@@ -960,6 +965,26 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             return { refresh: 'devices' };
         }
         return { refresh: 'none' };
+    }
+
+    protected getDeviceInfo(id: string): DeviceInfo<string> {
+        const idParts = id.split('-');
+        const nodeId = idParts[0];
+
+        const node = this.#adapter.controllerNode?.nodes.get(nodeId);
+
+        if (!node) {
+            throw new Error(`Node not found: ${nodeId}`);
+        }
+
+        const entries = this.#getNodeEntry(node, 'primary');
+
+        const entry = entries.find(e => e.id === id);
+        if (!entry) {
+            throw new Error(`Device entry not found: ${id}`);
+        }
+
+        return entry;
     }
 
     getDeviceDetails(id: string): DeviceDetails<string> | null | { error: string } {

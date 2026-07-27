@@ -167,6 +167,10 @@ export class MatterAdapter extends Adapter {
         return this.#controller;
     }
 
+    get deviceManagement(): MatterAdapterDeviceManagement {
+        return this.#deviceManagement;
+    }
+
     get controllerUpdateQueue(): Semaphore {
         return this.#controllerActionQueue;
     }

@@ -48,7 +48,7 @@
     "ICD confirm disable": "Mudar para o modo padrão? O dispositivo vai acordar com muito mais frequência e responder mais depressa, à custa de um maior consumo de bateria. Continua a dormir brevemente entre verificações - não fica ligado permanentemente. Voltar atrás só é possível enquanto nenhum outro ecossistema estiver registado para o modo de poupança de bateria com este dispositivo - isto é verificado depois de confirmares.",
     "ICD confirm multi admin": "Estes ecossistemas ligados podem não suportar totalmente o modo de poupança de bateria: %s. Ativá-lo pode fazer com que o dispositivo pareça offline ou sem resposta nesses ecossistemas. Ativar mesmo assim?",
     "ICD cannot disable other controllers": "Não é possível desativar o modo de poupança de bateria: ainda há %s outro(s) controlador(es) registado(s) neste dispositivo. Remove primeiro o dispositivo desses ecossistemas, ou desativa lá o modo de poupança de bateria.",
-    "ICD confirm resync": "Ressincronizar o estado do modo de poupança de bateria? Isto remove o registo local do modo de poupança de bateria e volta a ligar-se do zero. Usa isto quando o dispositivo parecer preso offline apesar de dever estar acessível.",
+    "ICD confirm resync": "Ressincronizar o estado do modo de poupança de bateria? Isto remove o registo local do modo de poupança de bateria e inicia uma nova tentativa de reconexão em segundo plano. Usa isto quando o dispositivo parecer preso offline apesar de dever estar acessível.",
     "ICD operation already running": "Já está em curso uma operação do modo de poupança de bateria para este dispositivo. Aguarda que termine.",
     "Close": "Fechar",
     "Configure device": "Configurar dispositivo",

@@ -48,7 +48,7 @@
     "ICD confirm disable": "Overschakelen naar standaardmodus? Het apparaat wordt veel vaker wakker en reageert sneller, ten koste van een hoger batterijverbruik. Het slaapt nog steeds kort tussen check-ins - het wordt niet permanent verbonden. Terugschakelen is alleen mogelijk zolang er geen ander ecosysteem voor de batterijbesparingsmodus met dit apparaat geregistreerd is - dit wordt na je bevestiging gecontroleerd.",
     "ICD confirm multi admin": "Deze gekoppelde ecosystemen ondersteunen de batterijbesparingsmodus mogelijk niet volledig: %s. Inschakelen kan ervoor zorgen dat het apparaat daar offline of niet-reagerend lijkt. Toch inschakelen?",
     "ICD cannot disable other controllers": "De batterijbesparingsmodus kan niet worden uitgeschakeld: er zijn nog %s andere controller(s) geregistreerd bij dit apparaat. Verwijder het apparaat eerst uit die ecosystemen, of schakel de batterijbesparingsmodus daar uit.",
-    "ICD confirm resync": "Status van de batterijbesparingsmodus opnieuw synchroniseren? Dit verwijdert de lokale registratie van de batterijbesparingsmodus en maakt opnieuw helemaal vanaf het begin verbinding. Gebruik dit wanneer het apparaat vastzit op offline terwijl het bereikbaar zou moeten zijn.",
+    "ICD confirm resync": "Status van de batterijbesparingsmodus opnieuw synchroniseren? Dit verwijdert de lokale registratie van de batterijbesparingsmodus en start een nieuwe verbindingspoging op de achtergrond. Gebruik dit wanneer het apparaat vastzit op offline terwijl het bereikbaar zou moeten zijn.",
     "ICD operation already running": "Er is al een bewerking voor de batterijbesparingsmodus bezig voor dit apparaat. Wacht tot deze is voltooid.",
     "Close": "Sluiten",
     "Configure device": "Apparaat configureren",

@@ -48,7 +48,7 @@
     "ICD confirm disable": "Przełączyć na tryb standardowy? Urządzenie będzie budzić się znacznie częściej i reagować szybciej, kosztem większego zużycia baterii. Nadal śpi krótko między odpytywaniami - nie staje się połączone na stałe. Powrót jest możliwy tylko wtedy, gdy żaden inny ekosystem nie jest zarejestrowany dla trybu oszczędzania baterii z tym urządzeniem - jest to sprawdzane po potwierdzeniu.",
     "ICD confirm multi admin": "Te podłączone ekosystemy mogą nie w pełni obsługiwać tryb oszczędzania baterii: %s. Włączenie go może sprawić, że urządzenie będzie tam wyglądać na offline lub nie reagować. Włączyć mimo to?",
     "ICD cannot disable other controllers": "Nie można wyłączyć trybu oszczędzania baterii: nadal zarejestrowanych jest %s inny(ch) kontroler(ów) dla tego urządzenia. Najpierw usuń urządzenie z tych ekosystemów lub wyłącz tam tryb oszczędzania baterii.",
-    "ICD confirm resync": "Zsynchronizować ponownie stan trybu oszczędzania baterii? Spowoduje to usunięcie lokalnej rejestracji trybu oszczędzania baterii i ponowne połączenie od zera. Użyj tego, gdy urządzenie wygląda na trwale offline, mimo że powinno być osiągalne.",
+    "ICD confirm resync": "Zsynchronizować ponownie stan trybu oszczędzania baterii? Spowoduje to usunięcie lokalnej rejestracji trybu oszczędzania baterii i rozpoczęcie nowej próby ponownego połączenia w tle. Użyj tego, gdy urządzenie wygląda na trwale offline, mimo że powinno być osiągalne.",
     "ICD operation already running": "Dla tego urządzenia jest już uruchomiona operacja trybu oszczędzania baterii. Poczekaj, aż się zakończy.",
     "Close": "Zamknij",
     "Configure device": "Konfiguruj urządzenie",

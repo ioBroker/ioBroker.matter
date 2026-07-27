@@ -48,7 +48,7 @@
     "ICD confirm disable": "¿Cambiar al modo estándar? El dispositivo se activará con mucha más frecuencia y responderá más rápido, a costa de un mayor consumo de batería. Sigue durmiendo brevemente entre registros - no pasa a estar conectado de forma permanente. Solo se puede volver atrás mientras ningún otro ecosistema esté registrado para el modo de ahorro de batería con este dispositivo - esto se comprueba después de confirmar.",
     "ICD confirm multi admin": "Es posible que estos ecosistemas conectados no admitan completamente el modo de ahorro de batería: %s. Activarlo puede hacer que el dispositivo aparezca sin conexión o no responda en esos ecosistemas. ¿Activar de todos modos?",
     "ICD cannot disable other controllers": "No se puede desactivar el modo de ahorro de batería: todavía hay %s otro(s) controlador(es) registrado(s) con este dispositivo. Elimine primero el dispositivo de esos ecosistemas o desactive allí el modo de ahorro de batería.",
-    "ICD confirm resync": "¿Resincronizar el estado del modo de ahorro de batería? Esto elimina el registro local del modo de ahorro de batería y vuelve a conectar desde cero. Use esto cuando el dispositivo parezca atascado sin conexión aunque debería estar accesible.",
+    "ICD confirm resync": "¿Resincronizar el estado del modo de ahorro de batería? Esto elimina el registro local del modo de ahorro de batería e inicia un nuevo intento de reconexión en segundo plano. Use esto cuando el dispositivo parezca atascado sin conexión aunque debería estar accesible.",
     "ICD operation already running": "Ya hay una operación del modo de ahorro de batería en curso para este dispositivo. Espere a que finalice.",
     "Close": "Cerrar",
     "Configure device": "Configurar dispositivo",

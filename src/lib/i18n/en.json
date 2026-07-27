@@ -47,7 +47,7 @@
     "ICD confirm disable": "Switch to Standard Mode? The device will wake much more often and respond faster, at the cost of higher battery use. It still sleeps briefly between check-ins - it does not become permanently connected. Switching back is only possible while no other ecosystem is registered for Battery Saver Mode with this device - this is verified after you confirm.",
     "ICD confirm multi admin": "These connected ecosystems may not fully support Battery Saver Mode: %s. Enabling it can make the device appear offline or unresponsive in those ecosystems. Enable anyway?",
     "ICD cannot disable other controllers": "Battery Saver Mode cannot be disabled: %s other controller(s) are still registered with this device. Remove the device from those ecosystems, or disable Battery Saver Mode there, first.",
-    "ICD confirm resync": "Resync Battery Saver state? This drops the local Battery Saver registration and reconnects from scratch. Use this when the device appears stuck offline although it should be reachable.",
+    "ICD confirm resync": "Resync Battery Saver state? This drops the local Battery Saver registration and starts a fresh reconnect attempt in the background. Use this when the device appears stuck offline although it should be reachable.",
     "ICD operation already running": "A Battery Saver Mode operation is already running for this device. Please wait for it to finish.",
     "Close": "Close",
     "Current Version": "Current Version",

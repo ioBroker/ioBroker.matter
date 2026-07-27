@@ -165,11 +165,6 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         }
     }
 
-    /** Re-sends one node card so indicator tooltips and the conditional actions follow a changed ICD state. */
-    async updateNodeCard(ioNode: GeneralMatterNode): Promise<void> {
-        await this.sendCommandToGui({ command: 'infoUpdate', deviceId: ioNode.nodeId });
-    }
-
     #getIcdIndicator(ioNode: GeneralMatterNode): StatusIndicator | undefined {
         const icd = ioNode.icd;
         if (icd === undefined || !icd.litCapable) {
@@ -809,13 +804,19 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const info = icd.info;
         const idleDuration = info?.idleModeDuration;
         const interval = idleDuration !== undefined ? formatDuration(idleDuration) : undefined;
+        // `showingBatterySaver` (from the peer's operatingMode) is what the card indicator shows and must
+        // drive the form's display; `registered` is our own registration attempt and can disagree with it
+        // (e.g. right after a failed resync leaves us unregistered but the peer still reports LIT) - it is
+        // re-read fresh below to drive the enable/disable decision instead.
+        const mode = icd.mode;
+        const showingBatterySaver = mode === 'lit' || mode === 'litOffline';
         const registered = icd.registered;
-        const canResync = registered && !icd.available;
+        const canResync = mode === 'litOffline' || (registered && !icd.available);
 
         const items: Record<string, ConfigItemAny> = {
             _currentMode: {
                 type: 'staticText',
-                text: registered
+                text: showingBatterySaver
                     ? interval
                         ? this.#adapter.getText('ICD form current battery saver with interval', interval)
                         : this.#adapter.getText('ICD form current battery saver')
@@ -902,7 +903,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         const result = await context.showForm(
             { type: 'panel', items, style: { minWidth: 400 } },
             {
-                data: { mode: registered ? 'batterySaver' : 'standard', resync: false },
+                data: { mode: showingBatterySaver ? 'batterySaver' : 'standard', resync: false },
                 maxWidth: 'md',
                 title: this.#adapter.getText('Battery Saver Mode'),
                 buttons: [
@@ -921,17 +922,54 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             return this.#runIcdResync(ioNode, icd, context);
         }
         const target = result.mode === 'batterySaver';
-        if (target === registered) {
+        // The form's select defaulted to `showingBatterySaver`, so comparing against it (not `registered`)
+        // is what tells us the user left the selection untouched.
+        if (target === showingBatterySaver) {
             return { refresh: 'none' };
         }
-        return target ? this.#runIcdEnable(ioNode, icd, context, interval) : this.#runIcdDisable(ioNode, icd, context);
+        // The form can stay open for minutes; matter.js can auto-register a LIT peer in that window (on
+        // operatingMode$Changed or on subscription-established), so re-read rather than act on the
+        // pre-form snapshot. If our own registration already matches what the user picked, there is
+        // nothing left to do on our side.
+        const registeredNow = icd.registered;
+        if (target === registeredNow) {
+            return { refresh: 'none' };
+        }
+        // idleModeDuration can also have changed while the form was open.
+        const freshInterval =
+            icd.info?.idleModeDuration !== undefined ? formatDuration(icd.info.idleModeDuration) : undefined;
+        return target
+            ? this.#runIcdEnable(ioNode, icd, context, freshInterval)
+            : this.#runIcdDisable(ioNode, icd, context);
+    }
+
+    /**
+     * Runs a dm-utils dialog call, logging (not propagating) a throw instead of returning `fallback`. A
+     * dialog call can throw synchronously when an earlier failed `close()`/`openProgress()` left dm-utils'
+     * `hasOpenProgressDialog` flag set - an unguarded call would then escape its action handler, skipping
+     * dm-utils' own result delivery and leaking its `MessageContext`.
+     */
+    async #guardedDialogCall<T>(
+        ioNode: GeneralMatterNode,
+        description: string,
+        call: () => Promise<T>,
+        fallback: T,
+    ): Promise<T> {
+        try {
+            return await call();
+        } catch (error) {
+            this.adapter.log.warn(`${description} for node ${ioNode.nodeId}: ${inspect(error, { depth: 5 })}`);
+            return fallback;
+        }
     }
 
     /**
      * Keeps the card in `pending` and an indeterminate progress dialog open while the peer is contacted.
-     * dm-utils' dialog promises never reject, only hang, so `pending` is cleared in a `finally` here —
-     * that's what stops a closed browser tab (or dropped GUI socket) pinning the indicator on "changing"
-     * forever, since nothing else would ever settle those promises.
+     * `openProgress` can hang indefinitely with nothing left to ever settle it (closed tab, dropped GUI
+     * socket), so `pending` is only set once that dialog is actually open, leaving the card unaffected by
+     * such a hang instead of pinning it on "changing" forever. The same kind of hang in the later
+     * `progress.close()` is not covered: `pending` is already cleared by then, but the action handler itself
+     * still never returns.
      */
     async #runIcdOperation(
         ioNode: GeneralMatterNode,
@@ -940,41 +978,41 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         title: string,
         action: () => Promise<void>,
     ): Promise<{ refresh: DeviceRefresh }> {
-        icd.pending = true;
         let progress: Awaited<ReturnType<ActionContext['openProgress']>> | undefined;
         let failed = false;
         let error: unknown;
         try {
             progress = await context.openProgress(title, { indeterminate: true });
-            await action();
+            icd.pending = true;
+            try {
+                await action();
+            } finally {
+                icd.pending = false;
+            }
         } catch (caught) {
             failed = true;
             error = caught;
-        } finally {
-            icd.pending = false;
         }
         if (progress !== undefined) {
-            try {
-                await progress.close();
-            } catch (closeError) {
-                this.adapter.log.warn(
-                    `Failed to close ICD progress dialog for node ${ioNode.nodeId}: ${inspect(closeError, { depth: 5 })}`,
-                );
-            }
+            const openDialog = progress;
+            await this.#guardedDialogCall(
+                ioNode,
+                'Failed to close ICD progress dialog',
+                () => openDialog.close(),
+                undefined,
+            );
         }
         if (failed) {
             this.adapter.log.warn(`ICD operation failed for node ${ioNode.nodeId}: ${inspect(error, { depth: 5 })}`);
-            try {
-                // A failed close() above leaves the dm-utils dialog "open", so this showMessage can itself
-                // throw synchronously; that must not escape and leave the action's result unsent.
-                await context.showMessage(
-                    `${this.#adapter.t('Battery Saver Mode operation failed')}: ${error instanceof Error ? error.message : inspect(error)}`,
-                );
-            } catch (showError) {
-                this.adapter.log.warn(
-                    `Failed to show ICD failure message for node ${ioNode.nodeId}: ${inspect(showError, { depth: 5 })}`,
-                );
-            }
+            await this.#guardedDialogCall(
+                ioNode,
+                'Failed to show ICD failure message',
+                () =>
+                    context.showMessage(
+                        `${this.#adapter.t('Battery Saver Mode operation failed')}: ${error instanceof Error ? error.message : inspect(error)}`,
+                    ),
+                undefined,
+            );
         }
         return { refresh: 'devices' };
     }
@@ -1026,7 +1064,15 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                   )
                   .join(', ')
             : this.#adapter.t('unknown ecosystems');
-        if (!(await context.showConfirmation(this.#adapter.t('ICD confirm multi admin', names)))) {
+        // Guarded like #runIcdOperation's own dialog calls: a failed close() there can leave dm-utils'
+        // dialog flag set, which would make this confirmation throw synchronously otherwise.
+        const confirmedMultiAdmin = await this.#guardedDialogCall(
+            ioNode,
+            'Failed to show ICD multi-admin confirmation',
+            () => context.showConfirmation(this.#adapter.t('ICD confirm multi admin', names)),
+            false,
+        );
+        if (!confirmedMultiAdmin) {
             return { refresh: 'none' };
         }
         return this.#runIcdOperation(
@@ -1062,7 +1108,12 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             },
         );
         if (blockedBy > 0) {
-            await context.showMessage(this.#adapter.t('ICD cannot disable other controllers', blockedBy));
+            await this.#guardedDialogCall(
+                ioNode,
+                'Failed to show ICD blocked-by-other-controllers message',
+                () => context.showMessage(this.#adapter.t('ICD cannot disable other controllers', blockedBy)),
+                undefined,
+            );
         }
         return outcome;
     }
@@ -1319,26 +1370,6 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             return { refresh: 'devices' };
         }
         return { refresh: 'none' };
-    }
-
-    protected getDeviceInfo(id: string): DeviceInfo<string> {
-        const idParts = id.split('-');
-        const nodeId = idParts[0];
-
-        const node = this.#adapter.controllerNode?.nodes.get(nodeId);
-
-        if (!node) {
-            throw new Error(`Node not found: ${nodeId}`);
-        }
-
-        const entries = this.#getNodeEntry(node, 'primary');
-
-        const entry = entries.find(e => e.id === id);
-        if (!entry) {
-            throw new Error(`Device entry not found: ${id}`);
-        }
-
-        return entry;
     }
 
     getDeviceDetails(id: string): DeviceDetails<string> | null | { error: string } {

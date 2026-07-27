@@ -57,6 +57,7 @@ export class NodeIcdManager {
         if (root.behaviors.has(IcdManagementClient)) {
             const managementEvents = root.eventsOf(IcdManagementClient);
             this.#observers.on(managementEvents.operatingMode$Changed, () => this.changed.emit());
+            this.#observers.on(managementEvents.idleModeDuration$Changed, () => this.changed.emit());
         }
     }
 
@@ -112,6 +113,10 @@ export class NodeIcdManager {
         });
     }
 
+    get pending(): boolean {
+        return this.#pending;
+    }
+
     set pending(value: boolean) {
         if (this.#pending === value) {
             return;
@@ -126,7 +131,26 @@ export class NodeIcdManager {
             await this.#node.node.act(agent => agent.get(IcdClient).register({ allowMultiAdmin }));
         } catch (error) {
             IcdMultiAdminError.accept(error);
-            throw new IcdMultiAdminConflictError([...error.adminVendorIds]);
+            throw new IcdMultiAdminConflictError(await this.#foreignAdminVendorIds(error.adminVendorIds));
+        }
+    }
+
+    /**
+     * `adminVendorIds` includes our own fabric (matter.js's `DEFAULT_ADMIN_VENDOR_ID` fallback), which must
+     * not be shown to the user as a possibly-incompatible ecosystem. Best-effort: a failed lookup leaves the
+     * list unfiltered rather than losing the conflict report.
+     */
+    async #foreignAdminVendorIds(vendorIds: readonly number[]): Promise<number[]> {
+        try {
+            const { fabrics, currentFabricIndex } = await this.#node.node.getStateOf(
+                OperationalCredentialsClient,
+                ['fabrics', 'currentFabricIndex'],
+                { fabricFilter: false },
+            );
+            const ownVendorId = fabrics?.find(fabric => fabric.fabricIndex === currentFabricIndex)?.vendorId;
+            return ownVendorId === undefined ? [...vendorIds] : vendorIds.filter(vendorId => vendorId !== ownVendorId);
+        } catch {
+            return [...vendorIds];
         }
     }
 
@@ -137,22 +161,28 @@ export class NodeIcdManager {
 
     /**
      * Drops the local registration and reconnects; a LIT peer re-registers itself once subscribed.
-     * `triggerReconnect` preserves the node's stored connect options.
+     * `triggerReconnect` preserves the node's stored connect options and is fire-and-forget by design: its
+     * awaitable form only awaits the internal resubscribe toggle, not the reconnect outcome, so awaiting it
+     * would tell the caller nothing more than this does.
      */
     async resync(): Promise<void> {
         await this.#node.node.act(agent => agent.get(IcdClient).forget());
         this.#node.triggerReconnect();
     }
 
-    /** Registrations held by other fabrics. The unfiltered read parks until a sleeping LIT peer checks in. */
+    /**
+     * Registrations held by other fabrics. The unfiltered `registeredClients` read parks until a sleeping LIT
+     * peer checks in. `currentFabricIndex` is read fresh alongside it, not from cached state, since it has no
+     * `nonvolatile` quality and so reads back `undefined` on a rehydrated or not-yet-reconnected node.
+     */
     async otherFabricClientCount(): Promise<number> {
-        const registrations = await this.#node.node.getStateOf(IcdManagementClient, ['registeredClients'], {
-            fabricFilter: false,
-        });
-        const ourFabricIndex = this.#node.node.maybeStateOf(OperationalCredentialsClient)?.currentFabricIndex;
+        const [registrations, credentials] = await Promise.all([
+            this.#node.node.getStateOf(IcdManagementClient, ['registeredClients'], { fabricFilter: false }),
+            this.#node.node.getStateOf(OperationalCredentialsClient, ['currentFabricIndex'], { fabricFilter: false }),
+        ]);
         return otherFabricClientCount(
             registrations.registeredClients ?? new Array<IcdManagement.MonitoringRegistration>(),
-            ourFabricIndex,
+            credentials.currentFabricIndex,
         );
     }
 

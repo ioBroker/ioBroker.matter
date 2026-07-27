@@ -599,9 +599,7 @@ export class GeneralMatterNode {
     #publishIcdMode(): void {
         const mode = this.#icd?.mode ?? '';
         this.adapter.setState(this.icdModeStateId, mode, true).catch(() => {});
-        this.adapter.deviceManagement.updateNodeCard(this).catch(error => {
-            this.adapter.log.debug(`Could not push ICD update for node ${this.nodeId}: ${error}`);
-        });
+        this.adapter.refreshControllerDevices();
     }
 
     /**

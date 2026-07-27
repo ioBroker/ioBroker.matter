@@ -47,7 +47,7 @@
     "ICD confirm disable": "Zum Standardmodus wechseln? Das Gerät wacht viel häufiger auf und reagiert schneller, auf Kosten eines höheren Akkuverbrauchs. Es schläft weiterhin kurz zwischen den Check-ins - es wird nicht dauerhaft verbunden. Der Wechsel zurück ist nur möglich, solange kein anderes Ökosystem für den Akkusparmodus mit diesem Gerät registriert ist - dies wird nach Ihrer Bestätigung geprüft.",
     "ICD confirm multi admin": "Diese verbundenen Ökosysteme unterstützen den Akkusparmodus möglicherweise nicht vollständig: %s. Die Aktivierung kann dazu führen, dass das Gerät dort offline oder nicht reagierend erscheint. Trotzdem aktivieren?",
     "ICD cannot disable other controllers": "Der Akkusparmodus kann nicht deaktiviert werden: %s andere(r) Controller sind noch bei diesem Gerät registriert. Entfernen Sie das Gerät zuerst aus diesen Ökosystemen oder deaktivieren Sie dort den Akkusparmodus.",
-    "ICD confirm resync": "Akkusparmodus-Status neu synchronisieren? Dies entfernt die lokale Akkusparmodus-Registrierung und stellt die Verbindung von Grund auf neu her. Verwenden Sie dies, wenn das Gerät scheinbar dauerhaft offline hängt, obwohl es erreichbar sein sollte.",
+    "ICD confirm resync": "Akkusparmodus-Status neu synchronisieren? Dies entfernt die lokale Akkusparmodus-Registrierung und startet im Hintergrund einen neuen Verbindungsversuch. Verwenden Sie dies, wenn das Gerät scheinbar dauerhaft offline hängt, obwohl es erreichbar sein sollte.",
     "ICD operation already running": "Für dieses Gerät läuft bereits ein Akkusparmodus-Vorgang. Bitte warten Sie, bis dieser abgeschlossen ist.",
     "Close": "Schließen",
     "Configure device": "Gerät konfigurieren",

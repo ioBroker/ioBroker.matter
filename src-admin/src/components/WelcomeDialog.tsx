@@ -4,7 +4,7 @@ import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Link } from 
 import { Close } from '@mui/icons-material';
 import { FaApple, FaAndroid } from 'react-icons/fa';
 
-import { type AdminConnection, I18n, type ThemeType, DialogMessage, InfoBox } from '@iobroker/adapter-react-v5';
+import { type AdminConnection, I18n, type ThemeType, DialogMessage, InfoBox } from '@iobroker/gui-components';
 
 import NetworkSelector, { type NetworkInterface } from './NetworkSelector';
 import LoginPassword from './LoginPassword';

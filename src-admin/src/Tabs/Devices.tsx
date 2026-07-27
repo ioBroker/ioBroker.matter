@@ -2,7 +2,7 @@ import { Types } from '@iobroker/type-detector';
 import React from 'react';
 import { v4 as uuidv4 } from 'uuid';
 
-import { IconButton } from '@foxriver76/iob-component-lib';
+import IconButton from '../components/IconButton';
 import { Add, AutoMode, Close, Delete, DeviceHub, FormatListBulleted } from '@mui/icons-material';
 import {
     Button,
@@ -24,7 +24,7 @@ import {
     IconButton as MuiIconButton,
 } from '@mui/material';
 
-import { I18n, SelectID, DeviceTypeSelector, DeviceTypeIcon, InfoBox, IconExpert } from '@iobroker/adapter-react-v5';
+import { I18n, SelectID, DeviceTypeSelector, DeviceTypeIcon, InfoBox, IconExpert } from '@iobroker/gui-components';
 import DeviceDialog, { SUPPORTED_DEVICES } from '../components/DeviceDialog';
 import type { DetectedDevice, DeviceDescription, MatterConfig } from '../types';
 import { clone, detectDevices, getDetectedDeviceTypes, getText } from '../Utils';

@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { FormControl, InputLabel, MenuItem, Select, TextField } from '@mui/material';
-import { type AdminConnection, I18n } from '@iobroker/adapter-react-v5';
+import { type AdminConnection, I18n } from '@iobroker/gui-components';
 
 export interface NetworkInterface {
     address: string;

@@ -19,7 +19,7 @@ import {
 
 import { Check, Close, LayersClear, AutoAwesome, Clear, CloudUpload } from '@mui/icons-material';
 
-import { type AdminConnection, I18n, Logo, InfoBox, IconExpert } from '@iobroker/adapter-react-v5';
+import { type AdminConnection, I18n, Logo, InfoBox, IconExpert } from '@iobroker/gui-components';
 
 import LoginPassword from '../components/LoginPassword';
 import NetworkSelector from '../components/NetworkSelector';

@@ -11,6 +11,7 @@ import type {
     JsonFormData,
     ConfigConnectionType,
     DeviceLoadContext,
+    StatusIndicator,
 } from '@iobroker/dm-utils';
 import { DeviceManagement, ACTIONS } from '@iobroker/dm-utils';
 import { GeneralMatterNode, type NodeDetails } from '../matter/GeneralMatterNode';
@@ -22,6 +23,8 @@ import { logControllerEndpoint } from '../matter/ControllerEndpointStructureInsp
 import { SpecificationVersion } from '@matter/main/types';
 import { CommissioningClient, isObject } from '@matter/main';
 import { PeerAddress } from '@matter/main/protocol';
+import { ICD_LIT_ICON } from './icons';
+import { formatDuration } from '../matter/icdUtils';
 
 function strToBool(str: string): boolean | null {
     if (str === 'true') {
@@ -164,6 +167,51 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         await this.sendCommandToGui({ command: 'infoUpdate', deviceId: ioNode.nodeId });
     }
 
+    #getIcdIndicator(ioNode: GeneralMatterNode): StatusIndicator | undefined {
+        const icd = ioNode.icd;
+        if (icd === undefined || !icd.litCapable) {
+            return undefined;
+        }
+        const idleDuration = icd.info?.idleModeDuration;
+        const interval = idleDuration !== undefined ? formatDuration(idleDuration) : undefined;
+
+        return {
+            id: 'icd',
+            value: { stateId: `${this.#adapter.namespace}.${ioNode.icdModeStateId}` },
+            icon: ICD_LIT_ICON,
+            hideIfEmpty: true,
+            actionId: 'icdManagement',
+            order: 50,
+            label: this.#adapter.getText('Battery Saver Mode'),
+            levels: [
+                {
+                    value: 'lit',
+                    color: 'ok',
+                    tooltip: interval
+                        ? this.#adapter.getText('ICD tooltip battery saver active with interval', interval)
+                        : this.#adapter.getText('ICD tooltip battery saver active'),
+                },
+                {
+                    value: 'litOffline',
+                    color: 'error',
+                    tooltip: interval
+                        ? this.#adapter.getText('ICD tooltip battery saver offline with interval', interval)
+                        : this.#adapter.getText('ICD tooltip battery saver offline'),
+                },
+                {
+                    value: 'pending',
+                    color: 'info',
+                    tooltip: this.#adapter.getText('ICD tooltip changing'),
+                },
+                {
+                    value: 'sit',
+                    color: 'inactive',
+                    tooltip: this.#adapter.getText('ICD tooltip standard mode'),
+                },
+            ],
+        };
+    }
+
     /**
      * Create the "Node" device entry and also add all Endpoint-"Devices" for Device-Manager
      */
@@ -250,6 +298,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         actions = actions?.filter(it => it) || [];
 
         const connectionType = ioNode.connectionType;
+        const icdIndicator = this.#getIcdIndicator(ioNode);
         const res = new Array<DeviceInfo<string>>();
         const node: DeviceInfo<string> = {
             id,
@@ -261,6 +310,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             connectionType,
             hasDetails: true,
             actions: actions.length ? (actions as DeviceAction<'adapter', string>[]) : undefined,
+            indicators: icdIndicator ? [icdIndicator] : undefined,
             backgroundColor,
             color: '#FFFFFF',
             group: {

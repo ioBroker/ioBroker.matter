@@ -1,0 +1,185 @@
+import { type CancelablePromise, Duration, Logger, Millis, Seconds, Time, type Timer } from '@matter/main';
+import { type PeerAddress, PeerAddressSet } from '@matter/main/protocol';
+
+const logger = Logger.get('NodeProcessor');
+
+// Timer.interval rejects anything outside the 32-bit signed range.
+export const MAX_TIMER_DELAY_MS = 2_147_483_647;
+
+/**
+ * Abstract base class for timer-driven periodic processing of registered nodes.
+ * Handles timer lifecycle, node registration, and the per-node processing loop
+ * with inter-node delay. Subclasses provide the actual processing logic.
+ *
+ * Mirrored from matter-js/matterjs-server `packages/ws-controller/src/controller/NodeProcessor.ts`.
+ */
+export abstract class NodeProcessor {
+    readonly #targetInterval: Duration;
+    readonly #timer: Timer;
+    #peers = new PeerAddressSet();
+    #isProcessing = false;
+    #currentDelayPromise?: CancelablePromise;
+    #processingPromise?: Promise<void>;
+    #closed = false;
+
+    constructor(timerName: string, initialDelay: number, targetInterval: number) {
+        this.#targetInterval = Millis(targetInterval);
+        this.#timer = Time.getTimer(timerName, Millis(initialDelay), () => this.#startProcessing());
+    }
+
+    #startProcessing(): void {
+        // Keep #processingPromise pointing at the live cycle: never overwrite it with the
+        // resolved no-op #processAll() returns while a cycle is already running, or stop()
+        // could await the wrong promise and return before the real cycle finishes.
+        if (this.#isProcessing) {
+            return;
+        }
+        this.#processingPromise = this.#processAll().catch(error =>
+            logger.error('Node processing cycle failed:', error),
+        );
+    }
+
+    protected get closed(): boolean {
+        return this.#closed;
+    }
+
+    /** Register a peer. Returns true if this was a new registration. */
+    protected registerPeer(peer: PeerAddress): boolean {
+        const isNew = !this.#peers.has(peer);
+        this.#peers.add(peer);
+        return isNew;
+    }
+
+    /** Unregister a peer. Stops the timer if no peers remain. Returns true if was registered. */
+    protected unregisterPeer(peer: PeerAddress): boolean {
+        const removed = this.#peers.delete(peer);
+        if (removed && this.#peers.size === 0) {
+            this.#timer.stop();
+        }
+        return removed;
+    }
+
+    protected hasPeer(peer: PeerAddress): boolean {
+        return this.#peers.has(peer);
+    }
+
+    /** Start the timer if there are registered peers and it is not already running. */
+    protected scheduleIfNeeded(): void {
+        if (this.#peers.size === 0 || this.#closed) {
+            return;
+        }
+        if (this.#timer.isRunning || this.#isProcessing) {
+            return;
+        }
+        this.#timer.start();
+    }
+
+    /**
+     * Override the delay before the next cycle. Only takes effect while no cycle is scheduled or
+     * running, so callers must apply it before scheduleIfNeeded() starts the timer.
+     */
+    protected setNextCycleDelay(delayMs: number): boolean {
+        if (!this.cycleDelayAdjustable) {
+            return false;
+        }
+        return this.#applyInterval(delayMs);
+    }
+
+    /** Whether setNextCycleDelay() can still take effect, so callers can skip computing a delay. */
+    protected get cycleDelayAdjustable(): boolean {
+        return !this.#timer.isRunning && !this.#isProcessing && !this.#closed;
+    }
+
+    /** Both assignment paths go through here, since nextCycleDelay() is open to any subclass. */
+    #applyInterval(delayMs: number): boolean {
+        if (!Number.isFinite(delayMs) || delayMs < 0) {
+            // A NaN passes Timer.interval's range check and then fires immediately, every cycle.
+            logger.warn(`Ignoring invalid cycle delay ${delayMs}`);
+            return false;
+        }
+        this.#timer.interval = Millis(Math.min(delayMs, MAX_TIMER_DELAY_MS));
+        return true;
+    }
+
+    async stop(): Promise<void> {
+        this.#closed = true;
+        this.#currentDelayPromise?.cancel(new Error('Close'));
+        this.#timer.stop();
+        await this.#processingPromise;
+    }
+
+    /** Returns false if this peer should be skipped during processing (e.g. not connected). */
+    protected abstract shouldProcess(peer: PeerAddress): boolean;
+
+    /** Perform work for a single peer. Must handle its own errors. */
+    protected abstract processNode(peer: PeerAddress): Promise<void>;
+
+    /**
+     * Called once a cycle is committed to running, before the peer list is snapshotted. A peer
+     * registering after this point is not in the snapshot, so anything a subclass gates on "the first
+     * cycle has run" must open here rather than in onCycleComplete, or that peer falls between the two.
+     */
+    protected onCycleStart(): void {}
+
+    /**
+     * Called after a full processing cycle completes. `intervalFormatted` is empty when no next cycle
+     * was scheduled, i.e. every peer unregistered during this one.
+     */
+    protected onCycleComplete(_processedCount: number, _intervalFormatted: string): void {}
+
+    /** Delay before the cycle that follows this one. Override to vary the cadence. */
+    protected nextCycleDelay(): Duration {
+        return this.#targetInterval;
+    }
+
+    async #processAll(): Promise<void> {
+        if (this.#isProcessing) {
+            return;
+        }
+
+        // A throw here would skip the finally below, leaving the timer stopped and this processor
+        // dead until a peer re-registers. The cadence is never worth that.
+        let nextInterval: Duration;
+        try {
+            nextInterval = this.nextCycleDelay();
+        } catch (error) {
+            logger.warn('Falling back to the target interval, computing the next cycle delay failed:', error);
+            nextInterval = this.#targetInterval;
+        }
+        this.#applyInterval(nextInterval);
+
+        this.#isProcessing = true;
+        let processedCount = 0;
+
+        try {
+            this.onCycleStart();
+            const peers = Array.from(this.#peers);
+            for (let i = 0; i < peers.length; i++) {
+                if (this.#closed) {
+                    break;
+                }
+                const peer = peers[i];
+                if (!this.#peers.has(peer) || !this.shouldProcess(peer)) {
+                    continue;
+                }
+                processedCount++;
+                await this.processNode(peer);
+                if (i < peers.length - 1 && !this.#closed) {
+                    this.#currentDelayPromise = Time.sleep('node-processor-delay', Seconds(2)).finally(() => {
+                        this.#currentDelayPromise = undefined;
+                    });
+                    await this.#currentDelayPromise;
+                }
+            }
+        } finally {
+            this.#isProcessing = false;
+            this.scheduleIfNeeded();
+        }
+
+        if (!this.#closed) {
+            // scheduleIfNeeded() declines to arm the timer with no peers left, so naming an interval
+            // then would point at a timer that is not running.
+            this.onCycleComplete(processedCount, this.#timer.isRunning ? Duration.format(this.#timer.interval) : '');
+        }
+    }
+}

@@ -28,6 +28,12 @@ interface UpdateConnectionsDialogProps {
     onlineNeighborIds: string[];
     onClose: () => void;
     onUpdate: (nodeIds: string[]) => Promise<void>;
+    /**
+     * BR-refresh variant: the confirm always refreshes the Border Router's diagnostics (handled by
+     * the caller), and the connected commissioned nodes are optionally re-read too. Confirm stays
+     * enabled even with no node selected (diagnostics-only).
+     */
+    borderRouterRefresh?: boolean;
 }
 
 interface UpdateConnectionsDialogState {
@@ -41,7 +47,8 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
     constructor(props: UpdateConnectionsDialogProps) {
         super(props);
         this.state = {
-            includeNeighbors: false,
+            // BR-refresh defaults to also re-reading the connected nodes.
+            includeNeighbors: !!props.borderRouterRefresh,
             isUpdating: false,
         };
     }
@@ -50,7 +57,7 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
         // Reset state when dialog opens
         if (this.props.open && !prevProps.open) {
             this.setState({
-                includeNeighbors: false,
+                includeNeighbors: !!this.props.borderRouterRefresh,
                 isUpdating: false,
             });
         }
@@ -69,6 +76,10 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
         if (selectedNodeType === 'online') {
             return includeNeighbors ? 1 + onlineNeighborIds.length : 1;
         }
+        // BR refresh: the connected nodes are opt-in (diagnostics refresh is separate).
+        if (this.props.borderRouterRefresh) {
+            return includeNeighbors ? onlineNeighborIds.length : 0;
+        }
         // offline and unknown: update neighbors only
         return onlineNeighborIds.length;
     }
@@ -84,13 +95,18 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
             }
             return nodeIds;
         }
+        // BR refresh: only the connected nodes the user opted to also re-read.
+        if (this.props.borderRouterRefresh) {
+            return includeNeighbors ? onlineNeighborIds : [];
+        }
         // offline and unknown: update neighbors only
         return onlineNeighborIds;
     }
 
     handleUpdate = async (): Promise<void> => {
         const updateCount = this.getUpdateCount();
-        if (this.state.isUpdating || updateCount === 0) {
+        // A BR refresh always has something to do (the diagnostics refresh), even with 0 nodes.
+        if (this.state.isUpdating || (updateCount === 0 && !this.props.borderRouterRefresh)) {
             return;
         }
 
@@ -165,6 +181,31 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
                 );
 
             case 'unknown':
+                // BR-refresh variant: always refreshes the BR's diagnostics; connected nodes opt-in.
+                if (this.props.borderRouterRefresh) {
+                    return (
+                        <>
+                            <Typography>
+                                {I18n.t('Refresh the Border Router diagnostics for "%s".', selectedNodeName)}
+                            </Typography>
+                            {onlineNeighborIds.length > 0 && (
+                                <FormControlLabel
+                                    control={
+                                        <Checkbox
+                                            checked={includeNeighbors}
+                                            onChange={this.handleIncludeNeighborsChange}
+                                        />
+                                    }
+                                    label={I18n.t(
+                                        'Also refresh the %s connected node(s)',
+                                        onlineNeighborIds.length.toString(),
+                                    )}
+                                    sx={{ mt: 2 }}
+                                />
+                            )}
+                        </>
+                    );
+                }
                 return (
                     <>
                         <Typography>
@@ -187,9 +228,19 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
         const { open, onClose } = this.props;
         const { isUpdating } = this.state;
 
+        const { borderRouterRefresh } = this.props;
         const updateCount = this.getUpdateCount();
-        const buttonText =
-            updateCount === 0 ? I18n.t('No nodes to update') : I18n.t('Update %s node(s)', updateCount.toString());
+        let buttonText: string;
+        if (borderRouterRefresh) {
+            buttonText =
+                updateCount > 0
+                    ? I18n.t('Refresh diagnostics and %s node(s)', updateCount.toString())
+                    : I18n.t('Refresh diagnostics only');
+        } else {
+            buttonText =
+                updateCount === 0 ? I18n.t('No nodes to update') : I18n.t('Update %s node(s)', updateCount.toString());
+        }
+        const confirmDisabled = isUpdating || (updateCount === 0 && !borderRouterRefresh);
 
         return (
             <Dialog
@@ -216,7 +267,7 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
                     <Button
                         onClick={this.handleUpdate}
                         variant="contained"
-                        disabled={isUpdating || updateCount === 0}
+                        disabled={confirmDisabled}
                     >
                         {isUpdating ? (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

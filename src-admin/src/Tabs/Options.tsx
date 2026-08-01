@@ -217,13 +217,11 @@ class Options extends Component<OptionsProps, OptionsState> {
                     onLoad={this.props.onLoad}
                 />
                 <Typography sx={styles.header}>{I18n.t('Network configuration')}</Typography>
-                {this.props.expertMode ? null : (
-                    <InfoBox type="info">
-                        {I18n.t(
-                            'If your device has more then one active network interface and you have issues try limiting it to one interface',
-                        )}
-                    </InfoBox>
-                )}
+                <InfoBox type="info">
+                    {I18n.t(
+                        'If your device has more then one active network interface and you have issues try limiting it to one interface',
+                    )}
+                </InfoBox>
 
                 <NetworkSelector
                     interface={this.props.native.interface}
@@ -234,13 +232,11 @@ class Options extends Component<OptionsProps, OptionsState> {
 
                 <div style={{ marginTop: 50 }}>
                     <Typography sx={styles.header}>{I18n.t('Controller Settings')}</Typography>
-                    {this.props.expertMode ? null : (
-                        <InfoBox type="info">
-                            {I18n.t(
-                                'The label set here is used as Label when ioBroker connects to a device as controller and might be shown by other Controllers in their overviews about other connected ecosystems.',
-                            )}
-                        </InfoBox>
-                    )}
+                    <InfoBox type="info">
+                        {I18n.t(
+                            'The label set here is used as Label when ioBroker connects to a device as controller and might be shown by other Controllers in their overviews about other connected ecosystems.',
+                        )}
+                    </InfoBox>
                     <TextField
                         variant="standard"
                         label={I18n.t('Controller fabric label')}
@@ -283,29 +279,25 @@ class Options extends Component<OptionsProps, OptionsState> {
                         }
                         label={I18n.t('Enhanced Thread diagnostics')}
                     />
-                    {this.props.expertMode ? null : (
-                        <InfoBox
-                            type="info"
-                            closeable
-                            storeId="matter.controller.threadDiagnostics"
-                        >
-                            {I18n.t('Enhanced Thread diagnostics Infotext')}
-                        </InfoBox>
-                    )}
+                    <InfoBox
+                        type="info"
+                        closeable
+                        storeId="matter.controller.threadDiagnostics"
+                    >
+                        {I18n.t('Enhanced Thread diagnostics Infotext')}
+                    </InfoBox>
 
                     <Box sx={{ marginTop: 3 }}>
                         <Typography sx={{ ...styles.header, fontSize: 16 }}>
                             {I18n.t('Time Synchronization')}
                         </Typography>
-                        {this.props.expertMode ? null : (
-                            <InfoBox
-                                type="info"
-                                closeable
-                                storeId="matter.controller.timeSync"
-                            >
-                                {I18n.t('Time Synchronization Infotext')}
-                            </InfoBox>
-                        )}
+                        <InfoBox
+                            type="info"
+                            closeable
+                            storeId="matter.controller.timeSync"
+                        >
+                            {I18n.t('Time Synchronization Infotext')}
+                        </InfoBox>
                         <FormControlLabel
                             control={
                                 <Checkbox
@@ -320,15 +312,13 @@ class Options extends Component<OptionsProps, OptionsState> {
 
                     <Box sx={{ marginTop: 3 }}>
                         <Typography sx={{ ...styles.header, fontSize: 16 }}>{I18n.t('Custom OTA Updates')}</Typography>
-                        {this.props.expertMode ? null : (
-                            <InfoBox
-                                type="info"
-                                closeable
-                                storeId="matter.controller.customOta"
-                            >
-                                {I18n.t('Custom OTA Updates Infotext')}
-                            </InfoBox>
-                        )}
+                        <InfoBox
+                            type="info"
+                            closeable
+                            storeId="matter.controller.customOta"
+                        >
+                            {I18n.t('Custom OTA Updates Infotext')}
+                        </InfoBox>
                         <FormControlLabel
                             control={
                                 <Checkbox
@@ -396,20 +386,18 @@ class Options extends Component<OptionsProps, OptionsState> {
 
                 <div style={{ marginTop: 50 }}>
                     <Typography sx={styles.header}>{I18n.t('Cloud Account')}</Typography>
-                    {this.props.expertMode ? null : (
-                        <InfoBox type="info">
-                            <p>
-                                {I18n.t(
-                                    'To use a Matter bridge or device options with more than 5 devices please enter valid ioBroker.pro Cloud credentials with at least an active Assistant license.',
-                                )}
-                            </p>
-                            <p>
-                                {I18n.t(
-                                    'Make sure that after purchasing a new assistant or remote license, the instance is restarted. The license will only be verified during startup.',
-                                )}
-                            </p>
-                        </InfoBox>
-                    )}
+                    <InfoBox type="info">
+                        <p>
+                            {I18n.t(
+                                'To use a Matter bridge or device options with more than 5 devices please enter valid ioBroker.pro Cloud credentials with at least an active Assistant license.',
+                            )}
+                        </p>
+                        <p>
+                            {I18n.t(
+                                'Make sure that after purchasing a new assistant or remote license, the instance is restarted. The license will only be verified during startup.',
+                            )}
+                        </p>
+                    </InfoBox>
                 </div>
                 <LoginPassword
                     native={this.props.native}

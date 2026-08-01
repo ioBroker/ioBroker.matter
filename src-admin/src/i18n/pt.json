@@ -209,7 +209,7 @@
     "Thread network name": "Thread network name",
     "Thread operational dataset": "Thread operational dataset",
     "Time Synchronization": "Sincronização de hora",
-    "Time Synchronization Infotext": "Os dispositivos compatíveis com o cluster Matter «Time Synchronization» recebem do ioBroker a hora UTC atual, o fuso horário e as informações sobre o horário de verão. Mantenha esta opção ativada apenas se o relógio do host ioBroker estiver sincronizado de forma fiável, por exemplo através de NTP.",
+    "Time Synchronization Infotext": "Os dispositivos compatíveis com o cluster Matter «Time Synchronization» recebem do ioBroker a hora UTC atual, o fuso horário e os períodos de horário de verão. Mantenha esta opção ativada apenas se o host do ioBroker estiver corretamente configurado: o relógio sincronizado de forma fiável (por exemplo através de NTP) e o fuso horário e as definições de horário de verão do sistema corretos. Aquilo que o host indicar é enviado para todos os dispositivos emparelhados.",
     "To commission/connect matter devices with ioBroker controller use better ioBroker.visu app:": "Para comissionar/conectar dispositivos de matéria com o controlador ioBroker, use o aplicativo ioBroker.visu:",
     "To make all this work, the following requirements should be considered": "Para que tudo isso funcione, os seguintes requisitos devem ser considerados",
     "To use a Matter bridge or device options with more than 5 devices please enter valid ioBroker.pro Cloud credentials with at least an active Assistant license.": "Para usar uma ponte Matter ou opções de dispositivo com mais de 5 dispositivos, insira credenciais válidas do ioBroker.pro Cloud com pelo menos uma licença ativa do Assistant.",

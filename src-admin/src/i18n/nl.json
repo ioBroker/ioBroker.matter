@@ -208,7 +208,7 @@
     "Thread network name": "Thread network name",
     "Thread operational dataset": "Thread operational dataset",
     "Time Synchronization": "Tijdsynchronisatie",
-    "Time Synchronization Infotext": "Apparaten die het Matter-cluster 'Time Synchronization' ondersteunen, ontvangen van ioBroker de huidige UTC-tijd, de tijdzone en informatie over de zomertijd. Laat dit alleen ingeschakeld als de klok van de ioBroker-host betrouwbaar is gesynchroniseerd, bijvoorbeeld via NTP.",
+    "Time Synchronization Infotext": "Apparaten die het Matter-cluster 'Time Synchronization' ondersteunen, krijgen van ioBroker de huidige UTC-tijd, de tijdzone en de zomertijdperioden. Laat dit alleen ingeschakeld als de ioBroker-host correct is geconfigureerd: de klok betrouwbaar gesynchroniseerd (bijvoorbeeld via NTP) en de tijdzone- en zomertijdinstellingen van het systeem juist. Wat de host meldt, wordt naar elk gekoppeld apparaat gestuurd.",
     "To commission/connect matter devices with ioBroker controller use better ioBroker.visu app:": "Voor het in bedrijf stellen/verbinden van materieapparaten met de ioBroker-controller kunt u het beste de ioBroker.visu-app gebruiken:",
     "To make all this work, the following requirements should be considered": "Om dit allemaal te laten werken, moeten de volgende vereisten in overweging worden genomen",
     "To use a Matter bridge or device options with more than 5 devices please enter valid ioBroker.pro Cloud credentials with at least an active Assistant license.": "Om een Matter-bridge of apparaatopties met meer dan 5 apparaten te gebruiken, voert u geldige ioBroker.pro Cloud-inloggegevens in met minimaal een actieve Assistent-licentie.",

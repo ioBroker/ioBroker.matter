@@ -208,7 +208,7 @@
     "Thread network name": "Thread network name",
     "Thread operational dataset": "Thread operational dataset",
     "Time Synchronization": "Sincronizzazione dell'ora",
-    "Time Synchronization Infotext": "I dispositivi che supportano il cluster Matter «Time Synchronization» ricevono da ioBroker l'ora UTC corrente, il fuso orario e le informazioni sull'ora legale. Lasciare questa opzione attiva solo se l'orologio dell'host ioBroker è sincronizzato in modo affidabile, ad esempio tramite NTP.",
+    "Time Synchronization Infotext": "I dispositivi che supportano il cluster Matter «Time Synchronization» ricevono da ioBroker l'ora UTC corrente, il fuso orario e i periodi di ora legale. Lasciare questa opzione attiva solo se l'host ioBroker è configurato correttamente: l'orologio sincronizzato in modo affidabile (ad esempio tramite NTP) e il fuso orario e le impostazioni dell'ora legale del sistema corretti. Quanto riportato dall'host viene inviato a ogni dispositivo accoppiato.",
     "To commission/connect matter devices with ioBroker controller use better ioBroker.visu app:": "Per mettere in funzione/collegare i dispositivi Matter con il controller ioBroker, utilizzare la migliore app ioBroker.visu:",
     "To make all this work, the following requirements should be considered": "Per far funzionare tutto questo, è necessario considerare i seguenti requisiti",
     "To use a Matter bridge or device options with more than 5 devices please enter valid ioBroker.pro Cloud credentials with at least an active Assistant license.": "Per utilizzare un bridge Matter o opzioni dispositivo con più di 5 dispositivi, inserisci credenziali ioBroker.pro Cloud valide con almeno una licenza Assistant attiva.",

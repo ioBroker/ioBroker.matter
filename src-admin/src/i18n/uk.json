@@ -209,7 +209,7 @@
     "Thread network name": "Thread network name",
     "Thread operational dataset": "Thread operational dataset",
     "Time Synchronization": "Синхронізація часу",
-    "Time Synchronization Infotext": "Пристрої, що підтримують кластер Matter «Time Synchronization», отримують від ioBroker поточний час UTC, часовий пояс і відомості про перехід на літній час. Залишайте цю опцію увімкненою лише тоді, коли годинник хоста ioBroker надійно синхронізовано, наприклад через NTP.",
+    "Time Synchronization Infotext": "Пристрої, що підтримують кластер Matter «Time Synchronization», отримують від ioBroker поточний час UTC, часовий пояс і періоди літнього часу. Залишайте цю опцію увімкненою лише тоді, коли хост ioBroker налаштовано правильно: годинник надійно синхронізовано (наприклад, через NTP), а часовий пояс і налаштування літнього часу системи задано вірно. Те, що повідомляє хост, надсилається на кожен спарений пристрій.",
     "To commission/connect matter devices with ioBroker controller use better ioBroker.visu app:": "Для запуску/підключення важливих пристроїв за допомогою контролера ioBroker використовуйте кращий додаток ioBroker.visu:",
     "To make all this work, the following requirements should be considered": "Щоб все це працювало, слід враховувати наступні вимоги",
     "To use a Matter bridge or device options with more than 5 devices please enter valid ioBroker.pro Cloud credentials with at least an active Assistant license.": "Щоб використовувати міст Matter або параметри пристрою з більш ніж 5 пристроями, введіть дійсні облікові дані ioBroker.pro Cloud із принаймні активною ліцензією Асистента.",

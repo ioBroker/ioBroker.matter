@@ -21,6 +21,7 @@ export type {
     ThreadLeaderData,
     ThreadChildTableEntry,
     DiagnosticMeshNode,
+    IcdMode,
 } from '../../types';
 
 import type { BorderRouterEntry, NetworkType } from '../../types';

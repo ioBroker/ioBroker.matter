@@ -29,7 +29,7 @@ import {
 } from '@iobroker/gui-components';
 import DeviceManager from '@iobroker/dm-gui-components';
 
-import type { CommissionableDevice, GUIMessage, MatterConfig } from '../types';
+import type { CommissionableDevice, GUIMessage, IcdMode, MatterConfig } from '../types';
 import { clone } from '../Utils';
 import QrCodeDialog from '../components/QrCodeDialog';
 import DiscoveredDevicesDialog from '../components/DiscoveredDevicesDialog';
@@ -50,6 +50,10 @@ function isNetworkGraphData(data: unknown): data is NetworkGraphData {
     }
     const obj = data as Record<string, unknown>;
     return Array.isArray(obj.nodes) && typeof obj.timestamp === 'number';
+}
+
+function isIcdMode(value: unknown): value is IcdMode {
+    return value === '' || value === 'sit' || value === 'lit' || value === 'litOffline' || value === 'pending';
 }
 
 const styles: Record<string, React.CSSProperties> = {
@@ -646,6 +650,15 @@ class Controller extends Component<ComponentProps, ComponentState> {
     };
 
     /**
+     * Looks up a paired node's ICD operating mode from the live-synced controller states, for the
+     * network graph's "refresh connections" dialog to tell Long Idle Time peers apart.
+     */
+    getIcdMode = (nodeId: string): IcdMode | undefined => {
+        const val = this.state.states[`matter.${this.props.instance}.controller.${nodeId}.info.icdMode`]?.val;
+        return isIcdMode(val) ? val : undefined;
+    };
+
+    /**
      * Force-refresh Thread diagnostics for a single network and upsert the result.
      */
     refreshThreadDiagnostics = async (extPanId: string): Promise<void> => {
@@ -703,6 +716,7 @@ class Controller extends Component<ComponentProps, ComponentState> {
                 borderRouters={this.state.networkBorderRouters}
                 threadDiagnostics={this.state.networkThreadDiagnostics}
                 onRefreshDiagnostics={this.refreshThreadDiagnostics}
+                getIcdMode={this.getIcdMode}
             />
         );
     }

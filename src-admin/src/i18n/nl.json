@@ -326,12 +326,16 @@
     "Thread routing role could not be determined.": "De Thread-routeringsrol kon niet worden bepaald.",
     "Inferred from Border Router diagnostics (Route64 / child table) and not commissioned to this fabric, so no device details are available.": "Afgeleid uit borderrouter-diagnostiek (Route64 / kindtabel) en niet in deze fabric opgenomen, dus er zijn geen apparaatgegevens beschikbaar.",
     "Enhanced Thread diagnostics": "Uitgebreide Thread-diagnostiek",
-    "Enhanced Thread diagnostics Infotext": "Indien ingeschakeld, bevraagt ioBroker actief Thread Border Routers (via MeshCoP/CoAP en OTBR REST) om de netwerkgrafiek te verrijken met live mesh-diagnostiek. Schakel uit om dit extra netwerkverkeer te vermijden; passieve Border Router-detectie blijft werken.",
+    "Enhanced Thread diagnostics Infotext": "Indien ingeschakeld, bevraagt ioBroker actief Thread Border Routers (via MeshCoP/CoAP en OTBR REST) om de netwerkgrafiek te verrijken met live mesh-diagnostiek, en ververst periodiek de topologiegegevens (buren-/routetabellen) van elk gekoppeld Thread-knooppunt. Schakel uit om dit extra netwerkverkeer te vermijden; passieve Border Router-detectie blijft werken.",
     "Also a Border Router": "Ook een borderrouter",
     "Hostname": "Hostnaam",
     "asymmetric: peer reports no link": "asymmetrisch: peer meldt geen verbinding",
     "Refresh the Border Router diagnostics for \"%s\".": "Diagnostiek van de borderrouter voor \"%s\" vernieuwen.",
     "Also refresh the %s connected node(s)": "Ook de %s verbonden knooppunten vernieuwen",
     "Refresh diagnostics and %s node(s)": "Diagnostiek en %s knooppunten vernieuwen",
-    "Refresh diagnostics only": "Alleen diagnostiek vernieuwen"
+    "Refresh diagnostics only": "Alleen diagnostiek vernieuwen",
+    "\"%s\" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.": "\"%s\" is een slapend apparaat (Matter LIT). Het reageert pas de volgende keer dat het wakker wordt, dus de eigen netwerkgegevens komen later binnen.",
+    "Refresh %s connected online neighbor(s) for current link data": "%s verbonden online buren vernieuwen voor actuele verbindingsgegevens",
+    "No online neighbor can report its current link data either.": "Geen enkele online buur kan ook actuele verbindingsgegevens melden.",
+    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s node(s) zijn slapende apparaten (Matter LIT), dus de update wacht niet op ze — hun gegevens verschijnen zodra ze wakker worden."
 }

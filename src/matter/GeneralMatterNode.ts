@@ -12,6 +12,7 @@ import {
     Diagnostic,
     SoftwareUpdateManager,
     ObserverGroup,
+    Observable,
     deepCopy,
     CommissioningClient,
 } from '@matter/main';
@@ -123,9 +124,28 @@ export class GeneralMatterNode {
     #currentUpdateState?: OtaSoftwareUpdateRequestor.UpdateState;
     #updateObservers?: ObserverGroup;
     #icd?: NodeIcdManager;
+    // Outlives #icd across clear()/#createIcdManager() cycles (e.g. applyConfiguration()'s
+    // clear-and-rebuild), so a subscriber only needs to attach once per GeneralMatterNode rather than
+    // once per NodeIcdManager instance.
+    readonly #icdChanged = Observable<[]>();
 
     get icd(): NodeIcdManager | undefined {
         return this.#icd;
+    }
+
+    get icdChanged(): Observable<[]> {
+        return this.#icdChanged;
+    }
+
+    /**
+     * Retries ICD detection if it has not succeeded yet. `initialize()` and `handleStateChange()` can
+     * both run before the peer's root endpoint structure is populated, in which case `#icd` stays
+     * undefined even for a genuinely ICD-capable node; callers that need an up-to-date answer (e.g.
+     * `ControllerNode`'s registration paths) call this again on every registration attempt rather than
+     * relying on a single earlier attempt having succeeded.
+     */
+    ensureIcdManager(): void {
+        this.#createIcdManager();
     }
 
     constructor(
@@ -592,7 +612,10 @@ export class GeneralMatterNode {
             return;
         }
         this.#icd = icd;
-        icd.changed.on(() => this.#publishIcdMode());
+        icd.changed.on(() => {
+            this.#publishIcdMode();
+            this.#icdChanged.emit();
+        });
         this.#publishIcdMode();
     }
 
@@ -791,7 +814,10 @@ export class GeneralMatterNode {
         }
 
         await this.clear();
-        return this.#processRootEndpointStructure(rootEndpoint);
+        // clear() closed the ICD manager; recreate it before the structure rebuild (matching
+        // initialize()'s order) so a throw below cannot leave the node without one.
+        this.#createIcdManager();
+        await this.#processRootEndpointStructure(rootEndpoint);
     }
 
     // On Root level we create devices for all endpoints because these are devices

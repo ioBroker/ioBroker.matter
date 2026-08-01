@@ -102,15 +102,31 @@ export class NodeIcdManager {
         };
     }
 
-    get mode(): IcdMode {
-        if (this.#pending) {
-            return 'pending';
-        }
+    /** The operating-mode-derived part of {@link mode}, ignoring a running ICD operation. */
+    #derivedMode(): IcdMode {
         return deriveIcdMode({
             litCapable: this.litCapable,
             operatingMode: this.#node.node.maybeStateOf(IcdManagementClient)?.operatingMode,
             available: this.available,
         });
+    }
+
+    get mode(): IcdMode {
+        if (this.#pending) {
+            return 'pending';
+        }
+        return this.#derivedMode();
+    }
+
+    /**
+     * Whether the peer is LIT-capable and its IcdManagement OperatingMode currently reports `Lit`: an
+     * interaction with it can sit queued for the length of its idle interval. Unlike {@link mode}, this
+     * is unaffected by a user-triggered ICD operation in flight — that is a UI concern, not a statement
+     * about how the peer actually operates.
+     */
+    get longIdleTimeActive(): boolean {
+        const mode = this.#derivedMode();
+        return mode === 'lit' || mode === 'litOffline';
     }
 
     get pending(): boolean {

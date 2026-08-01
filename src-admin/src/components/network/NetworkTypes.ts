@@ -13,6 +13,14 @@ export type {
     ThreadNeighborEntry,
     ThreadRouteEntry,
     BorderRouterEntry,
+    ThreadDiagnosticsBatch,
+    ThreadDiagnosticsNode,
+    ThreadDiagnosticsPartialReason,
+    ThreadRoute64,
+    ThreadRoute64Entry,
+    ThreadLeaderData,
+    ThreadChildTableEntry,
+    DiagnosticMeshNode,
 } from '../../types';
 
 import type { BorderRouterEntry, NetworkType } from '../../types';
@@ -67,6 +75,8 @@ export interface NetworkGraphEdge {
     dashes?: boolean;
     /** Whether the edge should be hidden (filter options) */
     hidden?: boolean;
+    /** vis.js per-edge spring length; overrides the global physics springLength */
+    length?: number;
 }
 
 export interface WiFiAccessPoint {

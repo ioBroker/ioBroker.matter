@@ -333,6 +333,31 @@ abstract class BaseNetworkGraph<
         this.originalNodeSizes.clear();
     }
 
+    /**
+     * Diff-apply nodes/edges into the DataSets instead of clear()+add(): existing items keep their
+     * vis-tracked positions, so a data refresh (e.g. a threadDiagnosticsUpdate push) doesn't restart
+     * physics or make the graph jump in from the center. Only new ids are placed; dropped ids removed.
+     */
+    // eslint-disable-next-line react/no-unused-class-component-methods
+    protected applyGraphData(nodes: NetworkGraphNode[], edges: NetworkGraphEdge[]): void {
+        if (!this.nodesDataSet || !this.edgesDataSet) {
+            return;
+        }
+        const keepNodeIds = new Set(nodes.map(n => String(n.id)));
+        const keepEdgeIds = new Set(edges.map(e => String(e.id)));
+        const staleEdgeIds = this.edgesDataSet.getIds().filter(id => !keepEdgeIds.has(String(id)));
+        const staleNodeIds = this.nodesDataSet.getIds().filter(id => !keepNodeIds.has(String(id)));
+        // Remove edges before nodes so no edge dangles onto a node about to be removed.
+        if (staleEdgeIds.length) {
+            this.edgesDataSet.remove(staleEdgeIds);
+        }
+        if (staleNodeIds.length) {
+            this.nodesDataSet.remove(staleNodeIds);
+        }
+        this.nodesDataSet.update(nodes);
+        this.edgesDataSet.update(edges);
+    }
+
     protected updateTheme(): void {
         if (!this.network) {
             return;

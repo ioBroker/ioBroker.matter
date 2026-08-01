@@ -203,7 +203,8 @@
     "defaultBridge": "",
     "controllerFabricLabel": "",
     "allowUnofficialUpdates": false,
-    "customUpdatesPath": ""
+    "customUpdatesPath": "",
+    "threadDiagnosticsEnabled": true
   },
   "objects": [],
   "instanceObjects": [

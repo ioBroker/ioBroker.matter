@@ -5,28 +5,48 @@
 
 import { I18n } from '@iobroker/gui-components';
 import BaseNetworkGraph, { type BaseNetworkGraphProps, type BaseNetworkGraphState } from './BaseNetworkGraph';
-import type { NetworkGraphNode, NetworkGraphEdge, ThreadRoutingRole, BorderRouterEntry } from './NetworkTypes';
+import type {
+    NetworkGraphNode,
+    NetworkGraphEdge,
+    ThreadRoutingRole,
+    BorderRouterEntry,
+    ThreadDiagnosticsBatch,
+} from './NetworkTypes';
 import {
     buildExtAddrMap,
     buildRloc16Map,
     findUnknownDevices,
-    buildThreadConnections,
+    buildThreadEdgePairs,
+    getEdgeSignalScore,
     getThreadRoleName,
-    getSignalLevelFromLqi,
+    signalLevelToSignalColor,
+    lqiToEdgeLength,
+    LEAF_EDGE_LENGTH_PENALTY,
     decodeMeshcopStateBitmap,
     stripMdnsHostname,
     parseExtendedAddressToHex,
+    buildMatterRloc16ByXp,
+    buildDiagnosticRloc16Map,
+    makeDiagnosticRloc16Resolver,
+    findDiagnosticMeshNodes,
+    mergeDiagnosticEdges,
+    findDiagnosticNodeByExtMac,
+    type ThreadConnection,
 } from './NetworkUtils';
 import { createNodeIconDataUrl, createBorderRouterIconDataUrl, createUnknownDeviceIconDataUrl } from './NetworkIcons';
 
 export interface ThreadGraphProps extends BaseNetworkGraphProps {
     /** mDNS-discovered Thread Border Routers, keyed by uppercase xa hex */
     borderRouters?: ReadonlyMap<string, BorderRouterEntry>;
+    /** Thread BR netdiag batches, keyed by uppercase extPanId hex */
+    threadDiagnostics?: ReadonlyMap<string, ThreadDiagnosticsBatch>;
     hideOfflineNodes?: boolean;
     hideWeakSignalEdges?: boolean;
     hideMediumSignalEdges?: boolean;
     hideStrongSignalEdges?: boolean;
 }
+
+const EMPTY_DIAGNOSTICS: ReadonlyMap<string, ThreadDiagnosticsBatch> = new Map();
 
 class ThreadGraph extends BaseNetworkGraph<ThreadGraphProps, BaseNetworkGraphState> {
     componentDidUpdate(prevProps: ThreadGraphProps): void {
@@ -35,6 +55,7 @@ class ThreadGraph extends BaseNetworkGraph<ThreadGraphProps, BaseNetworkGraphSta
         // BR registry refreshes or any hide option changes (otherwise stale labels/icons/edges).
         if (
             prevProps.borderRouters !== this.props.borderRouters ||
+            prevProps.threadDiagnostics !== this.props.threadDiagnostics ||
             prevProps.hideOfflineNodes !== this.props.hideOfflineNodes ||
             prevProps.hideWeakSignalEdges !== this.props.hideWeakSignalEdges ||
             prevProps.hideMediumSignalEdges !== this.props.hideMediumSignalEdges ||
@@ -42,6 +63,71 @@ class ThreadGraph extends BaseNetworkGraph<ThreadGraphProps, BaseNetworkGraphSta
         ) {
             this.updateGraph();
         }
+    }
+
+    /** Empty BR-diagnostics map fallback so the merge pipeline always has a map to read. */
+    private get threadDiagnostics(): ReadonlyMap<string, ThreadDiagnosticsBatch> {
+        return this.props.threadDiagnostics ?? EMPTY_DIAGNOSTICS;
+    }
+
+    /** The BR's diagnostic batch, only when present and non-partial. */
+    private brBatch(brExtHex: string): ThreadDiagnosticsBatch | undefined {
+        const br = this.props.borderRouters?.get(brExtHex.toUpperCase());
+        const xp = br?.extendedPanIdHex;
+        if (xp === undefined) {
+            return undefined;
+        }
+        const batch = this.threadDiagnostics.get(xp.toUpperCase());
+        if (batch === undefined || batch.partialReason !== undefined || batch.nodes.length === 0) {
+            return undefined;
+        }
+        return batch;
+    }
+
+    /**
+     * The BR's own view of a peer via Route64 / ChildTable, if any. Undefined when the BR has no
+     * usable batch, the peer is absent, or the peer is present but only reachable multi-hop.
+     */
+    private brViewOfPeer(
+        brExtHex: string,
+        peerExtHex: string,
+    ): { linkQualityIn?: number; linkQualityOut?: number; routeCost?: number; isChild?: boolean } | undefined {
+        const batch = this.brBatch(brExtHex);
+        if (batch === undefined) {
+            return undefined;
+        }
+        const brUp = brExtHex.toUpperCase();
+        const target = peerExtHex.toUpperCase();
+        const brNode = batch.nodes.find(n => n.extMacAddress?.toUpperCase() === brUp);
+        const peerNode = batch.nodes.find(n => n.extMacAddress?.toUpperCase() === target);
+        if (brNode?.rloc16 === undefined || peerNode?.rloc16 === undefined) {
+            return undefined;
+        }
+        const peerRouterId = (peerNode.rloc16 >> 10) & 0x3f;
+        const peerChildId = peerNode.rloc16 & 0x3ff;
+
+        // A Route64 entry keys on router id, so it only identifies the peer when the peer *is* a
+        // router (child id 0). For an end device it would be the BR's route to the peer's parent.
+        if (peerChildId === 0) {
+            const routeEntry = brNode.route64?.entries.find(e => e.routerId === peerRouterId);
+            if (routeEntry !== undefined) {
+                return {
+                    linkQualityIn: routeEntry.linkQualityIn,
+                    linkQualityOut: routeEntry.linkQualityOut,
+                    routeCost: routeEntry.routeCost,
+                };
+            }
+        }
+
+        // ChildTable: the BR reports the peer as its own child.
+        const brRouterId = (brNode.rloc16 >> 10) & 0x3f;
+        const childEntry = brNode.childTable?.find(
+            c => (((brRouterId << 10) | c.childId) & 0xffff) === peerNode.rloc16,
+        );
+        if (childEntry !== undefined) {
+            return { isChild: true, linkQualityIn: childEntry.incomingLinkQuality };
+        }
+        return undefined;
     }
 
     protected updateGraph(): void {
@@ -66,7 +152,39 @@ class ThreadGraph extends BaseNetworkGraph<ThreadGraphProps, BaseNetworkGraphSta
         // BR registry so mDNS-known routers render distinctly.
         const externalDevices = findUnknownDevices(threadNodes, extAddrMap, rloc16Map, borderRouters);
 
-        const connections = buildThreadConnections(threadNodes, extAddrMap, externalDevices, rloc16Map);
+        // Pair-based edge model: each pair keeps BOTH directional edges; the graph renders the
+        // worst-case one per pair. Mirrors upstream buildThreadEdgePairs + mergeDiagnosticEdges.
+        const edgePairs = buildThreadEdgePairs(threadNodes, extAddrMap, externalDevices, rloc16Map);
+
+        // Merge Thread BR netdiag edges (route64 / childTable) into the pair map, and materialize
+        // diagnostic-only mesh routers that match no commissioned/BR/unknown node. Diagnostic
+        // references are rloc16-based, resolved per Thread network (extPanId).
+        const threadDiagnostics = this.threadDiagnostics;
+        const matterRloc16ByXp = buildMatterRloc16ByXp(threadNodes);
+        const diagRloc16Map = buildDiagnosticRloc16Map(
+            threadDiagnostics,
+            matterRloc16ByXp,
+            extAddrMap,
+            borderRouters ?? new Map(),
+            externalDevices,
+        );
+        const resolveRloc16 = makeDiagnosticRloc16Resolver(matterRloc16ByXp, diagRloc16Map);
+        const diagnosticMeshNodes = findDiagnosticMeshNodes(
+            threadDiagnostics,
+            matterRloc16ByXp,
+            extAddrMap,
+            borderRouters ?? new Map(),
+            externalDevices,
+        );
+        mergeDiagnosticEdges(edgePairs, threadDiagnostics, resolveRloc16);
+
+        // nodeId → extended-address hex (for BR-view edge annotation).
+        const nodeIdToExtHex = new Map<string, string>();
+        for (const node of threadNodes) {
+            if (node.thread?.extendedAddress) {
+                nodeIdToExtHex.set(node.nodeId, parseExtendedAddressToHex(node.thread.extendedAddress));
+            }
+        }
 
         const graphNodes: NetworkGraphNode[] = [];
         const hiddenNodeIds = new Set<string>();
@@ -133,17 +251,34 @@ class ThreadGraph extends BaseNetworkGraph<ThreadGraphProps, BaseNetworkGraphSta
             if (device.kind === 'br') {
                 const hostname = device.hostname !== undefined ? stripMdnsHostname(device.hostname) : undefined;
                 const top = (hostname ?? device.networkName ?? I18n.t('Border Router')).slice(0, 24);
-                const suffix =
-                    hostname !== undefined && device.networkName !== undefined && device.networkName !== top
-                        ? `\n${device.networkName}`
-                        : '';
                 const decoded = decodeMeshcopStateBitmap(device.stateBitmapHex);
                 const isLeader = decoded?.threadRoleValue === 3;
                 const isPrimaryBbr = decoded?.bbr === true && decoded.bbrFunction === 'primary';
+                // Child count from the BR's own netdiag entry (childTable length), when available.
+                const diagNode = findDiagnosticNodeByExtMac(threadDiagnostics, device.extAddressHex);
+                const childCount = diagNode?.childTable?.length;
+                const suffixParts: string[] = [];
+                if (hostname !== undefined && device.networkName !== undefined && device.networkName !== top) {
+                    suffixParts.push(device.networkName);
+                }
+                if (childCount !== undefined && childCount > 0) {
+                    suffixParts.push(`${childCount} ${childCount === 1 ? I18n.t('child') : I18n.t('children')}`);
+                }
+                const suffix = suffixParts.length > 0 ? `\n${suffixParts.join(' · ')}` : '';
+                const roleParts: string[] = [];
+                if (isLeader) {
+                    roleParts.push(I18n.t('currently the Thread Leader'));
+                }
+                if (isPrimaryBbr) {
+                    roleParts.push(I18n.t('Primary Backbone Border Router (BBR)'));
+                }
                 const tooltip = [
+                    I18n.t('Thread Border Router bridging the Thread mesh to the IP network'),
+                    roleParts.length ? roleParts.join('; ') : undefined,
                     device.networkName ? `${I18n.t('Network')}: ${device.networkName}` : undefined,
                     device.vendorName ? `${I18n.t('Vendor')}: ${device.vendorName}` : undefined,
                     device.threadVersion ? `${I18n.t('Thread Version')}: ${device.threadVersion}` : undefined,
+                    childCount !== undefined && childCount > 0 ? `${I18n.t('Children')}: ${childCount}` : undefined,
                     device.addresses.length ? `${I18n.t('Addresses')}:\n  ${device.addresses.join('\n  ')}` : undefined,
                     device.sources.length === 0 ? `(${I18n.t('stale')})` : undefined,
                 ]
@@ -161,11 +296,17 @@ class ThreadGraph extends BaseNetworkGraph<ThreadGraphProps, BaseNetworkGraphSta
                     hidden: shouldHide,
                 });
             } else {
-                const typeLabel = device.isRouter ? I18n.t('External Router') : I18n.t('External Device');
+                const baseType = device.isRouter ? I18n.t('External Router') : I18n.t('External Device');
+                // Enrich the label with the diagnostic vendor name when the BR netdiag reports one
+                // for this extended address (a divergent border-agent/radio-MAC BR stays "unknown"
+                // here — same as upstream — but at least surfaces its vendor).
+                const diagNode = findDiagnosticNodeByExtMac(threadDiagnostics, device.extAddressHex);
+                const typeLabel =
+                    diagNode?.vendorName !== undefined ? `${baseType} (${diagNode.vendorName})` : baseType;
                 const suffix = device.networkName !== undefined ? `\n${device.networkName}` : '';
                 graphNodes.push({
                     id: device.id,
-                    label: `${typeLabel} (${device.extAddressHex.slice(-8)})${suffix}`,
+                    label: `${typeLabel} [${device.extAddressHex.slice(-8)}]${suffix}`,
                     shape: 'image',
                     image: createUnknownDeviceIconDataUrl(device.isRouter),
                     size: 20,
@@ -178,60 +319,236 @@ class ThreadGraph extends BaseNetworkGraph<ThreadGraphProps, BaseNetworkGraphSta
             }
         }
 
-        // Edges
+        // Diagnostic-only mesh nodes show only when reachable — via a live (non-"none") edge — from
+        // a commissioned Matter device. Reachability from a Matter anchor hides foreign islands
+        // (e.g. a NEST leader linking only to a BR no Matter device is on) while keeping diagnostic
+        // routers that attach to our own networks (directly or through another diagnostic hop).
+        if (diagnosticMeshNodes.length > 0) {
+            const adjacency = new Map<string, Set<string>>();
+            const addAdjacency = (a: string, b: string): void => {
+                let peers = adjacency.get(a);
+                if (peers === undefined) {
+                    peers = new Set<string>();
+                    adjacency.set(a, peers);
+                }
+                peers.add(b);
+            };
+            for (const pair of edgePairs.values()) {
+                const live =
+                    (pair.edgeAB !== undefined && pair.edgeAB.signalLevel !== 'none') ||
+                    (pair.edgeBA !== undefined && pair.edgeBA.signalLevel !== 'none');
+                if (!live) {
+                    continue;
+                }
+                addAdjacency(pair.nodeA, pair.nodeB);
+                addAdjacency(pair.nodeB, pair.nodeA);
+            }
+            const reachableIds = new Set<string>();
+            const frontier: string[] = [];
+            for (const node of threadNodes) {
+                if (!hiddenNodeIds.has(node.nodeId)) {
+                    reachableIds.add(node.nodeId);
+                    frontier.push(node.nodeId);
+                }
+            }
+            for (let i = 0; i < frontier.length; i++) {
+                const peers = adjacency.get(frontier[i]);
+                if (peers === undefined) {
+                    continue;
+                }
+                for (const peer of peers) {
+                    if (!reachableIds.has(peer)) {
+                        reachableIds.add(peer);
+                        frontier.push(peer);
+                    }
+                }
+            }
+            for (const meshNode of diagnosticMeshNodes) {
+                const hidden = !reachableIds.has(meshNode.id);
+                if (hidden) {
+                    hiddenNodeIds.add(meshNode.id);
+                }
+                const idTail =
+                    meshNode.extAddressHex !== undefined
+                        ? meshNode.extAddressHex.slice(-8)
+                        : `rloc:${meshNode.rloc16.toString(16)}`;
+                const childSuffix =
+                    meshNode.childCount > 0
+                        ? ` · ${meshNode.childCount} ${meshNode.childCount === 1 ? I18n.t('child') : I18n.t('children')}`
+                        : '';
+                graphNodes.push({
+                    id: meshNode.id,
+                    label: `${meshNode.vendorName ?? I18n.t('Router')} (${idTail})${childSuffix}\n${meshNode.networkName}`,
+                    shape: 'image',
+                    image: createUnknownDeviceIconDataUrl(meshNode.isRouter),
+                    size: 20,
+                    font: { color: darkMode ? '#e0e0e0' : '#333333' },
+                    title: I18n.t(
+                        'Inferred from Border Router diagnostics (Route64 / child table) and not commissioned to this fabric, so no device details are available.',
+                    ),
+                    networkType: 'thread',
+                    isUnknown: true,
+                    hidden,
+                });
+            }
+        }
+
+        // --- Build graph edges from edge pairs (worst-case signal per pair) ---
         const graphEdges: NetworkGraphEdge[] = [];
-        connections.forEach((conn, index) => {
-            const level = getSignalLevelFromLqi(conn.lqi);
-            const fromOffline = nodeConnectionStatus.get(conn.fromNodeId) === false;
-            const toOffline = nodeConnectionStatus.get(conn.toNodeId) === false;
-            const hasOfflineEndpoint = fromOffline || toOffline;
 
-            // No-link (LQI=0) edges are never drawn; apply signal-level filters + offline cascade.
-            let hidden = level === 'none';
-            if (!hidden && (hiddenNodeIds.has(conn.fromNodeId) || hiddenNodeIds.has(conn.toNodeId))) {
-                hidden = true;
-            }
-            if (!hidden && hideWeakSignalEdges && level === 'weak') {
-                hidden = true;
-            }
-            if (!hidden && hideMediumSignalEdges && level === 'medium') {
-                hidden = true;
-            }
-            if (!hidden && hideStrongSignalEdges && level === 'strong') {
-                hidden = true;
+        // Spring lengths (#945) are applied after the loop: the leaf penalty needs every node's
+        // final visible-link count.
+        const pairSprings: { edges: NetworkGraphEdge[]; nodeA: string; nodeB: string; baseLength: number }[] = [];
+        const linkCounts = new Map<string, number>();
+
+        for (const pair of edgePairs.values()) {
+            const edgesInPair: { conn: ThreadConnection; visEdge: NetworkGraphEdge; filterHidden: boolean }[] = [];
+            // Asymmetry: one direction reports the link dead (LQI=0) while the other saw a live link.
+            let hadZeroEdge = false;
+            let hadLiveEdge = false;
+
+            for (const conn of [pair.edgeAB, pair.edgeBA]) {
+                if (!conn) {
+                    continue;
+                }
+                const fromId = conn.fromNodeId;
+                const toId = conn.toNodeId;
+                const hasOfflineEndpoint =
+                    nodeConnectionStatus.get(fromId) === false || nodeConnectionStatus.get(toId) === false;
+
+                // BR's Route64 / ChildTable confirms this exact peer → bidirectional evidence, so the
+                // edge renders solid (not dashed) and the tooltip carries the BR's view of the link.
+                const isToBr = toId.startsWith('br_');
+                const fromExtMac = nodeIdToExtHex.get(fromId);
+                const brView =
+                    isToBr && fromExtMac !== undefined ? this.brViewOfPeer(toId.slice(3), fromExtMac) : undefined;
+
+                // Diagnostic-only mesh nodes and unknowns are inferred (not commissioned) → dashed.
+                const isToDiagnostic = toId.startsWith('thread_') || toId.startsWith('meshrloc_');
+                const isToUnknown =
+                    toId.startsWith('unknown_') ||
+                    isToDiagnostic ||
+                    (isToBr && brView === undefined && this.brBatch(toId.slice(3)) === undefined);
+                const isFromUnknown =
+                    fromId.startsWith('unknown_') || fromId.startsWith('thread_') || fromId.startsWith('meshrloc_');
+                const isInferredEdge = isToUnknown || isFromUnknown;
+
+                let filterHidden = false;
+                if (hiddenNodeIds.has(fromId) || hiddenNodeIds.has(toId)) {
+                    filterHidden = true;
+                }
+                // No-link (LQI=0) edges are never drawn.
+                if (conn.signalLevel === 'none') {
+                    filterHidden = true;
+                    hadZeroEdge = true;
+                } else {
+                    hadLiveEdge = true;
+                }
+                if (!filterHidden && hideWeakSignalEdges && conn.signalLevel === 'weak') {
+                    filterHidden = true;
+                }
+                if (!filterHidden && hideMediumSignalEdges && conn.signalLevel === 'medium') {
+                    filterHidden = true;
+                }
+                if (!filterHidden && hideStrongSignalEdges && conn.signalLevel === 'strong') {
+                    filterHidden = true;
+                }
+
+                const tooltipLines: string[] = [];
+                if (conn.rssi !== null) {
+                    tooltipLines.push(`RSSI: ${conn.rssi} dBm`);
+                }
+                tooltipLines.push(`LQI: ${conn.lqi}`);
+                if (conn.bidirectionalLqi !== undefined) {
+                    tooltipLines.push(`${I18n.t('Bidirectional LQI')}: ${conn.bidirectionalLqi}`);
+                }
+                if (conn.pathCost !== undefined) {
+                    tooltipLines.push(`${I18n.t('Path Cost')}: ${conn.pathCost}`);
+                }
+                if (conn.fromRouteTable) {
+                    tooltipLines.push(`(${I18n.t('Route table only')})`);
+                }
+                if (brView !== undefined) {
+                    if (brView.isChild === true) {
+                        tooltipLines.push(`(${I18n.t('BR sees as child')})`);
+                    } else if (brView.linkQualityIn !== undefined || brView.linkQualityOut !== undefined) {
+                        const cost = brView.routeCost !== undefined ? ` cost=${brView.routeCost}` : '';
+                        tooltipLines.push(
+                            `(${I18n.t('BR view')}: in=${brView.linkQualityIn ?? '?'} out=${brView.linkQualityOut ?? '?'}${cost})`,
+                        );
+                    }
+                }
+
+                const sc = signalLevelToSignalColor(conn.signalLevel);
+                const visEdge: NetworkGraphEdge = {
+                    id: `edge_${fromId}_${toId}`,
+                    from: fromId,
+                    to: toId,
+                    color: { color: sc.color, highlight: sc.highlight },
+                    width: 2,
+                    title: tooltipLines.join('\n'),
+                    dashes: isInferredEdge || hasOfflineEndpoint,
+                    hidden: filterHidden,
+                };
+                edgesInPair.push({ conn, visEdge, filterHidden });
             }
 
-            const tooltipLines: string[] = [];
-            if (conn.rssi !== null) {
-                tooltipLines.push(`RSSI: ${conn.rssi} dBm`);
-            }
-            tooltipLines.push(`LQI: ${conn.lqi}`);
-            if (conn.bidirectionalLqi !== undefined) {
-                tooltipLines.push(`${I18n.t('Bidirectional LQI')}: ${conn.bidirectionalLqi}`);
-            }
-            if (conn.pathCost !== undefined) {
-                tooltipLines.push(`${I18n.t('Path Cost')}: ${conn.pathCost}`);
-            }
-            if (conn.fromRouteTable) {
-                tooltipLines.push(`(${I18n.t('Route table only')})`);
+            // Dedup: among visible edges in this pair, keep the weakest (worst case); hide the rest.
+            const visibleInPair = edgesInPair.filter(e => e.visEdge.hidden !== true);
+            if (visibleInPair.length > 1) {
+                visibleInPair.sort((a, b) => getEdgeSignalScore(a.conn) - getEdgeSignalScore(b.conn));
+                for (let i = 1; i < visibleInPair.length; i++) {
+                    visibleInPair[i].visEdge.hidden = true;
+                }
             }
 
-            graphEdges.push({
-                id: `edge_${index}`,
-                from: conn.fromNodeId,
-                to: conn.toNodeId,
-                color: { color: conn.signalColor.color, highlight: conn.signalColor.highlight },
-                width: 2,
-                title: tooltipLines.join('\n'),
-                dashes: conn.isUnknown || hasOfflineEndpoint || conn.fromRouteTable,
-                hidden,
-            });
-        });
+            // Asymmetric link: one direction dead while the other is live — dash the survivor.
+            if (hadZeroEdge && hadLiveEdge) {
+                for (const e of edgesInPair) {
+                    if (e.visEdge.hidden !== true) {
+                        e.visEdge.dashes = true;
+                        e.visEdge.title = `${e.visEdge.title ?? ''} (${I18n.t('asymmetric: peer reports no link')})`;
+                    }
+                }
+            }
 
-        this.nodesDataSet.clear();
-        this.nodesDataSet.add(graphNodes);
-        this.edgesDataSet.clear();
-        this.edgesDataSet.add(graphEdges);
+            if (edgesInPair.some(e => e.visEdge.hidden !== true)) {
+                // Count every visible link, LQI or not, so LQI-less peers don't look like leaves.
+                linkCounts.set(pair.nodeA, (linkCounts.get(pair.nodeA) ?? 0) + 1);
+                linkCounts.set(pair.nodeB, (linkCounts.get(pair.nodeB) ?? 0) + 1);
+
+                const liveLqis: number[] = [];
+                for (const e of edgesInPair) {
+                    if (e.conn.signalLevel === 'none') {
+                        continue;
+                    }
+                    liveLqis.push(e.conn.lqi);
+                }
+                if (liveLqis.length > 0) {
+                    const avgLqi = liveLqis.reduce((sum, lqi) => sum + lqi, 0) / liveLqis.length;
+                    pairSprings.push({
+                        edges: edgesInPair.map(e => e.visEdge),
+                        nodeA: pair.nodeA,
+                        nodeB: pair.nodeB,
+                        baseLength: lqiToEdgeLength(avgLqi),
+                    });
+                }
+            }
+
+            for (const e of edgesInPair) {
+                graphEdges.push(e.visEdge);
+            }
+        }
+
+        for (const spring of pairSprings) {
+            const isLeafLink = linkCounts.get(spring.nodeA) === 1 || linkCounts.get(spring.nodeB) === 1;
+            const length = spring.baseLength + (isLeafLink ? LEAF_EDGE_LENGTH_PENALTY : 0);
+            for (const edge of spring.edges) {
+                edge.length = length;
+            }
+        }
+
+        this.applyGraphData(graphNodes, graphEdges);
     }
 
     /**

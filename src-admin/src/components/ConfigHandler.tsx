@@ -543,6 +543,8 @@ class ConfigHandler {
         controller.native.wifiPassword = config.controller.wifiPassword;
         controller.native.threadOperationalDataSet = config.controller.threadOperationalDataSet;
         controller.native.wifiSSID = config.controller.wifiSSID;
+        controller.native.additionalWifiCredentials = config.controller.additionalWifiCredentials;
+        controller.native.additionalThreadCredentials = config.controller.additionalThreadCredentials;
 
         this.config.controller.enabled = config.controller.enabled;
         this.config.controller.ble = config.controller.ble;
@@ -551,6 +553,8 @@ class ConfigHandler {
         this.config.controller.wifiPassword = config.controller.wifiPassword;
         this.config.controller.threadOperationalDataSet = config.controller.threadOperationalDataSet;
         this.config.controller.wifiSSID = config.controller.wifiSSID;
+        this.config.controller.additionalWifiCredentials = config.controller.additionalWifiCredentials;
+        this.config.controller.additionalThreadCredentials = config.controller.additionalThreadCredentials;
 
         await this.socket.setObject(controller._id, controller);
         this.config.controller = clone(config.controller);

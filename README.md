@@ -139,6 +139,10 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 
 ## Changelog
 ### **WORK IN PROGRESS**
+* (@Apollon77) Added automatic time synchronization for controller nodes that support the Matter TimeSynchronization cluster (can be disabled in the settings)
+* (@Apollon77) Added Enhanced Thread diagnostics (tries to get data from BRs when credentials are known or REST API is available)
+* (@Apollon77) Added options to store multiple Thread and WiFi credentials to use in commissioning and Visualization
+* (@Apollon77) Optimizations and Improvements for the Thread and WiFi visualizations
 * (@GermanBluefox) Updated GUI to React 19
 
 ### 1.3.1 (2026-07-23)

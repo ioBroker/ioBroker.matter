@@ -369,16 +369,14 @@ class Controller extends Component<ComponentProps, ComponentState> {
             >
                 <DialogTitle>{I18n.t('BLE Commissioning information')}</DialogTitle>
                 <DialogContent>
-                    {this.props.expertMode ? null : (
-                        <InfoBox
-                            type="info"
-                            iconPosition="top"
-                            closeable
-                            storeId="matter.ble"
-                        >
-                            {I18n.t('Matter Controller BLE Dialog Infotext')}
-                        </InfoBox>
-                    )}
+                    <InfoBox
+                        type="info"
+                        iconPosition="top"
+                        closeable
+                        storeId="matter.ble"
+                    >
+                        {I18n.t('Matter Controller BLE Dialog Infotext')}
+                    </InfoBox>
 
                     <Typography sx={styles.header}>{I18n.t('Bluetooth configuration')}</Typography>
                     <TextField
@@ -513,15 +511,13 @@ class Controller extends Component<ComponentProps, ComponentState> {
                     </DialogActions>
 
                     <Typography sx={styles.header}>{I18n.t('Bluetooth configuration')}</Typography>
-                    {this.props.expertMode ? null : (
-                        <InfoBox type={!this.isRequiredBleInformationProvided() ? 'error' : 'info'}>
-                            {I18n.t(
-                                this.isRequiredBleInformationProvided()
-                                    ? 'Activate BLE to pair devices nearby. You can also use the "ioBroker Visu" App to pair other devices.'
-                                    : 'You need to configure WLAN or Thread credentials above to activate BLE',
-                            )}
-                        </InfoBox>
-                    )}
+                    <InfoBox type={!this.isRequiredBleInformationProvided() ? 'error' : 'info'}>
+                        {I18n.t(
+                            this.isRequiredBleInformationProvided()
+                                ? 'Activate BLE to pair devices nearby. You can also use the "ioBroker Visu" App to pair other devices.'
+                                : 'You need to configure WLAN or Thread credentials above to activate BLE',
+                        )}
+                    </InfoBox>
                     <DialogActions>
                         <Button
                             variant="contained"

@@ -915,7 +915,12 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
     }
 
     async identify(identifyTime = 10): Promise<void> {
-        await this.appEndpoint.commandsOf(IdentifyClient)?.identify({ identifyTime });
+        // commandsOf throws on an absent behavior rather than returning undefined, so the
+        // check has to happen here; hasIdentify keeps it in sync with the UI action gate.
+        if (!this.hasIdentify()) {
+            throw new Error(`Device ${this.name} does not support identify`);
+        }
+        await this.appEndpoint.commandsOf(IdentifyClient).identify({ identifyTime });
     }
 
     async rename(name: string): Promise<void> {

@@ -204,7 +204,8 @@
     "controllerFabricLabel": "",
     "allowUnofficialUpdates": false,
     "customUpdatesPath": "",
-    "enableTimeSync": true
+    "enableTimeSync": true,
+    "threadDiagnosticsEnabled": true
   },
   "objects": [],
   "instanceObjects": [

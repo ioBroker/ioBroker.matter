@@ -25,6 +25,7 @@
     "ICD wake hint setup button": "die Einrichtungstaste drücken",
     "ICD wake hint app defined button": "die in der App festgelegte Taste drücken",
     "ICD wake hint see manual": "siehe Bedienungsanleitung des Geräts",
+    "ICD progress wake unavailable": "Das Gerät antwortet, sobald es von selbst aufwacht.",
     "ICD tooltip battery saver active with interval": "Der Akkusparmodus ist aktiv: Das Gerät schläft zwischen den Check-ins und reagiert auf Befehle innerhalb von bis zu %s. Klicken Sie für Optionen.",
     "ICD tooltip battery saver active": "Der Akkusparmodus ist aktiv: Das Gerät schläft zwischen den Check-ins. Klicken Sie für Optionen.",
     "ICD tooltip battery saver offline with interval": "Akkuspar-Gerät: Es schläft zwischen den Check-ins und kann von selbst wieder online kommen (Check-in-Intervall bis zu %s). Klicken Sie für Optionen.",

@@ -26,6 +26,7 @@
     "ICD wake hint setup button": "op de instelknop drukken",
     "ICD wake hint app defined button": "op de door de app bepaalde knop drukken",
     "ICD wake hint see manual": "raadpleeg de handleiding van het apparaat",
+    "ICD progress wake unavailable": "Het apparaat reageert zodra het uit zichzelf wakker wordt.",
     "ICD tooltip battery saver active with interval": "De batterijbesparingsmodus is actief: het apparaat slaapt tussen check-ins en reageert op opdrachten binnen maximaal %s. Klik voor opties.",
     "ICD tooltip battery saver active": "De batterijbesparingsmodus is actief: het apparaat slaapt tussen check-ins. Klik voor opties.",
     "ICD tooltip battery saver offline with interval": "Batterijbesparend apparaat: het slaapt tussen check-ins en kan vanzelf weer online komen (check-in-interval tot %s). Klik voor opties.",

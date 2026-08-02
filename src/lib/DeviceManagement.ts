@@ -24,10 +24,19 @@ import { SpecificationVersion } from '@matter/main/types';
 import { CommissioningClient, isObject } from '@matter/main';
 import { PeerAddress } from '@matter/main/protocol';
 import { ICD_LIT_ICON } from './icons';
-import { formatDuration, wakeInstruction } from '../matter/icdUtils';
+import { formatDuration, icdWaitingLabel, icdWakeInstructionText } from '../matter/icdUtils';
 import { IcdMultiAdminConflictError, type NodeIcdManager } from '../matter/NodeIcdManager';
 import { VendorIds } from './vendorIDs';
 import { toUpperCaseHex } from './utils';
+import { ProgressHeartbeat } from './ProgressHeartbeat';
+
+/**
+ * dm-gui-components' GUI re-arms a 5 s "backend not responding" timer on every progress round-trip
+ * (falling back to that default once the action's own `timeout` has covered the first one), so an ICD
+ * wait - which can run for a full idle interval - needs a steady stream of updates well inside that
+ * window to keep the dialog, and the card, from flagging the backend as gone.
+ */
+const ICD_PROGRESS_HEARTBEAT_MS = 2_500;
 
 function strToBool(str: string): boolean | null {
     if (str === 'true') {
@@ -836,16 +845,17 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         }
 
         if (info?.features.userActiveModeTrigger) {
-            const wake = wakeInstruction(info.userActiveModeTriggerHint, info.userActiveModeTriggerInstruction);
-            // `custom` text is the peer device's own string; ConfigStaticText renders "<a "/"<br"/"<b>"/"<i>" as HTML, so strip "<" before display.
-            const customInstruction = wake.text.replace(/</g, '');
+            const wakeText = icdWakeInstructionText(
+                (key, ...args) => this.#adapter.t(key, ...args),
+                info.userActiveModeTriggerHint,
+                info.userActiveModeTriggerInstruction,
+            );
             items._wake = {
                 type: 'staticText',
                 newLine: true,
-                text:
-                    wake.kind === 'custom'
-                        ? `${this.#adapter.t('To wake the device immediately, follow the device instructions:')} "${customInstruction}"`
-                        : `${this.#adapter.t('To wake the device immediately:')} ${this.#adapter.t(wake.text)}`,
+                // ConfigStaticText renders "<a "/"<br"/"<b>"/"<i>" as HTML; a `custom` instruction is the
+                // peer device's own unsanitized string, so strip "<" before display here specifically.
+                text: wakeText.replace(/</g, ''),
             };
         }
 
@@ -967,9 +977,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
      * Keeps the card in `pending` and an indeterminate progress dialog open while the peer is contacted.
      * `openProgress` can hang indefinitely with nothing left to ever settle it (closed tab, dropped GUI
      * socket), so `pending` is only set once that dialog is actually open, leaving the card unaffected by
-     * such a hang instead of pinning it on "changing" forever. The same kind of hang in the later
-     * `progress.close()` is not covered: `pending` is already cleared by then, but the action handler itself
-     * still never returns.
+     * such a hang instead of pinning it on "changing" forever. The same kind of hang can also strike later,
+     * in `ProgressHeartbeat.stop()` or `progress.close()`: `pending` is already cleared by `onSettle` before
+     * either runs, but the action handler itself still never returns.
      */
     async #runIcdOperation(
         ioNode: GeneralMatterNode,
@@ -978,29 +988,49 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         title: string,
         action: () => Promise<void>,
     ): Promise<{ refresh: DeviceRefresh }> {
-        let progress: Awaited<ReturnType<ActionContext['openProgress']>> | undefined;
         let failed = false;
         let error: unknown;
+        // Re-read on every call rather than snapshotting once: `icd.info` can still be undefined on the
+        // very first read (subscription not yet established) or change while a wait spans a full idle
+        // interval, and each dialog update should reflect what is currently known.
+        const currentLabel = (): string => {
+            const info = icd.info;
+            return icdWaitingLabel(
+                (key, ...args) => this.#adapter.t(key, ...args),
+                info?.features.userActiveModeTrigger === true,
+                info?.userActiveModeTriggerHint,
+                info?.userActiveModeTriggerInstruction,
+            );
+        };
         try {
-            progress = await context.openProgress(title, { indeterminate: true });
+            const openDialog = await context.openProgress(title, { indeterminate: true, label: currentLabel() });
+            const heartbeat = new ProgressHeartbeat(this.adapter, ICD_PROGRESS_HEARTBEAT_MS, () =>
+                this.#guardedDialogCall(
+                    ioNode,
+                    'Failed to send ICD progress heartbeat',
+                    () => openDialog.update({ indeterminate: true, label: currentLabel() }),
+                    undefined,
+                ),
+            );
             icd.pending = true;
-            try {
-                await action();
-            } finally {
-                icd.pending = false;
-            }
+            const outcome = await heartbeat.run(
+                action,
+                () => {
+                    icd.pending = false;
+                },
+                () =>
+                    this.#guardedDialogCall(
+                        ioNode,
+                        'Failed to close ICD progress dialog',
+                        () => openDialog.close(),
+                        undefined,
+                    ),
+            );
+            failed = outcome.failed;
+            error = outcome.error;
         } catch (caught) {
             failed = true;
             error = caught;
-        }
-        if (progress !== undefined) {
-            const openDialog = progress;
-            await this.#guardedDialogCall(
-                ioNode,
-                'Failed to close ICD progress dialog',
-                () => openDialog.close(),
-                undefined,
-            );
         }
         if (failed) {
             this.adapter.log.warn(`ICD operation failed for node ${ioNode.nodeId}: ${inspect(error, { depth: 5 })}`);

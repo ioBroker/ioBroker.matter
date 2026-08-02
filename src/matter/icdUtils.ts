@@ -77,6 +77,42 @@ export function wakeInstruction(
     return { kind: 'manual', text: 'ICD wake hint see manual' };
 }
 
+/** Matches `MatterAdapter.t`: looks up `key` and fills in any `%s`/`%d` placeholders from `args`. */
+export type Translate = (key: string, ...args: (string | number | boolean | null)[]) => string;
+
+/**
+ * Text explaining how to wake the device now, verbatim (a `custom` instruction is the peer device's own,
+ * unsanitized string). Shared by the mode-selection form's `_wake` item and the ICD progress dialog label
+ * so wording cannot drift between the two; a caller whose sink renders this as HTML (unlike either of
+ * those two) must sanitize it itself.
+ */
+export function icdWakeInstructionText(
+    t: Translate,
+    hint: IcdManagement.UserActiveModeTrigger | undefined,
+    instruction: string | undefined,
+): string {
+    const wake = wakeInstruction(hint, instruction);
+    return wake.kind === 'custom'
+        ? `${t('To wake the device immediately, follow the device instructions:')} "${wake.text}"`
+        : `${t('To wake the device immediately:')} ${t(wake.text)}`;
+}
+
+/**
+ * Label for the ICD progress dialog while it waits on the peer: the wake instruction when the peer
+ * advertises one, otherwise a line explaining that the wait itself is expected.
+ */
+export function icdWaitingLabel(
+    t: Translate,
+    userActiveModeTrigger: boolean,
+    hint: IcdManagement.UserActiveModeTrigger | undefined,
+    instruction: string | undefined,
+): string {
+    if (userActiveModeTrigger) {
+        return icdWakeInstructionText(t, hint, instruction);
+    }
+    return t('The device will respond once it wakes up on its own.');
+}
+
 /** Counts check-in registrations that belong to other fabrics; they block leaving Battery Saver Mode. */
 export function otherFabricClientCount(
     clients: readonly { fabricIndex: number }[],

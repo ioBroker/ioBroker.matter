@@ -26,6 +26,7 @@
     "ICD wake hint setup button": "premir o botão de configuração",
     "ICD wake hint app defined button": "premir o botão definido na aplicação",
     "ICD wake hint see manual": "consultar o manual do dispositivo",
+    "ICD progress wake unavailable": "O dispositivo responderá assim que despertar por conta própria.",
     "ICD tooltip battery saver active with interval": "O modo de poupança de bateria está ativo: o dispositivo dorme entre verificações e responde a comandos num máximo de %s. Clica para ver as opções.",
     "ICD tooltip battery saver active": "O modo de poupança de bateria está ativo: o dispositivo dorme entre verificações. Clica para ver as opções.",
     "ICD tooltip battery saver offline with interval": "Dispositivo com poupança de bateria: dorme entre verificações e pode voltar a ligar-se sozinho (intervalo de verificação até %s). Clica para ver as opções.",

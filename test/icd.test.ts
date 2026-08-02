@@ -1,5 +1,16 @@
 import { deepStrictEqual, strictEqual } from 'node:assert';
-import { deriveIcdMode, formatDuration, otherFabricClientCount, wakeInstruction } from '../src/matter/icdUtils';
+import {
+    deriveIcdMode,
+    formatDuration,
+    icdWaitingLabel,
+    icdWakeInstructionText,
+    otherFabricClientCount,
+    wakeInstruction,
+    type Translate,
+} from '../src/matter/icdUtils';
+
+/** Identity translator: returns the key unchanged, so assertions can check exact wiring without an i18n table. */
+const t: Translate = key => key;
 
 describe('deriveIcdMode', () => {
     it('returns an empty mode for a node that is not LIT-capable', () => {
@@ -113,6 +124,61 @@ describe('wakeInstruction', () => {
 
     it('returns the manual fallback without a hint', () => {
         deepStrictEqual(wakeInstruction(undefined, 'ignored'), { kind: 'manual', text: 'ICD wake hint see manual' });
+    });
+});
+
+describe('icdWakeInstructionText', () => {
+    it("quotes the peer device's own instruction for a custom hint", () => {
+        strictEqual(
+            icdWakeInstructionText(t, { customInstruction: true }, 'Hold the pairing button'),
+            'To wake the device immediately, follow the device instructions: "Hold the pairing button"',
+        );
+    });
+
+    it('passes a custom instruction through verbatim, including HTML-like characters', () => {
+        // Sanitizing for an HTML-rendering sink (if the caller's sink needs it) is the caller's job -
+        // the progress-dialog label sink this text is equally used for renders it as plain text.
+        strictEqual(
+            icdWakeInstructionText(t, { customInstruction: true }, 'Press <b>the button</b>'),
+            'To wake the device immediately, follow the device instructions: "Press <b>the button</b>"',
+        );
+    });
+
+    it('maps a wake hint flag to its short instruction', () => {
+        strictEqual(
+            icdWakeInstructionText(t, { powerCycle: true }, undefined),
+            'To wake the device immediately: ICD wake hint power cycle',
+        );
+    });
+
+    it('falls back to the manual instruction when no hint is set', () => {
+        strictEqual(
+            icdWakeInstructionText(t, undefined, undefined),
+            'To wake the device immediately: ICD wake hint see manual',
+        );
+    });
+});
+
+describe('icdWaitingLabel', () => {
+    it('reaches the wake instruction when the peer advertises a user active mode trigger', () => {
+        strictEqual(
+            icdWaitingLabel(t, true, { settingsMenu: true }, undefined),
+            'To wake the device immediately: ICD wake hint settings menu',
+        );
+    });
+
+    it('falls back to a wait explanation when no user active mode trigger is advertised', () => {
+        strictEqual(
+            icdWaitingLabel(t, false, undefined, undefined),
+            'The device will respond once it wakes up on its own.',
+        );
+    });
+
+    it('ignores a leftover hint when the trigger feature itself is not advertised', () => {
+        strictEqual(
+            icdWaitingLabel(t, false, { powerCycle: true }, undefined),
+            'The device will respond once it wakes up on its own.',
+        );
     });
 });
 

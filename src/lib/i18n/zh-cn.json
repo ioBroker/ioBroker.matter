@@ -26,6 +26,7 @@
     "ICD wake hint setup button": "按下设置按钮",
     "ICD wake hint app defined button": "按下应用程序指定的按钮",
     "ICD wake hint see manual": "请参阅设备说明书",
+    "ICD progress wake unavailable": "设备将在自行唤醒后响应。",
     "ICD tooltip battery saver active with interval": "省电模式已启用：设备在两次签到之间休眠，最长在 %s 内响应命令。点击查看选项。",
     "ICD tooltip battery saver active": "省电模式已启用：设备在两次签到之间休眠。点击查看选项。",
     "ICD tooltip battery saver offline with interval": "省电设备：它在两次签到之间休眠，可能会自行恢复在线（签到间隔最长 %s）。点击查看选项。",

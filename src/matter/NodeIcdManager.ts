@@ -4,14 +4,21 @@ import type { IcdManagement } from '@matter/main/clusters';
 import type { PairedNode } from '@project-chip/matter.js/device';
 import { deriveIcdMode, otherFabricClientCount, type IcdMode } from './icdUtils';
 
+/** One administrator on the peer that is not us, as far as it can be identified. */
+export interface IcdForeignAdmin {
+    vendorId: number;
+    /** The fabric's user-visible label, when the peer reports a non-empty one. */
+    label?: string;
+}
+
 /** Registration was refused because other-vendor administrators may not support LIT. */
 export class IcdMultiAdminConflictError extends Error {
-    readonly vendorIds: number[];
+    readonly admins: IcdForeignAdmin[];
 
-    constructor(vendorIds: number[]) {
+    constructor(admins: IcdForeignAdmin[]) {
         super('Battery Saver Mode was refused because other administrators may not support it');
         this.name = 'IcdMultiAdminConflictError';
-        this.vendorIds = vendorIds;
+        this.admins = admins;
     }
 }
 
@@ -160,7 +167,7 @@ export class NodeIcdManager {
             await this.#node.node.act(agent => agent.get(IcdClient).register({ allowMultiAdmin }));
         } catch (error) {
             IcdMultiAdminError.accept(error);
-            throw new IcdMultiAdminConflictError(await this.#foreignAdminVendorIds(error.adminVendorIds));
+            throw new IcdMultiAdminConflictError(await this.#foreignAdmins(error.adminVendorIds));
         }
     }
 
@@ -169,18 +176,32 @@ export class NodeIcdManager {
      * not be shown to the user as a possibly-incompatible ecosystem. Best-effort: a failed lookup leaves the
      * list unfiltered rather than losing the conflict report.
      */
-    async #foreignAdminVendorIds(vendorIds: readonly number[]): Promise<number[]> {
+    /**
+     * Describes the peer's other administrators for the confirmation dialog. Identifies them by fabric index
+     * rather than vendor id: another controller commonly shares our vendor id (matter.js's default
+     * `DEFAULT_ADMIN_VENDOR_ID`), and filtering on the id alone would drop it and leave nothing to show.
+     * Best-effort — a failed read falls back to the vendor ids the error carried.
+     */
+    async #foreignAdmins(vendorIds: readonly number[]): Promise<IcdForeignAdmin[]> {
         try {
             const { fabrics, currentFabricIndex } = await this.#node.node.getStateOf(
                 OperationalCredentialsClient,
                 ['fabrics', 'currentFabricIndex'],
                 { fabricFilter: false },
             );
-            const ownVendorId = fabrics?.find(fabric => fabric.fabricIndex === currentFabricIndex)?.vendorId;
-            return ownVendorId === undefined ? [...vendorIds] : vendorIds.filter(vendorId => vendorId !== ownVendorId);
+            const foreign = (fabrics ?? [])
+                .filter(fabric => fabric.fabricIndex !== currentFabricIndex)
+                .map(fabric => ({
+                    vendorId: Number(fabric.vendorId),
+                    ...(fabric.label ? { label: fabric.label } : {}),
+                }));
+            if (foreign.length > 0) {
+                return foreign;
+            }
         } catch {
-            return [...vendorIds];
+            // fall through to the vendor ids the error carried
         }
+        return vendorIds.map(vendorId => ({ vendorId }));
     }
 
     /** `force` clears only local state, for a peer that cannot be reached any more. */

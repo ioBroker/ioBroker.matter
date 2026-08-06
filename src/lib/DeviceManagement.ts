@@ -25,7 +25,7 @@ import { CommissioningClient, isObject } from '@matter/main';
 import { PeerAddress } from '@matter/main/protocol';
 import { ICD_LIT_ICON } from './icons';
 import { formatDuration, icdWaitingLabel, icdWakeInstructionText } from '../matter/icdUtils';
-import { IcdMultiAdminConflictError, type NodeIcdManager } from '../matter/NodeIcdManager';
+import { IcdMultiAdminConflictError, type IcdForeignAdmin, type NodeIcdManager } from '../matter/NodeIcdManager';
 import { VendorIds } from './vendorIDs';
 import { toUpperCaseHex } from './utils';
 import { ProgressHeartbeat } from './ProgressHeartbeat';
@@ -1047,6 +1047,18 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         return { refresh: 'devices' };
     }
 
+    /**
+     * Names one of the peer's other administrators as recognisably as the peer allows: vendor name when the
+     * id is known, always the hex id, and the fabric's own label when it set one - a user with two identical
+     * vendor ids can still tell which ecosystem is which.
+     */
+    #describeForeignAdmin(admin: IcdForeignAdmin): string {
+        const vendor = VendorIds[admin.vendorId]
+            ? `${VendorIds[admin.vendorId]} (${toUpperCaseHex(admin.vendorId)})`
+            : `${this.#adapter.t('Vendor')} ${toUpperCaseHex(admin.vendorId)}`;
+        return admin.label ? `${vendor} "${admin.label}"` : vendor;
+    }
+
     async #runIcdEnable(
         ioNode: GeneralMatterNode,
         icd: NodeIcdManager,
@@ -1085,14 +1097,8 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             return outcome;
         }
 
-        const names = conflict.vendorIds.length
-            ? conflict.vendorIds
-                  .map(vendorId =>
-                      VendorIds[vendorId]
-                          ? `${VendorIds[vendorId]} (${toUpperCaseHex(vendorId)})`
-                          : `${this.#adapter.t('Vendor')} ${toUpperCaseHex(vendorId)}`,
-                  )
-                  .join(', ')
+        const names = conflict.admins.length
+            ? conflict.admins.map(admin => this.#describeForeignAdmin(admin)).join(', ')
             : this.#adapter.t('unknown ecosystems');
         // Guarded like #runIcdOperation's own dialog calls: a failed close() there can leave dm-utils'
         // dialog flag set, which would make this confirmation throw synchronously otherwise.

@@ -9,13 +9,11 @@ export namespace MatterConverters {
         return parseFloat((value / 100).toFixed(2));
     }
 
-    /** ioBroker unit → Matter hundredths, rounded to an integer. */
-    export function toMatterHundredthsRounded(value: number): number {
-        return Math.round(value * 100);
-    }
-
-    /** ioBroker unit → Matter hundredths, unrounded. */
+    /**
+     * ioBroker unit → Matter hundredths. Matter cluster fields using this encoding are integer types,
+     * so the result is rounded to avoid IEEE754 artifacts (e.g. 0.1 * 100 = 10.000000000000002).
+     */
     export function toMatterHundredths(value: number): number {
-        return value * 100;
+        return Math.round(value * 100);
     }
 }

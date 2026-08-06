@@ -152,6 +152,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) Add support for the Room Air Conditioner device type (controller and bridge/device mode) mapped to the ioBroker airCondition type
 * (@Apollon77) Fix Thermostat cooling setpoint changes from Matter being applied as heating setpoint
 * (@Apollon77) Add a request timeout to the license verification API calls
+* (@Apollon77) Ensure Matter hundredths values are integer-encoded and fix Boost on/off coercion and initial sync for Thermostat/Air Conditioner devices
 * (@Apollon77) Added Battery Saver Mode (Matter LIT ICD) management for controller nodes: a status indicator on the device card and a dialog to switch modes, with a resync option for a device stuck offline
 * (@Apollon77) Long Idle Time devices no longer delay periodic processing of the other nodes
 * (@Apollon77) Thread topology data is refreshed periodically, so the network visualization no longer drifts on a long running adapter

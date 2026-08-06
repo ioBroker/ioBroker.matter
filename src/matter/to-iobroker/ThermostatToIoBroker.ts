@@ -68,12 +68,12 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
                 const mode = this.ioBrokerDevice.getMode();
                 if (mode === ThermostatMode.Heat || mode === ThermostatMode.Auto) {
                     await this.appEndpoint.setStateOf(ThermostatClient, {
-                        occupiedHeatingSetpoint: MatterConverters.toMatterHundredthsRounded(value),
+                        occupiedHeatingSetpoint: MatterConverters.toMatterHundredths(value),
                     });
                 }
                 if (mode === ThermostatMode.Cool || mode === ThermostatMode.Auto) {
                     await this.appEndpoint.setStateOf(ThermostatClient, {
-                        occupiedCoolingSetpoint: MatterConverters.toMatterHundredthsRounded(value),
+                        occupiedCoolingSetpoint: MatterConverters.toMatterHundredths(value),
                     });
                 }
             },

@@ -467,7 +467,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                     if (this.#matterEndpointBoost?.owner !== undefined) {
                         await this.#matterEndpointBoost?.set({
                             onOff: {
-                                onOff: event.value as boolean,
+                                onOff: this.#boostToOnOff(event.value as boolean | number),
                             },
                         });
                     }
@@ -483,5 +483,15 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                 },
             });
         }
+
+        if (this.#matterEndpointBoost?.owner !== undefined) {
+            await this.#matterEndpointBoost.set({
+                onOff: { onOff: this.#boostToOnOff(this.#ioBrokerDevice.getBoost()) },
+            });
+        }
+    }
+
+    #boostToOnOff(value: boolean | number | undefined): boolean {
+        return typeof value === 'number' ? value !== 0 : !!value;
     }
 }

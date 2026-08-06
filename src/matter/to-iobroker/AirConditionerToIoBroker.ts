@@ -118,12 +118,12 @@ export class AirConditionerToIoBroker extends GenericElectricityDataDeviceToIoBr
                 const mode = this.#ioBrokerDevice.getMode();
                 if (mode === AirConditionerMode.Heat || mode === AirConditionerMode.Auto) {
                     await this.appEndpoint.setStateOf(ThermostatClient, {
-                        occupiedHeatingSetpoint: MatterConverters.toMatterHundredthsRounded(value),
+                        occupiedHeatingSetpoint: MatterConverters.toMatterHundredths(value),
                     });
                 }
                 if (mode === AirConditionerMode.Cool || mode === AirConditionerMode.Auto) {
                     await this.appEndpoint.setStateOf(ThermostatClient, {
-                        occupiedCoolingSetpoint: MatterConverters.toMatterHundredthsRounded(value),
+                        occupiedCoolingSetpoint: MatterConverters.toMatterHundredths(value),
                     });
                 }
             },

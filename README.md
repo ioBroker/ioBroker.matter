@@ -146,6 +146,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) Added Enhanced Thread diagnostics (tries to get data from BRs when credentials are known or REST API is available)
 * (@Apollon77) Added options to store multiple Thread and WiFi credentials to use in commissioning and Visualization
 * (@Apollon77) Optimizations and Improvements for the Thread and WiFi visualizations
+* (@Apollon77) Updated matter.js to 0.17.9 
 * (@GermanBluefox) Updated GUI to React 19
 
 ### 1.3.1 (2026-07-23)

@@ -326,12 +326,16 @@
     "Thread routing role could not be determined.": "Nie można było ustalić roli routingu Thread.",
     "Inferred from Border Router diagnostics (Route64 / child table) and not commissioned to this fabric, so no device details are available.": "Wywnioskowane z diagnostyki routera brzegowego (Route64 / tabela węzłów podrzędnych) i nieprzypisane do tej fabric, więc brak szczegółów urządzenia.",
     "Enhanced Thread diagnostics": "Rozszerzona diagnostyka Thread",
-    "Enhanced Thread diagnostics Infotext": "Po włączeniu ioBroker aktywnie odpytuje routery brzegowe Thread (przez MeshCoP/CoAP i OTBR REST), aby wzbogacić graf sieci o diagnostykę mesh na żywo. Wyłącz, aby uniknąć tego dodatkowego ruchu sieciowego; pasywne wykrywanie routerów brzegowych nadal działa.",
+    "Enhanced Thread diagnostics Infotext": "Po włączeniu ioBroker aktywnie odpytuje routery brzegowe Thread (przez MeshCoP/CoAP i OTBR REST), aby wzbogacić graf sieci o diagnostykę mesh na żywo, oraz okresowo odświeża dane topologii (tabele sąsiadów/tras) każdego sparowanego węzła Thread. Wyłącz, aby uniknąć tego dodatkowego ruchu sieciowego; pasywne wykrywanie routerów brzegowych nadal działa.",
     "Also a Border Router": "Także router brzegowy",
     "Hostname": "Nazwa hosta",
     "asymmetric: peer reports no link": "asymetryczne: węzeł partnerski nie zgłasza połączenia",
     "Refresh the Border Router diagnostics for \"%s\".": "Odśwież diagnostykę routera brzegowego dla „%s”.",
     "Also refresh the %s connected node(s)": "Odśwież także %s połączonych węzłów",
     "Refresh diagnostics and %s node(s)": "Odśwież diagnostykę i %s węzłów",
-    "Refresh diagnostics only": "Odśwież tylko diagnostykę"
+    "Refresh diagnostics only": "Odśwież tylko diagnostykę",
+    "\"%s\" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.": "\"%s\" to urządzenie uśpione (Matter LIT). Odpowiada dopiero przy następnym przebudzeniu, więc jego własne dane sieciowe pojawią się później.",
+    "Refresh %s connected online neighbor(s) for current link data": "Odśwież %s połączonych sąsiadów online, aby uzyskać aktualne dane łącza",
+    "No online neighbor can report its current link data either.": "Żaden sąsiad online również nie może zgłosić aktualnych danych łącza.",
+    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s węzeł/węzły to urządzenia uśpione (Matter LIT), więc aktualizacja na nie nie czeka — ich dane pojawią się, gdy się obudzą."
 }

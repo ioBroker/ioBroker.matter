@@ -349,12 +349,16 @@
     "Thread routing role could not be determined.": "Thread routing role could not be determined.",
     "Inferred from Border Router diagnostics (Route64 / child table) and not commissioned to this fabric, so no device details are available.": "Inferred from Border Router diagnostics (Route64 / child table) and not commissioned to this fabric, so no device details are available.",
     "Enhanced Thread diagnostics": "Enhanced Thread diagnostics",
-    "Enhanced Thread diagnostics Infotext": "When enabled, ioBroker actively queries Thread Border Routers (via MeshCoP/CoAP and OTBR REST) to enrich the network graph with live mesh diagnostics. Disable to avoid this extra network traffic; passive Border Router discovery keeps working either way.",
+    "Enhanced Thread diagnostics Infotext": "When enabled, ioBroker actively queries Thread Border Routers (via MeshCoP/CoAP and OTBR REST) to enrich the network graph with live mesh diagnostics, and periodically refreshes each commissioned Thread node's own topology data (neighbor/route tables). Disable to avoid this extra network traffic; passive Border Router discovery keeps working either way.",
     "Also a Border Router": "Also a Border Router",
     "Hostname": "Hostname",
     "asymmetric: peer reports no link": "asymmetric: peer reports no link",
     "Refresh the Border Router diagnostics for \"%s\".": "Refresh the Border Router diagnostics for \"%s\".",
     "Also refresh the %s connected node(s)": "Also refresh the %s connected node(s)",
     "Refresh diagnostics and %s node(s)": "Refresh diagnostics and %s node(s)",
-    "Refresh diagnostics only": "Refresh diagnostics only"
+    "Refresh diagnostics only": "Refresh diagnostics only",
+    "\"%s\" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.": "\"%s\" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.",
+    "Refresh %s connected online neighbor(s) for current link data": "Refresh %s connected online neighbor(s) for current link data",
+    "No online neighbor can report its current link data either.": "No online neighbor can report its current link data either.",
+    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up."
 }

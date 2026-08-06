@@ -13,6 +13,7 @@ import {
 const PEER = PeerAddress({ nodeId: NodeId(1n), fabricIndex: FabricIndex(1) });
 const PEER_2 = PeerAddress({ nodeId: NodeId(2n), fabricIndex: FabricIndex(1) });
 const PEER_3 = PeerAddress({ nodeId: NodeId(3n), fabricIndex: FabricIndex(1) });
+const LIT_PEER = PeerAddress({ nodeId: NodeId(11n), fabricIndex: FabricIndex(1) });
 const CAPS: TimeSyncCapabilities = { supported: true, timeZone: false };
 
 class RecordingConnector implements TimeSyncConnector {
@@ -37,6 +38,49 @@ class RecordingConnector implements TimeSyncConnector {
 
     get syncedNodeIds(): string[] {
         return this.syncCalls.map(peer => peer.nodeId.toString());
+    }
+}
+
+/** A connector whose syncTime() can be held open per peer, to exercise in-flight push tracking. */
+class GatedConnector implements TimeSyncConnector {
+    readonly syncCalls = new Array<PeerAddress>();
+    readonly held = new Set<string>();
+    readonly #releases = new Map<string, () => void>();
+
+    async syncTime(peer: PeerAddress): Promise<void> {
+        this.syncCalls.push(peer);
+        if (this.held.has(peer.nodeId.toString())) {
+            await new Promise<void>(resolve => this.#releases.set(peer.nodeId.toString(), resolve));
+        }
+    }
+
+    release(peer: PeerAddress): void {
+        const resolve = this.#releases.get(peer.nodeId.toString());
+        this.#releases.delete(peer.nodeId.toString());
+        resolve?.();
+    }
+
+    nodeConnected(): boolean {
+        return true;
+    }
+
+    commissionedNodeCount(): number {
+        return 1;
+    }
+}
+
+/** Exposes the protected cycle hooks so a cycle can be driven manually, without real timers. */
+class DirectTimeSyncManager extends TimeSyncManager {
+    triggerCycleStart(): void {
+        this.onCycleStart();
+    }
+
+    completeCycle(processedCount: number): void {
+        this.onCycleComplete(processedCount, '');
+    }
+
+    runProcessNode(peer: PeerAddress): Promise<void> {
+        return this.processNode(peer);
     }
 }
 
@@ -271,6 +315,120 @@ describe('TimeSyncManager', () => {
 
             await waitFor(() => connector.syncedNodeIds.includes('3'), 6000);
             expect(connector.syncedNodeIds, 'the late node must not wait for the next cycle').to.include('3');
+        });
+    });
+
+    describe('long idle time', function () {
+        this.timeout(15_000);
+
+        it('holds a node registered as long idle time out of the serial loop', async () => {
+            const cycling = new TimeSyncManager(
+                connector,
+                () => null,
+                () => 1,
+            );
+            try {
+                cycling.registerNode(PEER, CAPS);
+                cycling.registerNode(LIT_PEER, CAPS, true);
+
+                // A LIT peer sharing the serial loop would only be synced after its two-second
+                // inter-node delay; the deferred batch reaches it well before that.
+                await waitFor(() => connector.syncedNodeIds.length >= 2, 1500);
+                expect(connector.syncedNodeIds).to.have.members([PEER.nodeId.toString(), LIT_PEER.nodeId.toString()]);
+            } finally {
+                await cycling.stop();
+            }
+        });
+
+        it('does not await a long idle time push on stop()', async () => {
+            const gated = new GatedConnector();
+            const gatedManager = new TimeSyncManager(
+                gated,
+                () => null,
+                () => 1,
+            );
+            try {
+                gatedManager.registerNode(LIT_PEER, CAPS, true);
+                gatedManager.completeStartup();
+
+                gated.held.add(LIT_PEER.nodeId.toString());
+                gatedManager.syncNode(LIT_PEER, SyncTrigger.Reconnect);
+                await waitFor(() => gated.syncCalls.length >= 1);
+
+                // Would hang until the push settles if stop() awaited it like any other peer.
+                await gatedManager.stop();
+            } finally {
+                gated.release(LIT_PEER);
+            }
+        });
+
+        it('clears an orphaned in-flight push on unregister so a re-registered peer is not blocked forever', async () => {
+            const gated = new GatedConnector();
+            const manager = new TimeSyncManager(
+                gated,
+                () => null,
+                () => 1,
+            );
+            try {
+                manager.registerNode(LIT_PEER, CAPS, true);
+                manager.completeStartup();
+
+                gated.held.add(LIT_PEER.nodeId.toString());
+                manager.syncNode(LIT_PEER, SyncTrigger.Reconnect);
+                await waitFor(() => gated.syncCalls.length >= 1, 500);
+
+                // The push above never settles; unregistering must not leave its #inFlightSyncs slot
+                // behind for the peer's next registration to inherit.
+                manager.unregisterNode(LIT_PEER);
+                manager.registerNode(LIT_PEER, CAPS, true);
+                manager.syncNode(LIT_PEER, SyncTrigger.Reconnect);
+
+                await waitFor(() => gated.syncCalls.length >= 2, 500);
+                expect(
+                    gated.syncCalls.length,
+                    'the re-registered peer must not be blocked by the orphaned push',
+                ).to.equal(2);
+            } finally {
+                gated.release(LIT_PEER);
+                await manager.stop();
+            }
+        });
+
+        it('does not count a long idle time push into a cycle that reports after it launched', async () => {
+            const gated = new GatedConnector();
+            // No overridden delays: the real timer must stay dormant for the manual sequence below.
+            const directManager = new DirectTimeSyncManager(gated, () => null);
+            try {
+                directManager.registerNode(LIT_PEER, CAPS, true);
+                directManager.completeStartup();
+
+                gated.held.add(LIT_PEER.nodeId.toString());
+                directManager.triggerCycleStart();
+                const firstPush = directManager.runProcessNode(LIT_PEER);
+
+                // The next cycle starts, resetting the synced-count, before the first push settles.
+                directManager.triggerCycleStart();
+
+                gated.release(LIT_PEER);
+                await firstPush;
+
+                const lines = new Array<string>();
+                const destination = Logger.destinations.default;
+                const originalWrite = destination.write;
+                destination.write = text => {
+                    lines.push(text);
+                };
+                try {
+                    directManager.completeCycle(1);
+                } finally {
+                    destination.write = originalWrite;
+                }
+                const summary = lines.find(line => line.includes('Periodic resync complete'));
+                expect(summary, 'the cycle must log a summary').to.not.equal(undefined);
+                expect(summary, 'the stale push must not be counted into this cycle').to.contain('synced 0 of 1');
+            } finally {
+                await directManager.stop();
+            }
         });
     });
 

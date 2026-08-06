@@ -53,3 +53,20 @@ export function resolveThreadCredential(
     }
     return undefined;
 }
+
+/**
+ * Whether any credential set is complete enough to push during BLE commissioning — the default scalars or
+ * any named entry. Resolved through the same functions commissioning uses, so the two cannot disagree about
+ * what counts as configured: a user whose only network is a named entry still gets BLE.
+ */
+export function hasAnyCommissioningCredential(config: MatterControllerConfig): boolean {
+    if (resolveWifiCredential(config) !== undefined || resolveThreadCredential(config) !== undefined) {
+        return true;
+    }
+    return (
+        (config.additionalWifiCredentials ?? []).some(entry => resolveWifiCredential(config, entry.id) !== undefined) ||
+        (config.additionalThreadCredentials ?? []).some(
+            entry => resolveThreadCredential(config, entry.id) !== undefined,
+        )
+    );
+}

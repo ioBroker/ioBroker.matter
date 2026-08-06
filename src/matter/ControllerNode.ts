@@ -1,5 +1,14 @@
-import type { Endpoint, ServerAddressUdp, SoftwareUpdateInfo } from '@matter/main';
-import { ObserverGroup, SoftwareUpdateManager, Diagnostic, NodeId, Time, VendorId, Seconds } from '@matter/main';
+import type { Behavior, Endpoint, ServerAddressUdp, SoftwareUpdateInfo } from '@matter/main';
+import {
+    ObserverGroup,
+    Semaphore,
+    SoftwareUpdateManager,
+    Diagnostic,
+    NodeId,
+    Time,
+    VendorId,
+    Seconds,
+} from '@matter/main';
 import { GeneralCommissioning } from '@matter/main/clusters';
 import {
     GeneralDiagnosticsClient,
@@ -35,7 +44,7 @@ import type {
     ThreadRouteEntry,
 } from '../ioBrokerTypes';
 import { DEFAULT_CREDENTIAL_ID } from '../ioBrokerTypes';
-import { resolveThreadCredential, resolveWifiCredential } from './credentialResolver';
+import { hasAnyCommissioningCredential, resolveThreadCredential, resolveWifiCredential } from './credentialResolver';
 import {
     BorderRouterRegistry,
     type BorderRouterEntry,
@@ -48,7 +57,10 @@ import { ThreadDiagnosticsService, type ThreadDiagnosticsBatch } from './ThreadD
 import { parseRestBaseUrl, registerThreadCredentialsFromHex } from './threadCredentials';
 import { serializeBatch } from './serializeBatch';
 import { GeneralMatterNode, type PairedNodeConfig } from './GeneralMatterNode';
+import type { NodeIcdManager } from './NodeIcdManager';
+import { refreshWithLongIdleTimeDeferral, runDedupedByKey } from './longIdleTimeRefresh';
 import { pushNodeTime, type TimeSyncInvokers } from './timeSync/timeSyncCommands';
+import { ThreadDetailsPoller, type ThreadTopologyConnector } from './timeSync/ThreadDetailsPoller';
 import {
     readTimeSyncCapabilities,
     SyncTrigger,
@@ -102,6 +114,8 @@ class Controller implements GeneralNode {
     #fabricLabel: string;
     #commissioningController?: CommissioningController;
     #nodes = new Map<string, GeneralMatterNode>();
+    /** Serializes nodeToIoBrokerStructure per node id; entries are pruned once a node is decommissioned. */
+    #nodeLocks = new Map<string, Semaphore>();
     #discovering = false;
     #useBle = false;
     #commissioningStatus = new Map<number, { status: 'finished' | 'error' | 'inprogress'; result?: MessageResponse }>();
@@ -112,7 +126,12 @@ class Controller implements GeneralNode {
     readonly #threadCredentials = new ThreadCredentialsRegistry();
     #threadDiagnostics?: ThreadDiagnosticsService;
     #timeSyncManager?: TimeSyncManager;
+    #threadDetailsPoller?: ThreadDetailsPoller;
     #fabricIndex?: FabricIndex;
+    /** Guards against subscribing to the same icd.changed more than once across repeated registration calls. */
+    readonly #icdChangeSubscribed = new WeakSet<GeneralMatterNode>();
+    /** Node ids with an unawaited LIT network-data read still in flight; see `refreshNodeNetworkData`. */
+    readonly #pendingLongIdleTimeReads = new Set<string>();
 
     constructor(options: ControllerCreateOptions) {
         const { adapter, controllerOptions, updateCallback, fabricLabel } = options;
@@ -132,11 +151,7 @@ class Controller implements GeneralNode {
 
     init(): void {
         if (this.#parameters.ble) {
-            if (
-                (this.#parameters.wifiSSID && this.#parameters.wifiPassword) ||
-                (this.#parameters.threadNetworkName !== undefined &&
-                    this.#parameters.threadOperationalDataSet !== undefined)
-            ) {
+            if (hasAnyCommissioningCredential(this.#parameters)) {
                 this.#adapter.matterEnvironment.vars.set('ble.enable', true);
                 const hciId = this.#parameters.hciId === undefined ? undefined : parseInt(this.#parameters.hciId);
                 if (hciId !== undefined && (hciId >= 0 || hciId <= 255)) {
@@ -347,7 +362,7 @@ class Controller implements GeneralNode {
                 .catch(error => this.#adapter.log.error(`Error handling event: ${error}`));
 
             if (data.path.clusterId === TIME_SYNC_CLUSTER_ID && data.path.eventId === TIME_FAILURE_EVENT_ID) {
-                const peer = this.#timeSyncPeer(node.nodeId);
+                const peer = this.#peerAddress(node.nodeId);
                 if (peer !== undefined) {
                     this.#adapter.log.debug(`Received timeFailure event from node ${node.nodeId}`);
                     this.#timeSyncManager?.syncNode(peer, SyncTrigger.TimeFailure);
@@ -373,6 +388,7 @@ class Controller implements GeneralNode {
 
             if (info === PairedNodeStates.Connected) {
                 this.#registerNodeForTimeSync(node);
+                this.#registerNodeForThreadPolling(node);
             }
 
             // Send network graph update on connection state changes
@@ -389,13 +405,17 @@ class Controller implements GeneralNode {
         node.events.decommissioned.on(() => {
             this.#adapter.log.info(`Node "${node.nodeId}" decommissioned`);
             this.#unregisterNodeFromTimeSync(node.nodeId);
+            this.#unregisterNodeFromThreadPolling(node.nodeId);
             // TODO Delete the node from config and objects
             this.#updateCallback();
         });
         // matter.js emits stateChanged(Connected) before it flips `initialized` and builds the
         // endpoint structure, and never re-emits Connected while the node stays up. Nodes doing
         // their first remote initialization would therefore never register via stateChanged.
-        node.events.initializedFromRemote.on(() => this.#registerNodeForTimeSync(node));
+        node.events.initializedFromRemote.on(() => {
+            this.#registerNodeForTimeSync(node);
+            this.#registerNodeForThreadPolling(node);
+        });
         node.events.connectionAlive.on(() => {
             const nodeIdStr = node.nodeId.toString();
             const deviceNode = this.#nodes.get(nodeIdStr);
@@ -538,6 +558,15 @@ class Controller implements GeneralNode {
         );
     }
 
+    #getNodeLock(nodeIdStr: string): Semaphore {
+        let lock = this.#nodeLocks.get(nodeIdStr);
+        if (lock === undefined) {
+            lock = new Semaphore(`controller-node-${nodeIdStr}`);
+            this.#nodeLocks.set(nodeIdStr, lock);
+        }
+        return lock;
+    }
+
     async nodeToIoBrokerStructure(
         node: PairedNode,
         nodeDetails?: { operationalAddress?: string },
@@ -545,21 +574,32 @@ class Controller implements GeneralNode {
     ): Promise<void> {
         const nodeIdStr = node.nodeId.toString();
 
-        // find and clear the old device if existing
-        const oldDevice = this.#nodes.get(nodeIdStr);
-        await oldDevice?.destroy();
+        // One rebuild per node id at a time, so a losing GeneralMatterNode is never overwritten in #nodes undestroyed.
+        const slot = await this.#getNodeLock(nodeIdStr).obtainSlot();
+        try {
+            if (this.#closing || this.#adapter.closing) {
+                // A queued call may only get its slot after stop() already cleared #nodes.
+                return;
+            }
 
-        const device = new GeneralMatterNode(this.#adapter, node, this.#parameters, this.#commissioningController);
-        this.#nodes.set(nodeIdStr, device);
-        await device.initialize(nodeDetails);
-        device.connect(connectOptions);
+            const oldDevice = this.#nodes.get(nodeIdStr);
+            await oldDevice?.destroy();
 
-        // An already-connected node emits no further stateChanged, so register it here too
-        this.#registerNodeForTimeSync(node);
+            const device = new GeneralMatterNode(this.#adapter, node, this.#parameters, this.#commissioningController);
+            this.#nodes.set(nodeIdStr, device);
+            await device.initialize(nodeDetails);
+            device.connect(connectOptions);
+
+            // An already-connected node emits no further stateChanged, so register it here too
+            this.#registerNodeForTimeSync(node);
+            this.#registerNodeForThreadPolling(node);
+        } finally {
+            slot.close();
+        }
     }
 
-    #timeSyncPeer(nodeId: NodeId): PeerAddress | undefined {
-        if (this.#timeSyncManager === undefined || this.#fabricIndex === undefined) {
+    #peerAddress(nodeId: NodeId): PeerAddress | undefined {
+        if (this.#fabricIndex === undefined) {
             return undefined;
         }
         return PeerAddress({ nodeId, fabricIndex: this.#fabricIndex });
@@ -579,18 +619,83 @@ class Controller implements GeneralNode {
         });
     }
 
+    /**
+     * Ensures ICD detection has run for a node and that both periodic processors (time sync, Thread
+     * topology polling) observe its LIT status toggling, regardless of which one triggers first.
+     *
+     * Subscribes on `deviceNode.icdChanged` rather than `deviceNode.icd.changed`: the latter is
+     * recreated (and the old instance's listeners dropped) every time `applyConfiguration()` runs a
+     * clear-and-rebuild, which would otherwise silently stop LIT toggles from reaching either
+     * processor until the node's next reconnect. `icdChanged` outlives that rebuild, so one
+     * subscription per `GeneralMatterNode` is enough.
+     */
+    #ensureIcdTracking(node: PairedNode, deviceNode: GeneralMatterNode): NodeIcdManager | undefined {
+        // The peer's root endpoint structure can still be unpopulated at this point on a node's first
+        // remote initialization, which is exactly when a fresh registration matters most; retry so LIT
+        // capability is not silently defaulted to false for the rest of the process lifetime.
+        deviceNode.ensureIcdManager();
+        if (!this.#icdChangeSubscribed.has(deviceNode)) {
+            this.#icdChangeSubscribed.add(deviceNode);
+            // register()/unregister() (Battery Saver Mode toggle) flip the peer's operating mode without
+            // reconnecting, so only this re-registers the peer with its current LIT status.
+            deviceNode.icdChanged.on(() => {
+                this.#registerNodeForTimeSync(node);
+                this.#registerNodeForThreadPolling(node);
+            });
+        }
+        return deviceNode.icd;
+    }
+
     #registerNodeForTimeSync(node: PairedNode): void {
-        const peer = this.#timeSyncPeer(node.nodeId);
-        if (peer === undefined || !node.initialized) {
+        if (this.#timeSyncManager === undefined || !node.initialized) {
             return;
         }
-        this.#timeSyncManager?.registerNode(peer, readTimeSyncCapabilities(node.node));
+        const peer = this.#peerAddress(node.nodeId);
+        if (peer === undefined) {
+            return;
+        }
+        try {
+            const deviceNode = this.#nodes.get(node.nodeId.toString());
+            const icd = deviceNode !== undefined ? this.#ensureIcdTracking(node, deviceNode) : undefined;
+            this.#timeSyncManager.registerNode(
+                peer,
+                readTimeSyncCapabilities(node.node),
+                icd?.longIdleTimeActive ?? false,
+            );
+        } catch (error) {
+            this.#adapter.log.debug(`Error registering node ${node.nodeId} for time synchronization: ${error}`);
+        }
     }
 
     #unregisterNodeFromTimeSync(nodeId: NodeId): void {
-        const peer = this.#timeSyncPeer(nodeId);
+        const peer = this.#peerAddress(nodeId);
         if (peer !== undefined) {
             this.#timeSyncManager?.unregisterNode(peer);
+        }
+    }
+
+    #registerNodeForThreadPolling(node: PairedNode): void {
+        if (this.#threadDetailsPoller === undefined || !node.initialized) {
+            return;
+        }
+        const peer = this.#peerAddress(node.nodeId);
+        if (peer === undefined) {
+            return;
+        }
+        try {
+            const deviceNode = this.#nodes.get(node.nodeId.toString());
+            const icd = deviceNode !== undefined ? this.#ensureIcdTracking(node, deviceNode) : undefined;
+            const isThreadNode = this.#getNetworkType(node) === 'thread';
+            this.#threadDetailsPoller.registerNode(peer, isThreadNode, icd?.longIdleTimeActive ?? false);
+        } catch (error) {
+            this.#adapter.log.debug(`Error registering node ${node.nodeId} for Thread topology polling: ${error}`);
+        }
+    }
+
+    #unregisterNodeFromThreadPolling(nodeId: NodeId): void {
+        const peer = this.#peerAddress(nodeId);
+        if (peer !== undefined) {
+            this.#threadDetailsPoller?.unregisterNode(peer);
         }
     }
 
@@ -643,8 +748,10 @@ class Controller implements GeneralNode {
                 this.#adapter.log.warn(`Failed to start Thread border router discovery: ${error}`);
             });
 
+            const threadDiagnosticsEnabled =
+                (this.#adapter.config as MatterAdapterConfig).threadDiagnosticsEnabled ?? true;
             const service = new ThreadDiagnosticsService({
-                enabled: (this.#adapter.config as MatterAdapterConfig).threadDiagnosticsEnabled ?? true,
+                enabled: threadDiagnosticsEnabled,
                 borderRouters: registry,
                 credentials: this.#threadCredentials,
                 makeRestSource: cap => {
@@ -662,6 +769,17 @@ class Controller implements GeneralNode {
             });
             this.#threadDiagnostics = service;
             this.#observers.on(service.events.batchUpdated, batch => this.#sendThreadDiagnosticsUpdate(batch));
+
+            if (threadDiagnosticsEnabled) {
+                const connector: ThreadTopologyConnector = {
+                    nodeConnected: peer => this.#nodes.get(peer.nodeId.toString())?.isConnected ?? false,
+                    readTopology: async peer => {
+                        await this.#refreshSingleNodeNetworkData(peer.nodeId.toString());
+                        this.#sendNetworkGraphUpdate();
+                    },
+                };
+                this.#threadDetailsPoller = new ThreadDetailsPoller(connector);
+            }
         } catch (error) {
             this.#adapter.log.warn(`Failed to start Thread diagnostics: ${error}`);
         }
@@ -1013,53 +1131,122 @@ class Controller implements GeneralNode {
     /**
      * Refresh network diagnostics data for specified nodes by re-reading cluster attributes.
      * Uses getMultipleAttributes to send one efficient request per node.
+     *
+     * LIT nodes are deferred (see `refreshWithLongIdleTimeDeferral`) so a sleeping peer cannot block
+     * this command's resolution for the rest of the batch, or for whatever else is waiting on the
+     * shared controller-action queue this command runs under.
      */
     async refreshNodeNetworkData(nodeIds: string[]): Promise<void> {
         this.#adapter.log.debug(`Refreshing network data for nodes: ${nodeIds.join(', ')}`);
 
-        const refreshPromises = nodeIds.map(async nodeIdStr => {
+        const isLongIdleTime = (nodeIdStr: string): boolean => {
             const node = this.#nodes.get(nodeIdStr);
-            if (!node) {
-                this.#adapter.log.debug(`Node ${nodeIdStr} not found for refresh`);
-                return;
-            }
+            // The root endpoint structure can still be unpopulated the first time this runs for a
+            // node (mirrors #ensureIcdTracking); without the retry, #icd stays undefined and this
+            // would default to "not LIT", awaiting a sleeping peer's read for the rest of the batch.
+            node?.ensureIcdManager();
+            return node?.icd?.longIdleTimeActive ?? false;
+        };
 
-            if (!node.isConnected) {
-                this.#adapter.log.debug(`Node ${nodeIdStr} is offline, skipping refresh`);
-                return;
-            }
-
+        const readNode = async (nodeIdStr: string): Promise<void> => {
             try {
-                // Determine network type and read appropriate diagnostics
-                const networkType = this.#getNetworkType(node);
-
-                if (networkType === 'thread') {
-                    await node.node.node.getStateOf(
-                        ThreadNetworkDiagnosticsClient,
-                        ['channel', 'routingRole', 'neighborTable', 'routeTable', 'rloc16'],
-                        { includeKnownVersions: true },
-                    );
-                } else if (networkType === 'wifi') {
-                    await node.node.node.getStateOf(
-                        WiFiNetworkDiagnosticsClient,
-                        ['bssid', 'securityType', 'wiFiVersion', 'channelNumber', 'rssi'],
-                        { includeKnownVersions: true },
-                    );
-                } else {
-                    this.#adapter.log.debug(`Node ${nodeIdStr} has no network diagnostics to refresh`);
-                    return;
-                }
-
-                this.#adapter.log.debug(`Successfully refreshed network data for node ${nodeIdStr}`);
+                await this.#refreshSingleNodeNetworkData(nodeIdStr);
             } catch (error) {
                 this.#adapter.log.debug(`Error refreshing network data for node ${nodeIdStr}: ${error}`);
             }
-        });
+        };
 
-        await Promise.all(refreshPromises);
+        const readWithoutDuplicateLongIdleTimeReads = async (nodeIdStr: string): Promise<void> => {
+            if (!isLongIdleTime(nodeIdStr)) {
+                await readNode(nodeIdStr);
+                return;
+            }
+            await runDedupedByKey(
+                this.#pendingLongIdleTimeReads,
+                nodeIdStr,
+                () => readNode(nodeIdStr),
+                () => this.#adapter.log.debug(`Skipping refresh for node ${nodeIdStr}: a LIT read is already pending`),
+            );
+        };
+
+        await refreshWithLongIdleTimeDeferral(nodeIds, isLongIdleTime, readWithoutDuplicateLongIdleTimeReads, () =>
+            this.#sendNetworkGraphUpdate(),
+        );
 
         // Send updated network graph data
         this.#sendNetworkGraphUpdate();
+    }
+
+    /**
+     * Re-read one node's network diagnostics cluster (Thread or WiFi) by node type. NeighborTable,
+     * RouteTable and WiFi signal attributes are otherwise reported only on subscription
+     * (re)establishment; this is also what the periodic Thread topology poller calls per node.
+     */
+    /**
+     * Narrows a wanted attribute list to the ones the peer actually exposes. Several diagnostics attributes
+     * are conformance-optional (Rloc16 for one) and `getStateOf` rejects the whole read if a single requested
+     * attribute is absent. `behaviors.elementsOf().attributes` is the same set matter.js validates against;
+     * the cached state object is not, as it carries keys for unsupported attributes too.
+     */
+    #supportedAttributes<const T extends readonly string[]>(
+        endpoint: Endpoint,
+        type: Behavior.Type,
+        wanted: T,
+    ): T[number][] {
+        const supported = endpoint.behaviors.elementsOf(type).attributes;
+        return wanted.filter(name => supported.has(name));
+    }
+
+    async #refreshSingleNodeNetworkData(nodeIdStr: string): Promise<void> {
+        const node = this.#nodes.get(nodeIdStr);
+        if (!node) {
+            this.#adapter.log.debug(`Node ${nodeIdStr} not found for refresh`);
+            return;
+        }
+
+        if (!node.isConnected) {
+            this.#adapter.log.debug(`Node ${nodeIdStr} is offline, skipping refresh`);
+            return;
+        }
+
+        const networkType = this.#getNetworkType(node.node);
+
+        if (networkType === 'thread') {
+            const attributes = this.#supportedAttributes(node.node.node, ThreadNetworkDiagnosticsClient, [
+                'channel',
+                'routingRole',
+                'neighborTable',
+                'routeTable',
+                'rloc16',
+            ]);
+            if (attributes.length === 0) {
+                this.#adapter.log.debug(`Node ${nodeIdStr} exposes no Thread diagnostics attributes to refresh`);
+                return;
+            }
+            await node.node.node.getStateOf(ThreadNetworkDiagnosticsClient, attributes, {
+                includeKnownVersions: true,
+            });
+        } else if (networkType === 'wifi') {
+            const attributes = this.#supportedAttributes(node.node.node, WiFiNetworkDiagnosticsClient, [
+                'bssid',
+                'securityType',
+                'wiFiVersion',
+                'channelNumber',
+                'rssi',
+            ]);
+            if (attributes.length === 0) {
+                this.#adapter.log.debug(`Node ${nodeIdStr} exposes no WiFi diagnostics attributes to refresh`);
+                return;
+            }
+            await node.node.node.getStateOf(WiFiNetworkDiagnosticsClient, attributes, {
+                includeKnownVersions: true,
+            });
+        } else {
+            this.#adapter.log.debug(`Node ${nodeIdStr} has no network diagnostics to refresh`);
+            return;
+        }
+
+        this.#adapter.log.debug(`Successfully refreshed network data for node ${nodeIdStr}`);
     }
 
     /**
@@ -1097,7 +1284,7 @@ class Controller implements GeneralNode {
     }
 
     #collectNodeNetworkData(nodeId: string, node: GeneralMatterNode): NetworkNodeData | null {
-        const networkType = this.#getNetworkType(node);
+        const networkType = this.#getNetworkType(node.node);
         const wifiDiagnostics = this.#getWiFiDiagnostics(node);
         const threadDiagnostics = this.#getThreadDiagnostics(node);
 
@@ -1170,15 +1357,15 @@ class Controller implements GeneralNode {
         }
     }
 
-    #getNetworkType(node: GeneralMatterNode): NetworkType {
+    #getNetworkType(node: PairedNode): NetworkType {
         // Use the deviceInformation from PairedNode which is more reliable
-        if (node.node.deviceInformation?.threadActive || node.node.deviceInformation?.supportsThread) {
+        if (node.deviceInformation?.threadActive || node.deviceInformation?.supportsThread) {
             return 'thread';
         }
-        if (node.node.deviceInformation?.supportsWifi) {
+        if (node.deviceInformation?.supportsWifi) {
             return 'wifi';
         }
-        if (node.node.deviceInformation?.supportsEthernet) {
+        if (node.deviceInformation?.supportsEthernet) {
             return 'ethernet';
         }
 
@@ -1366,6 +1553,21 @@ class Controller implements GeneralNode {
             shutdownTimeout.cancel();
         }
 
+        if (this.#threadDetailsPoller) {
+            const poller = this.#threadDetailsPoller;
+            this.#threadDetailsPoller = undefined;
+            // Same reasoning as the time sync shutdown above: an in-flight topology read is not
+            // cancelable and must not block shutdown.
+            const shutdownTimeout = Time.sleep('thread-details-poller-shutdown', Seconds(2));
+            await Promise.race([
+                poller
+                    .stop()
+                    .catch(error => this.#adapter.log.debug(`Error stopping Thread topology poller: ${error}`)),
+                shutdownTimeout,
+            ]);
+            shutdownTimeout.cancel();
+        }
+
         for (const node of this.#nodes.values()) {
             await node.destroy();
         }
@@ -1383,10 +1585,23 @@ class Controller implements GeneralNode {
         if (!this.#commissioningController) {
             throw new Error(`Can not decommission NodeId "${nodeId}" because controller not initialized.`);
         }
+        // Shares nodeToIoBrokerStructure's lock so a concurrent rebuild can't race the delete below.
         const removedNodeId = NodeId(BigInt(nodeId));
-        await this.#commissioningController.removeNode(removedNodeId, !!this.#nodes.get(nodeId)?.node.isConnected);
-        this.#unregisterNodeFromTimeSync(removedNodeId);
-        this.#nodes.delete(nodeId);
+        const slot = await this.#getNodeLock(nodeId).obtainSlot();
+        try {
+            await this.#commissioningController.removeNode(removedNodeId, !!this.#nodes.get(nodeId)?.node.isConnected);
+            this.#unregisterNodeFromTimeSync(removedNodeId);
+            this.#unregisterNodeFromThreadPolling(removedNodeId);
+            this.#nodes.delete(nodeId);
+        } finally {
+            slot.close();
+        }
+        // Only prune if nothing is currently queued or running on this node's lock, so an in-flight
+        // nodeToIoBrokerStructure call never has its slot pulled out from under it.
+        const lock = this.#nodeLocks.get(nodeId);
+        if (lock !== undefined && lock.count === 0 && lock.running === 0) {
+            this.#nodeLocks.delete(nodeId);
+        }
         this.#updateCallback();
     }
 

@@ -44,6 +44,7 @@ import type {
     BorderRouterEntry,
     ThreadExternalDevice,
     ThreadDiagnosticsBatch,
+    IcdMode,
 } from './NetworkTypes';
 import {
     SIGNAL_COLORS,
@@ -88,6 +89,8 @@ interface NetworkGraphDialogProps {
     threadDiagnostics?: ReadonlyMap<string, ThreadDiagnosticsBatch>;
     /** Force-refresh diagnostics for a single Thread network (extPanId hex). */
     onRefreshDiagnostics?: (extPanId: string) => Promise<void>;
+    /** Looks up a node's ICD operating mode; forwarded to {@link UpdateConnectionsDialog}. */
+    getIcdMode?: (nodeId: string) => IcdMode | undefined;
 }
 
 interface NetworkGraphDialogState {
@@ -1066,6 +1069,7 @@ class NetworkGraphDialog extends React.Component<NetworkGraphDialogProps, Networ
                         borderRouterRefresh={this.state.brRefreshExtPanId !== null}
                         onClose={this.handleCloseUpdateDialog}
                         onUpdate={this.handleUpdateConnections}
+                        getIcdMode={this.props.getIcdMode}
                     />
                 )}
             </Paper>

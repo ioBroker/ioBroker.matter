@@ -326,12 +326,16 @@
     "Thread routing role could not be determined.": "No se pudo determinar el rol de enrutamiento Thread.",
     "Inferred from Border Router diagnostics (Route64 / child table) and not commissioned to this fabric, so no device details are available.": "Inferido a partir del diagnóstico del Border Router (Route64 / tabla de hijos) y no incorporado a esta fabric, por lo que no hay detalles del dispositivo disponibles.",
     "Enhanced Thread diagnostics": "Diagnóstico Thread mejorado",
-    "Enhanced Thread diagnostics Infotext": "Cuando está habilitado, ioBroker consulta activamente los Thread Border Routers (mediante MeshCoP/CoAP y OTBR REST) para enriquecer el gráfico de red con diagnósticos de malla en vivo. Deshabilite para evitar este tráfico de red adicional; el descubrimiento pasivo de Border Routers sigue funcionando.",
+    "Enhanced Thread diagnostics Infotext": "Cuando está habilitado, ioBroker consulta activamente los Thread Border Routers (mediante MeshCoP/CoAP y OTBR REST) para enriquecer el gráfico de red con diagnósticos de malla en vivo, y actualiza periódicamente los datos de topología (tablas de vecinos/rutas) de cada nodo Thread emparejado. Deshabilite para evitar este tráfico de red adicional; el descubrimiento pasivo de Border Routers sigue funcionando.",
     "Also a Border Router": "También un Border Router",
     "Hostname": "Nombre de host",
     "asymmetric: peer reports no link": "asimétrico: el par no informa ningún enlace",
     "Refresh the Border Router diagnostics for \"%s\".": "Actualizar el diagnóstico del Border Router de \"%s\".",
     "Also refresh the %s connected node(s)": "Actualizar también los %s nodos conectados",
     "Refresh diagnostics and %s node(s)": "Actualizar diagnóstico y %s nodos",
-    "Refresh diagnostics only": "Actualizar solo el diagnóstico"
+    "Refresh diagnostics only": "Actualizar solo el diagnóstico",
+    "\"%s\" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.": "\"%s\" es un dispositivo inactivo (Matter LIT). Solo responde la próxima vez que se despierte, por lo que sus propios datos de red llegarán más tarde.",
+    "Refresh %s connected online neighbor(s) for current link data": "Actualizar %s vecino(s) en línea conectado(s) para obtener los datos de enlace actuales",
+    "No online neighbor can report its current link data either.": "Ningún vecino en línea puede informar tampoco sus datos de enlace actuales.",
+    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s nodo(s) son dispositivos inactivos (Matter LIT), por lo que la actualización no espera por ellos: sus datos aparecerán en cuanto se despierten."
 }

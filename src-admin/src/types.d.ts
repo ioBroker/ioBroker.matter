@@ -240,6 +240,13 @@ export interface CommissioningInfo {
 // Network Graph Types - shared between backend and frontend
 export type NetworkType = 'thread' | 'wifi' | 'ethernet' | 'unknown';
 
+/**
+ * ICD operating mode reported by the backend's `info.icdMode` state (mirrors `IcdMode` in
+ * `src/matter/icdUtils.ts`). An empty string means not ICD-capable (or not yet known); `pending`
+ * marks a running Battery Saver Mode operation whose outcome isn't known yet, not an operating mode.
+ */
+export type IcdMode = '' | 'sit' | 'lit' | 'litOffline' | 'pending';
+
 export interface NetworkGraphData {
     nodes: NetworkNodeData[];
     timestamp: number;

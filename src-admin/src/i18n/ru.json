@@ -326,12 +326,16 @@
     "Thread routing role could not be determined.": "Не удалось определить роль маршрутизации Thread.",
     "Inferred from Border Router diagnostics (Route64 / child table) and not commissioned to this fabric, so no device details are available.": "Выведено из диагностики пограничного маршрутизатора (Route64 / таблица дочерних узлов) и не введено в эту фабрику, поэтому сведения об устройстве недоступны.",
     "Enhanced Thread diagnostics": "Расширенная диагностика Thread",
-    "Enhanced Thread diagnostics Infotext": "Когда включено, ioBroker активно опрашивает пограничные маршрутизаторы Thread (через MeshCoP/CoAP и OTBR REST), дополняя граф сети живой диагностикой mesh-сети. Отключите, чтобы избежать этого дополнительного сетевого трафика; пассивное обнаружение пограничных маршрутизаторов продолжит работать.",
+    "Enhanced Thread diagnostics Infotext": "Когда включено, ioBroker активно опрашивает пограничные маршрутизаторы Thread (через MeshCoP/CoAP и OTBR REST), дополняя граф сети живой диагностикой mesh-сети, а также периодически обновляет данные топологии (таблицы соседей/маршрутов) каждого сопряжённого узла Thread. Отключите, чтобы избежать этого дополнительного сетевого трафика; пассивное обнаружение пограничных маршрутизаторов продолжит работать.",
     "Also a Border Router": "Также пограничный маршрутизатор",
     "Hostname": "Имя хоста",
     "asymmetric: peer reports no link": "асимметрично: узел-партнёр сообщает об отсутствии связи",
     "Refresh the Border Router diagnostics for \"%s\".": "Обновить диагностику пограничного маршрутизатора для «%s».",
     "Also refresh the %s connected node(s)": "Также обновить подключённые узлы (%s)",
     "Refresh diagnostics and %s node(s)": "Обновить диагностику и узлы (%s)",
-    "Refresh diagnostics only": "Обновить только диагностику"
+    "Refresh diagnostics only": "Обновить только диагностику",
+    "\"%s\" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.": "«%s» — спящее устройство (Matter LIT). Оно отвечает только при следующем пробуждении, поэтому его собственные сетевые данные появятся позже.",
+    "Refresh %s connected online neighbor(s) for current link data": "Обновить %s подключенных онлайн-соседей для получения текущих данных о соединении",
+    "No online neighbor can report its current link data either.": "Ни один онлайн-сосед также не может сообщить текущие данные о соединении.",
+    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s узел(-ов) являются спящими устройствами (Matter LIT), поэтому обновление не будет их ожидать — их данные появятся, когда они проснутся."
 }

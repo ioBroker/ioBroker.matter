@@ -326,12 +326,16 @@
     "Thread routing role could not be determined.": "无法确定 Thread 路由角色。",
     "Inferred from Border Router diagnostics (Route64 / child table) and not commissioned to this fabric, so no device details are available.": "根据边界路由器诊断（Route64 / 子节点表）推断得出，未加入本 fabric，因此无可用设备详情。",
     "Enhanced Thread diagnostics": "增强的 Thread 诊断",
-    "Enhanced Thread diagnostics Infotext": "启用后，ioBroker 会主动查询 Thread 边界路由器（通过 MeshCoP/CoAP 和 OTBR REST），以实时网状诊断信息丰富网络图。禁用可避免此额外的网络流量；被动边界路由器发现仍然有效。",
+    "Enhanced Thread diagnostics Infotext": "启用后，ioBroker 会主动查询 Thread 边界路由器（通过 MeshCoP/CoAP 和 OTBR REST），以实时网状诊断信息丰富网络图，并定期刷新每个已配对 Thread 节点自身的拓扑数据（邻居/路由表）。禁用可避免此额外的网络流量；被动边界路由器发现仍然有效。",
     "Also a Border Router": "同时是边界路由器",
     "Hostname": "主机名",
     "asymmetric: peer reports no link": "不对称：对端报告无链路",
     "Refresh the Border Router diagnostics for \"%s\".": "刷新“%s”的边界路由器诊断。",
     "Also refresh the %s connected node(s)": "同时刷新 %s 个已连接节点",
     "Refresh diagnostics and %s node(s)": "刷新诊断和 %s 个节点",
-    "Refresh diagnostics only": "仅刷新诊断"
+    "Refresh diagnostics only": "仅刷新诊断",
+    "\"%s\" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.": "“%s”是一个休眠设备(Matter LIT)。它只有在下次唤醒时才会响应,因此它自己的网络数据会稍后到达。",
+    "Refresh %s connected online neighbor(s) for current link data": "刷新 %s 个已连接的在线邻居以获取当前链路数据",
+    "No online neighbor can report its current link data either.": "没有在线邻居能够报告当前的链路数据。",
+    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s 个节点是休眠设备(Matter LIT),因此更新不会等待它们——它们的数据会在唤醒后出现。"
 }

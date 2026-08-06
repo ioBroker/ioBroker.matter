@@ -195,6 +195,12 @@ export class NodeIcdManager {
                     vendorId: Number(fabric.vendorId),
                     ...(fabric.label ? { label: fabric.label } : {}),
                 }));
+            // Only the vendors matter.js actually objected to: it exempts ecosystems it knows support LIT,
+            // and naming those under "may not support Battery Saver Mode" would be wrong.
+            const objected = foreign.filter(admin => vendorIds.includes(admin.vendorId));
+            if (objected.length > 0) {
+                return objected;
+            }
             if (foreign.length > 0) {
                 return foreign;
             }

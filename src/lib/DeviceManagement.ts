@@ -11,6 +11,7 @@ import type {
     JsonFormData,
     ConfigConnectionType,
     DeviceLoadContext,
+    StatusIndicator,
 } from '@iobroker/dm-utils';
 import { DeviceManagement, ACTIONS } from '@iobroker/dm-utils';
 import { GeneralMatterNode, type NodeDetails } from '../matter/GeneralMatterNode';
@@ -22,6 +23,20 @@ import { logControllerEndpoint } from '../matter/ControllerEndpointStructureInsp
 import { SpecificationVersion } from '@matter/main/types';
 import { CommissioningClient, isObject } from '@matter/main';
 import { PeerAddress } from '@matter/main/protocol';
+import { ICD_LIT_ICON } from './icons';
+import { formatDuration, icdWaitingLabel, icdWakeInstructionText } from '../matter/icdUtils';
+import { IcdMultiAdminConflictError, type IcdForeignAdmin, type NodeIcdManager } from '../matter/NodeIcdManager';
+import { VendorIds } from './vendorIDs';
+import { toUpperCaseHex } from './utils';
+import { ProgressHeartbeat } from './ProgressHeartbeat';
+
+/**
+ * dm-gui-components' GUI re-arms a 5 s "backend not responding" timer on every progress round-trip
+ * (falling back to that default once the action's own `timeout` has covered the first one), so an ICD
+ * wait - which can run for a full idle interval - needs a steady stream of updates well inside that
+ * window to keep the dialog, and the card, from flagging the backend as gone.
+ */
+const ICD_PROGRESS_HEARTBEAT_MS = 2_500;
 
 function strToBool(str: string): boolean | null {
     if (str === 'true') {
@@ -159,6 +174,60 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         }
     }
 
+    #getIcdIndicator(ioNode: GeneralMatterNode): StatusIndicator | undefined {
+        const icd = ioNode.icd;
+        if (icd === undefined || !icd.litCapable) {
+            return undefined;
+        }
+        const idleDuration = icd.info?.idleModeDuration;
+        const interval = idleDuration !== undefined ? formatDuration(idleDuration) : undefined;
+
+        return {
+            id: 'icd',
+            value: { stateId: `${this.#adapter.namespace}.${ioNode.icdModeStateId}` },
+            icon: ICD_LIT_ICON,
+            hideIfEmpty: true,
+            actionId: 'icdManagement',
+            order: 50,
+            label: this.#adapter.getText('Battery Saver Mode'),
+            levels: [
+                {
+                    value: 'lit',
+                    color: 'ok',
+                    tooltip: interval
+                        ? this.#adapter.getText('ICD tooltip battery saver active with interval', interval)
+                        : this.#adapter.getText('ICD tooltip battery saver active'),
+                },
+                {
+                    value: 'litOffline',
+                    color: 'error',
+                    tooltip: interval
+                        ? this.#adapter.getText('ICD tooltip battery saver offline with interval', interval)
+                        : this.#adapter.getText('ICD tooltip battery saver offline'),
+                },
+                {
+                    value: 'pending',
+                    color: 'info',
+                    tooltip: this.#adapter.getText('ICD tooltip changing'),
+                },
+                {
+                    value: 'sit',
+                    color: 'inactive',
+                    tooltip: this.#adapter.getText('ICD tooltip standard mode'),
+                },
+            ],
+        };
+    }
+
+    /**
+     * A sleeping LIT device may need a full idle interval to receive the command, plus delivery margin.
+     * Floored at 5 minutes: a `dynamicSitLitSupport` device currently in SIT reports a short idle interval
+     * even though this action is offered, but the budget still has to cover the form and its confirmations.
+     */
+    #icdActionTimeout(ioNode: GeneralMatterNode): number {
+        return Math.max(((ioNode.icd?.info?.idleModeDuration ?? 60) + 30) * 1000, 300_000);
+    }
+
     /**
      * Create the "Node" device entry and also add all Endpoint-"Devices" for Device-Manager
      */
@@ -239,12 +308,22 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                       handler: (_id, context) => this.#handleSoftwareUpdateNode(ioNode, context),
                   }
                 : null,
+            ioNode.icd?.litCapable
+                ? {
+                      id: 'icdManagement',
+                      icon: ICD_LIT_ICON,
+                      description: this.#adapter.getText('Manage Battery Saver Mode'),
+                      handler: (_id, context) => this.#handleIcdManagement(ioNode, context),
+                      timeout: this.#icdActionTimeout(ioNode),
+                  }
+                : null,
         ];
 
         // remove null actions
         actions = actions?.filter(it => it) || [];
 
         const connectionType = ioNode.connectionType;
+        const icdIndicator = this.#getIcdIndicator(ioNode);
         const res = new Array<DeviceInfo<string>>();
         const node: DeviceInfo<string> = {
             id,
@@ -256,6 +335,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             connectionType,
             hasDetails: true,
             actions: actions.length ? (actions as DeviceAction<'adapter', string>[]) : undefined,
+            indicators: icdIndicator ? [icdIndicator] : undefined,
             backgroundColor,
             color: '#FFFFFF',
             group: {
@@ -717,6 +797,372 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         }
 
         return { refresh: 'none' };
+    }
+
+    async #handleIcdManagement(ioNode: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
+        const icd = ioNode.icd;
+        if (icd === undefined) {
+            await context.showMessage(this.#adapter.t('Battery Saver Mode is not supported by this device.'));
+            return { refresh: 'none' };
+        }
+        if (icd.pending) {
+            await context.showMessage(this.#adapter.t('ICD operation already running'));
+            return { refresh: 'none' };
+        }
+
+        const info = icd.info;
+        const idleDuration = info?.idleModeDuration;
+        const interval = idleDuration !== undefined ? formatDuration(idleDuration) : undefined;
+        // `showingBatterySaver` (from the peer's operatingMode) is what the card indicator shows and must
+        // drive the form's display; `registered` is our own registration attempt and can disagree with it
+        // (e.g. right after a failed resync leaves us unregistered but the peer still reports LIT) - it is
+        // re-read fresh below to drive the enable/disable decision instead.
+        const mode = icd.mode;
+        const showingBatterySaver = mode === 'lit' || mode === 'litOffline';
+        const registered = icd.registered;
+        const canResync = mode === 'litOffline' || (registered && !icd.available);
+
+        const items: Record<string, ConfigItemAny> = {
+            _currentMode: {
+                type: 'staticText',
+                text: showingBatterySaver
+                    ? interval
+                        ? this.#adapter.getText('ICD form current battery saver with interval', interval)
+                        : this.#adapter.getText('ICD form current battery saver')
+                    : this.#adapter.getText('ICD form current standard'),
+            },
+        };
+
+        if (canResync) {
+            items._offline = {
+                type: 'staticText',
+                newLine: true,
+                text: interval
+                    ? this.#adapter.getText('ICD form offline with interval', interval)
+                    : this.#adapter.getText('ICD form offline'),
+                style: { color: '#d32f2f', fontWeight: 'bold' },
+            };
+        }
+
+        if (info?.features.userActiveModeTrigger) {
+            const wakeText = icdWakeInstructionText(
+                (key, ...args) => this.#adapter.t(key, ...args),
+                info.userActiveModeTriggerHint,
+                info.userActiveModeTriggerInstruction,
+            );
+            items._wake = {
+                type: 'staticText',
+                newLine: true,
+                // ConfigStaticText renders "<a "/"<br"/"<b>"/"<i>" as HTML; a `custom` instruction is the
+                // peer device's own unsanitized string, so strip "<" before display here specifically.
+                text: wakeText.replace(/</g, ''),
+            };
+        }
+
+        items._modeDivider = { type: 'divider', newLine: true };
+        items.mode = {
+            type: 'select',
+            label: this.#adapter.getText('Response speed vs. battery life'),
+            noTranslation: true,
+            options: [
+                { label: this.#adapter.t('Standard Mode'), value: 'standard' },
+                { label: this.#adapter.t('Battery Saver Mode (Long Idle)'), value: 'batterySaver' },
+            ],
+            sm: 12,
+        };
+        items._standardInfo = {
+            type: 'staticText',
+            newLine: true,
+            text: this.#adapter.getText('ICD form standard explanation'),
+        };
+        items._batterySaverInfo = {
+            type: 'staticText',
+            newLine: true,
+            text: interval
+                ? this.#adapter.getText('ICD form battery saver explanation with interval', interval)
+                : this.#adapter.getText('ICD form battery saver explanation'),
+        };
+        items._ecosystemWarning = {
+            type: 'infoBox',
+            boxType: 'warning',
+            newLine: true,
+            text: this.#adapter.getText('ICD form ecosystem warning'),
+        };
+        items._restartWarning = {
+            type: 'infoBox',
+            boxType: 'error',
+            newLine: true,
+            text: this.#adapter.getText('ICD form iobroker restart warning'),
+        };
+
+        if (canResync) {
+            items._resyncDivider = { type: 'divider', newLine: true };
+            items.resync = {
+                type: 'checkbox',
+                label: this.#adapter.getText('Resync Battery Saver state'),
+                newLine: true,
+                sm: 12,
+            };
+            items._resyncInfo = {
+                type: 'staticText',
+                newLine: true,
+                text: this.#adapter.getText('ICD form resync explanation'),
+            };
+        }
+
+        const result = await context.showForm(
+            { type: 'panel', items, style: { minWidth: 400 } },
+            {
+                data: { mode: showingBatterySaver ? 'batterySaver' : 'standard', resync: false },
+                maxWidth: 'md',
+                title: this.#adapter.getText('Battery Saver Mode'),
+                buttons: [
+                    { type: 'cancel', label: this.#adapter.getText('Close') },
+                    { type: 'apply', label: this.#adapter.getText('Apply'), color: 'primary' },
+                ],
+                ignoreApplyDisabled: true,
+            },
+        );
+
+        if (!isObject(result)) {
+            return { refresh: 'none' };
+        }
+
+        if (result.resync === true) {
+            return this.#runIcdResync(ioNode, icd, context);
+        }
+        const target = result.mode === 'batterySaver';
+        // The form's select defaulted to `showingBatterySaver`, so comparing against it (not `registered`)
+        // is what tells us the user left the selection untouched.
+        if (target === showingBatterySaver) {
+            return { refresh: 'none' };
+        }
+        // The form can stay open for minutes; matter.js can auto-register a LIT peer in that window (on
+        // operatingMode$Changed or on subscription-established), so re-read rather than act on the
+        // pre-form snapshot. If our own registration already matches what the user picked, there is
+        // nothing left to do on our side.
+        const registeredNow = icd.registered;
+        if (target === registeredNow) {
+            return { refresh: 'none' };
+        }
+        // idleModeDuration can also have changed while the form was open.
+        const freshInterval =
+            icd.info?.idleModeDuration !== undefined ? formatDuration(icd.info.idleModeDuration) : undefined;
+        return target
+            ? this.#runIcdEnable(ioNode, icd, context, freshInterval)
+            : this.#runIcdDisable(ioNode, icd, context);
+    }
+
+    /**
+     * Runs a dm-utils dialog call, logging (not propagating) a throw instead of returning `fallback`. A
+     * dialog call can throw synchronously when an earlier failed `close()`/`openProgress()` left dm-utils'
+     * `hasOpenProgressDialog` flag set - an unguarded call would then escape its action handler, skipping
+     * dm-utils' own result delivery and leaking its `MessageContext`.
+     */
+    async #guardedDialogCall<T>(
+        ioNode: GeneralMatterNode,
+        description: string,
+        call: () => Promise<T>,
+        fallback: T,
+    ): Promise<T> {
+        try {
+            return await call();
+        } catch (error) {
+            this.adapter.log.warn(`${description} for node ${ioNode.nodeId}: ${inspect(error, { depth: 5 })}`);
+            return fallback;
+        }
+    }
+
+    /**
+     * Keeps the card in `pending` and an indeterminate progress dialog open while the peer is contacted.
+     * `openProgress` can hang indefinitely with nothing left to ever settle it (closed tab, dropped GUI
+     * socket), so `pending` is only set once that dialog is actually open, leaving the card unaffected by
+     * such a hang instead of pinning it on "changing" forever. The same kind of hang can also strike later,
+     * in `ProgressHeartbeat.stop()` or `progress.close()`: `pending` is already cleared by `onSettle` before
+     * either runs, but the action handler itself still never returns.
+     */
+    async #runIcdOperation(
+        ioNode: GeneralMatterNode,
+        icd: NodeIcdManager,
+        context: ActionContext,
+        title: string,
+        action: () => Promise<void>,
+    ): Promise<{ refresh: DeviceRefresh }> {
+        let failed = false;
+        let error: unknown;
+        // Re-read on every call rather than snapshotting once: `icd.info` can still be undefined on the
+        // very first read (subscription not yet established) or change while a wait spans a full idle
+        // interval, and each dialog update should reflect what is currently known.
+        const currentLabel = (): string => {
+            const info = icd.info;
+            return icdWaitingLabel(
+                (key, ...args) => this.#adapter.t(key, ...args),
+                info?.features.userActiveModeTrigger === true,
+                info?.userActiveModeTriggerHint,
+                info?.userActiveModeTriggerInstruction,
+            );
+        };
+        try {
+            const openDialog = await context.openProgress(title, { indeterminate: true, label: currentLabel() });
+            const heartbeat = new ProgressHeartbeat(this.adapter, ICD_PROGRESS_HEARTBEAT_MS, () =>
+                this.#guardedDialogCall(
+                    ioNode,
+                    'Failed to send ICD progress heartbeat',
+                    () => openDialog.update({ indeterminate: true, label: currentLabel() }),
+                    undefined,
+                ),
+            );
+            icd.pending = true;
+            const outcome = await heartbeat.run(
+                action,
+                () => {
+                    icd.pending = false;
+                },
+                () =>
+                    this.#guardedDialogCall(
+                        ioNode,
+                        'Failed to close ICD progress dialog',
+                        () => openDialog.close(),
+                        undefined,
+                    ),
+            );
+            failed = outcome.failed;
+            error = outcome.error;
+        } catch (caught) {
+            failed = true;
+            error = caught;
+        }
+        if (failed) {
+            this.adapter.log.warn(`ICD operation failed for node ${ioNode.nodeId}: ${inspect(error, { depth: 5 })}`);
+            await this.#guardedDialogCall(
+                ioNode,
+                'Failed to show ICD failure message',
+                () =>
+                    context.showMessage(
+                        `${this.#adapter.t('Battery Saver Mode operation failed')}: ${error instanceof Error ? error.message : inspect(error)}`,
+                    ),
+                undefined,
+            );
+        }
+        return { refresh: 'devices' };
+    }
+
+    /**
+     * Names one of the peer's other administrators as recognisably as the peer allows: vendor name when the
+     * id is known, always the hex id, and the fabric's own label when it set one - a user with two identical
+     * vendor ids can still tell which ecosystem is which.
+     */
+    #describeForeignAdmin(admin: IcdForeignAdmin): string {
+        const vendor = VendorIds[admin.vendorId]
+            ? `${VendorIds[admin.vendorId]} (${toUpperCaseHex(admin.vendorId)})`
+            : `${this.#adapter.t('Vendor')} ${toUpperCaseHex(admin.vendorId)}`;
+        return admin.label ? `${vendor} "${admin.label}"` : vendor;
+    }
+
+    async #runIcdEnable(
+        ioNode: GeneralMatterNode,
+        icd: NodeIcdManager,
+        context: ActionContext,
+        interval: string | undefined,
+    ): Promise<{ refresh: DeviceRefresh }> {
+        const confirmation = [
+            interval
+                ? this.#adapter.t('ICD confirm enable with interval', interval)
+                : this.#adapter.t('ICD confirm enable'),
+            this.#adapter.t('ICD form ecosystem warning'),
+            this.#adapter.t('ICD form iobroker restart warning'),
+        ].join('\n\n');
+        if (!(await context.showConfirmation(confirmation))) {
+            return { refresh: 'none' };
+        }
+
+        let conflict: IcdMultiAdminConflictError | undefined;
+        const outcome = await this.#runIcdOperation(
+            ioNode,
+            icd,
+            context,
+            this.#adapter.t('Enabling Battery Saver Mode - waiting for the device to wake up...'),
+            async () => {
+                try {
+                    await icd.register(false);
+                } catch (error) {
+                    if (!(error instanceof IcdMultiAdminConflictError)) {
+                        throw error;
+                    }
+                    conflict = error;
+                }
+            },
+        );
+        if (conflict === undefined) {
+            return outcome;
+        }
+
+        const names = conflict.admins.length
+            ? conflict.admins.map(admin => this.#describeForeignAdmin(admin)).join(', ')
+            : this.#adapter.t('unknown ecosystems');
+        // Guarded like #runIcdOperation's own dialog calls: a failed close() there can leave dm-utils'
+        // dialog flag set, which would make this confirmation throw synchronously otherwise.
+        const confirmedMultiAdmin = await this.#guardedDialogCall(
+            ioNode,
+            'Failed to show ICD multi-admin confirmation',
+            () => context.showConfirmation(this.#adapter.t('ICD confirm multi admin', names)),
+            false,
+        );
+        if (!confirmedMultiAdmin) {
+            return { refresh: 'none' };
+        }
+        return this.#runIcdOperation(
+            ioNode,
+            icd,
+            context,
+            this.#adapter.t('Enabling Battery Saver Mode - waiting for the device to wake up...'),
+            () => icd.register(true),
+        );
+    }
+
+    async #runIcdDisable(
+        ioNode: GeneralMatterNode,
+        icd: NodeIcdManager,
+        context: ActionContext,
+    ): Promise<{ refresh: DeviceRefresh }> {
+        // The guard read below can park for a full idle interval, so confirm before paying for it.
+        if (!(await context.showConfirmation(this.#adapter.t('ICD confirm disable')))) {
+            return { refresh: 'none' };
+        }
+        let blockedBy = 0;
+        const outcome = await this.#runIcdOperation(
+            ioNode,
+            icd,
+            context,
+            this.#adapter.t('Switching to Standard Mode - waiting for the device to wake up...'),
+            async () => {
+                blockedBy = await icd.otherFabricClientCount();
+                if (blockedBy > 0) {
+                    return;
+                }
+                await icd.unregister(false);
+            },
+        );
+        if (blockedBy > 0) {
+            await this.#guardedDialogCall(
+                ioNode,
+                'Failed to show ICD blocked-by-other-controllers message',
+                () => context.showMessage(this.#adapter.t('ICD cannot disable other controllers', blockedBy)),
+                undefined,
+            );
+        }
+        return outcome;
+    }
+
+    async #runIcdResync(
+        ioNode: GeneralMatterNode,
+        icd: NodeIcdManager,
+        context: ActionContext,
+    ): Promise<{ refresh: DeviceRefresh }> {
+        if (!(await context.showConfirmation(this.#adapter.t('ICD confirm resync')))) {
+            return { refresh: 'none' };
+        }
+        return this.#runIcdOperation(ioNode, icd, context, this.#adapter.t('Resyncing...'), () => icd.resync());
     }
 
     async #handleConfigureNodeOrDevice(

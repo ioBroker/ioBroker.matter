@@ -10,6 +10,7 @@ import {
     StorageService,
     Semaphore,
     SoftwareUpdateManager,
+    type WorkSlot,
 } from '@matter/main';
 import { StorageBackendDisk } from '@matter/nodejs';
 import { inspect } from 'util';
@@ -255,7 +256,19 @@ export class MatterAdapter extends Adapter {
     }
 
     async handleControllerCommand(obj: ioBroker.Message): Promise<void> {
-        const slot = await this.#controllerActionQueue.obtainSlot();
+        let slot: WorkSlot;
+        try {
+            slot = await this.#controllerActionQueue.obtainSlot();
+        } catch (error) {
+            // obtainSlot() rejects (e.g. AbortedError) when the queue is cleared (adapter unload,
+            // controller disabled, node shutdown) while this command is still waiting for a slot; the
+            // 'message' emitter has no rejection handler.
+            this.log.debug(`Controller command "${obj.command}" dropped while waiting for a slot: ${error}`);
+            if (obj.callback) {
+                this.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
+            }
+            return;
+        }
         try {
             if (this.#controller) {
                 try {

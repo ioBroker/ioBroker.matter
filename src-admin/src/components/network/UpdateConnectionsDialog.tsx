@@ -17,6 +17,7 @@ import {
     Box,
 } from '@mui/material';
 import { I18n } from '@iobroker/gui-components';
+import type { IcdMode } from './NetworkTypes';
 
 export type SelectedNodeType = 'online' | 'offline' | 'unknown';
 
@@ -28,6 +29,17 @@ interface UpdateConnectionsDialogProps {
     onlineNeighborIds: string[];
     onClose: () => void;
     onUpdate: (nodeIds: string[]) => Promise<void>;
+    /**
+     * BR-refresh variant: the confirm always refreshes the Border Router's diagnostics (handled by
+     * the caller), and the connected commissioned nodes are optionally re-read too. Confirm stays
+     * enabled even with no node selected (diagnostics-only).
+     */
+    borderRouterRefresh?: boolean;
+    /**
+     * Looks up a node's ICD operating mode, used to treat LIT peers as Long Idle Time devices.
+     * Undefined for ids the caller has no state for (e.g. external/unknown devices).
+     */
+    getIcdMode?: (nodeId: string) => IcdMode | undefined;
 }
 
 interface UpdateConnectionsDialogState {
@@ -38,10 +50,20 @@ interface UpdateConnectionsDialogState {
 class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogProps, UpdateConnectionsDialogState> {
     private updateTimeoutId?: ReturnType<typeof setTimeout>;
 
+    /**
+     * Bumped on every dialog reopen and every `handleUpdate` run. The dialog is not remounted between
+     * opens (its parent renders it unconditionally, toggling only MUI's own `open` prop), so a run's
+     * 30s timeout or its `onUpdate` resolving late can otherwise land after the dialog closed and
+     * reopened, closing/resetting a run the user has since moved past.
+     */
+    private updateRunId = 0;
+
     constructor(props: UpdateConnectionsDialogProps) {
         super(props);
         this.state = {
-            includeNeighbors: false,
+            // BR-refresh defaults to also re-reading the connected nodes. A sleeping selected node
+            // cannot report its own link data in time, so its neighbors - which can - default on too.
+            includeNeighbors: !!props.borderRouterRefresh || this.selectedIsLongIdleTime,
             isUpdating: false,
         };
     }
@@ -49,8 +71,9 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
     componentDidUpdate(prevProps: UpdateConnectionsDialogProps): void {
         // Reset state when dialog opens
         if (this.props.open && !prevProps.open) {
+            this.updateRunId++;
             this.setState({
-                includeNeighbors: false,
+                includeNeighbors: !!this.props.borderRouterRefresh || this.selectedIsLongIdleTime,
                 isUpdating: false,
             });
         }
@@ -62,12 +85,28 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
         }
     }
 
+    isLongIdleTime(nodeId: string): boolean {
+        const mode = this.props.getIcdMode?.(nodeId);
+        // 'litOffline' still means the peer operates in LIT mode; 'pending' only reflects an
+        // in-flight ICD operation, not the peer's mode, so it must not count as LIT.
+        return mode === 'lit' || mode === 'litOffline';
+    }
+
+    get selectedIsLongIdleTime(): boolean {
+        const { selectedNodeType, selectedNodeId } = this.props;
+        return selectedNodeType === 'online' && selectedNodeId !== null && this.isLongIdleTime(selectedNodeId);
+    }
+
     getUpdateCount(): number {
         const { selectedNodeType, onlineNeighborIds } = this.props;
         const { includeNeighbors } = this.state;
 
         if (selectedNodeType === 'online') {
             return includeNeighbors ? 1 + onlineNeighborIds.length : 1;
+        }
+        // BR refresh: the connected nodes are opt-in (diagnostics refresh is separate).
+        if (this.props.borderRouterRefresh) {
+            return includeNeighbors ? onlineNeighborIds.length : 0;
         }
         // offline and unknown: update neighbors only
         return onlineNeighborIds.length;
@@ -84,37 +123,54 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
             }
             return nodeIds;
         }
+        // BR refresh: only the connected nodes the user opted to also re-read.
+        if (this.props.borderRouterRefresh) {
+            return includeNeighbors ? onlineNeighborIds : [];
+        }
         // offline and unknown: update neighbors only
         return onlineNeighborIds;
     }
 
     handleUpdate = async (): Promise<void> => {
         const updateCount = this.getUpdateCount();
-        if (this.state.isUpdating || updateCount === 0) {
+        // A BR refresh always has something to do (the diagnostics refresh), even with 0 nodes.
+        if (this.state.isUpdating || (updateCount === 0 && !this.props.borderRouterRefresh)) {
             return;
         }
 
+        const runId = ++this.updateRunId;
         this.setState({ isUpdating: true });
 
         // 30s timeout to auto-close
-        this.updateTimeoutId = setTimeout(() => {
+        const timeoutId = setTimeout(() => {
             console.warn('Update connections timed out after 30s');
-            this.props.onClose();
+            if (runId === this.updateRunId) {
+                this.props.onClose();
+            }
         }, 30000);
+        this.updateTimeoutId = timeoutId;
 
         try {
-            const nodeIds = this.getNodeIdsToUpdate();
-            await this.props.onUpdate(nodeIds);
-            this.props.onClose();
+            // A single call for the whole selection: the backend itself defers any LIT node's read
+            // (it only answers once it next wakes) so it cannot delay this command's resolution or
+            // the reads for the rest of the batch.
+            await this.props.onUpdate(this.getNodeIdsToUpdate());
+            if (runId === this.updateRunId) {
+                this.props.onClose();
+            }
         } catch (error) {
             console.error('Failed to update connections:', error);
-            this.props.onClose();
+            if (runId === this.updateRunId) {
+                this.props.onClose();
+            }
         } finally {
-            if (this.updateTimeoutId) {
-                clearTimeout(this.updateTimeoutId);
+            clearTimeout(timeoutId);
+            if (this.updateTimeoutId === timeoutId) {
                 this.updateTimeoutId = undefined;
             }
-            this.setState({ isUpdating: false });
+            if (runId === this.updateRunId) {
+                this.setState({ isUpdating: false });
+            }
         }
     };
 
@@ -122,16 +178,47 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
         this.setState({ includeNeighbors: event.target.checked });
     };
 
+    renderLongIdleTimeNote(): React.ReactNode {
+        const { selectedNodeId } = this.props;
+        // The selected node's own sleep state is already spelled out by the 'online' content above.
+        const count = this.getNodeIdsToUpdate().filter(
+            nodeId => this.isLongIdleTime(nodeId) && !(this.selectedIsLongIdleTime && nodeId === selectedNodeId),
+        ).length;
+        if (count === 0) {
+            return null;
+        }
+
+        return (
+            <Typography
+                variant="body2"
+                sx={{ mt: 1.5, opacity: 0.7 }}
+            >
+                {I18n.t(
+                    '%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.',
+                    count.toString(),
+                )}
+            </Typography>
+        );
+    }
+
     renderContent(): React.ReactNode {
         const { selectedNodeType, selectedNodeName, onlineNeighborIds } = this.props;
         const { includeNeighbors } = this.state;
 
         switch (selectedNodeType) {
-            case 'online':
+            case 'online': {
+                const sleepy = this.selectedIsLongIdleTime;
                 return (
                     <>
-                        <Typography>{I18n.t('Refresh network information for "%s".', selectedNodeName)}</Typography>
-                        {onlineNeighborIds.length > 0 && (
+                        <Typography>
+                            {sleepy
+                                ? I18n.t(
+                                      '"%s" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.',
+                                      selectedNodeName,
+                                  )
+                                : I18n.t('Refresh network information for "%s".', selectedNodeName)}
+                        </Typography>
+                        {onlineNeighborIds.length > 0 ? (
                             <FormControlLabel
                                 control={
                                     <Checkbox
@@ -139,15 +226,32 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
                                         onChange={this.handleIncludeNeighborsChange}
                                     />
                                 }
-                                label={I18n.t(
-                                    'Include %s connected online neighbor(s)',
-                                    onlineNeighborIds.length.toString(),
-                                )}
+                                label={
+                                    sleepy
+                                        ? I18n.t(
+                                              'Refresh %s connected online neighbor(s) for current link data',
+                                              onlineNeighborIds.length.toString(),
+                                          )
+                                        : I18n.t(
+                                              'Include %s connected online neighbor(s)',
+                                              onlineNeighborIds.length.toString(),
+                                          )
+                                }
                                 sx={{ mt: 2 }}
                             />
+                        ) : (
+                            sleepy && (
+                                <Typography
+                                    variant="body2"
+                                    sx={{ mt: 1, opacity: 0.7 }}
+                                >
+                                    {I18n.t('No online neighbor can report its current link data either.')}
+                                </Typography>
+                            )
                         )}
                     </>
                 );
+            }
 
             case 'offline':
                 return (
@@ -165,6 +269,31 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
                 );
 
             case 'unknown':
+                // BR-refresh variant: always refreshes the BR's diagnostics; connected nodes opt-in.
+                if (this.props.borderRouterRefresh) {
+                    return (
+                        <>
+                            <Typography>
+                                {I18n.t('Refresh the Border Router diagnostics for "%s".', selectedNodeName)}
+                            </Typography>
+                            {onlineNeighborIds.length > 0 && (
+                                <FormControlLabel
+                                    control={
+                                        <Checkbox
+                                            checked={includeNeighbors}
+                                            onChange={this.handleIncludeNeighborsChange}
+                                        />
+                                    }
+                                    label={I18n.t(
+                                        'Also refresh the %s connected node(s)',
+                                        onlineNeighborIds.length.toString(),
+                                    )}
+                                    sx={{ mt: 2 }}
+                                />
+                            )}
+                        </>
+                    );
+                }
                 return (
                     <>
                         <Typography>
@@ -187,9 +316,19 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
         const { open, onClose } = this.props;
         const { isUpdating } = this.state;
 
+        const { borderRouterRefresh } = this.props;
         const updateCount = this.getUpdateCount();
-        const buttonText =
-            updateCount === 0 ? I18n.t('No nodes to update') : I18n.t('Update %s node(s)', updateCount.toString());
+        let buttonText: string;
+        if (borderRouterRefresh) {
+            buttonText =
+                updateCount > 0
+                    ? I18n.t('Refresh diagnostics and %s node(s)', updateCount.toString())
+                    : I18n.t('Refresh diagnostics only');
+        } else {
+            buttonText =
+                updateCount === 0 ? I18n.t('No nodes to update') : I18n.t('Update %s node(s)', updateCount.toString());
+        }
+        const confirmDisabled = isUpdating || (updateCount === 0 && !borderRouterRefresh);
 
         return (
             <Dialog
@@ -205,7 +344,10 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
                 fullWidth
             >
                 <DialogTitle>{I18n.t('Update Connections')}</DialogTitle>
-                <DialogContent>{this.renderContent()}</DialogContent>
+                <DialogContent>
+                    {this.renderContent()}
+                    {this.renderLongIdleTimeNote()}
+                </DialogContent>
                 <DialogActions>
                     <Button
                         onClick={onClose}
@@ -216,7 +358,7 @@ class UpdateConnectionsDialog extends React.Component<UpdateConnectionsDialogPro
                     <Button
                         onClick={this.handleUpdate}
                         variant="contained"
-                        disabled={isUpdating || updateCount === 0}
+                        disabled={confirmDisabled}
                     >
                         {isUpdating ? (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

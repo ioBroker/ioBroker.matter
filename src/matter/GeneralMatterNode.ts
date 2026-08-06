@@ -12,6 +12,7 @@ import {
     Diagnostic,
     SoftwareUpdateManager,
     ObserverGroup,
+    Observable,
     deepCopy,
     CommissioningClient,
 } from '@matter/main';
@@ -43,10 +44,11 @@ import type { SubscribeCallback } from '../lib/SubscribeManager';
 import { bytesToIpV4, bytesToIpV6, bytesToMac, decamelize, toHex, toUpperCaseHex } from '../lib/utils';
 import type { MatterAdapter } from '../main';
 import type { GenericDeviceToIoBroker } from './to-iobroker/GenericDeviceToIoBroker';
-import ioBrokerDeviceFabric, { identifyDeviceTypes } from './to-iobroker/ioBrokerFactory';
+import ioBrokerDeviceFabric, { childEndpointsAreOwnDevices, identifyDeviceTypes } from './to-iobroker/ioBrokerFactory';
 import type { StructuredJsonFormData } from '../lib/JsonConfigUtils';
 import type { DeviceStatus, ConfigConnectionType } from '@iobroker/dm-utils';
 import { VendorIds } from '../lib/vendorIDs';
+import { NodeIcdManager } from './NodeIcdManager';
 
 export type PairedNodeConfig = {
     nodeId: NodeId;
@@ -101,6 +103,7 @@ export class GeneralMatterNode {
     readonly connectionStatusId: string;
     readonly connectedAddressStateId: string;
     readonly updateAvailableStateId: string;
+    readonly icdModeStateId: string;
     exposeMatterApplicationClusterData: boolean;
     exposeMatterSystemClusterData: boolean;
     #endpointMap = new Map<number, { baseId: string; endpoint: Endpoint }>();
@@ -120,6 +123,30 @@ export class GeneralMatterNode {
     #softwareUpdateInProgress = false;
     #currentUpdateState?: OtaSoftwareUpdateRequestor.UpdateState;
     #updateObservers?: ObserverGroup;
+    #icd?: NodeIcdManager;
+    // Outlives #icd across clear()/#createIcdManager() cycles (e.g. applyConfiguration()'s
+    // clear-and-rebuild), so a subscriber only needs to attach once per GeneralMatterNode rather than
+    // once per NodeIcdManager instance.
+    readonly #icdChanged = Observable<[]>();
+
+    get icd(): NodeIcdManager | undefined {
+        return this.#icd;
+    }
+
+    get icdChanged(): Observable<[]> {
+        return this.#icdChanged;
+    }
+
+    /**
+     * Retries ICD detection if it has not succeeded yet. `initialize()` and `handleStateChange()` can
+     * both run before the peer's root endpoint structure is populated, in which case `#icd` stays
+     * undefined even for a genuinely ICD-capable node; callers that need an up-to-date answer (e.g.
+     * `ControllerNode`'s registration paths) call this again on every registration attempt rather than
+     * relying on a single earlier attempt having succeeded.
+     */
+    ensureIcdManager(): void {
+        this.#createIcdManager();
+    }
 
     constructor(
         protected readonly adapter: MatterAdapter,
@@ -133,19 +160,28 @@ export class GeneralMatterNode {
         this.connectionStatusId = `${this.nodeBaseId}.info.status`;
         this.connectedAddressStateId = `${this.nodeBaseId}.info.connectedAddress`;
         this.updateAvailableStateId = `${this.nodeBaseId}.info.updateAvailable`;
+        this.icdModeStateId = `${this.nodeBaseId}.info.icdMode`;
         this.exposeMatterApplicationClusterData = controllerConfig.defaultExposeMatterApplicationClusterData ?? false;
         this.exposeMatterSystemClusterData = controllerConfig.defaultExposeMatterSystemClusterData ?? false;
     }
 
     async clear(): Promise<void> {
         // Clear out all things from before
+        this.#icd?.close();
+        this.#icd = undefined;
+
         for (const [id, handler] of this.#subscriptions) {
             await SubscribeManager.unsubscribe(`${this.adapter.namespace}.${id}`, handler);
         }
         this.#subscriptions.clear();
 
         for (const device of this.#deviceMap.values()) {
-            await device.destroy();
+            // One endpoint that fails to tear down must not leave the rest of the node half destroyed
+            try {
+                await device.destroy();
+            } catch (error) {
+                this.adapter.log.warn(`Node ${this.nodeId}: Error destroying device: ${error}`);
+            }
         }
         this.#deviceMap.clear();
 
@@ -299,6 +335,26 @@ export class GeneralMatterNode {
             native: {},
         });
 
+        await this.adapter.setObjectNotExists(this.icdModeStateId, {
+            type: 'state',
+            common: {
+                name: 'ICD mode',
+                type: 'string',
+                role: 'text',
+                read: true,
+                write: false,
+                def: '',
+                states: {
+                    '': 'Not applicable',
+                    sit: 'Standard',
+                    lit: 'Battery Saver',
+                    litOffline: 'Battery Saver (offline)',
+                    pending: 'Changing',
+                },
+            },
+            native: {},
+        });
+
         await this.adapter.setObjectNotExists(this.connectedAddressStateId, {
             type: 'state',
             common: {
@@ -325,6 +381,12 @@ export class GeneralMatterNode {
 
         await this.adapter.setState(this.connectionStateId, this.node.isConnected, true);
         await this.adapter.setState(this.connectionStatusId, this.node.connectionState, true);
+
+        this.#createIcdManager();
+        if (this.#icd === undefined) {
+            // Not ICD-capable (or not yet known to be): still record the "not applicable" mode explicitly.
+            this.#publishIcdMode();
+        }
 
         this.#connectedAddress = nodeDetails?.operationalAddress?.substring(6);
         await this.adapter.setState(this.connectedAddressStateId, this.#connectedAddress ?? null, true);
@@ -432,6 +494,13 @@ export class GeneralMatterNode {
             throw new Error('Node basic information not available');
         }
 
+        // Availability can come from a persisted state that outlived the peer's actual cluster set, and
+        // eventsOf() throws for a behavior the peer does not expose. Checked before the progress dialog
+        // opens, so a mismatch cannot leave that dialog stranded.
+        if (!this.node.node.behaviors.has(OtaSoftwareUpdateRequestorClient)) {
+            throw new Error('Node does not support over-the-air software updates');
+        }
+
         this.#softwareUpdateInProgress = true;
         this.adapter.log.info(
             `Starting software update for node ${this.nodeId} to version ${updateInfo.softwareVersionString} (${updateInfo.softwareVersion}), source: ${updateInfo.source}`,
@@ -465,12 +534,16 @@ export class GeneralMatterNode {
             await this.updateSoftwareUpdateProgress(newState, previousState);
         });
 
-        // Listen for updateStateProgress attribute changes
-        this.#updateObservers.on(otaEvents.updateStateProgress$Changed, async (value, _oldValue, _context) => {
-            if (value !== null) {
-                await this.updateSoftwareUpdateProgress(undefined, undefined, value);
-            }
-        });
+        // Listen for updateStateProgress attribute changes. Kept inside the observer group so
+        // #cleanupUpdateObservers() still removes it.
+        const progressChanged = otaEvents.updateStateProgress$Changed;
+        if (progressChanged !== undefined) {
+            this.#updateObservers.on(progressChanged, async (value, _oldValue, _context) => {
+                if (value !== null) {
+                    await this.updateSoftwareUpdateProgress(undefined, undefined, value);
+                }
+            });
+        }
 
         try {
             // Trigger the update via the OTA provider
@@ -543,6 +616,36 @@ export class GeneralMatterNode {
         } catch (error) {
             this.adapter.log.warn(`Failed to restore update info from state for node ${this.nodeId}: ${error}`);
         }
+    }
+
+    #createIcdManager(): void {
+        if (this.#icd !== undefined) {
+            return;
+        }
+        let icd: NodeIcdManager;
+        try {
+            icd = new NodeIcdManager(this.node);
+        } catch (error) {
+            // Battery Saver Mode is an optional extra; a node must still come up without it.
+            this.adapter.log.warn(`Could not set up ICD handling for node "${this.nodeId}": ${error}`);
+            return;
+        }
+        if (!icd.supported) {
+            icd.close();
+            return;
+        }
+        this.#icd = icd;
+        icd.changed.on(() => {
+            this.#publishIcdMode();
+            this.#icdChanged.emit();
+        });
+        this.#publishIcdMode();
+    }
+
+    #publishIcdMode(): void {
+        const mode = this.#icd?.mode ?? '';
+        this.adapter.setState(this.icdModeStateId, mode, true).catch(() => {});
+        this.adapter.refreshControllerDevices();
     }
 
     /**
@@ -734,7 +837,10 @@ export class GeneralMatterNode {
         }
 
         await this.clear();
-        return this.#processRootEndpointStructure(rootEndpoint);
+        // clear() closed the ICD manager; recreate it before the structure rebuild (matching
+        // initialize()'s order) so a throw below cannot leave the node without one.
+        this.#createIcdManager();
+        await this.#processRootEndpointStructure(rootEndpoint);
     }
 
     // On Root level we create devices for all endpoints because these are devices
@@ -744,6 +850,9 @@ export class GeneralMatterNode {
             endpointBaseName?: string;
         },
     ): Promise<void> {
+        // Redetected below, but a node that lost its aggregator must not keep reporting one
+        this.#hasAggregatorEndpoint = false;
+
         await this.#endpointToIoBrokerDevices(rootEndpoint, rootEndpoint, this.nodeBaseId, options);
 
         for (const childEndpoint of rootEndpoint.parts) {
@@ -768,7 +877,8 @@ export class GeneralMatterNode {
             return;
         }
 
-        const { appTypes, primaryDeviceType } = identifyDeviceTypes(endpoint);
+        const deviceTypes = identifyDeviceTypes(endpoint);
+        const { appTypes, primaryDeviceType } = deviceTypes;
         if (appTypes.length > 1) {
             this.adapter.log.info(
                 `Node ${this.node.nodeId}: Multiple device types detected: ${appTypes.map(t => t.deviceType.name).join(', ')}`,
@@ -794,9 +904,6 @@ export class GeneralMatterNode {
             existingObject?.native?.exposeMatterSystemClusterData ?? options?.exposeMatterSystemClusterData;
         let customExposeMatterApplicationClusterData =
             existingObject?.native?.exposeMatterApplicationClusterData ?? options?.exposeMatterApplicationClusterData;
-        let exposeMatterApplicationClusterData =
-            customExposeMatterApplicationClusterData ?? this.exposeMatterApplicationClusterData;
-
         let connectionStateId = options?.connectionStateId ?? `${this.adapter.namespace}.${this.connectionStateId}`;
 
         // TODO: Add TagList support
@@ -808,6 +915,13 @@ export class GeneralMatterNode {
                 : options?.endpointBaseName
                   ? `${options?.endpointBaseName} - ${endpointName ?? '???'}`
                   : (endpointName ?? '???');
+
+        const childrenAreOwnDevices = childEndpointsAreOwnDevices(id, deviceTypes);
+        // Read at recursion time: the bridged node below assigns its own connection state first
+        const childOptions = (): { connectionStateId: string; endpointBaseName?: string } => ({
+            connectionStateId,
+            endpointBaseName,
+        });
 
         if (primaryDeviceType === undefined) {
             this.adapter.log.warn(
@@ -839,7 +953,7 @@ export class GeneralMatterNode {
                 },
             });
 
-            if (primaryDeviceType.deviceType.name === 'BridgedNode') {
+            if (primaryDeviceType.deviceType.id === BridgedNodeEndpointDefinition.deviceType) {
                 const ioBrokerDevice = await ioBrokerDeviceFabric(
                     this.node,
                     endpoint,
@@ -849,18 +963,19 @@ export class GeneralMatterNode {
                     connectionStateId,
                     endpointBaseName ?? String(endpoint.type?.name ?? endpoint.number),
                 );
-                if (ioBrokerDevice !== null) {
-                    connectionStateId = ioBrokerDevice.connectionStateId;
-                    this.#deviceMap.set(id, ioBrokerDevice);
-                }
+                connectionStateId = ioBrokerDevice.connectionStateId;
+                this.#deviceMap.set(id, ioBrokerDevice);
             }
 
-            for (const childEndpoint of endpoint.parts) {
-                // Recursive call to process all sub endpoints for raw states
-                await this.#endpointToIoBrokerDevices(childEndpoint, rootEndpoint, endpointDeviceBaseId, {
-                    connectionStateId,
-                    endpointBaseName,
-                });
+            if (childrenAreOwnDevices) {
+                for (const childEndpoint of [...endpoint.parts]) {
+                    await this.#endpointToIoBrokerDevices(
+                        childEndpoint,
+                        rootEndpoint,
+                        endpointDeviceBaseId,
+                        childOptions(),
+                    );
+                }
             }
         } else {
             await this.adapter.extendObjectAsync(endpointDeviceBaseId, {
@@ -885,19 +1000,33 @@ export class GeneralMatterNode {
                     connectionStateId,
                     endpointBaseName ?? String(endpoint.type?.name ?? endpoint.number),
                 );
-                if (ioBrokerDevice !== null) {
-                    this.#deviceMap.set(id, ioBrokerDevice);
-                } else {
-                    // We expose the matter application data on the endpoint level
-                    if (!exposeMatterApplicationClusterData) {
-                        exposeMatterApplicationClusterData = true;
-                        customExposeMatterApplicationClusterData = true;
+                connectionStateId = ioBrokerDevice.connectionStateId;
+                this.#deviceMap.set(id, ioBrokerDevice);
 
-                        await this.adapter.extendObjectAsync(endpointDeviceBaseId, {
-                            native: {
-                                exposeMatterApplicationClusterData,
-                            },
-                        });
+                if (
+                    !ioBrokerDevice.deviceTypeSupported &&
+                    customExposeMatterApplicationClusterData === undefined &&
+                    !this.exposeMatterApplicationClusterData
+                ) {
+                    // Without a mapping the raw application clusters are the only access to this endpoint.
+                    // Only when the user has not decided yet - an explicit No has to stick.
+                    customExposeMatterApplicationClusterData = true;
+
+                    await this.adapter.extendObjectAsync(endpointDeviceBaseId, {
+                        native: {
+                            exposeMatterApplicationClusterData: true,
+                        },
+                    });
+                }
+
+                if (childrenAreOwnDevices) {
+                    for (const childEndpoint of [...endpoint.parts]) {
+                        await this.#endpointToIoBrokerDevices(
+                            childEndpoint,
+                            rootEndpoint,
+                            endpointDeviceBaseId,
+                            childOptions(),
+                        );
                     }
                 }
             }
@@ -1380,6 +1509,15 @@ export class GeneralMatterNode {
         const connected = state === PairedNodeStates.Connected;
         this.adapter.setState(this.connectionStateId, connected, true).catch(() => {});
         this.adapter.setState(this.connectionStatusId, state, true).catch(() => {});
+
+        // A node offline at startup has no root endpoint behaviors yet, so retry ICD detection on connect.
+        const hadIcd = this.#icd !== undefined;
+        this.#createIcdManager();
+        if (hadIcd && this.#icd !== undefined) {
+            // A reconnect after an adapter restart can arrive after the check-in window has already lapsed.
+            // (A freshly created manager already published from inside #createIcdManager().)
+            this.#publishIcdMode();
+        }
         if (connected && nodeDetails) {
             this.#connectedAddress = nodeDetails.operationalAddress?.substring(6);
             this.adapter.setState(this.connectedAddressStateId, this.#connectedAddress ?? null, true).catch(() => {});

@@ -50,9 +50,38 @@ export function identifyDeviceTypes(endpoint: Endpoint): {
             appTypes.push({ deviceType: deviceTypeDetails, revision: deviceType.revision });
         }
     });
-    const primaryDeviceType = appTypes.length > 0 ? appTypes[0] : utilityTypes[0];
+    // The deviceTypeList order is not defined by the specification, and child endpoints are only
+    // traversed when BridgedNode is the primary type - so it wins over the other utility types.
+    const primaryUtilityType =
+        utilityTypes.find(({ deviceType }) => deviceType.id === Endpoints.BridgedNodeEndpointDefinition.deviceType) ??
+        utilityTypes[0];
+    const primaryDeviceType = appTypes.length > 0 ? appTypes[0] : primaryUtilityType;
 
     return { utilityTypes, appTypes, primaryDeviceType };
+}
+
+/**
+ * Whether the child endpoints of an endpoint are devices in their own right, or parts the endpoint owns.
+ *
+ * The children of the root endpoint are walked by the caller, and an endpoint without a known device type
+ * produces no objects to hang them under.
+ */
+export function childEndpointsAreOwnDevices(
+    endpointId: number,
+    { appTypes, primaryDeviceType }: ReturnType<typeof identifyDeviceTypes>,
+): boolean {
+    if (endpointId === 0 || primaryDeviceType === undefined) {
+        return false;
+    }
+    if (
+        primaryDeviceType.deviceType.id === Endpoints.AggregatorEndpointDefinition.deviceType ||
+        primaryDeviceType.deviceType.id === Endpoints.BridgedNodeEndpointDefinition.deviceType
+    ) {
+        return true;
+    }
+    // Only utility types make the endpoint a composition whose children carry the application types.
+    // An application type means the endpoint is the device and its parts belong to it.
+    return appTypes.length === 0;
 }
 
 /**
@@ -66,7 +95,7 @@ async function ioBrokerDeviceFabric(
     endpointDeviceBaseId: string,
     defaultConnectionStateId: string,
     endpointName: string,
-): Promise<any> {
+): Promise<GenericDeviceToIoBroker<any>> {
     const { primaryDeviceType, utilityTypes } = identifyDeviceTypes(endpoint);
 
     const fullEndpointDeviceBaseId = `${adapter.namespace}.${endpointDeviceBaseId}`;

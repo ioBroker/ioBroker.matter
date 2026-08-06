@@ -11,6 +11,7 @@ import {
     getSignalColorFromRssi,
     getWiFiSecurityTypeName,
     getWiFiVersionName,
+    rssiToEdgeLength,
 } from './NetworkUtils';
 import { createNodeIconDataUrl, createWiFiApIconDataUrl } from './NetworkIcons';
 import { I18n } from '@iobroker/gui-components';
@@ -108,7 +109,9 @@ class WiFiGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGraph
             // Dashed lines for offline nodes - indicates stale connection data
             const isOffline = !node.isConnected;
 
-            graphEdges.push({
+            // Map RSSI to a per-edge spring length so weakly-attached devices sit further from
+            // their AP (#945). Edges without RSSI keep the graph's global springLength.
+            const edge: NetworkGraphEdge = {
                 id: `edge_${edgeIndex++}`,
                 from: node.nodeId,
                 to: `ap_${node.wifi.bssid}`,
@@ -119,15 +122,14 @@ class WiFiGraph extends BaseNetworkGraph<BaseNetworkGraphProps, BaseNetworkGraph
                 width: 2,
                 title: rssi !== null ? `RSSI: ${rssi} dBm` : I18n.t('Signal: Unknown'),
                 dashes: isOffline,
-            });
+            };
+            if (rssi !== null) {
+                edge.length = rssiToEdgeLength(rssi);
+            }
+            graphEdges.push(edge);
         }
 
-        // Update datasets
-        this.nodesDataSet.clear();
-        this.nodesDataSet.add(graphNodes);
-
-        this.edgesDataSet.clear();
-        this.edgesDataSet.add(graphEdges);
+        this.applyGraphData(graphNodes, graphEdges);
     }
 }
 

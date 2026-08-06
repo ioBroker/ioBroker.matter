@@ -17,6 +17,7 @@ export abstract class GenericDeviceToMatter {
     #observers = new ObserverGroup();
     #validChanged = Observable();
     #valid = true;
+    #timeouts = new Set<ioBroker.Timeout>();
 
     protected constructor(name: string, uuid: string) {
         this.#name = name;
@@ -49,6 +50,28 @@ export abstract class GenericDeviceToMatter {
         return this.ioBrokerDevice.isValid;
     }
 
+    /** Schedule a timeout that is automatically cleared on {@link destroy}. */
+    protected setDeviceTimeout(callback: () => void, ms: number): ioBroker.Timeout | undefined {
+        const timeout = this.ioBrokerDevice.adapter.setTimeout(() => {
+            if (timeout !== undefined) {
+                this.#timeouts.delete(timeout);
+            }
+            callback();
+        }, ms);
+        if (timeout !== undefined) {
+            this.#timeouts.add(timeout);
+        }
+        return timeout;
+    }
+
+    /** Clear a timeout previously scheduled via {@link setDeviceTimeout}. */
+    protected clearDeviceTimeout(timeout: ioBroker.Timeout | undefined): void {
+        if (timeout !== undefined) {
+            this.#timeouts.delete(timeout);
+            this.ioBrokerDevice.adapter.clearTimeout(timeout);
+        }
+    }
+
     /** Registers all the handlers on ioBroker and Matter side and initialize with current values. */
     registerHandlersAndInitialize(): MaybePromise<void> {}
 
@@ -71,6 +94,10 @@ export abstract class GenericDeviceToMatter {
     async destroy(): Promise<void> {
         // Close all subscribed matter events
         this.#observers.close();
+        for (const timeout of this.#timeouts) {
+            this.ioBrokerDevice.adapter.clearTimeout(timeout);
+        }
+        this.#timeouts.clear();
         // The endpoints are destroyed by the Node handler because maybe more endpoints were added
         await this.ioBrokerDevice.destroy();
     }

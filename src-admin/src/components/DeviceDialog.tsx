@@ -35,6 +35,7 @@ import { clone, detectDevices, getText } from '../Utils';
 import type { DetectedDevice, DetectedRoom, MatterConfig } from '../types';
 
 export const SUPPORTED_DEVICES: Types[] = [
+    Types.airCondition,
     Types.blind,
     Types.blindButtons,
     Types.button,

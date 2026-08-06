@@ -7,6 +7,7 @@ import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDev
 import { Temperature } from '../../lib/devices/Temperature';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 import type { MatterAdapter } from '../../main';
+import { MatterConverters } from '../ConversionUtils';
 
 export class TemperatureSensorToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Temperature;
@@ -39,16 +40,12 @@ export class TemperatureSensorToIoBroker extends GenericElectricityDataDeviceToI
         );
     }
 
-    temperatureFromMatter(value: number): number {
-        return parseFloat((value / 100).toFixed(2));
-    }
-
     protected enableDeviceTypeStates(): DeviceOptions {
         this.enableDeviceTypeStateForAttribute(PropertyType.Temperature, {
             endpointId: this.appEndpoint.number,
             clusterId: TemperatureMeasurement.id,
             attributeName: 'measuredValue',
-            convertValue: value => this.temperatureFromMatter(value),
+            convertValue: value => MatterConverters.fromMatterHundredths(value),
         });
         return super.enableDeviceTypeStates();
     }

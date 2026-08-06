@@ -1021,6 +1021,7 @@ export class MatterAdapter extends Adapter {
                     'Content-Type': 'application/json',
                     Authorization: `Basic ${Buffer.from(`${login}:${pass}`).toString('base64')}`,
                 },
+                timeout: 10000,
             });
         } catch (e) {
             if (e.response?.status === 401) {
@@ -1093,6 +1094,7 @@ export class MatterAdapter extends Adapter {
                     'Content-Type': 'application/json',
                     Authorization: `Basic ${Buffer.from(`${login}:${pass}`).toString('base64')}`,
                 },
+                timeout: 10000,
             });
         } catch (e) {
             this.#license[key] = false;

@@ -1342,13 +1342,13 @@ class Controller implements GeneralNode {
             collect(rootEndpoint);
             let fallback: number | undefined;
             for (const endpoint of endpoints) {
-                const { appTypes, utilityTypes } = identifyDeviceTypes(endpoint);
+                const { appTypes, primaryDeviceType } = identifyDeviceTypes(endpoint);
                 const appType = appTypes.find(t => !INFRA_DEVICE_TYPES.has(t.deviceType.id));
                 if (appType !== undefined) {
                     return appType.deviceType.id;
                 }
                 if (fallback === undefined) {
-                    fallback = appTypes[0]?.deviceType.id ?? utilityTypes[0]?.deviceType.id;
+                    fallback = primaryDeviceType?.deviceType.id;
                 }
             }
             return fallback;

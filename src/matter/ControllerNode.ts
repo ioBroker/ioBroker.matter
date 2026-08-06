@@ -1,4 +1,4 @@
-import type { Endpoint, ServerAddressUdp, SoftwareUpdateInfo } from '@matter/main';
+import type { Behavior, Endpoint, ServerAddressUdp, SoftwareUpdateInfo } from '@matter/main';
 import {
     ObserverGroup,
     Semaphore,
@@ -1182,6 +1182,21 @@ class Controller implements GeneralNode {
      * RouteTable and WiFi signal attributes are otherwise reported only on subscription
      * (re)establishment; this is also what the periodic Thread topology poller calls per node.
      */
+    /**
+     * Narrows a wanted attribute list to the ones the peer actually exposes. Several diagnostics attributes
+     * are conformance-optional (Rloc16 for one) and `getStateOf` rejects the whole read if a single requested
+     * attribute is absent. `behaviors.elementsOf().attributes` is the same set matter.js validates against;
+     * the cached state object is not, as it carries keys for unsupported attributes too.
+     */
+    #supportedAttributes<const T extends readonly string[]>(
+        endpoint: Endpoint,
+        type: Behavior.Type,
+        wanted: T,
+    ): T[number][] {
+        const supported = endpoint.behaviors.elementsOf(type).attributes;
+        return wanted.filter(name => supported.has(name));
+    }
+
     async #refreshSingleNodeNetworkData(nodeIdStr: string): Promise<void> {
         const node = this.#nodes.get(nodeIdStr);
         if (!node) {
@@ -1197,12 +1212,13 @@ class Controller implements GeneralNode {
         const networkType = this.#getNetworkType(node.node);
 
         if (networkType === 'thread') {
-            const state = node.node.node.maybeStateOf(ThreadNetworkDiagnosticsClient);
-            // Several of these are conformance-optional (Rloc16 for one), and getStateOf rejects the whole
-            // read if any requested attribute is absent on the peer.
-            const attributes = (['channel', 'routingRole', 'neighborTable', 'routeTable', 'rloc16'] as const).filter(
-                name => state !== undefined && name in state,
-            );
+            const attributes = this.#supportedAttributes(node.node.node, ThreadNetworkDiagnosticsClient, [
+                'channel',
+                'routingRole',
+                'neighborTable',
+                'routeTable',
+                'rloc16',
+            ]);
             if (attributes.length === 0) {
                 this.#adapter.log.debug(`Node ${nodeIdStr} exposes no Thread diagnostics attributes to refresh`);
                 return;
@@ -1211,10 +1227,13 @@ class Controller implements GeneralNode {
                 includeKnownVersions: true,
             });
         } else if (networkType === 'wifi') {
-            const state = node.node.node.maybeStateOf(WiFiNetworkDiagnosticsClient);
-            const attributes = (['bssid', 'securityType', 'wiFiVersion', 'channelNumber', 'rssi'] as const).filter(
-                name => state !== undefined && name in state,
-            );
+            const attributes = this.#supportedAttributes(node.node.node, WiFiNetworkDiagnosticsClient, [
+                'bssid',
+                'securityType',
+                'wiFiVersion',
+                'channelNumber',
+                'rssi',
+            ]);
             if (attributes.length === 0) {
                 this.#adapter.log.debug(`Node ${nodeIdStr} exposes no WiFi diagnostics attributes to refresh`);
                 return;

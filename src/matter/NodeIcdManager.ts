@@ -1,4 +1,4 @@
-import { IcdClient, IcdMultiAdminError, Observable, ObserverGroup } from '@matter/main';
+import { IcdClient, IcdMultiAdminError, Observable, ObserverGroup, type MaybePromise } from '@matter/main';
 import { IcdManagementClient, OperationalCredentialsClient } from '@matter/main/behaviors';
 import type { IcdManagement } from '@matter/main/clusters';
 import type { PairedNode } from '@project-chip/matter.js/device';
@@ -48,17 +48,30 @@ export class NodeIcdManager {
         // IcdManagement cluster is discovered — eventsOf() throws on a behavior that isn't installed yet.
         if (root.behaviors.has(IcdClient)) {
             const icdEvents = root.eventsOf(IcdClient);
-            this.#observers.on(icdEvents.registered, () => this.changed.emit());
-            this.#observers.on(icdEvents.unregistered, () => this.changed.emit());
-            this.#observers.on(icdEvents.available$Changed, () => this.changed.emit());
-            this.#observers.on(icdEvents.checkInMissed, () => this.changed.emit());
+            this.#emitChangeOn(icdEvents.registered);
+            this.#emitChangeOn(icdEvents.unregistered);
+            this.#emitChangeOn(icdEvents.available$Changed);
+            this.#emitChangeOn(icdEvents.checkInMissed);
         }
 
         if (root.behaviors.has(IcdManagementClient)) {
             const managementEvents = root.eventsOf(IcdManagementClient);
-            this.#observers.on(managementEvents.operatingMode$Changed, () => this.changed.emit());
-            this.#observers.on(managementEvents.idleModeDuration$Changed, () => this.changed.emit());
+            this.#emitChangeOn(managementEvents.operatingMode$Changed);
+            this.#emitChangeOn(managementEvents.idleModeDuration$Changed);
         }
+    }
+
+    /**
+     * matter.js creates an attribute's `$Changed` observable only for attributes the peer actually supports,
+     * so a conformance-optional one is absent on peers without the feature that mandates it — OperatingMode
+     * on a SIT-only ICD, for example. `ObserverGroup.on` throws on undefined, which would abort the whole
+     * node's initialization.
+     */
+    #emitChangeOn<T extends unknown[]>(observable: Observable<T, MaybePromise<void>> | undefined): void {
+        if (observable === undefined) {
+            return;
+        }
+        this.#observers.on(observable, () => this.changed.emit());
     }
 
     get supported(): boolean {

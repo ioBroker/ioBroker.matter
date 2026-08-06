@@ -606,7 +606,14 @@ export class GeneralMatterNode {
         if (this.#icd !== undefined) {
             return;
         }
-        const icd = new NodeIcdManager(this.node);
+        let icd: NodeIcdManager;
+        try {
+            icd = new NodeIcdManager(this.node);
+        } catch (error) {
+            // Battery Saver Mode is an optional extra; a node must still come up without it.
+            this.adapter.log.warn(`Could not set up ICD handling for node "${this.nodeId}": ${error}`);
+            return;
+        }
         if (!icd.supported) {
             icd.close();
             return;

@@ -44,7 +44,7 @@ import type {
     ThreadRouteEntry,
 } from '../ioBrokerTypes';
 import { DEFAULT_CREDENTIAL_ID } from '../ioBrokerTypes';
-import { resolveThreadCredential, resolveWifiCredential } from './credentialResolver';
+import { hasAnyCommissioningCredential, resolveThreadCredential, resolveWifiCredential } from './credentialResolver';
 import {
     BorderRouterRegistry,
     type BorderRouterEntry,
@@ -151,11 +151,7 @@ class Controller implements GeneralNode {
 
     init(): void {
         if (this.#parameters.ble) {
-            if (
-                (this.#parameters.wifiSSID && this.#parameters.wifiPassword) ||
-                (this.#parameters.threadNetworkName !== undefined &&
-                    this.#parameters.threadOperationalDataSet !== undefined)
-            ) {
+            if (hasAnyCommissioningCredential(this.#parameters)) {
                 this.#adapter.matterEnvironment.vars.set('ble.enable', true);
                 const hciId = this.#parameters.hciId === undefined ? undefined : parseInt(this.#parameters.hciId);
                 if (hciId !== undefined && (hciId >= 0 || hciId <= 255)) {
@@ -1201,17 +1197,31 @@ class Controller implements GeneralNode {
         const networkType = this.#getNetworkType(node.node);
 
         if (networkType === 'thread') {
-            await node.node.node.getStateOf(
-                ThreadNetworkDiagnosticsClient,
-                ['channel', 'routingRole', 'neighborTable', 'routeTable', 'rloc16'],
-                { includeKnownVersions: true },
+            const state = node.node.node.maybeStateOf(ThreadNetworkDiagnosticsClient);
+            // Several of these are conformance-optional (Rloc16 for one), and getStateOf rejects the whole
+            // read if any requested attribute is absent on the peer.
+            const attributes = (['channel', 'routingRole', 'neighborTable', 'routeTable', 'rloc16'] as const).filter(
+                name => state !== undefined && name in state,
             );
+            if (attributes.length === 0) {
+                this.#adapter.log.debug(`Node ${nodeIdStr} exposes no Thread diagnostics attributes to refresh`);
+                return;
+            }
+            await node.node.node.getStateOf(ThreadNetworkDiagnosticsClient, attributes, {
+                includeKnownVersions: true,
+            });
         } else if (networkType === 'wifi') {
-            await node.node.node.getStateOf(
-                WiFiNetworkDiagnosticsClient,
-                ['bssid', 'securityType', 'wiFiVersion', 'channelNumber', 'rssi'],
-                { includeKnownVersions: true },
+            const state = node.node.node.maybeStateOf(WiFiNetworkDiagnosticsClient);
+            const attributes = (['bssid', 'securityType', 'wiFiVersion', 'channelNumber', 'rssi'] as const).filter(
+                name => state !== undefined && name in state,
             );
+            if (attributes.length === 0) {
+                this.#adapter.log.debug(`Node ${nodeIdStr} exposes no WiFi diagnostics attributes to refresh`);
+                return;
+            }
+            await node.node.node.getStateOf(WiFiNetworkDiagnosticsClient, attributes, {
+                includeKnownVersions: true,
+            });
         } else {
             this.#adapter.log.debug(`Node ${nodeIdStr} has no network diagnostics to refresh`);
             return;

@@ -1,5 +1,9 @@
 import { expect } from 'chai';
-import { resolveThreadCredential, resolveWifiCredential } from '../src/matter/credentialResolver';
+import {
+    hasAnyCommissioningCredential,
+    resolveThreadCredential,
+    resolveWifiCredential,
+} from '../src/matter/credentialResolver';
 import type { MatterControllerConfig } from '../src/ioBrokerTypes';
 
 const base: MatterControllerConfig = {
@@ -74,5 +78,41 @@ describe('resolveThreadCredential', () => {
             additionalThreadCredentials: [{ id: 'l', networkName: 'L', operationalDataset: '' }],
         };
         expect(resolveThreadCredential(cfg, 'l')).to.equal(undefined);
+    });
+});
+
+describe('hasAnyCommissioningCredential', () => {
+    it('accepts a fully configured default set', () => {
+        expect(hasAnyCommissioningCredential(base)).to.equal(true);
+    });
+
+    it('accepts a named WiFi entry when the default scalars are empty', () => {
+        // The reported case: the user's only network lives in an additional entry, so BLE must stay enabled.
+        expect(
+            hasAnyCommissioningCredential({
+                additionalWifiCredentials: [{ id: 'guest', ssid: 'GuestWifi', password: 'guestpw' }],
+            }),
+        ).to.equal(true);
+    });
+
+    it('accepts a named Thread entry when the default scalars are empty', () => {
+        expect(
+            hasAnyCommissioningCredential({
+                additionalThreadCredentials: [{ id: 'lab', networkName: 'LabThread', operationalDataset: 'abcd' }],
+            }),
+        ).to.equal(true);
+    });
+
+    it('rejects an empty configuration', () => {
+        expect(hasAnyCommissioningCredential({})).to.equal(false);
+    });
+
+    it('rejects entries that are not fully configured', () => {
+        expect(
+            hasAnyCommissioningCredential({
+                additionalWifiCredentials: [{ id: 'guest', ssid: 'GuestWifi', password: '' }],
+                additionalThreadCredentials: [{ id: 'lab', networkName: 'LabThread', operationalDataset: '' }],
+            }),
+        ).to.equal(false);
     });
 });

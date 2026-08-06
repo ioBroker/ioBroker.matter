@@ -44,6 +44,10 @@ export class UtilityOnlyToIoBroker extends GenericElectricityDataDeviceToIoBroke
         );
     }
 
+    override get deviceTypeSupported(): boolean {
+        return this.#deviceTypeSupported;
+    }
+
     override get ioBrokerDeviceType(): string | undefined {
         return 'ElectricityDataDevice';
     }
@@ -54,7 +58,6 @@ export class UtilityOnlyToIoBroker extends GenericElectricityDataDeviceToIoBroke
                 // Electrical sensor icon
                 return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+DQogICAgPHBhdGggZmlsbD0iY3VycmVudENvbG9yIiBkPSJtMjIgMjAuNTktNC42OS00LjY5QzE4LjM3IDE0LjU1IDE5IDEyLjg1IDE5IDExYzAtNC40Mi0zLjU4LTgtOC04LTQuMDggMC03LjQ0IDMuMDUtNy45MyA3aDIuMDJDNS41NyA3LjE3IDguMDMgNSAxMSA1YzMuMzEgMCA2IDIuNjkgNiA2cy0yLjY5IDYtNiA2Yy0yLjQyIDAtNC41LTEuNDQtNS40NS0zLjVIMy40QzQuNDUgMTYuNjkgNy40NiAxOSAxMSAxOWMxLjg1IDAgMy41NS0uNjMgNC45LTEuNjlMMjAuNTkgMjJ6IiAvPg0KICAgIDxwYXRoIGZpbGw9ImN1cnJlbnRDb2xvciIgZD0iTTguNDMgOS42OSA5LjY1IDE1aDEuNjRsMS4yNi0zLjc4Ljk1IDIuMjhoMlYxMmgtMWwtMS4yNS0zaC0xLjU0bC0xLjEyIDMuMzdMOS4zNSA3SDcuN2wtMS4yNSA0SDF2MS41aDYuNTV6IiAvPg0KPC9zdmc+';
             case 'BridgedNode':
-                return 'node';
             case 'PowerSource': {
                 const powerSource = this.appEndpoint.maybeStateOf(PowerSourceClient);
                 if (powerSource) {
@@ -62,10 +65,16 @@ export class UtilityOnlyToIoBroker extends GenericElectricityDataDeviceToIoBroke
                     if ((features?.battery && !features?.wired) || powerSource.batChargeLevel !== undefined) {
                         // Battery icon
                         return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+DQogICAgPHBhdGggZmlsbD0iY3VycmVudENvbG9yIiBkPSJNMTUuNjcgNEgxNFYyaC00djJIOC4zM0M3LjYgNCA3IDQuNiA3IDUuMzN2MTUuMzNDNyAyMS40IDcuNiAyMiA4LjMzIDIyaDcuMzNjLjc0IDAgMS4zNC0uNiAxLjM0LTEuMzNWNS4zM0MxNyA0LjYgMTYuNCA0IDE1LjY3IDQiIC8+DQo8L3N2Zz4=';
-                    } else if (features?.wired || powerSource.wiredCurrentType !== undefined) {
+                    } else if (
+                        this.deviceType !== 'BridgedNode' &&
+                        (features?.wired || powerSource.wiredCurrentType !== undefined)
+                    ) {
                         // Wired icon
                         return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+DQogICAgPHBhdGggZmlsbD0iY3VycmVudENvbG9yIiBkPSJNMTYuMDEgNyAxNiAzaC0ydjRoLTRWM0g4djRoLS4wMUM3IDYuOTkgNiA3Ljk5IDYgOC45OXY1LjQ5TDkuNSAxOHYzaDV2LTNsMy41LTMuNTF2LTUuNWMwLTEtMS0yLTEuOTktMS45OSIgLz4NCjwvc3ZnPg==';
                     }
+                }
+                if (this.deviceType === 'BridgedNode') {
+                    return 'node';
                 }
             }
             // eslint-disable-next-line no-fallthrough

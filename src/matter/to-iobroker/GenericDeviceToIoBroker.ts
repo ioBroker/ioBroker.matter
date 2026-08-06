@@ -8,6 +8,7 @@ import {
     Diagnostic,
     EndpointNumber,
     Matter,
+    ObserverGroup,
 } from '@matter/main';
 import type { MatterAdapter } from '../../main';
 import { BasicInformation, BridgedDeviceBasicInformation, PowerSource } from '@matter/main/clusters';
@@ -91,6 +92,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
     readonly #node: PairedNode;
     protected readonly appEndpoint: Endpoint;
     readonly #rootEndpoint: Endpoint;
+    readonly #observers = new ObserverGroup();
     readonly #behaviorIdCache = new Map<string, string | undefined>();
     #name?: string;
     #defaultName: string;
@@ -175,6 +177,11 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         return this.#connectionStateId;
     }
 
+    /** Whether the Matter device type of this endpoint has a dedicated ioBroker mapping. */
+    get deviceTypeSupported(): boolean {
+        return true;
+    }
+
     get nodeBasicInformation(): Record<string, unknown> {
         return this.#node.basicInformation ?? {};
     }
@@ -231,9 +238,10 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
             convertValue: value => Math.round(value / 2),
             pollAttribute: true,
         });
-        endpoint
-            .eventsOf(PowerSourceClient)
-            .batPercentRemaining$Changed?.on(() => this.#adapter.refreshControllerDevices());
+        const batteryChanged = endpoint.eventsOf(PowerSourceClient).batPercentRemaining$Changed;
+        if (batteryChanged !== undefined) {
+            this.#observers.on(batteryChanged, () => this.#adapter.refreshControllerDevices());
+        }
         return true;
     }
 
@@ -904,8 +912,14 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
             this.#adapter.clearTimeout(this.#pollTimeout);
             this.#pollTimeout = undefined;
         }
+        this.#observers.close();
         if (this.#hasBridgedReachabilityAttribute) {
-            await this.#adapter.setState(this.#connectionStateId, { val: false, ack: true });
+            // Unsubscribing must happen even when the connection state can no longer be written
+            try {
+                await this.#adapter.setState(this.#connectionStateId, { val: false, ack: true });
+            } catch (error) {
+                this.#adapter.log.warn(`Error setting connection state ${this.#connectionStateId}: ${error}`);
+            }
         }
         return this.ioBrokerDevice.destroy();
     }

@@ -44,7 +44,7 @@ import type { SubscribeCallback } from '../lib/SubscribeManager';
 import { bytesToIpV4, bytesToIpV6, bytesToMac, decamelize, toHex, toUpperCaseHex } from '../lib/utils';
 import type { MatterAdapter } from '../main';
 import type { GenericDeviceToIoBroker } from './to-iobroker/GenericDeviceToIoBroker';
-import ioBrokerDeviceFabric, { identifyDeviceTypes } from './to-iobroker/ioBrokerFactory';
+import ioBrokerDeviceFabric, { childEndpointsAreOwnDevices, identifyDeviceTypes } from './to-iobroker/ioBrokerFactory';
 import type { StructuredJsonFormData } from '../lib/JsonConfigUtils';
 import type { DeviceStatus, ConfigConnectionType } from '@iobroker/dm-utils';
 import { VendorIds } from '../lib/vendorIDs';
@@ -176,7 +176,12 @@ export class GeneralMatterNode {
         this.#subscriptions.clear();
 
         for (const device of this.#deviceMap.values()) {
-            await device.destroy();
+            // One endpoint that fails to tear down must not leave the rest of the node half destroyed
+            try {
+                await device.destroy();
+            } catch (error) {
+                this.adapter.log.warn(`Node ${this.nodeId}: Error destroying device: ${error}`);
+            }
         }
         this.#deviceMap.clear();
 
@@ -845,6 +850,9 @@ export class GeneralMatterNode {
             endpointBaseName?: string;
         },
     ): Promise<void> {
+        // Redetected below, but a node that lost its aggregator must not keep reporting one
+        this.#hasAggregatorEndpoint = false;
+
         await this.#endpointToIoBrokerDevices(rootEndpoint, rootEndpoint, this.nodeBaseId, options);
 
         for (const childEndpoint of rootEndpoint.parts) {
@@ -869,7 +877,8 @@ export class GeneralMatterNode {
             return;
         }
 
-        const { appTypes, primaryDeviceType } = identifyDeviceTypes(endpoint);
+        const deviceTypes = identifyDeviceTypes(endpoint);
+        const { appTypes, primaryDeviceType } = deviceTypes;
         if (appTypes.length > 1) {
             this.adapter.log.info(
                 `Node ${this.node.nodeId}: Multiple device types detected: ${appTypes.map(t => t.deviceType.name).join(', ')}`,
@@ -895,9 +904,6 @@ export class GeneralMatterNode {
             existingObject?.native?.exposeMatterSystemClusterData ?? options?.exposeMatterSystemClusterData;
         let customExposeMatterApplicationClusterData =
             existingObject?.native?.exposeMatterApplicationClusterData ?? options?.exposeMatterApplicationClusterData;
-        let exposeMatterApplicationClusterData =
-            customExposeMatterApplicationClusterData ?? this.exposeMatterApplicationClusterData;
-
         let connectionStateId = options?.connectionStateId ?? `${this.adapter.namespace}.${this.connectionStateId}`;
 
         // TODO: Add TagList support
@@ -909,6 +915,13 @@ export class GeneralMatterNode {
                 : options?.endpointBaseName
                   ? `${options?.endpointBaseName} - ${endpointName ?? '???'}`
                   : (endpointName ?? '???');
+
+        const childrenAreOwnDevices = childEndpointsAreOwnDevices(id, deviceTypes);
+        // Read at recursion time: the bridged node below assigns its own connection state first
+        const childOptions = (): { connectionStateId: string; endpointBaseName?: string } => ({
+            connectionStateId,
+            endpointBaseName,
+        });
 
         if (primaryDeviceType === undefined) {
             this.adapter.log.warn(
@@ -940,7 +953,7 @@ export class GeneralMatterNode {
                 },
             });
 
-            if (primaryDeviceType.deviceType.name === 'BridgedNode') {
+            if (primaryDeviceType.deviceType.id === BridgedNodeEndpointDefinition.deviceType) {
                 const ioBrokerDevice = await ioBrokerDeviceFabric(
                     this.node,
                     endpoint,
@@ -950,18 +963,19 @@ export class GeneralMatterNode {
                     connectionStateId,
                     endpointBaseName ?? String(endpoint.type?.name ?? endpoint.number),
                 );
-                if (ioBrokerDevice !== null) {
-                    connectionStateId = ioBrokerDevice.connectionStateId;
-                    this.#deviceMap.set(id, ioBrokerDevice);
-                }
+                connectionStateId = ioBrokerDevice.connectionStateId;
+                this.#deviceMap.set(id, ioBrokerDevice);
             }
 
-            for (const childEndpoint of endpoint.parts) {
-                // Recursive call to process all sub endpoints for raw states
-                await this.#endpointToIoBrokerDevices(childEndpoint, rootEndpoint, endpointDeviceBaseId, {
-                    connectionStateId,
-                    endpointBaseName,
-                });
+            if (childrenAreOwnDevices) {
+                for (const childEndpoint of [...endpoint.parts]) {
+                    await this.#endpointToIoBrokerDevices(
+                        childEndpoint,
+                        rootEndpoint,
+                        endpointDeviceBaseId,
+                        childOptions(),
+                    );
+                }
             }
         } else {
             await this.adapter.extendObjectAsync(endpointDeviceBaseId, {
@@ -986,19 +1000,33 @@ export class GeneralMatterNode {
                     connectionStateId,
                     endpointBaseName ?? String(endpoint.type?.name ?? endpoint.number),
                 );
-                if (ioBrokerDevice !== null) {
-                    this.#deviceMap.set(id, ioBrokerDevice);
-                } else {
-                    // We expose the matter application data on the endpoint level
-                    if (!exposeMatterApplicationClusterData) {
-                        exposeMatterApplicationClusterData = true;
-                        customExposeMatterApplicationClusterData = true;
+                connectionStateId = ioBrokerDevice.connectionStateId;
+                this.#deviceMap.set(id, ioBrokerDevice);
 
-                        await this.adapter.extendObjectAsync(endpointDeviceBaseId, {
-                            native: {
-                                exposeMatterApplicationClusterData,
-                            },
-                        });
+                if (
+                    !ioBrokerDevice.deviceTypeSupported &&
+                    customExposeMatterApplicationClusterData === undefined &&
+                    !this.exposeMatterApplicationClusterData
+                ) {
+                    // Without a mapping the raw application clusters are the only access to this endpoint.
+                    // Only when the user has not decided yet - an explicit No has to stick.
+                    customExposeMatterApplicationClusterData = true;
+
+                    await this.adapter.extendObjectAsync(endpointDeviceBaseId, {
+                        native: {
+                            exposeMatterApplicationClusterData: true,
+                        },
+                    });
+                }
+
+                if (childrenAreOwnDevices) {
+                    for (const childEndpoint of [...endpoint.parts]) {
+                        await this.#endpointToIoBrokerDevices(
+                            childEndpoint,
+                            rootEndpoint,
+                            endpointDeviceBaseId,
+                            childOptions(),
+                        );
                     }
                 }
             }

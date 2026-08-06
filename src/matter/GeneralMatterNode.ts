@@ -489,6 +489,13 @@ export class GeneralMatterNode {
             throw new Error('Node basic information not available');
         }
 
+        // Availability can come from a persisted state that outlived the peer's actual cluster set, and
+        // eventsOf() throws for a behavior the peer does not expose. Checked before the progress dialog
+        // opens, so a mismatch cannot leave that dialog stranded.
+        if (!this.node.node.behaviors.has(OtaSoftwareUpdateRequestorClient)) {
+            throw new Error('Node does not support over-the-air software updates');
+        }
+
         this.#softwareUpdateInProgress = true;
         this.adapter.log.info(
             `Starting software update for node ${this.nodeId} to version ${updateInfo.softwareVersionString} (${updateInfo.softwareVersion}), source: ${updateInfo.source}`,
@@ -522,12 +529,16 @@ export class GeneralMatterNode {
             await this.updateSoftwareUpdateProgress(newState, previousState);
         });
 
-        // Listen for updateStateProgress attribute changes
-        this.#updateObservers.on(otaEvents.updateStateProgress$Changed, async (value, _oldValue, _context) => {
-            if (value !== null) {
-                await this.updateSoftwareUpdateProgress(undefined, undefined, value);
-            }
-        });
+        // Listen for updateStateProgress attribute changes. Kept inside the observer group so
+        // #cleanupUpdateObservers() still removes it.
+        const progressChanged = otaEvents.updateStateProgress$Changed;
+        if (progressChanged !== undefined) {
+            this.#updateObservers.on(progressChanged, async (value, _oldValue, _context) => {
+                if (value !== null) {
+                    await this.updateSoftwareUpdateProgress(undefined, undefined, value);
+                }
+            });
+        }
 
         try {
             // Trigger the update via the OTA provider

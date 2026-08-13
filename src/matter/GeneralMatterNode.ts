@@ -550,12 +550,11 @@ export class GeneralMatterNode {
             await this.commissioningController.otaProvider.act(agent => {
                 return agent
                     .get(SoftwareUpdateManager)
-                    .forceUpdate(
-                        PeerAddress({ nodeId: this.node.nodeId, fabricIndex: FabricIndex(1) }),
-                        basicInfo.vendorId,
-                        basicInfo.productId,
-                        updateInfo.softwareVersion,
-                    );
+                    .forceUpdate(PeerAddress({ nodeId: this.node.nodeId, fabricIndex: FabricIndex(1) }), {
+                        vendorId: basicInfo.vendorId,
+                        productId: basicInfo.productId,
+                        targetSoftwareVersion: updateInfo.softwareVersion,
+                    });
             });
 
             // The progress updates will now come from the OTA Update Requestor cluster events

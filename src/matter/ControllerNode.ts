@@ -1033,7 +1033,7 @@ class Controller implements GeneralNode {
         const adapterConfig = this.#adapter.config as MatterAdapterConfig;
 
         // Determine the path to scan
-        const path = customPath || adapterConfig.customUpdatesPath || join(this.#adapter.instanceDataDir, 'custom-ota');
+        const path = customPath || adapterConfig.customUpdatesPath || this.#adapter.defaultCustomOtaPath;
 
         // Check if custom updates are enabled
         if (!adapterConfig.allowUnofficialUpdates) {

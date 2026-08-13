@@ -1,6 +1,6 @@
-import type { Bytes, SupportedStorageTypes, MaybePromise } from '@matter/main';
+import type { SupportedStorageTypes, MaybePromise } from '@matter/main';
 import { fromJson, StorageError, StorageDriver, toJson } from '@matter/main';
-import { StorageBackendDisk } from '@matter/nodejs';
+import { FileStorageDriver } from '@matter/nodejs';
 
 /**
  * Class that implements the storage for one Node in the Matter ecosystem
@@ -14,21 +14,18 @@ export class IoBrokerObjectStorage extends StorageDriver {
     initialized = false;
     readonly #adapter: ioBroker.Adapter;
     #namespace: string;
-    #clear = false;
-    #localStorageManager?: StorageBackendDisk;
+    #localStorageManager?: FileStorageDriver;
     #storeLocalChecker?: (contexts: string[]) => boolean;
 
     constructor(
         adapter: ioBroker.Adapter,
         namespace: string,
-        clear = false,
         nodeDataStorageDirectory?: string,
         storeLocalChecker?: (contexts: string[]) => boolean,
     ) {
         super();
         this.#adapter = adapter;
         this.#namespace = namespace;
-        this.#clear = clear;
         this.#storageRootOid = `storage.${this.#namespace}`;
         this.#nodeDataStorageDirectory = nodeDataStorageDirectory;
         this.#storeLocalChecker = storeLocalChecker;
@@ -42,7 +39,7 @@ export class IoBrokerObjectStorage extends StorageDriver {
         this.#adapter.log.debug(`[STORAGE] Initializing storage for ${this.#storageRootOid}`);
 
         if (this.#nodeDataStorageDirectory !== undefined) {
-            this.#localStorageManager = new StorageBackendDisk(this.#nodeDataStorageDirectory, this.#clear);
+            this.#localStorageManager = new FileStorageDriver(this.#nodeDataStorageDirectory);
             await this.#localStorageManager.initialize();
         }
 
@@ -55,12 +52,6 @@ export class IoBrokerObjectStorage extends StorageDriver {
             native: {},
         });
 
-        if (this.#clear) {
-            this.initialized = true;
-            await this.clear();
-            return;
-        }
-
         // read all keys, storage entries always have a value, so we can use the states
         const states = await this.#adapter.getStatesAsync(`${this.#storageRootOid}.*`);
         const namespaceLength = this.#adapter.namespace.length + 1;
@@ -71,22 +62,24 @@ export class IoBrokerObjectStorage extends StorageDriver {
         this.initialized = true;
     }
 
-    async clear(): Promise<void> {
+    async #clearNamespace(): Promise<void> {
         this.#adapter.log.info(`[STORAGE] Clearing all storage for ${this.#storageRootOid}`);
         try {
             await this.#adapter.delObjectAsync(this.#storageRootOid, { recursive: true });
         } catch (error) {
             this.#adapter.log.error(`[STORAGE] Cannot clear all state: ${error.message}`);
         }
-        if (this.#nodeDataStorageDirectory !== undefined && this.#localStorageManager !== undefined) {
-            await this.#localStorageManager.clear();
+        if (this.#localStorageManager !== undefined) {
+            for (const context of this.#localContexts([])) {
+                await this.#localStorageManager.clearAll([context]);
+            }
         }
         this.#existingObjectIds.clear();
-        this.#clear = false;
     }
 
     async clearAll(contexts: string[]): Promise<void> {
         if (!contexts.length) {
+            await this.#clearNamespace();
             return;
         }
         if (this.#localStorageManager && this.#isLocallyStored(contexts)) {
@@ -151,11 +144,18 @@ export class IoBrokerObjectStorage extends StorageDriver {
         return (await this.get(contexts, key)) !== undefined;
     }
 
+    /**
+     * Contexts the local storage reports, minus the empty name a foreign dotfile in the shared instance data
+     * directory produces: the file storage driver splits an entry on ".", so ".DS_Store" indexes as a context
+     * named "". Passing that on makes `clearAll` throw on the empty segment.
+     */
+    #localContexts(contexts: string[]): string[] {
+        return this.#localStorageManager?.contexts(contexts).filter(name => name.length > 0) ?? [];
+    }
+
     contexts(contexts: string[]): string[] {
         const result = new Array<string>();
-        if (this.#localStorageManager) {
-            result.push(...this.#localStorageManager.contexts(contexts));
-        }
+        result.push(...this.#localContexts(contexts));
 
         const contextKeyStart = this.buildKey(contexts, '');
         const len = contextKeyStart.length;
@@ -175,7 +175,9 @@ export class IoBrokerObjectStorage extends StorageDriver {
 
     async keys(contexts: string[]): Promise<string[]> {
         const results = new Array<string>();
-        if (this.#localStorageManager) {
+        // Nothing of ours is ever stored locally without a context, so root-level entries of the shared
+        // directory belong to other components.
+        if (this.#localStorageManager && contexts.length) {
             results.push(...(await this.#localStorageManager.keys(contexts)));
         }
 
@@ -191,7 +193,8 @@ export class IoBrokerObjectStorage extends StorageDriver {
     }
 
     async values(contexts: string[]): Promise<Record<string, SupportedStorageTypes>> {
-        const values = this.#localStorageManager ? await this.#localStorageManager.values(contexts) : {};
+        const values =
+            this.#localStorageManager && contexts.length ? await this.#localStorageManager.values(contexts) : {};
 
         const keys = await this.keys(contexts);
         for (const key of keys) {
@@ -266,19 +269,5 @@ export class IoBrokerObjectStorage extends StorageDriver {
             this.#adapter.log.error(`[STORAGE] Cannot delete state ${oid}: ${error.message}`);
         }
         this.#existingObjectIds.delete(oid);
-    }
-
-    openBlob(contexts: string[], key: string): Promise<Blob> {
-        if (this.#localStorageManager === undefined) {
-            throw new StorageError('[STORAGE] Cannot open blob, local storage is not enabled!');
-        }
-        return this.#localStorageManager.openBlob(contexts, key);
-    }
-
-    writeBlobFromStream(contexts: string[], key: string, stream: ReadableStream<Bytes>): Promise<void> {
-        if (this.#localStorageManager === undefined) {
-            throw new StorageError('[STORAGE] Cannot open blob, local storage is not enabled!');
-        }
-        return this.#localStorageManager.writeBlobFromStream(contexts, key, stream);
     }
 }

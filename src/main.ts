@@ -12,7 +12,7 @@ import {
     SoftwareUpdateManager,
     type WorkSlot,
 } from '@matter/main';
-import { StorageBackendDisk } from '@matter/nodejs';
+import { FileStorageDriver } from '@matter/nodejs';
 import { inspect } from 'util';
 
 import { type AdapterOptions, Adapter, getAbsoluteInstanceDataDir, I18n } from '@iobroker/adapter-core';
@@ -41,6 +41,7 @@ import MatterDevice, { type DeviceCreateOptions } from './matter/DeviceNode';
 import type { PairedNodeConfig } from './matter/GeneralMatterNode';
 import type { MessageResponse } from './matter/GeneralNode';
 import { IoBrokerObjectStorage } from './matter/IoBrokerObjectStorage';
+import { StorageLayout } from './matter/storageLayout';
 import { type StructuredJsonFormData, convertDataToJsonConfig } from './lib/JsonConfigUtils';
 import { selectControlsForState } from './lib/deviceDetection';
 
@@ -112,6 +113,20 @@ export class MatterAdapter extends Adapter {
     /** Get the instance data directory path */
     get instanceDataDir(): string {
         return this.#instanceDataDir ?? '';
+    }
+
+    /**
+     * Root for the downloaded and re-fetchable files: OTA images, BDX transfers, DCL caches. Kept beside the
+     * instance data directory rather than inside it, so that directory holds nothing but the controller node
+     * store, whose storage driver would otherwise index these as entries of its own.
+     */
+    get cacheDir(): string {
+        return getAbsoluteInstanceDataDir(`${this.namespace}.cache`);
+    }
+
+    /** Default location for OTA images the user imports by hand — theirs to manage, so it stands on its own. */
+    get defaultCustomOtaPath(): string {
+        return getAbsoluteInstanceDataDir(`${this.namespace}.custom-ota`);
     }
     t: (word: string, ...args: (string | number | boolean | null)[]) => string;
     getText: (word: string, ...args: (string | number | boolean | null)[]) => ioBroker.Translated;
@@ -405,9 +420,8 @@ export class MatterAdapter extends Adapter {
                 break;
             }
             case 'getDefaultCustomOtaPath': {
-                const customOtaPath = path.join(this.instanceDataDir, 'custom-ota');
                 if (obj.callback) {
-                    this.sendTo(obj.from, obj.command, { path: customOtaPath }, obj.callback);
+                    this.sendTo(obj.from, obj.command, { path: this.defaultCustomOtaPath }, obj.callback);
                 }
                 break;
             }
@@ -560,26 +574,25 @@ export class MatterAdapter extends Adapter {
 
         const adapter = this;
         const instanceDataDir = this.#instanceDataDir;
+        const cacheDir = this.cacheDir;
         if (instanceDataDir !== undefined) {
-            this.#matterEnvironment.vars.set('storage.path', instanceDataDir);
+            this.#matterEnvironment.vars.set('storage.path', cacheDir);
         }
         const storageService = this.#matterEnvironment.get(StorageService);
         storageService.registerDriver({
             id: 'iobroker',
             create: async ns => {
                 const namespace = ns.namespace;
-                // We put special namespaces with temporary data into the filesystem
-                // We reuse the dir of the normal storage but use subdirectories, so should be fine
-                if (namespace === 'ota' || namespace === 'certificates' || namespace === 'vendors') {
-                    const namespacePath = path.join(instanceDataDir!, `ns-${namespace}`);
-                    const store = new StorageBackendDisk(namespacePath, false);
+                // Caches that are re-fetched anyway; they live in the filesystem rather than in objects
+                if (instanceDataDir !== undefined && (namespace === 'certificates' || namespace === 'vendors')) {
+                    const namespacePath = path.join(cacheDir, `ns-${namespace}`);
+                    const store = new FileStorageDriver(namespacePath);
                     await store.initialize();
                     return store;
                 }
                 const store = new IoBrokerObjectStorage(
                     adapter,
                     namespace,
-                    false,
                     namespace === 'controller' ? instanceDataDir : undefined,
                     namespace === 'controller'
                         ? (contexts: string[]): boolean =>
@@ -616,6 +629,14 @@ export class MatterAdapter extends Adapter {
                     `Can not create pairing data storage directory ${this.#instanceDataDir}. Pairing data can not be persisted!`,
                 );
             }
+        }
+
+        if (this.#instanceDataDir !== undefined) {
+            await StorageLayout.relocate(
+                this.#instanceDataDir,
+                { cacheDir: this.cacheDir, customOtaDir: this.defaultCustomOtaPath },
+                this.log,
+            );
         }
 
         try {
@@ -1598,7 +1619,7 @@ export class MatterAdapter extends Adapter {
     async deleteBridgeOrDevice(type: 'bridge' | 'device', id: string, uuid: string): Promise<void> {
         await this.stopBridgeOrDevice(type, id);
         const storage = new IoBrokerObjectStorage(this, uuid);
-        await storage.clear();
+        await storage.clearAll([]);
     }
 
     getGenericErrorDetails(

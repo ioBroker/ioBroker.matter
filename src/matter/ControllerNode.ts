@@ -1,16 +1,23 @@
-import type { Behavior, Endpoint, ServerAddressUdp, SoftwareUpdateInfo } from '@matter/main';
 import {
+    ClientNodePhysicalProperties,
+    Diagnostic,
+    NodeConnectionState,
+    NodeId,
     ObserverGroup,
+    Seconds,
     Semaphore,
     SoftwareUpdateManager,
-    Diagnostic,
-    NodeId,
     Time,
     VendorId,
-    Seconds,
+    type Behavior,
+    type ClientNode,
+    type Endpoint,
+    type ServerAddressUdp,
+    type SoftwareUpdateInfo,
 } from '@matter/main';
 import { GeneralCommissioning } from '@matter/main/clusters';
 import {
+    BasicInformationClient,
     GeneralDiagnosticsClient,
     NetworkCommissioningClient,
     ThreadNetworkDiagnosticsClient,
@@ -26,11 +33,7 @@ import {
     type FabricIndex,
 } from '@matter/main/types';
 import { CommissioningController, type NodeCommissioningOptions } from '@project-chip/matter.js';
-import {
-    NodeStates as PairedNodeStates,
-    type CommissioningControllerNodeOptions,
-    type PairedNode,
-} from '@project-chip/matter.js/device';
+import type { CommissioningControllerNodeOptions, PairedNode } from '@project-chip/matter.js/device';
 import type { MatterAdapter } from '../main';
 import type {
     MatterAdapterConfig,
@@ -369,7 +372,8 @@ class Controller implements GeneralNode {
                 }
             }
         });
-        node.events.stateChanged.on((info: PairedNodeStates) => {
+        node.events.stateChanged.on(() => {
+            const info = node.node.lifecycle.connectionState;
             const nodeDetails = (this.#commissioningController?.getCommissionedNodesDetails() ?? []).find(
                 n => n.nodeId === node.nodeId,
             );
@@ -378,7 +382,7 @@ class Controller implements GeneralNode {
             if (deviceNode) {
                 deviceNode.handleStateChange(info, nodeDetails);
             } else {
-                if (info !== PairedNodeStates.Disconnected) {
+                if (info !== NodeConnectionState.Disconnected) {
                     this.#adapter.log.info(
                         `Matter node "${nodeIdStr}" not initialized ... Got State change to ${info}`,
                     );
@@ -386,7 +390,7 @@ class Controller implements GeneralNode {
             }
             this.#updateCallback();
 
-            if (info === PairedNodeStates.Connected) {
+            if (info === NodeConnectionState.Connected) {
                 this.#registerNodeForTimeSync(node);
                 this.#registerNodeForThreadPolling(node);
             }
@@ -496,7 +500,7 @@ class Controller implements GeneralNode {
                 this.#adapter.log.info(`Initializing node "${nodeId}" ...`);
                 const node = await this.#commissioningController.getNode(nodeId);
                 this.#registerNodeHandlers(node);
-                await this.nodeToIoBrokerStructure(node, details, this.nodeConnectSettings);
+                await this.nodeToIoBrokerStructure(node, details);
             } catch (error) {
                 this.#adapter.log.info(`Failed to connect to node "${nodeId}": ${error.stack}`);
             }
@@ -567,11 +571,7 @@ class Controller implements GeneralNode {
         return lock;
     }
 
-    async nodeToIoBrokerStructure(
-        node: PairedNode,
-        nodeDetails?: { operationalAddress?: string },
-        connectOptions?: CommissioningControllerNodeOptions,
-    ): Promise<void> {
+    async nodeToIoBrokerStructure(node: PairedNode, nodeDetails?: { operationalAddress?: string }): Promise<void> {
         const nodeIdStr = node.nodeId.toString();
 
         // One rebuild per node id at a time, so a losing GeneralMatterNode is never overwritten in #nodes undestroyed.
@@ -585,10 +585,14 @@ class Controller implements GeneralNode {
             const oldDevice = this.#nodes.get(nodeIdStr);
             await oldDevice?.destroy();
 
-            const device = new GeneralMatterNode(this.#adapter, node, this.#parameters, this.#commissioningController);
+            const device = new GeneralMatterNode(
+                this.#adapter,
+                node.node,
+                this.#parameters,
+                this.#commissioningController,
+            );
             this.#nodes.set(nodeIdStr, device);
             await device.initialize(nodeDetails);
-            device.connect(connectOptions);
 
             // An already-connected node emits no further stateChanged, so register it here too
             this.#registerNodeForTimeSync(node);
@@ -685,7 +689,7 @@ class Controller implements GeneralNode {
         try {
             const deviceNode = this.#nodes.get(node.nodeId.toString());
             const icd = deviceNode !== undefined ? this.#ensureIcdTracking(node, deviceNode) : undefined;
-            const isThreadNode = this.#getNetworkType(node) === 'thread';
+            const isThreadNode = this.#getNetworkType(node.node) === 'thread';
             this.#threadDetailsPoller.registerNode(peer, isThreadNode, icd?.longIdleTimeActive ?? false);
         } catch (error) {
             this.#adapter.log.debug(`Error registering node ${node.nodeId} for Thread topology polling: ${error}`);
@@ -704,7 +708,7 @@ class Controller implements GeneralNode {
      * TimeSynchronization cluster.
      */
     async #syncNodeTime(nodeId: NodeId): Promise<void> {
-        const rootEndpoint = this.#nodes.get(nodeId.toString())?.node.node;
+        const rootEndpoint = this.#nodes.get(nodeId.toString())?.node;
         if (rootEndpoint === undefined) {
             throw new Error(`Node ${nodeId} is not available`);
         }
@@ -1212,7 +1216,7 @@ class Controller implements GeneralNode {
         const networkType = this.#getNetworkType(node.node);
 
         if (networkType === 'thread') {
-            const attributes = this.#supportedAttributes(node.node.node, ThreadNetworkDiagnosticsClient, [
+            const attributes = this.#supportedAttributes(node.node, ThreadNetworkDiagnosticsClient, [
                 'channel',
                 'routingRole',
                 'neighborTable',
@@ -1223,11 +1227,11 @@ class Controller implements GeneralNode {
                 this.#adapter.log.debug(`Node ${nodeIdStr} exposes no Thread diagnostics attributes to refresh`);
                 return;
             }
-            await node.node.node.getStateOf(ThreadNetworkDiagnosticsClient, attributes, {
+            await node.node.getStateOf(ThreadNetworkDiagnosticsClient, attributes, {
                 includeKnownVersions: true,
             });
         } else if (networkType === 'wifi') {
-            const attributes = this.#supportedAttributes(node.node.node, WiFiNetworkDiagnosticsClient, [
+            const attributes = this.#supportedAttributes(node.node, WiFiNetworkDiagnosticsClient, [
                 'bssid',
                 'securityType',
                 'wiFiVersion',
@@ -1238,7 +1242,7 @@ class Controller implements GeneralNode {
                 this.#adapter.log.debug(`Node ${nodeIdStr} exposes no WiFi diagnostics attributes to refresh`);
                 return;
             }
-            await node.node.node.getStateOf(WiFiNetworkDiagnosticsClient, attributes, {
+            await node.node.getStateOf(WiFiNetworkDiagnosticsClient, attributes, {
                 includeKnownVersions: true,
             });
         } else {
@@ -1289,7 +1293,7 @@ class Controller implements GeneralNode {
         const threadDiagnostics = this.#getThreadDiagnostics(node);
 
         // Get vendorId and productId from basicInformation
-        const basicInfo = node.node.basicInformation;
+        const basicInfo = node.node.maybeStateOf(BasicInformationClient);
         const vendorId =
             basicInfo?.vendorId !== undefined ? `0x${basicInfo.vendorId.toString(16).toUpperCase()}` : undefined;
         const productId =
@@ -1314,7 +1318,7 @@ class Controller implements GeneralNode {
      * commonly reported alongside the real device type.
      */
     #getPrimaryDeviceType(node: GeneralMatterNode): number | undefined {
-        const rootEndpoint = node.node.node;
+        const rootEndpoint = node.node;
         if (rootEndpoint === undefined) {
             return undefined;
         }
@@ -1357,15 +1361,15 @@ class Controller implements GeneralNode {
         }
     }
 
-    #getNetworkType(node: PairedNode): NetworkType {
-        // Use the deviceInformation from PairedNode which is more reliable
-        if (node.deviceInformation?.threadActive || node.deviceInformation?.supportsThread) {
+    #getNetworkType(node: ClientNode): NetworkType {
+        const properties = ClientNodePhysicalProperties(node);
+        if (properties.threadActive || properties.supportsThread) {
             return 'thread';
         }
-        if (node.deviceInformation?.supportsWifi) {
+        if (properties.supportsWifi) {
             return 'wifi';
         }
-        if (node.deviceInformation?.supportsEthernet) {
+        if (properties.supportsEthernet) {
             return 'ethernet';
         }
 
@@ -1377,7 +1381,7 @@ class Controller implements GeneralNode {
             return undefined;
         }
 
-        const wifiState = node.node.node.maybeStateOf(WiFiNetworkDiagnosticsClient);
+        const wifiState = node.node.maybeStateOf(WiFiNetworkDiagnosticsClient);
         if (wifiState === undefined) {
             return undefined;
         }
@@ -1404,7 +1408,7 @@ class Controller implements GeneralNode {
         }
 
         try {
-            const threadState = node.node.node.maybeStateOf(ThreadNetworkDiagnosticsClient);
+            const threadState = node.node.maybeStateOf(ThreadNetworkDiagnosticsClient);
             if (threadState === undefined) {
                 return undefined;
             }
@@ -1455,7 +1459,7 @@ class Controller implements GeneralNode {
 
             // Thread spec version from NetworkCommissioning (only present on Thread interfaces)
             let threadVersion: number | null = null;
-            const netCommState = node.node.node.maybeStateOf(NetworkCommissioningClient);
+            const netCommState = node.node.maybeStateOf(NetworkCommissioningClient);
             if (netCommState !== undefined && 'threadVersion' in netCommState) {
                 const v = netCommState.threadVersion;
                 threadVersion = typeof v === 'number' ? v : null;
@@ -1478,7 +1482,7 @@ class Controller implements GeneralNode {
 
     #getExtendedAddress(node: GeneralMatterNode): string | null {
         try {
-            const diagState = node.node.node.maybeStateOf(GeneralDiagnosticsClient);
+            const diagState = node.node.maybeStateOf(GeneralDiagnosticsClient);
             if (diagState === undefined) {
                 return null;
             }
@@ -1589,7 +1593,10 @@ class Controller implements GeneralNode {
         const removedNodeId = NodeId(BigInt(nodeId));
         const slot = await this.#getNodeLock(nodeId).obtainSlot();
         try {
-            await this.#commissioningController.removeNode(removedNodeId, !!this.#nodes.get(nodeId)?.node.isConnected);
+            await this.#commissioningController.removeNode(
+                removedNodeId,
+                !!this.#nodes.get(nodeId)?.node.lifecycle.isConnected,
+            );
             this.#unregisterNodeFromTimeSync(removedNodeId);
             this.#unregisterNodeFromThreadPolling(removedNodeId);
             this.#nodes.delete(nodeId);

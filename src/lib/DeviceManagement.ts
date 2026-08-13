@@ -21,7 +21,7 @@ import { inspect } from 'util';
 import { convertDataToJsonConfig } from './JsonConfigUtils';
 import { logControllerEndpoint } from '../matter/ControllerEndpointStructureInspector';
 import { SpecificationVersion } from '@matter/main/types';
-import { CommissioningClient, isObject } from '@matter/main';
+import { ClientNodePhysicalProperties, CommissioningClient, isObject } from '@matter/main';
 import { PeerAddress } from '@matter/main/protocol';
 import { ICD_LIT_ICON } from './icons';
 import { formatDuration, icdWaitingLabel, icdWakeInstructionText } from '../matter/icdUtils';
@@ -1231,7 +1231,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 };
                 data.pollInterval = deviceConfig.pollInterval;
 
-                if (device.node.deviceInformation?.isBatteryPowered) {
+                if (ClientNodePhysicalProperties(device.node).isBatteryPowered) {
                     addBatteryPoweredInfo = true;
                 }
             }

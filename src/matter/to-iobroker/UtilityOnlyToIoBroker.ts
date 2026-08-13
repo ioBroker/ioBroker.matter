@@ -1,6 +1,5 @@
 import ChannelDetector from '@iobroker/type-detector';
-import type { Endpoint } from '@matter/main';
-import type { PairedNode } from '@project-chip/matter.js/device';
+import type { Endpoint, ClientNode } from '@matter/main';
 import { PowerSourceClient } from '@matter/main/behaviors';
 import type { ElectricityDataDevice } from '../../lib/devices/ElectricityDataDevice';
 import type { DetectedDevice } from '../../lib/devices/GenericDevice';
@@ -14,7 +13,7 @@ export class UtilityOnlyToIoBroker extends GenericElectricityDataDeviceToIoBroke
     readonly #deviceTypeSupported;
 
     constructor(
-        node: PairedNode,
+        node: ClientNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         adapter: MatterAdapter,

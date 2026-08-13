@@ -9,17 +9,19 @@ import {
     EndpointNumber,
     Matter,
     ObserverGroup,
+    ClientNodePhysicalProperties,
+    type ClientNode,
 } from '@matter/main';
 import type { MatterAdapter } from '../../main';
 import { BasicInformation, BridgedDeviceBasicInformation, PowerSource } from '@matter/main/clusters';
 import {
+    BasicInformationClient,
     BridgedDeviceBasicInformationClient,
     DescriptorClient,
     IdentifyClient,
     PowerSourceClient,
 } from '@matter/main/behaviors';
 import { type DecodedEventData, Read } from '@matter/main/protocol';
-import type { PairedNode } from '@project-chip/matter.js/device';
 import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DeviceOptions } from '../../lib/devices/GenericDevice';
@@ -89,7 +91,7 @@ function eventPathToString(path: { endpointId: EndpointNumber; clusterId: Cluste
 export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = EmptyCustomStates> {
     readonly #adapter: MatterAdapter;
     readonly baseId: string;
-    readonly #node: PairedNode;
+    readonly #node: ClientNode;
     protected readonly appEndpoint: Endpoint;
     readonly #rootEndpoint: Endpoint;
     readonly #observers = new ObserverGroup();
@@ -123,7 +125,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
 
     protected constructor(
         adapter: MatterAdapter,
-        node: PairedNode,
+        node: ClientNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         endpointDeviceBaseId: string,
@@ -183,11 +185,16 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
     }
 
     get nodeBasicInformation(): Record<string, unknown> {
-        return this.#node.basicInformation ?? {};
+        return this.#node.maybeStateOf(BasicInformationClient) ?? {};
     }
 
-    get node(): PairedNode {
+    get node(): ClientNode {
         return this.#node;
+    }
+
+    /** For log messages: the peer address carries no node id until the node is commissioned. */
+    get #nodeId(): string {
+        return this.#node.state.commissioning.peerAddress?.nodeId.toString() ?? this.#node.id;
     }
 
     /**
@@ -830,7 +837,10 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
     }
 
     get pollInterval(): number {
-        return this.#pollInterval ?? (this.#node.deviceInformation?.isBatteryPowered ? 24 * 60 * 60_000 : 60_000);
+        return (
+            this.#pollInterval ??
+            (ClientNodePhysicalProperties(this.#node).isBatteryPowered ? 24 * 60 * 60_000 : 60_000)
+        );
     }
 
     async #pollAttributes(
@@ -847,7 +857,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
             return;
         }
 
-        if (this.#node.isConnected) {
+        if (this.#node.lifecycle.isConnected) {
             // The read result carries only numeric paths, so map (endpoint, cluster, attribute) back to its name
             const attributeNames = new Map<string, string>();
             for (const { endpointId, clusterId, attributeId, attributeName } of attributes) {
@@ -868,7 +878,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                 });
 
                 try {
-                    for await (const chunk of this.#node.node.interaction.read(request)) {
+                    for await (const chunk of this.#node.interaction.read(request)) {
                         for await (const report of chunk) {
                             if (this.#destroyed || generation !== this.#pollGeneration) {
                                 return;
@@ -891,11 +901,11 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                         }
                     }
                 } catch (e) {
-                    this.#adapter.log.info(`Error polling attributes for node ${this.#node.nodeId}: ${e}`);
+                    this.#adapter.log.info(`Error polling attributes for node ${this.#nodeId}: ${e}`);
                 }
             }
         } else {
-            this.#adapter.log.debug(`Node ${this.#node.nodeId} is not connected, do not poll attributes`);
+            this.#adapter.log.debug(`Node ${this.#nodeId} is not connected, do not poll attributes`);
         }
 
         if (!this.#destroyed && generation === this.#pollGeneration) {

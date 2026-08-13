@@ -1,8 +1,7 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { SmokeCoAlarm, PowerSource } from '@matter/main/clusters';
 import { SmokeCoAlarmClient, PowerSourceClient } from '@matter/main/behaviors';
-import type { Endpoint } from '@matter/main';
-import type { PairedNode } from '@project-chip/matter.js/device';
+import type { Endpoint, ClientNode } from '@matter/main';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
@@ -14,7 +13,7 @@ export class SmokeCoAlarmToIoBroker extends GenericDeviceToIoBroker {
     readonly #rootEndpoint: Endpoint;
 
     constructor(
-        node: PairedNode,
+        node: ClientNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         adapter: MatterAdapter,

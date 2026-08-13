@@ -1,8 +1,7 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { OnOff } from '@matter/main/clusters';
 import { OnOffClient } from '@matter/main/behaviors';
-import type { Endpoint } from '@matter/main';
-import type { PairedNode } from '@project-chip/matter.js/device';
+import type { Endpoint, ClientNode } from '@matter/main';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { Light } from '../../lib/devices/Light';
@@ -14,7 +13,7 @@ export class OnOffLightToIoBroker extends GenericElectricityDataDeviceToIoBroker
     readonly #ioBrokerDevice: Light;
 
     constructor(
-        node: PairedNode,
+        node: ClientNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         adapter: MatterAdapter,

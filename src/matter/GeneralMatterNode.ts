@@ -623,7 +623,7 @@ export class GeneralMatterNode {
         }
         let icd: NodeIcdManager;
         try {
-            icd = new NodeIcdManager(this.node);
+            icd = new NodeIcdManager(this.node.node);
         } catch (error) {
             // Battery Saver Mode is an optional extra; a node must still come up without it.
             this.adapter.log.warn(`Could not set up ICD handling for node "${this.nodeId}": ${error}`);
@@ -954,7 +954,7 @@ export class GeneralMatterNode {
 
             if (primaryDeviceType.deviceType.id === BridgedNodeEndpointDefinition.deviceType) {
                 const ioBrokerDevice = await ioBrokerDeviceFabric(
-                    this.node,
+                    this.node.node,
                     endpoint,
                     rootEndpoint,
                     this.adapter,
@@ -991,7 +991,7 @@ export class GeneralMatterNode {
             if (id !== 0) {
                 // Ignore the root endpoint
                 const ioBrokerDevice = await ioBrokerDeviceFabric(
-                    this.node,
+                    this.node.node,
                     endpoint,
                     rootEndpoint,
                     this.adapter,

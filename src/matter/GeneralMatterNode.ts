@@ -1912,12 +1912,15 @@ export class GeneralMatterNode {
             const operationalCredentials = this.node.maybeStateOf(OperationalCredentialsClient);
             if (operationalCredentials !== undefined) {
                 result.connection.__header__operationalCredentials = 'Connected Fabrics';
-                const ownFabricIndex = operationalCredentials.currentFabricIndex;
-                const fabrics = (
-                    await this.node.getStateOf(OperationalCredentialsClient, ['fabrics'], {
-                        fabricFilter: false,
-                    })
-                )?.fabrics;
+                // currentFabricIndex is our index in the peer's table rather than ours locally, and is read with
+                // the list so that both describe the same snapshot.
+                const credentials = await this.node.getStateOf(
+                    OperationalCredentialsClient,
+                    ['fabrics', 'currentFabricIndex'],
+                    { fabricFilter: false },
+                );
+                const ownFabricIndex = credentials?.currentFabricIndex;
+                const fabrics = credentials?.fabrics;
                 if (fabrics) {
                     fabrics.forEach(fabric => {
                         const fabricId = fabric.fabricId;

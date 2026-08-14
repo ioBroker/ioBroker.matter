@@ -1,14 +1,16 @@
 import {
-    camelize,
+    AttributeId,
     ClusterBehavior,
     ClusterId,
-    type AttributeId,
+    EventId,
+    type ChangeNotificationService,
+    type EndpointNumber,
+    camelize,
+    serialize,
     type CommandId,
-    type EventId,
+    type Endpoint,
     type NodeId,
     type SoftwareUpdateInfo,
-    type Endpoint,
-    serialize,
     Diagnostic,
     SoftwareUpdateManager,
     ObserverGroup,
@@ -32,12 +34,14 @@ import {
     OperationalCredentialsClient,
     OtaSoftwareUpdateRequestorClient,
 } from '@matter/main/behaviors';
-import type { DecodedAttributeReportValue, DecodedEventReportValue } from '@matter/main/protocol';
-import { PeerAddress } from '@matter/main/protocol';
-import { SpecificationVersion } from '@matter/main/types';
+import { PeerAddress, type DecodedEventData } from '@matter/main/protocol';
+import { ClusterLookup, SpecificationVersion } from '@matter/main/types';
 import { AttributeModel, Matter } from '@matter/main/model';
-import { AggregatorEndpointDefinition, BridgedNodeEndpointDefinition } from '@matter/main/endpoints';
-import type { CommissioningController } from '@project-chip/matter.js';
+import {
+    AggregatorEndpointDefinition,
+    BridgedNodeEndpointDefinition,
+    type OtaProviderEndpoint,
+} from '@matter/main/endpoints';
 import type { MatterControllerConfig } from '../ioBrokerTypes';
 import { SubscribeManager } from '../lib';
 import type { SubscribeCallback } from '../lib/SubscribeManager';
@@ -152,7 +156,7 @@ export class GeneralMatterNode {
         protected readonly adapter: MatterAdapter,
         readonly node: ClientNode,
         controllerConfig: MatterControllerConfig,
-        private readonly commissioningController?: CommissioningController,
+        private readonly otaProvider?: Endpoint<OtaProviderEndpoint>,
     ) {
         this.nodeId = node.state.commissioning.peerAddress?.nodeId.toString() ?? node.id;
         this.nodeBaseId = `controller.${this.nodeId}`;
@@ -234,6 +238,8 @@ export class GeneralMatterNode {
                 subscriptionMaxIntervalS: existingObject.native?.subscriptionMaxIntervalS,
             });
         }
+        // Runs for every node, so the interval floor applies whether or not a ceiling is configured.
+        await this.#applySubscriptionInterval();
         // create device
         const deviceObj: ioBroker.Object = {
             _id: this.nodeBaseId,
@@ -485,8 +491,9 @@ export class GeneralMatterNode {
             throw new Error('No software update available');
         }
 
-        if (!this.commissioningController) {
-            throw new Error('Commissioning controller not available');
+        const otaProvider = this.otaProvider;
+        if (!otaProvider) {
+            throw new Error('OTA provider not available');
         }
 
         if (this.#softwareUpdateInProgress) {
@@ -551,7 +558,7 @@ export class GeneralMatterNode {
 
         try {
             // Trigger the update via the OTA provider
-            await this.commissioningController.otaProvider.act(agent => {
+            await otaProvider.act(agent => {
                 return agent.get(SoftwareUpdateManager).forceUpdate(this.peerAddress, {
                     vendorId: basicInfo.vendorId,
                     productId: basicInfo.productId,
@@ -653,15 +660,14 @@ export class GeneralMatterNode {
      * Cancel an ongoing software update.
      */
     async cancelSoftwareUpdate(): Promise<void> {
-        if (!this.#softwareUpdateInProgress || !this.commissioningController) {
+        const otaProvider = this.otaProvider;
+        if (!this.#softwareUpdateInProgress || !otaProvider) {
             return;
         }
 
         this.adapter.log.info(`Cancelling software update for node ${this.nodeId}`);
 
-        await this.commissioningController.otaProvider.act(agent =>
-            agent.get(SoftwareUpdateManager).removeConsent(this.peerAddress),
-        );
+        await otaProvider.act(agent => agent.get(SoftwareUpdateManager).removeConsent(this.peerAddress));
         this.#cleanupUpdateObservers();
         this.#softwareUpdateInProgress = false;
 
@@ -820,11 +826,15 @@ export class GeneralMatterNode {
 
     /** The sustained subscription re-establishes itself when this changes, so no reconnect is needed. */
     async #applySubscriptionInterval(): Promise<void> {
-        if (this.#subscriptionMaxIntervalS === undefined) {
-            return;
-        }
         await this.node.set({
-            network: { defaultSubscription: { maxIntervalCeiling: Seconds(this.#subscriptionMaxIntervalS) } },
+            network: {
+                defaultSubscription: {
+                    minIntervalFloor: Seconds(1),
+                    ...(this.#subscriptionMaxIntervalS === undefined
+                        ? {}
+                        : { maxIntervalCeiling: Seconds(this.#subscriptionMaxIntervalS) }),
+                },
+            },
         });
     }
 
@@ -1428,13 +1438,42 @@ export class GeneralMatterNode {
         }
     }
 
-    async handleChangedAttribute(data: DecodedAttributeReportValue<any>): Promise<void> {
-        const {
-            path: { nodeId, clusterId, endpointId, attributeId, attributeName },
-            value,
-        } = data;
+    /**
+     * One change notification covers a whole behavior, so it can carry several attributes at once, and an
+     * absent property list means every attribute of that behavior may have changed.
+     */
+    async handleChangedAttributes(
+        endpoint: Endpoint,
+        behavior: ClusterBehavior.Type,
+        properties: string[] | undefined,
+    ): Promise<void> {
+        const endpointId = endpoint.number;
+        const clusterId = behavior.cluster.id;
+        const state: Record<string, unknown> = endpoint.stateOf(behavior);
+        for (const attributeName of properties ?? Object.keys(state)) {
+            const attributeId = ClusterLookup.attributeId(clusterId, attributeName, this.node.matter);
+            if (attributeId === undefined) {
+                continue;
+            }
+            await this.#handleChangedAttribute(
+                endpointId,
+                clusterId,
+                AttributeId(attributeId),
+                attributeName,
+                state[attributeName],
+            );
+        }
+    }
+
+    async #handleChangedAttribute(
+        endpointId: EndpointNumber,
+        clusterId: ClusterId,
+        attributeId: AttributeId,
+        attributeName: string,
+        value: unknown,
+    ): Promise<void> {
         this.adapter.log.debug(
-            `handleChangedAttribute "${this.nodeId}": Attribute ${nodeId}/${endpointId}/${toHex(clusterId)}/${attributeName} changed to ${Diagnostic.json(
+            `handleChangedAttribute "${this.nodeId}": Attribute ${endpointId}/${toHex(clusterId)}/${attributeName} changed to ${Diagnostic.json(
                 value,
             )}`,
         );
@@ -1470,13 +1509,21 @@ export class GeneralMatterNode {
         );
     }
 
-    async handleTriggeredEvent(data: DecodedEventReportValue<any>): Promise<void> {
-        const {
-            path: { nodeId, clusterId, endpointId, eventId, eventName },
-            events,
-        } = data;
+    async handleTriggeredEvent(change: ChangeNotificationService.EventOccurrence): Promise<void> {
+        if (!ClusterBehavior.is(change.behavior)) {
+            return;
+        }
+        const endpointId = change.endpoint.number;
+        const clusterId = change.behavior.cluster.id;
+        const eventName = change.event.name;
+        const eventId = EventId(change.event.id);
+        if (change.payload === undefined) {
+            return;
+        }
+        // The converters expect the decoded-report shape: a list of occurrences.
+        const events = [change.payload as DecodedEventData<any>];
         this.adapter.log.debug(
-            `handleTriggeredEvent "${this.nodeId}": Event ${nodeId}/${endpointId}/${toHex(clusterId)}/${eventName} triggered with ${Diagnostic.json(
+            `handleTriggeredEvent "${this.nodeId}": Event ${endpointId}/${toHex(clusterId)}/${eventName} triggered with ${Diagnostic.json(
                 events,
             )}`,
         );
@@ -1504,12 +1551,6 @@ export class GeneralMatterNode {
             Diagnostic.json(events),
             true,
         );
-    }
-
-    handleConnectionAlive(): void {
-        if (this.node.lifecycle.isConnected) {
-            this.adapter.setState(this.connectionStateId, true, true).catch(() => {});
-        }
     }
 
     handleStateChange(state: NodeConnectionState, nodeDetails?: { operationalAddress?: string }): void {

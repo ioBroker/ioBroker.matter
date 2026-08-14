@@ -1,17 +1,25 @@
 import {
+    ChangeNotificationService,
+    ClusterBehavior,
+    ControllerBehavior,
     ClientNodePhysicalProperties,
     Diagnostic,
+    Endpoint,
     NodeConnectionState,
     NodeId,
     ObserverGroup,
     Seconds,
     Semaphore,
     SoftwareUpdateManager,
+    RemoteDescriptor,
+    ServerAddress,
+    ServerNode,
     Time,
     VendorId,
     type Behavior,
     type ClientNode,
-    type Endpoint,
+    type CommissioningClient,
+    type ContinuousDiscovery,
     type ServerAddressUdp,
     type SoftwareUpdateInfo,
 } from '@matter/main';
@@ -24,16 +32,22 @@ import {
     TimeSynchronizationClient,
     WiFiNetworkDiagnosticsClient,
 } from '@matter/main/behaviors';
-import type { CommissionableDevice, DiscoveryData } from '@matter/main/protocol';
-import { CommissioningError, DclOtaUpdateService, PeerAddress } from '@matter/main/protocol';
+import {
+    CertificateAuthority,
+    CommissioningError,
+    DclOtaUpdateService,
+    FabricAuthority,
+    PeerAddress,
+    type CommissionableDevice,
+    type DiscoveryData,
+    type Fabric,
+} from '@matter/main/protocol';
 import {
     ManualPairingCodeCodec,
     QrPairingCodeCodec,
     DiscoveryCapabilitiesSchema,
     type FabricIndex,
 } from '@matter/main/types';
-import { CommissioningController, type NodeCommissioningOptions } from '@project-chip/matter.js';
-import type { CommissioningControllerNodeOptions, PairedNode } from '@project-chip/matter.js/device';
 import type { MatterAdapter } from '../main';
 import type {
     MatterAdapterConfig,
@@ -78,7 +92,7 @@ import { createReadStream } from 'fs';
 import { readdir, stat, mkdir, unlink } from 'fs/promises';
 import { Readable } from 'stream';
 import { join } from 'path';
-import type { OtaProviderEndpoint } from '@matter/main/endpoints';
+import { OtaProviderEndpoint } from '@matter/main/endpoints';
 
 export interface ControllerCreateOptions {
     adapter: MatterAdapter;
@@ -104,6 +118,25 @@ export type {
     BorderRouterEntry,
 };
 
+/**
+ * Whether `endpoint` belongs to `node`'s subtree. `ChangeNotificationService` carries the changes of the
+ * controller and of every peer in one stream, and matter.js exports no helper to attribute one to its node.
+ */
+function ownedBy(endpoint: Endpoint, node: ClientNode): boolean {
+    for (let current: Endpoint | undefined = endpoint; current !== undefined; current = current.owner) {
+        if (current === node) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/** The address the peer is reachable on, in the `udp://host:port` form the ioBroker state carries. */
+function operationalAddressOf(peer: ClientNode): string | undefined {
+    const addresses = peer.state.commissioning.addresses;
+    return Array.isArray(addresses) && addresses.length ? ServerAddress.urlFor(addresses[0]) : undefined;
+}
+
 type EndUserCommissioningOptions = (
     | { qrCode: string }
     | { manualCode: string }
@@ -115,11 +148,14 @@ class Controller implements GeneralNode {
     readonly #adapter: MatterAdapter;
     readonly #updateCallback: () => void;
     #fabricLabel: string;
-    #commissioningController?: CommissioningController;
+    #serverNode?: ServerNode;
+    #otaProvider?: Endpoint<OtaProviderEndpoint>;
+    #fabric?: Fabric;
     #nodes = new Map<string, GeneralMatterNode>();
     /** Serializes nodeToIoBrokerStructure per node id; entries are pruned once a node is decommissioned. */
     #nodeLocks = new Map<string, Semaphore>();
     #discovering = false;
+    #activeDiscovery?: ContinuousDiscovery;
     #useBle = false;
     #commissioningStatus = new Map<number, { status: 'finished' | 'error' | 'inprogress'; result?: MessageResponse }>();
     #observers = new ObserverGroup();
@@ -149,7 +185,7 @@ class Controller implements GeneralNode {
     }
 
     get otaProvider(): Endpoint<OtaProviderEndpoint> | undefined {
-        return this.#commissioningController?.otaProvider;
+        return this.#otaProvider;
     }
 
     init(): void {
@@ -205,7 +241,7 @@ class Controller implements GeneralNode {
     }
 
     async handleCommand(obj: ioBroker.Message): Promise<MessageResponse> {
-        if (this.#commissioningController === undefined) {
+        if (this.#serverNode === undefined) {
             return { error: 'Controller is not initialized.' };
         }
         const { command, message } = obj;
@@ -278,7 +314,13 @@ class Controller implements GeneralNode {
                     return { result: await this.showNewCommissioningCode(message.nodeId) };
                 case 'controllerInitializePaseCommissioner': {
                     // Returns the data needed to initialize a PaseCommissioner on the mobile App
-                    const { caConfig, fabricData } = this.#commissioningController.paseCommissionerConfig;
+                    // The app reconstructs our fabric from the CA root and the fabric material, runs PASE
+                    // itself, and hands the node back through controllerCompletePaseCommissioning.
+                    const caConfig = this.#serverNode?.env.get(CertificateAuthority).config;
+                    const fabricData = this.#fabric?.config;
+                    if (caConfig === undefined || fabricData === undefined) {
+                        return { error: 'Controller fabric is not available.' };
+                    }
                     return {
                         result: {
                             rootCertificateData: caConfig,
@@ -346,112 +388,123 @@ class Controller implements GeneralNode {
         return { error: `Unknown command "${command}"` };
     }
 
-    #registerNodeHandlers(node: PairedNode): void {
-        node.events.attributeChanged.on(data => {
-            this.#nodes
-                .get(node.nodeId.toString())
-                ?.handleChangedAttribute(data)
-                .catch(error => this.#adapter.log.error(`Error handling attribute change: ${error}`));
+    #registerChangeHandlers(): void {
+        const serverNode = this.#serverNode;
+        if (serverNode === undefined) {
+            return;
+        }
 
-            // Check if this is a network-relevant attribute change and send update to GUI
-            if (this.#isNetworkRelevantCluster(data.path.clusterId)) {
-                this.#sendNetworkGraphUpdate();
+        this.#observers.on(serverNode.env.get(ChangeNotificationService).change, change => {
+            const peer = serverNode.peers.commissioned.find(candidate => ownedBy(change.endpoint, candidate));
+            if (peer === undefined) {
+                return;
             }
+            this.#handlePeerChange(peer, change);
         });
-        node.events.eventTriggered.on(data => {
-            this.#nodes
-                .get(node.nodeId.toString())
-                ?.handleTriggeredEvent(data)
-                .catch(error => this.#adapter.log.error(`Error handling event: ${error}`));
 
-            if (data.path.clusterId === TIME_SYNC_CLUSTER_ID && data.path.eventId === TIME_FAILURE_EVENT_ID) {
-                const peer = this.#peerAddress(node.nodeId);
-                if (peer !== undefined) {
-                    this.#adapter.log.debug(`Received timeFailure event from node ${node.nodeId}`);
-                    this.#timeSyncManager?.syncNode(peer, SyncTrigger.TimeFailure);
-                }
-            }
-        });
-        node.events.stateChanged.on(() => {
-            const info = node.node.lifecycle.connectionState;
-            const nodeDetails = (this.#commissioningController?.getCommissionedNodesDetails() ?? []).find(
-                n => n.nodeId === node.nodeId,
+        const watchPeer = (peer: ClientNode): void => {
+            this.#observers.on(peer.lifecycle.connectionStateChanged, state =>
+                this.#handleConnectionState(peer, state),
             );
-            const nodeIdStr = node.nodeId.toString();
-            const deviceNode = this.#nodes.get(nodeIdStr);
-            if (deviceNode) {
-                deviceNode.handleStateChange(info, nodeDetails);
-            } else {
-                if (info !== NodeConnectionState.Disconnected) {
-                    this.#adapter.log.info(
-                        `Matter node "${nodeIdStr}" not initialized ... Got State change to ${info}`,
-                    );
+            // A peer reports its structure only once it is seeded, which happens after it reports Connected.
+            this.#observers.on(peer.lifecycle.seeded, () => {
+                this.#registerNodeForTimeSync(peer);
+                this.#registerNodeForThreadPolling(peer);
+            });
+            this.#observers.on(peer.lifecycle.decommissioned, () => {
+                const nodeId = peer.state.commissioning.peerAddress?.nodeId;
+                this.#adapter.log.info(`Node "${peer.id}" decommissioned`);
+                if (nodeId !== undefined) {
+                    this.#unregisterNodeFromTimeSync(nodeId);
+                    this.#unregisterNodeFromThreadPolling(nodeId);
                 }
-            }
-            this.#updateCallback();
-
-            if (info === NodeConnectionState.Connected) {
-                this.#registerNodeForTimeSync(node);
-                this.#registerNodeForThreadPolling(node);
-            }
-
-            // Send network graph update on connection state changes
-            this.#sendNetworkGraphUpdate();
-        });
-        node.events.structureChanged.on(() => {
-            this.#adapter.log.info(`Node "${node.nodeId}" structure changed`);
-            this.nodeToIoBrokerStructure(node).then(
-                () => this.#updateCallback(),
-                error => this.#adapter.log.info(`Error while updating structure: ${error}`),
-            );
-            this.#updateCallback();
-        });
-        node.events.decommissioned.on(() => {
-            this.#adapter.log.info(`Node "${node.nodeId}" decommissioned`);
-            this.#unregisterNodeFromTimeSync(node.nodeId);
-            this.#unregisterNodeFromThreadPolling(node.nodeId);
-            // TODO Delete the node from config and objects
-            this.#updateCallback();
-        });
-        // matter.js emits stateChanged(Connected) before it flips `initialized` and builds the
-        // endpoint structure, and never re-emits Connected while the node stays up. Nodes doing
-        // their first remote initialization would therefore never register via stateChanged.
-        node.events.initializedFromRemote.on(() => {
-            this.#registerNodeForTimeSync(node);
-            this.#registerNodeForThreadPolling(node);
-        });
-        node.events.connectionAlive.on(() => {
-            const nodeIdStr = node.nodeId.toString();
-            const deviceNode = this.#nodes.get(nodeIdStr);
-            if (deviceNode) {
-                deviceNode.handleConnectionAlive();
-            }
-        });
+                this.#updateCallback();
+            });
+        };
+        for (const peer of serverNode.peers.commissioned) {
+            watchPeer(peer);
+        }
+        this.#observers.on(serverNode.peers.added, watchPeer);
     }
 
-    get nodeConnectSettings(): CommissioningControllerNodeOptions {
-        return {
-            subscribeMinIntervalFloorSeconds: 1,
-            subscribeMaxIntervalCeilingSeconds: undefined,
-        };
+    #handlePeerChange(peer: ClientNode, change: ChangeNotificationService.Change): void {
+        const nodeIdStr = peer.state.commissioning.peerAddress?.nodeId.toString() ?? peer.id;
+        const deviceNode = this.#nodes.get(nodeIdStr);
+        switch (change.kind) {
+            case 'update': {
+                if (!ClusterBehavior.is(change.behavior)) {
+                    return;
+                }
+                const clusterId = change.behavior.cluster.id;
+                deviceNode
+                    ?.handleChangedAttributes(change.endpoint, change.behavior, change.properties)
+                    .catch(error => this.#adapter.log.error(`Error handling attribute change: ${error}`));
+                if (this.#isNetworkRelevantCluster(clusterId)) {
+                    this.#sendNetworkGraphUpdate();
+                }
+                break;
+            }
+            case 'event': {
+                if (!ClusterBehavior.is(change.behavior)) {
+                    return;
+                }
+                deviceNode
+                    ?.handleTriggeredEvent(change)
+                    .catch(error => this.#adapter.log.error(`Error handling event: ${error}`));
+
+                if (change.behavior.cluster.id === TIME_SYNC_CLUSTER_ID && change.event.id === TIME_FAILURE_EVENT_ID) {
+                    const peerAddress = peer.state.commissioning.peerAddress;
+                    if (peerAddress !== undefined) {
+                        this.#adapter.log.debug(`Received timeFailure event from node ${nodeIdStr}`);
+                        this.#timeSyncManager?.syncNode(peerAddress, SyncTrigger.TimeFailure);
+                    }
+                }
+                break;
+            }
+            case 'delete':
+                this.#adapter.log.info(`Node "${nodeIdStr}" lost endpoint ${change.endpoint.number}`);
+                this.nodeToIoBrokerStructure(peer).then(
+                    () => this.#updateCallback(),
+                    error => this.#adapter.log.info(`Error while updating structure: ${error}`),
+                );
+                break;
+        }
+    }
+
+    #handleConnectionState(peer: ClientNode, state: NodeConnectionState): void {
+        const nodeIdStr = peer.state.commissioning.peerAddress?.nodeId.toString() ?? peer.id;
+        const deviceNode = this.#nodes.get(nodeIdStr);
+        if (deviceNode) {
+            deviceNode.handleStateChange(state, { operationalAddress: operationalAddressOf(peer) });
+        } else if (state !== NodeConnectionState.Disconnected) {
+            this.#adapter.log.info(`Matter node "${nodeIdStr}" not initialized ... Got State change to ${state}`);
+        }
+        this.#updateCallback();
+
+        if (state === NodeConnectionState.Connected) {
+            this.#registerNodeForTimeSync(peer);
+            this.#registerNodeForThreadPolling(peer);
+        }
+
+        this.#sendNetworkGraphUpdate();
     }
 
     async start(): Promise<void> {
-        if (this.#commissioningController) {
-            throw new Error('CommissioningController already started!');
+        if (this.#serverNode) {
+            throw new Error('Controller already started!');
         }
 
-        this.#commissioningController = new CommissioningController({
-            autoConnect: false,
-            environment: {
-                environment: this.#adapter.matterEnvironment,
-                id: 'controller',
-            },
-            tcp: true,
-            transportPreference: 'tcp',
-            adminFabricLabel: this.#fabricLabel,
-            enableOtaProvider: true,
+        const serverNode = await ServerNode.create(ServerNode.RootEndpoint.with(ControllerBehavior), {
+            environment: this.#adapter.matterEnvironment,
+            id: 'controller',
+            // A controller is never commissionable itself, and subscription persistence is a device feature.
+            commissioning: { enabled: false },
+            subscriptions: { persistenceEnabled: false },
+            network: { tcp: true, transportPreference: 'tcp' },
+            controller: { adminFabricLabel: this.#fabricLabel, ble: this.#useBle },
         });
+        this.#serverNode = serverNode;
+        this.#otaProvider = await serverNode.add(new Endpoint(OtaProviderEndpoint, { id: 'ota-provider' }));
 
         await this.#adapter.extendObjectAsync('controller.info', {
             type: 'channel',
@@ -477,89 +530,82 @@ class Controller implements GeneralNode {
         await this.#adapter.setState('controller.info.discovering', false, true);
 
         try {
-            await this.#commissioningController.start();
+            const fabricAuthority = await serverNode.env.load(FabricAuthority);
+            this.#fabric = await fabricAuthority.defaultFabric({ adminFabricLabel: this.#fabricLabel });
+            await serverNode.start();
         } catch (error) {
             const errorText = inspect(error, { depth: 10 });
             this.#adapter.log.error(`Failed to start the controller: ${errorText}`);
             return;
         }
 
-        this.#fabricIndex = this.#commissioningController.fabric.fabricIndex;
+        this.#fabricIndex = this.#fabric?.fabricIndex;
         this.#startTimeSync();
 
         this.#startThreadDiagnostics();
 
-        const nodesDetails = this.#commissioningController.getCommissionedNodesDetails();
+        this.#registerChangeHandlers();
+
+        const peers = serverNode.peers.commissioned;
         this.#adapter.log.info(
-            `Found ${nodesDetails.length} nodes: ${nodesDetails.map(({ nodeId }) => nodeId.toString()).join(', ')}`,
+            `Found ${peers.length} nodes: ${peers.map(peer => peer.state.commissioning.peerAddress?.nodeId).join(', ')}`,
         );
-        // attach all nodes to the controller
-        for (const details of nodesDetails) {
-            const { nodeId } = details;
+        // Connecting them is automatic; this only builds their ioBroker representation.
+        for (const peer of peers) {
             try {
-                this.#adapter.log.info(`Initializing node "${nodeId}" ...`);
-                const node = await this.#commissioningController.getNode(nodeId);
-                this.#registerNodeHandlers(node);
-                await this.nodeToIoBrokerStructure(node, details);
+                this.#adapter.log.info(`Initializing node "${peer.id}" ...`);
+                await this.nodeToIoBrokerStructure(peer);
             } catch (error) {
-                this.#adapter.log.info(`Failed to connect to node "${nodeId}": ${error.stack}`);
+                this.#adapter.log.info(`Failed to initialize node "${peer.id}": ${error.stack}`);
             }
         }
 
-        this.#observers.on(
-            this.#commissioningController.otaProvider.eventsOf(SoftwareUpdateManager).updateAvailable,
-            (peerAddress, info) => {
-                const nodeIdStr = peerAddress.nodeId.toString();
-                const node = this.#nodes.get(nodeIdStr);
-                if (node === undefined) {
-                    return;
-                }
-                // Use the new method that persists to state
-                this.#adapter.log.info(
-                    `Software update available for node ${nodeIdStr}: version ${info.softwareVersionString} (${info.softwareVersion}), source: ${info.source}`,
-                );
-                node.setSoftwareUpdateAvailable(info);
-                // Refresh UI to show the update available icon
-                this.#adapter.refreshControllerDevices();
-            },
-        );
-        this.#observers.on(
-            this.#commissioningController.otaProvider.eventsOf(SoftwareUpdateManager).updateDone,
-            peerAddress => {
-                const nodeIdStr = peerAddress.nodeId.toString();
-                const node = this.#nodes.get(nodeIdStr);
-                if (node === undefined) {
-                    return;
-                }
-                // Use the new method that clears the persisted state
-                node.clearSoftwareUpdateAvailable().catch(error => {
-                    this.#adapter.log.error(`Error clearing update available state for node ${nodeIdStr}: ${error}`);
-                });
-                // Notify the node that the update is complete (closes progress dialog)
-                node.onSoftwareUpdateComplete(true).catch(error => {
-                    this.#adapter.log.error(`Error handling update complete for node ${nodeIdStr}: ${error}`);
-                });
-                // Refresh UI to remove the update available icon
-                this.#adapter.refreshControllerDevices();
-            },
-        );
-        this.#observers.on(
-            this.#commissioningController.otaProvider.eventsOf(SoftwareUpdateManager).updateFailed,
-            peerAddress => {
-                const nodeIdStr = peerAddress.nodeId.toString();
-                const node = this.#nodes.get(nodeIdStr);
-                if (node === undefined) {
-                    return;
-                }
-                this.#adapter.log.warn(`Software update failed for node ${nodeIdStr}`);
-                // Notify the node that the update failed (closes progress dialog, shows error)
-                node.onSoftwareUpdateFailed().catch(error => {
-                    this.#adapter.log.error(`Error handling update failure for node ${nodeIdStr}: ${error}`);
-                });
-                // Refresh UI
-                this.#adapter.refreshControllerDevices();
-            },
-        );
+        const otaProvider = this.#otaProvider;
+        this.#observers.on(otaProvider.eventsOf(SoftwareUpdateManager).updateAvailable, (peerAddress, info) => {
+            const nodeIdStr = peerAddress.nodeId.toString();
+            const node = this.#nodes.get(nodeIdStr);
+            if (node === undefined) {
+                return;
+            }
+            // Use the new method that persists to state
+            this.#adapter.log.info(
+                `Software update available for node ${nodeIdStr}: version ${info.softwareVersionString} (${info.softwareVersion}), source: ${info.source}`,
+            );
+            node.setSoftwareUpdateAvailable(info);
+            // Refresh UI to show the update available icon
+            this.#adapter.refreshControllerDevices();
+        });
+        this.#observers.on(otaProvider.eventsOf(SoftwareUpdateManager).updateDone, peerAddress => {
+            const nodeIdStr = peerAddress.nodeId.toString();
+            const node = this.#nodes.get(nodeIdStr);
+            if (node === undefined) {
+                return;
+            }
+            // Use the new method that clears the persisted state
+            node.clearSoftwareUpdateAvailable().catch(error => {
+                this.#adapter.log.error(`Error clearing update available state for node ${nodeIdStr}: ${error}`);
+            });
+            // Notify the node that the update is complete (closes progress dialog)
+            node.onSoftwareUpdateComplete(true).catch(error => {
+                this.#adapter.log.error(`Error handling update complete for node ${nodeIdStr}: ${error}`);
+            });
+            // Refresh UI to remove the update available icon
+            this.#adapter.refreshControllerDevices();
+        });
+        this.#observers.on(otaProvider.eventsOf(SoftwareUpdateManager).updateFailed, peerAddress => {
+            const nodeIdStr = peerAddress.nodeId.toString();
+            const node = this.#nodes.get(nodeIdStr);
+            if (node === undefined) {
+                return;
+            }
+            this.#adapter.log.warn(`Software update failed for node ${nodeIdStr}`);
+            // Notify the node that the update failed (closes progress dialog, shows error)
+            node.onSoftwareUpdateFailed().catch(error => {
+                this.#adapter.log.error(`Error handling update failure for node ${nodeIdStr}: ${error}`);
+            });
+            // Refresh UI
+            this.#adapter.refreshControllerDevices();
+        });
     }
 
     #getNodeLock(nodeIdStr: string): Semaphore {
@@ -571,8 +617,8 @@ class Controller implements GeneralNode {
         return lock;
     }
 
-    async nodeToIoBrokerStructure(node: PairedNode, nodeDetails?: { operationalAddress?: string }): Promise<void> {
-        const nodeIdStr = node.nodeId.toString();
+    async nodeToIoBrokerStructure(node: ClientNode, nodeDetails?: { operationalAddress?: string }): Promise<void> {
+        const nodeIdStr = node.state.commissioning.peerAddress?.nodeId.toString() ?? node.id;
 
         // One rebuild per node id at a time, so a losing GeneralMatterNode is never overwritten in #nodes undestroyed.
         const slot = await this.#getNodeLock(nodeIdStr).obtainSlot();
@@ -585,12 +631,7 @@ class Controller implements GeneralNode {
             const oldDevice = this.#nodes.get(nodeIdStr);
             await oldDevice?.destroy();
 
-            const device = new GeneralMatterNode(
-                this.#adapter,
-                node.node,
-                this.#parameters,
-                this.#commissioningController,
-            );
+            const device = new GeneralMatterNode(this.#adapter, node, this.#parameters, this.#otaProvider);
             this.#nodes.set(nodeIdStr, device);
             await device.initialize(nodeDetails);
 
@@ -619,7 +660,7 @@ class Controller implements GeneralNode {
         this.#timeSyncManager = new TimeSyncManager({
             syncTime: peer => this.#syncNodeTime(peer.nodeId),
             nodeConnected: peer => this.#nodes.get(peer.nodeId.toString())?.isConnected ?? false,
-            commissionedNodeCount: () => this.#commissioningController?.getCommissionedNodes().length ?? 0,
+            commissionedNodeCount: () => this.#serverNode?.peers.commissioned.length ?? 0,
         });
     }
 
@@ -633,7 +674,7 @@ class Controller implements GeneralNode {
      * processor until the node's next reconnect. `icdChanged` outlives that rebuild, so one
      * subscription per `GeneralMatterNode` is enough.
      */
-    #ensureIcdTracking(node: PairedNode, deviceNode: GeneralMatterNode): NodeIcdManager | undefined {
+    #ensureIcdTracking(node: ClientNode, deviceNode: GeneralMatterNode): NodeIcdManager | undefined {
         // The peer's root endpoint structure can still be unpopulated at this point on a node's first
         // remote initialization, which is exactly when a fresh registration matters most; retry so LIT
         // capability is not silently defaulted to false for the rest of the process lifetime.
@@ -650,24 +691,20 @@ class Controller implements GeneralNode {
         return deviceNode.icd;
     }
 
-    #registerNodeForTimeSync(node: PairedNode): void {
-        if (this.#timeSyncManager === undefined || !node.initialized) {
+    #registerNodeForTimeSync(node: ClientNode): void {
+        if (this.#timeSyncManager === undefined || !node.lifecycle.isSeeded) {
             return;
         }
-        const peer = this.#peerAddress(node.nodeId);
+        const peer = node.state.commissioning.peerAddress;
         if (peer === undefined) {
             return;
         }
         try {
-            const deviceNode = this.#nodes.get(node.nodeId.toString());
+            const deviceNode = this.#nodes.get(peer.nodeId.toString());
             const icd = deviceNode !== undefined ? this.#ensureIcdTracking(node, deviceNode) : undefined;
-            this.#timeSyncManager.registerNode(
-                peer,
-                readTimeSyncCapabilities(node.node),
-                icd?.longIdleTimeActive ?? false,
-            );
+            this.#timeSyncManager.registerNode(peer, readTimeSyncCapabilities(node), icd?.longIdleTimeActive ?? false);
         } catch (error) {
-            this.#adapter.log.debug(`Error registering node ${node.nodeId} for time synchronization: ${error}`);
+            this.#adapter.log.debug(`Error registering node ${node.id} for time synchronization: ${error}`);
         }
     }
 
@@ -678,21 +715,21 @@ class Controller implements GeneralNode {
         }
     }
 
-    #registerNodeForThreadPolling(node: PairedNode): void {
-        if (this.#threadDetailsPoller === undefined || !node.initialized) {
+    #registerNodeForThreadPolling(node: ClientNode): void {
+        if (this.#threadDetailsPoller === undefined || !node.lifecycle.isSeeded) {
             return;
         }
-        const peer = this.#peerAddress(node.nodeId);
+        const peer = node.state.commissioning.peerAddress;
         if (peer === undefined) {
             return;
         }
         try {
-            const deviceNode = this.#nodes.get(node.nodeId.toString());
+            const deviceNode = this.#nodes.get(peer.nodeId.toString());
             const icd = deviceNode !== undefined ? this.#ensureIcdTracking(node, deviceNode) : undefined;
-            const isThreadNode = this.#getNetworkType(node.node) === 'thread';
+            const isThreadNode = this.#getNetworkType(node) === 'thread';
             this.#threadDetailsPoller.registerNode(peer, isThreadNode, icd?.longIdleTimeActive ?? false);
         } catch (error) {
-            this.#adapter.log.debug(`Error registering node ${node.nodeId} for Thread topology polling: ${error}`);
+            this.#adapter.log.debug(`Error registering node ${node.id} for Thread topology polling: ${error}`);
         }
     }
 
@@ -803,10 +840,11 @@ class Controller implements GeneralNode {
     }
 
     async commissionDevice(data: EndUserCommissioningOptions): Promise<AddDeviceResult> {
-        if (!this.#commissioningController) {
+        const serverNode = this.#serverNode;
+        if (!serverNode) {
             return { error: 'Controller is not activated.', result: false };
         }
-        const commissioningOptions: NodeCommissioningOptions['commissioning'] = {
+        const commissioningOptions: CommissioningClient.BaseCommissioningOptions = {
             regulatoryLocation: GeneralCommissioning.RegulatoryLocationType.IndoorOutdoor,
             regulatoryCountryCode: 'XX',
         };
@@ -890,40 +928,46 @@ class Controller implements GeneralNode {
             throw new Error('Passcode is missing');
         }
 
-        const options: NodeCommissioningOptions = {
-            ...this.nodeConnectSettings,
-            commissioning: commissioningOptions,
-            discovery: {
-                knownAddress,
-                commissionableDevice: device || undefined,
-                identifierData:
-                    longDiscriminator !== undefined
-                        ? { longDiscriminator }
-                        : shortDiscriminator !== undefined
-                          ? { shortDiscriminator }
-                          : vendorId !== undefined
-                            ? { vendorId, productId }
-                            : {},
-            },
+        const options: CommissioningClient.CommissioningOptions = {
+            ...commissioningOptions,
             passcode,
+            discoveryCapabilities: { onIpNetwork: true, ble: this.#useBle },
+            ...(longDiscriminator !== undefined ? { discriminator: longDiscriminator } : {}),
         };
 
-        const nodeId = await this.#commissioningController.commissionNode(options);
+        // An address the mobile app supplied is more specific than a discovery record, so it wins.
+        const descriptor = knownAddress !== undefined ? { addresses: [knownAddress] } : (device ?? undefined);
+        let peer: ClientNode;
+        if (descriptor !== undefined) {
+            peer = await serverNode.peers.forDescriptor(descriptor);
+            await peer.commission(options);
+        } else {
+            // Without a descriptor the identifiers steer discovery, which commission() runs itself.
+            peer = await serverNode.peers.commission({
+                ...options,
+                ...(shortDiscriminator !== undefined ? { shortDiscriminator } : {}),
+                ...(vendorId !== undefined ? { vendorId, productId } : {}),
+            });
+        }
 
+        const nodeId = peer.state.commissioning.peerAddress?.nodeId;
+        if (nodeId === undefined) {
+            return { result: false, error: 'Commissioning finished without a node id' };
+        }
         await this.registerCommissionedNode(nodeId);
 
         return { result: true, nodeId: nodeId.toString() };
     }
 
     async completeCommissioningForNode(nodeId: NodeId, discoveryData?: DiscoveryData): Promise<AddDeviceResult> {
-        if (!this.#commissioningController) {
+        if (!this.#serverNode) {
             return {
                 result: false,
                 error: `Can not register NodeId "${nodeId}" because controller not initialized.`,
             };
         }
 
-        await this.#commissioningController.completeCommissioningForNode(nodeId, discoveryData);
+        await this.#serverNode.peers.completeCommissioning(nodeId, discoveryData);
 
         await this.registerCommissionedNode(nodeId);
 
@@ -931,54 +975,53 @@ class Controller implements GeneralNode {
     }
 
     async registerCommissionedNode(nodeId: NodeId): Promise<void> {
-        if (!this.#commissioningController) {
-            throw new Error(`Can not register NodeId "${nodeId}" because controller not initialized.`);
-        }
-
-        const node = await this.#commissioningController.getNode(nodeId);
+        const peerAddress = this.#peerAddress(nodeId);
+        const node = peerAddress === undefined ? undefined : this.#serverNode?.peers.get(peerAddress);
         if (node === undefined) {
             // should never happen
             throw new Error(`Node ${nodeId} is not connected but commissioning was successful. Should not happen.`);
         }
 
-        this.#registerNodeHandlers(node);
-        await this.nodeToIoBrokerStructure(
-            node,
-            this.#commissioningController.getCommissionedNodesDetails().find(n => n.nodeId === nodeId),
-        );
+        await this.nodeToIoBrokerStructure(node, { operationalAddress: operationalAddressOf(node) });
 
         this.#adapter.log.debug(`Commissioning successfully completed with nodeId "${nodeId}"`);
         this.#updateCallback();
     }
 
     async #discovery(obj: ioBroker.Message): Promise<void> {
-        if (!this.#commissioningController) {
+        const serverNode = this.#serverNode;
+        if (!serverNode) {
             return;
         }
         await this.#adapter.setState('controller.info.discovering', true, true);
         this.#discovering = true;
         this.#adapter.log.info(`Start the discovering...`);
-        this.#commissioningController
-            .discoverCommissionableDevices(
-                {},
-                {
-                    ble: this.#useBle,
-                    onIpNetwork: true,
-                },
-                device => {
-                    this.#adapter.log.debug(`Discovered Device: ${Diagnostic.json(device)}`);
-                    if (this.#discovering) {
-                        this.#adapter
-                            .sendToGui({
-                                command: 'discoveredDevice',
-                                device,
-                            })
-                            .catch(error => this.#adapter.log.info(`Error sending to GUI: ${error}`));
-                    }
-                },
-                Seconds(60), // timeoutSeconds
-            )
-            .then(result => {
+        const discovery = serverNode.peers.discover({ timeout: Seconds(60) });
+        this.#activeDiscovery = discovery;
+        // The same device announces repeatedly for as long as discovery runs.
+        const seen = new Set<string>();
+        this.#observers.on(discovery.discovered, node => {
+            const device = RemoteDescriptor.fromLongForm(node.state.commissioning) as CommissionableDevice;
+            const identifier = device.deviceIdentifier ?? JSON.stringify(device.addresses ?? []);
+            if (seen.has(identifier)) {
+                return;
+            }
+            seen.add(identifier);
+            this.#adapter.log.debug(`Discovered Device: ${Diagnostic.json(device)}`);
+            if (this.#discovering) {
+                this.#adapter
+                    .sendToGui({
+                        command: 'discoveredDevice',
+                        device,
+                    })
+                    .catch(error => this.#adapter.log.info(`Error sending to GUI: ${error}`));
+            }
+        });
+        discovery
+            .then(nodes => {
+                const result = nodes.map(
+                    node => RemoteDescriptor.fromLongForm(node.state.commissioning) as CommissionableDevice,
+                );
                 this.#adapter.log.info(`Discovering stopped. Found ${result.length} devices.`);
                 this.#adapter
                     .setState('controller.info.discovering', false, true)
@@ -999,17 +1042,12 @@ class Controller implements GeneralNode {
     }
 
     async #discoveryStop(): Promise<void> {
-        if (this.#commissioningController && this.#discovering) {
+        if (this.#activeDiscovery && this.#discovering) {
             this.#discovering = false;
             await this.#adapter.setState('controller.info.discovering', false, true);
             this.#adapter.log.info(`Stop the discovering...`);
-            this.#commissioningController.cancelCommissionableDeviceDiscovery(
-                {},
-                {
-                    ble: this.#useBle,
-                    onIpNetwork: true,
-                },
-            );
+            this.#activeDiscovery.stop();
+            this.#activeDiscovery = undefined;
         }
     }
 
@@ -1017,10 +1055,8 @@ class Controller implements GeneralNode {
         manualPairingCode: string;
         qrPairingCode: string;
     } | null> {
-        if (!this.#commissioningController) {
-            return null;
-        }
-        const node = await this.#commissioningController.getNode(nodeId);
+        const peerAddress = this.#peerAddress(nodeId);
+        const node = peerAddress === undefined ? undefined : this.#serverNode?.peers.get(peerAddress);
         if (node) {
             return await node.openEnhancedCommissioningWindow();
         }
@@ -1578,25 +1614,35 @@ class Controller implements GeneralNode {
 
         this.#nodes.clear();
 
-        if (this.#commissioningController) {
+        if (this.#serverNode) {
             this.#observers.close();
-            await this.#commissioningController.close();
-            this.#commissioningController = undefined;
+            await this.#serverNode.close();
+            this.#serverNode = undefined;
+            this.#otaProvider = undefined;
         }
     }
 
     async decommissionNode(nodeId: string): Promise<void> {
-        if (!this.#commissioningController) {
+        const serverNode = this.#serverNode;
+        if (!serverNode) {
             throw new Error(`Can not decommission NodeId "${nodeId}" because controller not initialized.`);
         }
         // Shares nodeToIoBrokerStructure's lock so a concurrent rebuild can't race the delete below.
         const removedNodeId = NodeId(BigInt(nodeId));
         const slot = await this.#getNodeLock(nodeId).obtainSlot();
         try {
-            await this.#commissioningController.removeNode(
-                removedNodeId,
-                !!this.#nodes.get(nodeId)?.node.lifecycle.isConnected,
-            );
+            const removedPeerAddress = this.#peerAddress(removedNodeId);
+            const peer = removedPeerAddress === undefined ? undefined : serverNode.peers.get(removedPeerAddress);
+            if (peer === undefined) {
+                this.#adapter.log.warn(
+                    `Node "${nodeId}" is unknown to the controller; removing it locally only. It may still hold our fabric.`,
+                );
+            } else if (peer.lifecycle.isConnected) {
+                // Decommissioning talks to the device; a peer we cannot reach is only dropped locally.
+                await peer.decommission();
+            } else {
+                await peer.delete();
+            }
             this.#unregisterNodeFromTimeSync(removedNodeId);
             this.#unregisterNodeFromThreadPolling(removedNodeId);
             this.#nodes.delete(nodeId);

@@ -118,19 +118,6 @@ export type {
     BorderRouterEntry,
 };
 
-/**
- * Whether `endpoint` belongs to `node`'s subtree. `ChangeNotificationService` carries the changes of the
- * controller and of every peer in one stream, and matter.js exports no helper to attribute one to its node.
- */
-function ownedBy(endpoint: Endpoint, node: ClientNode): boolean {
-    for (let current: Endpoint | undefined = endpoint; current !== undefined; current = current.owner) {
-        if (current === node) {
-            return true;
-        }
-    }
-    return false;
-}
-
 /** The address the peer is reachable on, in the `udp://host:port` form the ioBroker state carries. */
 function operationalAddressOf(peer: ClientNode): string | undefined {
     const addresses = peer.state.commissioning.addresses;
@@ -159,6 +146,11 @@ class Controller implements GeneralNode {
     #useBle = false;
     #commissioningStatus = new Map<number, { status: 'finished' | 'error' | 'inprogress'; result?: MessageResponse }>();
     #observers = new ObserverGroup();
+    /**
+     * The peers this controller observes, keyed by the peer itself but typed as its endpoint so the owner
+     * walk of an arbitrary endpoint can look one up directly.
+     */
+    readonly #watchedPeers = new Map<Endpoint, { peer: ClientNode; observers: ObserverGroup }>();
     #networkGraphUpdateTimer?: ioBroker.Timeout;
     #closing = false;
     #borderRouterRegistry?: BorderRouterRegistry;
@@ -388,6 +380,20 @@ class Controller implements GeneralNode {
         return { error: `Unknown command "${command}"` };
     }
 
+    /**
+     * Give up on a controller that could not be brought up.
+     *
+     * `handleCommand()` treats a set `#serverNode` as a controller the GUI may act on, so a node that never
+     * became usable has to be dropped rather than left behind.
+     */
+    async #discardServerNode(serverNode: ServerNode): Promise<void> {
+        this.#serverNode = undefined;
+        this.#otaProvider = undefined;
+        this.#unwatchAllPeers();
+        // A node that will not close keeps its mDNS sockets and storage handles
+        await serverNode.close().catch(error => this.#adapter.log.warn(`Error closing controller: ${error}`));
+    }
+
     #registerChangeHandlers(): void {
         const serverNode = this.#serverNode;
         if (serverNode === undefined) {
@@ -395,23 +401,28 @@ class Controller implements GeneralNode {
         }
 
         this.#observers.on(serverNode.env.get(ChangeNotificationService).change, change => {
-            const peer = serverNode.peers.commissioned.find(candidate => ownedBy(change.endpoint, candidate));
-            if (peer === undefined) {
+            const peer = this.#peerOf(change.endpoint);
+            if (peer === undefined || !peer.lifecycle.isCommissioned) {
                 return;
             }
             this.#handlePeerChange(peer, change);
         });
 
         const watchPeer = (peer: ClientNode): void => {
-            this.#observers.on(peer.lifecycle.connectionStateChanged, state =>
-                this.#handleConnectionState(peer, state),
-            );
-            // A peer reports its structure only once it is seeded, which happens after it reports Connected.
-            this.#observers.on(peer.lifecycle.seeded, () => {
+            if (this.#watchedPeers.has(peer)) {
+                return;
+            }
+            const observers = new ObserverGroup();
+            this.#watchedPeers.set(peer, { peer, observers });
+
+            observers.on(peer.lifecycle.connectionStateChanged, state => this.#handleConnectionState(peer, state));
+            // Seeding happens on the first structure read, which for a peer restored from cache is before this
+            // runs; `seeded` emits once and does not replay, so the Connected path below arms these as well.
+            observers.on(peer.lifecycle.seeded, () => {
                 this.#registerNodeForTimeSync(peer);
                 this.#registerNodeForThreadPolling(peer);
             });
-            this.#observers.on(peer.lifecycle.decommissioned, () => {
+            observers.on(peer.lifecycle.decommissioned, () => {
                 const nodeId = peer.state.commissioning.peerAddress?.nodeId;
                 this.#adapter.log.info(`Node "${peer.id}" decommissioned`);
                 if (nodeId !== undefined) {
@@ -421,10 +432,36 @@ class Controller implements GeneralNode {
                 this.#updateCallback();
             });
         };
+        // Discovery adds commissionable devices to the same collection, and the expiration cull drops them
+        // again, so the observers of a peer have to go when the peer does.
+        const unwatchPeer = (peer: Endpoint): void => {
+            this.#watchedPeers.get(peer)?.observers.close();
+            this.#watchedPeers.delete(peer);
+        };
+
         for (const peer of serverNode.peers.commissioned) {
             watchPeer(peer);
         }
         this.#observers.on(serverNode.peers.added, watchPeer);
+        this.#observers.on(serverNode.peers.deleted, unwatchPeer);
+    }
+
+    /** The peer whose subtree `endpoint` belongs to, if it is one of ours. */
+    #peerOf(endpoint: Endpoint): ClientNode | undefined {
+        for (let current: Endpoint | undefined = endpoint; current !== undefined; current = current.owner) {
+            const watched = this.#watchedPeers.get(current);
+            if (watched !== undefined) {
+                return watched.peer;
+            }
+        }
+        return undefined;
+    }
+
+    #unwatchAllPeers(): void {
+        for (const { observers } of this.#watchedPeers.values()) {
+            observers.close();
+        }
+        this.#watchedPeers.clear();
     }
 
     #handlePeerChange(peer: ClientNode, change: ChangeNotificationService.Change): void {
@@ -536,17 +573,34 @@ class Controller implements GeneralNode {
         } catch (error) {
             const errorText = inspect(error, { depth: 10 });
             this.#adapter.log.error(`Failed to start the controller: ${errorText}`);
+            await this.#discardServerNode(serverNode);
             return;
         }
 
         this.#fabricIndex = this.#fabric?.fabricIndex;
+
+        let peers: ClientNode[];
+        try {
+            // Loading the peers is deferred to the first access of this getter, so it fails here rather than
+            // in whichever call site happens to touch it first.
+            peers = serverNode.peers.commissioned;
+        } catch (error) {
+            this.#adapter.log.error(`Failed to load the paired nodes: ${inspect(error, { depth: 10 })}`);
+            this.#adapter.log.error(
+                'The controller is stopped because its nodes could not be loaded. Restart the instance ' +
+                    'first. If that does not help, the controller data is inconsistent - restore the instance ' +
+                    'data directory and the objects of this instance from the same backup.',
+            );
+            await this.#discardServerNode(serverNode);
+            return;
+        }
+
         this.#startTimeSync();
 
         this.#startThreadDiagnostics();
 
         this.#registerChangeHandlers();
 
-        const peers = serverNode.peers.commissioned;
         this.#adapter.log.info(
             `Found ${peers.length} nodes: ${peers.map(peer => peer.state.commissioning.peerAddress?.nodeId).join(', ')}`,
         );
@@ -1616,6 +1670,7 @@ class Controller implements GeneralNode {
 
         if (this.#serverNode) {
             this.#observers.close();
+            this.#unwatchAllPeers();
             await this.#serverNode.close();
             this.#serverNode = undefined;
             this.#otaProvider = undefined;

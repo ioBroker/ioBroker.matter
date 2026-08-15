@@ -72,13 +72,11 @@ export namespace StorageLayout {
      * source untouched, so it defers the move to the next start rather than losing data.
      */
     async function moveDirectory(from: string, to: string): Promise<void> {
-        try {
+        // Renaming onto an existing target fails with a different code per platform - ENOTEMPTY, EEXIST or,
+        // on Windows, EPERM - so the target is looked at rather than the error.
+        if (!(await exists(to))) {
             await fs.rename(from, to);
             return;
-        } catch (error) {
-            if (error.code !== 'ENOTEMPTY' && error.code !== 'EEXIST') {
-                throw error;
-            }
         }
 
         for (const entry of await fs.readdir(from)) {

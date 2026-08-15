@@ -594,16 +594,7 @@ export class MatterAdapter extends Adapter {
                     adapter,
                     namespace,
                     namespace === 'controller' ? instanceDataDir : undefined,
-                    namespace === 'controller'
-                        ? (contexts: string[]): boolean =>
-                              // Legacy node data
-                              contexts[0]?.startsWith('node-') ||
-                              // Or new node data for endpoints (not internal clusters)
-                              (contexts[0] === 'nodes' &&
-                                  contexts[2] === 'endpoints' &&
-                                  contexts[1]?.startsWith('peer') &&
-                                  !Number.isNaN(contexts[4]))
-                        : undefined,
+                    namespace === 'controller' ? StorageLayout.isClusterData : undefined,
                 );
                 await store.initialize();
                 return store;

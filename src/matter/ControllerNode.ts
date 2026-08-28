@@ -5,6 +5,7 @@ import {
     ClientNodePhysicalProperties,
     Diagnostic,
     Endpoint,
+    EndpointLifecycle,
     NodeConnectionState,
     NodeId,
     ObserverGroup,
@@ -22,6 +23,7 @@ import {
     type ContinuousDiscovery,
     type ServerAddressUdp,
     type SoftwareUpdateInfo,
+    type CommissioningDiscovery,
 } from '@matter/main';
 import { GeneralCommissioning } from '@matter/main/clusters';
 import {
@@ -118,6 +120,24 @@ export type {
     BorderRouterEntry,
 };
 
+/**
+ * How long endpoint changes of one peer are collected before its ioBroker structure is rebuilt.
+ *
+ * Measured from the first change, not restarted by later ones, so a device reporting its endpoints slowly
+ * still ends in one rebuild.
+ */
+const STRUCTURE_REBUILD_DELAY_MS = 5_000;
+
+interface WatchedPeer {
+    peer: ClientNode;
+    observers: ObserverGroup;
+    /** Last address the peer reported, because it is already gone when the decommission is announced. */
+    commissionedNodeId?: NodeId;
+    /** Set once the peer itself starts being destroyed, so a rebuild cannot recreate what is being removed. */
+    tearingDown?: boolean;
+    rebuildTimer?: ioBroker.Timeout;
+}
+
 /** The address the peer is reachable on, in the `udp://host:port` form the ioBroker state carries. */
 function operationalAddressOf(peer: ClientNode): string | undefined {
     const addresses = peer.state.commissioning.addresses;
@@ -150,7 +170,7 @@ class Controller implements GeneralNode {
      * The peers this controller observes, keyed by the peer itself but typed as its endpoint so the owner
      * walk of an arbitrary endpoint can look one up directly.
      */
-    readonly #watchedPeers = new Map<Endpoint, { peer: ClientNode; observers: ObserverGroup }>();
+    readonly #watchedPeers = new Map<Endpoint, WatchedPeer>();
     #networkGraphUpdateTimer?: ioBroker.Timeout;
     #closing = false;
     #borderRouterRegistry?: BorderRouterRegistry;
@@ -413,29 +433,66 @@ class Controller implements GeneralNode {
                 return;
             }
             const observers = new ObserverGroup();
-            this.#watchedPeers.set(peer, { peer, observers });
+            const watched: WatchedPeer = { peer, observers };
+            this.#watchedPeers.set(peer, watched);
 
-            observers.on(peer.lifecycle.connectionStateChanged, state => this.#handleConnectionState(peer, state));
+            // A peer can be watched before it is commissioned, so the id is kept current while it is known.
+            const rememberNodeId = (): void => {
+                const nodeId = peer.state.commissioning?.peerAddress?.nodeId;
+                if (nodeId !== undefined) {
+                    watched.commissionedNodeId = nodeId;
+                }
+            };
+            rememberNodeId();
+
+            observers.on(peer.lifecycle.connectionStateChanged, state => {
+                rememberNodeId();
+                this.#handleConnectionState(peer, state);
+            });
             // Seeding happens on the first structure read, which for a peer restored from cache is before this
             // runs; `seeded` emits once and does not replay, so the Connected path below arms these as well.
             observers.on(peer.lifecycle.seeded, () => {
+                rememberNodeId();
                 this.#registerNodeForTimeSync(peer);
                 this.#registerNodeForThreadPolling(peer);
             });
             observers.on(peer.lifecycle.decommissioned, () => {
-                const nodeId = peer.state.commissioning.peerAddress?.nodeId;
                 this.#adapter.log.info(`Node "${peer.id}" decommissioned`);
+                const nodeId = watched.commissionedNodeId;
                 if (nodeId !== undefined) {
                     this.#unregisterNodeFromTimeSync(nodeId);
                     this.#unregisterNodeFromThreadPolling(nodeId);
                 }
                 this.#updateCallback();
             });
+            // A change notification reports an endpoint that went away but never one that appeared, so the
+            // structure of a bridge that gains a device is only seen here.
+            observers.on(peer.lifecycle.changed, (type, endpoint) => {
+                switch (type) {
+                    case EndpointLifecycle.Change.Destroying:
+                        if (endpoint === peer) {
+                            watched.tearingDown = true;
+                            this.#cancelStructureRebuild(watched);
+                        }
+                        break;
+                    case EndpointLifecycle.Change.Installed:
+                    case EndpointLifecycle.Change.Destroyed:
+                        if (endpoint !== peer) {
+                            this.#scheduleStructureRebuild(watched);
+                        }
+                        break;
+                }
+            });
         };
         // Discovery adds commissionable devices to the same collection, and the expiration cull drops them
         // again, so the observers of a peer have to go when the peer does.
         const unwatchPeer = (peer: Endpoint): void => {
-            this.#watchedPeers.get(peer)?.observers.close();
+            const watched = this.#watchedPeers.get(peer);
+            if (watched === undefined) {
+                return;
+            }
+            this.#cancelStructureRebuild(watched);
+            watched.observers.close();
             this.#watchedPeers.delete(peer);
         };
 
@@ -458,14 +515,41 @@ class Controller implements GeneralNode {
     }
 
     #unwatchAllPeers(): void {
-        for (const { observers } of this.#watchedPeers.values()) {
-            observers.close();
+        for (const watched of this.#watchedPeers.values()) {
+            this.#cancelStructureRebuild(watched);
+            watched.observers.close();
         }
         this.#watchedPeers.clear();
     }
 
+    /** Rebuild the ioBroker structure of a peer whose endpoints changed. */
+    #scheduleStructureRebuild(watched: WatchedPeer): void {
+        if (watched.tearingDown || this.#closing || this.#adapter.closing || watched.rebuildTimer !== undefined) {
+            return;
+        }
+        watched.rebuildTimer = this.#adapter.setTimeout(() => {
+            watched.rebuildTimer = undefined;
+            if (watched.tearingDown || this.#closing || this.#adapter.closing) {
+                return;
+            }
+            this.#adapter.log.info(`Node "${watched.peer.id}" structure changed`);
+            this.nodeToIoBrokerStructure(watched.peer).then(
+                () => this.#updateCallback(),
+                error => this.#adapter.log.info(`Error while updating structure: ${error}`),
+            );
+        }, STRUCTURE_REBUILD_DELAY_MS);
+    }
+
+    #cancelStructureRebuild(watched: WatchedPeer): void {
+        if (watched.rebuildTimer !== undefined) {
+            this.#adapter.clearTimeout(watched.rebuildTimer);
+            watched.rebuildTimer = undefined;
+        }
+    }
+
     #handlePeerChange(peer: ClientNode, change: ChangeNotificationService.Change): void {
-        const nodeIdStr = peer.state.commissioning.peerAddress?.nodeId.toString() ?? peer.id;
+        // matter.js drops the state of an endpoint that is being destroyed, and this runs while one is
+        const nodeIdStr = peer.state.commissioning?.peerAddress?.nodeId.toString() ?? peer.id;
         const deviceNode = this.#nodes.get(nodeIdStr);
         switch (change.kind) {
             case 'update': {
@@ -498,13 +582,16 @@ class Controller implements GeneralNode {
                 }
                 break;
             }
-            case 'delete':
-                this.#adapter.log.info(`Node "${nodeIdStr}" lost endpoint ${change.endpoint.number}`);
-                this.nodeToIoBrokerStructure(peer).then(
-                    () => this.#updateCallback(),
-                    error => this.#adapter.log.info(`Error while updating structure: ${error}`),
-                );
+            case 'delete': {
+                const watched = this.#watchedPeers.get(peer);
+                if (watched === undefined || watched.tearingDown) {
+                    // The peer itself is going away, so rebuilding would recreate what is being removed
+                    return;
+                }
+                this.#adapter.log.info(`Node "${nodeIdStr}" lost endpoint ${change.endpoint.maybeNumber}`);
+                this.#scheduleStructureRebuild(watched);
                 break;
+            }
         }
     }
 
@@ -951,6 +1038,8 @@ class Controller implements GeneralNode {
             longDiscriminator = pairingCodeCodec[0].discriminator;
             shortDiscriminator = undefined;
             passcode = pairingCodeCodec[0].passcode;
+            vendorId = VendorId(pairingCodeCodec[0].vendorId, false);
+            productId = pairingCodeCodec[0].productId;
         } else if ('passcode' in data) {
             passcode = data.passcode;
             vendorId = VendorId(data.vendorId);
@@ -982,7 +1071,7 @@ class Controller implements GeneralNode {
             throw new Error('Passcode is missing');
         }
 
-        const options: CommissioningClient.CommissioningOptions = {
+        const options: CommissioningDiscovery.Options = {
             ...commissioningOptions,
             passcode,
             discoveryCapabilities: { onIpNetwork: true, ble: this.#useBle },

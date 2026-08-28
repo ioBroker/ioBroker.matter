@@ -1,5 +1,5 @@
 import { strictEqual } from 'node:assert';
-import { ControllerBehavior, Environment, ServerNode } from '@matter/main';
+import { ControllerBehavior, EndpointLifecycle, Environment, ServerNode, type ClientNode } from '@matter/main';
 import { MockStorageService, StorageService, type SupportedStorageTypes } from '@matter/general';
 import { FabricAuthority } from '@matter/main/protocol';
 
@@ -102,11 +102,7 @@ async function createControllerNode(environment: Environment): Promise<ServerNod
  * Boots a controller once to obtain its fabric, then boots a second time against the same storage with a peer
  * seeded into it.  The second boot is what an adapter restart looks like to matter.js.
  */
-async function restartWithSeededPeer(options?: SeedOptions): Promise<{
-    isCommissioned: boolean;
-    isSeeded: boolean;
-    endpointCount: number;
-}> {
+async function withRestoredPeer<T>(action: (peer: ClientNode) => Promise<T>, options?: SeedOptions): Promise<T> {
     const environment = new Environment('test', Environment.default);
     const storage = new MockStorageService(environment);
     environment.set(StorageService, storage);
@@ -124,17 +120,27 @@ async function restartWithSeededPeer(options?: SeedOptions): Promise<{
 
     const secondBoot = await createControllerNode(environment);
     try {
-        const peers = [...secondBoot.peers];
-        strictEqual(peers.length, 1, 'the persisted peer must be loaded');
-        const [peer] = peers;
-        return {
-            isCommissioned: peer.lifecycle.isCommissioned,
-            isSeeded: peer.lifecycle.isSeeded,
-            endpointCount: peer.endpoints.size,
-        };
+        const [peer] = [...secondBoot.peers];
+        strictEqual(peer !== undefined, true, 'the persisted peer must be loaded');
+        return await action(peer);
     } finally {
         await secondBoot.close();
     }
+}
+
+async function restartWithSeededPeer(options?: SeedOptions): Promise<{
+    isCommissioned: boolean;
+    isSeeded: boolean;
+    endpointCount: number;
+}> {
+    return withRestoredPeer(
+        async peer => ({
+            isCommissioned: peer.lifecycle.isCommissioned,
+            isSeeded: peer.lifecycle.isSeeded,
+            endpointCount: peer.endpoints.size,
+        }),
+        options,
+    );
 }
 
 describe('ClientNode hydration', () => {
@@ -144,6 +150,45 @@ describe('ClientNode hydration', () => {
         strictEqual(peer.isCommissioned, true);
         strictEqual(peer.endpointCount, 2);
         strictEqual(peer.isSeeded, true);
+    }).timeout(20000);
+
+    // The controller rebuilds a peer's ioBroker structure from these two signals: no change notification
+    // reports an endpoint that appeared, and none reaches a peer restored from storage at all.
+    it('reports an endpoint that appears on a restored peer', async () => {
+        const installed = await withRestoredPeer(async peer => {
+            const seen = new Array<string>();
+            peer.lifecycle.changed.on((type, endpoint) => {
+                if (type === EndpointLifecycle.Change.Installed && endpoint !== peer) {
+                    seen.push(endpoint.maybeId ?? String(endpoint.maybeNumber));
+                }
+            });
+
+            peer.endpoints.require(2, { deviceType: 256 });
+            return seen;
+        });
+
+        strictEqual(installed.length, 1, `expected one installed endpoint, saw ${installed.join(', ')}`);
+    }).timeout(20000);
+
+    it('announces the teardown of a peer before its endpoints are destroyed', async () => {
+        const order = await withRestoredPeer(async peer => {
+            const seen = new Array<string>();
+            peer.lifecycle.changed.on((type, endpoint) => {
+                if (type === EndpointLifecycle.Change.Destroying || type === EndpointLifecycle.Change.Destroyed) {
+                    seen.push(`${type}:${endpoint === peer ? 'peer' : 'endpoint'}`);
+                }
+            });
+
+            await peer.delete();
+            return seen;
+        });
+
+        strictEqual(order[0], 'destroying:peer', `saw ${order.join(', ')}`);
+        strictEqual(
+            order.includes('destroyed:endpoint'),
+            true,
+            `an endpoint must be destroyed after the peer announced its teardown, saw ${order.join(', ')}`,
+        );
     }).timeout(20000);
 
     it('leaves a peer unseeded when its BasicInformation was never persisted', async () => {

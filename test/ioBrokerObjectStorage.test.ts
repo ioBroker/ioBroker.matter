@@ -235,11 +235,11 @@ describe('IoBrokerObjectStorage', () => {
             }
         }
 
-        it('moves what belongs in the objects database out of the files', async () => {
+        it('copies what belongs in the objects database, and keeps the file for a downgrade', async () => {
             await withStrandedData(async (storage, { objects }, dir) => {
                 strictEqual(await storage.get(COMMISSIONING, 'peerAddress'), '{"fabricIndex":1}');
                 ok(objects.has('storage.controller.nodes$$peer1$$endpoints$$0$$commissioning$$peerAddress'));
-                ok(!existsSync(join(dir, 'nodes.peer1.endpoints.0.commissioning.peerAddress')));
+                ok(existsSync(join(dir, 'nodes.peer1.endpoints.0.commissioning.peerAddress')));
             });
         });
 
@@ -309,7 +309,7 @@ describe('IoBrokerObjectStorage', () => {
             });
         });
 
-        it('drops the file when the objects database already holds the value', async () => {
+        it('leaves an entry the objects database already holds alone', async () => {
             const dir = mkdtempSync(join(tmpdir(), 'iobroker-matter-storage-'));
             try {
                 const mock = makeAdapter();
@@ -318,22 +318,16 @@ describe('IoBrokerObjectStorage', () => {
                 await stranding.set(COMMISSIONING, 'peerAddress', '{"fabricIndex":1}');
                 await stranding.close();
 
-                // What a start after a failed move writes: the peer reports a new address, and by then the
-                // corrected checker routes that write to the objects database
+                // The copy already happened once, and the peer has reported a new address since
                 const current = new IoBrokerObjectStorage(mock.adapter, 'controller', dir, StorageLayout.isClusterData);
                 await current.initialize();
                 await current.set(COMMISSIONING, 'peerAddress', '{"fabricIndex":2}');
                 await current.close();
-                writeFileSync(
-                    join(dir, 'nodes.peer1.endpoints.0.commissioning.peerAddress'),
-                    '"{\\"fabricIndex\\":1}"',
-                );
 
                 const storage = new IoBrokerObjectStorage(mock.adapter, 'controller', dir, StorageLayout.isClusterData);
                 await storage.initialize();
 
                 strictEqual(await storage.get(COMMISSIONING, 'peerAddress'), '{"fabricIndex":2}');
-                ok(!existsSync(join(dir, 'nodes.peer1.endpoints.0.commissioning.peerAddress')));
                 await storage.close();
             } finally {
                 rmSync(dir, { recursive: true, force: true });

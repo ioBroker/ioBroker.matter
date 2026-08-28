@@ -98,7 +98,7 @@ describe('StorageLayout.relocate', () => {
         strictEqual(readFileSync(join(cacheDir, 'ota', 'bin.130a.50.prod.9082'), 'utf8'), 'current image');
     });
 
-    it('merges into a target that already holds data', async () => {
+    it('leaves a target that already holds data untouched, and says so', async () => {
         const target = cacheDir;
         mkdirSync(join(target, 'ota'), { recursive: true });
         writeFileSync(join(target, 'ota', 'bin.fff1.8004.test.1'), 'only at the target');
@@ -106,34 +106,35 @@ describe('StorageLayout.relocate', () => {
 
         await StorageLayout.relocate(dataDir, { cacheDir: target, customOtaDir }, log);
 
-        ok(!existsSync(join(dataDir, 'ota')));
-        deepStrictEqual(log.errors, []);
-        strictEqual(readFileSync(join(target, 'ota', 'bin.130a.50.prod.9082'), 'utf8'), 'current image');
+        // Merging the two would have to decide which copy wins, so both are kept and the user decides
+        strictEqual(readFileSync(join(dataDir, 'ota', 'bin.130a.50.prod.9082'), 'utf8'), 'current image');
         strictEqual(readFileSync(join(target, 'ota', 'bin.fff1.8004.test.1'), 'utf8'), 'only at the target');
+        ok(!existsSync(join(target, 'ota', 'bin.130a.50.prod.9082')));
+        strictEqual(log.errors.length, 1);
+        ok(log.errors[0].includes('"ota"'));
     });
 
-    it('keeps the target copy when the same entry exists on both sides', async () => {
-        const target = cacheDir;
-        mkdirSync(join(target, 'ota'), { recursive: true });
-        writeFileSync(join(target, 'ota', 'bin.130a.50.prod.9082'), 'newer image');
+    it('does not delete a subdirectory of the source it did not move', async () => {
+        const target = customOtaDir;
+        mkdirSync(join(dataDir, 'custom-ota', 'vendor'), { recursive: true });
+        writeFileSync(join(dataDir, 'custom-ota', 'vendor', 'image.bin'), 'hand imported');
+        mkdirSync(join(target, 'vendor'), { recursive: true });
 
-        await StorageLayout.relocate(dataDir, { cacheDir: target, customOtaDir }, makeLog());
+        await StorageLayout.relocate(dataDir, { cacheDir, customOtaDir: target }, makeLog());
 
-        ok(!existsSync(join(dataDir, 'ota')));
-        strictEqual(readFileSync(join(target, 'ota', 'bin.130a.50.prod.9082'), 'utf8'), 'newer image');
+        strictEqual(readFileSync(join(dataDir, 'custom-ota', 'vendor', 'image.bin'), 'utf8'), 'hand imported');
     });
 
     it('preserves a directory it cannot move and says so loudly', async () => {
         const target = cacheDir;
         mkdirSync(target, { recursive: true });
-        // A file where the directory should go: neither the rename nor the merge can succeed.
+        // A file where the directory should go
         writeFileSync(join(target, 'ota'), 'in the way');
         const log = makeLog();
 
         await StorageLayout.relocate(dataDir, { cacheDir: target, customOtaDir }, log);
 
         strictEqual(readFileSync(join(dataDir, 'ota', 'bin.130a.50.prod.9082'), 'utf8'), 'current image');
-        strictEqual(log.warnings.length, 1);
         strictEqual(log.errors.length, 1);
         ok(log.errors[0].includes('"ota"'));
         ok(log.errors[0].includes(target));

@@ -75,10 +75,12 @@ export class IoBrokerObjectStorage extends StorageDriver {
     }
 
     /**
-     * Move node data the local checker no longer claims out of the instance data directory.
+     * Copy node data the local checker no longer claims into the objects database.
      *
      * Until 1.3.1 the checker matched every context below a peer, so entries that belong in objects were
-     * written to disk instead and would read back as missing once the checker was corrected.
+     * written to disk instead and would read back as missing once the checker was corrected. The file is
+     * kept: a downgrade to a version that reads only files still finds its peers, at the price of the copy
+     * going stale, and an entry already in the objects database is left alone rather than written back.
      */
     async #adoptStrandedNodeData(): Promise<void> {
         const local = this.#localStorageManager;
@@ -102,38 +104,36 @@ export class IoBrokerObjectStorage extends StorageDriver {
 
             const values = await local.values(contexts);
             for (const key of await local.keys(contexts)) {
-                const oid = this.buildKey(contexts, key);
-                if (!(key in values)) {
-                    // The file storage driver drops what it cannot parse, so this entry has no value to move
-                    stranded.push(oid);
+                const file = [...contexts, key].join('.');
+                if ((await this.#getFromObjects(contexts, key)) !== undefined) {
                     continue;
                 }
-                if ((await this.#getFromObjects(contexts, key)) !== undefined) {
-                    // Written since the last attempt, so the objects database holds the newer value
-                    await local.delete(contexts, key);
-                    adopted++;
+                if (!(key in values)) {
+                    // The file storage driver drops what it cannot parse, so this entry has no value to copy
+                    stranded.push(file);
                     continue;
                 }
 
                 await this.#setKey(contexts, key, values[key]);
-                // #setKey reports a failed write in the log and returns, so the copy has to be confirmed
-                // before the only remaining one is deleted.
+                // #setKey reports a failed write in the log and returns rather than throwing
                 if ((await this.#getFromObjects(contexts, key)) === undefined) {
-                    stranded.push(oid);
+                    stranded.push(file);
                     continue;
                 }
-                await local.delete(contexts, key);
                 adopted++;
             }
         }
 
         if (adopted) {
-            this.#adapter.log.info(`[STORAGE] Moved ${adopted} node data entries into the objects database`);
+            this.#adapter.log.info(
+                `[STORAGE] Copied ${adopted} node data entries into the objects database. The files stay behind ` +
+                    `so that a downgrade to an earlier adapter version still finds its nodes.`,
+            );
         }
         if (stranded.length) {
             this.#adapter.log.warn(
-                `[STORAGE] Could not move ${stranded.length} node data entries into the objects database: ` +
-                    `${stranded.join(', ')}. They are still read from the instance data directory and moving ` +
+                `[STORAGE] Could not copy ${stranded.length} node data entries into the objects database: ` +
+                    `${stranded.join(', ')}. They are still read from the instance data directory and copying ` +
                     `them is retried on the next start.`,
             );
         }

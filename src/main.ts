@@ -265,6 +265,15 @@ export class MatterAdapter extends Adapter {
         await this.delObjectAsync('storage', { recursive: true });
         // clear all nodes in the controller
         await this.delObjectAsync('controller', { recursive: true });
+        // A peer keeps its cluster data here, and one left behind reads as a node without commissioning
+        // state, which matter.js loads but its expiration cull never removes
+        if (this.#instanceDataDir !== undefined) {
+            try {
+                await fs.rm(this.#instanceDataDir, { recursive: true, force: true });
+            } catch (error) {
+                this.log.error(`Can not remove the node data in ${this.#instanceDataDir}: ${error.message}`);
+            }
+        }
 
         // restart adapter
         this.restart();

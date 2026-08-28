@@ -67,25 +67,17 @@ export namespace StorageLayout {
     }
 
     /**
-     * Move `from` onto `to`, merging when `to` already exists. Entries already present at the target are the
-     * newer ones and win; what remains at the source afterwards is retired with it. A failure leaves the
-     * source untouched, so it defers the move to the next start rather than losing data.
+     * Move `from` onto `to`.
+     *
+     * A target that already exists is left alone: it holds the newer data, and the source is reported rather
+     * than merged into it, so nothing of the user's can be overwritten or deleted here.
      */
-    async function moveDirectory(from: string, to: string): Promise<void> {
-        // Renaming onto an existing target fails with a different code per platform - ENOTEMPTY, EEXIST or,
-        // on Windows, EPERM - so the target is looked at rather than the error.
-        if (!(await exists(to))) {
-            await fs.rename(from, to);
-            return;
+    async function moveDirectory(from: string, to: string): Promise<boolean> {
+        if (await exists(to)) {
+            return false;
         }
-
-        for (const entry of await fs.readdir(from)) {
-            const target = path.join(to, entry);
-            if (!(await exists(target))) {
-                await fs.rename(path.join(from, entry), target);
-            }
-        }
-        await fs.rm(from, { recursive: true, force: true });
+        await fs.rename(from, to);
+        return true;
     }
 
     /**
@@ -111,8 +103,11 @@ export namespace StorageLayout {
             }
             try {
                 await fs.mkdir(path.dirname(to), { recursive: true });
-                await moveDirectory(from, to);
-                log.info(`Moved storage directory "${name}" to ${to}`);
+                if (await moveDirectory(from, to)) {
+                    log.info(`Moved storage directory "${name}" to ${to}`);
+                } else {
+                    stranded.push(`"${name}" to ${to}`);
+                }
             } catch (error) {
                 log.warn(`Can not move storage directory ${from} to ${to}: ${error.message}`);
                 stranded.push(`"${name}" to ${to}`);

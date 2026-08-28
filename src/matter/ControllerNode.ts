@@ -1,6 +1,7 @@
 import {
     ChangeNotificationService,
     ClusterBehavior,
+    CommissioningClient,
     ControllerBehavior,
     ClientNodePhysicalProperties,
     Diagnostic,
@@ -19,7 +20,6 @@ import {
     VendorId,
     type Behavior,
     type ClientNode,
-    type CommissioningClient,
     type ContinuousDiscovery,
     type ServerAddressUdp,
     type SoftwareUpdateInfo,
@@ -138,10 +138,16 @@ interface WatchedPeer {
     rebuildTimer?: ioBroker.Timeout;
 }
 
-/** The address the peer is reachable on, in the `udp://host:port` form the ioBroker state carries. */
+/** The address the peer is reachable on, in the `host:port` form the ioBroker state carries. */
 function operationalAddressOf(peer: ClientNode): string | undefined {
-    const addresses = peer.state.commissioning.addresses;
-    return Array.isArray(addresses) && addresses.length ? ServerAddress.urlFor(addresses[0]) : undefined;
+    const [address] = peer.state.commissioning?.addresses ?? [];
+    if (address === undefined) {
+        return undefined;
+    }
+    // matter.js knows udp, tcp, ble and ip schemes, so the prefix is not of one fixed length
+    const url = ServerAddress.urlFor(address);
+    const scheme = url.indexOf('://');
+    return scheme === -1 ? url : url.substring(scheme + 3);
 }
 
 type EndUserCommissioningOptions = (
@@ -163,6 +169,8 @@ class Controller implements GeneralNode {
     #nodeLocks = new Map<string, Semaphore>();
     #discovering = false;
     #activeDiscovery?: ContinuousDiscovery;
+    /** Everyone waiting for the running discovery, so a second command joins it instead of starting one. */
+    #discoveryCallbacks = new Array<ioBroker.Message>();
     #useBle = false;
     #commissioningStatus = new Map<number, { status: 'finished' | 'error' | 'inprogress'; result?: MessageResponse }>();
     #observers = new ObserverGroup();
@@ -409,6 +417,8 @@ class Controller implements GeneralNode {
     async #discardServerNode(serverNode: ServerNode): Promise<void> {
         this.#serverNode = undefined;
         this.#otaProvider = undefined;
+        this.#fabric = undefined;
+        this.#fabricIndex = undefined;
         this.#unwatchAllPeers();
         // A node that will not close keeps its mDNS sockets and storage handles
         await serverNode.close().catch(error => this.#adapter.log.warn(`Error closing controller: ${error}`));
@@ -1097,7 +1107,7 @@ class Controller implements GeneralNode {
         if (nodeId === undefined) {
             return { result: false, error: 'Commissioning finished without a node id' };
         }
-        await this.registerCommissionedNode(nodeId);
+        await this.registerCommissionedNode(nodeId, peer);
 
         return { result: true, nodeId: nodeId.toString() };
     }
@@ -1110,16 +1120,16 @@ class Controller implements GeneralNode {
             };
         }
 
-        await this.#serverNode.peers.completeCommissioning(nodeId, discoveryData);
+        const peer = await this.#serverNode.peers.completeCommissioning(nodeId, discoveryData);
 
-        await this.registerCommissionedNode(nodeId);
+        await this.registerCommissionedNode(nodeId, peer);
 
         return { result: true, nodeId: nodeId.toString() };
     }
 
-    async registerCommissionedNode(nodeId: NodeId): Promise<void> {
+    async registerCommissionedNode(nodeId: NodeId, peer?: ClientNode): Promise<void> {
         const peerAddress = this.#peerAddress(nodeId);
-        const node = peerAddress === undefined ? undefined : this.#serverNode?.peers.get(peerAddress);
+        const node = peer ?? (peerAddress === undefined ? undefined : this.#serverNode?.peers.get(peerAddress));
         if (node === undefined) {
             // should never happen
             throw new Error(`Node ${nodeId} is not connected but commissioning was successful. Should not happen.`);
@@ -1136,15 +1146,30 @@ class Controller implements GeneralNode {
         if (!serverNode) {
             return;
         }
+        if (this.#activeDiscovery !== undefined) {
+            // A second scan would report the same devices while leaving the first one running unstoppable,
+            // so the caller joins the one in flight instead.
+            this.#adapter.log.info(`Discovering already running, waiting for its result...`);
+            this.#discoveryCallbacks.push(obj);
+            return;
+        }
+
         await this.#adapter.setState('controller.info.discovering', true, true);
         this.#discovering = true;
         this.#adapter.log.info(`Start the discovering...`);
         const discovery = serverNode.peers.discover({ timeout: Seconds(60) });
         this.#activeDiscovery = discovery;
+        this.#discoveryCallbacks.push(obj);
+
+        const observers = new ObserverGroup();
         // The same device announces repeatedly for as long as discovery runs.
         const seen = new Set<string>();
-        this.#observers.on(discovery.discovered, node => {
-            const device = RemoteDescriptor.fromLongForm(node.state.commissioning) as CommissionableDevice;
+        observers.on(discovery.discovered, node => {
+            const commissioning = node.maybeStateOf(CommissioningClient);
+            if (commissioning === undefined) {
+                return;
+            }
+            const device = RemoteDescriptor.fromLongForm(commissioning) as CommissionableDevice;
             const identifier = device.deviceIdentifier ?? JSON.stringify(device.addresses ?? []);
             if (seen.has(identifier)) {
                 return;
@@ -1160,37 +1185,50 @@ class Controller implements GeneralNode {
                     .catch(error => this.#adapter.log.info(`Error sending to GUI: ${error}`));
             }
         });
+
+        const finish = async (): Promise<void> => {
+            observers.close();
+            this.#activeDiscovery = undefined;
+            this.#discovering = false;
+            await this.#adapter
+                .setState('controller.info.discovering', false, true)
+                .catch(error => this.#adapter.log.info(`Error setting state: ${error}`));
+        };
+        const answer = (response: Record<string, unknown>): void => {
+            const callers = this.#discoveryCallbacks;
+            this.#discoveryCallbacks = [];
+            for (const caller of callers) {
+                if (caller.callback) {
+                    this.#adapter.sendTo(caller.from, caller.command, response, caller.callback);
+                }
+            }
+        };
+
         discovery
-            .then(nodes => {
-                const result = nodes.map(
-                    node => RemoteDescriptor.fromLongForm(node.state.commissioning) as CommissionableDevice,
-                );
+            .then(async nodes => {
+                const result = nodes
+                    .map(node => node.maybeStateOf(CommissioningClient))
+                    .filter(commissioning => commissioning !== undefined)
+                    .map(commissioning => RemoteDescriptor.fromLongForm(commissioning) as CommissionableDevice);
+                await finish();
                 this.#adapter.log.info(`Discovering stopped. Found ${result.length} devices.`);
-                this.#adapter
-                    .setState('controller.info.discovering', false, true)
-                    .catch(error => this.#adapter.log.info(`Error setting state: ${error}`));
-                this.#discovering = false;
-                if (obj.callback) {
-                    this.#adapter.log.info(`Sending result to "${JSON.stringify(result)}"`);
-                    this.#adapter.sendTo(obj.from, obj.command, { result }, obj.callback);
-                }
+                answer({ result });
             })
-            .catch(error => {
+            .catch(async error => {
                 const errorText = inspect(error, { depth: 10 });
+                await finish();
                 this.#adapter.log.warn(`Error while handling command "${obj.command}" for controller: ${errorText}`);
-                if (obj.callback) {
-                    this.#adapter.sendTo(obj.from, obj.command, { error: error.message }, obj.callback);
-                }
+                answer({ error: error.message });
             });
     }
 
     async #discoveryStop(): Promise<void> {
-        if (this.#activeDiscovery && this.#discovering) {
+        if (this.#activeDiscovery) {
             this.#discovering = false;
             await this.#adapter.setState('controller.info.discovering', false, true);
             this.#adapter.log.info(`Stop the discovering...`);
+            // Resolves the discovery, so its own handler answers the callers and clears #activeDiscovery
             this.#activeDiscovery.stop();
-            this.#activeDiscovery = undefined;
         }
     }
 

@@ -14,6 +14,7 @@ import {
     Diagnostic,
     SoftwareUpdateManager,
     ObserverGroup,
+    Semaphore,
     Observable,
     deepCopy,
     CommissioningClient,
@@ -108,6 +109,29 @@ export type NodeDetails = {
  * matter.js could not recognize, which it names `attr$<hex>`. Both are in the schema matter.js built for
  * that peer's behavior, so that decides before the global model does.
  */
+/** The timestamp field of a decoded event report the notification's kind stands for. */
+const EVENT_TIMESTAMP_FIELDS = {
+    epoch: 'epochTimestamp',
+    system: 'systemTimestamp',
+    'epoch-delta': 'deltaEpochTimestamp',
+    'system-delta': 'deltaSystemTimestamp',
+} as const;
+
+/**
+ * An event occurrence in the shape of a decoded event report.
+ *
+ * The notification carries the event's data fields on their own, while the device mappings and the raw
+ * `events.<name>` state carry the report entry around them.
+ */
+function decodedEventOf(change: ChangeNotificationService.EventOccurrence): DecodedEventData<unknown> {
+    return {
+        eventNumber: change.number,
+        priority: change.priority,
+        [EVENT_TIMESTAMP_FIELDS[change.timestampKind]]: change.timestamp,
+        data: change.payload,
+    };
+}
+
 export function resolveAttributeId(
     behavior: ClusterBehavior.Type,
     attributeName: string,
@@ -142,6 +166,13 @@ export class GeneralMatterNode {
     #enabled = true;
     #subscriptionMaxIntervalS?: number;
     readonly #seededObserver = new ObserverGroup();
+    /**
+     * Raised by everything that retires the current structure, so a build that is still running between its
+     * awaits notices it is building for a node state that no longer exists.
+     */
+    #generation = 0;
+    /** One build of this node at a time: they clear each other's structure and write the same objects. */
+    readonly #buildLock = new Semaphore('general-matter-node-build');
     #softwareUpdateAvailable?: SoftwareUpdateInfo;
     #softwareUpdateInProgress = false;
     #currentUpdateState?: OtaSoftwareUpdateRequestor.UpdateState;
@@ -189,6 +220,7 @@ export class GeneralMatterNode {
     }
 
     async clear(): Promise<void> {
+        this.#generation++;
         // Clear out all things from before
         this.#icd?.close();
         this.#icd = undefined;
@@ -223,7 +255,19 @@ export class GeneralMatterNode {
     }
 
     async initialize(nodeDetails?: { operationalAddress?: string }): Promise<void> {
+        // clear() retires whatever is building, so a run waiting here leaves the structure it finds alone
+        this.#generation++;
+        const slot = await this.#buildLock.obtainSlot();
+        try {
+            await this.#initialize(nodeDetails);
+        } finally {
+            slot.close();
+        }
+    }
+
+    async #initialize(nodeDetails?: { operationalAddress?: string }): Promise<void> {
         await this.clear();
+        const generation = this.#generation;
         // Re-entered from the listener below, so a previous registration must go first.
         this.#seededObserver.close();
 
@@ -381,6 +425,10 @@ export class GeneralMatterNode {
             native: {},
         });
 
+        if (generation !== this.#generation) {
+            return;
+        }
+
         await this.adapter.setState(this.connectionStateId, this.node.lifecycle.isConnected, true);
         await this.adapter.setState(this.connectionStatusId, this.node.lifecycle.connectionState, true);
 
@@ -390,11 +438,15 @@ export class GeneralMatterNode {
             this.#publishIcdMode();
         }
 
-        this.#connectedAddress = nodeDetails?.operationalAddress?.substring(6);
+        this.#connectedAddress = nodeDetails?.operationalAddress;
         await this.adapter.setState(this.connectedAddressStateId, this.#connectedAddress ?? null, true);
 
         // Restore update info from persisted state if available
         await this.#restoreUpdateInfoFromState();
+
+        if (generation !== this.#generation) {
+            return;
+        }
 
         await this.#processRootEndpointStructure(rootEndpoint, {
             endpointBaseName: deviceObj.native.nodeLabel || deviceObj.common.name,
@@ -891,9 +943,14 @@ export class GeneralMatterNode {
         // Redetected below, but a node that lost its aggregator must not keep reporting one
         this.#hasAggregatorEndpoint = false;
 
+        const generation = this.#generation;
         await this.#endpointToIoBrokerDevices(rootEndpoint, rootEndpoint, this.nodeBaseId, options);
 
         for (const childEndpoint of rootEndpoint.parts) {
+            if (generation !== this.#generation) {
+                // Retired while building, so the rest belongs to whoever cleared it
+                return;
+            }
             await this.#endpointToIoBrokerDevices(childEndpoint, rootEndpoint, this.nodeBaseId, options);
         }
     }
@@ -1539,8 +1596,7 @@ export class GeneralMatterNode {
         if (change.payload === undefined) {
             return;
         }
-        // The converters expect the decoded-report shape: a list of occurrences.
-        const events = [change.payload as DecodedEventData<any>];
+        const events = [decodedEventOf(change)];
         this.adapter.log.debug(
             `handleTriggeredEvent "${this.nodeId}": Event ${endpointId}/${toHex(clusterId)}/${eventName} triggered with ${Diagnostic.json(
                 events,
@@ -1586,7 +1642,7 @@ export class GeneralMatterNode {
             this.#publishIcdMode();
         }
         if (connected && nodeDetails) {
-            this.#connectedAddress = nodeDetails.operationalAddress?.substring(6);
+            this.#connectedAddress = nodeDetails.operationalAddress;
             this.adapter.setState(this.connectedAddressStateId, this.#connectedAddress ?? null, true).catch(() => {});
         }
 

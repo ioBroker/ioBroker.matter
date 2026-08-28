@@ -205,6 +205,11 @@ export class IoBrokerObjectStorage extends StorageDriver {
         if (value !== undefined) {
             return value;
         }
+        if (!contexts.length) {
+            // Root level entries of the shared directory belong to other components, and reading one that is
+            // a directory throws rather than reporting nothing
+            return undefined;
+        }
         // Entries #adoptStrandedNodeData could not move stay readable from where they were written
         return this.#localStorageManager?.get<T>(contexts, key);
     }
@@ -361,5 +366,12 @@ export class IoBrokerObjectStorage extends StorageDriver {
             this.#adapter.log.error(`[STORAGE] Cannot delete state ${oid}: ${error.message}`);
         }
         this.#existingObjectIds.delete(oid);
+
+        if (this.#localStorageManager && contexts.length) {
+            // An entry #adoptStrandedNodeData could not move would be served again by get()
+            await this.#localStorageManager
+                .delete(contexts, key)
+                .catch(error => this.#adapter.log.warn(`[STORAGE] Cannot delete file for ${oid}: ${error.message}`));
+        }
     }
 }

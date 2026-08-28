@@ -291,6 +291,24 @@ describe('IoBrokerObjectStorage', () => {
             });
         });
 
+        it('does not serve a deleted value from a file that could not be moved', async () => {
+            await withStrandedData(async (storage, mock, dir) => {
+                // The move of this entry failed, so both a file and, from now on, the objects entry exist
+                mock.states.delete(
+                    `${NAMESPACE}.storage.controller.nodes$$peer1$$endpoints$$0$$commissioning$$peerAddress`,
+                );
+                writeFileSync(
+                    join(dir, 'nodes.peer1.endpoints.0.commissioning.peerAddress'),
+                    '"{\\"fabricIndex\\":1}"',
+                );
+
+                await storage.delete(COMMISSIONING, 'peerAddress');
+
+                strictEqual(await storage.get(COMMISSIONING, 'peerAddress'), undefined);
+                deepStrictEqual(await storage.values(COMMISSIONING), {});
+            });
+        });
+
         it('drops the file when the objects database already holds the value', async () => {
             const dir = mkdtempSync(join(tmpdir(), 'iobroker-matter-storage-'));
             try {

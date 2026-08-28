@@ -23,6 +23,7 @@ import {
     Seconds,
     type ClientNode,
 } from '@matter/main';
+import type { MatterModel } from '@matter/main/model';
 import type { ThreadNetworkDiagnostics } from '@matter/main/clusters';
 import { OtaSoftwareUpdateRequestor } from '@matter/main/clusters';
 import {
@@ -99,6 +100,24 @@ export type NodeDetails = {
     color?: string;
     backgroundColor?: string;
 };
+
+/**
+ * The numeric id of a changed attribute.
+ *
+ * A peer carries attributes the global Matter model has no entry for - vendor specific ones, and anything
+ * matter.js could not recognize, which it names `attr$<hex>`. Both are in the schema matter.js built for
+ * that peer's behavior, so that decides before the global model does.
+ */
+export function resolveAttributeId(
+    behavior: ClusterBehavior.Type,
+    attributeName: string,
+    matter?: MatterModel,
+): number | undefined {
+    return (
+        behavior.schema?.attributes(attributeName)?.id ??
+        ClusterLookup.attributeId(behavior.cluster.id, attributeName, matter)
+    );
+}
 
 export class GeneralMatterNode {
     readonly nodeId: string;
@@ -1451,7 +1470,7 @@ export class GeneralMatterNode {
         const clusterId = behavior.cluster.id;
         const state: Record<string, unknown> = endpoint.stateOf(behavior);
         for (const attributeName of properties ?? Object.keys(state)) {
-            const attributeId = ClusterLookup.attributeId(clusterId, attributeName, this.node.matter);
+            const attributeId = resolveAttributeId(behavior, attributeName, this.node.matter);
             if (attributeId === undefined) {
                 continue;
             }

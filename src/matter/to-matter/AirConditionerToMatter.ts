@@ -4,10 +4,11 @@ import { FanControl as MatterFanControl, Thermostat as MatterThermostat } from '
 import { FanControlServer, OnOffServer, ThermostatServer } from '@matter/main/behaviors';
 import { hasLocalActor } from '@matter/main/protocol';
 import { SetpointKind } from '../../lib/devices/ClimateControlDevice';
+import { mapFanModeToSpeed, mapSpeedToFanMode } from './FanControlUtils';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import {
     AirConditionerMode,
-    AirConditionerSpeed,
+    type AirConditionerSpeed,
     AirConditionerSwing,
     type AirCondition,
 } from '../../lib/devices/AirCondition';
@@ -233,40 +234,12 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
         );
     }
 
-    #mapSpeedToFanMode(speed: AirConditionerSpeed | undefined): MatterFanControl.FanMode | undefined {
-        switch (speed) {
-            case AirConditionerSpeed.Auto:
-                return MatterFanControl.FanMode.Auto;
-            case AirConditionerSpeed.Low:
-                return MatterFanControl.FanMode.Low;
-            case AirConditionerSpeed.Quiet:
-                this.#ioBrokerDevice.adapter.log.info(`${this.uuid}: Matter has no Quiet fan speed, reporting as Low`);
-                return MatterFanControl.FanMode.Low;
-            case AirConditionerSpeed.Medium:
-                return MatterFanControl.FanMode.Medium;
-            case AirConditionerSpeed.High:
-                return MatterFanControl.FanMode.High;
-            case AirConditionerSpeed.Turbo:
-                this.#ioBrokerDevice.adapter.log.info(`${this.uuid}: Matter has no Turbo fan speed, reporting as High`);
-                return MatterFanControl.FanMode.High;
-        }
-    }
-
-    #mapFanModeToSpeed(fanMode: MatterFanControl.FanMode): AirConditionerSpeed | undefined {
-        switch (fanMode) {
-            case MatterFanControl.FanMode.Auto:
-            case MatterFanControl.FanMode.Smart:
-                return AirConditionerSpeed.Auto;
-            case MatterFanControl.FanMode.Low:
-                return AirConditionerSpeed.Low;
-            case MatterFanControl.FanMode.Medium:
-                return AirConditionerSpeed.Medium;
-            case MatterFanControl.FanMode.High:
-            case MatterFanControl.FanMode.On:
-                return AirConditionerSpeed.High;
-            case MatterFanControl.FanMode.Off:
-                return undefined;
-        }
+    #speedToFanMode(speed: AirConditionerSpeed | undefined): MatterFanControl.FanMode | undefined {
+        return mapSpeedToFanMode(speed, (unsupported, reportedAs) =>
+            this.#ioBrokerDevice.adapter.log.info(
+                `${this.uuid}: Matter has no ${unsupported} fan speed, reporting as ${reportedAs}`,
+            ),
+        );
     }
 
     #setpointValue(kind: SetpointKind): number | undefined {
@@ -391,7 +364,7 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
 
         if (this.#fanControlServer) {
             const fanMode = this.#ioBrokerDevice.hasSpeed()
-                ? this.#mapSpeedToFanMode(this.#ioBrokerDevice.getSpeed())
+                ? this.#speedToFanMode(this.#ioBrokerDevice.getSpeed())
                 : undefined;
             await this.#matterEndpoint.setStateOf(this.#fanControlServer, {
                 ...(fanMode !== undefined ? { fanMode } : {}),
@@ -514,7 +487,7 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                     if (hasLocalActor(context)) {
                         return;
                     }
-                    const speed = this.#mapFanModeToSpeed(value);
+                    const speed = mapFanModeToSpeed(value);
                     if (speed !== undefined) {
                         await this.#ioBrokerDevice.setSpeed(speed);
                     }
@@ -682,7 +655,7 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                     if (!this.#fanControlServer) {
                         return;
                     }
-                    const fanMode = this.#mapSpeedToFanMode(event.value as AirConditionerSpeed);
+                    const fanMode = this.#speedToFanMode(event.value as AirConditionerSpeed);
                     if (fanMode !== undefined) {
                         await this.#matterEndpoint.setStateOf(this.#fanControlServer, { fanMode });
                     }

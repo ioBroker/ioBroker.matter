@@ -1,6 +1,13 @@
 import { Types } from '@iobroker/type-detector';
 import type { GenericDevice } from '../../lib';
 import { AirConditionerToMatter } from './AirConditionerToMatter';
+import { AirPurifierToMatter } from './AirPurifierToMatter';
+import { AirQualityToMatter } from './AirQualityToMatter';
+import { ContactToMatter } from './ContactToMatter';
+import { FanToMatter } from './FanToMatter';
+import { FlowToMatter } from './FlowToMatter';
+import { PressureToMatter } from './PressureToMatter';
+import { PumpToMatter } from './PumpToMatter';
 import { DimmerToMatter } from './DimmerToMatter';
 import { DoorToMatter } from './DoorToMatter';
 import { FloodAlarmToMatter } from './FloodAlarmToMatter';
@@ -39,6 +46,12 @@ async function matterDeviceFabric(
         case Types.airCondition:
             ToMatter = AirConditionerToMatter;
             break;
+        case Types.airPurifier:
+            ToMatter = AirPurifierToMatter;
+            break;
+        case Types.airQuality:
+            ToMatter = AirQualityToMatter;
+            break;
         case Types.blind:
         case Types.blindButtons:
             ToMatter = BlindsToMatter;
@@ -52,6 +65,9 @@ async function matterDeviceFabric(
         case Types.cie:
             ToMatter = CieToMatter;
             break;
+        case Types.contact:
+            ToMatter = ContactToMatter;
+            break;
         case Types.ct:
             ToMatter = CtToMatter;
             break;
@@ -61,8 +77,14 @@ async function matterDeviceFabric(
         case Types.door:
             ToMatter = DoorToMatter;
             break;
+        case Types.fan:
+            ToMatter = FanToMatter;
+            break;
         case Types.floodAlarm:
             ToMatter = FloodAlarmToMatter;
+            break;
+        case Types.flow:
+            ToMatter = FlowToMatter;
             break;
         case Types.hue:
             ToMatter = HueAndRgbToMatter;
@@ -81,6 +103,12 @@ async function matterDeviceFabric(
             break;
         case Types.motion:
             ToMatter = MotionToMatter;
+            break;
+        case Types.pressure:
+            ToMatter = PressureToMatter;
+            break;
+        case Types.pump:
+            ToMatter = PumpToMatter;
             break;
         case Types.rgb:
         case Types.rgbSingle:

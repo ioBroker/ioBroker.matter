@@ -345,7 +345,7 @@ export class AirConditionerToIoBroker extends GenericElectricityDataDeviceToIoBr
                             : Math.max(max, thermostat.absMaxCoolSetpointLimit);
                 }
             }
-            await this.#ioBrokerDevice.updateSetpointMinMax(
+            await this.#ioBrokerDevice.updateLevelMinMax(
                 min !== undefined ? MatterConverters.fromMatterHundredths(min) : undefined,
                 max !== undefined ? MatterConverters.fromMatterHundredths(max) : undefined,
             );

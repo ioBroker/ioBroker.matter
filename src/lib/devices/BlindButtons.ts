@@ -95,7 +95,7 @@ export class BlindButtons extends GenericDevice {
                     callback: state => (this.#setTiltCloseState = state),
                 },
                 {
-                    name: 'DIRECTION',
+                    name: 'DIRECTION_ENUM',
                     valueType: ValueType.Enum,
                     accessType: StateAccessType.Read,
                     type: PropertyType.DirectionEnum,

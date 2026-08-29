@@ -18,7 +18,9 @@ export enum ValueType {
 
 export enum PropertyType {
     Accuracy = 'accuracy',
+    AirflowDirection = 'airflowDirection',
     Album = 'album',
+    Aqi = 'aqi',
     Artist = 'artist',
     AutoFocus = 'autoFocus',
     AutoWhiteBalance = 'autoWhiteBalance',
@@ -27,10 +29,18 @@ export enum PropertyType {
     Boost = 'boost',
     Brightness = 'brightness',
     Brush = 'brush',
+    Ch2o = 'ch2o',
+    Ch2oLevel = 'ch2oLevel',
     Cie = 'cie', // CIE color
     Close = 'close',
+    Closed = 'closed',
+    Co = 'co',
+    CoLevel = 'coLevel',
+    Co2 = 'co2',
+    Co2Level = 'co2Level',
     Connected = 'connected',
     Consumption = 'consumption',
+    Contact = 'contact',
     Cover = 'cover',
     Current = 'current',
     Date = 'date',
@@ -52,11 +62,16 @@ export enum PropertyType {
     File = 'file',
     FillLevel = 'fillLevel',
     Filter = 'filter',
+    FilterChange = 'filterChange',
+    FilterCondition = 'filterCondition',
+    FilterConditionCarbon = 'filterConditionCarbon',
+    Flow = 'flow',
     ForecastChart = 'forecastChart',
     Frequency = 'frequency',
     GPS = 'gps',
     Green = 'green',
     HistoryChart = 'historyChart',
+    Home = 'home',
     Hue = 'hue',
     Humidity = 'humidity',
     Icon = 'icon',
@@ -64,6 +79,8 @@ export enum PropertyType {
     Latitude = 'latitude',
     Level = 'level', // read/write
     LevelActual = 'levelActual', // read/write
+    LevelCooling = 'levelCooling', // cooling setpoint of a device that holds both setpoints at once
+    LevelHeating = 'levelHeating', // heating setpoint of a device that holds both setpoints at once
     Location = 'location',
     Longitude = 'longitude',
     LowBattery = 'lowBattery',
@@ -76,15 +93,29 @@ export enum PropertyType {
     Mode = 'mode',
     Motion = 'motion',
     Mute = 'mute',
+    Muted = 'muted',
     Next = 'next',
     NightMode = 'nightMode',
+    No2 = 'no2',
+    No2Level = 'no2Level',
+    O3 = 'o3',
+    O3Level = 'o3Level',
+    OnTime = 'onTime',
     Open = 'open',
+    Opened = 'opened',
     PTZ = 'ptz',
     Party = 'party',
     Pause = 'pause',
+    Phase = 'phase',
     Play = 'play',
     PlayerName = 'playerName',
     PlayerType = 'playerType',
+    Pm1 = 'pm1',
+    Pm1Level = 'pm1Level',
+    Pm10 = 'pm10',
+    Pm10Level = 'pm10Level',
+    Pm25 = 'pm25',
+    Pm25Level = 'pm25Level',
     Power = 'power',
     PowerActual = 'powerActual',
     Precipitation = 'precipitation',
@@ -95,19 +126,28 @@ export enum PropertyType {
     Pressure = 'pressure',
     PressureTendency = 'pressureTendency',
     Previous = 'previous',
+    Progress = 'progress',
     Radius = 'radius',
     RealFeelTemperature = 'realFeelTemperature',
     Red = 'red',
     Repeat = 'repeat',
     Rgb = 'rgb',
     Rgbw = 'rgbw',
+    Rn = 'rn',
+    RnLevel = 'rnLevel',
+    Rssi = 'rssi',
+    RunMode = 'runMode',
     Saturation = 'saturation',
     Season = 'season',
     Seek = 'seek',
     Sensors = 'sensors',
+    Severity = 'severity',
     Shuffle = 'shuffle',
     SideBrush = 'sideBrush',
+    So2 = 'so2',
+    So2Level = 'so2Level',
     Speed = 'speed',
+    SpeedLevel = 'speedLevel',
     StartTime = 'startTime',
     State = 'state',
     Stop = 'stop',
@@ -115,6 +155,7 @@ export enum PropertyType {
     TemperatureMax = 'temperatureMax',
     TemperatureMin = 'temperatureMin',
     Temperature = 'temperature',
+    Test = 'test',
     TiltClose = 'tiltClose',
     TiltLevel = 'tiltLevel',
     TiltLevelActual = 'tiltLevelActual',
@@ -125,10 +166,13 @@ export enum PropertyType {
     Title = 'title',
     Track = 'track',
     TransitionTime = 'transitionTime',
+    Tvoc = 'tvoc',
+    TvocLevel = 'tvocLevel',
     Uv = 'uv',
     Unreachable = 'unreachable',
     Url = 'url',
     Value = 'value', // read only
+    Valve = 'valve',
     Voltage = 'voltage',
     Volume = 'volume',
     Warning = 'warning',
@@ -143,9 +187,11 @@ export enum PropertyType {
     WindGust = 'windGust',
     WindIcon = 'windIcon',
     WindSpeed = 'windSpeed',
+    Window = 'window',
     White = 'white',
     WorkMode = 'workMode',
     Working = 'working',
+    WorkingMode = 'workingMode',
 
     /** Generic type for custom Matter-specific state mappings */
     Custom = 'custom',
@@ -153,6 +199,12 @@ export enum PropertyType {
 
 interface StateDefinition extends DetectorState {
     isIoBrokerState: boolean;
+    /**
+     * Unit the device model works in for this property. All values exchanged with the device class
+     * (getters, setters, min/max) are expressed in it, and the ioBroker object value is converted
+     * into and out of it. Takes precedence over the unit the type detector suggests.
+     */
+    deviceUnit?: string;
     /** Default minimum value for numeric states */
     defaultMin?: number;
     /** Default maximum value for numeric states */
@@ -254,7 +306,7 @@ export class DeviceStateObject<T> extends EventEmitter {
                 write: this.state.write ?? false,
                 read: this.state.read ?? true,
                 role: this.state.defaultRole ?? 'state',
-                unit: this.state.defaultUnit,
+                unit: this.state.deviceUnit ?? this.state.defaultUnit,
                 states: this.state.defaultStates,
             },
             native: {},
@@ -353,8 +405,17 @@ export class DeviceStateObject<T> extends EventEmitter {
         }
     }
 
+    /** Unit of the underlying ioBroker object. */
     getUnit(): string | undefined {
         return this.unit;
+    }
+
+    /** Unit that `value`, the setters and {@link getMinMax} are expressed in. */
+    get deviceUnit(): string | undefined {
+        if (this.valueType === ValueType.NumberPercent) {
+            return '%';
+        }
+        return this.state.deviceUnit ?? this.state.defaultUnit ?? this.unit;
     }
 
     get id(): string {
@@ -405,7 +466,7 @@ export class DeviceStateObject<T> extends EventEmitter {
             } else if (this.min === undefined && this.max !== undefined) {
                 this.min = 0;
             }
-            this.unit = obj?.common?.unit ?? this.state.defaultUnit;
+            this.unit = obj?.common?.unit ?? this.state.deviceUnit ?? this.state.defaultUnit;
         }
         this.step = this.#sanitizeLimit(obj?.common?.step, 'step') ?? this.state.defaultStep;
     }
@@ -486,13 +547,14 @@ export class DeviceStateObject<T> extends EventEmitter {
         );
     }
 
-    /** Convert the value from the unit of the state to the Default unit ("toDefaultUnit"===true) or from default unit */
+    /** Convert the value from the unit of the state to the device unit ("toDefaultUnit"===true) or from the device unit */
     convertValue(value: number, toDefaultUnit = false): number {
-        if (this.unit && this.state.defaultUnit && this.unit !== this.state.defaultUnit) {
+        const deviceUnit = this.deviceUnit;
+        if (this.unit && deviceUnit && this.unit !== deviceUnit) {
             if (this.unitConversionMap[this.unit]) {
                 const convertedValue = this.unitConversionMap[this.unit](value, toDefaultUnit);
                 this.adapter.log.debug(
-                    `Converted value ${value} with ${this.unit} (to default: ${toDefaultUnit}): ${convertedValue} ${this.state.defaultUnit}`,
+                    `Converted value ${value} with ${this.unit} (to default: ${toDefaultUnit}): ${convertedValue} ${deviceUnit}`,
                 );
                 return convertedValue;
             }
@@ -531,9 +593,12 @@ export class DeviceStateObject<T> extends EventEmitter {
         this.value = value;
         if (this.realMin !== undefined && this.realMax !== undefined) {
             // convert values
-            let realValue: number = parseFloat(value as string);
+            let realValue: number = typeof value === 'boolean' ? (value ? 100 : 0) : parseFloat(value as string);
             realValue = (realValue / 100) * (this.realMax - this.realMin) + this.realMin;
 
+            if (!Number.isFinite(realValue)) {
+                throw new Error(`Value ${JSON.stringify(value)} is not a number`);
+            }
             if (isFiniteNumber(object.common.min) && realValue < object.common.min) {
                 throw new Error(`Value ${realValue} is less than min ${object.common.min}`);
             }
@@ -561,8 +626,14 @@ export class DeviceStateObject<T> extends EventEmitter {
                     );
                     await this.adapter.setForeignStateAsync(this.#id, realValue, !this.#isIoBrokerState);
                 } else if (valueType === 'number') {
-                    const realValue: number = parseFloat(value as string);
+                    // A state the detector types as `boolean | number` can be backed by a numeric object,
+                    // and the boolean branch above accepts 1/0 for the mirrored case
+                    const realValue: number =
+                        typeof value === 'boolean' ? (value ? 1 : 0) : parseFloat(value as string);
 
+                    if (!Number.isFinite(realValue)) {
+                        throw new Error(`Value ${JSON.stringify(value)} is not a number`);
+                    }
                     if (isFiniteNumber(object.common.min) && realValue < object.common.min) {
                         throw new Error(`Value ${JSON.stringify(value)} is less than min ${object.common.min}`);
                     }

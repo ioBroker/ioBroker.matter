@@ -1,25 +1,17 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { FireAlarmSeverity, FireAlarmSeverityNumbers } from './FireAlarm';
 
-/** Shared by `FireAlarm` and `CoAlarm`, which are one device in Matter and differ only in what they sense. */
-export enum FireAlarmSeverity {
-    Normal = 'NORMAL',
-    Warning = 'WARNING',
-    Critical = 'CRITICAL',
-}
+export type CoAlarmSeverity = FireAlarmSeverity;
+export const CoAlarmSeverity = FireAlarmSeverity;
+export type CoAlarmSeverityNumbers = FireAlarmSeverityNumbers;
+export const CoAlarmSeverityNumbers = FireAlarmSeverityNumbers;
 
-export enum FireAlarmSeverityNumbers {
-    NORMAL = 0,
-    WARNING = 1,
-    CRITICAL = 2,
-}
-
-export class FireAlarm extends GenericDevice {
+export class CoAlarm extends GenericDevice {
     #getValueState?: DeviceStateObject<boolean>;
-    #getCoState?: DeviceStateObject<boolean>;
-    #severityState?: DeviceStateObject<FireAlarmSeverity>;
-    #getMutedState?: DeviceStateObject<boolean>;
-    #getTestState?: DeviceStateObject<boolean>;
+    #severityState?: DeviceStateObject<CoAlarmSeverity>;
+    #mutedState?: DeviceStateObject<boolean>;
+    #testState?: DeviceStateObject<boolean>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
@@ -34,13 +26,6 @@ export class FireAlarm extends GenericDevice {
                     callback: state => (this.#getValueState = state),
                 },
                 {
-                    name: 'CO',
-                    valueType: ValueType.Boolean,
-                    accessType: StateAccessType.Read,
-                    type: PropertyType.Co,
-                    callback: state => (this.#getCoState = state),
-                },
-                {
                     name: 'SEVERITY',
                     valueType: ValueType.Enum,
                     accessType: StateAccessType.Read,
@@ -52,14 +37,14 @@ export class FireAlarm extends GenericDevice {
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Muted,
-                    callback: state => (this.#getMutedState = state),
+                    callback: state => (this.#mutedState = state),
                 },
                 {
                     name: 'TEST',
                     valueType: ValueType.Boolean,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Test,
-                    callback: state => (this.#getTestState = state),
+                    callback: state => (this.#testState = state),
                 },
             ]),
         );
@@ -79,82 +64,71 @@ export class FireAlarm extends GenericDevice {
         return this.#getValueState.updateValue(value);
     }
 
-    getCo(): boolean | undefined {
-        if (!this.#getCoState) {
-            throw new Error('Co state not found');
-        }
-        return this.#getCoState.value;
+    hasSeverity(): boolean {
+        return !!this.#severityState;
     }
 
-    updateCo(value: boolean): Promise<void> {
-        if (!this.#getCoState) {
-            throw new Error('Co state not found');
-        }
-        return this.#getCoState.updateValue(value);
-    }
-
-    hasCo(): boolean {
-        return !!this.#getCoState;
-    }
-
-    getSeverity(): FireAlarmSeverity | undefined {
+    getSeverity(): CoAlarmSeverity | undefined {
         if (!this.#severityState) {
             throw new Error('Severity state not found');
         }
         return this.#severityState.value;
     }
 
-    getSeverityModes(): FireAlarmSeverity[] {
-        if (!this.#severityState) {
-            throw new Error('Severity state not found');
-        }
-        return this.#severityState.getModes();
-    }
-
-    updateSeverity(value: FireAlarmSeverity): Promise<void> {
+    updateSeverity(value: CoAlarmSeverity): Promise<void> {
         if (!this.#severityState) {
             throw new Error('Severity state not found');
         }
         return this.#severityState.updateValue(value);
     }
 
-    hasSeverity(): boolean {
-        return !!this.#severityState;
+    getSeverityModes(): CoAlarmSeverity[] {
+        if (!this.#severityState) {
+            throw new Error('Severity state not found');
+        }
+        return this.#severityState.getModes();
     }
 
-    getMuted(): boolean | undefined {
-        if (!this.#getMutedState) {
-            throw new Error('Muted state not found');
+    updateSeverityModes(modes: { [key: string]: CoAlarmSeverity }): Promise<void> {
+        if (!this.#severityState) {
+            throw new Error('Severity state not found');
         }
-        return this.#getMutedState.value;
-    }
-
-    updateMuted(value: boolean): Promise<void> {
-        if (!this.#getMutedState) {
-            throw new Error('Muted state not found');
-        }
-        return this.#getMutedState.updateValue(value);
+        return this.#severityState.updateModes(modes);
     }
 
     hasMuted(): boolean {
-        return !!this.#getMutedState;
+        return !!this.#mutedState;
     }
 
-    getTest(): boolean | undefined {
-        if (!this.#getTestState) {
-            throw new Error('Test state not found');
+    getMuted(): boolean | undefined {
+        if (!this.#mutedState) {
+            throw new Error('Muted state not found');
         }
-        return this.#getTestState.value;
+        return this.#mutedState.value;
     }
 
-    updateTest(value: boolean): Promise<void> {
-        if (!this.#getTestState) {
-            throw new Error('Test state not found');
+    updateMuted(value: boolean): Promise<void> {
+        if (!this.#mutedState) {
+            throw new Error('Muted state not found');
         }
-        return this.#getTestState.updateValue(value);
+        return this.#mutedState.updateValue(value);
     }
 
     hasTest(): boolean {
-        return !!this.#getTestState;
+        return !!this.#testState;
+    }
+
+    getTest(): boolean | undefined {
+        if (!this.#testState) {
+            throw new Error('Test state not found');
+        }
+        return this.#testState.value;
+    }
+
+    updateTest(value: boolean): Promise<void> {
+        if (!this.#testState) {
+            throw new Error('Test state not found');
+        }
+        return this.#testState.updateValue(value);
     }
 }

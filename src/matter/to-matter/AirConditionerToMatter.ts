@@ -3,6 +3,7 @@ import { HumiditySensorDevice, OnOffPlugInUnitDevice, RoomAirConditionerDevice }
 import { FanControl as MatterFanControl, Thermostat as MatterThermostat } from '@matter/main/clusters';
 import { FanControlServer, OnOffServer, ThermostatServer } from '@matter/main/behaviors';
 import { hasLocalActor } from '@matter/main/protocol';
+import { SetpointKind } from '../../lib/devices/ClimateControlDevice';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import {
     AirConditionerMode,
@@ -268,25 +269,55 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
         }
     }
 
+    #setpointValue(kind: SetpointKind): number | undefined {
+        if (!this.#ioBrokerDevice.hasSetpoint(kind)) {
+            return undefined;
+        }
+        const value = this.#ioBrokerDevice.getSetpoint(kind);
+        return typeof value === 'number' ? value : undefined;
+    }
+
+    /**
+     * Both kinds resolve to the same ioBroker state when the device exposes neither dedicated setpoint, so in
+     * Auto only one of them may be written — the second write would just overwrite the first.
+     */
+    get #setpointStateIsShared(): boolean {
+        return !this.#ioBrokerDevice.hasLevelHeating() && !this.#ioBrokerDevice.hasLevelCooling();
+    }
+
+    #writeSetpoint(kind: SetpointKind, matterValue: number): void {
+        if (!this.#ioBrokerDevice.hasSetpoint(kind)) {
+            return;
+        }
+        this.#ioBrokerDevice
+            .setSetpoint(kind, MatterConverters.fromMatterHundredths(matterValue))
+            .catch(error => this.#ioBrokerDevice.adapter.log.warn(`Error setting ${kind} setpoint: ${error.message}`));
+    }
+
     #updateSetPointTemperature(delay = 1500): void {
+        if (
+            !this.#ioBrokerDevice.hasSetpoint(SetpointKind.Heating) &&
+            !this.#ioBrokerDevice.hasSetpoint(SetpointKind.Cooling)
+        ) {
+            return;
+        }
         this.clearDeviceTimeout(this.#temperatureDebounceTimeout);
         this.#temperatureDebounceTimeout = this.setDeviceTimeout(() => {
             this.#temperatureDebounceTimeout = undefined;
-            const systemMode = this.#matterEndpoint.stateOf(this.#thermostatServer).systemMode;
-            if (systemMode === MatterThermostat.SystemMode.Heat || systemMode === MatterThermostat.SystemMode.Auto) {
-                const heatingTemp = this.#matterEndpoint.stateOf(this.#thermostatServer).occupiedHeatingSetpoint;
-                if (typeof heatingTemp === 'number') {
-                    this.#ioBrokerDevice
-                        .setLevel(MatterConverters.fromMatterHundredths(heatingTemp))
-                        .catch(error => this.#ioBrokerDevice.adapter.log.warn(`Error setting level: ${error.message}`));
-                }
-            } else if (systemMode === MatterThermostat.SystemMode.Cool) {
-                const coolingTemp = this.#matterEndpoint.stateOf(this.#thermostatServer).occupiedCoolingSetpoint;
-                if (typeof coolingTemp === 'number') {
-                    this.#ioBrokerDevice
-                        .setLevel(MatterConverters.fromMatterHundredths(coolingTemp))
-                        .catch(error => this.#ioBrokerDevice.adapter.log.warn(`Error setting level: ${error.message}`));
-                }
+            const state = this.#matterEndpoint.stateOf(this.#thermostatServer);
+            const systemMode = state.systemMode;
+            if (
+                (systemMode === MatterThermostat.SystemMode.Heat || systemMode === MatterThermostat.SystemMode.Auto) &&
+                typeof state.occupiedHeatingSetpoint === 'number'
+            ) {
+                this.#writeSetpoint(SetpointKind.Heating, state.occupiedHeatingSetpoint);
+            }
+            if (
+                (systemMode === MatterThermostat.SystemMode.Cool ||
+                    (systemMode === MatterThermostat.SystemMode.Auto && !this.#setpointStateIsShared)) &&
+                typeof state.occupiedCoolingSetpoint === 'number'
+            ) {
+                this.#writeSetpoint(SetpointKind.Cooling, state.occupiedCoolingSetpoint);
             }
         }, delay);
     }
@@ -323,24 +354,31 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
             ...(systemMode !== undefined ? { systemMode } : {}),
         });
 
-        const setpointTemperature = this.#ioBrokerDevice.getLevel();
-        if (typeof setpointTemperature === 'number') {
-            const data: Record<string, number> = {};
-            const minMax = this.#ioBrokerDevice.getSetpointMinMax() ?? { min: 7, max: 35 };
-            const cropped = this.#ioBrokerDevice.cropValue(setpointTemperature, minMax.min, minMax.max, true);
-            if (this.#supportedModes.includes(AirConditionerMode.Heat)) {
-                data.occupiedHeatingSetpoint = MatterConverters.toMatterHundredths(cropped);
+        const data: Record<string, number> = {};
+        if (this.#supportedModes.includes(AirConditionerMode.Heat)) {
+            const setpoint = this.#setpointValue(SetpointKind.Heating);
+            if (setpoint !== undefined) {
+                const minMax = this.#ioBrokerDevice.getSetpointMinMax(SetpointKind.Heating) ?? { min: 7, max: 35 };
+                data.occupiedHeatingSetpoint = MatterConverters.toMatterHundredths(
+                    this.#ioBrokerDevice.cropValue(setpoint, minMax.min, minMax.max, true),
+                );
                 data.minHeatSetpointLimit = MatterConverters.toMatterHundredths(Math.max(minMax.min, 0));
                 data.maxHeatSetpointLimit = MatterConverters.toMatterHundredths(Math.min(minMax.max, 50));
             }
-            if (this.#supportedModes.includes(AirConditionerMode.Cool)) {
-                data.occupiedCoolingSetpoint = MatterConverters.toMatterHundredths(cropped);
+        }
+        if (this.#supportedModes.includes(AirConditionerMode.Cool)) {
+            const setpoint = this.#setpointValue(SetpointKind.Cooling);
+            if (setpoint !== undefined) {
+                const minMax = this.#ioBrokerDevice.getSetpointMinMax(SetpointKind.Cooling) ?? { min: 7, max: 35 };
+                data.occupiedCoolingSetpoint = MatterConverters.toMatterHundredths(
+                    this.#ioBrokerDevice.cropValue(setpoint, minMax.min, minMax.max, true),
+                );
                 data.minCoolSetpointLimit = MatterConverters.toMatterHundredths(Math.max(minMax.min, 0));
                 data.maxCoolSetpointLimit = MatterConverters.toMatterHundredths(Math.min(minMax.max, 50));
             }
-            if (Object.keys(data).length > 0) {
-                await this.#matterEndpoint.setStateOf(this.#thermostatServer, data);
-            }
+        }
+        if (Object.keys(data).length > 0) {
+            await this.#matterEndpoint.setStateOf(this.#thermostatServer, data);
         }
 
         // OnOff reflects the power state; for Mode-only devices it is derived from MODE != Off
@@ -527,8 +565,11 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                 await setPower(true);
                 await setMode(AirConditionerMode.Heat);
                 const heatingTemp = this.#matterEndpoint.stateOf(this.#thermostatServer).occupiedHeatingSetpoint;
-                if (typeof heatingTemp === 'number') {
-                    await this.#ioBrokerDevice.setLevel(MatterConverters.fromMatterHundredths(heatingTemp));
+                if (typeof heatingTemp === 'number' && this.#ioBrokerDevice.hasSetpoint(SetpointKind.Heating)) {
+                    await this.#ioBrokerDevice.setSetpoint(
+                        SetpointKind.Heating,
+                        MatterConverters.fromMatterHundredths(heatingTemp),
+                    );
                 }
                 break;
             }
@@ -536,8 +577,11 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                 await setPower(true);
                 await setMode(AirConditionerMode.Cool);
                 const coolingTemp = this.#matterEndpoint.stateOf(this.#thermostatServer).occupiedCoolingSetpoint;
-                if (typeof coolingTemp === 'number') {
-                    await this.#ioBrokerDevice.setLevel(MatterConverters.fromMatterHundredths(coolingTemp));
+                if (typeof coolingTemp === 'number' && this.#ioBrokerDevice.hasSetpoint(SetpointKind.Cooling)) {
+                    await this.#ioBrokerDevice.setSetpoint(
+                        SetpointKind.Cooling,
+                        MatterConverters.fromMatterHundredths(coolingTemp),
+                    );
                 }
                 break;
             }
@@ -567,19 +611,22 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                     }
                     break;
                 case PropertyType.Level: {
+                    // The plain setpoint only stands for a kind that has no dedicated state of its own
                     const systemMode = this.#matterEndpoint.stateOf(this.#thermostatServer).systemMode;
                     const value = MatterConverters.toMatterHundredths(event.value as number);
                     if (
-                        systemMode === MatterThermostat.SystemMode.Heat ||
-                        systemMode === MatterThermostat.SystemMode.Auto
+                        !this.#ioBrokerDevice.hasLevelHeating() &&
+                        (systemMode === MatterThermostat.SystemMode.Heat ||
+                            systemMode === MatterThermostat.SystemMode.Auto)
                     ) {
                         await this.#matterEndpoint.setStateOf(this.#thermostatServer, {
                             occupiedHeatingSetpoint: value,
                         });
                     }
                     if (
-                        systemMode === MatterThermostat.SystemMode.Cool ||
-                        systemMode === MatterThermostat.SystemMode.Auto
+                        !this.#ioBrokerDevice.hasLevelCooling() &&
+                        (systemMode === MatterThermostat.SystemMode.Cool ||
+                            systemMode === MatterThermostat.SystemMode.Auto)
                     ) {
                         await this.#matterEndpoint.setStateOf(this.#thermostatServer, {
                             occupiedCoolingSetpoint: value,
@@ -587,6 +634,16 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                     }
                     break;
                 }
+                case PropertyType.LevelHeating:
+                    await this.#matterEndpoint.setStateOf(this.#thermostatServer, {
+                        occupiedHeatingSetpoint: MatterConverters.toMatterHundredths(event.value as number),
+                    });
+                    break;
+                case PropertyType.LevelCooling:
+                    await this.#matterEndpoint.setStateOf(this.#thermostatServer, {
+                        occupiedCoolingSetpoint: MatterConverters.toMatterHundredths(event.value as number),
+                    });
+                    break;
                 case PropertyType.Power: {
                     const on = !!event.value;
                     await this.#matterEndpoint.setStateOf(OnOffServer, { onOff: on });

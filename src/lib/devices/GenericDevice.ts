@@ -23,6 +23,10 @@ export interface DeviceStateDescription {
     name: string;
     type: PropertyType;
     valueType: ValueType;
+    /**
+     * Unit the device model works in for this property. All values exchanged with this class are expressed
+     * in it, and values of an ioBroker object using another unit are converted via `unitConversionMap`.
+     */
     unit?: string;
     callback: (state: DeviceStateObject<any> | undefined) => void;
     accessType: StateAccessType;
@@ -67,6 +71,7 @@ export abstract class GenericDevice extends EventEmitter {
     #workingState?: DeviceStateObject<boolean>;
     #directionState?: DeviceStateObject<boolean>;
     #batteryState?: DeviceStateObject<number>;
+    #rssiState?: DeviceStateObject<number>;
 
     /** Custom states storage - keyed by custom property name */
     #customStates = new Map<string, DeviceStateObject<any>>();
@@ -148,6 +153,13 @@ export abstract class GenericDevice extends EventEmitter {
                     type: PropertyType.Battery,
                     callback: state => (this.#batteryState = state),
                 },
+                {
+                    name: 'RSSI',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Rssi,
+                    callback: state => (this.#rssiState = state),
+                },
             ]),
         );
     }
@@ -193,6 +205,7 @@ export abstract class GenericDevice extends EventEmitter {
         accessType: StateAccessType,
         valueType: ValueType,
         unitConversionMap: { [key: string]: (value: number, toDefaultUnit: boolean) => number } = {},
+        unit?: string,
     ): Promise<void> {
         let state = this.getDeviceState(name);
         if (state) {
@@ -215,6 +228,7 @@ export abstract class GenericDevice extends EventEmitter {
                     {
                         ...state,
                         isIoBrokerState: this.#isIoBrokerDevice,
+                        deviceUnit: unit,
                     },
                     type,
                     valueType,
@@ -227,7 +241,13 @@ export abstract class GenericDevice extends EventEmitter {
             }
             const data = object.ioBrokerState;
             if (!this.#properties[type]) {
-                this.#properties[type] = { name, accessType, valueType, role: object.role };
+                this.#properties[type] = {
+                    name,
+                    accessType,
+                    valueType,
+                    role: object.role,
+                    unit: object.deviceUnit,
+                };
                 if (accessType === StateAccessType.ReadWrite) {
                     this.#properties[type].read = data.id;
                     this.#properties[type].write = data.id;
@@ -323,6 +343,7 @@ export abstract class GenericDevice extends EventEmitter {
                     state.accessType,
                     state.valueType,
                     state.unitConversionMap,
+                    state.unit,
                 );
             }
         };
@@ -562,6 +583,24 @@ export abstract class GenericDevice extends EventEmitter {
 
     hasBattery(): boolean {
         return this.propertyNames.includes(PropertyType.Battery);
+    }
+
+    getRssi(): number | undefined {
+        if (!this.#rssiState) {
+            throw new Error('RSSI state not found');
+        }
+        return this.#rssiState.value;
+    }
+
+    updateRssi(value: number): Promise<void> {
+        if (!this.#rssiState) {
+            throw new Error('RSSI state not found');
+        }
+        return this.#rssiState.updateValue(value);
+    }
+
+    hasRssi(): boolean {
+        return this.propertyNames.includes(PropertyType.Rssi);
     }
 
     // ==================== Custom State Methods ====================

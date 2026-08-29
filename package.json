@@ -28,12 +28,12 @@
     "dependencies": {
         "@iobroker/adapter-core": "^3.4.3",
         "@iobroker/dm-utils": "^3.2.0",
-        "@iobroker/type-detector": "^5.0.15",
+        "@iobroker/type-detector": "^6.0.1",
         "@matter/main": "0.17.9",
         "@matter/nodejs": "0.17.9",
         "@matter/thread-br-client": "0.17.9",
         "@project-chip/matter.js": "0.17.9",
-        "axios": "^1.19.0",
+        "axios": "^1.20.0",
         "jsonwebtoken": "^9.0.3"
     },
     "devDependencies": {

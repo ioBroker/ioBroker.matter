@@ -209,9 +209,6 @@ export interface ThermostatSetpointBridgeOptions {
     cancelDebounce: (timeout: ioBroker.Timeout | undefined) => void;
 }
 
-/** Default setpoint range per kind, used while the ioBroker state declares none. */
-export type SetpointRangeDefaults = Record<SetpointKind, { min: number; max: number }>;
-
 /**
  * Moves setpoints between the Thermostat cluster attributes of one endpoint and an ioBroker climate device.
  *
@@ -287,9 +284,10 @@ export class ThermostatSetpointBridge {
         }
         const value = MatterConverters.fromMatterHundredths(matterValue);
         this.#log.debug(`Setting ${kind} setpoint to ${value} after debounce`);
-        this.#device
-            .setSetpoint(kind, value)
-            .catch(error => this.#log.warn(`Error setting ${kind} setpoint: ${error.message}`));
+        this.#device.setSetpoint(kind, value).catch(error => {
+            this.#log.warn(`Error setting ${kind} setpoint: ${error.message}`);
+            this.#restoreSetpointAttribute(kind);
+        });
     }
 
     /** Hands the setpoint attributes a controller wrote to the ioBroker device once the writes settled. */
@@ -328,7 +326,7 @@ export class ThermostatSetpointBridge {
     }
 
     /** Setpoint attributes and their limits as the ioBroker device currently has them. */
-    initialSetpointState(defaults: SetpointRangeDefaults): Record<string, number> {
+    initialSetpointState(): Record<string, number> {
         const data: Record<string, number> = {};
         for (const kind of [SetpointKind.Heating, SetpointKind.Cooling]) {
             if (!this.#supports(kind)) {
@@ -338,20 +336,22 @@ export class ThermostatSetpointBridge {
             if (setpoint === undefined) {
                 continue;
             }
-            // A range the ioBroker state does not declare is unknown, not narrow: publishing the display
-            // default as a cluster limit would reject setpoints the device itself accepts
-            const declaredMinMax = this.#device.getSetpointMinMax(kind);
-            const limits = declaredMinMax ?? ABSOLUTE_SETPOINT_RANGE;
-            const minMax = declaredMinMax ?? defaults[kind];
+            // A range the ioBroker state does not declare is unknown, not narrow: cropping to a display
+            // default would publish a setpoint the device never held, within limits that accept the real one
+            const declared = this.#device.getSetpointMinMax(kind);
+            const limits = {
+                min: Math.max(declared?.min ?? ABSOLUTE_SETPOINT_RANGE.min, ABSOLUTE_SETPOINT_RANGE.min),
+                max: Math.min(declared?.max ?? ABSOLUTE_SETPOINT_RANGE.max, ABSOLUTE_SETPOINT_RANGE.max),
+            };
             const heating = kind === SetpointKind.Heating;
             data[heating ? 'occupiedHeatingSetpoint' : 'occupiedCoolingSetpoint'] = MatterConverters.toMatterHundredths(
-                this.#device.cropValue(setpoint, minMax.min, minMax.max, true),
+                this.#device.cropValue(setpoint, limits.min, limits.max, true),
             );
             data[heating ? 'minHeatSetpointLimit' : 'minCoolSetpointLimit'] = MatterConverters.toMatterHundredths(
-                Math.max(limits.min, ABSOLUTE_SETPOINT_RANGE.min),
+                limits.min,
             );
             data[heating ? 'maxHeatSetpointLimit' : 'maxCoolSetpointLimit'] = MatterConverters.toMatterHundredths(
-                Math.min(limits.max, ABSOLUTE_SETPOINT_RANGE.max),
+                limits.max,
             );
         }
         return data;

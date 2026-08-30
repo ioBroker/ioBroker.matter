@@ -255,10 +255,7 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
             ...(systemMode !== undefined ? { systemMode } : {}),
         });
 
-        const data = this.#setpoints.initialSetpointState({
-            [SetpointKind.Heating]: { min: 7, max: 35 },
-            [SetpointKind.Cooling]: { min: 7, max: 35 },
-        });
+        const data = this.#setpoints.initialSetpointState();
         if (Object.keys(data).length > 0) {
             await this.#matterEndpoint.setStateOf(this.#thermostatServer, data);
         }

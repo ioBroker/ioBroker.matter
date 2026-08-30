@@ -201,10 +201,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
             systemMode,
             controlSequenceOfOperation,
         });
-        const data = this.#setpoints.initialSetpointState({
-            [SetpointKind.Heating]: { min: 7, max: 30 },
-            [SetpointKind.Cooling]: { min: 16, max: 32 },
-        });
+        const data = this.#setpoints.initialSetpointState();
         if (Object.keys(data).length > 0) {
             this.#ioBrokerDevice.adapter.log.debug(`Setting Thermostat setpoints to ${JSON.stringify(data)}`);
             await this.#matterEndpointThermostat.setStateOf(this.#ThermostatServer, data);

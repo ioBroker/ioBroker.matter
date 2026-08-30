@@ -289,6 +289,13 @@ describe('Matter setpoint capabilities', function () {
         expect(mounted.endpoint.state.thermostat.maxHeatSetpointLimit).to.equal(5000);
     });
 
+    it('publishes the setpoint the device holds rather than cropping it to a display default', async () => {
+        // The limits accept 5 °C, so reporting 7 °C at startup would show a setpoint the device never held
+        const mounted = await mount(Types.thermostat, { SET: { type: 'number', val: 5, unit: '°C' } });
+
+        expect(mounted.endpoint.state.thermostat.occupiedHeatingSetpoint).to.equal(500);
+    });
+
     it('keeps the feature set a device with modes had before setpoint states were consulted', async () => {
         const mounted = await mount(Types.thermostat, {
             SET: temperature(20),

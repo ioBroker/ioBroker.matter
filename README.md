@@ -149,6 +149,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) Fan, air purifier, air quality, contact, flow, pressure and pump devices can now be exposed to Matter in bridge and device mode
 * (@Apollon77) Matter fan, air purifier, air quality, flow, pressure and pump devices are now mapped to their ioBroker device types in controller mode
 * (@Apollon77) Fixed smoke alarms without their own power source failing to map in controller mode
+* (@Apollon77) The controller mapping is now covered by an integration test that commissions a real Matter bridge, and it runs in CI
 * (@Apollon77) A thermostat or air conditioner detected only through its heating or cooling setpoint now declares the matching Matter capability, so its setpoint works instead of sitting at the cluster default. Devices already commissioned before this change may need to be re-added in ecosystems that cache the capability set
 * (@Apollon77) Fixed a rejected state write leaving the rejected value cached, and the Device Manager showing a value against the wrong unit
 * (@Apollon77) A bridged thermostat whose ioBroker state declares no temperature range no longer reports a 7 to 30 degree limit to Matter, so setpoints the device itself accepts are no longer rejected

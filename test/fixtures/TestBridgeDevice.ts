@@ -6,7 +6,7 @@
  *   npx ts-node --project tsconfig.test.json test/fixtures/TestBridgeDevice.ts --storage-path=<path> --port=<port>
  */
 
-import { Endpoint, Environment, MutableEndpoint, ServerNode, VendorId } from '@matter/main';
+import { CommonAreaNamespaceTag, Endpoint, Environment, MutableEndpoint, ServerNode, VendorId } from '@matter/main';
 import type { Behavior, SupportedBehaviors } from '@matter/main';
 import {
     ActivatedCarbonFilterMonitoringServer,
@@ -26,6 +26,10 @@ import {
     PressureMeasurementServer,
     PumpConfigurationAndControlServer,
     RelativeHumidityMeasurementServer,
+    RvcCleanModeServer,
+    RvcOperationalStateServer,
+    RvcRunModeServer,
+    ServiceAreaServer,
     SmokeCoAlarmServer,
     SwitchServer,
     TemperatureControlServer,
@@ -35,6 +39,7 @@ import {
     WindowCoveringServer,
 } from '@matter/main/behaviors';
 import { AggregatorEndpoint, PowerSourceEndpoint } from '@matter/main/endpoints';
+import { OperationalStateUtils } from '@matter/main/behaviors';
 import {
     AirQuality,
     ColorControl,
@@ -45,12 +50,34 @@ import {
     PowerSource,
     PumpConfigurationAndControl,
     ResourceMonitoring,
+    RvcCleanMode,
+    RvcOperationalState,
+    RvcRunMode,
+    ServiceArea,
     SmokeCoAlarm,
     Thermostat,
     WindowCovering,
 } from '@matter/main/clusters';
 import * as Devices from '@matter/main/devices';
 import { BRIDGE_DISCRIMINATOR, BRIDGE_PASSCODE, BRIDGE_PORT_BASE, READY_MARKER } from './bridgeConstants';
+
+/**
+ * A robot that accepts the optional operational-state commands. Matter derives the accepted command list from the
+ * methods a behavior implements, so the default server would advertise none of them.
+ */
+class CommandingRvcOperationalStateServer extends RvcOperationalStateServer {
+    override pause(): RvcOperationalState.OperationalCommandResponse {
+        return OperationalStateUtils.assertRvcPause(this.state.operationalState);
+    }
+
+    override resume(): RvcOperationalState.OperationalCommandResponse {
+        return OperationalStateUtils.assertRvcResume(this.state.operationalState);
+    }
+
+    override goHome(): RvcOperationalState.OperationalCommandResponse {
+        return OperationalStateUtils.assertRvcGoHome(this.state.operationalState);
+    }
+}
 
 const args = process.argv.slice(2);
 const argValue = (name: string): string | undefined => args.find(a => a.startsWith(`--${name}=`))?.split('=')[1];
@@ -402,6 +429,112 @@ async function main(): Promise<void> {
             PressureMeasurementServer,
             FlowMeasurementServer,
         ],
+    );
+
+    // A robot with all five RVC clusters. Its mode numbers are deliberately not the ioBroker ones: they are vendor
+    // defined, so only the mode tags may decide what a mode means.
+    await addBridged(
+        'roboticvacuum',
+        Devices.RoboticVacuumCleanerDevice,
+        {
+            rvcRunMode: {
+                supportedModes: [
+                    { label: 'Idle', mode: 7, modeTags: [{ value: RvcRunMode.ModeTag.Idle }] },
+                    { label: 'Cleaning', mode: 3, modeTags: [{ value: RvcRunMode.ModeTag.Cleaning }] },
+                    { label: 'Mapping', mode: 9, modeTags: [{ value: RvcRunMode.ModeTag.Mapping }] },
+                ],
+                currentMode: 3,
+            },
+            rvcCleanMode: {
+                supportedModes: [
+                    { label: 'Vacuuming', mode: 5, modeTags: [{ value: RvcCleanMode.ModeTag.Vacuum }] },
+                    { label: 'Deep Clean', mode: 2, modeTags: [{ value: RvcCleanMode.ModeTag.DeepClean }] },
+                ],
+                currentMode: 2,
+            },
+            rvcOperationalState: {
+                operationalStateList: [
+                    { operationalStateId: RvcOperationalState.OperationalState.Running },
+                    { operationalStateId: RvcOperationalState.OperationalState.Paused },
+                    { operationalStateId: RvcOperationalState.OperationalState.Error },
+                    { operationalStateId: RvcOperationalState.OperationalState.SeekingCharger },
+                    { operationalStateId: RvcOperationalState.OperationalState.Charging },
+                    { operationalStateId: RvcOperationalState.OperationalState.Docked },
+                ],
+                operationalState: RvcOperationalState.OperationalState.Running,
+                phaseList: ['Sweeping', 'Mopping'],
+                currentPhase: 0,
+            },
+            serviceArea: {
+                supportedMaps: [{ mapId: 0, name: 'Ground Floor' }],
+                supportedAreas: [
+                    {
+                        areaId: 0,
+                        mapId: 0,
+                        areaInfo: {
+                            locationInfo: {
+                                locationName: 'Kitchen',
+                                floorNumber: 0,
+                                areaType: CommonAreaNamespaceTag.Kitchen.tag,
+                            },
+                            landmarkInfo: null,
+                        },
+                    },
+                    {
+                        areaId: 1,
+                        mapId: 0,
+                        areaInfo: {
+                            locationInfo: {
+                                locationName: 'Living Room',
+                                floorNumber: 0,
+                                areaType: CommonAreaNamespaceTag.LivingRoom.tag,
+                            },
+                            landmarkInfo: null,
+                        },
+                    },
+                ],
+                selectedAreas: [0, 1],
+                currentArea: 1,
+                // One of the two selected areas is done, so the ioBroker progress percentage must be 50.
+                progress: [
+                    { areaId: 0, status: ServiceArea.OperationalStatus.Completed },
+                    { areaId: 1, status: ServiceArea.OperationalStatus.Operating },
+                ],
+            },
+        },
+        [
+            RvcRunModeServer,
+            CommandingRvcOperationalStateServer,
+            RvcCleanModeServer,
+            ServiceAreaServer.with('SelectWhileRunning', 'ProgressReporting', 'Maps'),
+        ],
+    );
+
+    // A robot that accepts no optional command and reports no clean mode, so the states behind those must not exist.
+    // Its ServiceArea reports no progress at all, which is not the same as no progress having been made.
+    await addBridged(
+        'roboticvacuumbasic',
+        Devices.RoboticVacuumCleanerDevice,
+        {
+            rvcRunMode: {
+                supportedModes: [
+                    { label: 'Idle', mode: 0, modeTags: [{ value: RvcRunMode.ModeTag.Idle }] },
+                    { label: 'Cleaning', mode: 1, modeTags: [{ value: RvcRunMode.ModeTag.Cleaning }] },
+                ],
+                currentMode: 0,
+            },
+            rvcOperationalState: {
+                operationalStateList: [
+                    { operationalStateId: RvcOperationalState.OperationalState.Running },
+                    { operationalStateId: RvcOperationalState.OperationalState.Error },
+                    { operationalStateId: RvcOperationalState.OperationalState.Docked },
+                ],
+                operationalState: RvcOperationalState.OperationalState.Docked,
+            },
+            // matter.js 0.17.9 asserts supportedMaps unconditionally, so the Maps feature cannot be left out here
+            serviceArea: { supportedMaps: [], supportedAreas: [], selectedAreas: [], progress: [] },
+        },
+        [RvcRunModeServer, RvcOperationalStateServer, ServiceAreaServer.with('ProgressReporting', 'Maps')],
     );
 
     /**

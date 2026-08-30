@@ -12,9 +12,18 @@ import {
     VendorId,
 } from '@matter/main';
 import { MdnsService } from '@matter/main/protocol';
-import { ConcentrationMeasurement, FanControl, ResourceMonitoring } from '@matter/main/clusters';
+import {
+    ConcentrationMeasurement,
+    FanControl,
+    ModeBase,
+    ResourceMonitoring,
+    RvcCleanMode,
+    RvcOperationalState,
+    RvcRunMode,
+} from '@matter/main/clusters';
 import { StateType, Types } from '@iobroker/type-detector';
 import DeviceFactory from '../src/lib/DeviceFactory';
+import { PropertyType } from '../src/lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions, GenericDevice } from '../src/lib/devices/GenericDevice';
 import { SubscribeManager } from '../src/lib/SubscribeManager';
 import matterDeviceFabric from '../src/matter/to-matter/matterFactory';
@@ -26,6 +35,7 @@ import { FanToMatter } from '../src/matter/to-matter/FanToMatter';
 import { FlowToMatter } from '../src/matter/to-matter/FlowToMatter';
 import { PressureToMatter } from '../src/matter/to-matter/PressureToMatter';
 import { PumpToMatter } from '../src/matter/to-matter/PumpToMatter';
+import { VacuumCleanerToMatter } from '../src/matter/to-matter/VacuumCleanerToMatter';
 
 // ---------------------------------------------------------------------------------------------------------------
 // ioBroker side: a mock adapter that serves exactly the states a test asks for, so the hasX() gating in the
@@ -61,6 +71,10 @@ const enumeration = (labels: string[], val = 0): StateSpec => ({
 const FAN_SPEEDS = ['AUTO', 'HIGH', 'LOW', 'MEDIUM', 'QUIET', 'TURBO'];
 const FAN_SWINGS = ['AUTO', 'HORIZONTAL', 'STATIONARY', 'VERTICAL'];
 const AIRFLOW_DIRECTIONS = ['FORWARD', 'REVERSE'];
+const VACUUM_RUN_MODES = ['IDLE', 'CLEANING', 'MAPPING'];
+const VACUUM_MODES = ['AUTO', 'NORMAL', 'QUIET', 'ECO', 'EXPRESS'];
+const VACUUM_STATES = ['HOME', 'CLEANING', 'PAUSE'];
+
 const AQI_LEVELS = ['UNKNOWN', 'GOOD', 'FAIR', 'MODERATE', 'POOR', 'VERY_POOR', 'EXTREMELY_POOR'];
 const POLLUTANT_LEVELS = ['UNKNOWN', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
@@ -582,6 +596,315 @@ describe('to-matter converters for type-detector v6 device types', function () {
             expect(endpoint.state.pumpConfigurationAndControl.pumpStatus.running).to.equal(true);
             await mounted.adapter.pushValue('LEVEL', 0);
             expect(endpoint.state.pumpConfigurationAndControl.pumpStatus.running).to.equal(false);
+        });
+    });
+
+    describe('VacuumCleanerToMatter', () => {
+        /** Invokes a cluster command the way a controller would, so the command handlers are covered end to end. */
+        async function invoke(endpoint: any, cluster: string, command: string, request?: any): Promise<any> {
+            return endpoint.act((agent: any) => agent[cluster][command](request));
+        }
+
+        it('offers the Idle and Cleaning run modes a robot without RUN_MODE can still be driven with', async () => {
+            const mounted = await mount(Types.vacuumCleaner, { POWER: bool(false) });
+            expect(mounted.converter).to.be.instanceOf(VacuumCleanerToMatter);
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.rvcRunMode.supportedModes.map((mode: any) => mode.mode)).to.deep.equal([0, 1]);
+            expect(endpoint.state.rvcRunMode.currentMode).to.equal(0);
+            expect(endpoint.behaviors.has('rvcCleanMode'), 'no MODE state must mean no RvcCleanMode').to.equal(false);
+            expect(endpoint.state.rvcOperationalState.operationalState).to.equal(
+                RvcOperationalState.OperationalState.Docked,
+            );
+        });
+
+        it('advertises pause, resume and go home only when the device has the states behind them', async () => {
+            const without = await mount(Types.vacuumCleaner, { POWER: bool(false) });
+            expect(endpointsOf(without)[0].state.rvcOperationalState.acceptedCommandList).to.deep.equal([]);
+
+            const withPauseOnly = await mount(Types.vacuumCleaner, { POWER: bool(false), PAUSE: bool(false) });
+            expect(endpointsOf(withPauseOnly)[0].state.rvcOperationalState.acceptedCommandList).to.deep.equal([0, 3]);
+
+            const withHomeOnly = await mount(Types.vacuumCleaner, { POWER: bool(false), HOME: bool(false) });
+            expect(endpointsOf(withHomeOnly)[0].state.rvcOperationalState.acceptedCommandList).to.deep.equal([128]);
+
+            const withBoth = await mount(Types.vacuumCleaner, {
+                POWER: bool(false),
+                PAUSE: bool(false),
+                HOME: bool(false),
+            });
+            expect(endpointsOf(withBoth)[0].state.rvcOperationalState.acceptedCommandList).to.deep.equal([0, 3, 128]);
+        });
+
+        it('initializes a fully equipped robot from its ioBroker states', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(true),
+                RUN_MODE: enumeration(VACUUM_RUN_MODES, 1),
+                MODE: enumeration(VACUUM_MODES, 3),
+                STATE: enumeration(VACUUM_STATES, 1),
+                PAUSE: bool(false),
+                HOME: bool(false),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.rvcRunMode.supportedModes.map((mode: any) => mode.mode)).to.deep.equal([0, 1, 2]);
+            expect(endpoint.state.rvcRunMode.currentMode).to.equal(1);
+            expect(endpoint.state.rvcCleanMode.supportedModes.map((mode: any) => mode.label)).to.deep.equal(
+                VACUUM_MODES,
+            );
+            expect(endpoint.state.rvcCleanMode.currentMode).to.equal(3);
+            expect(endpoint.state.rvcOperationalState.operationalState).to.equal(
+                RvcOperationalState.OperationalState.Running,
+            );
+        });
+
+        it('tags every clean mode as Vacuum so the cluster stays conformant', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(false),
+                MODE: enumeration(VACUUM_MODES, 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            const tagsOf = (label: string): number[] =>
+                endpoint.state.rvcCleanMode.supportedModes
+                    .find((mode: any) => mode.label === label)
+                    .modeTags.map((tag: any) => tag.value);
+            expect(tagsOf('NORMAL')).to.deep.equal([RvcCleanMode.ModeTag.Vacuum]);
+            expect(tagsOf('ECO')).to.deep.equal([RvcCleanMode.ModeTag.Vacuum, ModeBase.ModeTag.LowEnergy]);
+        });
+
+        it('does not add RvcCleanMode for a device that offers a single mode', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(false),
+                MODE: enumeration(['AUTO'], 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            // The cluster constrains supportedModes to 2 to 255 entries
+            expect(endpoint.behaviors.has('rvcCleanMode')).to.equal(false);
+        });
+
+        it('keeps duplicate ioBroker mode names apart, because Matter rejects a duplicate label', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(false),
+                MODE: enumeration(['AUTO', 'AUTO', 'TURBO'], 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            const labels = endpoint.state.rvcCleanMode.supportedModes.map((mode: any) => mode.label);
+            expect(labels).to.deep.equal(['AUTO', 'AUTO 1', 'TURBO']);
+            expect(new Set(labels).size).to.equal(labels.length);
+        });
+
+        it('crops a mode name to the 64 characters a Matter label holds', async () => {
+            const long = 'M'.repeat(80);
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(false),
+                MODE: enumeration([long, 'TURBO'], 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.rvcCleanMode.supportedModes[0].label).to.equal('M'.repeat(64));
+        });
+
+        it('drops the Mapping run mode when the device does not offer it', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(false),
+                RUN_MODE: enumeration(['IDLE', 'CLEANING'], 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.rvcRunMode.supportedModes.map((mode: any) => mode.mode)).to.deep.equal([0, 1]);
+        });
+
+        it('follows an ioBroker run mode change into the cluster', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(false),
+                RUN_MODE: enumeration(VACUUM_RUN_MODES, 0),
+                STATE: enumeration(VACUUM_STATES, 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('RUN_MODE', 2);
+            expect(endpoint.state.rvcRunMode.currentMode).to.equal(2);
+            await mounted.adapter.pushValue('STATE', 1);
+            expect(endpoint.state.rvcOperationalState.operationalState).to.equal(
+                RvcOperationalState.OperationalState.Running,
+            );
+        });
+
+        it('writes a controller run mode change back to RUN_MODE and POWER', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(false),
+                RUN_MODE: enumeration(VACUUM_RUN_MODES, 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            const response = await invoke(endpoint, 'rvcRunMode', 'changeToMode', { newMode: 1 });
+            expect(response.status).to.equal(ModeBase.ModeChangeStatus.Success);
+            expect(mounted.device.getPropertyValue(PropertyType.RunMode)).to.equal('CLEANING');
+            expect(mounted.device.getPropertyValue(PropertyType.Power)).to.equal(true);
+        });
+
+        it('writes a controller clean mode change back to MODE', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(false),
+                MODE: enumeration(VACUUM_MODES, 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await invoke(endpoint, 'rvcCleanMode', 'changeToMode', { newMode: 4 });
+            expect(mounted.device.getPropertyValue(PropertyType.Mode)).to.equal('EXPRESS');
+        });
+
+        it('turns pause, resume and go home into the ioBroker button states', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(true),
+                PAUSE: bool(false),
+                HOME: bool(false),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.rvcOperationalState.operationalState).to.equal(
+                RvcOperationalState.OperationalState.Running,
+            );
+
+            const paused = await invoke(endpoint, 'rvcOperationalState', 'pause');
+            expect(paused.commandResponseState.errorStateId).to.equal(RvcOperationalState.ErrorState.NoError);
+            expect(await mounted.adapter.getForeignStateAsync(mounted.adapter.idOf('PAUSE'))).to.include({ val: true });
+            // Without a STATE state the cluster has to report the result itself, or resume is refused afterwards
+            expect(endpoint.state.rvcOperationalState.operationalState).to.equal(
+                RvcOperationalState.OperationalState.Paused,
+            );
+
+            const resumed = await invoke(endpoint, 'rvcOperationalState', 'resume');
+            expect(resumed.commandResponseState.errorStateId).to.equal(RvcOperationalState.ErrorState.NoError);
+            expect(await mounted.adapter.getForeignStateAsync(mounted.adapter.idOf('PAUSE'))).to.include({
+                val: false,
+            });
+
+            await invoke(endpoint, 'rvcOperationalState', 'goHome');
+            expect(await mounted.adapter.getForeignStateAsync(mounted.adapter.idOf('HOME'))).to.include({ val: true });
+            expect(endpoint.state.rvcOperationalState.operationalState).to.equal(
+                RvcOperationalState.OperationalState.Docked,
+            );
+        });
+
+        it('leaves the operational state to STATE when the device reports one', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(true),
+                RUN_MODE: enumeration(VACUUM_RUN_MODES, 1),
+                STATE: enumeration(VACUUM_STATES, 1),
+                PAUSE: bool(false),
+                HOME: bool(false),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.rvcOperationalState.operationalState).to.equal(
+                RvcOperationalState.OperationalState.Running,
+            );
+
+            // A device that reports its own state must not have it guessed for it from a command or a run mode
+            await invoke(endpoint, 'rvcOperationalState', 'pause');
+            expect(endpoint.state.rvcOperationalState.operationalState).to.equal(
+                RvcOperationalState.OperationalState.Running,
+            );
+            await invoke(endpoint, 'rvcRunMode', 'changeToMode', { newMode: 0 });
+            expect(endpoint.state.rvcOperationalState.operationalState).to.equal(
+                RvcOperationalState.OperationalState.Running,
+            );
+
+            await mounted.adapter.pushValue('STATE', 2);
+            expect(endpoint.state.rvcOperationalState.operationalState).to.equal(
+                RvcOperationalState.OperationalState.Paused,
+            );
+            await mounted.adapter.pushValue('STATE', 0);
+            expect(endpoint.state.rvcOperationalState.operationalState).to.equal(
+                RvcOperationalState.OperationalState.Docked,
+            );
+        });
+
+        it('reports an idle ioBroker run mode as the idle Matter mode', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(false),
+                RUN_MODE: enumeration(VACUUM_RUN_MODES, 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.rvcRunMode.currentMode).to.equal(0);
+            expect(endpoint.state.rvcOperationalState.operationalState).to.equal(
+                RvcOperationalState.OperationalState.Docked,
+            );
+        });
+
+        it('falls back to the first clean mode when MODE holds a value the device does not list', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(false),
+                MODE: { ...enumeration(VACUUM_MODES, 0), val: 99 },
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.rvcCleanMode.currentMode).to.equal(0);
+        });
+
+        it('carries every controller run mode into the ioBroker states', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(false),
+                RUN_MODE: enumeration(VACUUM_RUN_MODES, 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+
+            await invoke(endpoint, 'rvcRunMode', 'changeToMode', { newMode: 2 });
+            expect(mounted.device.getPropertyValue(PropertyType.RunMode)).to.equal('MAPPING');
+            expect(mounted.device.getPropertyValue(PropertyType.Power)).to.equal(true);
+
+            await invoke(endpoint, 'rvcRunMode', 'changeToMode', { newMode: 0 });
+            expect(mounted.device.getPropertyValue(PropertyType.RunMode)).to.equal('IDLE');
+            expect(mounted.device.getPropertyValue(PropertyType.Power)).to.equal(false);
+        });
+
+        it('follows an ioBroker clean mode change into the cluster', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(false),
+                MODE: enumeration(VACUUM_MODES, 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('MODE', 4);
+            expect(endpoint.state.rvcCleanMode.currentMode).to.equal(4);
+        });
+
+        it('does not write an unsupported mode number back to ioBroker', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(false),
+                RUN_MODE: enumeration(VACUUM_RUN_MODES, 0),
+                MODE: enumeration(VACUUM_MODES, 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+
+            const runMode = await invoke(endpoint, 'rvcRunMode', 'changeToMode', { newMode: 42 });
+            expect(runMode.status).to.equal(ModeBase.ModeChangeStatus.UnsupportedMode);
+            expect(mounted.device.getPropertyValue(PropertyType.RunMode)).to.equal('IDLE');
+
+            const cleanMode = await invoke(endpoint, 'rvcCleanMode', 'changeToMode', { newMode: 42 });
+            expect(cleanMode.status).to.equal(ModeBase.ModeChangeStatus.UnsupportedMode);
+            expect(mounted.device.getPropertyValue(PropertyType.Mode)).to.equal('AUTO');
+        });
+
+        it('refuses go home while the robot is already docked', async () => {
+            const mounted = await mount(Types.vacuumCleaner, { POWER: bool(false), HOME: bool(false) });
+            const [endpoint] = endpointsOf(mounted);
+            const response = await invoke(endpoint, 'rvcOperationalState', 'goHome');
+            expect(response.commandResponseState.errorStateId).to.equal(
+                RvcOperationalState.ErrorState.CommandInvalidInState,
+            );
+            expect(await mounted.adapter.getForeignStateAsync(mounted.adapter.idOf('HOME'))).to.include({ val: false });
+        });
+
+        it('raises and clears the operational error from the ioBroker ERROR state', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(true),
+                STATE: enumeration(VACUUM_STATES, 1),
+                // The detector types ERROR as a string, so an empty text is what "no error" looks like
+                ERROR: { type: 'string', val: '' },
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('ERROR', 'Stuck');
+            expect(endpoint.state.rvcOperationalState.operationalState).to.equal(
+                RvcOperationalState.OperationalState.Error,
+            );
+            await mounted.adapter.pushValue('ERROR', '');
+            expect(endpoint.state.rvcOperationalState.operationalError.errorStateId).to.equal(
+                RvcOperationalState.ErrorState.NoError,
+            );
+            expect(endpoint.state.rvcOperationalState.operationalState).to.equal(
+                RvcOperationalState.OperationalState.Running,
+            );
         });
     });
 

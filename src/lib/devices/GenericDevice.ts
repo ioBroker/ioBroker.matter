@@ -64,7 +64,7 @@ export abstract class GenericDevice extends EventEmitter {
     #handlers = new Array<(event: { property: PropertyType; value: any; device: GenericDevice }) => Promise<void>>();
     protected _construction = new Array<() => Promise<void>>();
 
-    #errorState?: DeviceStateObject<boolean>;
+    #errorState?: DeviceStateObject<boolean | string>;
     #maintenanceState?: DeviceStateObject<boolean>;
     #unreachState?: DeviceStateObject<boolean>;
     #lowbatState?: DeviceStateObject<boolean>;
@@ -297,7 +297,7 @@ export abstract class GenericDevice extends EventEmitter {
                 // subscribe and read only if not already subscribed
                 if (stateId && !this.#subscribeObjects.find(obj => obj.state.id === stateId)) {
                     await object.subscribe(
-                        this.updateState,
+                        this.#handleIoBrokerStateChange,
                         this.#isIoBrokerDevice || this.#properties[type].accessType !== StateAccessType.Write,
                     );
                     this.#subscribeObjects.push(object);
@@ -401,14 +401,18 @@ export abstract class GenericDevice extends EventEmitter {
         return this.#deviceType;
     }
 
-    protected updateState = async <T>(object: DeviceStateObject<T>): Promise<void> => {
+    /**
+     * Named apart from the `update<Property>` methods, which {@link updatePropertyValue} resolves by name - an
+     * `updateState` here would shadow the one a device type declares for its STATE property.
+     */
+    #handleIoBrokerStateChange = async <T>(object: DeviceStateObject<T>): Promise<void> => {
         if (!this.enabled && object.propertyType !== PropertyType.Unreachable) {
             // When disabled, only report unreachable ioBroker changes to Matter
             return;
         }
         if (!this.#isIoBrokerDevice && this.#properties[object.propertyType].accessType === StateAccessType.Read) {
             this.#adapter.log.info(
-                `updateState not allowed for type ${object.propertyType} and value ${object.value as string}`,
+                `State change not allowed for type ${object.propertyType} and value ${object.value as string}`,
             );
             return;
         }
@@ -456,14 +460,14 @@ export abstract class GenericDevice extends EventEmitter {
         return result;
     }
 
-    getError(): boolean | number | undefined {
+    getError(): boolean | number | string | undefined {
         if (!this.#errorState) {
             throw new Error('Error state not found');
         }
         return this.#errorState.value;
     }
 
-    updateError(value: boolean): Promise<void> {
+    updateError(value: boolean | string): Promise<void> {
         if (!this.#errorState) {
             throw new Error('Error state not found');
         }

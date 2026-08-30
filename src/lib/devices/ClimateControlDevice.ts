@@ -97,7 +97,9 @@ export abstract class ClimateControlDevice<
      */
     supportedSetpointKinds(): SetpointKind[] {
         const kinds = new Array<SetpointKind>();
-        const modes = this.#modeState ? this.#modeState.getModes() : [];
+        // Only the shared `SET` state can stand for a kind a mode names; a dedicated state implies its own kind
+        // and nothing more, so a mode without `SET` would promise a setpoint no state can back
+        const modes = this.#levelState && this.#modeState ? this.#modeState.getModes() : [];
         if (this.#levelHeatingState || modes.some(mode => mode === HEATING_MODE)) {
             kinds.push(SetpointKind.Heating);
         }

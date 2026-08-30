@@ -269,6 +269,18 @@ describe('Matter setpoint capabilities', function () {
         expect(mounted.endpoint.state.thermostat.occupiedHeatingSetpoint).to.equal(2300);
     });
 
+    it('does not promise a setpoint kind that only a mode names and no state can back', async () => {
+        // A dedicated setpoint implies its own kind only; without the shared SET state the COOL mode has
+        // nothing to write to, so advertising Cooling would drop every controller write to it
+        const mounted = await mount(Types.thermostat, {
+            SET_HEATING: temperature(21, 7, 30),
+            MODE: enumeration(['AUTO', 'HEAT', 'COOL'], 2),
+        });
+
+        expect(featuresOf(mounted).heating).to.equal(true);
+        expect(featuresOf(mounted).cooling).to.equal(false);
+    });
+
     it('does not narrow the cluster limits when the ioBroker state declares no range', async () => {
         // A thermostat whose state carries no min/max must still accept the setpoints the device itself does
         const mounted = await mount(Types.thermostat, { SET: { type: 'number', val: 20, unit: '°C' } });

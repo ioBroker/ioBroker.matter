@@ -72,7 +72,9 @@ export async function commissionFixture(options: {
             await withTimeout(Promise.resolve(node.events.initialized), timeoutMs, 'node initialization');
         }
     } catch (error) {
+        // The caller retries with a fresh fixture, so this attempt's mDNS and storage must not outlive it
         await controller.close().catch(() => undefined);
+        environment[Symbol.dispose]();
         throw error;
     }
 

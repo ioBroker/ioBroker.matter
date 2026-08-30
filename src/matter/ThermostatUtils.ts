@@ -52,13 +52,9 @@ export function deriveThermostatFeatures<TMode extends string>(
 
     for (const mode of modes) {
         if (mode === modeMap.heat) {
-            supportedModes.push(modeMap.heat);
             validModes.push(modeMap.heat);
-            clusterModes.push(MatterThermostat.Feature.Heating);
         } else if (mode === modeMap.cool) {
-            supportedModes.push(modeMap.cool);
             validModes.push(modeMap.cool);
-            clusterModes.push(MatterThermostat.Feature.Cooling);
         } else if (mode === modeMap.auto) {
             // Handled below, AutoMode additionally requires Heating and Cooling
         } else if (mode === modeMap.off || mode === modeMap.fanOnly || mode === modeMap.dry) {
@@ -71,13 +67,14 @@ export function deriveThermostatFeatures<TMode extends string>(
         }
     }
 
-    // occupiedHeatingSetpoint/occupiedCoolingSetpoint are conformant to the Heating/Cooling feature, so an
-    // undeclared feature means there is no attribute to carry the setpoint the device does have.
+    // occupiedHeatingSetpoint/occupiedCoolingSetpoint are conformant to the Heating/Cooling feature, and a
+    // setpoint no ioBroker state can back would be advertised but never readable or writable, so the kinds a
+    // state resolves to are the authority here rather than the modes the device happens to list.
     for (const kind of supportedSetpointKinds) {
-        if (kind === SetpointKind.Heating && !clusterModes.includes(MatterThermostat.Feature.Heating)) {
+        if (kind === SetpointKind.Heating) {
             clusterModes.push(MatterThermostat.Feature.Heating);
             supportedModes.push(modeMap.heat);
-        } else if (kind === SetpointKind.Cooling && !clusterModes.includes(MatterThermostat.Feature.Cooling)) {
+        } else if (kind === SetpointKind.Cooling) {
             clusterModes.push(MatterThermostat.Feature.Cooling);
             supportedModes.push(modeMap.cool);
         }

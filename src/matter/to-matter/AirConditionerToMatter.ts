@@ -170,7 +170,8 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
     }
 
     #mapModeToMatter(mode: AirConditionerMode | undefined): MatterThermostat.SystemMode | undefined {
-        if (mode === undefined || !this.#validModes.includes(mode)) {
+        // Writing towards Matter, so the cluster's own feature set decides, not what the adapter reacts to
+        if (mode === undefined || !this.#supportedModes.includes(mode)) {
             return;
         }
         switch (mode) {

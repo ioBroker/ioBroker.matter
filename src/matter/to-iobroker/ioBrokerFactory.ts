@@ -1,4 +1,4 @@
-import { DeviceClassification, DeviceTypeModel, MatterModel } from '@matter/main/model';
+import { DeviceClassification, DeviceTypeModel, MatterModel, RequirementElement } from '@matter/main/model';
 import type { ClassExtends, Endpoint } from '@matter/main';
 import * as Devices from '@matter/main/devices';
 import * as Endpoints from '@matter/main/endpoints';
@@ -66,6 +66,35 @@ export function identifyDeviceTypes(endpoint: Endpoint): {
     return { utilityTypes, appTypes, primaryDeviceType };
 }
 
+const mandatoryApplicationChildCache = new Map<string, boolean>();
+
+/**
+ * Whether a device type composes an application device type, so that a child endpoint of that type is a part of the
+ * device instead of a device of its own.
+ *
+ * Utility children are excluded because power source and electrical sensor data reach ioBroker through their own paths.
+ * Anything but plain mandatory conformance stays permissive, matching how unknown endpoints are treated.
+ */
+function declaresMandatoryApplicationChild(deviceType: DeviceTypeModel): boolean {
+    const cached = mandatoryApplicationChildCache.get(deviceType.name);
+    if (cached !== undefined) {
+        return cached;
+    }
+    const base = deviceType.base;
+    const declares =
+        deviceType.requirements.some(requirement => {
+            if (requirement.element !== RequirementElement.ElementType.DeviceType || !requirement.isMandatory) {
+                return false;
+            }
+            const childDeviceType = MatterModel.standard.get(DeviceTypeModel, requirement.name);
+            return childDeviceType !== undefined && childDeviceType.classification !== DeviceClassification.Utility;
+        }) ||
+        // A derived device type inherits the requirements of the type it refines.
+        (base instanceof DeviceTypeModel && declaresMandatoryApplicationChild(base));
+    mandatoryApplicationChildCache.set(deviceType.name, declares);
+    return declares;
+}
+
 /**
  * Whether the child endpoints of an endpoint are devices in their own right, or parts the endpoint owns.
  *
@@ -85,9 +114,11 @@ export function childEndpointsAreOwnDevices(
     ) {
         return true;
     }
-    // Only utility types make the endpoint a composition whose children carry the application types.
-    // An application type means the endpoint is the device and its parts belong to it.
-    return appTypes.length === 0;
+    // An endpoint owns its parts only where the device type model says a part has to be there; anything a vendor
+    // optionally attached - the sensors on an air purifier, say - is a device the user expects on its own.
+    // The answer covers all parts of the endpoint, so an optional part of a composing type - an oven's cooktop -
+    // stays with its parent, which is preferred over splitting a composed appliance apart.
+    return !appTypes.some(({ deviceType }) => declaresMandatoryApplicationChild(deviceType));
 }
 
 /**

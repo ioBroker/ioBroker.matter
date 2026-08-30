@@ -278,11 +278,38 @@ export const SENSOR_AND_APPLIANCE_ENDPOINTS: BridgedEndpointSpec[] = [
         deviceType: 0x002c,
         expectedConverter: 'AirQualitySensorToIoBroker',
         expectedIoBrokerType: 'airQuality',
-        // Only the concentration clusters the fixture mounts appear, and PM2.5 without the LevelIndication
-        // feature contributes no level state.
-        expectedStates: ['ACTUAL', 'AQI', 'CO2', 'CO2_LEVEL', 'HUMIDITY', 'PM25', ...CONNECTION_STATES],
-        // AQI 1 is GOOD, CO2_LEVEL 2 is MEDIUM.
-        expectedValues: { AQI: 1, CO2: 800, CO2_LEVEL: 2, PM25: 12, ACTUAL: 21.5, HUMIDITY: 48 },
+        // Only the concentration clusters the fixture mounts appear, and none of them enables the
+        // LevelIndication feature except CO2, so only CO2 contributes a level state. POWER comes from an
+        // OnOff cluster the AirQualitySensor device type does not declare but real devices co-locate anyway.
+        expectedStates: [
+            'ACTUAL',
+            'AQI',
+            'CH2O',
+            'CO',
+            'CO2',
+            'CO2_LEVEL',
+            'HUMIDITY',
+            'PM25',
+            'POWER',
+            'TVOC',
+            ...CONNECTION_STATES,
+        ],
+        // AQI 1 is GOOD, CO2_LEVEL 2 is MEDIUM. CH2O is reported as 0.02 mg/m³ and scaled to the pattern's
+        // µg/m³ default (x1000). CO is reported in µg/m³ against the ppm-family default: cross-family, so the
+        // mapping drops the reading rather than convert it and CO is never written. TVOC has no type-detector
+        // default; the mapping's canonical ppb picks up the 0.5 ppm reading scaled by 1000.
+        expectedValues: {
+            AQI: 1,
+            CO2: 800,
+            CO2_LEVEL: 2,
+            PM25: 12,
+            CH2O: 20,
+            CO: undefined,
+            TVOC: 500,
+            ACTUAL: 21.5,
+            HUMIDITY: 48,
+            POWER: true,
+        },
     },
     {
         id: 'fan',
@@ -329,4 +356,79 @@ export const SENSOR_AND_APPLIANCE_ENDPOINTS: BridgedEndpointSpec[] = [
     },
 ];
 
-export const ALL_ENDPOINTS = [...BRIDGED_ENDPOINTS, ...SENSOR_AND_APPLIANCE_ENDPOINTS];
+/**
+ * Endpoints that carry child endpoints in their partsList, and the children the mapping must derive from them.
+ * A child is keyed `<parent nodeLabel>/<child device type name>`.
+ */
+export const COMPOSED_ENDPOINTS: BridgedEndpointSpec[] = [
+    {
+        // An air purifier only offers its sensor children, so each of them is a device of its own.
+        id: 'airpurifiercomposed',
+        deviceType: 0x002d,
+        expectedConverter: 'AirPurifierToIoBroker',
+        expectedIoBrokerType: 'airPurifier',
+        expectedStates: ['FILTER_CHANGE', 'FILTER_CONDITION', 'POWER', 'SPEED', 'SPEED_LEVEL', ...CONNECTION_STATES],
+        // SPEED 1 is HIGH; only the hepa filter is mounted here and it is fine, so no filter change is due.
+        expectedValues: { SPEED: 1, SPEED_LEVEL: 80, POWER: true, FILTER_CONDITION: 90, FILTER_CHANGE: false },
+    },
+    {
+        id: 'airpurifiercomposed/AirQualitySensor',
+        deviceType: 0x002c,
+        expectedConverter: 'AirQualitySensorToIoBroker',
+        expectedIoBrokerType: 'airQuality',
+        // A child endpoint carries no BridgedDeviceBasicInformation, so it shares the parent's connection state.
+        expectedStates: ['AQI', 'CO2', 'PM25'],
+        expectedValues: { AQI: 1, CO2: 620, PM25: 7 },
+    },
+    {
+        id: 'airpurifiercomposed/TemperatureSensor',
+        deviceType: 0x0302,
+        expectedConverter: 'TemperatureSensorToIoBroker',
+        expectedIoBrokerType: 'temperature',
+        expectedStates: ['ACTUAL'],
+        expectedValues: { ACTUAL: 23.5 },
+    },
+    {
+        id: 'airpurifiercomposed/HumiditySensor',
+        deviceType: 0x0307,
+        expectedConverter: 'HumiditySensorToIoBroker',
+        expectedIoBrokerType: 'humidity',
+        expectedStates: ['ACTUAL'],
+        expectedValues: { ACTUAL: 42 },
+    },
+    {
+        // A refrigerator composes a mandatory TemperatureControlledCabinet, so the cabinet stays a part of it and
+        // never appears as an own device - the endpoint list assertion is what pins that.
+        id: 'fridgecomposed',
+        deviceType: 0x0070,
+        expectedConverter: 'UtilityOnlyToIoBroker',
+        expectedIoBrokerType: 'light',
+        expectedStates: [...CONNECTION_STATES],
+        unmapped: true,
+    },
+    {
+        // A mandatory PowerSource child is a utility type, so the alarm is not a composition.
+        id: 'smokecoalarmcomposed',
+        deviceType: 0x0076,
+        expectedConverter: 'SmokeCoAlarmToIoBroker',
+        expectedIoBrokerType: 'fireAlarm',
+        expectedStates: ['ACTUAL', ...CONNECTION_STATES],
+        expectedValues: { ACTUAL: false },
+    },
+    {
+        // The alarm's children are walked, and a bare PowerSource endpoint maps to the utility device the adapter
+        // creates for power sources anywhere else in a bridge.
+        id: 'smokecoalarmcomposed/PowerSource',
+        deviceType: 0x0011,
+        expectedConverter: 'UtilityOnlyToIoBroker',
+        expectedIoBrokerType: 'light',
+        expectedStates: ['BATTERY', 'LOWBAT'],
+        // batPercentRemaining is reported in half percent.
+        expectedValues: { BATTERY: 70, LOWBAT: false },
+    },
+];
+
+/** Endpoints that must never be mapped, keyed the way `COMPOSED_ENDPOINTS` keys children. */
+export const OWNED_CHILD_ENDPOINTS = ['fridgecomposed/TemperatureControlledCabinet'];
+
+export const ALL_ENDPOINTS = [...BRIDGED_ENDPOINTS, ...SENSOR_AND_APPLIANCE_ENDPOINTS, ...COMPOSED_ENDPOINTS];

@@ -16,9 +16,12 @@ import { BridgedDeviceBasicInformationClient } from '@matter/main/behaviors';
 import { AggregatorEndpointDefinition } from '@matter/main/endpoints';
 import { SubscribeManager } from '../../src/lib/SubscribeManager';
 import type { GenericDeviceToIoBroker } from '../../src/matter/to-iobroker/GenericDeviceToIoBroker';
-import ioBrokerDeviceFabric, { identifyDeviceTypes } from '../../src/matter/to-iobroker/ioBrokerFactory';
+import ioBrokerDeviceFabric, {
+    childEndpointsAreOwnDevices,
+    identifyDeviceTypes,
+} from '../../src/matter/to-iobroker/ioBrokerFactory';
 import { BRIDGE_DISCRIMINATOR, BRIDGE_PASSCODE } from '../fixtures/bridgeConstants';
-import { ALL_ENDPOINTS } from '../fixtures/testBridgeDefinition';
+import { ALL_ENDPOINTS, OWNED_CHILD_ENDPOINTS } from '../fixtures/testBridgeDefinition';
 import {
     createTempStorage,
     pickBridgePort,
@@ -47,6 +50,7 @@ describe('Matter -> ioBroker controller mapping', function () {
     let adapter: MockControllerAdapter;
     let previousLogLevel: LogLevel;
     const mapped = new Map<string, MappedEndpoint>();
+    const ownedChildren = new Array<string>();
 
     before(async () => {
         previousLogLevel = Logger.defaultLogLevel;
@@ -102,26 +106,45 @@ describe('Matter -> ioBroker controller mapping', function () {
         );
         expect(aggregator, 'bridge did not expose an aggregator endpoint').to.not.equal(undefined);
 
-        for (const endpoint of [...aggregator!.parts] as Endpoint[]) {
-            const key =
-                endpoint.maybeStateOf(BridgedDeviceBasicInformationClient)?.nodeLabel ?? String(endpoint.number);
+        // Mirrors the recursion of `GeneralMatterNode`: a child endpoint becomes a device of its own exactly when
+        // `childEndpointsAreOwnDevices` says the parent does not own it.
+        const mapEndpoint = async (endpoint: Endpoint, key: string, connectionStateId?: string): Promise<void> => {
             const baseId = `controller.node.${key}`;
-            const matterDeviceTypeId = identifyDeviceTypes(endpoint).primaryDeviceType?.deviceType.id;
+            const deviceTypes = identifyDeviceTypes(endpoint);
+            const matterDeviceTypeId = deviceTypes.primaryDeviceType?.deviceType.id;
             // Per endpoint, so one converter throwing does not hide the mapping of all the others.
             try {
                 const device = await ioBrokerDeviceFabric(
-                    commissioned.node,
+                    commissioned!.node,
                     endpoint,
                     rootEndpoint!,
                     adapter as unknown as ioBroker.Adapter,
                     baseId,
-                    'controller.node.info.connection',
+                    connectionStateId ?? 'controller.node.info.connection',
                     key,
                 );
                 mapped.set(key, { device, baseId, matterDeviceTypeId });
             } catch (error) {
                 mapped.set(key, { baseId, matterDeviceTypeId, error });
             }
+            const ownDevices =
+                endpoint.number !== undefined && childEndpointsAreOwnDevices(endpoint.number, deviceTypes);
+            for (const child of [...endpoint.parts] as Endpoint[]) {
+                const childKey = `${key}/${identifyDeviceTypes(child).primaryDeviceType?.deviceType.name ?? 'Unknown'}`;
+                if (!ownDevices) {
+                    ownedChildren.push(childKey);
+                    continue;
+                }
+                expect(mapped.has(childKey), `duplicate endpoint key ${childKey}`).to.equal(false);
+                await mapEndpoint(child, childKey, mapped.get(key)?.device?.connectionStateId ?? connectionStateId);
+            }
+        };
+
+        for (const endpoint of [...aggregator!.parts] as Endpoint[]) {
+            await mapEndpoint(
+                endpoint,
+                endpoint.maybeStateOf(BridgedDeviceBasicInformationClient)?.nodeLabel ?? String(endpoint.number),
+            );
         }
     });
 
@@ -157,6 +180,13 @@ describe('Matter -> ioBroker controller mapping', function () {
             }
         }
         expect([...mapped.keys()].sort()).to.deep.equal(ALL_ENDPOINTS.map(spec => spec.id).sort());
+    });
+
+    it('leaves the parts of a composed device to their parent', () => {
+        expect(ownedChildren.sort()).to.deep.equal([...OWNED_CHILD_ENDPOINTS].sort());
+        for (const id of OWNED_CHILD_ENDPOINTS) {
+            expect([...mapped.keys()], `${id} must not become an own device`).to.not.contain(id);
+        }
     });
 
     for (const spec of ALL_ENDPOINTS) {

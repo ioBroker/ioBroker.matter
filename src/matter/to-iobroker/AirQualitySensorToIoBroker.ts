@@ -1,5 +1,5 @@
 import ChannelDetector from '@iobroker/type-detector';
-import type { ClusterId, Endpoint } from '@matter/main';
+import type { Behavior, ClusterId, Endpoint } from '@matter/main';
 import {
     AirQuality as MatterAirQuality,
     CarbonDioxideConcentrationMeasurement,
@@ -7,6 +7,7 @@ import {
     ConcentrationMeasurement,
     FormaldehydeConcentrationMeasurement,
     NitrogenDioxideConcentrationMeasurement,
+    OnOff as MatterOnOff,
     OzoneConcentrationMeasurement,
     Pm1ConcentrationMeasurement,
     Pm10ConcentrationMeasurement,
@@ -17,6 +18,19 @@ import {
     TemperatureMeasurement,
     TotalVolatileOrganicCompoundsConcentrationMeasurement,
 } from '@matter/main/clusters';
+import {
+    CarbonDioxideConcentrationMeasurementClient,
+    CarbonMonoxideConcentrationMeasurementClient,
+    FormaldehydeConcentrationMeasurementClient,
+    NitrogenDioxideConcentrationMeasurementClient,
+    OnOffClient,
+    OzoneConcentrationMeasurementClient,
+    Pm1ConcentrationMeasurementClient,
+    Pm10ConcentrationMeasurementClient,
+    Pm25ConcentrationMeasurementClient,
+    RadonConcentrationMeasurementClient,
+    TotalVolatileOrganicCompoundsConcentrationMeasurementClient,
+} from '@matter/main/behaviors';
 import type { PairedNode } from '@project-chip/matter.js/device';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
@@ -25,10 +39,67 @@ import { GenericDeviceToIoBroker } from './GenericDeviceToIoBroker';
 import type { MatterAdapter } from '../../main';
 import { MatterConverters } from '../ConversionUtils';
 
+/**
+ * Canonical unit an ioBroker pollutant state is written in. `ppm`/`µg/m³`/`Bq/m³` are the type-detector
+ * `airQuality` pattern's declared defaults; TVOC, NO2 and O3 have no declared default there because devices
+ * legitimately differ, so `ppb` is used for them instead - the same convention the Matter-bridge side of this
+ * adapter already assumes for the same three gases (see AirQualityToMatter.ts).
+ */
+type ConcentrationTarget = 'ppm' | 'ppb' | 'ugm3' | 'bqm3';
+
+/** Minimal shape shared by every concentration-measurement Client behavior, enough to read the optional unit. */
+interface ConcentrationClientType extends Behavior.Type {
+    readonly State: new () => {
+        measurementUnit?: ConcentrationMeasurement.MeasurementUnit;
+    };
+}
+
+const { Ppm, Ppb, Ppt, Mgm3, Ugm3, Ngm3, Pm3, Bqm3 } = ConcentrationMeasurement.MeasurementUnit;
+
+const CONCENTRATION_UNIT_LABELS: ReadonlyMap<ConcentrationMeasurement.MeasurementUnit, string> = new Map([
+    [Ppm, 'ppm'],
+    [Ppb, 'ppb'],
+    [Ppt, 'ppt'],
+    [Mgm3, 'mg/m³'],
+    [Ugm3, 'µg/m³'],
+    [Ngm3, 'ng/m³'],
+    [Pm3, 'p/m³'],
+    [Bqm3, 'Bq/m³'],
+]);
+
+/**
+ * Multiplier from a reported unit into a pollutant's canonical unit, keyed by that canonical unit. ppm/ppb/ppt
+ * scale into each other by powers of 1000, as do mg/µg/ng per m³, but crossing from one family to the other
+ * needs the substance's molar mass and is not attempted - a unit outside the target's family is left out of its
+ * map on purpose so the lookup fails and the reading is dropped instead of being scaled by the wrong factor.
+ */
+const CONCENTRATION_CONVERSION: Readonly<
+    Record<ConcentrationTarget, ReadonlyMap<ConcentrationMeasurement.MeasurementUnit, number>>
+> = {
+    ppm: new Map([
+        [Ppm, 1],
+        [Ppb, 1e-3],
+        [Ppt, 1e-6],
+    ]),
+    ppb: new Map([
+        [Ppm, 1e3],
+        [Ppb, 1],
+        [Ppt, 1e-3],
+    ]),
+    ugm3: new Map([
+        [Mgm3, 1e3],
+        [Ugm3, 1],
+        [Ngm3, 1e-3],
+    ]),
+    bqm3: new Map([[Bqm3, 1]]),
+};
+
 interface PollutantMapping {
     readonly clusterId: ClusterId;
     readonly concentrationProperty: PropertyType;
     readonly levelProperty: PropertyType;
+    readonly client: ConcentrationClientType;
+    readonly target: ConcentrationTarget;
 }
 
 /** Matter defines no sulphur dioxide concentration cluster, so the ioBroker SO2 states stay unmapped. */
@@ -37,51 +108,71 @@ const POLLUTANT_MAPPINGS: readonly PollutantMapping[] = [
         clusterId: CarbonDioxideConcentrationMeasurement.id,
         concentrationProperty: PropertyType.Co2,
         levelProperty: PropertyType.Co2Level,
+        client: CarbonDioxideConcentrationMeasurementClient,
+        target: 'ppm',
     },
     {
         clusterId: TotalVolatileOrganicCompoundsConcentrationMeasurement.id,
         concentrationProperty: PropertyType.Tvoc,
         levelProperty: PropertyType.TvocLevel,
+        client: TotalVolatileOrganicCompoundsConcentrationMeasurementClient,
+        target: 'ppb',
     },
     {
         clusterId: Pm1ConcentrationMeasurement.id,
         concentrationProperty: PropertyType.Pm1,
         levelProperty: PropertyType.Pm1Level,
+        client: Pm1ConcentrationMeasurementClient,
+        target: 'ugm3',
     },
     {
         clusterId: Pm25ConcentrationMeasurement.id,
         concentrationProperty: PropertyType.Pm25,
         levelProperty: PropertyType.Pm25Level,
+        client: Pm25ConcentrationMeasurementClient,
+        target: 'ugm3',
     },
     {
         clusterId: Pm10ConcentrationMeasurement.id,
         concentrationProperty: PropertyType.Pm10,
         levelProperty: PropertyType.Pm10Level,
+        client: Pm10ConcentrationMeasurementClient,
+        target: 'ugm3',
     },
     {
         clusterId: CarbonMonoxideConcentrationMeasurement.id,
         concentrationProperty: PropertyType.Co,
         levelProperty: PropertyType.CoLevel,
+        client: CarbonMonoxideConcentrationMeasurementClient,
+        target: 'ppm',
     },
     {
         clusterId: NitrogenDioxideConcentrationMeasurement.id,
         concentrationProperty: PropertyType.No2,
         levelProperty: PropertyType.No2Level,
+        client: NitrogenDioxideConcentrationMeasurementClient,
+        target: 'ppb',
     },
     {
         clusterId: OzoneConcentrationMeasurement.id,
         concentrationProperty: PropertyType.O3,
         levelProperty: PropertyType.O3Level,
+        client: OzoneConcentrationMeasurementClient,
+        target: 'ppb',
     },
     {
         clusterId: FormaldehydeConcentrationMeasurement.id,
         concentrationProperty: PropertyType.Ch2o,
         levelProperty: PropertyType.Ch2oLevel,
+        client: FormaldehydeConcentrationMeasurementClient,
+        target: 'ugm3',
     },
     {
         clusterId: RadonConcentrationMeasurement.id,
         concentrationProperty: PropertyType.Rn,
         levelProperty: PropertyType.RnLevel,
+        client: RadonConcentrationMeasurementClient,
+        target: 'bqm3',
     },
 ];
 
@@ -152,6 +243,36 @@ export class AirQualitySensorToIoBroker extends GenericDeviceToIoBroker {
         }
     }
 
+    /**
+     * Scales a cluster's `measuredValue` into the pollutant's canonical unit using its `measurementUnit`
+     * attribute. That attribute is optional even where `measuredValue` is present, so an absent unit is taken
+     * to already match the canonical one - the assumption the code made unconditionally before this scaling
+     * existed. A unit outside the canonical unit's family (e.g. a ppm-family reading for a mass-family
+     * pollutant) can't be scaled without the substance's molar mass, so the reading is dropped rather than
+     * written under the wrong unit.
+     */
+    #convertConcentrationValue(
+        value: number | null,
+        client: ConcentrationClientType,
+        target: ConcentrationTarget,
+    ): number | undefined {
+        if (value === null) {
+            return undefined;
+        }
+        const measurementUnit = this.appEndpoint.maybeStateOf(client)?.measurementUnit;
+        if (measurementUnit === undefined) {
+            return value;
+        }
+        const factor = CONCENTRATION_CONVERSION[target].get(measurementUnit);
+        if (factor === undefined) {
+            this.#ioBrokerDevice.adapter.log.warn(
+                `${this.baseId}: pollutant reported in ${CONCENTRATION_UNIT_LABELS.get(measurementUnit) ?? measurementUnit}, incompatible with ${target}; value not updated`,
+            );
+            return undefined;
+        }
+        return value * factor;
+    }
+
     protected enableDeviceTypeStates(): DeviceOptions {
         const endpointId = this.appEndpoint.number;
 
@@ -162,13 +283,12 @@ export class AirQualitySensorToIoBroker extends GenericDeviceToIoBroker {
             convertValue: (value: MatterAirQuality.AirQualityEnum) => this.#toIoBrokerAirQuality(value),
         });
 
-        for (const { clusterId, concentrationProperty, levelProperty } of POLLUTANT_MAPPINGS) {
-            // The concentration units follow the type-detector defaults, which is what the Matter side declares
+        for (const { clusterId, concentrationProperty, levelProperty, client, target } of POLLUTANT_MAPPINGS) {
             this.enableDeviceTypeStateForAttribute(concentrationProperty, {
                 endpointId,
                 clusterId,
                 attributeName: 'measuredValue',
-                convertValue: (value: number | null) => (value === null ? undefined : value),
+                convertValue: (value: number | null) => this.#convertConcentrationValue(value, client, target),
             });
             this.enableDeviceTypeStateForAttribute(levelProperty, {
                 endpointId,
@@ -177,6 +297,19 @@ export class AirQualitySensorToIoBroker extends GenericDeviceToIoBroker {
                 convertValue: (value: ConcentrationMeasurement.LevelValue) => this.#toIoBrokerLevel(value),
             });
         }
+
+        this.enableDeviceTypeStateForAttribute(PropertyType.Power, {
+            endpointId,
+            clusterId: MatterOnOff.id,
+            attributeName: 'onOff',
+            changeHandler: async value => {
+                if (value) {
+                    await this.appEndpoint.commandsOf(OnOffClient)?.on();
+                } else {
+                    await this.appEndpoint.commandsOf(OnOffClient)?.off();
+                }
+            },
+        });
 
         this.enableDeviceTypeStateForAttribute(PropertyType.Temperature, {
             endpointId,

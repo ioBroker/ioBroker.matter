@@ -12,9 +12,11 @@ import {
     ActivatedCarbonFilterMonitoringServer,
     BridgedDeviceBasicInformationServer,
     CarbonDioxideConcentrationMeasurementServer,
+    CarbonMonoxideConcentrationMeasurementServer,
     ColorControlServer,
     FanControlServer,
     FlowMeasurementServer,
+    FormaldehydeConcentrationMeasurementServer,
     HepaFilterMonitoringServer,
     LevelControlServer,
     OccupancySensingServer,
@@ -26,11 +28,13 @@ import {
     RelativeHumidityMeasurementServer,
     SmokeCoAlarmServer,
     SwitchServer,
+    TemperatureControlServer,
     TemperatureMeasurementServer,
     ThermostatServer,
+    TotalVolatileOrganicCompoundsConcentrationMeasurementServer,
     WindowCoveringServer,
 } from '@matter/main/behaviors';
-import { AggregatorEndpoint } from '@matter/main/endpoints';
+import { AggregatorEndpoint, PowerSourceEndpoint } from '@matter/main/endpoints';
 import {
     AirQuality,
     ColorControl,
@@ -286,8 +290,32 @@ async function main(): Promise<void> {
                 measurementMedium: ConcentrationMeasurement.MeasurementMedium.Air,
                 measurementUnit: ConcentrationMeasurement.MeasurementUnit.Ugm3,
             },
+            // Reports in mg/m³ against the pattern's µg/m³ default - a Dyson air purifier does exactly this for
+            // formaldehyde, and the controller mapping must scale it rather than record the raw mg value.
+            formaldehydeConcentrationMeasurement: {
+                measuredValue: 0.02,
+                measurementMedium: ConcentrationMeasurement.MeasurementMedium.Air,
+                measurementUnit: ConcentrationMeasurement.MeasurementUnit.Mgm3,
+            },
+            // Reports in µg/m³ (mass family) against the ppm-family default: no molar mass is available to
+            // convert between the two families, so the mapping must drop this reading rather than guess.
+            carbonMonoxideConcentrationMeasurement: {
+                measuredValue: 5,
+                measurementMedium: ConcentrationMeasurement.MeasurementMedium.Air,
+                measurementUnit: ConcentrationMeasurement.MeasurementUnit.Ugm3,
+            },
+            // TVOC has no type-detector default unit because devices legitimately differ; the mapping's
+            // canonical choice for it is ppb, so a ppm reading must scale up by 1000.
+            totalVolatileOrganicCompoundsConcentrationMeasurement: {
+                measuredValue: 0.5,
+                measurementMedium: ConcentrationMeasurement.MeasurementMedium.Air,
+                measurementUnit: ConcentrationMeasurement.MeasurementUnit.Ppm,
+            },
             temperatureMeasurement: { measuredValue: 2150 },
             relativeHumidityMeasurement: { measuredValue: 4800 },
+            // Not part of the AirQualitySensor device type, but the IKEA ALPSTUGA co-locates it anyway - the
+            // same way real devices co-locate Pressure/Temperature/Humidity below.
+            onOff: { onOff: true },
         },
         [
             CarbonDioxideConcentrationMeasurementServer.with(
@@ -297,8 +325,12 @@ async function main(): Promise<void> {
                 'CriticalLevel',
             ),
             Pm25ConcentrationMeasurementServer.with('NumericMeasurement'),
+            FormaldehydeConcentrationMeasurementServer.with('NumericMeasurement'),
+            CarbonMonoxideConcentrationMeasurementServer.with('NumericMeasurement'),
+            TotalVolatileOrganicCompoundsConcentrationMeasurementServer.with('NumericMeasurement'),
             TemperatureMeasurementServer,
             RelativeHumidityMeasurementServer,
+            OnOffServer,
         ],
     );
     await addBridged(
@@ -371,6 +403,112 @@ async function main(): Promise<void> {
             FlowMeasurementServer,
         ],
     );
+
+    /**
+     * Composed devices: the children live in the parent's partsList, the way a Dyson air purifier exposes its
+     * sensors. `addComposed` differs from `addBridged` only in handing the endpoint back so parts can be added.
+     */
+    const addComposed = async (
+        id: string,
+        definition: DeviceDefinition,
+        state: Record<string, unknown> = {},
+        extraBehaviors: Behavior.Type[] = new Array<Behavior.Type>(),
+    ): Promise<Endpoint> => {
+        serial++;
+        return aggregator.add(definition.with(BridgedDeviceBasicInformationServer, ...extraBehaviors), {
+            id,
+            bridgedDeviceBasicInformation: {
+                nodeLabel: id,
+                productName: id,
+                productLabel: id,
+                serialNumber: `TEST-${String(serial).padStart(3, '0')}`,
+                uniqueId: `unique-${id}`,
+                reachable: true,
+            },
+            ...state,
+        });
+    };
+
+    const composedPurifier = await addComposed(
+        'airpurifiercomposed',
+        Devices.AirPurifierDevice,
+        {
+            onOff: { onOff: true },
+            fanControl: {
+                fanMode: FanControl.FanMode.High,
+                fanModeSequence: FanControl.FanModeSequence.OffLowMedHigh,
+                percentCurrent: 80,
+                percentSetting: 80,
+            },
+            hepaFilterMonitoring: {
+                condition: 90,
+                degradationDirection: ResourceMonitoring.DegradationDirection.Down,
+                changeIndication: ResourceMonitoring.ChangeIndication.Ok,
+            },
+        },
+        [OnOffServer, HepaFilterMonitoringServer.with('Condition', 'Warning')],
+    );
+    await composedPurifier.add(
+        Devices.AirQualitySensorDevice.with(
+            Pm25ConcentrationMeasurementServer.with('NumericMeasurement'),
+            CarbonDioxideConcentrationMeasurementServer.with('NumericMeasurement'),
+        ),
+        {
+            id: 'purifierairquality',
+            airQuality: { airQuality: AirQuality.AirQualityEnum.Good },
+            pm25ConcentrationMeasurement: {
+                measuredValue: 7,
+                measurementMedium: ConcentrationMeasurement.MeasurementMedium.Air,
+                measurementUnit: ConcentrationMeasurement.MeasurementUnit.Ugm3,
+            },
+            carbonDioxideConcentrationMeasurement: {
+                measuredValue: 620,
+                measurementMedium: ConcentrationMeasurement.MeasurementMedium.Air,
+                measurementUnit: ConcentrationMeasurement.MeasurementUnit.Ppm,
+            },
+        },
+    );
+    await composedPurifier.add(Devices.TemperatureSensorDevice, {
+        id: 'purifiertemperature',
+        temperatureMeasurement: { measuredValue: 2350 },
+    });
+    await composedPurifier.add(Devices.HumiditySensorDevice, {
+        id: 'purifierhumidity',
+        relativeHumidityMeasurement: { measuredValue: 4200 },
+    });
+
+    // Counter case: a Refrigerator composes a mandatory TemperatureControlledCabinet, so the cabinet is a part of
+    // the fridge and must not turn into a device of its own.
+    const composedFridge = await addComposed('fridgecomposed', Devices.RefrigeratorDevice);
+    await composedFridge.add(
+        Devices.TemperatureControlledCabinetDevice.with(
+            TemperatureControlServer.with('TemperatureLevel'),
+            TemperatureMeasurementServer,
+        ),
+        {
+            id: 'fridgecabinet',
+            temperatureControl: { selectedTemperatureLevel: 0, supportedTemperatureLevels: ['cold', 'colder'] },
+            temperatureMeasurement: { measuredValue: 500 },
+        },
+    );
+
+    // A mandatory child of a utility device type does not make the alarm a composition either. The two alarms
+    // above pin the on-endpoint and the root-endpoint battery paths, so this case needs its own endpoint.
+    const composedAlarm = await addComposed('smokecoalarmcomposed', Devices.SmokeCoAlarmDevice, smokeCoAlarmState, [
+        SmokeCoAlarmServer.with('SmokeAlarm'),
+    ]);
+    await composedAlarm.add(PowerSourceEndpoint.with(PowerSourceServer.with('Battery')), {
+        id: 'alarmpowersource',
+        powerSource: {
+            status: PowerSource.PowerSourceStatus.Active,
+            order: 0,
+            description: 'Battery',
+            batChargeLevel: PowerSource.BatChargeLevel.Ok,
+            batPercentRemaining: 140,
+            batReplacementNeeded: false,
+            batReplaceability: PowerSource.BatReplaceability.UserReplaceable,
+        },
+    });
 
     console.log(`Storage path: ${storagePath}`);
     console.log(`Bridge endpoints: ${[...aggregator.parts].map(part => part.id).join(', ')}`);

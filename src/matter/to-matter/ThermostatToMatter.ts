@@ -12,6 +12,12 @@ import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 import { EventedOnOffPlugInUnitOnOffServer } from '../behaviors/EventedOnOffPlugInUnitOnOffServer';
 import { hasLocalActor } from '@matter/main/protocol';
 import { MatterConverters } from '../ConversionUtils';
+import {
+    deriveThermostatFeatures,
+    ThermostatSetpointBridge,
+    thermostatInitialState,
+    type ThermostatSetpointState,
+} from '../ThermostatUtils';
 
 const IoThermostatDevice = ThermostatDevice.with(IoBrokerEvents, IoIdentifyServer, IoBrokerContext);
 type IoThermostatDevice = typeof IoThermostatDevice;
@@ -29,125 +35,73 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
     readonly #matterEndpointThermostat: Endpoint<IoThermostatDevice>;
     readonly #matterEndpointHumidity?: Endpoint<HumiditySensorDevice>;
     readonly #matterEndpointBoost?: Endpoint<IoOnOffPlugInUnitDevice>;
-    #supportedModes = new Array<ThermostatMode>();
-    #validModes = new Array<ThermostatMode>();
-    #temperatureDebounceTimeout?: ioBroker.Timeout;
+    readonly #supportedModes: ThermostatMode[];
+    readonly #validModes: ThermostatMode[];
     readonly #ThermostatServer;
+    readonly #setpoints: ThermostatSetpointBridge;
 
     constructor(ioBrokerDevice: Thermostat, name: string, uuid: string) {
         super(name, uuid);
 
         this.#ioBrokerDevice = ioBrokerDevice;
 
-        const clusterModes = new Array<MatterThermostat.Feature>();
-        const ignoredModes = new Array<ThermostatMode>();
-        const modes = this.#ioBrokerDevice.hasMode() ? this.#ioBrokerDevice.getModes() : [];
-        for (const mode of modes) {
-            switch (mode) {
-                case ThermostatMode.Heat:
-                    this.#supportedModes.push(ThermostatMode.Heat);
-                    this.#validModes.push(ThermostatMode.Heat);
-                    clusterModes.push(MatterThermostat.Feature.Heating);
-                    break;
-                case ThermostatMode.Cool:
-                    this.#supportedModes.push(ThermostatMode.Cool);
-                    this.#validModes.push(ThermostatMode.Cool);
-                    clusterModes.push(MatterThermostat.Feature.Cooling);
-                    break;
-                case ThermostatMode.Auto:
-                    // Ignore for now, is handled next with an extra check
-                    break;
-                case ThermostatMode.Off:
-                    this.#supportedModes.push(ThermostatMode.Off);
-                    this.#validModes.push(ThermostatMode.Off);
-                    break;
-                case ThermostatMode.FanOnly:
-                    this.#supportedModes.push(ThermostatMode.FanOnly);
-                    this.#validModes.push(ThermostatMode.FanOnly);
-                    break;
-                case ThermostatMode.Dry:
-                    this.#supportedModes.push(ThermostatMode.Dry);
-                    this.#validModes.push(ThermostatMode.Dry);
-                    break;
-                default:
-                    ignoredModes.push(mode);
-            }
-        }
-        // occupiedHeatingSetpoint/occupiedCoolingSetpoint are conformant to the Heating/Cooling feature, so an
-        // undeclared feature means there is no attribute to carry the setpoint the device does have.
-        for (const kind of this.#ioBrokerDevice.supportedSetpointKinds()) {
-            if (kind === SetpointKind.Heating && !clusterModes.includes(MatterThermostat.Feature.Heating)) {
-                clusterModes.push(MatterThermostat.Feature.Heating);
-                this.#supportedModes.push(ThermostatMode.Heat);
-            } else if (kind === SetpointKind.Cooling && !clusterModes.includes(MatterThermostat.Feature.Cooling)) {
-                clusterModes.push(MatterThermostat.Feature.Cooling);
-                this.#supportedModes.push(ThermostatMode.Cool);
-            }
-        }
+        const derivation = deriveThermostatFeatures<ThermostatMode>({
+            modes: this.#ioBrokerDevice.hasMode() ? this.#ioBrokerDevice.getModes() : [],
+            modeMap: {
+                heat: ThermostatMode.Heat,
+                cool: ThermostatMode.Cool,
+                auto: ThermostatMode.Auto,
+                off: ThermostatMode.Off,
+                fanOnly: ThermostatMode.FanOnly,
+                dry: ThermostatMode.Dry,
+            },
+            supportedSetpointKinds: this.#ioBrokerDevice.supportedSetpointKinds(),
+            fallbackFeature: MatterThermostat.Feature.Heating,
+        });
+        this.#supportedModes = derivation.supportedModes;
+        this.#validModes = derivation.validModes;
 
-        if (
-            modes.includes(ThermostatMode.Auto) &&
-            clusterModes.includes(MatterThermostat.Feature.Heating) &&
-            clusterModes.includes(MatterThermostat.Feature.Cooling)
-        ) {
-            clusterModes.push(MatterThermostat.Feature.AutoMode);
-            this.#supportedModes.push(ThermostatMode.Auto);
-            this.#validModes.push(ThermostatMode.Auto);
-        } else if (modes.includes(ThermostatMode.Auto)) {
-            // Auto mode requires Heating and cooling to be supported too
+        if (derivation.autoModeIgnored) {
             this.#ioBrokerDevice.adapter.log.info(
                 `${uuid}: AutoMode is supported, but no Heating or Cooling, ignoring AutoMode`,
             );
         }
-
-        if (
-            !clusterModes.includes(MatterThermostat.Feature.Heating) &&
-            !clusterModes.includes(MatterThermostat.Feature.Cooling)
-        ) {
-            // When no mode is there tell that it is a Heating thermostat
+        if (derivation.fallbackApplied) {
             this.#ioBrokerDevice.adapter.log.info(
                 `${uuid}: Matter Thermostats need to either support heating or cooling. Defaulting to Heating`,
             );
-            clusterModes.push(MatterThermostat.Feature.Heating);
-            this.#supportedModes.push(ThermostatMode.Heat);
         }
-        if (ignoredModes.length > 0) {
+        if (derivation.ignoredModes.length > 0) {
             this.#ioBrokerDevice.adapter.log.info(
-                `${uuid}: Ignoring unsupported modes for Thermostat: ${ignoredModes.join(', ')}`,
+                `${uuid}: Ignoring unsupported modes for Thermostat: ${derivation.ignoredModes.join(', ')}`,
             );
         }
         this.#ioBrokerDevice.adapter.log.info(
-            `Mapped Thermostat Modes "${this.#supportedModes.join('","')}" to Matter Features "${clusterModes.map(feature => MatterThermostat.Feature[feature]).join('","')}"`,
+            `Mapped Thermostat Modes "${this.#supportedModes.join('","')}" to Matter Features "${derivation.clusterModes.map(feature => MatterThermostat.Feature[feature]).join('","')}"`,
         );
         this.#ioBrokerDevice.adapter.log.info(
             `Valid Modes the adapter will react on from ioBroker Device: ${this.#validModes.length ? `"${this.#validModes.join('","')}"` : 'None, Mode state is ignored'}`,
         );
 
-        const hasHeating = clusterModes.includes(MatterThermostat.Feature.Heating);
-        const hasCooling = clusterModes.includes(MatterThermostat.Feature.Cooling);
-
-        this.#ThermostatServer = ThermostatServer.with(...clusterModes);
+        this.#ThermostatServer = ThermostatServer.with(...derivation.clusterModes);
         this.#matterEndpointThermostat = new Endpoint(IoThermostatDevice.with(this.#ThermostatServer), {
             id: `${uuid}-Thermostat`,
             ioBrokerContext: {
                 device: ioBrokerDevice,
                 adapter: ioBrokerDevice.adapter,
             },
-            thermostat: {
-                // Values are corrected later again with real values
-                systemMode: hasHeating ? MatterThermostat.SystemMode.Heat : MatterThermostat.SystemMode.Cool,
-                controlSequenceOfOperation:
-                    hasHeating && hasCooling
-                        ? MatterThermostat.ControlSequenceOfOperation.CoolingAndHeating
-                        : hasCooling
-                          ? MatterThermostat.ControlSequenceOfOperation.CoolingOnly
-                          : MatterThermostat.ControlSequenceOfOperation.HeatingOnly,
-                minSetpointDeadBand: clusterModes.includes(MatterThermostat.Feature.AutoMode) ? 0 : undefined,
-                absMinHeatSetpointLimit: hasHeating ? MatterConverters.toMatterHundredths(0) : undefined,
-                absMaxHeatSetpointLimit: hasHeating ? MatterConverters.toMatterHundredths(50) : undefined,
-                absMinCoolSetpointLimit: hasCooling ? MatterConverters.toMatterHundredths(0) : undefined,
-                absMaxCoolSetpointLimit: hasCooling ? MatterConverters.toMatterHundredths(50) : undefined,
-            },
+            // Values are corrected later again with real values
+            thermostat: thermostatInitialState(derivation.clusterModes, SetpointKind.Heating),
+        });
+        this.#setpoints = new ThermostatSetpointBridge({
+            device: ioBrokerDevice,
+            uuid,
+            supportsHeating: this.#supportedModes.includes(ThermostatMode.Heat),
+            supportsCooling: this.#supportedModes.includes(ThermostatMode.Cool),
+            readState: () => this.#readThermostatState(),
+            writeState: patch => this.#matterEndpointThermostat.setStateOf(this.#ThermostatServer, patch),
+            scheduleDebounce: (callback, ms) => this.setDeviceTimeout(callback, ms),
+            cancelDebounce: timeout => this.clearDeviceTimeout(timeout),
         });
         if (this.#ioBrokerDevice.hasHumidity()) {
             this.#matterEndpointHumidity = new Endpoint(HumiditySensorDevice, { id: `${uuid}-Humidity` });
@@ -204,100 +158,13 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
         }
     }
 
-    /**
-     * Both kinds resolve to the same ioBroker state when the device exposes neither dedicated setpoint, so in
-     * Auto only one of them may be written — the second write would just overwrite the first.
-     */
-    get #setpointStateIsShared(): boolean {
-        return !this.#ioBrokerDevice.hasLevelHeating() && !this.#ioBrokerDevice.hasLevelCooling();
-    }
-
-    /**
-     * Puts the value the ioBroker side really holds back on a setpoint attribute. A dropped write would otherwise
-     * leave the controller showing a temperature the device never accepted, with nothing to correct it later.
-     */
-    #restoreSetpointAttribute(kind: SetpointKind): void {
-        const supported =
-            kind === SetpointKind.Heating
-                ? this.#supportedModes.includes(ThermostatMode.Heat)
-                : this.#supportedModes.includes(ThermostatMode.Cool);
-        const value = this.#ioBrokerDevice.hasLevel() ? this.#ioBrokerDevice.getLevel() : undefined;
-        if (!supported || typeof value !== 'number') {
-            return;
-        }
-        const matterValue = MatterConverters.toMatterHundredths(value);
-        this.#matterEndpointThermostat
-            .setStateOf(
-                this.#ThermostatServer,
-                kind === SetpointKind.Heating
-                    ? { occupiedHeatingSetpoint: matterValue }
-                    : { occupiedCoolingSetpoint: matterValue },
-            )
-            .catch(error =>
-                this.#ioBrokerDevice.adapter.log.warn(`Error restoring ${kind} setpoint: ${error.message}`),
-            );
-    }
-
-    #writeSetpoint(kind: SetpointKind, matterValue: number): void {
-        if (!this.#ioBrokerDevice.hasSetpoint(kind)) {
-            // The shared setpoint state stands for the other kind while the ioBroker mode disagrees with the Matter
-            // system mode; writing it anyway would store a temperature meant for one kind under the other
-            this.#ioBrokerDevice.adapter.log.debug(
-                `${this.uuid}: Dropping ${kind} setpoint write, no ioBroker state currently represents the ${kind} setpoint`,
-            );
-            this.#restoreSetpointAttribute(kind);
-            return;
-        }
-        const value = MatterConverters.fromMatterHundredths(matterValue);
-        this.#ioBrokerDevice.adapter.log.debug(`Setting ${kind} setpoint to ${value} after debounce`);
-        this.#ioBrokerDevice
-            .setSetpoint(kind, value)
-            .catch(error => this.#ioBrokerDevice.adapter.log.warn(`Error setting ${kind} setpoint: ${error.message}`));
-    }
-
-    #setpointValue(kind: SetpointKind): number | undefined {
-        if (!this.#ioBrokerDevice.hasSetpoint(kind)) {
-            return undefined;
-        }
-        const value = this.#ioBrokerDevice.getSetpoint(kind);
-        return typeof value === 'number' ? value : undefined;
-    }
-
-    #updateSetPointTemperature(delay = 1500): void {
-        if (
-            !this.#ioBrokerDevice.hasSetpoint(SetpointKind.Heating) &&
-            !this.#ioBrokerDevice.hasSetpoint(SetpointKind.Cooling)
-        ) {
-            return;
-        }
-        this.clearDeviceTimeout(this.#temperatureDebounceTimeout);
-        this.#temperatureDebounceTimeout = this.setDeviceTimeout(() => {
-            this.#temperatureDebounceTimeout = undefined;
-            const state = this.#matterEndpointThermostat.stateOf(this.#ThermostatServer);
-            const systemMode = state.systemMode;
-            if (
-                (systemMode === MatterThermostat.SystemMode.Heat || systemMode === MatterThermostat.SystemMode.Auto) &&
-                typeof state.occupiedHeatingSetpoint === 'number'
-            ) {
-                this.#writeSetpoint(SetpointKind.Heating, state.occupiedHeatingSetpoint);
-            }
-            if (
-                (systemMode === MatterThermostat.SystemMode.Cool ||
-                    (systemMode === MatterThermostat.SystemMode.Auto && !this.#setpointStateIsShared)) &&
-                typeof state.occupiedCoolingSetpoint === 'number'
-            ) {
-                this.#writeSetpoint(SetpointKind.Cooling, state.occupiedCoolingSetpoint);
-            } else if (
-                systemMode === MatterThermostat.SystemMode.Auto &&
-                this.#setpointStateIsShared &&
-                typeof state.occupiedCoolingSetpoint === 'number'
-            ) {
-                this.#ioBrokerDevice.adapter.log.debug(
-                    `${this.uuid}: Dropping cooling setpoint write, in Auto the single ioBroker setpoint state follows the heating setpoint`,
-                );
-                this.#restoreSetpointAttribute(SetpointKind.Cooling);
-            }
-        }, delay);
+    #readThermostatState(): ThermostatSetpointState {
+        const state = this.#matterEndpointThermostat.stateOf(this.#ThermostatServer);
+        return {
+            systemMode: state.systemMode,
+            occupiedHeatingSetpoint: state.occupiedHeatingSetpoint,
+            occupiedCoolingSetpoint: state.occupiedCoolingSetpoint,
+        };
     }
 
     async registerHandlersAndInitialize(): Promise<void> {
@@ -333,29 +200,10 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
             systemMode,
             controlSequenceOfOperation,
         });
-        const data: Record<string, number> = {};
-        if (this.#supportedModes.includes(ThermostatMode.Heat)) {
-            const setpoint = this.#setpointValue(SetpointKind.Heating);
-            if (setpoint !== undefined) {
-                const minMax = this.#ioBrokerDevice.getSetpointMinMax(SetpointKind.Heating) ?? { min: 7, max: 30 };
-                data.occupiedHeatingSetpoint = MatterConverters.toMatterHundredths(
-                    this.#ioBrokerDevice.cropValue(setpoint, minMax.min, minMax.max, true),
-                );
-                data.minHeatSetpointLimit = MatterConverters.toMatterHundredths(Math.max(minMax.min, 0));
-                data.maxHeatSetpointLimit = MatterConverters.toMatterHundredths(Math.min(minMax.max, 50));
-            }
-        }
-        if (this.#supportedModes.includes(ThermostatMode.Cool)) {
-            const setpoint = this.#setpointValue(SetpointKind.Cooling);
-            if (setpoint !== undefined) {
-                const minMax = this.#ioBrokerDevice.getSetpointMinMax(SetpointKind.Cooling) ?? { min: 16, max: 32 };
-                data.occupiedCoolingSetpoint = MatterConverters.toMatterHundredths(
-                    this.#ioBrokerDevice.cropValue(setpoint, minMax.min, minMax.max, true),
-                );
-                data.minCoolSetpointLimit = MatterConverters.toMatterHundredths(Math.max(minMax.min, 0));
-                data.maxCoolSetpointLimit = MatterConverters.toMatterHundredths(Math.min(minMax.max, 50));
-            }
-        }
+        const data = this.#setpoints.initialSetpointState({
+            [SetpointKind.Heating]: { min: 7, max: 30 },
+            [SetpointKind.Cooling]: { min: 16, max: 32 },
+        });
         if (Object.keys(data).length > 0) {
             this.#ioBrokerDevice.adapter.log.debug(`Setting Thermostat setpoints to ${JSON.stringify(data)}`);
             await this.#matterEndpointThermostat.setStateOf(this.#ThermostatServer, data);
@@ -454,7 +302,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                             return;
                         }
 
-                        this.#updateSetPointTemperature();
+                        this.#setpoints.scheduleSetpointWrite();
                     },
                 );
             }
@@ -470,7 +318,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                             return;
                         }
 
-                        this.#updateSetPointTemperature();
+                        this.#setpoints.scheduleSetpointWrite();
                     },
                 );
             }
@@ -492,39 +340,14 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                         });
                     }
                     break;
-                case PropertyType.Level: {
-                    // The plain setpoint only stands for a kind that has no dedicated state of its own
-                    const systemMode = this.#matterEndpointThermostat.stateOf(this.#ThermostatServer).systemMode;
-                    const value = MatterConverters.toMatterHundredths(event.value as number);
-                    if (
-                        !this.#ioBrokerDevice.hasLevelHeating() &&
-                        (systemMode === MatterThermostat.SystemMode.Heat ||
-                            systemMode === MatterThermostat.SystemMode.Auto)
-                    ) {
-                        await this.#matterEndpointThermostat.setStateOf(this.#ThermostatServer, {
-                            occupiedHeatingSetpoint: value,
-                        });
-                    }
-                    if (
-                        !this.#ioBrokerDevice.hasLevelCooling() &&
-                        (systemMode === MatterThermostat.SystemMode.Cool ||
-                            systemMode === MatterThermostat.SystemMode.Auto)
-                    ) {
-                        await this.#matterEndpointThermostat.setStateOf(this.#ThermostatServer, {
-                            occupiedCoolingSetpoint: value,
-                        });
-                    }
+                case PropertyType.Level:
+                    await this.#setpoints.applyLevelChange(event.value as number);
                     break;
-                }
                 case PropertyType.LevelHeating:
-                    await this.#matterEndpointThermostat.setStateOf(this.#ThermostatServer, {
-                        occupiedHeatingSetpoint: MatterConverters.toMatterHundredths(event.value as number),
-                    });
+                    await this.#setpoints.applyDedicatedLevelChange(SetpointKind.Heating, event.value as number);
                     break;
                 case PropertyType.LevelCooling:
-                    await this.#matterEndpointThermostat.setStateOf(this.#ThermostatServer, {
-                        occupiedCoolingSetpoint: MatterConverters.toMatterHundredths(event.value as number),
-                    });
+                    await this.#setpoints.applyDedicatedLevelChange(SetpointKind.Cooling, event.value as number);
                     break;
                 case PropertyType.Power: {
                     let systemMode = event.value ? undefined : MatterThermostat.SystemMode.Off;

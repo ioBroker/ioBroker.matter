@@ -899,11 +899,12 @@ export abstract class GenericDevice extends EventEmitter {
         }
         keys.forEach(property => {
             const stateObject = this.#registeredStates.find(obj => obj.propertyType === property);
-            const { valueType, name, unit, write, read } = this.#properties[property];
-            const { min, max, step } = stateObject?.getMinMax() ?? {};
+            const { valueType, name, write, read } = this.#properties[property];
+            // Field binds the foreign oid directly, so unit/min/max must be the object's own.
+            const { min, max, step } = stateObject?.getRawMinMax() ?? {};
             states[`__iobstate__${name}`] = {
                 oid: write ?? read,
-                unit,
+                unit: stateObject?.getRawUnit(),
                 min,
                 max,
                 step,

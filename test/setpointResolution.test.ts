@@ -127,4 +127,15 @@ describe('ClimateControlDevice setpoint resolution', function () {
         strictEqual(adapter.values.get(SET_COOLING), 26);
         strictEqual(adapter.values.has(SET), false);
     });
+
+    it('re-resolves which kind the untyped setpoint stands for when the mode changes after init', async function () {
+        const { device } = await makeThermostat([{ name: 'SET', id: SET }, { name: 'MODE', id: MODE }], 'HEAT');
+        strictEqual(device.hasSetpoint(SetpointKind.Heating), true);
+        strictEqual(device.hasSetpoint(SetpointKind.Cooling), false);
+
+        await SubscribeManager.observer(MODE, { val: 1, ack: true, ts: Date.now(), lc: Date.now(), from: 'test' });
+
+        strictEqual(device.hasSetpoint(SetpointKind.Heating), false);
+        strictEqual(device.hasSetpoint(SetpointKind.Cooling), true);
+    });
 });

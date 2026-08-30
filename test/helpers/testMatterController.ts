@@ -59,6 +59,7 @@ export async function commissionFixture(options: {
             controller.commissionNode({
                 subscribeMinIntervalFloorSeconds: 1,
                 subscribeMaxIntervalCeilingSeconds: undefined,
+                commissioning: {},
                 discovery: { identifierData: { longDiscriminator: discriminator } },
                 passcode,
             }),
@@ -68,7 +69,7 @@ export async function commissionFixture(options: {
         node = await withTimeout(controller.getNode(nodeId), timeoutMs, 'getNode');
         // Awaiting the observable never resolves once it has already fired, so only wait when it still has to.
         if (!node.initialized) {
-            await withTimeout(node.events.initialized, timeoutMs, 'node initialization');
+            await withTimeout(Promise.resolve(node.events.initialized), timeoutMs, 'node initialization');
         }
     } catch (error) {
         await controller.close().catch(() => undefined);
@@ -79,7 +80,7 @@ export async function commissionFixture(options: {
         node,
         close: async () => {
             await controller.close();
-            await environment.close?.();
+            environment[Symbol.dispose]();
         },
     };
 }

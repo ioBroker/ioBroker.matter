@@ -171,7 +171,7 @@ const POLLUTANT_MAPPINGS: readonly PollutantMapping[] = [
     },
 ];
 
-/** Every AirQualityEnum value above Good is feature gated, and the ioBroker index uses all of them. */
+/** Unknown, Good and Poor are mandatory; the other four steps the ioBroker index uses are feature gated. */
 const IoAirQualityServer = AirQualityServer.with('Fair', 'Moderate', 'VeryPoor', 'ExtremelyPoor').set({
     airQuality: MatterAirQuality.AirQualityEnum.Unknown,
 });

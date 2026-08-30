@@ -85,6 +85,10 @@ describe('Matter -> ioBroker controller mapping', function () {
             }
         }
 
+        if (!commissioned) {
+            throw new Error('Commissioning fixture was not established after retrying');
+        }
+
         console.log('    commissioned; mapping endpoints...');
         adapter = new MockControllerAdapter();
         SubscribeManager.setAdapter(adapter as unknown as ioBroker.Adapter);

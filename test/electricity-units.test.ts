@@ -137,13 +137,13 @@ describe('Device unit conversion', function () {
         );
     });
 
-    it('surfaces the device unit to the Device Manager', async function () {
+    it('surfaces the object unit and range to the Device Manager, not the device unit', async function () {
         const { device } = await createDevice('mA', 'A');
         const states = device.getStates();
-        deepStrictEqual(
-            Object.values(states).map(entry => (entry as { unit?: string }).unit),
-            ['A'],
-        );
+        const entry = Object.values(states)[0] as { unit?: string; min?: number; max?: number };
+        deepStrictEqual(entry.unit, 'mA');
+        deepStrictEqual(entry.min, 0);
+        deepStrictEqual(entry.max, 16000);
     });
 
     it('reads a mA object as amperes, the unit ElectricityDataDevice declares for CURRENT', async function () {

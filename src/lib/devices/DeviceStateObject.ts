@@ -236,6 +236,8 @@ export class DeviceStateObject<T> extends EventEmitter {
     protected realMin?: number;
     protected realMax?: number;
     protected unit?: string;
+    /** The underlying ioBroker object's own unit for a percent-mapped state; {@link unit} is always '%' there. */
+    protected rawUnit?: string;
 
     #isIoBrokerState: boolean;
     #id: string;
@@ -376,6 +378,21 @@ export class DeviceStateObject<T> extends EventEmitter {
         return { min: Math.min(min, max), max: Math.max(min, max), step: this.step };
     }
 
+    /**
+     * Min/max/step as expressed by the underlying ioBroker object, in {@link getRawUnit}'s unit — unlike
+     * {@link getMinMax}, not converted to the device unit. For a percent-mapped state (`realMin`/`realMax` set)
+     * this returns the object's native range rather than the 0-100 percent range.
+     */
+    getRawMinMax(): { min: number; max: number; step?: number } | null {
+        const min = this.realMin ?? this.min;
+        const max = this.realMax ?? this.max;
+        if (min === undefined || max === undefined) {
+            return null;
+        }
+
+        return { min: Math.min(min, max), max: Math.max(min, max), step: this.step };
+    }
+
     async updateMinMax(minMax: { min?: number; max?: number; step?: number }): Promise<void> {
         if (!this.object) {
             throw new Error(`Object not initialized`);
@@ -408,6 +425,15 @@ export class DeviceStateObject<T> extends EventEmitter {
     /** Unit of the underlying ioBroker object. */
     getUnit(): string | undefined {
         return this.unit;
+    }
+
+    /**
+     * Unit the underlying ioBroker object's own value is in — unlike {@link getUnit}, which is always '%' for a
+     * percent-mapped state, this is the object's real unit (or `undefined` if it has none). Pairs with
+     * {@link getRawMinMax}.
+     */
+    getRawUnit(): string | undefined {
+        return this.valueType === ValueType.NumberPercent ? this.rawUnit : this.unit;
     }
 
     /** Unit that `value`, the setters and {@link getMinMax} are expressed in. */
@@ -453,6 +479,7 @@ export class DeviceStateObject<T> extends EventEmitter {
             this.max = 100;
             this.realMin = this.#sanitizeLimit(obj?.common?.min, 'min') ?? 0;
             this.realMax = this.#sanitizeLimit(obj?.common?.max, 'max') ?? 100;
+            this.rawUnit = obj?.common?.unit;
             this.unit = '%';
             if (obj.common.type !== 'number') {
                 throw new Error(`State ${this.#id} is not a number`);
@@ -590,7 +617,6 @@ export class DeviceStateObject<T> extends EventEmitter {
             value = this.convertValue(value, false) as T;
         }
 
-        this.value = value;
         if (this.realMin !== undefined && this.realMax !== undefined) {
             // convert values
             let realValue: number = typeof value === 'boolean' ? (value ? 100 : 0) : parseFloat(value as string);
@@ -606,6 +632,7 @@ export class DeviceStateObject<T> extends EventEmitter {
                 throw new Error(`Value ${realValue} is greater than max ${object.common.max}`);
             }
 
+            this.value = value;
             this.adapter.log.debug(
                 `Set ${this.#id} to "${realValue}" after min/max-correction (ack = ${!this.#isIoBrokerState})`,
             );
@@ -621,6 +648,7 @@ export class DeviceStateObject<T> extends EventEmitter {
                         value === true ||
                         value === 'on' ||
                         value === 'ON';
+                    this.value = value;
                     this.adapter.log.debug(
                         `Set ${this.#id} to (boolean) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
                     );
@@ -641,23 +669,27 @@ export class DeviceStateObject<T> extends EventEmitter {
                         throw new Error(`Value ${JSON.stringify(value)} is greater than max ${object.common.max}`);
                     }
 
+                    this.value = value;
                     this.adapter.log.debug(
                         `Set ${this.#id} to (number) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
                     );
                     await this.adapter.setForeignStateAsync(this.#id, realValue, !this.#isIoBrokerState);
                 } else if (valueType === 'string') {
                     const realValue = String(value);
+                    this.value = value;
                     this.adapter.log.debug(
                         `Set ${this.#id} to (string) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
                     );
                     await this.adapter.setForeignStateAsync(this.#id, realValue, !this.#isIoBrokerState);
                 } else if (valueType === 'json') {
                     const realValue: string = JSON.stringify(value);
+                    this.value = value;
                     this.adapter.log.debug(
                         `Set ${this.#id} to (json) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
                     );
                     await this.adapter.setForeignStateAsync(this.#id, realValue, !this.#isIoBrokerState);
                 } else if (valueType === 'mixed') {
+                    this.value = value;
                     this.adapter.log.debug(
                         `Set ${this.#id} to (mixed) ${JSON.stringify(value)} (ack = ${!this.#isIoBrokerState})`,
                     );
@@ -689,6 +721,7 @@ export class DeviceStateObject<T> extends EventEmitter {
                     } else {
                         this.adapter.log.info(`Cannot map enum value for ${this.#id} without modes`);
                     }
+                    this.value = value;
                     this.adapter.log.debug(
                         `Set ${this.#id} to (enum) "${realValue?.toString()}" (ack = ${!this.#isIoBrokerState})`,
                     );
@@ -714,6 +747,7 @@ export class DeviceStateObject<T> extends EventEmitter {
                 }
             }
 
+            this.value = value;
             this.adapter.log.debug(`Set ${this.#id} to ${JSON.stringify(value)} (ack = ${!this.#isIoBrokerState})`);
             await this.adapter.setForeignStateAsync(this.#id, value as ioBroker.StateValue, !this.#isIoBrokerState);
         }

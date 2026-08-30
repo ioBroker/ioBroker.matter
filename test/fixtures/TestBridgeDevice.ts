@@ -6,7 +6,8 @@
  *   npx ts-node --project tsconfig.test.json test/fixtures/TestBridgeDevice.ts --storage-path=<path> --port=<port>
  */
 
-import { Endpoint, Environment, ServerNode, VendorId } from '@matter/main';
+import { Endpoint, Environment, MutableEndpoint, ServerNode, VendorId } from '@matter/main';
+import type { Behavior, SupportedBehaviors } from '@matter/main';
 import {
     ActivatedCarbonFilterMonitoringServer,
     BridgedDeviceBasicInformationServer,
@@ -55,7 +56,7 @@ const portArg = argValue('port');
 const port = portArg !== undefined ? Number.parseInt(portArg, 10) : BRIDGE_PORT_BASE;
 
 /** Loose shape of a matter.js device definition; the fixture only ever calls `with()` on it. */
-type DeviceDefinition = { with: (...behaviors: any[]) => any };
+type DeviceDefinition = { with: (...behaviors: SupportedBehaviors.List) => MutableEndpoint };
 
 async function main(): Promise<void> {
     const env = Environment.default;
@@ -89,7 +90,7 @@ async function main(): Promise<void> {
         id: string,
         definition: DeviceDefinition,
         state: Record<string, unknown> = {},
-        extraBehaviors = new Array<unknown>(),
+        extraBehaviors: Behavior.Type[] = new Array<Behavior.Type>(),
     ): Promise<void> => {
         serial++;
         await aggregator.add(definition.with(BridgedDeviceBasicInformationServer, ...extraBehaviors), {
@@ -166,7 +167,7 @@ async function main(): Promise<void> {
                 currentPositionLiftPercent100ths: 3000,
             },
         },
-        [WindowCoveringServer.with('Lift', 'PositionAwareLift', 'AbsolutePosition')],
+        [WindowCoveringServer.with('Lift', 'PositionAwareLift')],
     );
     await addBridged(
         'occupancy',

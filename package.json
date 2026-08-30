@@ -69,6 +69,8 @@
         "data/"
     ],
     "scripts": {
+        "check-types": "tsc -p tsconfig.json --noEmit",
+        "pretest": "npm run check-types",
         "test": "cross-env TS_NODE_PROJECT=./tsconfig.test.json mocha --exit test/**/*.test.ts",
         "test:integration": "cross-env TS_NODE_PROJECT=./tsconfig.test.json mocha --exit --config .mocharc.integration.json",
         "prepublishOnly": "npm run build",

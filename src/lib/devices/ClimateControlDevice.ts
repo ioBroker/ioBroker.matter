@@ -91,6 +91,9 @@ export abstract class ClimateControlDevice<
      * The setpoint kinds this device can work towards, derived from the dedicated setpoint states and from the
      * modes it offers. An empty result means the device exposes a single setpoint of unknown kind — deciding
      * what to do with that is the caller's policy, not the device's.
+     *
+     * This is the stable capability of the device, unlike {@link hasSetpoint} which answers which state backs a
+     * kind right now and changes with the mode.
      */
     supportedSetpointKinds(): SetpointKind[] {
         const kinds = new Array<SetpointKind>();

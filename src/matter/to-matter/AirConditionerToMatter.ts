@@ -97,6 +97,18 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                     ignoredModes.push(mode);
             }
         }
+        // occupiedHeatingSetpoint/occupiedCoolingSetpoint are conformant to the Heating/Cooling feature, so an
+        // undeclared feature means there is no attribute to carry the setpoint the device does have.
+        for (const kind of this.#ioBrokerDevice.supportedSetpointKinds()) {
+            if (kind === SetpointKind.Heating && !clusterModes.includes(MatterThermostat.Feature.Heating)) {
+                clusterModes.push(MatterThermostat.Feature.Heating);
+                this.#supportedModes.push(AirConditionerMode.Heat);
+            } else if (kind === SetpointKind.Cooling && !clusterModes.includes(MatterThermostat.Feature.Cooling)) {
+                clusterModes.push(MatterThermostat.Feature.Cooling);
+                this.#supportedModes.push(AirConditionerMode.Cool);
+            }
+        }
+
         if (
             modes.includes(AirConditionerMode.Auto) &&
             clusterModes.includes(MatterThermostat.Feature.Heating) &&
@@ -258,8 +270,40 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
         return !this.#ioBrokerDevice.hasLevelHeating() && !this.#ioBrokerDevice.hasLevelCooling();
     }
 
+    /**
+     * Puts the value the ioBroker side really holds back on a setpoint attribute. A dropped write would otherwise
+     * leave the controller showing a temperature the device never accepted, with nothing to correct it later.
+     */
+    #restoreSetpointAttribute(kind: SetpointKind): void {
+        const supported =
+            kind === SetpointKind.Heating
+                ? this.#supportedModes.includes(AirConditionerMode.Heat)
+                : this.#supportedModes.includes(AirConditionerMode.Cool);
+        const value = this.#ioBrokerDevice.hasLevel() ? this.#ioBrokerDevice.getLevel() : undefined;
+        if (!supported || typeof value !== 'number') {
+            return;
+        }
+        const matterValue = MatterConverters.toMatterHundredths(value);
+        this.#matterEndpoint
+            .setStateOf(
+                this.#thermostatServer,
+                kind === SetpointKind.Heating
+                    ? { occupiedHeatingSetpoint: matterValue }
+                    : { occupiedCoolingSetpoint: matterValue },
+            )
+            .catch(error =>
+                this.#ioBrokerDevice.adapter.log.warn(`Error restoring ${kind} setpoint: ${error.message}`),
+            );
+    }
+
     #writeSetpoint(kind: SetpointKind, matterValue: number): void {
         if (!this.#ioBrokerDevice.hasSetpoint(kind)) {
+            // The shared setpoint state stands for the other kind while the ioBroker mode disagrees with the Matter
+            // system mode; writing it anyway would store a temperature meant for one kind under the other
+            this.#ioBrokerDevice.adapter.log.debug(
+                `${this.uuid}: Dropping ${kind} setpoint write, no ioBroker state currently represents the ${kind} setpoint`,
+            );
+            this.#restoreSetpointAttribute(kind);
             return;
         }
         this.#ioBrokerDevice
@@ -291,6 +335,15 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                 typeof state.occupiedCoolingSetpoint === 'number'
             ) {
                 this.#writeSetpoint(SetpointKind.Cooling, state.occupiedCoolingSetpoint);
+            } else if (
+                systemMode === MatterThermostat.SystemMode.Auto &&
+                this.#setpointStateIsShared &&
+                typeof state.occupiedCoolingSetpoint === 'number'
+            ) {
+                this.#ioBrokerDevice.adapter.log.debug(
+                    `${this.uuid}: Dropping cooling setpoint write, in Auto the single ioBroker setpoint state follows the heating setpoint`,
+                );
+                this.#restoreSetpointAttribute(SetpointKind.Cooling);
             }
         }, delay);
     }

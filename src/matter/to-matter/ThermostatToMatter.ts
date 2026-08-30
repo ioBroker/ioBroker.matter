@@ -73,6 +73,18 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                     ignoredModes.push(mode);
             }
         }
+        // occupiedHeatingSetpoint/occupiedCoolingSetpoint are conformant to the Heating/Cooling feature, so an
+        // undeclared feature means there is no attribute to carry the setpoint the device does have.
+        for (const kind of this.#ioBrokerDevice.supportedSetpointKinds()) {
+            if (kind === SetpointKind.Heating && !clusterModes.includes(MatterThermostat.Feature.Heating)) {
+                clusterModes.push(MatterThermostat.Feature.Heating);
+                this.#supportedModes.push(ThermostatMode.Heat);
+            } else if (kind === SetpointKind.Cooling && !clusterModes.includes(MatterThermostat.Feature.Cooling)) {
+                clusterModes.push(MatterThermostat.Feature.Cooling);
+                this.#supportedModes.push(ThermostatMode.Cool);
+            }
+        }
+
         if (
             modes.includes(ThermostatMode.Auto) &&
             clusterModes.includes(MatterThermostat.Feature.Heating) &&
@@ -81,7 +93,7 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
             clusterModes.push(MatterThermostat.Feature.AutoMode);
             this.#supportedModes.push(ThermostatMode.Auto);
             this.#validModes.push(ThermostatMode.Auto);
-        } else {
+        } else if (modes.includes(ThermostatMode.Auto)) {
             // Auto mode requires Heating and cooling to be supported too
             this.#ioBrokerDevice.adapter.log.info(
                 `${uuid}: AutoMode is supported, but no Heating or Cooling, ignoring AutoMode`,
@@ -200,8 +212,40 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
         return !this.#ioBrokerDevice.hasLevelHeating() && !this.#ioBrokerDevice.hasLevelCooling();
     }
 
+    /**
+     * Puts the value the ioBroker side really holds back on a setpoint attribute. A dropped write would otherwise
+     * leave the controller showing a temperature the device never accepted, with nothing to correct it later.
+     */
+    #restoreSetpointAttribute(kind: SetpointKind): void {
+        const supported =
+            kind === SetpointKind.Heating
+                ? this.#supportedModes.includes(ThermostatMode.Heat)
+                : this.#supportedModes.includes(ThermostatMode.Cool);
+        const value = this.#ioBrokerDevice.hasLevel() ? this.#ioBrokerDevice.getLevel() : undefined;
+        if (!supported || typeof value !== 'number') {
+            return;
+        }
+        const matterValue = MatterConverters.toMatterHundredths(value);
+        this.#matterEndpointThermostat
+            .setStateOf(
+                this.#ThermostatServer,
+                kind === SetpointKind.Heating
+                    ? { occupiedHeatingSetpoint: matterValue }
+                    : { occupiedCoolingSetpoint: matterValue },
+            )
+            .catch(error =>
+                this.#ioBrokerDevice.adapter.log.warn(`Error restoring ${kind} setpoint: ${error.message}`),
+            );
+    }
+
     #writeSetpoint(kind: SetpointKind, matterValue: number): void {
         if (!this.#ioBrokerDevice.hasSetpoint(kind)) {
+            // The shared setpoint state stands for the other kind while the ioBroker mode disagrees with the Matter
+            // system mode; writing it anyway would store a temperature meant for one kind under the other
+            this.#ioBrokerDevice.adapter.log.debug(
+                `${this.uuid}: Dropping ${kind} setpoint write, no ioBroker state currently represents the ${kind} setpoint`,
+            );
+            this.#restoreSetpointAttribute(kind);
             return;
         }
         const value = MatterConverters.fromMatterHundredths(matterValue);
@@ -231,7 +275,10 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
             this.#temperatureDebounceTimeout = undefined;
             const state = this.#matterEndpointThermostat.stateOf(this.#ThermostatServer);
             const systemMode = state.systemMode;
-            if (systemMode === MatterThermostat.SystemMode.Heat || systemMode === MatterThermostat.SystemMode.Auto) {
+            if (
+                (systemMode === MatterThermostat.SystemMode.Heat || systemMode === MatterThermostat.SystemMode.Auto) &&
+                typeof state.occupiedHeatingSetpoint === 'number'
+            ) {
                 this.#writeSetpoint(SetpointKind.Heating, state.occupiedHeatingSetpoint);
             }
             if (
@@ -240,6 +287,15 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
                 typeof state.occupiedCoolingSetpoint === 'number'
             ) {
                 this.#writeSetpoint(SetpointKind.Cooling, state.occupiedCoolingSetpoint);
+            } else if (
+                systemMode === MatterThermostat.SystemMode.Auto &&
+                this.#setpointStateIsShared &&
+                typeof state.occupiedCoolingSetpoint === 'number'
+            ) {
+                this.#ioBrokerDevice.adapter.log.debug(
+                    `${this.uuid}: Dropping cooling setpoint write, in Auto the single ioBroker setpoint state follows the heating setpoint`,
+                );
+                this.#restoreSetpointAttribute(SetpointKind.Cooling);
             }
         }, delay);
     }

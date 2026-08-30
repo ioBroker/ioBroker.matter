@@ -81,13 +81,7 @@ For testing pre-release or community firmware:
   * windowTilt - as discussed as composed device with two contact sensors ... one for open close and one for tilt
   * levelSlider - ideally as non-lighting dimmed socket?
 * Matter device types
-  * (8) Fan -> airCondition?
-  * (7) Air Quality Sensor -> ???
-  * (7) Air Purifier -> ???
-  * (5) Pump -> ???
-  * (6) Pressure Sensor -> ??? DEF
   * (6) Robot Vacuum cleaner -> vacuumCleaner
-  * (4) Flow Sensor -> ??? DEF
   * (5+) Dishwasher-> ???
   * (4+) Basic Video Player -> mediaPlayer
   * (4+) Laundry Washer -> ???
@@ -153,7 +147,11 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) Fan, air purifier, air quality, contact, flow, pressure and pump devices can now be exposed to Matter in bridge and device mode
 * (@Apollon77) Matter fan, air purifier, air quality, flow, pressure and pump devices are now mapped to their ioBroker device types in controller mode
 * (@Apollon77) Fixed smoke alarms without their own power source failing to map in controller mode
-* (@Apollon77) Added the new states the type detector v6 exposes on existing device types, such as signal strength, on-time countdown, separate heating and cooling setpoints, valve position, filter condition and alarm severity
+* (@Apollon77) A thermostat or air conditioner detected only through its heating or cooling setpoint now declares the matching Matter capability, so its setpoint works instead of sitting at the cluster default. Devices already commissioned before this change may need to be re-added in ecosystems that cache the capability set
+* (@Apollon77) Fixed a rejected state write leaving the rejected value cached, and the Device Manager showing a value against the wrong unit
+* (@Apollon77) Fixed the electrical frequency of bridged devices being reported ten times too low after its first change
+* (@Apollon77) Fixed a boolean written to a numeric state becoming an invalid value instead of 1 or 0
+* (@Apollon77) The ioBroker device model now covers the new states type detector v6 exposes on existing device types, such as signal strength, on-time countdown, separate heating and cooling setpoints, valve position, filter condition and alarm severity
 * (@Apollon77) Add support for the Room Air Conditioner device type (controller and bridge/device mode) mapped to the ioBroker airCondition type
 * (@Apollon77) Fix Thermostat cooling setpoint changes from Matter being applied as heating setpoint
 * (@Apollon77) Add a request timeout to the license verification API calls

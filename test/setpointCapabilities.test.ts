@@ -269,6 +269,14 @@ describe('Matter setpoint capabilities', function () {
         expect(mounted.endpoint.state.thermostat.occupiedHeatingSetpoint).to.equal(2300);
     });
 
+    it('does not narrow the cluster limits when the ioBroker state declares no range', async () => {
+        // A thermostat whose state carries no min/max must still accept the setpoints the device itself does
+        const mounted = await mount(Types.thermostat, { SET: { type: 'number', val: 20, unit: '°C' } });
+
+        expect(mounted.endpoint.state.thermostat.minHeatSetpointLimit).to.equal(0);
+        expect(mounted.endpoint.state.thermostat.maxHeatSetpointLimit).to.equal(5000);
+    });
+
     it('keeps the feature set a device with modes had before setpoint states were consulted', async () => {
         const mounted = await mount(Types.thermostat, {
             SET: temperature(20),

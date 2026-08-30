@@ -113,6 +113,9 @@ export function deriveThermostatFeatures<TMode extends string>(
     };
 }
 
+/** What the Thermostat cluster itself permits, and the widest range to publish when the device declares none. */
+const ABSOLUTE_SETPOINT_RANGE = { min: 0, max: 50 };
+
 /** Thermostat cluster attributes seeded when the endpoint is created; real values follow during initialization. */
 export interface ThermostatInitialState {
     systemMode: MatterThermostat.SystemMode;
@@ -152,10 +155,18 @@ export function thermostatInitialState(
                   ? MatterThermostat.ControlSequenceOfOperation.CoolingOnly
                   : MatterThermostat.ControlSequenceOfOperation.HeatingOnly,
         minSetpointDeadBand: clusterModes.includes(MatterThermostat.Feature.AutoMode) ? 0 : undefined,
-        absMinHeatSetpointLimit: hasHeating ? MatterConverters.toMatterHundredths(0) : undefined,
-        absMaxHeatSetpointLimit: hasHeating ? MatterConverters.toMatterHundredths(50) : undefined,
-        absMinCoolSetpointLimit: hasCooling ? MatterConverters.toMatterHundredths(0) : undefined,
-        absMaxCoolSetpointLimit: hasCooling ? MatterConverters.toMatterHundredths(50) : undefined,
+        absMinHeatSetpointLimit: hasHeating
+            ? MatterConverters.toMatterHundredths(ABSOLUTE_SETPOINT_RANGE.min)
+            : undefined,
+        absMaxHeatSetpointLimit: hasHeating
+            ? MatterConverters.toMatterHundredths(ABSOLUTE_SETPOINT_RANGE.max)
+            : undefined,
+        absMinCoolSetpointLimit: hasCooling
+            ? MatterConverters.toMatterHundredths(ABSOLUTE_SETPOINT_RANGE.min)
+            : undefined,
+        absMaxCoolSetpointLimit: hasCooling
+            ? MatterConverters.toMatterHundredths(ABSOLUTE_SETPOINT_RANGE.max)
+            : undefined,
     };
 }
 
@@ -330,16 +341,20 @@ export class ThermostatSetpointBridge {
             if (setpoint === undefined) {
                 continue;
             }
-            const minMax = this.#device.getSetpointMinMax(kind) ?? defaults[kind];
+            // A range the ioBroker state does not declare is unknown, not narrow: publishing the display
+            // default as a cluster limit would reject setpoints the device itself accepts
+            const declaredMinMax = this.#device.getSetpointMinMax(kind);
+            const limits = declaredMinMax ?? ABSOLUTE_SETPOINT_RANGE;
+            const minMax = declaredMinMax ?? defaults[kind];
             const heating = kind === SetpointKind.Heating;
             data[heating ? 'occupiedHeatingSetpoint' : 'occupiedCoolingSetpoint'] = MatterConverters.toMatterHundredths(
                 this.#device.cropValue(setpoint, minMax.min, minMax.max, true),
             );
             data[heating ? 'minHeatSetpointLimit' : 'minCoolSetpointLimit'] = MatterConverters.toMatterHundredths(
-                Math.max(minMax.min, 0),
+                Math.max(limits.min, ABSOLUTE_SETPOINT_RANGE.min),
             );
             data[heating ? 'maxHeatSetpointLimit' : 'maxCoolSetpointLimit'] = MatterConverters.toMatterHundredths(
-                Math.min(minMax.max, 50),
+                Math.min(limits.max, ABSOLUTE_SETPOINT_RANGE.max),
             );
         }
         return data;

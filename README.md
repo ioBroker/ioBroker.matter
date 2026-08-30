@@ -149,6 +149,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) Fixed smoke alarms without their own power source failing to map in controller mode
 * (@Apollon77) A thermostat or air conditioner detected only through its heating or cooling setpoint now declares the matching Matter capability, so its setpoint works instead of sitting at the cluster default. Devices already commissioned before this change may need to be re-added in ecosystems that cache the capability set
 * (@Apollon77) Fixed a rejected state write leaving the rejected value cached, and the Device Manager showing a value against the wrong unit
+* (@Apollon77) A bridged thermostat whose ioBroker state declares no temperature range no longer reports a 7 to 30 degree limit to Matter, so setpoints the device itself accepts are no longer rejected
 * (@Apollon77) Fixed the electrical frequency of bridged devices being reported ten times too low after its first change
 * (@Apollon77) Fixed a boolean written to a numeric state becoming an invalid value instead of 1 or 0
 * (@Apollon77) The ioBroker device model now covers the new states type detector v6 exposes on existing device types, such as signal strength, on-time countdown, separate heating and cooling setpoints, valve position, filter condition and alarm severity

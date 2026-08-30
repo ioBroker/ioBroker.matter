@@ -12,14 +12,18 @@ import { expect } from 'chai';
 import type { ChildProcess } from 'node:child_process';
 import type { Endpoint } from '@matter/main';
 import { Logger, LogLevel } from '@matter/main';
+import { AttributeId, ClusterId, EndpointNumber } from '@matter/main/types';
 import { BridgedDeviceBasicInformationClient } from '@matter/main/behaviors';
 import { AggregatorEndpointDefinition } from '@matter/main/endpoints';
 import { SubscribeManager } from '../../src/lib/SubscribeManager';
+import { toHex } from '../../src/lib/utils';
 import type { GenericDeviceToIoBroker } from '../../src/matter/to-iobroker/GenericDeviceToIoBroker';
 import ioBrokerDeviceFabric, {
     childEndpointsAreOwnDevices,
     identifyDeviceTypes,
 } from '../../src/matter/to-iobroker/ioBrokerFactory';
+import { GeneralMatterNode } from '../../src/matter/GeneralMatterNode';
+import type { MatterAdapter } from '../../src/main';
 import { BRIDGE_DISCRIMINATOR, BRIDGE_PASSCODE } from '../fixtures/bridgeConstants';
 import { ALL_ENDPOINTS, OWNED_CHILD_ENDPOINTS } from '../fixtures/testBridgeDefinition';
 import {
@@ -239,4 +243,124 @@ describe('Matter -> ioBroker controller mapping', function () {
             }
         });
     }
+
+    /**
+     * The raw application cluster data of an endpoint must exist exactly once, split the same way the device
+     * mapping splits: below the object of the endpoint that became a device of its own, and nested below the
+     * parent for a part the parent owns. A second copy would never be updated again.
+     */
+    describe('raw application cluster data', () => {
+        const TEMPERATURE_MEASUREMENT = 0x0402;
+        const MEASURED_VALUE = 0x0000;
+
+        let node: GeneralMatterNode;
+        let purifier: Endpoint;
+        let fridge: Endpoint;
+        let cabinet: Endpoint;
+
+        const nativeValue = (obj: ioBroker.AnyObject, key: string): unknown => {
+            const native: unknown = obj.native;
+            return typeof native === 'object' && native !== null && key in native
+                ? Reflect.get(native, key)
+                : undefined;
+        };
+
+        /** The device object of an endpoint - cluster folders carry an endpointId too, but also a clusterId. */
+        const deviceObjectId = (endpointNumber: number | undefined): string => {
+            const ids = [...adapter.objects.entries()]
+                .filter(
+                    ([, obj]) =>
+                        nativeValue(obj, 'endpointId') === endpointNumber &&
+                        nativeValue(obj, 'nodeId') !== undefined &&
+                        nativeValue(obj, 'clusterId') === undefined,
+                )
+                .map(([id]) => id);
+            expect(ids, `endpoint ${endpointNumber} has no unique device object`).to.have.lengthOf(1);
+            return ids[0];
+        };
+
+        const bridgedEndpoint = (label: string): Endpoint => {
+            const rootEndpoint = commissioned!.node.node!;
+            for (const part of [...rootEndpoint.parts] as Endpoint[]) {
+                for (const child of [...part.parts] as Endpoint[]) {
+                    if (child.maybeStateOf(BridgedDeviceBasicInformationClient)?.nodeLabel === label) {
+                        return child;
+                    }
+                }
+            }
+            throw new Error(`bridged endpoint ${label} not found`);
+        };
+
+        before(async () => {
+            node = new GeneralMatterNode(adapter as unknown as MatterAdapter, commissioned!.node, {});
+            await node.applyConfiguration(
+                {
+                    nodeId: commissioned!.node.nodeId,
+                    exposeMatterApplicationClusterData: true,
+                    exposeMatterSystemClusterData: false,
+                },
+                true,
+            );
+
+            purifier = bridgedEndpoint('airpurifiercomposed');
+            fridge = bridgedEndpoint('fridgecomposed');
+            cabinet = [...fridge.parts][0] as Endpoint;
+        });
+
+        after(async () => {
+            await node?.clear();
+        });
+
+        it('places the raw data of a child that is its own device below that child', () => {
+            for (const child of [...purifier.parts] as Endpoint[]) {
+                const childBase = deviceObjectId(child.number);
+                expect(
+                    adapter.objectsBelow(`${childBase}.data.${child.number}`).length,
+                    `endpoint ${child.number} has no raw data of its own`,
+                ).to.be.greaterThan(1);
+            }
+        });
+
+        it('does not nest a second copy below the parent', () => {
+            const purifierBase = deviceObjectId(purifier.number);
+            expect(
+                adapter.objectsBelow(`${purifierBase}.data.${purifier.number}`).length,
+                'the parent lost its own raw data',
+            ).to.be.greaterThan(1);
+            expect(adapter.objectsBelow(`${purifierBase}.data.data`)).to.deep.equal([]);
+        });
+
+        it('keeps the raw data of an owned part nested below its parent', () => {
+            const fridgeBase = deviceObjectId(fridge.number);
+            expect(
+                adapter.objectsBelow(`${fridgeBase}.data.data.${fridge.number}-${cabinet.number}`).length,
+                'the cabinet the fridge owns has no nested raw data',
+            ).to.be.greaterThan(1);
+        });
+
+        it('updates the raw states of a child that is its own device', async () => {
+            const sensor = ([...purifier.parts] as Endpoint[]).find(
+                part => identifyDeviceTypes(part).primaryDeviceType?.deviceType.id === 0x0302,
+            );
+            expect(sensor, 'the purifier fixture has no temperature sensor child').to.not.equal(undefined);
+            const stateId = `${deviceObjectId(sensor!.number)}.data.${sensor!.number}.${toHex(
+                TEMPERATURE_MEASUREMENT,
+            )}.attributes.measuredValue`;
+            expect(adapter.states.get(stateId)?.val, 'raw state not initialized').to.equal(2350);
+
+            await node.handleChangedAttribute({
+                path: {
+                    nodeId: commissioned!.node.nodeId,
+                    endpointId: EndpointNumber(sensor!.number!),
+                    clusterId: ClusterId(TEMPERATURE_MEASUREMENT),
+                    attributeId: AttributeId(MEASURED_VALUE),
+                    attributeName: 'measuredValue',
+                },
+                version: 1,
+                value: 2500,
+            });
+
+            expect(adapter.states.get(stateId)?.val).to.equal(2500);
+        });
+    });
 });

@@ -59,6 +59,26 @@ export class MockControllerAdapter {
         }
     }
 
+    async delObjectAsync(id: string, options?: { recursive?: boolean }): Promise<void> {
+        const key = this.#shortId(id);
+        this.objects.delete(key);
+        this.states.delete(key);
+        if (options?.recursive !== true) {
+            return;
+        }
+        const prefix = `${key}.`;
+        for (const existing of [...this.objects.keys()]) {
+            if (existing.startsWith(prefix)) {
+                this.objects.delete(existing);
+            }
+        }
+        for (const existing of [...this.states.keys()]) {
+            if (existing.startsWith(prefix)) {
+                this.states.delete(existing);
+            }
+        }
+    }
+
     async setState(id: string, state: ioBroker.SettableState | ioBroker.StateValue): Promise<void> {
         await this.setForeignStateAsync(id, state as ioBroker.StateValue);
     }
@@ -114,6 +134,13 @@ export class MockControllerAdapter {
             .filter(([id, obj]) => id.startsWith(prefix) && obj.type === 'state')
             .map(([id]) => id.substring(prefix.length))
             .sort();
+    }
+
+    /** All object ids at or below `baseId`, relative to the namespace. */
+    objectsBelow(baseId: string): string[] {
+        const key = this.#shortId(baseId);
+        const prefix = `${key}.`;
+        return [...this.objects.keys()].filter(id => id === key || id.startsWith(prefix)).sort();
     }
 
     valueOf(baseId: string, name: string): unknown {

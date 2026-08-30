@@ -1081,16 +1081,21 @@ export class GeneralMatterNode {
 
         await this.initializeEndpointRawDataStates(endpoint, endpointDeviceBaseDataId, options, endpointPath.join('-'));
 
-        if (id !== 0) {
-            for (const childEndpoint of endpoint.parts) {
-                // Recursive call to process all sub endpoints for raw states
-                await this.#processEndpointRawDataStructure(
-                    childEndpoint,
-                    endpointDeviceBaseDataId,
-                    options,
-                    endpointPath,
-                );
-            }
+        if (id === 0) {
+            return;
+        }
+
+        // Below the endpoint the device walk stopped at, every descendant belongs to that same device.
+        const ownsChildren = path !== undefined || !childEndpointsAreOwnDevices(id, identifyDeviceTypes(endpoint));
+        if (!ownsChildren) {
+            // Each of those children carries its raw data under its own device object, so a copy nested here
+            // would never be updated again.
+            await this.adapter.delObjectAsync(`${endpointDeviceBaseDataId}.data`, { recursive: true });
+            return;
+        }
+
+        for (const childEndpoint of endpoint.parts) {
+            await this.#processEndpointRawDataStructure(childEndpoint, endpointDeviceBaseDataId, options, endpointPath);
         }
     }
 

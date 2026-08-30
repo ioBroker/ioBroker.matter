@@ -27,6 +27,15 @@ const CONNECTION_STATES = ['UNREACH', 'info.connection'];
 
 export const BRIDGED_ENDPOINTS: BridgedEndpointSpec[] = [
     {
+        // Deliberately not mapped by the adapter: guards the UtilityOnlyToIoBroker fall-through
+        id: 'onoffsensor',
+        deviceType: 0x0850,
+        expectedConverter: 'UtilityOnlyToIoBroker',
+        expectedIoBrokerType: 'light',
+        expectedStates: [...CONNECTION_STATES],
+        unmapped: true,
+    },
+    {
         id: 'contact',
         deviceType: 0x0015,
         expectedConverter: 'ContactSensorToIoBroker',
@@ -245,26 +254,79 @@ export const BRIDGED_ENDPOINTS: BridgedEndpointSpec[] = [
     },
 ];
 
-/**
- * Device types the adapter exposes towards Matter but does not map back from Matter. Each falls through to
- * `UtilityOnlyToIoBroker`, which builds a bare ioBroker `Light` and creates no application states.
- */
-export const UNMAPPED_ENDPOINTS: BridgedEndpointSpec[] = (
-    [
-        ['flow', 0x0306],
-        ['pressure', 0x0305],
-        ['airquality', 0x002c],
-        ['fan', 0x002b],
-        ['airpurifier', 0x002d],
-        ['pump', 0x0303],
-    ] as [string, number][]
-).map(([id, deviceType]) => ({
-    id,
-    deviceType,
-    expectedConverter: 'UtilityOnlyToIoBroker',
-    expectedIoBrokerType: 'light',
-    expectedStates: [...CONNECTION_STATES],
-    unmapped: true as const,
-}));
+export const SENSOR_AND_APPLIANCE_ENDPOINTS: BridgedEndpointSpec[] = [
+    {
+        id: 'flow',
+        deviceType: 0x0306,
+        expectedConverter: 'FlowSensorToIoBroker',
+        expectedIoBrokerType: 'flow',
+        expectedStates: ['FLOW', ...CONNECTION_STATES],
+        // Matter MeasuredValue is 10 x m³/h.
+        expectedValues: { FLOW: 12 },
+    },
+    {
+        id: 'pressure',
+        deviceType: 0x0305,
+        expectedConverter: 'PressureSensorToIoBroker',
+        expectedIoBrokerType: 'pressure',
+        expectedStates: ['PRESSURE', ...CONNECTION_STATES],
+        // Matter MeasuredValue is 10 x kPa, which equals the ioBroker mbar value.
+        expectedValues: { PRESSURE: 1013 },
+    },
+    {
+        id: 'airquality',
+        deviceType: 0x002c,
+        expectedConverter: 'AirQualitySensorToIoBroker',
+        expectedIoBrokerType: 'airQuality',
+        // Only the concentration clusters the fixture mounts appear, and PM2.5 without the LevelIndication
+        // feature contributes no level state.
+        expectedStates: ['ACTUAL', 'AQI', 'CO2', 'CO2_LEVEL', 'HUMIDITY', 'PM25', ...CONNECTION_STATES],
+        // AQI 1 is GOOD, CO2_LEVEL 2 is MEDIUM.
+        expectedValues: { AQI: 1, CO2: 800, CO2_LEVEL: 2, PM25: 12, ACTUAL: 21.5, HUMIDITY: 48 },
+    },
+    {
+        id: 'fan',
+        deviceType: 0x002b,
+        expectedConverter: 'FanToIoBroker',
+        expectedIoBrokerType: 'fan',
+        expectedStates: ['AIRFLOW_DIRECTION', 'POWER', 'SPEED', 'SPEED_LEVEL', 'SWING', ...CONNECTION_STATES],
+        // SPEED 3 is MEDIUM, SWING 1 is HORIZONTAL, AIRFLOW_DIRECTION 0 is FORWARD.
+        expectedValues: { SPEED: 3, SPEED_LEVEL: 50, POWER: true, SWING: 1, AIRFLOW_DIRECTION: 0 },
+    },
+    {
+        id: 'airpurifier',
+        deviceType: 0x002d,
+        expectedConverter: 'AirPurifierToIoBroker',
+        expectedIoBrokerType: 'airPurifier',
+        // The fixture declares no Rocking and no AirflowDirection feature, so neither state exists.
+        expectedStates: [
+            'FILTER_CHANGE',
+            'FILTER_CONDITION',
+            'FILTER_CONDITION_CARBON',
+            'POWER',
+            'SPEED',
+            'SPEED_LEVEL',
+            ...CONNECTION_STATES,
+        ],
+        // SPEED 2 is LOW; the carbon filter alone warns and still raises the shared filter change flag.
+        expectedValues: {
+            SPEED: 2,
+            SPEED_LEVEL: 33,
+            POWER: true,
+            FILTER_CONDITION: 75,
+            FILTER_CONDITION_CARBON: 60,
+            FILTER_CHANGE: true,
+        },
+    },
+    {
+        id: 'pump',
+        deviceType: 0x0303,
+        expectedConverter: 'PumpToIoBroker',
+        expectedIoBrokerType: 'pump',
+        expectedStates: ['FLOW', 'LEVEL', 'POWER', 'PRESSURE', 'TEMPERATURE', ...CONNECTION_STATES],
+        // currentLevel 127 of 254 is 50%, MeasuredValue 4550 is 45.5 °C, 2000 is 2000 mbar, 250 is 25 m³/h.
+        expectedValues: { POWER: false, LEVEL: 50, TEMPERATURE: 45.5, PRESSURE: 2000, FLOW: 25 },
+    },
+];
 
-export const ALL_ENDPOINTS = [...BRIDGED_ENDPOINTS, ...UNMAPPED_ENDPOINTS];
+export const ALL_ENDPOINTS = [...BRIDGED_ENDPOINTS, ...SENSOR_AND_APPLIANCE_ENDPOINTS];

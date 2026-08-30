@@ -1,5 +1,5 @@
 import { FanControl as MatterFanControl } from '@matter/main/clusters';
-import { AirConditionerSpeed } from '../../lib/devices/AirCondition';
+import { AirConditionerSpeed } from '../lib/devices/AirCondition';
 
 /**
  * Matter's `FanMode` has no Quiet or Turbo step, so both fold onto the nearest one they degrade to.

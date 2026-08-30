@@ -23,6 +23,12 @@ import { SpeakerToIoBroker } from './SpeakerToIoBroker';
 import { ThermostatToIoBroker } from './ThermostatToIoBroker';
 import { SmokeCoAlarmToIoBroker } from './SmokeCoAlarmToIoBroker';
 import { AirConditionerToIoBroker } from './AirConditionerToIoBroker';
+import { AirPurifierToIoBroker } from './AirPurifierToIoBroker';
+import { AirQualitySensorToIoBroker } from './AirQualitySensorToIoBroker';
+import { FanToIoBroker } from './FanToIoBroker';
+import { FlowSensorToIoBroker } from './FlowSensorToIoBroker';
+import { PressureSensorToIoBroker } from './PressureSensorToIoBroker';
+import { PumpToIoBroker } from './PumpToIoBroker';
 
 export function identifyDeviceTypes(endpoint: Endpoint): {
     utilityTypes: { deviceType: DeviceTypeModel; revision: number }[];
@@ -108,6 +114,12 @@ async function ioBrokerDeviceFabric(
         case Devices.RoomAirConditionerDeviceDefinition.deviceType:
             DeviceType = AirConditionerToIoBroker;
             break;
+        case Devices.AirPurifierDeviceDefinition.deviceType:
+            DeviceType = AirPurifierToIoBroker;
+            break;
+        case Devices.AirQualitySensorDeviceDefinition.deviceType:
+            DeviceType = AirQualitySensorToIoBroker;
+            break;
         case Devices.ColorTemperatureLightDeviceDefinition.deviceType:
             //DeviceType = ColorTemperatureLightToIoBroker;
             DeviceType = ExtendedColorLightToIoBroker; // Because it could be CT and Hue it is easier top map this way
@@ -124,6 +136,12 @@ async function ioBrokerDeviceFabric(
             break;
         case Devices.ExtendedColorLightDeviceDefinition.deviceType:
             DeviceType = ExtendedColorLightToIoBroker;
+            break;
+        case Devices.FanDeviceDefinition.deviceType:
+            DeviceType = FanToIoBroker;
+            break;
+        case Devices.FlowSensorDeviceDefinition.deviceType:
+            DeviceType = FlowSensorToIoBroker;
             break;
         case Devices.GenericSwitchDeviceDefinition.deviceType:
             DeviceType = GenericSwitchToIoBroker;
@@ -142,6 +160,12 @@ async function ioBrokerDeviceFabric(
             break;
         case Devices.OnOffPlugInUnitDeviceDefinition.deviceType:
             DeviceType = OnOffPlugInUnitToIoBroker;
+            break;
+        case Devices.PressureSensorDeviceDefinition.deviceType:
+            DeviceType = PressureSensorToIoBroker;
+            break;
+        case Devices.PumpDeviceDefinition.deviceType:
+            DeviceType = PumpToIoBroker;
             break;
         case Devices.SmokeCoAlarmDeviceDefinition.deviceType:
             DeviceType = SmokeCoAlarmToIoBroker;

@@ -5,7 +5,7 @@ import { FanControlServer, OnOffServer } from '@matter/main/behaviors';
 import { hasLocalActor } from '@matter/main/protocol';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { type Fan, FanAirflowDirection, FanSpeed, FanSwing } from '../../lib/devices/Fan';
-import { mapFanModeToSpeed, mapSpeedToFanMode } from './FanControlUtils';
+import { mapFanModeToSpeed, mapSpeedToFanMode } from '../FanControlUtils';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
 import { IoIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';

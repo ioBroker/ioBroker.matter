@@ -4,7 +4,7 @@ import { FanControl as MatterFanControl, Thermostat as MatterThermostat } from '
 import { FanControlServer, OnOffServer, ThermostatServer } from '@matter/main/behaviors';
 import { hasLocalActor } from '@matter/main/protocol';
 import { SetpointKind } from '../../lib/devices/ClimateControlDevice';
-import { mapFanModeToSpeed, mapSpeedToFanMode } from './FanControlUtils';
+import { mapFanModeToSpeed, mapSpeedToFanMode } from '../FanControlUtils';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import {
     AirConditionerMode,

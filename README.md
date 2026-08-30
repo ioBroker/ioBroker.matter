@@ -150,6 +150,9 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 ## Changelog
 ### **WORK IN PROGRESS**
 * (@Apollon77) Updated the type detector to v6, so the new device types it detects (air purifier, air quality, CO alarm, contact, electricity, fan, flow, pressure and pump) are recognized
+* (@Apollon77) Fan, air purifier, air quality, contact, flow, pressure and pump devices can now be exposed to Matter in bridge and device mode
+* (@Apollon77) Matter fan, air purifier, air quality, flow, pressure and pump devices are now mapped to their ioBroker device types in controller mode
+* (@Apollon77) Fixed smoke alarms without their own power source failing to map in controller mode
 * (@Apollon77) Added the new states the type detector v6 exposes on existing device types, such as signal strength, on-time countdown, separate heating and cooling setpoints, valve position, filter condition and alarm severity
 * (@Apollon77) Add support for the Room Air Conditioner device type (controller and bridge/device mode) mapped to the ioBroker airCondition type
 * (@Apollon77) Fix Thermostat cooling setpoint changes from Matter being applied as heating setpoint

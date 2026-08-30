@@ -8,13 +8,24 @@
 
 import { Endpoint, Environment, ServerNode, VendorId } from '@matter/main';
 import {
+    ActivatedCarbonFilterMonitoringServer,
     BridgedDeviceBasicInformationServer,
+    CarbonDioxideConcentrationMeasurementServer,
     ColorControlServer,
+    FanControlServer,
+    FlowMeasurementServer,
+    HepaFilterMonitoringServer,
+    LevelControlServer,
     OccupancySensingServer,
+    OnOffServer,
+    Pm25ConcentrationMeasurementServer,
     PowerSourceServer,
+    PressureMeasurementServer,
     PumpConfigurationAndControlServer,
+    RelativeHumidityMeasurementServer,
     SmokeCoAlarmServer,
     SwitchServer,
+    TemperatureMeasurementServer,
     ThermostatServer,
     WindowCoveringServer,
 } from '@matter/main/behaviors';
@@ -22,11 +33,13 @@ import { AggregatorEndpoint } from '@matter/main/endpoints';
 import {
     AirQuality,
     ColorControl,
+    ConcentrationMeasurement,
     DoorLock,
     FanControl,
     OccupancySensing,
     PowerSource,
     PumpConfigurationAndControl,
+    ResourceMonitoring,
     SmokeCoAlarm,
     Thermostat,
     WindowCovering,
@@ -250,41 +263,112 @@ async function main(): Promise<void> {
         [ThermostatServer.with('Cooling')],
     );
 
-    // Device types the adapter maps towards Matter but not back from Matter.
+    // Not mapped by the adapter, so it exercises the UtilityOnlyToIoBroker fallback
+    await addBridged('onoffsensor', Devices.OnOffSensorDevice, { onOff: { onOff: false } });
+
+    // Device types the adapter maps back from Matter through their own controller converters.
     await addBridged('flow', Devices.FlowSensorDevice, { flowMeasurement: { measuredValue: 120 } });
     await addBridged('pressure', Devices.PressureSensorDevice, { pressureMeasurement: { measuredValue: 1013 } });
-    await addBridged('airquality', Devices.AirQualitySensorDevice, {
-        airQuality: { airQuality: AirQuality.AirQualityEnum.Good },
-    });
-    await addBridged('fan', Devices.FanDevice, {
-        fanControl: {
-            fanMode: FanControl.FanMode.Off,
-            fanModeSequence: FanControl.FanModeSequence.OffLowMedHigh,
-            percentCurrent: 0,
-            percentSetting: 0,
+    await addBridged(
+        'airquality',
+        Devices.AirQualitySensorDevice,
+        {
+            airQuality: { airQuality: AirQuality.AirQualityEnum.Good },
+            carbonDioxideConcentrationMeasurement: {
+                measuredValue: 800,
+                levelValue: ConcentrationMeasurement.LevelValue.Medium,
+                measurementMedium: ConcentrationMeasurement.MeasurementMedium.Air,
+                measurementUnit: ConcentrationMeasurement.MeasurementUnit.Ppm,
+            },
+            pm25ConcentrationMeasurement: {
+                measuredValue: 12,
+                measurementMedium: ConcentrationMeasurement.MeasurementMedium.Air,
+                measurementUnit: ConcentrationMeasurement.MeasurementUnit.Ugm3,
+            },
+            temperatureMeasurement: { measuredValue: 2150 },
+            relativeHumidityMeasurement: { measuredValue: 4800 },
         },
-    });
-    await addBridged('airpurifier', Devices.AirPurifierDevice, {
-        fanControl: {
-            fanMode: FanControl.FanMode.Off,
-            fanModeSequence: FanControl.FanModeSequence.OffLowMedHigh,
-            percentCurrent: 0,
-            percentSetting: 0,
+        [
+            CarbonDioxideConcentrationMeasurementServer.with(
+                'NumericMeasurement',
+                'LevelIndication',
+                'MediumLevel',
+                'CriticalLevel',
+            ),
+            Pm25ConcentrationMeasurementServer.with('NumericMeasurement'),
+            TemperatureMeasurementServer,
+            RelativeHumidityMeasurementServer,
+        ],
+    );
+    await addBridged(
+        'fan',
+        Devices.FanDevice,
+        {
+            onOff: { onOff: true },
+            fanControl: {
+                fanMode: FanControl.FanMode.Medium,
+                fanModeSequence: FanControl.FanModeSequence.OffLowMedHigh,
+                percentCurrent: 50,
+                percentSetting: 50,
+                rockSupport: { rockLeftRight: true, rockUpDown: false, rockRound: false },
+                rockSetting: { rockLeftRight: true, rockUpDown: false, rockRound: false },
+                airflowDirection: FanControl.AirflowDirection.Forward,
+            },
         },
-    });
+        [OnOffServer, FanControlServer.with('Rocking', 'AirflowDirection')],
+    );
+    await addBridged(
+        'airpurifier',
+        Devices.AirPurifierDevice,
+        {
+            onOff: { onOff: true },
+            fanControl: {
+                fanMode: FanControl.FanMode.Low,
+                fanModeSequence: FanControl.FanModeSequence.OffLowMedHigh,
+                percentCurrent: 33,
+                percentSetting: 33,
+            },
+            // Only the carbon filter warns, so the shared ioBroker flag must be raised by that cluster
+            hepaFilterMonitoring: {
+                condition: 75,
+                degradationDirection: ResourceMonitoring.DegradationDirection.Down,
+                changeIndication: ResourceMonitoring.ChangeIndication.Ok,
+            },
+            activatedCarbonFilterMonitoring: {
+                condition: 60,
+                degradationDirection: ResourceMonitoring.DegradationDirection.Down,
+                changeIndication: ResourceMonitoring.ChangeIndication.Warning,
+            },
+        },
+        [
+            OnOffServer,
+            HepaFilterMonitoringServer.with('Condition', 'Warning'),
+            ActivatedCarbonFilterMonitoringServer.with('Condition', 'Warning'),
+        ],
+    );
     await addBridged(
         'pump',
         Devices.PumpDevice,
         {
             onOff: { onOff: false },
+            levelControl: { currentLevel: 127, minLevel: 0 },
             pumpConfigurationAndControl: {
                 effectiveOperationMode: PumpConfigurationAndControl.OperationMode.Normal,
                 effectiveControlMode: PumpConfigurationAndControl.ControlMode.ConstantSpeed,
                 capacity: null,
                 operationMode: PumpConfigurationAndControl.OperationMode.Normal,
             },
+            temperatureMeasurement: { measuredValue: 4550 },
+            pressureMeasurement: { measuredValue: 2000 },
+            flowMeasurement: { measuredValue: 250 },
         },
-        [PumpConfigurationAndControlServer.with('ConstantSpeed')],
+        [
+            PumpConfigurationAndControlServer.with('ConstantSpeed'),
+            LevelControlServer,
+            TemperatureMeasurementServer,
+            PressureMeasurementServer,
+            FlowMeasurementServer,
+        ],
     );
 
     console.log(`Storage path: ${storagePath}`);

@@ -91,7 +91,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
     readonly baseId: string;
     readonly #node: PairedNode;
     protected readonly appEndpoint: Endpoint;
-    readonly #rootEndpoint: Endpoint;
+    protected readonly rootEndpoint: Endpoint;
     readonly #observers = new ObserverGroup();
     readonly #behaviorIdCache = new Map<string, string | undefined>();
     #name?: string;
@@ -135,7 +135,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         this.#adapter = adapter;
         this.#node = node;
         this.appEndpoint = endpoint;
-        this.#rootEndpoint = rootEndpoint;
+        this.rootEndpoint = rootEndpoint;
         this.baseId = endpointDeviceBaseId;
         this.#defaultName = defaultName;
         this.deviceType = deviceTypeName;
@@ -247,7 +247,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
 
     #enablePowerSourceStates(): void {
         if (!this.#enablePowerSourceStatesForEndpoint(this.appEndpoint)) {
-            this.#enablePowerSourceStatesForEndpoint(this.#rootEndpoint);
+            this.#enablePowerSourceStatesForEndpoint(this.rootEndpoint);
         }
     }
 
@@ -973,7 +973,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
     }
 
     getMatterStates(): Record<string, unknown> {
-        return this.#addPowerSourceStates(this.appEndpoint) ?? this.#addPowerSourceStates(this.#rootEndpoint) ?? {};
+        return this.#addPowerSourceStates(this.appEndpoint) ?? this.#addPowerSourceStates(this.rootEndpoint) ?? {};
     }
 
     getDeviceDetails(nodeConnected: boolean): StructuredJsonFormData {
@@ -1094,7 +1094,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         if (behaviorId === undefined) {
             return undefined;
         }
-        const ep = endpointId === 0 ? this.#rootEndpoint : this.appEndpoint;
+        const ep = endpointId === 0 ? this.rootEndpoint : this.appEndpoint;
         return (ep.state as any)[behaviorId];
     }
 
@@ -1103,7 +1103,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         if (this.#behaviorIdCache.has(cacheKey)) {
             return this.#behaviorIdCache.get(cacheKey);
         }
-        const ep = endpointId === 0 ? this.#rootEndpoint : this.appEndpoint;
+        const ep = endpointId === 0 ? this.rootEndpoint : this.appEndpoint;
         let behaviorId: string | undefined;
         for (const [id, BehaviorType] of Object.entries(ep.behaviors.supported)) {
             if (ClusterBehavior.is(BehaviorType) && BehaviorType.cluster.id === clusterId) {
@@ -1121,7 +1121,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         };
 
         if (status.connection === 'connected') {
-            status.battery = this.#getBatteryStatus(this.appEndpoint) ?? this.#getBatteryStatus(this.#rootEndpoint);
+            status.battery = this.#getBatteryStatus(this.appEndpoint) ?? this.#getBatteryStatus(this.rootEndpoint);
         }
         return status;
     }

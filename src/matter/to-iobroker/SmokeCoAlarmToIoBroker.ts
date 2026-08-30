@@ -11,7 +11,6 @@ import type { MatterAdapter } from '../../main';
 
 export class SmokeCoAlarmToIoBroker extends GenericDeviceToIoBroker {
     readonly #ioBrokerDevice: FireAlarm;
-    readonly #rootEndpoint: Endpoint;
 
     constructor(
         node: PairedNode,
@@ -45,7 +44,6 @@ export class SmokeCoAlarmToIoBroker extends GenericDeviceToIoBroker {
                 'Smoke alarm is not supported by device, but ioBroker does not support CO2 alarm currently.',
             );
         }
-        this.#rootEndpoint = rootEndpoint;
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
@@ -57,7 +55,7 @@ export class SmokeCoAlarmToIoBroker extends GenericDeviceToIoBroker {
         });
 
         if (!this.#enableCustomLowPowerMapping(this.appEndpoint, this.appEndpoint)) {
-            this.#enableCustomLowPowerMapping(this.#rootEndpoint, this.appEndpoint);
+            this.#enableCustomLowPowerMapping(this.rootEndpoint, this.appEndpoint);
         }
         return super.enableDeviceTypeStates();
     }

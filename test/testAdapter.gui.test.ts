@@ -27,7 +27,8 @@ describe('test-admin-gui', () => {
     });
 
     after(async function () {
-        this.timeout(5000);
+        // Stopping js-controller and the adapters takes well over five seconds on a Windows runner
+        this.timeout(60_000);
         await stopBrowser();
         console.log('BROWSER stopped');
         await stopIoBrokerAdapters();

@@ -101,7 +101,7 @@ export abstract class GenericDevice extends EventEmitter {
             this.addDeviceStates([
                 {
                     name: 'ERROR',
-                    valueType: ValueType.Boolean,
+                    valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Error,
                     callback: state => (this.#errorState = state),
@@ -880,7 +880,11 @@ export abstract class GenericDevice extends EventEmitter {
             }
             return 'switch';
         }
-        if (valueType === ValueType.Number || valueType === ValueType.NumberPercent || ValueType.NumberMinMax) {
+        if (
+            valueType === ValueType.Number ||
+            valueType === ValueType.NumberPercent ||
+            valueType === ValueType.NumberMinMax
+        ) {
             if (hasMinMax) {
                 return 'slider';
             }

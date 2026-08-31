@@ -67,6 +67,21 @@ function modeLabelToEnumValue(label: string, mode: number): string {
     return value.length > 0 ? value : `MODE_${mode}`;
 }
 
+/**
+ * A suffixed form of a value that is not taken yet. The suffix keeps counting because a suffixed form can itself
+ * collide with the normalized form of another mode label.
+ */
+function uniqueEnumValue(value: string, taken: ReadonlySet<string>): string {
+    if (!taken.has(value)) {
+        return value;
+    }
+    let discriminator = 2;
+    while (taken.has(`${value}_${discriminator}`)) {
+        discriminator++;
+    }
+    return `${value}_${discriminator}`;
+}
+
 export class RoboticVacuumCleanerToIoBroker extends GenericDeviceToIoBroker {
     readonly #adapter: MatterAdapter;
     readonly #ioBrokerDevice: VacuumCleaner;
@@ -219,20 +234,12 @@ export class RoboticVacuumCleanerToIoBroker extends GenericDeviceToIoBroker {
                 this.#changeRunMode(value ? VacuumCleanerRunMode.Cleaning : VacuumCleanerRunMode.Idle),
         });
 
-        // Only one property may be mapped to an attribute path, and the one registered last wins it, so POWER is
-        // updated from here rather than from its own registration - which then only serves the initial read.
         this.enableDeviceTypeStateForAttribute(PropertyType.RunMode, {
             endpointId,
             clusterId: RvcRunMode.id,
             attributeName: 'currentMode',
             modes: this.#runModes(),
-            convertValue: async (value: number) => {
-                const power = this.#powerOf(value);
-                if (power !== undefined) {
-                    await this.ioBrokerDevice.updatePower(power);
-                }
-                return this.#runModeOf(value);
-            },
+            convertValue: (value: number) => this.#runModeOf(value),
             changeHandler: async (value: VacuumCleanerRunMode) => this.#changeRunMode(value),
         });
 
@@ -242,10 +249,7 @@ export class RoboticVacuumCleanerToIoBroker extends GenericDeviceToIoBroker {
         const usedCleanModeValues = new Set<string>();
         for (const option of this.#cleanModeOptions()) {
             // Two labels can normalize to the same value, and the reverse lookup a write does needs them distinct
-            let value = modeLabelToEnumValue(option.label, option.mode);
-            if (usedCleanModeValues.has(value)) {
-                value = `${value}_${option.mode}`;
-            }
+            const value = uniqueEnumValue(modeLabelToEnumValue(option.label, option.mode), usedCleanModeValues);
             usedCleanModeValues.add(value);
             cleanModes[option.mode] = value;
         }

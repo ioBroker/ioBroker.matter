@@ -100,7 +100,11 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
     readonly #deviceOptions: DeviceOptions;
     #enabledAttributeProperties = new Map<PropertyType, EnabledAttributeProperty>();
     #enabledEventProperties = new Map<PropertyType, EnabledEventProperty[]>();
-    #matterMappings = new Map<string, PropertyType | ((value: any) => MaybePromise<any>)>();
+    /**
+     * Several properties may read one Matter attribute - an X and its X_ACTUAL, or a device type deriving two of its
+     * states from one value - so a path carries every mapping registered for it, in registration order.
+     */
+    #matterMappings = new Map<string, (PropertyType | ((value: any) => MaybePromise<any>))[]>();
     #connectionStateId: string;
     #hasBridgedReachabilityAttribute = false;
     #pollTimeout?: ioBroker.Timeout;
@@ -273,8 +277,16 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
             );
             return;
         }
-        const pathId = attributePathToString({ endpointId, clusterId, attributeName });
-        this.#matterMappings.set(pathId, matterValueChanged);
+        this.#addMatterMapping(attributePathToString({ endpointId, clusterId, attributeName }), matterValueChanged);
+    }
+
+    #addMatterMapping(pathId: string, mapping: PropertyType | ((value: any) => MaybePromise<any>)): void {
+        const mappings = this.#matterMappings.get(pathId);
+        if (mappings === undefined) {
+            this.#matterMappings.set(pathId, [mapping]);
+        } else {
+            mappings.push(mapping);
+        }
     }
 
     /**
@@ -321,8 +333,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
             }
 
             if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
-                const pathId = attributePathToString({ endpointId, clusterId, attributeName });
-                this.#matterMappings.set(pathId, type);
+                this.#addMatterMapping(attributePathToString({ endpointId, clusterId, attributeName }), type);
             }
             this.#enabledAttributeProperties.set(type, {
                 type: 'attribute',
@@ -376,12 +387,8 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         if (stateData.id === undefined) {
             stateData.id = `${this.baseId}.`;
         }
-        const pathId = eventPathToString({ endpointId, clusterId, eventName });
         this.#deviceOptions.additionalStateData![type] = stateData;
-        if (this.#matterMappings.get(pathId)) {
-            this.#adapter.log.warn(`State path ${pathId} already enabled, overwriting`);
-        }
-        this.#matterMappings.set(pathId, type);
+        this.#addMatterMapping(eventPathToString({ endpointId, clusterId, eventName }), type);
         const knownEvents = this.#enabledEventProperties.get(type) ?? [];
         knownEvents.push({
             type: 'event',
@@ -557,13 +564,15 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         const pathId = attributePathToString(data);
 
         // Check standard property mappings first
-        const pathProperty = this.#matterMappings.get(pathId);
-        if (pathProperty !== undefined) {
-            if (typeof pathProperty === 'function') {
-                await pathProperty(data.value);
-                return;
+        const pathProperties = this.#matterMappings.get(pathId);
+        if (pathProperties !== undefined) {
+            for (const pathProperty of pathProperties) {
+                if (typeof pathProperty === 'function') {
+                    await pathProperty(data.value);
+                } else {
+                    await this.updateIoBrokerState(pathProperty, data.value);
+                }
             }
-            await this.updateIoBrokerState(pathProperty, data.value);
             return;
         }
 
@@ -586,28 +595,32 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         events: DecodedEventData<any>[];
     }): Promise<void> {
         const pathId = eventPathToString(data);
-        const pathProperty = this.#matterMappings.get(pathId);
-        if (pathProperty === undefined) {
+        const pathProperties = this.#matterMappings.get(pathId);
+        if (pathProperties === undefined) {
             return;
         }
-        if (typeof pathProperty === 'function') {
-            for (const event of data.events) {
-                await pathProperty(event);
+        for (const pathProperty of pathProperties) {
+            if (typeof pathProperty === 'function') {
+                for (const event of data.events) {
+                    await pathProperty(event);
+                }
+                continue;
             }
-            return;
-        }
-        const propertyHandlers = this.#enabledEventProperties.get(pathProperty);
-        if (propertyHandlers === undefined) {
-            return;
-        }
-        for (const { convertValue } of propertyHandlers) {
-            for (const event of data.events) {
-                const value = await convertValue(pathProperty, event);
-                if (value !== undefined) {
-                    try {
-                        await this.ioBrokerDevice.updatePropertyValue(pathProperty, value);
-                    } catch (e) {
-                        this.#adapter.log.error(`Error updating property ${pathProperty} with value ${value}: ${e}`);
+            const propertyHandlers = this.#enabledEventProperties.get(pathProperty);
+            if (propertyHandlers === undefined) {
+                continue;
+            }
+            for (const { convertValue } of propertyHandlers) {
+                for (const event of data.events) {
+                    const value = await convertValue(pathProperty, event);
+                    if (value !== undefined) {
+                        try {
+                            await this.ioBrokerDevice.updatePropertyValue(pathProperty, value);
+                        } catch (e) {
+                            this.#adapter.log.error(
+                                `Error updating property ${pathProperty} with value ${value}: ${e}`,
+                            );
+                        }
                     }
                 }
             }

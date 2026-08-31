@@ -145,6 +145,8 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 ### **WORK IN PROGRESS**
 * (@Apollon77) Matter robotic vacuum cleaners are now mapped to the ioBroker vacuumCleaner device type in controller mode, including run mode, cleaning mode, operational state and phase, cleaning progress and the pause and go-home commands
 * (@Apollon77) ioBroker vacuum cleaners can now be exposed to Matter as a robotic vacuum cleaner in bridge and device mode, with the run mode, cleaning mode, operational state and the pause and go-home commands. The cleaning phase and progress are not exposed in this direction, because Matter reports them per cleaning area and an ioBroker vacuum cleaner does not know its areas
+* (@Apollon77) Fixed several ioBroker states of a controller device never updating after the first read, because two states reading one Matter attribute silently replaced each other. This affected the actual-value states of lights, plugs, dimmers, locks and speakers
+* (@Apollon77) Fixed the Device Manager rendering every enum and text state of a device as a number field
 * (@Apollon77) Sensors a Matter device exposes on child endpoints, such as the air quality, temperature and humidity of an air purifier, are now mapped as own ioBroker devices in controller mode
 * (@Apollon77) The raw Matter cluster data of such a child endpoint is now created below its own object only; the second copy below its parent, which was never updated again, is removed on the next start
 * (@Apollon77) Updated the type detector to v6, so the new device types it detects (air purifier, air quality, CO alarm, contact, electricity, fan, flow, pressure and pump) are recognized

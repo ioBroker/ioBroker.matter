@@ -687,8 +687,32 @@ describe('to-matter converters for type-detector v6 device types', function () {
             });
             const [endpoint] = endpointsOf(mounted);
             const labels = endpoint.state.rvcCleanMode.supportedModes.map((mode: any) => mode.label);
-            expect(labels).to.deep.equal(['AUTO', 'AUTO 1', 'TURBO']);
+            expect(labels).to.deep.equal(['AUTO', 'AUTO 2', 'TURBO']);
             expect(new Set(labels).size).to.equal(labels.length);
+        });
+
+        it('keeps suffixing until a mode name is actually unique', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(false),
+                MODE: enumeration(['AUTO', 'AUTO 2', 'AUTO'], 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            const labels = endpoint.state.rvcCleanMode.supportedModes.map((mode: any) => mode.label);
+            expect(labels).to.deep.equal(['AUTO', 'AUTO 2', 'AUTO 3']);
+        });
+
+        it('starts in Error with the error attribute that explains it', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(true),
+                ERROR: { type: 'string', val: 'Stuck' },
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.rvcOperationalState.operationalState).to.equal(
+                RvcOperationalState.OperationalState.Error,
+            );
+            expect(endpoint.state.rvcOperationalState.operationalError.errorStateId).to.equal(
+                RvcOperationalState.ErrorState.UnableToCompleteOperation,
+            );
         });
 
         it('crops a mode name to the 64 characters a Matter label holds', async () => {

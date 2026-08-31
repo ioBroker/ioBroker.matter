@@ -37,6 +37,26 @@ const OPERATIONAL_STATE_BY_IOBROKER_STATE = new Map<VacuumCleanerState, RvcOpera
     [VacuumCleanerState.PAUSE, RvcOperationalState.OperationalState.Paused],
 ]);
 
+/**
+ * A discriminated form of a value that is not taken yet. The discriminator keeps counting because the form it
+ * produces can collide with a value the device already uses.
+ */
+function uniqueValue(
+    base: string,
+    taken: ReadonlySet<string>,
+    discriminate: (base: string, n: number) => string,
+): string {
+    if (!taken.has(base)) {
+        return base;
+    }
+    let discriminator = 2;
+    let candidate = discriminate(base, discriminator);
+    while (taken.has(candidate)) {
+        candidate = discriminate(base, ++discriminator);
+    }
+    return candidate;
+}
+
 /** Matter constrains a mode label to 64 characters, while an ioBroker state may name its modes freely. */
 const MAX_MODE_LABEL_LENGTH = 64;
 
@@ -95,6 +115,7 @@ export class VacuumCleanerToMatter extends GenericDeviceToMatter {
                 rvcOperationalState: {
                     operationalStateList: OPERATIONAL_STATE_LIST,
                     operationalState: this.#currentOperationalState(),
+                    operationalError: { errorStateId: this.#currentErrorState() },
                 },
                 ...(this.#cleanModes.length > 0
                     ? {
@@ -168,11 +189,10 @@ export class VacuumCleanerToMatter extends GenericDeviceToMatter {
         const usedLabels = new Set<string>();
         return this.#cleanModes.map((mode, index) => {
             // Matter rejects a duplicate label outright, and an ioBroker state may name two of its modes alike
-            let label = mode.substring(0, MAX_MODE_LABEL_LENGTH);
-            if (usedLabels.has(label)) {
-                const suffix = ` ${index}`;
-                label = `${label.substring(0, MAX_MODE_LABEL_LENGTH - suffix.length)}${suffix}`;
-            }
+            const label = uniqueValue(mode.substring(0, MAX_MODE_LABEL_LENGTH), usedLabels, (base, discriminator) => {
+                const suffix = ` ${discriminator}`;
+                return `${base.substring(0, MAX_MODE_LABEL_LENGTH - suffix.length)}${suffix}`;
+            });
             usedLabels.add(label);
 
             const semanticTag = CLEAN_MODE_TAGS[mode];
@@ -193,6 +213,13 @@ export class VacuumCleanerToMatter extends GenericDeviceToMatter {
         const mode = this.#ioBrokerDevice.getMode();
         const index = mode === undefined ? -1 : this.#cleanModes.indexOf(mode);
         return index === -1 ? 0 : index;
+    }
+
+    /** The operational state and the error attribute have to agree, or a controller sees an error with no cause. */
+    #currentErrorState(): OperationalState.ErrorState {
+        return this.#ioBrokerDevice.hasError() && this.#ioBrokerDevice.getError()
+            ? OperationalState.ErrorState.UnableToCompleteOperation
+            : OperationalState.ErrorState.NoError;
     }
 
     #currentOperationalState(): RvcOperationalState.OperationalState {

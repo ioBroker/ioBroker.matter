@@ -122,6 +122,8 @@ describe('Device unit conversion', function () {
         const { state, written } = await createDevice('mA', 'A');
         await state.setValue(0.5);
         deepStrictEqual(written, [{ id: STATE_ID, value: 500, ack: false }]);
+        // The setter caches the value it was called with (device unit), not the value it wrote (object unit)
+        strictEqual(state.value, 0.5);
     });
 
     it('reports min/max in the declared device unit', async function () {
@@ -144,6 +146,23 @@ describe('Device unit conversion', function () {
         deepStrictEqual(entry.unit, 'mA');
         deepStrictEqual(entry.min, 0);
         deepStrictEqual(entry.max, 16000);
+    });
+
+    it('caches the device-unit value when a numeric write mismatches the object type', async function () {
+        // Object type 'string' forces setValue into its type-mismatch branch instead of the plain
+        // numeric tail, so the unit-conversion fix has to hold there too, not just for a matching type.
+        const mock = makeAdapter(
+            { name: 'CURRENT', type: 'string', role: 'value.current', read: true, write: true, unit: 'mA' },
+            0,
+        );
+        const device = new UnitTestDevice(detectedDevice(), mock.adapter, 'A');
+        await device.init();
+        if (!device.currentState) {
+            throw new Error('CURRENT state was not registered');
+        }
+        await device.currentState.setValue(0.5);
+        deepStrictEqual(mock.written, [{ id: STATE_ID, value: '500', ack: false }]);
+        strictEqual(device.currentState.value, 0.5);
     });
 
     it('reads a mA object as amperes, the unit ElectricityDataDevice declares for CURRENT', async function () {

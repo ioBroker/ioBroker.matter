@@ -612,6 +612,9 @@ export class DeviceStateObject<T> extends EventEmitter {
         const object = this.object;
         const valueType = this.valueType === ValueType.Enum ? 'enum' : object?.common?.type;
 
+        // `value` gets converted below into the ioBroker object's unit for writing; getters and their
+        // documentation promise the device unit, so `this.value` is cached from this instead.
+        const deviceValue = value;
         if (this.valueType !== ValueType.Enum && typeof value === 'number') {
             // Convert the value from Default unit to the unit of the state
             value = this.convertValue(value, false) as T;
@@ -632,7 +635,7 @@ export class DeviceStateObject<T> extends EventEmitter {
                 throw new Error(`Value ${realValue} is greater than max ${object.common.max}`);
             }
 
-            this.value = value;
+            this.value = deviceValue;
             this.adapter.log.debug(
                 `Set ${this.#id} to "${realValue}" after min/max-correction (ack = ${!this.#isIoBrokerState})`,
             );
@@ -648,7 +651,7 @@ export class DeviceStateObject<T> extends EventEmitter {
                         value === true ||
                         value === 'on' ||
                         value === 'ON';
-                    this.value = value;
+                    this.value = deviceValue;
                     this.adapter.log.debug(
                         `Set ${this.#id} to (boolean) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
                     );
@@ -669,27 +672,27 @@ export class DeviceStateObject<T> extends EventEmitter {
                         throw new Error(`Value ${JSON.stringify(value)} is greater than max ${object.common.max}`);
                     }
 
-                    this.value = value;
+                    this.value = deviceValue;
                     this.adapter.log.debug(
                         `Set ${this.#id} to (number) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
                     );
                     await this.adapter.setForeignStateAsync(this.#id, realValue, !this.#isIoBrokerState);
                 } else if (valueType === 'string') {
                     const realValue = String(value);
-                    this.value = value;
+                    this.value = deviceValue;
                     this.adapter.log.debug(
                         `Set ${this.#id} to (string) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
                     );
                     await this.adapter.setForeignStateAsync(this.#id, realValue, !this.#isIoBrokerState);
                 } else if (valueType === 'json') {
                     const realValue: string = JSON.stringify(value);
-                    this.value = value;
+                    this.value = deviceValue;
                     this.adapter.log.debug(
                         `Set ${this.#id} to (json) "${realValue}" (ack = ${!this.#isIoBrokerState})`,
                     );
                     await this.adapter.setForeignStateAsync(this.#id, realValue, !this.#isIoBrokerState);
                 } else if (valueType === 'mixed') {
-                    this.value = value;
+                    this.value = deviceValue;
                     this.adapter.log.debug(
                         `Set ${this.#id} to (mixed) ${JSON.stringify(value)} (ack = ${!this.#isIoBrokerState})`,
                     );
@@ -721,7 +724,7 @@ export class DeviceStateObject<T> extends EventEmitter {
                     } else {
                         this.adapter.log.info(`Cannot map enum value for ${this.#id} without modes`);
                     }
-                    this.value = value;
+                    this.value = deviceValue;
                     this.adapter.log.debug(
                         `Set ${this.#id} to (enum) "${realValue?.toString()}" (ack = ${!this.#isIoBrokerState})`,
                     );
@@ -747,7 +750,7 @@ export class DeviceStateObject<T> extends EventEmitter {
                 }
             }
 
-            this.value = value;
+            this.value = deviceValue;
             this.adapter.log.debug(`Set ${this.#id} to ${JSON.stringify(value)} (ack = ${!this.#isIoBrokerState})`);
             await this.adapter.setForeignStateAsync(this.#id, value as ioBroker.StateValue, !this.#isIoBrokerState);
         }

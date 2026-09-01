@@ -53,13 +53,18 @@ export class AirPurifierToIoBroker extends FanToIoBroker {
             convertValue: (value: ResourceMonitoring.ChangeIndication) =>
                 changeIndicated(value) || carbonChangeIndicated(this.appEndpoint),
         });
-        this.enableDeviceTypeStateForAttribute(PropertyType.FilterChange, {
+        // A property is enabled once, so the second attribute feeding the same state needs a handler of its own
+        this.registerStateChangeHandlerForAttribute({
             endpointId,
             clusterId: ActivatedCarbonFilterMonitoring.id,
             attributeName: 'changeIndication',
-            convertValue: (value: ResourceMonitoring.ChangeIndication) =>
-                changeIndicated(value) || hepaChangeIndicated(this.appEndpoint),
+            matterValueChanged: (value: ResourceMonitoring.ChangeIndication) =>
+                this.ioBrokerDevice.updatePropertyValue(
+                    PropertyType.FilterChange,
+                    changeIndicated(value) || hepaChangeIndicated(this.appEndpoint),
+                ),
         });
+
         return super.enableDeviceTypeStates();
     }
 }

@@ -14,7 +14,12 @@ import type { Endpoint } from '@matter/main';
 import { Logger, LogLevel } from '@matter/main';
 import { AttributeId, ClusterId, EndpointNumber } from '@matter/main/types';
 import { BridgedDeviceBasicInformationClient } from '@matter/main/behaviors';
-import { RvcOperationalState, RvcRunMode } from '@matter/main/clusters';
+import {
+    ActivatedCarbonFilterMonitoring,
+    ResourceMonitoring,
+    RvcOperationalState,
+    RvcRunMode,
+} from '@matter/main/clusters';
 import { AggregatorEndpointDefinition } from '@matter/main/endpoints';
 import { SubscribeManager } from '../../src/lib/SubscribeManager';
 import { toHex } from '../../src/lib/utils';
@@ -250,9 +255,11 @@ describe('Matter -> ioBroker controller mapping', function () {
      * updated again reads as correct there. These drive an attribute change through the production dispatch.
      */
     describe('attribute changes after the initial read', () => {
+        const CLUSTERS = [RvcRunMode.Cluster, RvcOperationalState.Cluster, ActivatedCarbonFilterMonitoring.Cluster];
+
         const pushAttribute = async (id: string, clusterId: number, attributeName: string, value: unknown) => {
             const entry = mapped.get(id)!;
-            const cluster = clusterId === RvcRunMode.id ? RvcRunMode.Cluster : RvcOperationalState.Cluster;
+            const cluster = CLUSTERS.find(candidate => candidate.id === clusterId)!;
             const attribute = Reflect.get(cluster.attributes, attributeName) as { id: number };
             await entry.device!.handleChangedAttribute({
                 endpointId: EndpointNumber(entry.device!.number),
@@ -288,6 +295,31 @@ describe('Matter -> ioBroker controller mapping', function () {
 
             await pushAttribute('roboticvacuum', RvcOperationalState.id, 'currentPhase', null);
             expect(adapter.valueOf(baseId, 'PHASE')).to.equal('');
+        });
+
+        /**
+         * The two filter monitoring clusters both feed one ioBroker state. A property is enabled once, so the second
+         * of them reaches the state through a handler of its own, and only a change proves that handler is wired.
+         */
+        it('carries a carbon filter change into the shared filter state', async () => {
+            const { baseId } = mapped.get('airpurifier')!;
+            expect(adapter.valueOf(baseId, 'FILTER_CHANGE')).to.equal(true);
+
+            await pushAttribute(
+                'airpurifier',
+                ActivatedCarbonFilterMonitoring.id,
+                'changeIndication',
+                ResourceMonitoring.ChangeIndication.Ok,
+            );
+            expect(adapter.valueOf(baseId, 'FILTER_CHANGE')).to.equal(false);
+
+            await pushAttribute(
+                'airpurifier',
+                ActivatedCarbonFilterMonitoring.id,
+                'changeIndication',
+                ResourceMonitoring.ChangeIndication.Warning,
+            );
+            expect(adapter.valueOf(baseId, 'FILTER_CHANGE')).to.equal(true);
         });
 
         it('reports the robot error by name and clears it again', async () => {

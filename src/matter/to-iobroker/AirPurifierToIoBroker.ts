@@ -46,24 +46,22 @@ export class AirPurifierToIoBroker extends FanToIoBroker {
 
         // The ioBroker device has one maintenance flag for all filters, so either monitoring cluster raises it. The
         // cluster that did not change is read from the endpoint state, where it still holds its current value.
-        this.enableDeviceTypeStateForAttribute(PropertyType.FilterChange, {
-            endpointId,
-            clusterId: HepaFilterMonitoring.id,
-            attributeName: 'changeIndication',
-            convertValue: (value: ResourceMonitoring.ChangeIndication) =>
-                changeIndicated(value) || carbonChangeIndicated(this.appEndpoint),
-        });
-        // A property is enabled once, so the second attribute feeding the same state needs a handler of its own
-        this.registerStateChangeHandlerForAttribute({
-            endpointId,
-            clusterId: ActivatedCarbonFilterMonitoring.id,
-            attributeName: 'changeIndication',
-            matterValueChanged: (value: ResourceMonitoring.ChangeIndication) =>
-                this.ioBrokerDevice.updatePropertyValue(
-                    PropertyType.FilterChange,
+        this.enableDeviceTypeStateForAttributes(PropertyType.FilterChange, [
+            {
+                endpointId,
+                clusterId: HepaFilterMonitoring.id,
+                attributeName: 'changeIndication',
+                convertValue: (value: ResourceMonitoring.ChangeIndication) =>
+                    changeIndicated(value) || carbonChangeIndicated(this.appEndpoint),
+            },
+            {
+                endpointId,
+                clusterId: ActivatedCarbonFilterMonitoring.id,
+                attributeName: 'changeIndication',
+                convertValue: (value: ResourceMonitoring.ChangeIndication) =>
                     changeIndicated(value) || hepaChangeIndicated(this.appEndpoint),
-                ),
-        });
+            },
+        ]);
 
         return super.enableDeviceTypeStates();
     }

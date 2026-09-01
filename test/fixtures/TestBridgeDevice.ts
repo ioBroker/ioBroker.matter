@@ -406,6 +406,26 @@ async function main(): Promise<void> {
             ActivatedCarbonFilterMonitoringServer.with('Condition', 'Warning'),
         ],
     );
+    // Only the carbon filter monitors, so the state the two monitoring clusters share has to be owned by that one
+    await addBridged(
+        'airpurifiercarbon',
+        Devices.AirPurifierDevice,
+        {
+            onOff: { onOff: true },
+            fanControl: {
+                fanMode: FanControl.FanMode.High,
+                fanModeSequence: FanControl.FanModeSequence.OffLowMedHigh,
+                percentCurrent: 90,
+                percentSetting: 90,
+            },
+            activatedCarbonFilterMonitoring: {
+                condition: 40,
+                degradationDirection: ResourceMonitoring.DegradationDirection.Down,
+                changeIndication: ResourceMonitoring.ChangeIndication.Warning,
+            },
+        },
+        [OnOffServer, ActivatedCarbonFilterMonitoringServer.with('Condition', 'Warning')],
+    );
     await addBridged(
         'pump',
         Devices.PumpDevice,

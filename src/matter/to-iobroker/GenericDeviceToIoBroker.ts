@@ -255,6 +255,46 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         }
     }
 
+    /**
+     * Enable a state that the device type derives from several Matter attributes, such as a maintenance flag that two
+     * monitoring clusters both raise.
+     *
+     * Each source converts on its own, because the attribute that changed has to be combined with the attributes that
+     * did not. The first supported source owns the state, and every further one reaches it through a handler, because
+     * a property is enabled once and the later registration would otherwise be dropped.
+     */
+    protected enableDeviceTypeStateForAttributes(
+        type: PropertyType,
+        sources: {
+            endpointId: EndpointNumber;
+            clusterId: ClusterId;
+            attributeName: string;
+            convertValue: (value: any) => MaybePromise<any>;
+        }[],
+    ): void {
+        let owned = false;
+        for (const source of sources) {
+            if (!owned) {
+                this.enableDeviceTypeStateForAttribute(type, source);
+                owned = this.#enabledAttributeProperties.has(type);
+                if (owned) {
+                    continue;
+                }
+            }
+            this.registerStateChangeHandlerForAttribute({
+                endpointId: source.endpointId,
+                clusterId: source.clusterId,
+                attributeName: source.attributeName,
+                matterValueChanged: async value => {
+                    const converted = await source.convertValue(value);
+                    if (converted !== undefined) {
+                        await this.ioBrokerDevice.updatePropertyValue(type, converted);
+                    }
+                },
+            });
+        }
+    }
+
     protected registerStateChangeHandlerForAttribute(
         data: {
             endpointId: EndpointNumber;

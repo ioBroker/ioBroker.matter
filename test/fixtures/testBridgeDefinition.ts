@@ -346,6 +346,22 @@ export const SENSOR_AND_APPLIANCE_ENDPOINTS: BridgedEndpointSpec[] = [
         },
     },
     {
+        id: 'airpurifiercarbon',
+        deviceType: 0x002d,
+        expectedConverter: 'AirPurifierToIoBroker',
+        expectedIoBrokerType: 'airPurifier',
+        // No HEPA cluster, so FILTER_CONDITION cannot exist while the shared FILTER_CHANGE still has to
+        expectedStates: [
+            'FILTER_CHANGE',
+            'FILTER_CONDITION_CARBON',
+            'POWER',
+            'SPEED',
+            'SPEED_LEVEL',
+            ...CONNECTION_STATES,
+        ],
+        expectedValues: { SPEED: 1, SPEED_LEVEL: 90, POWER: true, FILTER_CONDITION_CARBON: 40, FILTER_CHANGE: true },
+    },
+    {
         id: 'pump',
         deviceType: 0x0303,
         expectedConverter: 'PumpToIoBroker',

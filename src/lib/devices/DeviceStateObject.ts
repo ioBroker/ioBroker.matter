@@ -612,6 +612,15 @@ export class DeviceStateObject<T> extends EventEmitter {
         const object = this.object;
         const valueType = this.valueType === ValueType.Enum ? 'enum' : object?.common?.type;
 
+        // A nullable Matter attribute that carries no value means unknown, which an ioBroker state expresses
+        // as null; parsing or mapping it would invent a number or an enum label the device never reported
+        if (value === null) {
+            this.value = value;
+            this.adapter.log.debug(`Set ${this.#id} to null (ack = ${!this.#isIoBrokerState})`);
+            await this.adapter.setForeignStateAsync(this.#id, null, !this.#isIoBrokerState);
+            return;
+        }
+
         // `value` gets converted below into the ioBroker object's unit for writing; getters and their
         // documentation promise the device unit, so `this.value` is cached from this instead.
         const deviceValue = value;
@@ -726,7 +735,7 @@ export class DeviceStateObject<T> extends EventEmitter {
                     }
                     this.value = deviceValue;
                     this.adapter.log.debug(
-                        `Set ${this.#id} to (enum) "${realValue?.toString()}" (ack = ${!this.#isIoBrokerState})`,
+                        `Set ${this.#id} to (enum) ${JSON.stringify(realValue)} (ack = ${!this.#isIoBrokerState})`,
                     );
                     await this.adapter.setForeignStateAsync(this.#id, realValue as string, !this.#isIoBrokerState);
                 }

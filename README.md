@@ -156,6 +156,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) Air quality readings are now converted between the unit a device reports and the unit the state declares, in both directions, so a sensor reporting a concentration in milligrams per cubic metre or in parts per billion no longer lands a thousand times off
 * (@Apollon77) Pressure and flow readings are converted from the unit the ioBroker state declares, so a sensor in Pa, kPa, bar, mmHg, inHg, psi or in litres per minute is no longer exposed to Matter at the wrong scale
 * (@Apollon77) Fixed a written value being remembered in the unit of the ioBroker object rather than the unit the adapter works in, so a current written in amperes was read back a thousand times too high until the device reported again
+* (@Apollon77) Fixed an error being logged for every Matter attribute that carries no value yet, such as the start-up level and colour temperature of a light; the state is now simply empty
 * (@Apollon77) A Matter fan without an on/off cluster now gets a power state derived from its fan mode, so it can be switched from ioBroker
 * (@Apollon77) Fixed adding one of the newly supported device types from a single state, which named that state wrongly and left the device without its required value
 * (@Apollon77) The controller mapping is now covered by an integration test that commissions a real Matter bridge, and it runs in CI

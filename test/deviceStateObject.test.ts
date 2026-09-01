@@ -1,11 +1,15 @@
 import { rejects, strictEqual } from 'node:assert';
 import { DeviceStateObject, PropertyType, ValueType } from '../src/lib/devices/DeviceStateObject';
 
+const written = new Array<ioBroker.StateValue>();
+
 function makeAdapter(common: ioBroker.StateCommon): ioBroker.Adapter {
     return {
         log: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} },
         getForeignObjectAsync: async () => ({ _id: 'test.0.state', type: 'state', common }) as ioBroker.Object,
-        setForeignStateAsync: async () => {},
+        setForeignStateAsync: async (_id: string, value: ioBroker.StateValue) => {
+            written.push(value);
+        },
     } as unknown as ioBroker.Adapter;
 }
 
@@ -85,6 +89,36 @@ describe('DeviceStateObject.getRawEnumValue', function () {
 });
 
 describe('DeviceStateObject.setValue', function () {
+    beforeEach(function () {
+        written.length = 0;
+    });
+
+    it('writes an unset nullable attribute through as null on a numeric state', async function () {
+        const state = await createState(ValueType.Number, {
+            name: 'test',
+            type: 'number',
+            role: 'state',
+            read: true,
+            write: true,
+        });
+
+        await state.setValue(null);
+
+        strictEqual(written.length, 1);
+        strictEqual(written[0], null);
+        strictEqual(state.value, null);
+    });
+
+    it('writes an unset nullable attribute through as null on an enum state', async function () {
+        const state = await createState(ValueType.Enum, numberEnumCommon);
+
+        await state.setValue(null);
+
+        strictEqual(written.length, 1);
+        strictEqual(written[0], null);
+        strictEqual(state.value, null);
+    });
+
     it('does not cache a percent value rejected for being non-finite', async function () {
         const state = await createState(ValueType.NumberPercent, {
             name: 'test',

@@ -81,7 +81,6 @@ For testing pre-release or community firmware:
   * windowTilt - as discussed as composed device with two contact sensors ... one for open close and one for tilt
   * levelSlider - ideally as non-lighting dimmed socket?
 * Matter device types
-  * (6) Robot Vacuum cleaner -> vacuumCleaner
   * (5+) Dishwasher-> ???
   * (4+) Basic Video Player -> mediaPlayer
   * (4+) Laundry Washer -> ???

@@ -46,12 +46,42 @@ export enum PollutantLevelNumbers {
 /** Pollutants exposed by the `airQuality` type-detector pattern; each contributes a concentration and a level state. */
 type PollutantKey = 'Co2' | 'Tvoc' | 'Pm1' | 'Pm25' | 'Pm10' | 'Co' | 'No2' | 'O3' | 'Ch2o' | 'Rn' | 'So2';
 
+type UnitConversionMap = { [key: string]: (value: number, toDefaultUnit: boolean) => number };
+
 interface PollutantDefinition {
     key: PollutantKey;
     stateName: string;
     concentrationType: PropertyType;
     levelType: PropertyType;
+    /** Canonical unit the concentration is exposed in, matching the unit the Matter bridge direction publishes. */
+    unit?: string;
+    unitConversionMap?: UnitConversionMap;
 }
+
+/**
+ * Scales a value from an alternate unit into the canonical one (`toDefaultUnit`===true) and back. `factor` is the
+ * ratio of the alternate unit to the canonical one, e.g. 1000 for `ppm` when the canonical unit is `ppb`.
+ */
+const scale =
+    (factor: number) =>
+    (value: number, toDefaultUnit: boolean): number =>
+        toDefaultUnit ? value * factor : value / factor;
+
+/** ppm/ppb/ppt scale into each other by powers of 1000. */
+const PPM_CONVERSION: UnitConversionMap = { ppb: scale(1e-3), ppt: scale(1e-6) };
+/** Where the type-detector declares no default unit (TVOC, NO2, O3), ppb is assumed - see AirQualityToMatter.ts. */
+const PPB_CONVERSION: UnitConversionMap = { ppm: scale(1e3), ppt: scale(1e-3) };
+
+/**
+ * mg/µg/ng per m³ scale into each other by powers of 1000. Both the superscript ('mg/m³') and ASCII ('mg/m3')
+ * spellings are accepted, since ioBroker objects are not consistent about which one they declare.
+ */
+const UGM3_CONVERSION: UnitConversionMap = {
+    'mg/m³': scale(1e3),
+    'mg/m3': scale(1e3),
+    'ng/m³': scale(1e-3),
+    'ng/m3': scale(1e-3),
+};
 
 const POLLUTANT_DEFINITIONS: readonly PollutantDefinition[] = [
     {
@@ -59,36 +89,80 @@ const POLLUTANT_DEFINITIONS: readonly PollutantDefinition[] = [
         stateName: 'CO2',
         concentrationType: PropertyType.Co2,
         levelType: PropertyType.Co2Level,
+        unit: 'ppm',
+        unitConversionMap: PPM_CONVERSION,
     },
-    { key: 'Tvoc', stateName: 'TVOC', concentrationType: PropertyType.Tvoc, levelType: PropertyType.TvocLevel },
+    {
+        key: 'Tvoc',
+        stateName: 'TVOC',
+        concentrationType: PropertyType.Tvoc,
+        levelType: PropertyType.TvocLevel,
+        unit: 'ppb',
+        unitConversionMap: PPB_CONVERSION,
+    },
     {
         key: 'Pm1',
         stateName: 'PM1',
         concentrationType: PropertyType.Pm1,
         levelType: PropertyType.Pm1Level,
+        unit: 'µg/m³',
+        unitConversionMap: UGM3_CONVERSION,
     },
     {
         key: 'Pm25',
         stateName: 'PM25',
         concentrationType: PropertyType.Pm25,
         levelType: PropertyType.Pm25Level,
+        unit: 'µg/m³',
+        unitConversionMap: UGM3_CONVERSION,
     },
     {
         key: 'Pm10',
         stateName: 'PM10',
         concentrationType: PropertyType.Pm10,
         levelType: PropertyType.Pm10Level,
+        unit: 'µg/m³',
+        unitConversionMap: UGM3_CONVERSION,
     },
-    { key: 'Co', stateName: 'CO', concentrationType: PropertyType.Co, levelType: PropertyType.CoLevel },
-    { key: 'No2', stateName: 'NO2', concentrationType: PropertyType.No2, levelType: PropertyType.No2Level },
-    { key: 'O3', stateName: 'O3', concentrationType: PropertyType.O3, levelType: PropertyType.O3Level },
+    {
+        key: 'Co',
+        stateName: 'CO',
+        concentrationType: PropertyType.Co,
+        levelType: PropertyType.CoLevel,
+        unit: 'ppm',
+        unitConversionMap: PPM_CONVERSION,
+    },
+    {
+        key: 'No2',
+        stateName: 'NO2',
+        concentrationType: PropertyType.No2,
+        levelType: PropertyType.No2Level,
+        unit: 'ppb',
+        unitConversionMap: PPB_CONVERSION,
+    },
+    {
+        key: 'O3',
+        stateName: 'O3',
+        concentrationType: PropertyType.O3,
+        levelType: PropertyType.O3Level,
+        unit: 'ppb',
+        unitConversionMap: PPB_CONVERSION,
+    },
     {
         key: 'Ch2o',
         stateName: 'CH2O',
         concentrationType: PropertyType.Ch2o,
         levelType: PropertyType.Ch2oLevel,
+        unit: 'µg/m³',
+        unitConversionMap: UGM3_CONVERSION,
     },
-    { key: 'Rn', stateName: 'RN', concentrationType: PropertyType.Rn, levelType: PropertyType.RnLevel },
+    {
+        key: 'Rn',
+        stateName: 'RN',
+        concentrationType: PropertyType.Rn,
+        levelType: PropertyType.RnLevel,
+        unit: 'Bq/m³',
+    },
     { key: 'So2', stateName: 'SO2', concentrationType: PropertyType.So2, levelType: PropertyType.So2Level },
 ] as const;
 
@@ -153,6 +227,8 @@ export class AirQuality extends GenericDevice {
                 valueType: ValueType.Number,
                 accessType: StateAccessType.Read,
                 type: definition.concentrationType,
+                unit: definition.unit,
+                unitConversionMap: definition.unitConversionMap,
                 callback: state => {
                     if (state) {
                         this.#concentrationStates.set(definition.key, state);

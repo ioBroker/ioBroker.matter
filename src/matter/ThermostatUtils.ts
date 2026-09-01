@@ -263,7 +263,9 @@ export class ThermostatSetpointBridge {
      * leave the controller showing a temperature the device never accepted, with nothing to correct it later.
      */
     #restoreSetpointAttribute(kind: SetpointKind): void {
-        const value = this.#device.hasLevel() ? this.#device.getLevel() : undefined;
+        // The state backing this kind where one resolves; the shared state otherwise, which is the case a
+        // dropped write leaves behind — a kind that resolves to nothing has no value of its own to restore
+        const value = this.#setpointValue(kind) ?? (this.#device.hasLevel() ? this.#device.getLevel() : undefined);
         if (!this.#supports(kind) || typeof value !== 'number') {
             return;
         }

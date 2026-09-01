@@ -66,8 +66,10 @@ interface PollutantMapping {
 const { Ppm, Ppb, Ugm3, Bqm3 } = ConcentrationMeasurement.MeasurementUnit;
 
 /**
- * Units follow the type-detector defaults, so no value conversion is needed. Where the detector declares no unit
- * (TVOC, NO2, O3) ppb is assumed, the unit these sensors are conventionally reported in.
+ * Each cluster is declared in the pollutant's canonical unit, matching the controller direction in
+ * AirQualitySensorToIoBroker.ts. The ioBroker device model (AirQuality.ts) declares that same unit as each
+ * pollutant state's device unit with a unitConversionMap, so a differently-labelled ioBroker object is already
+ * scaled into it by the time its value reaches this converter - this file forwards pollutant values unconverted.
  */
 const POLLUTANT_MAPPINGS: readonly PollutantMapping[] = [
     {

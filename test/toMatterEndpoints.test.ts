@@ -475,6 +475,56 @@ describe('to-matter converters for type-detector v6 device types', function () {
             expect(power.state.onOff.onOff).to.equal(true);
         });
 
+        // Characterization test: the detector declares no unit in this mock harness, so this passes the same way
+        // with or without a declared canonical unit. It documents the no-regression case, not the fix itself.
+        it('leaves a pollutant unchanged when the ioBroker object already uses the canonical unit', async () => {
+            const mounted = await mount(Types.airQuality, {
+                AQI: enumeration(AQI_LEVELS, 1),
+                CO2: num(800, 'ppm'),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.carbonDioxideConcentrationMeasurement.measuredValue).to.equal(800);
+        });
+
+        it('scales a pollutant reported in mg/m³ into the µg/m³ its cluster expects', async () => {
+            const mounted = await mount(Types.airQuality, {
+                AQI: enumeration(AQI_LEVELS, 1),
+                CH2O: num(0.006, 'mg/m³'),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.formaldehydeConcentrationMeasurement.measuredValue).to.equal(6);
+        });
+
+        it('scales a pollutant reported in ppb into the ppm its cluster expects', async () => {
+            const mounted = await mount(Types.airQuality, {
+                AQI: enumeration(AQI_LEVELS, 1),
+                CO: num(2000, 'ppb'),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.carbonMonoxideConcentrationMeasurement.measuredValue).to.equal(2);
+        });
+
+        it('accepts the ASCII spelling of a mass unit alongside the superscript one', async () => {
+            const mounted = await mount(Types.airQuality, {
+                AQI: enumeration(AQI_LEVELS, 1),
+                CH2O: num(0.006, 'mg/m3'),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.formaldehydeConcentrationMeasurement.measuredValue).to.equal(6);
+        });
+
+        it('keeps scaling a non-canonical pollutant on every update, not only at mount', async () => {
+            const mounted = await mount(Types.airQuality, {
+                AQI: enumeration(AQI_LEVELS, 1),
+                CH2O: num(0.006, 'mg/m³'),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.formaldehydeConcentrationMeasurement.measuredValue).to.equal(6);
+
+            await mounted.adapter.pushValue('CH2O', 0.012);
+            expect(endpoint.state.formaldehydeConcentrationMeasurement.measuredValue).to.equal(12);
+        });
+
         it('scales temperature and humidity updates and passes pressure through unchanged', async () => {
             const mounted = await mount(Types.airQuality, {
                 AQI: enumeration(AQI_LEVELS, 1),

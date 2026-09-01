@@ -321,6 +321,16 @@ export const SENSOR_AND_APPLIANCE_ENDPOINTS: BridgedEndpointSpec[] = [
         expectedValues: { SPEED: 3, SPEED_LEVEL: 50, POWER: true, SWING: 1, AIRFLOW_DIRECTION: 0 },
     },
     {
+        id: 'fannoonoff',
+        deviceType: 0x002b,
+        expectedConverter: 'FanToIoBroker',
+        expectedIoBrokerType: 'fan',
+        // No OnOff, no Rocking, no AirflowDirection feature, so only fanMode and percentCurrent back a state here.
+        expectedStates: ['POWER', 'SPEED', 'SPEED_LEVEL', ...CONNECTION_STATES],
+        // POWER has no OnOff to read, so it derives from fanMode: Medium is not Off, so POWER is true.
+        expectedValues: { SPEED: 3, SPEED_LEVEL: 66, POWER: true },
+    },
+    {
         id: 'airpurifier',
         deviceType: 0x002d,
         expectedConverter: 'AirPurifierToIoBroker',

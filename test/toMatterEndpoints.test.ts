@@ -540,6 +540,15 @@ describe('to-matter converters for type-detector v6 device types', function () {
             expect(airQuality.state.relativeHumidityMeasurement.measuredValue).to.equal(4321);
             expect(pressure.state.pressureMeasurement.measuredValue).to.equal(988);
         });
+
+        it('scales an air-quality pressure reading reported in kPa into the mbar its cluster expects', async () => {
+            const mounted = await mount(Types.airQuality, {
+                AQI: enumeration(AQI_LEVELS, 1),
+                PRESSURE: num(101.3, 'kPa'),
+            });
+            const [, pressure] = endpointsOf(mounted);
+            expect(pressure.state.pressureMeasurement.measuredValue).to.equal(1013);
+        });
     });
 
     describe('ContactToMatter', () => {
@@ -581,6 +590,17 @@ describe('to-matter converters for type-detector v6 device types', function () {
             await mounted.adapter.pushValue('FLOW', -5);
             expect(endpoint.state.flowMeasurement.measuredValue).to.equal(0);
         });
+
+        it('scales an object reporting l/min into the m³/h its cluster expects', async () => {
+            const mounted = await mount(Types.flow, { FLOW: num(20, 'l/min') });
+            const [endpoint] = endpointsOf(mounted);
+            // 20 l/min = 1.2 m³/h -> Matter MeasuredValue = 10 x 1.2 = 12
+            expect(endpoint.state.flowMeasurement.measuredValue).to.equal(12);
+
+            await mounted.adapter.pushValue('FLOW', 50);
+            // 50 l/min = 3.0 m³/h -> Matter MeasuredValue = 30
+            expect(endpoint.state.flowMeasurement.measuredValue).to.equal(30);
+        });
     });
 
     describe('PressureToMatter', () => {
@@ -599,6 +619,16 @@ describe('to-matter converters for type-detector v6 device types', function () {
             const [endpoint] = endpointsOf(mounted);
             await mounted.adapter.pushValue('PRESSURE', -40_000);
             expect(endpoint.state.pressureMeasurement.measuredValue).to.equal(-32767);
+        });
+
+        it('scales an object reporting kPa into the mbar its cluster expects', async () => {
+            const mounted = await mount(Types.pressure, { PRESSURE: num(101.3, 'kPa') });
+            const [endpoint] = endpointsOf(mounted);
+            // 101.3 kPa = 1013 mbar, and 10 x kPa / mbar cancel out, so MeasuredValue equals the mbar value
+            expect(endpoint.state.pressureMeasurement.measuredValue).to.equal(1013);
+
+            await mounted.adapter.pushValue('PRESSURE', 98.7);
+            expect(endpoint.state.pressureMeasurement.measuredValue).to.equal(987);
         });
     });
 
@@ -646,6 +676,18 @@ describe('to-matter converters for type-detector v6 device types', function () {
             expect(endpoint.state.pumpConfigurationAndControl.pumpStatus.running).to.equal(true);
             await mounted.adapter.pushValue('LEVEL', 0);
             expect(endpoint.state.pumpConfigurationAndControl.pumpStatus.running).to.equal(false);
+        });
+
+        it('scales pressure reported in kPa and flow reported in l/min into the units their clusters expect', async () => {
+            const mounted = await mount(Types.pump, {
+                POWER: bool(true),
+                PRESSURE: num(101.3, 'kPa'),
+                FLOW: num(20, 'l/min'),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            // 101.3 kPa = 1013 mbar; 20 l/min = 1.2 m³/h -> Matter MeasuredValue = 10 x 1.2 = 12
+            expect(endpoint.state.pressureMeasurement.measuredValue).to.equal(1013);
+            expect(endpoint.state.flowMeasurement.measuredValue).to.equal(12);
         });
     });
 

@@ -154,6 +154,9 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) Matter fan, air purifier, air quality, flow, pressure and pump devices are now mapped to their ioBroker device types in controller mode
 * (@Apollon77) Fixed smoke alarms without their own power source failing to map in controller mode
 * (@Apollon77) Air quality readings are now converted between the unit a device reports and the unit the state declares, in both directions, so a sensor reporting a concentration in milligrams per cubic metre or in parts per billion no longer lands a thousand times off
+* (@Apollon77) Pressure and flow readings are converted from the unit the ioBroker state declares, so a sensor in Pa, kPa, bar, mmHg, inHg, psi or in litres per minute is no longer exposed to Matter at the wrong scale
+* (@Apollon77) A Matter fan without an on/off cluster now gets a power state derived from its fan mode, so it can be switched from ioBroker
+* (@Apollon77) Fixed adding one of the newly supported device types from a single state, which named that state wrongly and left the device without its required value
 * (@Apollon77) The controller mapping is now covered by an integration test that commissions a real Matter bridge, and it runs in CI
 * (@Apollon77) A thermostat or air conditioner detected only through its heating or cooling setpoint now declares the matching Matter capability, so its setpoint works instead of sitting at the cluster default. Devices already commissioned before this change may need to be re-added in ecosystems that cache the capability set
 * (@Apollon77) Fixed a rejected state write leaving the rejected value cached, and the Device Manager showing a value against the wrong unit

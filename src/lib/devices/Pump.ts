@@ -2,6 +2,7 @@ import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateOb
 import { ElectricityDataDevice } from './ElectricityDataDevice';
 import { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 import type { CustomStatesRecord } from '../../matter/to-iobroker/custom-states';
+import { FLOW_CONVERSION_MAP, FLOW_UNIT, PRESSURE_CONVERSION_MAP, PRESSURE_UNIT } from './unitConversions';
 
 export class Pump extends ElectricityDataDevice {
     #powerState?: DeviceStateObject<boolean | number>;
@@ -49,6 +50,8 @@ export class Pump extends ElectricityDataDevice {
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Pressure,
+                    unit: PRESSURE_UNIT,
+                    unitConversionMap: PRESSURE_CONVERSION_MAP,
                     callback: state => (this.#getPressureState = state),
                 },
                 {
@@ -56,6 +59,8 @@ export class Pump extends ElectricityDataDevice {
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Flow,
+                    unit: FLOW_UNIT,
+                    unitConversionMap: FLOW_CONVERSION_MAP,
                     callback: state => (this.#getFlowState = state),
                 },
             ]),

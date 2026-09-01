@@ -1,5 +1,6 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { PRESSURE_CONVERSION_MAP, PRESSURE_UNIT } from './unitConversions';
 
 export class Pressure extends GenericDevice {
     #getPressureState?: DeviceStateObject<number>;
@@ -14,6 +15,8 @@ export class Pressure extends GenericDevice {
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Pressure,
+                    unit: PRESSURE_UNIT,
+                    unitConversionMap: PRESSURE_CONVERSION_MAP,
                     callback: state => (this.#getPressureState = state),
                 },
             ]),

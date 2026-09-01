@@ -16,6 +16,7 @@ import { AttributeId, ClusterId, EndpointNumber } from '@matter/main/types';
 import { BridgedDeviceBasicInformationClient } from '@matter/main/behaviors';
 import {
     ActivatedCarbonFilterMonitoring,
+    FanControl,
     ResourceMonitoring,
     RvcOperationalState,
     RvcRunMode,
@@ -255,7 +256,12 @@ describe('Matter -> ioBroker controller mapping', function () {
      * updated again reads as correct there. These drive an attribute change through the production dispatch.
      */
     describe('attribute changes after the initial read', () => {
-        const CLUSTERS = [RvcRunMode.Cluster, RvcOperationalState.Cluster, ActivatedCarbonFilterMonitoring.Cluster];
+        const CLUSTERS = [
+            RvcRunMode.Cluster,
+            RvcOperationalState.Cluster,
+            ActivatedCarbonFilterMonitoring.Cluster,
+            FanControl.Cluster,
+        ];
 
         const pushAttribute = async (id: string, clusterId: number, attributeName: string, value: unknown) => {
             const entry = mapped.get(id)!;
@@ -320,6 +326,24 @@ describe('Matter -> ioBroker controller mapping', function () {
                 ResourceMonitoring.ChangeIndication.Warning,
             );
             expect(adapter.valueOf(baseId, 'FILTER_CHANGE')).to.equal(true);
+        });
+
+        /**
+         * The fixture has no OnOff cluster, so POWER derives from fanMode. Off must flip POWER without touching
+         * SPEED: the ioBroker fan speed enum has no Off member, and POWER already carries the off/on information.
+         */
+        it('derives POWER from fanMode and leaves SPEED alone when the fan reports Off', async () => {
+            const { baseId } = mapped.get('fannoonoff')!;
+            expect(adapter.valueOf(baseId, 'POWER')).to.equal(true);
+            expect(adapter.valueOf(baseId, 'SPEED')).to.equal(3);
+
+            await pushAttribute('fannoonoff', FanControl.id, 'fanMode', FanControl.FanMode.Off);
+            expect(adapter.valueOf(baseId, 'POWER')).to.equal(false);
+            expect(adapter.valueOf(baseId, 'SPEED')).to.equal(3);
+
+            await pushAttribute('fannoonoff', FanControl.id, 'fanMode', FanControl.FanMode.High);
+            expect(adapter.valueOf(baseId, 'POWER')).to.equal(true);
+            expect(adapter.valueOf(baseId, 'SPEED')).to.equal(1);
         });
 
         it('reports the robot error by name and clears it again', async () => {

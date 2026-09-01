@@ -6,6 +6,7 @@ import {
     StateAccessType,
     type DeviceStateDescription,
 } from './GenericDevice';
+import { PRESSURE_CONVERSION_MAP, PRESSURE_UNIT, scale, type UnitConversionMap } from './unitConversions';
 
 export enum AirQualityIndex {
     Unknown = 'UNKNOWN',
@@ -46,8 +47,6 @@ export enum PollutantLevelNumbers {
 /** Pollutants exposed by the `airQuality` type-detector pattern; each contributes a concentration and a level state. */
 type PollutantKey = 'Co2' | 'Tvoc' | 'Pm1' | 'Pm25' | 'Pm10' | 'Co' | 'No2' | 'O3' | 'Ch2o' | 'Rn' | 'So2';
 
-type UnitConversionMap = { [key: string]: (value: number, toDefaultUnit: boolean) => number };
-
 interface PollutantDefinition {
     key: PollutantKey;
     stateName: string;
@@ -57,15 +56,6 @@ interface PollutantDefinition {
     unit?: string;
     unitConversionMap?: UnitConversionMap;
 }
-
-/**
- * Scales a value from an alternate unit into the canonical one (`toDefaultUnit`===true) and back. `factor` is the
- * ratio of the alternate unit to the canonical one, e.g. 1000 for `ppm` when the canonical unit is `ppb`.
- */
-const scale =
-    (factor: number) =>
-    (value: number, toDefaultUnit: boolean): number =>
-        toDefaultUnit ? value * factor : value / factor;
 
 /** ppm/ppb/ppt scale into each other by powers of 1000. */
 const PPM_CONVERSION: UnitConversionMap = { ppb: scale(1e-3), ppt: scale(1e-6) };
@@ -200,6 +190,8 @@ export class AirQuality extends GenericDevice {
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Pressure,
+                    unit: PRESSURE_UNIT,
+                    unitConversionMap: PRESSURE_CONVERSION_MAP,
                     callback: state => (this.#pressureState = state),
                 },
                 {

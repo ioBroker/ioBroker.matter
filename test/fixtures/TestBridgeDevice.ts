@@ -377,6 +377,20 @@ async function main(): Promise<void> {
         },
         [OnOffServer, FanControlServer.with('Rocking', 'AirflowDirection')],
     );
+    // OnOff is optional on a Fan; this one omits it, so POWER has to be derived from fanMode instead.
+    await addBridged(
+        'fannoonoff',
+        Devices.FanDevice,
+        {
+            fanControl: {
+                fanMode: FanControl.FanMode.Medium,
+                fanModeSequence: FanControl.FanModeSequence.OffLowMedHigh,
+                percentCurrent: 66,
+                percentSetting: 66,
+            },
+        },
+        [FanControlServer],
+    );
     await addBridged(
         'airpurifier',
         Devices.AirPurifierDevice,

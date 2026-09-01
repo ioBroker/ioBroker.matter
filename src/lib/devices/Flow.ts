@@ -1,5 +1,6 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { FLOW_CONVERSION_MAP, FLOW_UNIT } from './unitConversions';
 
 export class Flow extends GenericDevice {
     #getFlowState?: DeviceStateObject<number>;
@@ -14,6 +15,8 @@ export class Flow extends GenericDevice {
                     valueType: ValueType.Number,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Flow,
+                    unit: FLOW_UNIT,
+                    unitConversionMap: FLOW_CONVERSION_MAP,
                     callback: state => (this.#getFlowState = state),
                 },
             ]),

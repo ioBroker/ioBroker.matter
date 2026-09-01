@@ -135,6 +135,22 @@ export class FanToIoBroker extends GenericElectricityDataDeviceToIoBroker {
                 }
             },
         });
+        // OnOff is optional on a Fan; where it is missing this is a no-op, since the call above already owns POWER.
+        // fanMode is the authority for off, not percentCurrent: the Percent Rules already tie percentCurrent to
+        // fanMode on Off, but a non-Off mode may equally report 0 while ramping up, which is not the fan being off.
+        this.enableDeviceTypeStateForAttribute(PropertyType.Power, {
+            endpointId,
+            clusterId: MatterFanControl.id,
+            attributeName: 'fanMode',
+            convertValue: (value: MatterFanControl.FanMode) => value !== MatterFanControl.FanMode.Off,
+            // High is the one non-off mode every fanModeSequence supports; FanMode.On would fit better semantically
+            // but is deprecated and outside every sequence, so a server is free to reject it.
+            changeHandler: async (value: boolean) => {
+                await this.appEndpoint.setStateOf(FanControlClient, {
+                    fanMode: value ? MatterFanControl.FanMode.High : MatterFanControl.FanMode.Off,
+                });
+            },
+        });
 
         this.enableDeviceTypeStateForAttribute(PropertyType.Swing, {
             endpointId,

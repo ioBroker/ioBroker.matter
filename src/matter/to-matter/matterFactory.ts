@@ -29,6 +29,7 @@ import { ThermostatToMatter } from './ThermostatToMatter';
 import { HueAndRgbToMatter } from './HueAndRgbToMatter';
 import { CieToMatter } from './CieToMatter';
 import { VolumeToMatter } from './VolumeToMatter';
+import { VacuumCleanerToMatter } from './VacuumCleanerToMatter';
 
 /**
  * Factory function to create a Matter device from an ioBroker device.
@@ -123,6 +124,9 @@ async function matterDeviceFabric(
             break;
         case Types.thermostat:
             ToMatter = ThermostatToMatter;
+            break;
+        case Types.vacuumCleaner:
+            ToMatter = VacuumCleanerToMatter;
             break;
         case Types.volume:
         case Types.volumeGroup:

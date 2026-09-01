@@ -29,6 +29,7 @@ import { FanToIoBroker } from './FanToIoBroker';
 import { FlowSensorToIoBroker } from './FlowSensorToIoBroker';
 import { PressureSensorToIoBroker } from './PressureSensorToIoBroker';
 import { PumpToIoBroker } from './PumpToIoBroker';
+import { RoboticVacuumCleanerToIoBroker } from './RoboticVacuumCleanerToIoBroker';
 
 export function identifyDeviceTypes(endpoint: Endpoint): {
     utilityTypes: { deviceType: DeviceTypeModel; revision: number }[];
@@ -197,6 +198,9 @@ async function ioBrokerDeviceFabric(
             break;
         case Devices.PumpDeviceDefinition.deviceType:
             DeviceType = PumpToIoBroker;
+            break;
+        case Devices.RoboticVacuumCleanerDeviceDefinition.deviceType:
+            DeviceType = RoboticVacuumCleanerToIoBroker;
             break;
         case Devices.SmokeCoAlarmDeviceDefinition.deviceType:
             DeviceType = SmokeCoAlarmToIoBroker;

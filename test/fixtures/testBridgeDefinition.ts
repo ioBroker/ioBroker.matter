@@ -346,6 +346,22 @@ export const SENSOR_AND_APPLIANCE_ENDPOINTS: BridgedEndpointSpec[] = [
         },
     },
     {
+        id: 'airpurifiercarbon',
+        deviceType: 0x002d,
+        expectedConverter: 'AirPurifierToIoBroker',
+        expectedIoBrokerType: 'airPurifier',
+        // No HEPA cluster, so FILTER_CONDITION cannot exist while the shared FILTER_CHANGE still has to
+        expectedStates: [
+            'FILTER_CHANGE',
+            'FILTER_CONDITION_CARBON',
+            'POWER',
+            'SPEED',
+            'SPEED_LEVEL',
+            ...CONNECTION_STATES,
+        ],
+        expectedValues: { SPEED: 1, SPEED_LEVEL: 90, POWER: true, FILTER_CONDITION_CARBON: 40, FILTER_CHANGE: true },
+    },
+    {
         id: 'pump',
         deviceType: 0x0303,
         expectedConverter: 'PumpToIoBroker',
@@ -353,6 +369,45 @@ export const SENSOR_AND_APPLIANCE_ENDPOINTS: BridgedEndpointSpec[] = [
         expectedStates: ['FLOW', 'LEVEL', 'POWER', 'PRESSURE', 'TEMPERATURE', ...CONNECTION_STATES],
         // currentLevel 127 of 254 is 50%, MeasuredValue 4550 is 45.5 °C, 2000 is 2000 mbar, 250 is 25 m³/h.
         expectedValues: { POWER: false, LEVEL: 50, TEMPERATURE: 45.5, PRESSURE: 2000, FLOW: 25 },
+    },
+    {
+        id: 'roboticvacuum',
+        deviceType: 0x0074,
+        expectedConverter: 'RoboticVacuumCleanerToIoBroker',
+        expectedIoBrokerType: 'vacuumCleaner',
+        expectedStates: [
+            'ERROR',
+            'HOME',
+            'MODE',
+            'PAUSE',
+            'PHASE',
+            'POWER',
+            'PROGRESS',
+            'RUN_MODE',
+            'STATE',
+            ...CONNECTION_STATES,
+        ],
+        // The robot runs its Cleaning mode as number 3, which must land on the ioBroker CLEANING key 1; STATE 1 is
+        // CLEANING too. MODE keeps the robot's own mode numbers, so its Deep Clean mode stays 2.
+        expectedValues: {
+            RUN_MODE: 1,
+            POWER: true,
+            MODE: 2,
+            STATE: 1,
+            PHASE: 'Sweeping',
+            PROGRESS: 50,
+            ERROR: '',
+        },
+    },
+    {
+        id: 'roboticvacuumbasic',
+        deviceType: 0x0074,
+        expectedConverter: 'RoboticVacuumCleanerToIoBroker',
+        expectedIoBrokerType: 'vacuumCleaner',
+        // No RvcCleanMode and no optional command, so MODE, PAUSE and HOME cannot exist. PROGRESS does, but an
+        // empty Matter progress list means the robot reports no progress, so no percentage may be invented for it.
+        expectedStates: ['ERROR', 'PHASE', 'POWER', 'PROGRESS', 'RUN_MODE', 'STATE', ...CONNECTION_STATES],
+        expectedValues: { RUN_MODE: 0, POWER: false, STATE: 0, ERROR: '', PROGRESS: undefined },
     },
 ];
 

@@ -14,6 +14,12 @@ import type { Endpoint } from '@matter/main';
 import { Logger, LogLevel } from '@matter/main';
 import { AttributeId, ClusterId, EndpointNumber } from '@matter/main/types';
 import { BridgedDeviceBasicInformationClient } from '@matter/main/behaviors';
+import {
+    ActivatedCarbonFilterMonitoring,
+    ResourceMonitoring,
+    RvcOperationalState,
+    RvcRunMode,
+} from '@matter/main/clusters';
 import { AggregatorEndpointDefinition } from '@matter/main/endpoints';
 import { SubscribeManager } from '../../src/lib/SubscribeManager';
 import { toHex } from '../../src/lib/utils';
@@ -243,6 +249,94 @@ describe('Matter -> ioBroker controller mapping', function () {
             }
         });
     }
+
+    /**
+     * The per-endpoint checks above only see the values the mapping wrote at startup, so a property that is never
+     * updated again reads as correct there. These drive an attribute change through the production dispatch.
+     */
+    describe('attribute changes after the initial read', () => {
+        const CLUSTERS = [RvcRunMode.Cluster, RvcOperationalState.Cluster, ActivatedCarbonFilterMonitoring.Cluster];
+
+        const pushAttribute = async (id: string, clusterId: number, attributeName: string, value: unknown) => {
+            const entry = mapped.get(id)!;
+            const cluster = CLUSTERS.find(candidate => candidate.id === clusterId)!;
+            const attribute = Reflect.get(cluster.attributes, attributeName) as { id: number };
+            await entry.device!.handleChangedAttribute({
+                endpointId: EndpointNumber(entry.device!.number),
+                clusterId: ClusterId(clusterId),
+                attributeId: AttributeId(attribute.id),
+                attributeName,
+                value,
+            });
+        };
+
+        it('carries a run mode change into both RUN_MODE and POWER', async () => {
+            const { baseId } = mapped.get('roboticvacuum')!;
+            expect(adapter.valueOf(baseId, 'RUN_MODE')).to.equal(1);
+            expect(adapter.valueOf(baseId, 'POWER')).to.equal(true);
+
+            // 7 is the robot's own Idle mode
+            await pushAttribute('roboticvacuum', RvcRunMode.id, 'currentMode', 7);
+            expect(adapter.valueOf(baseId, 'RUN_MODE')).to.equal(0);
+            expect(adapter.valueOf(baseId, 'POWER')).to.equal(false);
+
+            // 9 is its Mapping mode
+            await pushAttribute('roboticvacuum', RvcRunMode.id, 'currentMode', 9);
+            expect(adapter.valueOf(baseId, 'RUN_MODE')).to.equal(2);
+            expect(adapter.valueOf(baseId, 'POWER')).to.equal(true);
+        });
+
+        it('clears PHASE when the robot reports no phase', async () => {
+            const { baseId } = mapped.get('roboticvacuum')!;
+            expect(adapter.valueOf(baseId, 'PHASE')).to.equal('Sweeping');
+
+            await pushAttribute('roboticvacuum', RvcOperationalState.id, 'currentPhase', 1);
+            expect(adapter.valueOf(baseId, 'PHASE')).to.equal('Mopping');
+
+            await pushAttribute('roboticvacuum', RvcOperationalState.id, 'currentPhase', null);
+            expect(adapter.valueOf(baseId, 'PHASE')).to.equal('');
+        });
+
+        /**
+         * The two filter monitoring clusters both feed one ioBroker state. A property is enabled once, so the second
+         * of them reaches the state through a handler of its own, and only a change proves that handler is wired.
+         */
+        it('carries a carbon filter change into the shared filter state', async () => {
+            const { baseId } = mapped.get('airpurifier')!;
+            expect(adapter.valueOf(baseId, 'FILTER_CHANGE')).to.equal(true);
+
+            await pushAttribute(
+                'airpurifier',
+                ActivatedCarbonFilterMonitoring.id,
+                'changeIndication',
+                ResourceMonitoring.ChangeIndication.Ok,
+            );
+            expect(adapter.valueOf(baseId, 'FILTER_CHANGE')).to.equal(false);
+
+            await pushAttribute(
+                'airpurifier',
+                ActivatedCarbonFilterMonitoring.id,
+                'changeIndication',
+                ResourceMonitoring.ChangeIndication.Warning,
+            );
+            expect(adapter.valueOf(baseId, 'FILTER_CHANGE')).to.equal(true);
+        });
+
+        it('reports the robot error by name and clears it again', async () => {
+            const { baseId } = mapped.get('roboticvacuum')!;
+            expect(adapter.valueOf(baseId, 'ERROR')).to.equal('');
+
+            await pushAttribute('roboticvacuum', RvcOperationalState.id, 'operationalError', {
+                errorStateId: RvcOperationalState.ErrorState.DustBinFull,
+            });
+            expect(adapter.valueOf(baseId, 'ERROR')).to.equal('DustBinFull');
+
+            await pushAttribute('roboticvacuum', RvcOperationalState.id, 'operationalError', {
+                errorStateId: RvcOperationalState.ErrorState.NoError,
+            });
+            expect(adapter.valueOf(baseId, 'ERROR')).to.equal('');
+        });
+    });
 
     /**
      * The raw application cluster data of an endpoint must exist exactly once, split the same way the device

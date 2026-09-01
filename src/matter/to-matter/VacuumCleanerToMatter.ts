@@ -63,6 +63,9 @@ const MAX_MODE_LABEL_LENGTH = 64;
 /** RvcCleanMode needs at least two modes, and needs one of them tagged Vacuum or Mop. */
 const MIN_CLEAN_MODES = 2;
 
+/** The upper bound the cluster puts on supportedModes. */
+const MAX_CLEAN_MODES = 255;
+
 const CLEAN_MODE_TAGS: Record<string, ModeBase.ModeTag> = {
     AUTO: ModeBase.ModeTag.Auto,
     QUIET: ModeBase.ModeTag.Quiet,
@@ -81,7 +84,12 @@ export class VacuumCleanerToMatter extends GenericDeviceToMatter {
     constructor(ioBrokerDevice: VacuumCleaner, name: string, uuid: string) {
         super(name, uuid);
         this.#ioBrokerDevice = ioBrokerDevice;
-        const cleanModes = ioBrokerDevice.hasMode() ? ioBrokerDevice.getModes() : [];
+        // A write carries the ioBroker mode name, and a name reverse-maps to the first state holding it, so a mode
+        // repeating a name could never be selected. Offering it anyway would advertise a mode that does nothing.
+        const cleanModes = [...new Set(ioBrokerDevice.hasMode() ? ioBrokerDevice.getModes() : [])].slice(
+            0,
+            MAX_CLEAN_MODES,
+        );
         this.#cleanModes = cleanModes.length >= MIN_CLEAN_MODES ? cleanModes : [];
         this.#hasMapping =
             ioBrokerDevice.hasRunMode() && ioBrokerDevice.getRunModeModes().includes(VacuumCleanerRunMode.Mapping);
@@ -175,6 +183,23 @@ export class VacuumCleanerToMatter extends GenericDeviceToMatter {
             }
         }
         return this.#isPowered() ? VacuumCleanerRunModeNumbers.CLEANING : VacuumCleanerRunModeNumbers.IDLE;
+    }
+
+    async #setRunMode(currentMode: number): Promise<void> {
+        await this.#matterEndpoint.setStateOf(IoRvcRunModeServer, { currentMode });
+        await this.#setOperationalState(this.#currentOperationalState());
+    }
+
+    /**
+     * POWER and RUN_MODE can disagree, and the run mode of a device says nothing about whether it is switched on, so
+     * a power change decides on its own. A robot switched on still has to be doing something.
+     */
+    #runModeForPower(powered: boolean): number {
+        if (!powered) {
+            return VacuumCleanerRunModeNumbers.IDLE;
+        }
+        const runMode = this.#currentRunMode();
+        return runMode === VacuumCleanerRunModeNumbers.IDLE ? VacuumCleanerRunModeNumbers.CLEANING : runMode;
     }
 
     #isPowered(): boolean {
@@ -321,9 +346,10 @@ export class VacuumCleanerToMatter extends GenericDeviceToMatter {
         this.#ioBrokerDevice.onChange(async event => {
             switch (event.property) {
                 case PropertyType.RunMode:
+                    await this.#setRunMode(this.#currentRunMode());
+                    break;
                 case PropertyType.Power:
-                    await this.#matterEndpoint.setStateOf(IoRvcRunModeServer, { currentMode: this.#currentRunMode() });
-                    await this.#setOperationalState(this.#currentOperationalState());
+                    await this.#setRunMode(this.#runModeForPower(!!event.value));
                     break;
                 case PropertyType.Mode:
                     if (this.#cleanModes.length > 0) {

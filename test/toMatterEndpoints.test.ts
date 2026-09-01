@@ -680,25 +680,70 @@ describe('to-matter converters for type-detector v6 device types', function () {
             expect(endpoint.behaviors.has('rvcCleanMode')).to.equal(false);
         });
 
-        it('keeps duplicate ioBroker mode names apart, because Matter rejects a duplicate label', async () => {
+        it('offers a repeated ioBroker mode name once, because a write could only ever reach the first', async () => {
             const mounted = await mount(Types.vacuumCleaner, {
                 POWER: bool(false),
                 MODE: enumeration(['AUTO', 'AUTO', 'TURBO'], 0),
             });
             const [endpoint] = endpointsOf(mounted);
-            const labels = endpoint.state.rvcCleanMode.supportedModes.map((mode: any) => mode.label);
-            expect(labels).to.deep.equal(['AUTO', 'AUTO 2', 'TURBO']);
-            expect(new Set(labels).size).to.equal(labels.length);
+            expect(endpoint.state.rvcCleanMode.supportedModes.map((mode: any) => mode.label)).to.deep.equal([
+                'AUTO',
+                'TURBO',
+            ]);
         });
 
-        it('keeps suffixing until a mode name is actually unique', async () => {
+        it('keeps two mode names apart that only collide once cropped', async () => {
+            const shared = 'M'.repeat(64);
             const mounted = await mount(Types.vacuumCleaner, {
                 POWER: bool(false),
-                MODE: enumeration(['AUTO', 'AUTO 2', 'AUTO'], 0),
+                MODE: enumeration([`${shared}A`, `${shared}B`], 0),
             });
             const [endpoint] = endpointsOf(mounted);
             const labels = endpoint.state.rvcCleanMode.supportedModes.map((mode: any) => mode.label);
-            expect(labels).to.deep.equal(['AUTO', 'AUTO 2', 'AUTO 3']);
+            expect(new Set(labels).size, 'Matter rejects a duplicate label').to.equal(2);
+            expect(Math.max(...labels.map((label: string) => label.length))).to.be.at.most(64);
+        });
+
+        it('caps the advertised modes at the 255 the cluster holds', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(false),
+                MODE: enumeration(
+                    Array.from({ length: 300 }, (_, index) => `MODE_${index}`),
+                    0,
+                ),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.rvcCleanMode.supportedModes).to.have.lengthOf(255);
+        });
+
+        it('lets a power change decide the run mode even while RUN_MODE disagrees', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(true),
+                RUN_MODE: enumeration(VACUUM_RUN_MODES, 1),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.rvcRunMode.currentMode).to.equal(1);
+
+            // RUN_MODE still says CLEANING, but the robot was just switched off
+            await mounted.adapter.pushValue('POWER', false);
+            expect(endpoint.state.rvcRunMode.currentMode).to.equal(0);
+            expect(endpoint.state.rvcOperationalState.operationalState).to.equal(
+                RvcOperationalState.OperationalState.Docked,
+            );
+
+            // Switching it on again has to leave it doing something
+            await mounted.adapter.pushValue('POWER', true);
+            expect(endpoint.state.rvcRunMode.currentMode).to.equal(1);
+        });
+
+        it('switches on into cleaning when RUN_MODE still says idle', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(false),
+                RUN_MODE: enumeration(VACUUM_RUN_MODES, 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('POWER', true);
+            expect(endpoint.state.rvcRunMode.currentMode).to.equal(1);
         });
 
         it('starts in Error with the error attribute that explains it', async () => {

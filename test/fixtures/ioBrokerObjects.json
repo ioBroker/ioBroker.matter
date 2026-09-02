@@ -1,0 +1,4817 @@
+{
+  "0_userdata.0.States-For-Devices": {
+    "_id": "0_userdata.0.States-For-Devices",
+    "type": "folder",
+    "common": {
+      "name": "States-For-Devices"
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Battery": {
+    "_id": "0_userdata.0.States-For-Devices.Battery",
+    "type": "state",
+    "common": {
+      "name": "Battery",
+      "type": "number",
+      "role": "value.battery",
+      "read": false,
+      "write": true,
+      "unit": "%",
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Blind-Close-Button": {
+    "_id": "0_userdata.0.States-For-Devices.Blind-Close-Button",
+    "type": "state",
+    "common": {
+      "name": "Blind-Close-Button",
+      "type": "boolean",
+      "role": "button.close.blind",
+      "read": false,
+      "write": true,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Blind-Level": {
+    "_id": "0_userdata.0.States-For-Devices.Blind-Level",
+    "type": "state",
+    "common": {
+      "name": "Blind-Level",
+      "type": "number",
+      "role": "level.blind",
+      "read": true,
+      "write": true,
+      "min": 0,
+      "max": 100,
+      "unit": "%",
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Blind-Open-Button": {
+    "_id": "0_userdata.0.States-For-Devices.Blind-Open-Button",
+    "type": "state",
+    "common": {
+      "name": "Blind-Open-Button",
+      "type": "boolean",
+      "role": "button.open.blind",
+      "read": false,
+      "write": true,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Blind-Stop-Button": {
+    "_id": "0_userdata.0.States-For-Devices.Blind-Stop-Button",
+    "type": "state",
+    "common": {
+      "name": "Blind-Stop-Button",
+      "type": "boolean",
+      "role": "button.stop.blind",
+      "read": false,
+      "write": true,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Blind-Tilt-Close-Button": {
+    "_id": "0_userdata.0.States-For-Devices.Blind-Tilt-Close-Button",
+    "type": "state",
+    "common": {
+      "name": "Blind-Tilt-Close-Button",
+      "type": "boolean",
+      "role": "button.close.tilt",
+      "read": false,
+      "write": true,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Blind-Tilt-Level": {
+    "_id": "0_userdata.0.States-For-Devices.Blind-Tilt-Level",
+    "type": "state",
+    "common": {
+      "name": "Blind-Tilt-Level",
+      "type": "number",
+      "role": "level.tilt",
+      "read": true,
+      "write": true,
+      "min": 0,
+      "max": 100,
+      "unit": "%",
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Blind-Tilt-Open-Button": {
+    "_id": "0_userdata.0.States-For-Devices.Blind-Tilt-Open-Button",
+    "type": "state",
+    "common": {
+      "name": "Blind-Tilt-Open-Button",
+      "type": "boolean",
+      "role": "button.open.tilt",
+      "read": false,
+      "write": true,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Blind-Tilt-Stop-Button": {
+    "_id": "0_userdata.0.States-For-Devices.Blind-Tilt-Stop-Button",
+    "type": "state",
+    "common": {
+      "name": "Blind-Tilt-Stop-Button",
+      "type": "boolean",
+      "role": "button.stop.tilt",
+      "read": false,
+      "write": true,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Blind-Tilt-Value": {
+    "_id": "0_userdata.0.States-For-Devices.Blind-Tilt-Value",
+    "type": "state",
+    "common": {
+      "name": "Blind-Tilt-Value",
+      "type": "number",
+      "role": "value.tilt",
+      "read": true,
+      "write": false,
+      "min": 0,
+      "max": 100,
+      "unit": "%",
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Blind-Value": {
+    "_id": "0_userdata.0.States-For-Devices.Blind-Value",
+    "type": "state",
+    "common": {
+      "name": "Blind-Value",
+      "type": "number",
+      "role": "value.blind",
+      "read": true,
+      "write": false,
+      "min": 0,
+      "max": 100,
+      "unit": "%",
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Brightness-Level": {
+    "_id": "0_userdata.0.States-For-Devices.Brightness-Level",
+    "type": "state",
+    "common": {
+      "name": "Brightness-Level",
+      "type": "number",
+      "role": "level.brightness",
+      "read": true,
+      "write": true,
+      "min": 0,
+      "max": 100,
+      "unit": "%",
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Brightness-Value": {
+    "_id": "0_userdata.0.States-For-Devices.Brightness-Value",
+    "type": "state",
+    "common": {
+      "name": "Brightness-Value",
+      "type": "number",
+      "role": "value.brightness",
+      "read": true,
+      "write": true,
+      "unit": "lux",
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Button-Press": {
+    "_id": "0_userdata.0.States-For-Devices.Button-Press",
+    "type": "state",
+    "common": {
+      "name": "Button-Press",
+      "type": "boolean",
+      "role": "button.press",
+      "read": true,
+      "write": false,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Button-Press-Long": {
+    "_id": "0_userdata.0.States-For-Devices.Button-Press-Long",
+    "type": "state",
+    "common": {
+      "name": "Button-Press-Long",
+      "type": "boolean",
+      "role": "button.long",
+      "read": true,
+      "write": false,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Button-Set": {
+    "_id": "0_userdata.0.States-For-Devices.Button-Set",
+    "type": "state",
+    "common": {
+      "name": "Button-Set",
+      "type": "boolean",
+      "role": "button",
+      "read": false,
+      "write": true,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Color-Blue": {
+    "_id": "0_userdata.0.States-For-Devices.Color-Blue",
+    "type": "state",
+    "common": {
+      "name": "Color-Blue",
+      "type": "number",
+      "role": "level.color.blue",
+      "read": true,
+      "write": true,
+      "min": 0,
+      "max": 255,
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Color-CIE": {
+    "_id": "0_userdata.0.States-For-Devices.Color-CIE",
+    "type": "state",
+    "common": {
+      "name": "Color-CIE",
+      "type": "string",
+      "role": "level.color.cie",
+      "read": true,
+      "write": true,
+      "def": ""
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Color-Green": {
+    "_id": "0_userdata.0.States-For-Devices.Color-Green",
+    "type": "state",
+    "common": {
+      "name": "Color-Green",
+      "type": "number",
+      "role": "level.color.green",
+      "read": true,
+      "write": true,
+      "min": 0,
+      "max": 255,
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Color-Hue": {
+    "_id": "0_userdata.0.States-For-Devices.Color-Hue",
+    "type": "state",
+    "common": {
+      "name": "Color-Hue",
+      "type": "number",
+      "role": "level.color.hue",
+      "read": true,
+      "write": true,
+      "unit": "°",
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Color-RGB": {
+    "_id": "0_userdata.0.States-For-Devices.Color-RGB",
+    "type": "state",
+    "common": {
+      "name": "Color-RGB",
+      "type": "string",
+      "role": "level.color.rgb",
+      "read": true,
+      "write": true,
+      "def": ""
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Color-RGBW": {
+    "_id": "0_userdata.0.States-For-Devices.Color-RGBW",
+    "type": "state",
+    "common": {
+      "name": "Color-RGBW",
+      "type": "string",
+      "role": "level.color.rgbw",
+      "read": true,
+      "write": true,
+      "def": ""
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Color-Red": {
+    "_id": "0_userdata.0.States-For-Devices.Color-Red",
+    "type": "state",
+    "common": {
+      "name": "Color-Red",
+      "type": "number",
+      "role": "level.color.red",
+      "read": true,
+      "write": true,
+      "min": 0,
+      "max": 255,
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Color-Saturation": {
+    "_id": "0_userdata.0.States-For-Devices.Color-Saturation",
+    "type": "state",
+    "common": {
+      "name": "Color-Saturation",
+      "type": "number",
+      "role": "level.color.saturation",
+      "read": true,
+      "write": true,
+      "min": 0,
+      "max": 100,
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Color-Temperature-Level": {
+    "_id": "0_userdata.0.States-For-Devices.Color-Temperature-Level",
+    "type": "state",
+    "common": {
+      "name": "Color-Temperature-Level",
+      "type": "number",
+      "role": "level.color.temperature",
+      "read": true,
+      "write": true,
+      "unit": "K",
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Color-Temperature-Level-Mireds": {
+    "_id": "0_userdata.0.States-For-Devices.Color-Temperature-Level-Mireds",
+    "type": "state",
+    "common": {
+      "name": "Color-Temperature-Level-Mireds",
+      "type": "number",
+      "role": "level.color.temperature",
+      "read": true,
+      "write": true,
+      "min": 150,
+      "max": 500,
+      "unit": "mireds",
+      "def": 150
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Color-White": {
+    "_id": "0_userdata.0.States-For-Devices.Color-White",
+    "type": "state",
+    "common": {
+      "name": "Color-White",
+      "type": "number",
+      "role": "level.color.white",
+      "read": true,
+      "write": true,
+      "min": 0,
+      "max": 255,
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Current-Value": {
+    "_id": "0_userdata.0.States-For-Devices.Current-Value",
+    "type": "state",
+    "common": {
+      "name": "Current-Value",
+      "type": "number",
+      "role": "value.current",
+      "read": true,
+      "write": false,
+      "unit": "A",
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Dimmer-Level": {
+    "_id": "0_userdata.0.States-For-Devices.Dimmer-Level",
+    "type": "state",
+    "common": {
+      "name": "Dimmer-Level",
+      "type": "number",
+      "role": "level.dimmer",
+      "read": true,
+      "write": true,
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Dimmer-Value": {
+    "_id": "0_userdata.0.States-For-Devices.Dimmer-Value",
+    "type": "state",
+    "common": {
+      "name": "Dimmer-Value",
+      "type": "number",
+      "role": "value.dimmer",
+      "read": true,
+      "write": false,
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Direction-Indicator": {
+    "_id": "0_userdata.0.States-For-Devices.Direction-Indicator",
+    "type": "state",
+    "common": {
+      "name": "Direction-Indicator",
+      "type": "boolean",
+      "role": "indicator.direction",
+      "read": true,
+      "write": false,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Door-Lock-Switch": {
+    "_id": "0_userdata.0.States-For-Devices.Door-Lock-Switch",
+    "type": "state",
+    "common": {
+      "name": "Door-Lock-Switch",
+      "type": "boolean",
+      "role": "switch.lock",
+      "read": true,
+      "write": true,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Door-Open-Button": {
+    "_id": "0_userdata.0.States-For-Devices.Door-Open-Button",
+    "type": "state",
+    "common": {
+      "name": "Door-Open-Button",
+      "type": "boolean",
+      "role": "button",
+      "read": false,
+      "write": true,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Door-Sensor": {
+    "_id": "0_userdata.0.States-For-Devices.Door-Sensor",
+    "type": "state",
+    "common": {
+      "name": "Door-Sensor",
+      "type": "boolean",
+      "role": "sensor.door",
+      "read": true,
+      "write": false,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Error-Indicator": {
+    "_id": "0_userdata.0.States-For-Devices.Error-Indicator",
+    "type": "state",
+    "common": {
+      "name": "Error-Indicator",
+      "type": "boolean",
+      "role": "indicator.error",
+      "read": true,
+      "write": false,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.FloodAlarm-Sensor": {
+    "_id": "0_userdata.0.States-For-Devices.FloodAlarm-Sensor",
+    "type": "state",
+    "common": {
+      "name": "FloodAlarm-Sensor",
+      "type": "boolean",
+      "role": "sensor.alarm.flood",
+      "read": true,
+      "write": false,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Frequency-Value": {
+    "_id": "0_userdata.0.States-For-Devices.Frequency-Value",
+    "type": "state",
+    "common": {
+      "name": "Frequency-Value",
+      "type": "number",
+      "role": "value.frequency",
+      "read": true,
+      "write": false,
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Humidity-Value": {
+    "_id": "0_userdata.0.States-For-Devices.Humidity-Value",
+    "type": "state",
+    "common": {
+      "name": "Humidity-Value",
+      "type": "number",
+      "role": "value.humidity",
+      "read": true,
+      "write": false,
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Light-Sensor": {
+    "_id": "0_userdata.0.States-For-Devices.Light-Sensor",
+    "type": "state",
+    "common": {
+      "name": "Light-Sensor",
+      "type": "boolean",
+      "role": "sensor.light",
+      "read": true,
+      "write": false,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Light-Switch": {
+    "_id": "0_userdata.0.States-For-Devices.Light-Switch",
+    "type": "state",
+    "common": {
+      "name": "Light-Switch",
+      "type": "boolean",
+      "role": "switch.light",
+      "read": true,
+      "write": true,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.LowBat-Indicator": {
+    "_id": "0_userdata.0.States-For-Devices.LowBat-Indicator",
+    "type": "state",
+    "common": {
+      "name": "LowBat-Indicator",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "read": true,
+      "write": false,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Maintenance-Indicator": {
+    "_id": "0_userdata.0.States-For-Devices.Maintenance-Indicator",
+    "type": "state",
+    "common": {
+      "name": "Maintenance-Indicator",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "read": true,
+      "write": false,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Motion-Sensor": {
+    "_id": "0_userdata.0.States-For-Devices.Motion-Sensor",
+    "type": "state",
+    "common": {
+      "name": "Motion-Sensor",
+      "type": "boolean",
+      "role": "sensor.motion",
+      "read": true,
+      "write": true,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Mute-State": {
+    "_id": "0_userdata.0.States-For-Devices.Mute-State",
+    "type": "state",
+    "common": {
+      "name": "Mute-State",
+      "type": "boolean",
+      "role": "media.mute",
+      "read": true,
+      "write": true,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Power-Consumption-Value": {
+    "_id": "0_userdata.0.States-For-Devices.Power-Consumption-Value",
+    "type": "state",
+    "common": {
+      "name": "Power-Consumption-Value",
+      "type": "number",
+      "role": "value.power.consumption",
+      "read": true,
+      "write": false,
+      "unit": "Wh",
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Power-Value": {
+    "_id": "0_userdata.0.States-For-Devices.Power-Value",
+    "type": "state",
+    "common": {
+      "name": "Power-Value",
+      "type": "number",
+      "role": "value.power",
+      "read": true,
+      "write": false,
+      "unit": "kW",
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Switch": {
+    "_id": "0_userdata.0.States-For-Devices.Switch",
+    "type": "state",
+    "common": {
+      "name": "Switch",
+      "type": "boolean",
+      "role": "switch",
+      "read": true,
+      "write": true,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Temperature-Setpoint": {
+    "_id": "0_userdata.0.States-For-Devices.Temperature-Setpoint",
+    "type": "state",
+    "common": {
+      "name": "Temperature-Setpoint",
+      "type": "number",
+      "role": "level.temperature",
+      "read": true,
+      "write": true,
+      "min": 5,
+      "max": 30,
+      "unit": "°C",
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Temperature-Value": {
+    "_id": "0_userdata.0.States-For-Devices.Temperature-Value",
+    "type": "state",
+    "common": {
+      "name": "Temperature-Value",
+      "type": "number",
+      "role": "value.temperature",
+      "read": true,
+      "write": false,
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Thermostat-Boost": {
+    "_id": "0_userdata.0.States-For-Devices.Thermostat-Boost",
+    "type": "state",
+    "common": {
+      "name": "Thermostat-Boost",
+      "type": "boolean",
+      "role": "switch.boost",
+      "read": true,
+      "write": true,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Thermostat-Mode": {
+    "_id": "0_userdata.0.States-For-Devices.Thermostat-Mode",
+    "type": "state",
+    "common": {
+      "name": "Thermostat-Mode",
+      "type": "number",
+      "role": "level.mode.thermostat",
+      "read": true,
+      "write": true,
+      "def": 0,
+      "states": {
+        "0": "AUTO",
+        "3": "COOL",
+        "4": "DRY",
+        "6": "FAN_ONLY",
+        "7": "HEAT"
+      }
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Thermostat-Mode-Min": {
+    "_id": "0_userdata.0.States-For-Devices.Thermostat-Mode-Min",
+    "type": "state",
+    "common": {
+      "name": "Thermostat-Mode-Min",
+      "type": "number",
+      "role": "level.mode.thermostat",
+      "read": true,
+      "write": true,
+      "def": 0,
+      "states": {
+        "0": "AUTO",
+        "1": "MANUAL"
+      }
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Transition-Time": {
+    "_id": "0_userdata.0.States-For-Devices.Transition-Time",
+    "type": "state",
+    "common": {
+      "name": "Transition-Time",
+      "type": "number",
+      "role": "time.span",
+      "read": true,
+      "write": true,
+      "unit": "ms",
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Unreach-Indicator": {
+    "_id": "0_userdata.0.States-For-Devices.Unreach-Indicator",
+    "type": "state",
+    "common": {
+      "name": "Unreach-Indicator",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "read": true,
+      "write": false,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Voltage-Value": {
+    "_id": "0_userdata.0.States-For-Devices.Voltage-Value",
+    "type": "state",
+    "common": {
+      "name": "Voltage-Value",
+      "type": "number",
+      "role": "value.voltage",
+      "read": true,
+      "write": false,
+      "unit": "mV",
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Volume-Level": {
+    "_id": "0_userdata.0.States-For-Devices.Volume-Level",
+    "type": "state",
+    "common": {
+      "name": "Volume-Level",
+      "type": "number",
+      "role": "level.volume",
+      "read": true,
+      "write": true,
+      "min": 0,
+      "max": 100,
+      "unit": "%",
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Volume-Value": {
+    "_id": "0_userdata.0.States-For-Devices.Volume-Value",
+    "type": "state",
+    "common": {
+      "name": "Volume-Value",
+      "type": "number",
+      "role": "value.volume",
+      "read": true,
+      "write": false,
+      "min": 0,
+      "max": 100,
+      "unit": "%",
+      "def": 0
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Window-Sensor": {
+    "_id": "0_userdata.0.States-For-Devices.Window-Sensor",
+    "type": "state",
+    "common": {
+      "name": "Window-Sensor",
+      "type": "boolean",
+      "role": "sensor.window",
+      "read": true,
+      "write": false,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.States-For-Devices.Working-Indicator": {
+    "_id": "0_userdata.0.States-For-Devices.Working-Indicator",
+    "type": "state",
+    "common": {
+      "name": "Working-Indicator",
+      "type": "boolean",
+      "role": "indicator.working",
+      "read": true,
+      "write": false,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.Test_light": {
+    "_id": "0_userdata.0.Test_light",
+    "type": "folder",
+    "common": {
+      "name": "Test light"
+    },
+    "native": {}
+  },
+  "0_userdata.0.Test_light.onoff": {
+    "_id": "0_userdata.0.Test_light.onoff",
+    "type": "state",
+    "common": {
+      "name": "onoff",
+      "type": "boolean",
+      "role": "switch",
+      "read": true,
+      "write": true,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.Test_light2": {
+    "_id": "0_userdata.0.Test_light2",
+    "type": "folder",
+    "common": {
+      "name": "Test_light2"
+    },
+    "native": {}
+  },
+  "0_userdata.0.Test_light2.onoff": {
+    "_id": "0_userdata.0.Test_light2.onoff",
+    "type": "state",
+    "common": {
+      "name": "onoff",
+      "type": "boolean",
+      "role": "switch.light",
+      "read": true,
+      "write": true,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.Test_socket": {
+    "_id": "0_userdata.0.Test_socket",
+    "type": "folder",
+    "common": {
+      "name": "Test_socket"
+    },
+    "native": {}
+  },
+  "0_userdata.0.Test_socket.onoff": {
+    "_id": "0_userdata.0.Test_socket.onoff",
+    "type": "state",
+    "common": {
+      "name": "onoff",
+      "type": "boolean",
+      "role": "switch",
+      "read": true,
+      "write": true,
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.example_state": {
+    "_id": "0_userdata.0.example_state",
+    "type": "state",
+    "common": {
+      "name": "Example state",
+      "type": "boolean",
+      "role": "indicator",
+      "def": false
+    },
+    "native": {}
+  },
+  "0_userdata.0.test-Socket-2": {
+    "_id": "0_userdata.0.test-Socket-2",
+    "type": "device",
+    "common": {
+      "name": "test-Socket-2"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices": {
+    "_id": "alias.0.Test-Devices",
+    "type": "folder",
+    "common": {
+      "name": "Test-Devices"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtons": {
+    "_id": "alias.0.Test-Devices.BlindsButtons",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "BlindsButtons"
+      },
+      "role": "blindButtons"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtons.CLOSE": {
+    "_id": "alias.0.Test-Devices.BlindsButtons.CLOSE",
+    "type": "state",
+    "common": {
+      "name": "CLOSE",
+      "type": "boolean",
+      "role": "button.close.blind",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Blind-Close-Button"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtons.DIRECTION": {
+    "_id": "alias.0.Test-Devices.BlindsButtons.DIRECTION",
+    "type": "state",
+    "common": {
+      "name": "DIRECTION",
+      "type": "boolean",
+      "role": "indicator.direction",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Direction-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtons.ERROR": {
+    "_id": "alias.0.Test-Devices.BlindsButtons.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtons.LOWBAT": {
+    "_id": "alias.0.Test-Devices.BlindsButtons.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtons.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.BlindsButtons.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtons.OPEN": {
+    "_id": "alias.0.Test-Devices.BlindsButtons.OPEN",
+    "type": "state",
+    "common": {
+      "name": "OPEN",
+      "type": "boolean",
+      "role": "button.open.blind",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Blind-Open-Button"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtons.STOP": {
+    "_id": "alias.0.Test-Devices.BlindsButtons.STOP",
+    "type": "state",
+    "common": {
+      "name": "STOP",
+      "type": "boolean",
+      "role": "button.stop.blind",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Blind-Stop-Button"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtons.UNREACH": {
+    "_id": "alias.0.Test-Devices.BlindsButtons.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtons.WORKING": {
+    "_id": "alias.0.Test-Devices.BlindsButtons.WORKING",
+    "type": "state",
+    "common": {
+      "name": "WORKING",
+      "type": "boolean",
+      "role": "indicator.working",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Working-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtonsLiftTilt": {
+    "_id": "alias.0.Test-Devices.BlindsButtonsLiftTilt",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "BlindsButtonsLiftTilt"
+      },
+      "role": "blindButtons"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtonsLiftTilt.CLOSE": {
+    "_id": "alias.0.Test-Devices.BlindsButtonsLiftTilt.CLOSE",
+    "type": "state",
+    "common": {
+      "name": "CLOSE",
+      "type": "boolean",
+      "role": "button.close.blind",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Blind-Close-Button"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtonsLiftTilt.DIRECTION": {
+    "_id": "alias.0.Test-Devices.BlindsButtonsLiftTilt.DIRECTION",
+    "type": "state",
+    "common": {
+      "name": "DIRECTION",
+      "type": "boolean",
+      "role": "indicator.direction",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Direction-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtonsLiftTilt.ERROR": {
+    "_id": "alias.0.Test-Devices.BlindsButtonsLiftTilt.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtonsLiftTilt.LOWBAT": {
+    "_id": "alias.0.Test-Devices.BlindsButtonsLiftTilt.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtonsLiftTilt.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.BlindsButtonsLiftTilt.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtonsLiftTilt.OPEN": {
+    "_id": "alias.0.Test-Devices.BlindsButtonsLiftTilt.OPEN",
+    "type": "state",
+    "common": {
+      "name": "OPEN",
+      "type": "boolean",
+      "role": "button.open.blind",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Blind-Open-Button"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtonsLiftTilt.STOP": {
+    "_id": "alias.0.Test-Devices.BlindsButtonsLiftTilt.STOP",
+    "type": "state",
+    "common": {
+      "name": "STOP",
+      "type": "boolean",
+      "role": "button.stop.blind",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Blind-Stop-Button"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtonsLiftTilt.TILT_ACTUAL": {
+    "_id": "alias.0.Test-Devices.BlindsButtonsLiftTilt.TILT_ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "TILT_ACTUAL",
+      "type": "number",
+      "role": "value.tilt",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Blind-Tilt-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtonsLiftTilt.TILT_CLOSE": {
+    "_id": "alias.0.Test-Devices.BlindsButtonsLiftTilt.TILT_CLOSE",
+    "type": "state",
+    "common": {
+      "name": "TILT_CLOSE",
+      "type": "boolean",
+      "role": "button.close.tilt",
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Blind-Tilt-Close-Button"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtonsLiftTilt.TILT_OPEN": {
+    "_id": "alias.0.Test-Devices.BlindsButtonsLiftTilt.TILT_OPEN",
+    "type": "state",
+    "common": {
+      "name": "TILT_OPEN",
+      "type": "boolean",
+      "role": "button.open.tilt",
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Blind-Tilt-Open-Button"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtonsLiftTilt.TILT_SET": {
+    "_id": "alias.0.Test-Devices.BlindsButtonsLiftTilt.TILT_SET",
+    "type": "state",
+    "common": {
+      "name": "TILT_SET",
+      "type": "number",
+      "role": "level.tilt",
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Blind-Tilt-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtonsLiftTilt.TILT_STOP": {
+    "_id": "alias.0.Test-Devices.BlindsButtonsLiftTilt.TILT_STOP",
+    "type": "state",
+    "common": {
+      "name": "TILT_STOP",
+      "type": "boolean",
+      "role": "button.stop.tilt",
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Blind-Tilt-Stop-Button"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtonsLiftTilt.UNREACH": {
+    "_id": "alias.0.Test-Devices.BlindsButtonsLiftTilt.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsButtonsLiftTilt.WORKING": {
+    "_id": "alias.0.Test-Devices.BlindsButtonsLiftTilt.WORKING",
+    "type": "state",
+    "common": {
+      "name": "WORKING",
+      "type": "boolean",
+      "role": "indicator.working",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Working-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsLift": {
+    "_id": "alias.0.Test-Devices.BlindsLift",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "BlindsLift"
+      },
+      "role": "blind"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsLift.DIRECTION": {
+    "_id": "alias.0.Test-Devices.BlindsLift.DIRECTION",
+    "type": "state",
+    "common": {
+      "name": "DIRECTION",
+      "type": "boolean",
+      "role": "indicator.direction",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Direction-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsLift.ERROR": {
+    "_id": "alias.0.Test-Devices.BlindsLift.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsLift.LOWBAT": {
+    "_id": "alias.0.Test-Devices.BlindsLift.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsLift.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.BlindsLift.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsLift.SET": {
+    "_id": "alias.0.Test-Devices.BlindsLift.SET",
+    "type": "state",
+    "common": {
+      "name": "SET",
+      "type": "number",
+      "role": "level.blind",
+      "read": true,
+      "write": true,
+      "unit": "%",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Blind-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsLift.UNREACH": {
+    "_id": "alias.0.Test-Devices.BlindsLift.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsLift.WORKING": {
+    "_id": "alias.0.Test-Devices.BlindsLift.WORKING",
+    "type": "state",
+    "common": {
+      "name": "WORKING",
+      "type": "boolean",
+      "role": "indicator.working",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Working-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsLiftTilt": {
+    "_id": "alias.0.Test-Devices.BlindsLiftTilt",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "BlindsLiftTilt"
+      },
+      "role": "blind"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsLiftTilt.ACTUAL": {
+    "_id": "alias.0.Test-Devices.BlindsLiftTilt.ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ACTUAL",
+      "type": "number",
+      "role": "value.blind",
+      "unit": "%",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Blind-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsLiftTilt.DIRECTION": {
+    "_id": "alias.0.Test-Devices.BlindsLiftTilt.DIRECTION",
+    "type": "state",
+    "common": {
+      "name": "DIRECTION",
+      "type": "boolean",
+      "role": "indicator.direction",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Direction-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsLiftTilt.ERROR": {
+    "_id": "alias.0.Test-Devices.BlindsLiftTilt.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsLiftTilt.LOWBAT": {
+    "_id": "alias.0.Test-Devices.BlindsLiftTilt.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsLiftTilt.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.BlindsLiftTilt.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsLiftTilt.SET": {
+    "_id": "alias.0.Test-Devices.BlindsLiftTilt.SET",
+    "type": "state",
+    "common": {
+      "name": "SET",
+      "type": "number",
+      "role": "level.blind",
+      "read": true,
+      "write": true,
+      "unit": "%",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Blind-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsLiftTilt.TILT_ACTUAL": {
+    "_id": "alias.0.Test-Devices.BlindsLiftTilt.TILT_ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "TILT_ACTUAL",
+      "type": "number",
+      "role": "value.tilt",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Blind-Tilt-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsLiftTilt.TILT_SET": {
+    "_id": "alias.0.Test-Devices.BlindsLiftTilt.TILT_SET",
+    "type": "state",
+    "common": {
+      "name": "TILT_SET",
+      "type": "number",
+      "role": "level.tilt",
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Blind-Tilt-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsLiftTilt.UNREACH": {
+    "_id": "alias.0.Test-Devices.BlindsLiftTilt.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.BlindsLiftTilt.WORKING": {
+    "_id": "alias.0.Test-Devices.BlindsLiftTilt.WORKING",
+    "type": "state",
+    "common": {
+      "name": "WORKING",
+      "type": "boolean",
+      "role": "indicator.working",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Working-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Button": {
+    "_id": "alias.0.Test-Devices.Button",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Button"
+      },
+      "role": "button"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Button-Sensor": {
+    "_id": "alias.0.Test-Devices.Button-Sensor",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Button-Sensor"
+      },
+      "role": "buttonSensor"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Button-Sensor-Single": {
+    "_id": "alias.0.Test-Devices.Button-Sensor-Single",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Button-Sensor-Single"
+      },
+      "role": "buttonSensor"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Button-Sensor-Single.ERROR": {
+    "_id": "alias.0.Test-Devices.Button-Sensor-Single.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Button-Sensor-Single.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Button-Sensor-Single.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Button-Sensor-Single.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Button-Sensor-Single.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Button-Sensor-Single.PRESS": {
+    "_id": "alias.0.Test-Devices.Button-Sensor-Single.PRESS",
+    "type": "state",
+    "common": {
+      "name": "PRESS",
+      "type": "boolean",
+      "role": "button.press",
+      "read": true,
+      "write": false,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Button-Press"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Button-Sensor-Single.UNREACH": {
+    "_id": "alias.0.Test-Devices.Button-Sensor-Single.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Button-Sensor.ERROR": {
+    "_id": "alias.0.Test-Devices.Button-Sensor.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Button-Sensor.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Button-Sensor.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Button-Sensor.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Button-Sensor.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Button-Sensor.PRESS": {
+    "_id": "alias.0.Test-Devices.Button-Sensor.PRESS",
+    "type": "state",
+    "common": {
+      "name": "PRESS",
+      "type": "boolean",
+      "role": "button.press",
+      "read": true,
+      "write": false,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Button-Press"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Button-Sensor.PRESS_LONG": {
+    "_id": "alias.0.Test-Devices.Button-Sensor.PRESS_LONG",
+    "type": "state",
+    "common": {
+      "name": "PRESS_LONG",
+      "type": "boolean",
+      "role": "button.long",
+      "read": true,
+      "write": false,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Button-Press-Long"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Button-Sensor.UNREACH": {
+    "_id": "alias.0.Test-Devices.Button-Sensor.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Button.ERROR": {
+    "_id": "alias.0.Test-Devices.Button.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Button.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Button.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Button.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Button.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Button.SET": {
+    "_id": "alias.0.Test-Devices.Button.SET",
+    "type": "state",
+    "common": {
+      "name": "SET",
+      "type": "boolean",
+      "role": "button",
+      "read": false,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Button-Set"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Button.UNREACH": {
+    "_id": "alias.0.Test-Devices.Button.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Cie": {
+    "_id": "alias.0.Test-Devices.Cie",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Cie"
+      },
+      "role": "cie"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Cie.CIE": {
+    "_id": "alias.0.Test-Devices.Cie.CIE",
+    "type": "state",
+    "common": {
+      "name": "CIE",
+      "type": "string",
+      "role": "level.color.cie",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Color-CIE"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Cie.DIMMER": {
+    "_id": "alias.0.Test-Devices.Cie.DIMMER",
+    "type": "state",
+    "common": {
+      "name": "DIMMER",
+      "type": "number",
+      "role": "level.dimmer",
+      "write": true,
+      "unit": "%",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Dimmer-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Cie.ERROR": {
+    "_id": "alias.0.Test-Devices.Cie.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Cie.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Cie.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Cie.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Cie.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Cie.ON": {
+    "_id": "alias.0.Test-Devices.Cie.ON",
+    "type": "state",
+    "common": {
+      "name": "ON",
+      "type": "boolean",
+      "role": "switch.light",
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Light-Switch"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Cie.ON_ACTUAL": {
+    "_id": "alias.0.Test-Devices.Cie.ON_ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ON_ACTUAL",
+      "type": "boolean",
+      "role": "sensor.light",
+      "write": false,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Light-Sensor"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Cie.TEMPERATURE": {
+    "_id": "alias.0.Test-Devices.Cie.TEMPERATURE",
+    "type": "state",
+    "common": {
+      "name": "TEMPERATURE",
+      "type": "number",
+      "role": "level.color.temperature",
+      "write": true,
+      "unit": "°K",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Color-Temperature-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Cie.UNREACH": {
+    "_id": "alias.0.Test-Devices.Cie.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Cie.WORKING": {
+    "_id": "alias.0.Test-Devices.Cie.WORKING",
+    "type": "state",
+    "common": {
+      "name": "WORKING",
+      "type": "boolean",
+      "role": "indicator.working",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Working-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Ct": {
+    "_id": "alias.0.Test-Devices.Ct",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Ct"
+      },
+      "role": "ct"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Ct-Only": {
+    "_id": "alias.0.Test-Devices.Ct-Only",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Ct-Only"
+      },
+      "role": "ct"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Ct-Only.TEMPERATURE": {
+    "_id": "alias.0.Test-Devices.Ct-Only.TEMPERATURE",
+    "type": "state",
+    "common": {
+      "name": "TEMPERATURE",
+      "type": "number",
+      "role": "level.color.temperature",
+      "read": true,
+      "write": true,
+      "min": 150,
+      "max": 500,
+      "unit": "mireds",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Color-Temperature-Level-Mireds"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Ct.DIMMER": {
+    "_id": "alias.0.Test-Devices.Ct.DIMMER",
+    "type": "state",
+    "common": {
+      "name": "DIMMER",
+      "type": "number",
+      "role": "level.dimmer",
+      "write": true,
+      "unit": "%",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Dimmer-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Ct.ERROR": {
+    "_id": "alias.0.Test-Devices.Ct.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Ct.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Ct.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Ct.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Ct.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Ct.ON": {
+    "_id": "alias.0.Test-Devices.Ct.ON",
+    "type": "state",
+    "common": {
+      "name": "ON",
+      "type": "boolean",
+      "role": "switch.light",
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Light-Switch"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Ct.TEMPERATURE": {
+    "_id": "alias.0.Test-Devices.Ct.TEMPERATURE",
+    "type": "state",
+    "common": {
+      "name": "TEMPERATURE",
+      "type": "number",
+      "role": "level.color.temperature",
+      "read": true,
+      "write": true,
+      "min": 3000,
+      "max": 6000,
+      "unit": "°K",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Color-Temperature-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Ct.TRANSITION_TIME": {
+    "_id": "alias.0.Test-Devices.Ct.TRANSITION_TIME",
+    "type": "state",
+    "common": {
+      "name": "TRANSITION_TIME",
+      "type": "number",
+      "role": "time.span",
+      "read": true,
+      "write": true,
+      "unit": "ms",
+      "def": 0,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Transition-Time"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Ct.UNREACH": {
+    "_id": "alias.0.Test-Devices.Ct.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Ct.WORKING": {
+    "_id": "alias.0.Test-Devices.Ct.WORKING",
+    "type": "state",
+    "common": {
+      "name": "WORKING",
+      "type": "boolean",
+      "role": "indicator.working",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Working-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Dimmer": {
+    "_id": "alias.0.Test-Devices.Dimmer",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Dimmer"
+      },
+      "role": "dimmer"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Dimmer.ACTUAL": {
+    "_id": "alias.0.Test-Devices.Dimmer.ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ACTUAL",
+      "type": "number",
+      "role": "value.dimmer",
+      "write": false,
+      "unit": "%",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Dimmer-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Dimmer.ERROR": {
+    "_id": "alias.0.Test-Devices.Dimmer.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Dimmer.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Dimmer.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Dimmer.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Dimmer.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Dimmer.ON_SET": {
+    "_id": "alias.0.Test-Devices.Dimmer.ON_SET",
+    "type": "state",
+    "common": {
+      "name": "ON_SET",
+      "type": "boolean",
+      "role": "switch.light",
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Switch"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Dimmer.SET": {
+    "_id": "alias.0.Test-Devices.Dimmer.SET",
+    "type": "state",
+    "common": {
+      "name": "SET",
+      "type": "number",
+      "role": "level.dimmer",
+      "read": true,
+      "write": true,
+      "unit": "%",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Dimmer-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Dimmer.UNREACH": {
+    "_id": "alias.0.Test-Devices.Dimmer.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Dimmer.WORKING": {
+    "_id": "alias.0.Test-Devices.Dimmer.WORKING",
+    "type": "state",
+    "common": {
+      "name": "WORKING",
+      "type": "boolean",
+      "role": "indicator.working",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Working-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Door": {
+    "_id": "alias.0.Test-Devices.Door",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Door"
+      },
+      "role": "door"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Door.ACTUAL": {
+    "_id": "alias.0.Test-Devices.Door.ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ACTUAL",
+      "type": "boolean",
+      "role": "sensor.door",
+      "read": true,
+      "write": false,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Door-Sensor"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Door.ERROR": {
+    "_id": "alias.0.Test-Devices.Door.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Door.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Door.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Door.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Door.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Door.UNREACH": {
+    "_id": "alias.0.Test-Devices.Door.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Flood-Alarm": {
+    "_id": "alias.0.Test-Devices.Flood-Alarm",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Flood-Alarm"
+      },
+      "role": "sensor.alarm.flood"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Flood-Alarm.ACTUAL": {
+    "_id": "alias.0.Test-Devices.Flood-Alarm.ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ACTUAL",
+      "type": "boolean",
+      "role": "sensor.alarm.flood",
+      "read": true,
+      "write": false,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.FloodAlarm-Sensor"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Flood-Alarm.ERROR": {
+    "_id": "alias.0.Test-Devices.Flood-Alarm.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Flood-Alarm.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Flood-Alarm.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Flood-Alarm.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Flood-Alarm.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Flood-Alarm.UNREACH": {
+    "_id": "alias.0.Test-Devices.Flood-Alarm.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Hue": {
+    "_id": "alias.0.Test-Devices.Hue",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Hue"
+      },
+      "role": "hue"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Hue.DIMMER": {
+    "_id": "alias.0.Test-Devices.Hue.DIMMER",
+    "type": "state",
+    "common": {
+      "name": "DIMMER",
+      "type": "number",
+      "role": "level.dimmer",
+      "write": true,
+      "unit": "%",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Dimmer-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Hue.ERROR": {
+    "_id": "alias.0.Test-Devices.Hue.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Hue.HUE": {
+    "_id": "alias.0.Test-Devices.Hue.HUE",
+    "type": "state",
+    "common": {
+      "name": "HUE",
+      "type": "number",
+      "role": "level.color.hue",
+      "read": true,
+      "write": true,
+      "unit": "°",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Color-Hue"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Hue.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Hue.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Hue.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Hue.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Hue.ON": {
+    "_id": "alias.0.Test-Devices.Hue.ON",
+    "type": "state",
+    "common": {
+      "name": "ON",
+      "type": "boolean",
+      "role": "switch.light",
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Light-Switch"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Hue.ON_ACTUAL": {
+    "_id": "alias.0.Test-Devices.Hue.ON_ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ON_ACTUAL",
+      "type": "boolean",
+      "role": "sensor.light",
+      "write": false,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Light-Sensor"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Hue.SATURATION": {
+    "_id": "alias.0.Test-Devices.Hue.SATURATION",
+    "type": "state",
+    "common": {
+      "name": "SATURATION",
+      "type": "number",
+      "role": "level.color.saturation",
+      "read": true,
+      "write": true,
+      "min": 0,
+      "max": 100,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Color-Saturation"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Hue.TEMPERATURE": {
+    "_id": "alias.0.Test-Devices.Hue.TEMPERATURE",
+    "type": "state",
+    "common": {
+      "name": "TEMPERATURE",
+      "type": "number",
+      "role": "level.color.temperature",
+      "write": true,
+      "unit": "°K",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Color-Temperature-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Hue.UNREACH": {
+    "_id": "alias.0.Test-Devices.Hue.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Hue.WORKING": {
+    "_id": "alias.0.Test-Devices.Hue.WORKING",
+    "type": "state",
+    "common": {
+      "name": "WORKING",
+      "type": "boolean",
+      "role": "indicator.working",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Working-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Humidity": {
+    "_id": "alias.0.Test-Devices.Humidity",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Humidity"
+      },
+      "role": "humidity"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Humidity.ACTUAL": {
+    "_id": "alias.0.Test-Devices.Humidity.ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ACTUAL",
+      "type": "number",
+      "role": "value.humidity",
+      "read": true,
+      "write": false,
+      "unit": "%",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Humidity-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Illuminance": {
+    "_id": "alias.0.Test-Devices.Illuminance",
+    "type": "device",
+    "common": {
+      "name": "Illuminance",
+      "role": "illuminance"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Illuminance.ACTUAL": {
+    "_id": "alias.0.Test-Devices.Illuminance.ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ACTUAL",
+      "type": "number",
+      "role": "value.brightness",
+      "read": true,
+      "write": false,
+      "unit": "lux",
+      "def": 0,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Brightness-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light": {
+    "_id": "alias.0.Test-Devices.Light",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Light"
+      },
+      "role": "light"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light-Dimmer": {
+    "_id": "alias.0.Test-Devices.Light-Dimmer",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Light-Dimmer"
+      },
+      "role": "dimmer"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light-Dimmer.ERROR": {
+    "_id": "alias.0.Test-Devices.Light-Dimmer.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light-Dimmer.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Light-Dimmer.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light-Dimmer.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Light-Dimmer.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light-Dimmer.ON_ACTUAL": {
+    "_id": "alias.0.Test-Devices.Light-Dimmer.ON_ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ON_ACTUAL",
+      "type": "boolean",
+      "role": "sensor.light",
+      "write": false,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Light-Sensor"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light-Dimmer.ON_SET": {
+    "_id": "alias.0.Test-Devices.Light-Dimmer.ON_SET",
+    "type": "state",
+    "common": {
+      "name": "ON_SET",
+      "type": "boolean",
+      "role": "switch.light",
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Light-Switch"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light-Dimmer.SET": {
+    "_id": "alias.0.Test-Devices.Light-Dimmer.SET",
+    "type": "state",
+    "common": {
+      "name": "SET",
+      "type": "number",
+      "role": "level.dimmer",
+      "read": true,
+      "write": true,
+      "unit": "%",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Brightness-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light-Dimmer.UNREACH": {
+    "_id": "alias.0.Test-Devices.Light-Dimmer.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light-Dimmer.WORKING": {
+    "_id": "alias.0.Test-Devices.Light-Dimmer.WORKING",
+    "type": "state",
+    "common": {
+      "name": "WORKING",
+      "type": "boolean",
+      "role": "indicator.working",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Working-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light.CONSUMPTION": {
+    "_id": "alias.0.Test-Devices.Light.CONSUMPTION",
+    "type": "state",
+    "common": {
+      "name": "CONSUMPTION",
+      "type": "number",
+      "role": "value.power.consumption",
+      "write": false,
+      "unit": "Wh",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Power-Consumption-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light.CURRENT": {
+    "_id": "alias.0.Test-Devices.Light.CURRENT",
+    "type": "state",
+    "common": {
+      "name": "CURRENT",
+      "type": "number",
+      "role": "value.current",
+      "write": false,
+      "unit": "A",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Current-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light.ELECTRIC_POWER": {
+    "_id": "alias.0.Test-Devices.Light.ELECTRIC_POWER",
+    "type": "state",
+    "common": {
+      "name": "ELECTRIC_POWER",
+      "type": "number",
+      "role": "value.power",
+      "write": false,
+      "unit": "kW",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Power-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light.ERROR": {
+    "_id": "alias.0.Test-Devices.Light.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light.FREQUENCY": {
+    "_id": "alias.0.Test-Devices.Light.FREQUENCY",
+    "type": "state",
+    "common": {
+      "name": "FREQUENCY",
+      "type": "number",
+      "role": "value.frequency",
+      "write": false,
+      "unit": "Hz",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Frequency-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Light.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Light.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light.ON_ACTUAL": {
+    "_id": "alias.0.Test-Devices.Light.ON_ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ON_ACTUAL",
+      "type": "boolean",
+      "role": "sensor.light",
+      "write": false,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Light-Sensor"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light.SET": {
+    "_id": "alias.0.Test-Devices.Light.SET",
+    "type": "state",
+    "common": {
+      "name": "SET",
+      "type": "boolean",
+      "role": "switch.light",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Light-Switch"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light.UNREACH": {
+    "_id": "alias.0.Test-Devices.Light.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light.VOLTAGE": {
+    "_id": "alias.0.Test-Devices.Light.VOLTAGE",
+    "type": "state",
+    "common": {
+      "name": "VOLTAGE",
+      "type": "number",
+      "role": "value.voltage",
+      "write": false,
+      "unit": "mV",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Voltage-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Light.WORKING": {
+    "_id": "alias.0.Test-Devices.Light.WORKING",
+    "type": "state",
+    "common": {
+      "name": "WORKING",
+      "type": "boolean",
+      "role": "indicator.working",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Working-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Lock": {
+    "_id": "alias.0.Test-Devices.Lock",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Lock"
+      },
+      "role": "lock"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Lock-With-Open": {
+    "_id": "alias.0.Test-Devices.Lock-With-Open",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Lock-With-Open"
+      },
+      "role": "lock"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Lock-With-Open.DIRECTION": {
+    "_id": "alias.0.Test-Devices.Lock-With-Open.DIRECTION",
+    "type": "state",
+    "common": {
+      "name": "DIRECTION",
+      "type": "boolean",
+      "role": "indicator.direction",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Direction-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Lock-With-Open.ERROR": {
+    "_id": "alias.0.Test-Devices.Lock-With-Open.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Lock-With-Open.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Lock-With-Open.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Lock-With-Open.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Lock-With-Open.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Lock-With-Open.OPEN": {
+    "_id": "alias.0.Test-Devices.Lock-With-Open.OPEN",
+    "type": "state",
+    "common": {
+      "name": "OPEN",
+      "type": "boolean",
+      "role": "button",
+      "read": false,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Door-Open-Button"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Lock-With-Open.SET": {
+    "_id": "alias.0.Test-Devices.Lock-With-Open.SET",
+    "type": "state",
+    "common": {
+      "name": "SET",
+      "type": "boolean",
+      "role": "switch.lock",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Door-Lock-Switch"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Lock-With-Open.UNREACH": {
+    "_id": "alias.0.Test-Devices.Lock-With-Open.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Lock-With-Open.WORKING": {
+    "_id": "alias.0.Test-Devices.Lock-With-Open.WORKING",
+    "type": "state",
+    "common": {
+      "name": "WORKING",
+      "type": "boolean",
+      "role": "indicator.working",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Working-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Lock.ACTUAL": {
+    "_id": "alias.0.Test-Devices.Lock.ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ACTUAL",
+      "type": "boolean",
+      "role": "state",
+      "write": false,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Door-Sensor"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Lock.DIRECTION": {
+    "_id": "alias.0.Test-Devices.Lock.DIRECTION",
+    "type": "state",
+    "common": {
+      "name": "DIRECTION",
+      "type": "boolean",
+      "role": "indicator.direction",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Direction-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Lock.ERROR": {
+    "_id": "alias.0.Test-Devices.Lock.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Lock.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Lock.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Lock.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Lock.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Lock.SET": {
+    "_id": "alias.0.Test-Devices.Lock.SET",
+    "type": "state",
+    "common": {
+      "name": "SET",
+      "type": "boolean",
+      "role": "switch.lock",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Door-Lock-Switch"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Lock.UNREACH": {
+    "_id": "alias.0.Test-Devices.Lock.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Lock.WORKING": {
+    "_id": "alias.0.Test-Devices.Lock.WORKING",
+    "type": "state",
+    "common": {
+      "name": "WORKING",
+      "type": "boolean",
+      "role": "indicator.working",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Working-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Motion": {
+    "_id": "alias.0.Test-Devices.Motion",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Motion"
+      },
+      "role": "motion"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Motion-With-Brightness": {
+    "_id": "alias.0.Test-Devices.Motion-With-Brightness",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Motion-With-Brightness"
+      },
+      "role": "motion"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Motion-With-Brightness.ACTUAL": {
+    "_id": "alias.0.Test-Devices.Motion-With-Brightness.ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ACTUAL",
+      "type": "boolean",
+      "role": "sensor.motion",
+      "read": true,
+      "write": false,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Motion-Sensor"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Motion-With-Brightness.ERROR": {
+    "_id": "alias.0.Test-Devices.Motion-With-Brightness.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Motion-With-Brightness.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Motion-With-Brightness.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Motion-With-Brightness.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Motion-With-Brightness.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Motion-With-Brightness.SECOND": {
+    "_id": "alias.0.Test-Devices.Motion-With-Brightness.SECOND",
+    "type": "state",
+    "common": {
+      "name": "SECOND",
+      "type": "number",
+      "role": "value.brightness",
+      "unit": "lux",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Brightness-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Motion-With-Brightness.UNREACH": {
+    "_id": "alias.0.Test-Devices.Motion-With-Brightness.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Motion.ACTUAL": {
+    "_id": "alias.0.Test-Devices.Motion.ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ACTUAL",
+      "type": "boolean",
+      "role": "sensor.motion",
+      "read": true,
+      "write": false,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Motion-Sensor"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Motion.ERROR": {
+    "_id": "alias.0.Test-Devices.Motion.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Motion.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Motion.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Motion.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Motion.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Motion.UNREACH": {
+    "_id": "alias.0.Test-Devices.Motion.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.RGB": {
+    "_id": "alias.0.Test-Devices.RGB",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "RGB"
+      },
+      "role": "rgb"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.RGB.BLUE": {
+    "_id": "alias.0.Test-Devices.RGB.BLUE",
+    "type": "state",
+    "common": {
+      "name": "BLUE",
+      "type": "number",
+      "role": "level.color.blue",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Color-Blue"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.RGB.DIMMER": {
+    "_id": "alias.0.Test-Devices.RGB.DIMMER",
+    "type": "state",
+    "common": {
+      "name": "DIMMER",
+      "type": "number",
+      "role": "level.dimmer",
+      "write": true,
+      "unit": "%",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Dimmer-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.RGB.ERROR": {
+    "_id": "alias.0.Test-Devices.RGB.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.RGB.GREEN": {
+    "_id": "alias.0.Test-Devices.RGB.GREEN",
+    "type": "state",
+    "common": {
+      "name": "GREEN",
+      "type": "number",
+      "role": "level.color.green",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Color-Green"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.RGB.LOWBAT": {
+    "_id": "alias.0.Test-Devices.RGB.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.RGB.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.RGB.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.RGB.ON": {
+    "_id": "alias.0.Test-Devices.RGB.ON",
+    "type": "state",
+    "common": {
+      "name": "ON",
+      "type": "boolean",
+      "role": "switch.light",
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Light-Switch"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.RGB.ON_ACTUAL": {
+    "_id": "alias.0.Test-Devices.RGB.ON_ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ON_ACTUAL",
+      "type": "boolean",
+      "role": "sensor.light",
+      "write": false,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Light-Sensor"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.RGB.RED": {
+    "_id": "alias.0.Test-Devices.RGB.RED",
+    "type": "state",
+    "common": {
+      "name": "RED",
+      "type": "number",
+      "role": "level.color.red",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Color-Red"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.RGB.TEMPERATURE": {
+    "_id": "alias.0.Test-Devices.RGB.TEMPERATURE",
+    "type": "state",
+    "common": {
+      "name": "TEMPERATURE",
+      "type": "number",
+      "role": "level.color.temperature",
+      "write": true,
+      "unit": "°K",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Color-Temperature-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.RGB.UNREACH": {
+    "_id": "alias.0.Test-Devices.RGB.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.RGB.WORKING": {
+    "_id": "alias.0.Test-Devices.RGB.WORKING",
+    "type": "state",
+    "common": {
+      "name": "WORKING",
+      "type": "boolean",
+      "role": "indicator.working",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Working-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgb-Single": {
+    "_id": "alias.0.Test-Devices.Rgb-Single",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Rgb-Single"
+      },
+      "role": "rgbSingle"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgb-Single.RGB": {
+    "_id": "alias.0.Test-Devices.Rgb-Single.RGB",
+    "type": "state",
+    "common": {
+      "name": "RGB",
+      "type": "string",
+      "role": "level.color.rgb",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Color-RGB"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw": {
+    "_id": "alias.0.Test-Devices.Rgbw",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Rgbw"
+      },
+      "role": "rgb"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw-Single": {
+    "_id": "alias.0.Test-Devices.Rgbw-Single",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Rgbw-Single"
+      },
+      "role": "rgbSingle"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw-Single.DIMMER": {
+    "_id": "alias.0.Test-Devices.Rgbw-Single.DIMMER",
+    "type": "state",
+    "common": {
+      "name": "DIMMER",
+      "type": "number",
+      "role": "level.dimmer",
+      "write": true,
+      "unit": "%",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Dimmer-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw-Single.ERROR": {
+    "_id": "alias.0.Test-Devices.Rgbw-Single.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw-Single.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Rgbw-Single.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw-Single.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Rgbw-Single.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw-Single.ON": {
+    "_id": "alias.0.Test-Devices.Rgbw-Single.ON",
+    "type": "state",
+    "common": {
+      "name": "ON",
+      "type": "boolean",
+      "role": "switch.light",
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Light-Switch"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw-Single.ON_ACTUAL": {
+    "_id": "alias.0.Test-Devices.Rgbw-Single.ON_ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ON_ACTUAL",
+      "type": "boolean",
+      "role": "sensor.light",
+      "write": false,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Light-Sensor"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw-Single.RGBW": {
+    "_id": "alias.0.Test-Devices.Rgbw-Single.RGBW",
+    "type": "state",
+    "common": {
+      "name": "RGBW",
+      "type": "string",
+      "role": "level.color.rgbw",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Color-RGBW"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw-Single.TEMPERATURE": {
+    "_id": "alias.0.Test-Devices.Rgbw-Single.TEMPERATURE",
+    "type": "state",
+    "common": {
+      "name": "TEMPERATURE",
+      "type": "number",
+      "role": "level.color.temperature",
+      "write": true,
+      "unit": "°K",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Color-Temperature-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw-Single.UNREACH": {
+    "_id": "alias.0.Test-Devices.Rgbw-Single.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw-Single.WORKING": {
+    "_id": "alias.0.Test-Devices.Rgbw-Single.WORKING",
+    "type": "state",
+    "common": {
+      "name": "WORKING",
+      "type": "boolean",
+      "role": "indicator.working",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Working-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw.BLUE": {
+    "_id": "alias.0.Test-Devices.Rgbw.BLUE",
+    "type": "state",
+    "common": {
+      "name": "BLUE",
+      "type": "number",
+      "role": "level.color.blue",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Color-Blue"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw.DIMMER": {
+    "_id": "alias.0.Test-Devices.Rgbw.DIMMER",
+    "type": "state",
+    "common": {
+      "name": "DIMMER",
+      "type": "number",
+      "role": "level.dimmer",
+      "write": true,
+      "unit": "%",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Dimmer-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw.ERROR": {
+    "_id": "alias.0.Test-Devices.Rgbw.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw.GREEN": {
+    "_id": "alias.0.Test-Devices.Rgbw.GREEN",
+    "type": "state",
+    "common": {
+      "name": "GREEN",
+      "type": "number",
+      "role": "level.color.green",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Color-Green"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Rgbw.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Rgbw.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw.ON": {
+    "_id": "alias.0.Test-Devices.Rgbw.ON",
+    "type": "state",
+    "common": {
+      "name": "ON",
+      "type": "boolean",
+      "role": "switch.light",
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Light-Switch"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw.ON_ACTUAL": {
+    "_id": "alias.0.Test-Devices.Rgbw.ON_ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ON_ACTUAL",
+      "type": "boolean",
+      "role": "sensor.light",
+      "write": false,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Light-Sensor"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw.RED": {
+    "_id": "alias.0.Test-Devices.Rgbw.RED",
+    "type": "state",
+    "common": {
+      "name": "RED",
+      "type": "number",
+      "role": "level.color.red",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Color-Red"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw.TEMPERATURE": {
+    "_id": "alias.0.Test-Devices.Rgbw.TEMPERATURE",
+    "type": "state",
+    "common": {
+      "name": "TEMPERATURE",
+      "type": "number",
+      "role": "level.color.temperature",
+      "write": true,
+      "unit": "°K",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Color-Temperature-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw.UNREACH": {
+    "_id": "alias.0.Test-Devices.Rgbw.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw.WHITE": {
+    "_id": "alias.0.Test-Devices.Rgbw.WHITE",
+    "type": "state",
+    "common": {
+      "name": "WHITE",
+      "type": "number",
+      "role": "level.color.white",
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Color-White"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Rgbw.WORKING": {
+    "_id": "alias.0.Test-Devices.Rgbw.WORKING",
+    "type": "state",
+    "common": {
+      "name": "WORKING",
+      "type": "boolean",
+      "role": "indicator.working",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Working-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Socket": {
+    "_id": "alias.0.Test-Devices.Socket",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Socket"
+      },
+      "role": "socket"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Socket.CONSUMPTION": {
+    "_id": "alias.0.Test-Devices.Socket.CONSUMPTION",
+    "type": "state",
+    "common": {
+      "name": "CONSUMPTION",
+      "type": "number",
+      "role": "value.power.consumption",
+      "write": false,
+      "unit": "Wh",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Power-Consumption-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Socket.CURRENT": {
+    "_id": "alias.0.Test-Devices.Socket.CURRENT",
+    "type": "state",
+    "common": {
+      "name": "CURRENT",
+      "type": "number",
+      "role": "value.current",
+      "write": false,
+      "unit": "mA",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Current-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Socket.ELECTRIC_POWER": {
+    "_id": "alias.0.Test-Devices.Socket.ELECTRIC_POWER",
+    "type": "state",
+    "common": {
+      "name": "ELECTRIC_POWER",
+      "type": "number",
+      "role": "value.power",
+      "write": false,
+      "unit": "W",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Power-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Socket.ERROR": {
+    "_id": "alias.0.Test-Devices.Socket.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Socket.FREQUENCY": {
+    "_id": "alias.0.Test-Devices.Socket.FREQUENCY",
+    "type": "state",
+    "common": {
+      "name": "FREQUENCY",
+      "type": "number",
+      "role": "value.frequency",
+      "write": false,
+      "unit": "Hz",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Frequency-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Socket.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Socket.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Socket.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Socket.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Socket.SET": {
+    "_id": "alias.0.Test-Devices.Socket.SET",
+    "type": "state",
+    "common": {
+      "name": "SET",
+      "type": "boolean",
+      "role": "switch",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Switch"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Socket.UNREACH": {
+    "_id": "alias.0.Test-Devices.Socket.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Socket.VOLTAGE": {
+    "_id": "alias.0.Test-Devices.Socket.VOLTAGE",
+    "type": "state",
+    "common": {
+      "name": "VOLTAGE",
+      "type": "number",
+      "role": "value.voltage",
+      "write": false,
+      "unit": "V",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Voltage-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Socket.WORKING": {
+    "_id": "alias.0.Test-Devices.Socket.WORKING",
+    "type": "state",
+    "common": {
+      "name": "WORKING",
+      "type": "boolean",
+      "role": "indicator.working",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Working-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Temparature": {
+    "_id": "alias.0.Test-Devices.Temparature",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Temparature"
+      },
+      "role": "temperature"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Temparature.ACTUAL": {
+    "_id": "alias.0.Test-Devices.Temparature.ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ACTUAL",
+      "type": "number",
+      "role": "value.temperature",
+      "read": true,
+      "write": false,
+      "unit": "°C",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Temperature-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Temparature.BATTERY": {
+    "_id": "alias.0.Test-Devices.Temparature.BATTERY",
+    "type": "state",
+    "common": {
+      "name": "BATTERY",
+      "type": "number",
+      "role": "value.battery",
+      "read": true,
+      "write": false,
+      "unit": "%",
+      "def": 0,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Battery"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Temparature.ERROR": {
+    "_id": "alias.0.Test-Devices.Temparature.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Temparature.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Temparature.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Temparature.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Temparature.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Temparature.UNREACH": {
+    "_id": "alias.0.Test-Devices.Temparature.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.TemperatureAndHumidity": {
+    "_id": "alias.0.Test-Devices.TemperatureAndHumidity",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "TemperatureAndHumidity"
+      },
+      "role": "temperature"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.TemperatureAndHumidity.ACTUAL": {
+    "_id": "alias.0.Test-Devices.TemperatureAndHumidity.ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ACTUAL",
+      "type": "number",
+      "role": "value.temperature",
+      "read": true,
+      "write": false,
+      "unit": "°C",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Temperature-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.TemperatureAndHumidity.BATTERY": {
+    "_id": "alias.0.Test-Devices.TemperatureAndHumidity.BATTERY",
+    "type": "state",
+    "common": {
+      "name": "BATTERY",
+      "type": "number",
+      "role": "value.battery",
+      "read": true,
+      "write": false,
+      "unit": "%",
+      "def": 0,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Battery"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.TemperatureAndHumidity.ERROR": {
+    "_id": "alias.0.Test-Devices.TemperatureAndHumidity.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.TemperatureAndHumidity.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.TemperatureAndHumidity.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.TemperatureAndHumidity.SECOND": {
+    "_id": "alias.0.Test-Devices.TemperatureAndHumidity.SECOND",
+    "type": "state",
+    "common": {
+      "name": "SECOND",
+      "type": "number",
+      "role": "value.humidity",
+      "write": false,
+      "unit": "%",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Humidity-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.TemperatureAndHumidity.UNREACH": {
+    "_id": "alias.0.Test-Devices.TemperatureAndHumidity.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Thermostat": {
+    "_id": "alias.0.Test-Devices.Thermostat",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Thermostat"
+      },
+      "role": "thermostat"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Thermostat-Min": {
+    "_id": "alias.0.Test-Devices.Thermostat-Min",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Thermostat-Min"
+      },
+      "role": "thermostat"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Thermostat-Min.ACTUAL": {
+    "_id": "alias.0.Test-Devices.Thermostat-Min.ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ACTUAL",
+      "type": "number",
+      "role": "value.temperature",
+      "write": false,
+      "unit": "°C",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Temperature-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Thermostat-Min.MODE": {
+    "_id": "alias.0.Test-Devices.Thermostat-Min.MODE",
+    "type": "state",
+    "common": {
+      "name": "MODE",
+      "type": "number",
+      "role": "level.mode.thermostat",
+      "write": true,
+      "states": {
+        "0": "AUTO",
+        "1": "MANUAL"
+      },
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Thermostat-Mode-Min"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Thermostat-Min.SET": {
+    "_id": "alias.0.Test-Devices.Thermostat-Min.SET",
+    "type": "state",
+    "common": {
+      "name": "SET",
+      "type": "number",
+      "role": "level.temperature",
+      "read": true,
+      "write": true,
+      "unit": "°C",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Temperature-Setpoint"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Thermostat.ACTUAL": {
+    "_id": "alias.0.Test-Devices.Thermostat.ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ACTUAL",
+      "type": "number",
+      "role": "value.temperature",
+      "write": false,
+      "unit": "°C",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Temperature-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Thermostat.BOOST": {
+    "_id": "alias.0.Test-Devices.Thermostat.BOOST",
+    "type": "state",
+    "common": {
+      "name": "BOOST",
+      "type": "boolean",
+      "role": "switch.mode.boost",
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Thermostat-Boost"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Thermostat.ERROR": {
+    "_id": "alias.0.Test-Devices.Thermostat.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Thermostat.HUMIDITY": {
+    "_id": "alias.0.Test-Devices.Thermostat.HUMIDITY",
+    "type": "state",
+    "common": {
+      "name": "HUMIDITY",
+      "type": "number",
+      "role": "value.humidity",
+      "write": false,
+      "unit": "%",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Humidity-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Thermostat.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Thermostat.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Thermostat.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Thermostat.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Thermostat.MODE": {
+    "_id": "alias.0.Test-Devices.Thermostat.MODE",
+    "type": "state",
+    "common": {
+      "name": "MODE",
+      "type": "number",
+      "role": "level.mode.thermostat",
+      "write": true,
+      "states": {
+        "0": "AUTO",
+        "3": "COOL",
+        "4": "DRY",
+        "6": "FAN_ONLY",
+        "7": "HEAT"
+      },
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Thermostat-Mode"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Thermostat.POWER": {
+    "_id": "alias.0.Test-Devices.Thermostat.POWER",
+    "type": "state",
+    "common": {
+      "name": "POWER",
+      "type": "boolean",
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Switch"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Thermostat.SET": {
+    "_id": "alias.0.Test-Devices.Thermostat.SET",
+    "type": "state",
+    "common": {
+      "name": "SET",
+      "type": "number",
+      "role": "level.temperature",
+      "read": true,
+      "write": true,
+      "min": 10,
+      "max": 30,
+      "step": 0.5,
+      "unit": "°C",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Temperature-Setpoint"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Thermostat.UNREACH": {
+    "_id": "alias.0.Test-Devices.Thermostat.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Thermostat.WORKING": {
+    "_id": "alias.0.Test-Devices.Thermostat.WORKING",
+    "type": "state",
+    "common": {
+      "name": "WORKING",
+      "type": "boolean",
+      "role": "indicator.working",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Working-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Volume": {
+    "_id": "alias.0.Test-Devices.Volume",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Volume"
+      },
+      "role": "volume"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Volume.ACTUAL": {
+    "_id": "alias.0.Test-Devices.Volume.ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ACTUAL",
+      "type": "number",
+      "role": "value.volume",
+      "write": false,
+      "min": 0,
+      "max": 100,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Volume-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Volume.ERROR": {
+    "_id": "alias.0.Test-Devices.Volume.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Volume.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Volume.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Volume.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Volume.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Volume.MUTE": {
+    "_id": "alias.0.Test-Devices.Volume.MUTE",
+    "type": "state",
+    "common": {
+      "name": "MUTE",
+      "type": "boolean",
+      "role": "media.mute",
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Mute-State"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Volume.SET": {
+    "_id": "alias.0.Test-Devices.Volume.SET",
+    "type": "state",
+    "common": {
+      "name": "SET",
+      "type": "number",
+      "role": "level.volume",
+      "read": true,
+      "write": true,
+      "min": 0,
+      "max": 100,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Volume-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Volume.UNREACH": {
+    "_id": "alias.0.Test-Devices.Volume.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Volume.WORKING": {
+    "_id": "alias.0.Test-Devices.Volume.WORKING",
+    "type": "state",
+    "common": {
+      "name": "WORKING",
+      "type": "boolean",
+      "role": "indicator.working",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Working-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.VolumeGroup": {
+    "_id": "alias.0.Test-Devices.VolumeGroup",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "VolumeGroup"
+      },
+      "role": "volumeGroup"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.VolumeGroup.ACTUAL": {
+    "_id": "alias.0.Test-Devices.VolumeGroup.ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ACTUAL",
+      "type": "number",
+      "role": "value.volume.group",
+      "write": false,
+      "min": 0,
+      "max": 100,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Volume-Value"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.VolumeGroup.ERROR": {
+    "_id": "alias.0.Test-Devices.VolumeGroup.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.VolumeGroup.LOWBAT": {
+    "_id": "alias.0.Test-Devices.VolumeGroup.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.VolumeGroup.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.VolumeGroup.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.VolumeGroup.MUTE": {
+    "_id": "alias.0.Test-Devices.VolumeGroup.MUTE",
+    "type": "state",
+    "common": {
+      "name": "MUTE",
+      "type": "boolean",
+      "role": "media.mute.group",
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Mute-State"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.VolumeGroup.SET": {
+    "_id": "alias.0.Test-Devices.VolumeGroup.SET",
+    "type": "state",
+    "common": {
+      "name": "SET",
+      "type": "number",
+      "role": "level.volume.group",
+      "read": true,
+      "write": true,
+      "min": 0,
+      "max": 100,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Volume-Level"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.VolumeGroup.UNREACH": {
+    "_id": "alias.0.Test-Devices.VolumeGroup.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.VolumeGroup.WORKING": {
+    "_id": "alias.0.Test-Devices.VolumeGroup.WORKING",
+    "type": "state",
+    "common": {
+      "name": "WORKING",
+      "type": "boolean",
+      "role": "indicator.working",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Working-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Window": {
+    "_id": "alias.0.Test-Devices.Window",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "Window"
+      },
+      "role": "window"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Window.ACTUAL": {
+    "_id": "alias.0.Test-Devices.Window.ACTUAL",
+    "type": "state",
+    "common": {
+      "name": "ACTUAL",
+      "type": "boolean",
+      "role": "sensor.window",
+      "read": true,
+      "write": false,
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Window-Sensor"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Window.ERROR": {
+    "_id": "alias.0.Test-Devices.Window.ERROR",
+    "type": "state",
+    "common": {
+      "name": "ERROR",
+      "type": "boolean",
+      "role": "indicator.error",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Error-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Window.LOWBAT": {
+    "_id": "alias.0.Test-Devices.Window.LOWBAT",
+    "type": "state",
+    "common": {
+      "name": "LOWBAT",
+      "type": "boolean",
+      "role": "indicator.maintenance.lowbat",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.LowBat-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Window.MAINTAIN": {
+    "_id": "alias.0.Test-Devices.Window.MAINTAIN",
+    "type": "state",
+    "common": {
+      "name": "MAINTAIN",
+      "type": "boolean",
+      "role": "indicator.maintenance",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Maintenance-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.Window.UNREACH": {
+    "_id": "alias.0.Test-Devices.Window.UNREACH",
+    "type": "state",
+    "common": {
+      "name": "UNREACH",
+      "type": "boolean",
+      "role": "indicator.maintenance.unreach",
+      "alias": {
+        "id": "0_userdata.0.States-For-Devices.Unreach-Indicator"
+      }
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.test-Dummy": {
+    "_id": "alias.0.Test-Devices.test-Dummy",
+    "type": "channel",
+    "common": {
+      "name": {
+        "en": "test-Dummy"
+      },
+      "role": "socket"
+    },
+    "native": {}
+  },
+  "alias.0.Test-Devices.test-Dummy.SET": {
+    "_id": "alias.0.Test-Devices.test-Dummy.SET",
+    "type": "state",
+    "common": {
+      "name": "SET",
+      "type": "boolean",
+      "role": "switch",
+      "read": true,
+      "write": true,
+      "alias": {
+        "id": "0_userdata.0.test-Socket-2.test-On"
+      }
+    },
+    "native": {}
+  },
+  "matter.0.bridges": {
+    "_id": "matter.0.bridges",
+    "type": "folder",
+    "common": {
+      "name": "Matter Bridges"
+    },
+    "native": {}
+  },
+  "matter.0.bridges.265c41a2-9b79-4778-ae60-8122271cc46d.commissioned": {
+    "_id": "matter.0.bridges.265c41a2-9b79-4778-ae60-8122271cc46d.commissioned",
+    "type": "state",
+    "common": {
+      "name": "commissioned",
+      "type": "boolean",
+      "role": "indicator",
+      "read": true,
+      "write": false
+    },
+    "native": {}
+  },
+  "matter.0.bridges.a6d6420a-4837-4ff8-9394-b20e1c2395e0.commissioned": {
+    "_id": "matter.0.bridges.a6d6420a-4837-4ff8-9394-b20e1c2395e0.commissioned",
+    "type": "state",
+    "common": {
+      "name": "commissioned",
+      "type": "boolean",
+      "role": "indicator",
+      "read": true,
+      "write": false
+    },
+    "native": {}
+  },
+  "matter.0.bridges.cb81ffe7-92b7-4da6-9284-eebf8d89e698.commissioned": {
+    "_id": "matter.0.bridges.cb81ffe7-92b7-4da6-9284-eebf8d89e698.commissioned",
+    "type": "state",
+    "common": {
+      "name": "commissioned",
+      "type": "boolean",
+      "role": "indicator",
+      "read": true,
+      "write": false
+    },
+    "native": {}
+  }
+}

@@ -1,17 +1,7 @@
 import { expect } from 'chai';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import {
-    DeviceTypeId,
-    Environment,
-    LogLevel,
-    Logger,
-    MockStorageService,
-    ServerNode,
-    StorageService,
-    VendorId,
-} from '@matter/main';
-import { MdnsService } from '@matter/main/protocol';
+import { DeviceTypeId, Environment, LogLevel, Logger, ServerNode, VendorId } from '@matter/main';
 import {
     ConcentrationMeasurement,
     FanControl,
@@ -26,6 +16,7 @@ import DeviceFactory from '../src/lib/DeviceFactory';
 import { PropertyType } from '../src/lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions, GenericDevice } from '../src/lib/devices/GenericDevice';
 import { SubscribeManager } from '../src/lib/SubscribeManager';
+import { createMatterTestEnvironment } from './helpers/matterTestEnvironment';
 import matterDeviceFabric from '../src/matter/to-matter/matterFactory';
 import type { GenericDeviceToMatter } from '../src/matter/to-matter/GenericDeviceToMatter';
 import { AirPurifierToMatter } from '../src/matter/to-matter/AirPurifierToMatter';
@@ -266,10 +257,7 @@ describe('to-matter converters for type-detector v6 device types', function () {
     before(async () => {
         previousLogLevel = Logger.defaultLogLevel;
         Logger.defaultLogLevel = LogLevel.FATAL;
-        // The nodejs platform bindings live on the default environment; storage is overridden so nothing is written.
-        await import('@matter/nodejs');
-        environment = new Environment('to-matter-test', Environment.default);
-        environment.set(StorageService, new MockStorageService(environment));
+        environment = await createMatterTestEnvironment('to-matter-test');
     });
 
     afterEach(async () => {
@@ -279,10 +267,7 @@ describe('to-matter converters for type-detector v6 device types', function () {
         SubscribeManager.subscribes.clear();
     });
 
-    after(async () => {
-        if (environment?.has(MdnsService)) {
-            await environment.get(MdnsService).close();
-        }
+    after(() => {
         Logger.defaultLogLevel = previousLogLevel;
     });
 

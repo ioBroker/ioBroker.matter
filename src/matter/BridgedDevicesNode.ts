@@ -48,6 +48,19 @@ class BridgedDevices extends BaseServerNode {
         return this.#parameters.port;
     }
 
+    /** Takes the endpoints of one bridged device off the bridge again. */
+    async #removeDeviceEndpoints(uuid: string): Promise<void> {
+        for (const endpoint of this.#deviceEndpoints.get(uuid) ?? []) {
+            try {
+                await endpoint.delete();
+            } catch (error) {
+                const errorText = inspect(error, { depth: 10 });
+                this.adapter.log.error(`Error removing endpoint ${endpoint.id} from bridge: ${errorText}`);
+            }
+        }
+        this.#deviceEndpoints.delete(uuid);
+    }
+
     /** Creates the Matter device/endpoint and adds it to the code. It also handles Composed vs non-composed structuring. */
     async addBridgedIoBrokerDevice(device: GenericDevice, deviceOptions: BridgeDeviceDescription): Promise<void> {
         if (!this.#aggregator) {
@@ -159,7 +172,15 @@ class BridgedDevices extends BaseServerNode {
 
                 this.#deviceEndpoints.set(deviceOptions.uuid, [composedEndpoint]);
             }
-            await mappingDevice.init();
+            try {
+                await mappingDevice.init();
+            } catch (error) {
+                // The endpoints are already mounted and advertised, but without their handlers they would
+                // answer a controller with defaults forever, so the device leaves the bridge completely.
+                await this.#removeDeviceEndpoints(deviceOptions.uuid);
+                await mappingDevice.destroy();
+                throw error;
+            }
             mappingDevice.validChanged.on(
                 () =>
                     void this.updateUiState().catch(error =>

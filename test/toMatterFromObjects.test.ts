@@ -394,7 +394,7 @@ describe('to-matter mapping of exported ioBroker objects', function () {
         });
 
         // `RgbSingle` and `RgbwSingle` parse their own state, so each keeps its own suppression.
-        for (const { type, oid, target, marker } of [
+        const singleColourDevices = [
             {
                 type: 'rgbSingle',
                 oid: 'alias.0.Test-Devices.Rgb-Single.RGB',
@@ -407,7 +407,9 @@ describe('to-matter mapping of exported ioBroker objects', function () {
                 target: '0_userdata.0.States-For-Devices.Color-RGBW',
                 marker: 'Invalid RGBW value',
             },
-        ]) {
+        ];
+
+        for (const { type, oid, target, marker } of singleColourDevices) {
             it(`reports an unreadable ${type} colour once per value, not once per change`, async () => {
                 adapter.seedValue(target, 'red');
                 await mount(adapter, entryFor(oid, type));
@@ -420,6 +422,20 @@ describe('to-matter mapping of exported ioBroker objects', function () {
 
                 await adapter.pushValue(oid, 'blue');
                 expect(invalid().length, 'a different unreadable value not logged').to.be.greaterThan(afterMount);
+            });
+        }
+
+        for (const { type, oid, target, marker } of singleColourDevices) {
+            it(`keeps a ${type} device mounted when its colour state holds a number`, async () => {
+                // The state declares `common.type: 'string'`, but nothing stops a script writing a number,
+                // and the device layer hands the raw value through. Seven digits are hex of neither length.
+                adapter.seedValue(target, 1671168);
+                const mounted = await mount(adapter, entryFor(oid, type));
+                const [light] = mounted.endpoints;
+
+                expect(stateOf(light, 'colorControl')!.currentHue).to.equal(0);
+                expect(adapter.errors).to.deep.equal([]);
+                expect(adapter.infos.filter(message => message.includes(marker)).join()).to.contain('1671168');
             });
         }
 

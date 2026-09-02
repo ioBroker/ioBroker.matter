@@ -86,18 +86,12 @@ class BridgedDevices extends BaseServerNode {
         this.adapter.log.info(`Preparing bridged device ${deviceOptions.uuid} "${deviceOptions.name}" for bridge`);
 
         if (this.#deviceEndpoints.has(deviceOptions.uuid)) {
-            this.adapter.log.warn(
-                `Device ${deviceOptions.uuid} already in bridge. Should never happen. Closing them before re-adding`,
-            );
-            for (const endpoint of this.#deviceEndpoints.get(deviceOptions.uuid) ?? []) {
-                try {
-                    await endpoint.close();
-                } catch (error) {
-                    const errorText = inspect(error, { depth: 10 });
-                    this.adapter.log.error(`Error closing endpoint ${endpoint.id} in bridge: ${errorText}`);
-                }
+            this.adapter.log.warn(`Device ${deviceOptions.uuid} still in bridge. Removing it before re-adding`);
+            if (!(await this.#removeDeviceEndpoints(deviceOptions.uuid))) {
+                throw new Error(
+                    `Device ${deviceOptions.uuid} "${deviceOptions.name}" has endpoints on the bridge that could not be removed, so it cannot be re-added`,
+                );
             }
-            this.#deviceEndpoints.delete(deviceOptions.uuid);
         }
 
         const mappingDevice = await matterDeviceFactory(device, deviceOptions.name, deviceOptions.uuid);

@@ -52,7 +52,10 @@ export class RgbwSingle extends Ct {
         if (!this.#rgbwState) {
             throw new Error('RGBW state not found');
         }
-        const rgbw = this.#rgbwState.value ?? '#00000000';
+        // `DeviceStateObject` casts the raw state value to its declared type, so a state whose
+        // `common.type` says string can still hold a number at runtime.
+        const raw = this.#rgbwState.value ?? '#00000000';
+        const rgbw = typeof raw === 'string' ? raw : String(raw);
         const match = rgbw.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
         if (!match) {
             // Anything can write this state, and a value that is not a hex colour is not exceptional;

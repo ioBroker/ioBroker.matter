@@ -7,7 +7,7 @@ import { SubscribeManager } from '../../src/lib/SubscribeManager';
 
 export class MockControllerAdapter {
     readonly namespace = 'matter.0';
-    readonly objects = new Map<string, ioBroker.AnyObject>();
+    readonly objects = new Map<string, ioBroker.Object>();
     readonly states = new Map<string, ioBroker.State>();
     readonly errors = new Array<string>();
     readonly #timers = new Set<NodeJS.Timeout>();
@@ -26,15 +26,20 @@ export class MockControllerAdapter {
         return id.startsWith(`${this.namespace}.`) ? id.substring(this.namespace.length + 1) : id;
     }
 
-    async getObjectAsync(id: string): Promise<ioBroker.AnyObject | null> {
+    /** Objects are keyed by their short id but carry the full id, the way js-controller reports them. */
+    #fullId(shortId: string): string {
+        return `${this.namespace}.${shortId}`;
+    }
+
+    async getObjectAsync(id: string): Promise<ioBroker.Object | null> {
         return this.objects.get(this.#shortId(id)) ?? null;
     }
 
-    async getForeignObjectAsync(id: string): Promise<ioBroker.AnyObject | null> {
+    async getForeignObjectAsync(id: string): Promise<ioBroker.Object | null> {
         return this.objects.get(this.#shortId(id)) ?? null;
     }
 
-    async extendObjectAsync(id: string, obj: Partial<ioBroker.AnyObject>): Promise<void> {
+    async extendObjectAsync(id: string, obj: Partial<ioBroker.Object>): Promise<void> {
         const key = this.#shortId(id);
         const existing = this.objects.get(key);
         const common = { ...(existing?.common ?? {}), ...(obj.common ?? {}) };
@@ -46,16 +51,16 @@ export class MockControllerAdapter {
         this.objects.set(key, {
             ...(existing ?? {}),
             ...obj,
-            _id: key,
+            _id: this.#fullId(key),
             common,
             native: { ...(existing?.native ?? {}), ...(obj.native ?? {}) },
-        } as ioBroker.AnyObject);
+        } as ioBroker.Object);
     }
 
     async setObjectNotExists(id: string, obj: ioBroker.SettableObject): Promise<void> {
         const key = this.#shortId(id);
         if (!this.objects.has(key)) {
-            this.objects.set(key, { ...obj, _id: key } as unknown as ioBroker.AnyObject);
+            this.objects.set(key, { ...obj, _id: this.#fullId(key) } as unknown as ioBroker.Object);
         }
     }
 
@@ -91,6 +96,24 @@ export class MockControllerAdapter {
                 : ({ val: value as ioBroker.StateValue, ack: ack ?? true, ts: Date.now() } as ioBroker.State);
         this.states.set(key, state);
         await SubscribeManager.observer(key, state);
+    }
+
+    /**
+     * Object view over the recorded objects, so the ioBroker type detector can run over what the controller
+     * mapping created. Ids are returned namespace-prefixed, the way js-controller reports them.
+     */
+    async getObjectViewAsync(
+        _design: string,
+        search: string,
+        params: { startkey?: string; endkey?: string } | null,
+    ): Promise<{ rows: { id: string; value: ioBroker.Object }[] }> {
+        const startkey = this.#shortId(params?.startkey ?? '');
+        const endkey = this.#shortId(params?.endkey ?? '\u9999');
+        const rows = [...this.objects.entries()]
+            .filter(([id, obj]) => obj.type === search && id >= startkey && id <= endkey)
+            .map(([id, obj]) => ({ id: this.#fullId(id), value: obj }))
+            .sort((a, b) => (a.id < b.id ? -1 : 1));
+        return { rows };
     }
 
     async getForeignStateAsync(id: string): Promise<ioBroker.State | null> {

@@ -17,6 +17,12 @@ export interface BridgedEndpointSpec {
     expectedStates: string[];
     /** Values the mapping must have written, keyed by state name. */
     expectedValues?: Record<string, unknown>;
+    /**
+     * Device type the ioBroker type detector finds again in the states the mapping created. Defaults to
+     * `expectedIoBrokerType`; set it only where the created states legitimately describe another type, and say
+     * why. `null` means the states are not a detectable device at all.
+     */
+    expectedDetectedType?: string | null;
     /** Set when the Matter device type has no dedicated converter and falls through to the utility mapping. */
     unmapped?: true;
     /** Set when mapping this endpoint currently throws; the message the test pins. */
@@ -32,6 +38,8 @@ export const BRIDGED_ENDPOINTS: BridgedEndpointSpec[] = [
         deviceType: 0x0850,
         expectedConverter: 'UtilityOnlyToIoBroker',
         expectedIoBrokerType: 'light',
+        // Only the connection states are created, which are no device
+        expectedDetectedType: null,
         expectedStates: [...CONNECTION_STATES],
         unmapped: true,
     },
@@ -197,6 +205,11 @@ export const BRIDGED_ENDPOINTS: BridgedEndpointSpec[] = [
         deviceType: 0x000f,
         expectedConverter: 'GenericSwitchToIoBroker',
         expectedIoBrokerType: 'socket',
+        // A latching switch reports its position and takes no command, so the only state is a read-only
+        // ACTUAL. A socket needs a writable SET, so no socket is detected and the retry reports what the
+        // state does describe: a read-only boolean sensor. A bridge pointed at these states would log the
+        // mismatch and expose the single state, not a socket.
+        expectedDetectedType: 'window',
         expectedStates: ['ACTUAL', ...CONNECTION_STATES],
         expectedValues: { ACTUAL: false },
     },
@@ -468,6 +481,8 @@ export const COMPOSED_ENDPOINTS: BridgedEndpointSpec[] = [
         deviceType: 0x0070,
         expectedConverter: 'UtilityOnlyToIoBroker',
         expectedIoBrokerType: 'light',
+        // Only the connection states are created, which are no device
+        expectedDetectedType: null,
         expectedStates: [...CONNECTION_STATES],
         unmapped: true,
     },
@@ -487,6 +502,8 @@ export const COMPOSED_ENDPOINTS: BridgedEndpointSpec[] = [
         deviceType: 0x0011,
         expectedConverter: 'UtilityOnlyToIoBroker',
         expectedIoBrokerType: 'light',
+        // A power source contributes battery indicators, not a device
+        expectedDetectedType: null,
         expectedStates: ['BATTERY', 'LOWBAT'],
         // batPercentRemaining is reported in half percent.
         expectedValues: { BATTERY: 70, LOWBAT: false },

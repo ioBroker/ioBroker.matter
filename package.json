@@ -72,6 +72,7 @@
         "check-types": "tsc -p tsconfig.json --noEmit",
         "pretest": "npm run check-types",
         "test": "cross-env TS_NODE_PROJECT=./tsconfig.test.json mocha --exit test/**/*.test.ts",
+        "test:fixtures": "cross-env TS_NODE_PROJECT=./tsconfig.test.json ts-node test/fixtures/generateObjectFixtures.ts",
         "test:integration": "cross-env TS_NODE_PROJECT=./tsconfig.test.json mocha --exit --config .mocharc.integration.json",
         "prepublishOnly": "npm run build",
         "npm": "npm i && cd src-admin && npm i",

@@ -1,0 +1,538 @@
+{
+  "matter.0.bridges.265c41a2-9b79-4778-ae60-8122271cc46d": {
+    "_id": "matter.0.bridges.265c41a2-9b79-4778-ae60-8122271cc46d",
+    "type": "channel",
+    "common": {
+      "name": "New bridge 1"
+    },
+    "native": {
+      "list": [
+        {
+          "uuid": "2e0974c9-eb77-4bd3-a3bd-2641431869fc",
+          "name": "BlindsButtons",
+          "oid": "alias.0.Test-Devices.BlindsButtons.STOP",
+          "type": "blindButtons",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "5786722e-80e4-4ead-8c46-560629fde7c3",
+          "name": "BlindsButtonsLiftTilt",
+          "oid": "alias.0.Test-Devices.BlindsButtonsLiftTilt.STOP",
+          "type": "blindButtons",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "156f2e94-61b2-4da1-be17-7ad4f559bb4e",
+          "name": "BlindsLift",
+          "oid": "alias.0.Test-Devices.BlindsLift.SET",
+          "type": "blind",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "2bbb0e9b-e6cb-4a99-8dfd-50e943e6b077",
+          "name": "BlindsLiftTilt",
+          "oid": "alias.0.Test-Devices.BlindsLiftTilt.SET",
+          "type": "blind",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "88410601-a0fb-4bae-8a9f-c8aa40f418cb",
+          "name": "Cie",
+          "oid": "alias.0.Test-Devices.Cie",
+          "type": "cie",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "5bf5f795-73f9-4baa-a413-1a05f56bdd27",
+          "name": "Hue",
+          "oid": "alias.0.Test-Devices.Hue",
+          "type": "hue",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "c0e3c166-0d32-4834-bd17-3dae563a4e90",
+          "name": "RGB",
+          "oid": "alias.0.Test-Devices.RGB.RED",
+          "type": "rgb",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "41aa5006-0bee-4906-b995-877cdc21ca02",
+          "name": "Rgb-Single",
+          "oid": "alias.0.Test-Devices.Rgb-Single.RGB",
+          "type": "rgbSingle",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "39cb7b14-4279-446d-bf8a-5972c399d503",
+          "name": "Rgbw",
+          "oid": "alias.0.Test-Devices.Rgbw.RED",
+          "type": "rgb",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "ebdafd0f-0d16-403d-bad4-0baf65a8ae4e",
+          "name": "Rgbw-Single",
+          "oid": "alias.0.Test-Devices.Rgbw-Single.RGBW",
+          "type": "rgbwSingle",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "6f19d920-675e-4c0f-86d4-de9a3189988c",
+          "name": "Temp BR",
+          "oid": "zigbee.0.EEEEEEE.color",
+          "type": "rgbSingle",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "c6392e24-eb7f-4e7d-9668-e7374e8abbfa",
+          "name": "Thermostat",
+          "oid": "alias.0.Test-Devices.Thermostat",
+          "type": "thermostat",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        }
+      ]
+    }
+  },
+  "matter.0.bridges.a6d6420a-4837-4ff8-9394-b20e1c2395e0": {
+    "_id": "matter.0.bridges.a6d6420a-4837-4ff8-9394-b20e1c2395e0",
+    "type": "channel",
+    "common": {
+      "name": "Test Bridge"
+    },
+    "native": {
+      "list": [
+        {
+          "uuid": "26d5f705-f699-4684-9047-acd586b1cd64",
+          "name": "Button",
+          "oid": "alias.0.Test-Devices.Button",
+          "type": "button",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "36c68cdb-2af0-4fca-81b7-53a5bd5ac61b",
+          "name": "Button-Sensor",
+          "oid": "alias.0.Test-Devices.Button-Sensor",
+          "type": "buttonSensor",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "9dba3ff6-e974-4caf-aceb-af67a7ed1359",
+          "name": "Button-Sensor-Single",
+          "oid": "alias.0.Test-Devices.Button-Sensor-Single",
+          "type": "buttonSensor",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "10356d27-cf63-4683-b346-8db4c07e7cdd",
+          "name": "Ct",
+          "oid": "alias.0.Test-Devices.Ct",
+          "type": "ct",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "a6285dbc-46a7-454f-8ed1-81c909b093ed",
+          "name": "Dimmer",
+          "oid": "alias.0.Test-Devices.Ct.DIMMER",
+          "type": "dimmer",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": true,
+          "hasOnState": false
+        },
+        {
+          "uuid": "acaf7836-26fd-4ef6-aa3e-f57de96be84b",
+          "name": "Dimmer",
+          "oid": "alias.0.Test-Devices.Dimmer.SET",
+          "type": "dimmer",
+          "enabled": true,
+          "noComposed": true,
+          "auto": true,
+          "actionAllowedByIdentify": true,
+          "hasOnState": false
+        },
+        {
+          "uuid": "6172b416-3821-4c15-9363-5eb1c91ee63c",
+          "name": "Flood-Alarm",
+          "oid": "alias.0.Test-Devices.Flood-Alarm",
+          "type": "floodAlarm",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "7e055424-bab8-4ca2-b1f4-eb32a386ea73",
+          "name": "Humidity",
+          "oid": "alias.0.Test-Devices.Humidity",
+          "type": "humidity",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "19f4872a-3bc8-489d-9e67-d8afe694e923",
+          "name": "Lock",
+          "oid": "alias.0.Test-Devices.Lock",
+          "type": "lock",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "2fb218a1-cde2-40ac-b1ee-14c414a688b1",
+          "name": "test-Dummy",
+          "oid": "alias.0.Test-Devices.test-Dummy",
+          "type": "socket",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "9d0b1129-8b92-4eca-9fd3-1a28ea8451cb",
+          "name": "Window",
+          "oid": "alias.0.Test-Devices.Window",
+          "type": "window",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        }
+      ]
+    }
+  },
+  "matter.0.bridges.cb81ffe7-92b7-4da6-9284-eebf8d89e698": {
+    "_id": "matter.0.bridges.cb81ffe7-92b7-4da6-9284-eebf8d89e698",
+    "type": "channel",
+    "common": {
+      "name": "Default bridge"
+    },
+    "native": {
+      "list": [
+        {
+          "uuid": "2483c00a-a4a6-4012-a6bb-5336dd79d85b",
+          "name": "BlindsButtonsLiftTilt",
+          "oid": "alias.0.Test-Devices.BlindsButtonsLiftTilt.STOP",
+          "type": "blindButtons",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "34663bd0-ea3a-49a8-8713-541e84682100",
+          "name": "BlindsLiftTilt",
+          "oid": "alias.0.Test-Devices.BlindsLiftTilt.SET",
+          "type": "blind",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "d5e1a933-9b9d-4a2e-bd17-e487b585998f",
+          "name": "Button",
+          "oid": "alias.0.Test-Devices.Button",
+          "type": "button",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "dda0d366-44d9-4e55-b1fb-c7a95df0508d",
+          "name": "Button-Sensor",
+          "oid": "alias.0.Test-Devices.Button-Sensor.PRESS_LONG",
+          "type": "buttonSensor",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "360ceac9-9253-4205-9db1-f3c0c9ed1ecd",
+          "name": "Button-Sensor-Single",
+          "oid": "alias.0.Test-Devices.Button-Sensor-Single.PRESS",
+          "type": "buttonSensor",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "b3e9cda4-2dc9-4c53-91af-d9532db2204a",
+          "name": "Cie",
+          "oid": "alias.0.Test-Devices.Cie.CIE",
+          "type": "cie",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "1355cc4f-c698-47af-a44a-6c6912037b65",
+          "name": "Ct",
+          "oid": "alias.0.Test-Devices.Ct",
+          "type": "ct",
+          "enabled": true,
+          "noComposed": true,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "2845dd27-d05c-468a-8351-3e407cc89441",
+          "name": "Ct-Only",
+          "oid": "alias.0.Test-Devices.Ct-Only.TEMPERATURE",
+          "type": "ct",
+          "enabled": true,
+          "noComposed": true,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "a1c66d83-d032-45d3-92c9-7bdedd581d99",
+          "name": "Dimmer",
+          "oid": "alias.0.Test-Devices.Dimmer.SET",
+          "type": "dimmer",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": true,
+          "hasOnState": false
+        },
+        {
+          "uuid": "b94e25f8-2701-4e3d-9ed6-abe7d4f216d6",
+          "name": "Door",
+          "oid": "alias.0.Test-Devices.Door.ACTUAL",
+          "type": "door",
+          "enabled": true,
+          "noComposed": true,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "de3c8a22-8098-433e-9474-bc2e6168c6d0",
+          "name": "Flood-Alarm",
+          "oid": "alias.0.Test-Devices.Flood-Alarm.ACTUAL",
+          "type": "floodAlarm",
+          "enabled": true,
+          "noComposed": true,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "8e2a5be8-28be-4f71-9ce8-6da264f209e9",
+          "name": "Hue",
+          "oid": "alias.0.Test-Devices.Hue.HUE",
+          "type": "hue",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "3d243a2d-d56e-4ed8-96ce-3ec2f2b8443c",
+          "name": "Illuminance",
+          "oid": "alias.0.Test-Devices.Illuminance.ACTUAL",
+          "type": "illuminance",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "4b23a845-a5ef-4948-87c6-3218fe1872b9",
+          "name": "Light",
+          "oid": "alias.0.Test-Devices.Light.SET",
+          "type": "light",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": true
+        },
+        {
+          "uuid": "1e921d1c-de2e-472c-a5d4-5b59306a5175",
+          "name": "Lock",
+          "oid": "alias.0.Test-Devices.Lock.SET",
+          "type": "lock",
+          "enabled": true,
+          "noComposed": true,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "0e28781a-97b6-4ee9-a2d3-bdb65648dcba",
+          "name": "Lock-With-Open",
+          "oid": "alias.0.Test-Devices.Lock-With-Open.SET",
+          "type": "lock",
+          "enabled": true,
+          "noComposed": true,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "6331aaf3-83c1-4734-8a93-e4b1b77517d1",
+          "name": "Motion",
+          "oid": "alias.0.Test-Devices.Motion.ACTUAL",
+          "type": "motion",
+          "enabled": true,
+          "noComposed": true,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "de3d489e-3e56-49f9-874d-dc03e47ef812",
+          "name": "Motion-With-Brightness",
+          "oid": "alias.0.Test-Devices.Motion-With-Brightness.ACTUAL",
+          "type": "motion",
+          "enabled": true,
+          "noComposed": true,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "18f746c0-df24-423d-9a40-3403276a4886",
+          "name": "myOnOff",
+          "oid": "0_userdata.0.Test_light.onoff",
+          "type": "light",
+          "enabled": true,
+          "noComposed": false,
+          "auto": false,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "88dd6f09-1b92-4157-8410-d90d0be75948",
+          "name": "RGB",
+          "oid": "alias.0.Test-Devices.RGB.RED",
+          "type": "rgb",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "301829b5-55fc-420f-bc2b-bace7ad5457f",
+          "name": "Rgb-Single",
+          "oid": "alias.0.Test-Devices.Rgb-Single.RGB",
+          "type": "rgbSingle",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "cd82961b-3e63-46e5-adb5-7ef6cf3ba1ff",
+          "name": "Rgbw-Single",
+          "oid": "alias.0.Test-Devices.Rgbw-Single.RGBW",
+          "type": "rgbwSingle",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "251840f5-bd42-40ad-8da9-64895243e6b5",
+          "name": "Temparature",
+          "oid": "alias.0.Test-Devices.Temparature.ACTUAL",
+          "type": "temperature",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "4a2d9c46-2dde-4dd2-a652-40ef43fb3ed3",
+          "name": "TemperatureAndHumidity",
+          "oid": "alias.0.Test-Devices.TemperatureAndHumidity.ACTUAL",
+          "type": "temperature",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "4a2d9c46-2dde-4dd2-a652-40ef43fb3ed2",
+          "name": "TemperatureAndHumidity-Flat",
+          "oid": "alias.0.Test-Devices.TemperatureAndHumidity.ACTUAL",
+          "type": "temperature",
+          "enabled": true,
+          "noComposed": true,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "08ea0bb5-dfd3-4740-a476-96f7c63161b8",
+          "name": "Thermostat",
+          "oid": "alias.0.Test-Devices.Thermostat.SET",
+          "type": "thermostat",
+          "enabled": true,
+          "noComposed": false,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        },
+        {
+          "uuid": "23f5d7d1-8d61-40a5-9089-2899692408ce",
+          "name": "Window",
+          "oid": "alias.0.Test-Devices.Window.ACTUAL",
+          "type": "window",
+          "enabled": true,
+          "noComposed": true,
+          "auto": true,
+          "actionAllowedByIdentify": false
+        }
+      ]
+    }
+  }
+}

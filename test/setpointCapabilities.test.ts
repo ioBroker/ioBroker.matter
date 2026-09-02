@@ -1,15 +1,5 @@
 import { expect } from 'chai';
-import {
-    DeviceTypeId,
-    Environment,
-    LogLevel,
-    Logger,
-    MockStorageService,
-    ServerNode,
-    StorageService,
-    VendorId,
-} from '@matter/main';
-import { MdnsService } from '@matter/main/protocol';
+import { DeviceTypeId, Environment, LogLevel, Logger, ServerNode, VendorId } from '@matter/main';
 import { Thermostat as MatterThermostat } from '@matter/main/clusters';
 import { StateType, Types } from '@iobroker/type-detector';
 import DeviceFactory from '../src/lib/DeviceFactory';
@@ -17,6 +7,7 @@ import type { DetectedDevice, DeviceOptions, GenericDevice } from '../src/lib/de
 import { SubscribeManager } from '../src/lib/SubscribeManager';
 import matterDeviceFabric from '../src/matter/to-matter/matterFactory';
 import type { GenericDeviceToMatter } from '../src/matter/to-matter/GenericDeviceToMatter';
+import { createMatterTestEnvironment } from './helpers/matterTestEnvironment';
 
 interface StateSpec {
     type: 'number' | 'boolean' | 'string';
@@ -221,9 +212,7 @@ describe('Matter setpoint capabilities', function () {
     before(async () => {
         previousLogLevel = Logger.defaultLogLevel;
         Logger.defaultLogLevel = LogLevel.FATAL;
-        await import('@matter/nodejs');
-        environment = new Environment('setpoint-test', Environment.default);
-        environment.set(StorageService, new MockStorageService(environment));
+        environment = await createMatterTestEnvironment('setpoint-test');
     });
 
     afterEach(async () => {
@@ -233,10 +222,7 @@ describe('Matter setpoint capabilities', function () {
         SubscribeManager.subscribes.clear();
     });
 
-    after(async () => {
-        if (environment?.has(MdnsService)) {
-            await environment.get(MdnsService).close();
-        }
+    after(() => {
         Logger.defaultLogLevel = previousLogLevel;
     });
 

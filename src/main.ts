@@ -16,12 +16,6 @@ import { StorageBackendDisk } from '@matter/nodejs';
 import { inspect } from 'util';
 
 import { type AdapterOptions, Adapter, getAbsoluteInstanceDataDir, I18n } from '@iobroker/adapter-core';
-import ChannelDetector, {
-    type DetectorState,
-    Types,
-    type DetectOptions,
-    type PatternControl,
-} from '@iobroker/type-detector';
 import type { JsonFormSchema, BackEndCommandJsonFormOptions } from '@iobroker/dm-utils';
 
 import type {
@@ -33,7 +27,6 @@ import type {
 } from './ioBrokerTypes';
 import { DeviceFactory, type GenericDevice, SubscribeManager } from './lib';
 import MatterAdapterDeviceManagement from './lib/DeviceManagement';
-import type { DetectedDevice } from './lib/devices/GenericDevice';
 import type { NodeStateResponse } from './matter/BaseServerNode';
 import BridgedDevice, { type BridgeCreateOptions } from './matter/BridgedDevicesNode';
 import MatterController from './matter/ControllerNode';
@@ -42,62 +35,12 @@ import type { PairedNodeConfig } from './matter/GeneralMatterNode';
 import type { MessageResponse } from './matter/GeneralNode';
 import { IoBrokerObjectStorage } from './matter/IoBrokerObjectStorage';
 import { type StructuredJsonFormData, convertDataToJsonConfig } from './lib/JsonConfigUtils';
-import { selectControlsForState } from './lib/deviceDetection';
+import { determineIoBrokerDevice } from './lib/deviceDetection';
 
 // Prepare BLE
 import '@matter/nodejs-ble';
 
 const IOBROKER_USER_API = 'https://iobroker.pro:3001';
-
-// If the device was created by user and user defined the type of device => use this OID as given name
-const DEVICE_DEFAULT_NAME: Partial<Record<Types, string>> = {
-    [Types.airCondition]: 'SET',
-    [Types.airPurifier]: 'SPEED',
-    [Types.airQuality]: 'AQI',
-    [Types.blindButtons]: 'STOP',
-    [Types.blind]: 'SET',
-    [Types.buttonSensor]: 'PRESS',
-    [Types.button]: 'SET',
-    [Types.camera]: 'URL',
-    [Types.cie]: 'CIE',
-    [Types.coAlarm]: 'ACTUAL',
-    [Types.contact]: 'ACTUAL',
-    [Types.ct]: 'TEMPERATURE',
-    [Types.dimmer]: 'SET',
-    [Types.door]: 'ACTUAL',
-    [Types.electricity]: 'ELECTRIC_POWER',
-    [Types.fan]: 'SPEED',
-    [Types.fireAlarm]: 'ACTUAL',
-    [Types.floodAlarm]: 'ACTUAL',
-    [Types.flow]: 'FLOW',
-    [Types.gate]: 'SET',
-    [Types.hue]: 'HUE',
-    [Types.humidity]: 'ACTUAL',
-    [Types.illuminance]: 'ACTUAL',
-    [Types.image]: 'URL',
-    [Types.info]: 'ACTUAL',
-    [Types.light]: 'SET',
-    [Types.lock]: 'SET',
-    [Types.media]: 'PLAY',
-    [Types.motion]: 'ACTUAL',
-    [Types.rgbSingle]: 'CIE',
-    [Types.rgbwSingle]: 'RGB',
-    [Types.slider]: 'SET',
-    [Types.percentage]: 'SET',
-    [Types.pressure]: 'PRESSURE',
-    [Types.pump]: 'POWER',
-    [Types.socket]: 'SET',
-    [Types.temperature]: 'ACTUAL',
-    [Types.thermostat]: 'SET',
-    [Types.vacuumCleaner]: 'POWER',
-    [Types.volume]: 'SET',
-    [Types.volumeGroup]: 'SET',
-    [Types.warning]: 'INFO',
-    [Types.weatherCurrent]: 'ACTUAL',
-    [Types.weatherForecast]: 'STATE',
-    [Types.window]: 'ACTUAL',
-    [Types.windowTilt]: 'ACTUAL',
-};
 
 interface NodeStatesOptions {
     devices?: boolean;
@@ -869,146 +812,6 @@ export class MatterAdapter extends Adapter {
         );
     }
 
-    async findDeviceFromId(id: string, searchDeviceComingFromLevel?: number): Promise<string | null> {
-        const obj = await this.getForeignObjectAsync(id);
-        if (!obj || obj.type === 'meta') {
-            // Object does not exist
-            return null;
-        }
-        if (obj.type === 'device' || obj.type === 'channel') {
-            // Because it seems we are also fine with just a channel or meta as root return also then
-            // We found a device object, use this
-            return id;
-        }
-        const parts = id.split('.');
-        if (parts.length === 1) {
-            return null; // should never happen, we ran onto instance level
-        }
-        if (parts.length === 2) {
-            // Check if the device search originator comes from one level below, else we found nothing
-            if (searchDeviceComingFromLevel !== undefined && searchDeviceComingFromLevel !== 3) {
-                return null;
-            }
-            // we can not go higher because we found the namespace root, let's assume a "one device adapter"
-            return id;
-        }
-
-        parts.pop();
-        const upperLevelObjectId = parts.join('.');
-
-        const foundDevice = await this.findDeviceFromId(
-            upperLevelObjectId,
-            searchDeviceComingFromLevel ?? parts.length + 1,
-        );
-        if (foundDevice === null) {
-            const upperObj = await this.getForeignObjectAsync(upperLevelObjectId);
-            if (upperObj && upperObj.type === 'folder') {
-                return upperLevelObjectId;
-            }
-
-            if (obj.type === 'state') {
-                return id;
-            }
-            // ok we did not find anything better, go back
-            return null;
-        }
-        return foundDevice;
-    }
-
-    async getIoBrokerDeviceStates(id: string, preferredType?: string): Promise<DetectedDevice | null> {
-        const deviceId = await this.findDeviceFromId(id);
-        this.log.debug(`Handle device for ${id}: ${deviceId}, preferred type: ${preferredType}`);
-        if (!deviceId) {
-            return null;
-        }
-        const obj = await this.getForeignObjectAsync(deviceId);
-        if (!obj) {
-            return null;
-        }
-        const states = await this.getObjectViewAsync('system', 'state', {
-            startkey: `${deviceId}.`,
-            endkey: `${deviceId}.\u9999`,
-        });
-        const objects = { [obj._id]: obj };
-        for (const state of states.rows) {
-            if (state.value) {
-                objects[state.id] = state.value;
-                this.log.debug(
-                    `    Found state ${state.id}: type=${state.value.common.type}, role=${state.value.common.role}, read=${state.value.common.read}, write=${state.value.common.write}, min=${state.value.common.min}, max=${state.value.common.max}, unit=${state.value.common.unit}`,
-                );
-            }
-        }
-
-        const keys = Object.keys(objects); // For optimization
-        const usedIds = new Array<string>(); // Do not allow to use the same ID in more than one device
-        const ignoreIndicators = ['UNREACH_STICKY']; // Ignore indicators by name
-        const options: DetectOptions = {
-            objects,
-            id: deviceId, // Channel, device or state, that must be detected
-            _keysOptional: keys,
-            _usedIdsOptional: usedIds,
-            ignoreIndicators,
-            excludedTypes: [Types.info],
-            allowedTypes: preferredType ? [preferredType as Types] : undefined,
-            ignoreCache: true,
-            ignoreEnums: true,
-        };
-
-        const detector = new ChannelDetector();
-        let controls = detector.detect(options);
-        if (!controls?.length) {
-            delete options.allowedTypes;
-            options.detectAllPossibleDevices = true;
-            controls = detector.detect(options);
-        }
-        if (controls?.length) {
-            const controlsToCheck = selectControlsForState(controls, id, deviceId);
-            if (!controlsToCheck) {
-                this.log.debug(
-                    `Selected state ${id} is not part of any detected device under ${deviceId}; use it as a single-state device.`,
-                );
-                return null;
-            }
-            this.log.debug(
-                `Found ${controlsToCheck.length} device types mapping ${id} in ${deviceId}: ${JSON.stringify(controlsToCheck)}`,
-            );
-            let controlsWithType = controlsToCheck;
-            if (preferredType) {
-                controlsWithType = controlsToCheck.filter((control: PatternControl) => control.type === preferredType);
-                if (controlsWithType.length) {
-                    this.log.debug(
-                        `Found ${controlsWithType.length} device types for ${id} with preferred type ${preferredType}: ${JSON.stringify(
-                            controlsWithType,
-                        )}`,
-                    );
-                } else {
-                    controlsWithType = controlsToCheck;
-                }
-            }
-            this.log.debug(
-                `Found ${controlsWithType.length} device types for ${deviceId} : ${JSON.stringify(controlsWithType)}`,
-            );
-            const mainState = controlsWithType[0].states.find((state: DetectorState) => state.id);
-            if (mainState?.id) {
-                if (preferredType && controlsWithType[0].type !== preferredType) {
-                    this.log.warn(
-                        `Type detection mismatch for state ${mainState.id}: ${controlsWithType[0].type} !== ${preferredType}.`,
-                    );
-                }
-                controlsWithType[0].states = controlsWithType[0].states.filter((state: DetectorState) => state.id);
-
-                return {
-                    ...controlsWithType[0],
-                    isIoBrokerDevice: true,
-                };
-            }
-        } else {
-            this.log.info(`No IoBroker device type found for ${options.id}`);
-        }
-
-        return null;
-    }
-
     async checkLicense(login?: string, pass?: string): Promise<boolean> {
         const config = this.config as MatterAdapterConfig;
         login ||= config.login;
@@ -1120,52 +923,6 @@ export class MatterAdapter extends Adapter {
         return this.#license[key];
     }
 
-    async determineIoBrokerDevice(oid: string, type: string, auto: boolean): Promise<DetectedDevice | null> {
-        const obj = await this.getForeignObjectAsync(oid);
-        if (!obj) {
-            return null; // The configured object does not exist
-        }
-        if (!auto && (obj.type === 'device' || obj.type === 'channel')) {
-            // Fix for wrong UI currently that sets auto to false when channel or device is selected
-            auto = true;
-            this.log.debug(`Enable auto detection for ${oid} with type ${type} because object is ${obj.type}`);
-        }
-
-        const detectedDevice = auto ? await this.getIoBrokerDeviceStates(oid, type) : null;
-        if (detectedDevice && detectedDevice.type === type) {
-            return detectedDevice;
-        }
-        if (obj.type !== 'state') {
-            // No usable detection and the configured object is not a state, so there is nothing to expose
-            this.log.error(
-                `Could not auto-detect a "${type}" device for ${oid} and it is no state. Check configuration.`,
-            );
-            return null;
-        }
-        if (detectedDevice && detectedDevice.type !== type) {
-            this.log.error(
-                `Type detection mismatch for state ${oid}: ${detectedDevice.type} !== ${type}. Initialize device with just this one state.`,
-            );
-        } else {
-            this.log.debug(`No auto detection for ${oid} with type ${type} ... fallback to single ${type} state`);
-        }
-        // ignore all detected states and use only the explicitly configured one
-        return {
-            type: type as Types,
-            states: [
-                {
-                    name: DEVICE_DEFAULT_NAME[type as Types] || 'SET',
-                    id: oid,
-                    // type: StateType.Number, // ignored
-                    write: true, // ignored
-                    defaultRole: 'button', // ignored
-                    required: true, // ignored
-                },
-            ],
-            isIoBrokerDevice: true,
-        };
-    }
-
     async prepareMatterBridgeConfiguration(
         deviceName: string,
         options: BridgeDescription,
@@ -1181,7 +938,8 @@ export class MatterAdapter extends Adapter {
             this.log.debug(
                 `Prepare bridged device ${deviceOptions.uuid} "${deviceOptions.name}" (auto=${deviceOptions.auto})`,
             );
-            const detectedDevice = await this.determineIoBrokerDevice(
+            const detectedDevice = await determineIoBrokerDevice(
+                this,
                 deviceOptions.oid,
                 deviceOptions.type,
                 deviceOptions.auto,
@@ -1265,7 +1023,7 @@ export class MatterAdapter extends Adapter {
         }
 
         this.log.debug(`Prepare device ${options.uuid} "${options.name}" (auto=${options.auto})`);
-        const detectedDevice = await this.determineIoBrokerDevice(options.oid, options.type, options.auto);
+        const detectedDevice = await determineIoBrokerDevice(this, options.oid, options.type, options.auto);
         if (detectedDevice === null) {
             this.log.error(
                 `Cannot initialize device ${options.uuid} "${options.name}" because ${options.oid} does not exist! Check configuration.`,

@@ -22,6 +22,7 @@ import {
     RvcRunMode,
 } from '@matter/main/clusters';
 import { AggregatorEndpointDefinition } from '@matter/main/endpoints';
+import { getIoBrokerDeviceStates } from '../../src/lib/deviceDetection';
 import { SubscribeManager } from '../../src/lib/SubscribeManager';
 import { toHex } from '../../src/lib/utils';
 import type { GenericDeviceToIoBroker } from '../../src/matter/to-iobroker/GenericDeviceToIoBroker';
@@ -123,6 +124,9 @@ describe('Matter -> ioBroker controller mapping', function () {
             const baseId = `controller.node.${key}`;
             const deviceTypes = identifyDeviceTypes(endpoint);
             const matterDeviceTypeId = deviceTypes.primaryDeviceType?.deviceType.id;
+            // `GeneralMatterNode` creates this before mapping; without it the states below have no device
+            // object and the ioBroker type detector cannot group them.
+            await adapter.extendObjectAsync(baseId, { type: 'device', common: { name: key }, native: {} });
             // Per endpoint, so one converter throwing does not hide the mapping of all the others.
             try {
                 const device = await ioBrokerDeviceFabric(
@@ -179,11 +183,13 @@ describe('Matter -> ioBroker controller mapping', function () {
         }
     });
 
-    it('maps every bridged endpoint the fixture exposes', () => {
+    it('maps every bridged endpoint the fixture exposes', async () => {
         if (process.env.DUMP_MAPPING === 'true') {
             for (const [id, { device, baseId, error }] of mapped) {
+                // Without a preferred type, so the dump shows which device the states describe on their own.
+                const detected = await getIoBrokerDeviceStates(adapter, `${adapter.namespace}.${baseId}`);
                 console.log(
-                    `${id}\t${device?.constructor.name ?? `THREW ${String(error)}`}\t${device?.ioBrokerDevice.deviceType}\t${adapter
+                    `${id}\t${device?.constructor.name ?? `THREW ${String(error)}`}\t${device?.ioBrokerDevice.deviceType}\tdetected=${detected?.type ?? 'none'}\t${adapter
                         .statesBelow(baseId)
                         .map(name => `${name}=${JSON.stringify(adapter.valueOf(baseId, name))}`)
                         .join(' ')}`,
@@ -238,6 +244,32 @@ describe('Matter -> ioBroker controller mapping', function () {
             it('creates exactly the expected states', () => {
                 const entry = mapped.get(spec.id)!;
                 expect(adapter.statesBelow(entry.baseId)).to.deep.equal([...spec.expectedStates].sort());
+            });
+
+            it('is detected again as an ioBroker device by the type detector', async () => {
+                const entry = mapped.get(spec.id)!;
+                const expected =
+                    spec.expectedDetectedType === undefined ? spec.expectedIoBrokerType : spec.expectedDetectedType;
+                // Asked the way the adapter asks: with the type the converter declares. A different answer
+                // means a bridge pointed at these states would not get the device the controller reports.
+                const detected = await getIoBrokerDeviceStates(
+                    adapter,
+                    `${adapter.namespace}.${entry.baseId}`,
+                    spec.expectedIoBrokerType,
+                );
+                expect(detected?.type ?? null).to.equal(expected);
+                if (detected === null) {
+                    return;
+                }
+                // The detector may leave optional slots empty, but it must not reach outside the device.
+                const prefix = `${adapter.namespace}.${entry.baseId}.`;
+                const created = adapter.statesBelow(entry.baseId);
+                for (const state of detected.states) {
+                    expect(state.id!.startsWith(prefix), `${state.name} points outside at ${state.id}`).to.equal(true);
+                    expect(created, `${state.name} points at ${state.id}, which was not created`).to.contain(
+                        state.id!.substring(prefix.length),
+                    );
+                }
             });
 
             if (spec.expectedValues !== undefined) {

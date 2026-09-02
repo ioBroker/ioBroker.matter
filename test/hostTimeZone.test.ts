@@ -227,11 +227,17 @@ describe('hostTimeZone', () => {
         });
 
         it('does not split an ordinary DST zone or a recurring seasonal dip', () => {
-            for (const zone of ['Europe/Berlin', 'America/New_York', 'Africa/Casablanca']) {
+            for (const zone of ['Europe/Berlin', 'America/New_York']) {
                 for (const month of [0, 3, 6, 9]) {
                     const plan = timeZonePlan(zone, Date.UTC(2026, month, 10), BOTH_MAX);
                     expect(plan.regimes.length, `${zone} month ${month}`).to.equal(1);
                 }
+            }
+            // Morocco's Ramadan dip only recurs historically: newer tzdata moves the zone permanently to
+            // +00 on 2026-09-21, which makes 2026 a pending-permanent-change case instead.
+            for (const month of [0, 3, 6, 9]) {
+                const plan = timeZonePlan('Africa/Casablanca', Date.UTC(2022, month, 10), BOTH_MAX);
+                expect(plan.regimes.length, `Africa/Casablanca month ${month}`).to.equal(1);
             }
         });
 
@@ -323,24 +329,25 @@ describe('hostTimeZone', () => {
             this.timeout(20_000);
             // One zone per behaviour: each plan day-steps its whole scan range, so breadth across
             // every IANA zone and year belongs to the offline sweep.
-            const zones = [
-                'Europe/Berlin', // northern seasonal DST
-                'Australia/Sydney', // southern, window spans New Year
-                'America/Phoenix', // no DST
-                'Asia/Kolkata', // half-hour offset, no DST
-                'Pacific/Chatham', // 45-minute DST delta
-                'Africa/Casablanca', // recurring dip below the base
+            const cases: Array<[string, number]> = [
+                ['Europe/Berlin', 2026], // northern seasonal DST
+                ['Australia/Sydney', 2026], // southern, window spans New Year
+                ['America/Phoenix', 2026], // no DST
+                ['Asia/Kolkata', 2026], // half-hour offset, no DST
+                ['Pacific/Chatham', 2026], // 45-minute DST delta
+                ['Africa/Casablanca', 2022], // recurring dip below the base, historical under every tzdata
+                ['Africa/Casablanca', 2026], // dip, or pending permanent +00, depending on tzdata
             ];
             let checked = 0;
-            for (const zone of zones) {
+            for (const [zone, year] of cases) {
                 for (const month of [0, 3, 6, 9]) {
                     for (const maxWindows of [1, 2]) {
-                        expectPlanMatchesZone(zone, Date.UTC(2026, month, 5, 6), { maxRegimes: 2, maxWindows });
+                        expectPlanMatchesZone(zone, Date.UTC(year, month, 5, 6), { maxRegimes: 2, maxWindows });
                         checked++;
                     }
                 }
             }
-            expect(checked).to.equal(zones.length * 4 * 2);
+            expect(checked).to.equal(cases.length * 4 * 2);
         });
 
         it('produces lists SetTimeZone and SetDstOffset accept', function () {
@@ -354,7 +361,7 @@ describe('hostTimeZone', () => {
                 ['Asia/Almaty', Date.UTC(2024, 0, 10)], // pending permanent reduction
                 ['Europe/Istanbul', Date.UTC(2016, 0, 10)], // pending permanent adoption
                 ['America/Asuncion', Date.UTC(2024, 0, 10)], // real DST plus a pending change
-                ['Africa/Casablanca', Date.UTC(2026, 3, 10)], // recurring dip below the base
+                ['Africa/Casablanca', Date.UTC(2022, 3, 10)], // recurring dip below the base
             ];
             let checked = 0;
             for (const [zone, atMs] of cases) {

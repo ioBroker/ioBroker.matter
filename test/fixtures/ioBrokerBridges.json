@@ -6,9 +6,6 @@
       "name": "New bridge 1"
     },
     "native": {
-      "enabled": false,
-      "productID": "0x8000",
-      "vendorID": "0xFFF1",
       "list": [
         {
           "uuid": "2e0974c9-eb77-4bd3-a3bd-2641431869fc",
@@ -130,8 +127,7 @@
           "auto": true,
           "actionAllowedByIdentify": false
         }
-      ],
-      "uuid": "265c41a2-9b79-4778-ae60-8122271cc46d"
+      ]
     }
   },
   "matter.0.bridges.a6d6420a-4837-4ff8-9394-b20e1c2395e0": {
@@ -141,9 +137,6 @@
       "name": "Test Bridge"
     },
     "native": {
-      "enabled": false,
-      "productID": "0x8001",
-      "vendorID": "0xFFF1",
       "list": [
         {
           "uuid": "26d5f705-f699-4684-9047-acd586b1cd64",
@@ -257,8 +250,7 @@
           "auto": true,
           "actionAllowedByIdentify": false
         }
-      ],
-      "uuid": "a6d6420a-4837-4ff8-9394-b20e1c2395e0"
+      ]
     }
   },
   "matter.0.bridges.cb81ffe7-92b7-4da6-9284-eebf8d89e698": {
@@ -268,9 +260,6 @@
       "name": "Default bridge"
     },
     "native": {
-      "enabled": true,
-      "vendorID": "0xFFF1",
-      "productID": "0x8000",
       "list": [
         {
           "uuid": "2483c00a-a4a6-4012-a6bb-5336dd79d85b",
@@ -543,8 +532,7 @@
           "auto": true,
           "actionAllowedByIdentify": false
         }
-      ],
-      "uuid": "cb81ffe7-92b7-4da6-9284-eebf8d89e698"
+      ]
     }
   }
 }

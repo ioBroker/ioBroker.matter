@@ -6,7 +6,8 @@
  *
  * Exports carry per-object ACLs, timestamps, icons and fully expanded `common.enums` trees; none of that
  * reaches the detector (production passes `ignoreEnums`) and it inflates the export tenfold, so only the
- * fields the detector and the device layer read are kept.
+ * fields the detector and the device layer read are kept. A bridge configuration also carries its Matter
+ * setup passcode, which must never reach a committed fixture.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -73,7 +74,14 @@ function main(): void {
             }
             const withId = { ...object, _id: object._id ?? id };
             if (id.startsWith('matter.') && id.includes('.bridges.') && Array.isArray(withId.native?.list)) {
-                bridges[id] = { _id: withId._id, type: withId.type, common: withId.common, native: withId.native };
+                // A bridge configuration carries its Matter setup passcode, so only the two fields the tests
+                // read are kept - copying `native` wholesale would commit that credential.
+                bridges[id] = {
+                    _id: withId._id,
+                    type: withId.type,
+                    common: { name: withId.common?.name },
+                    native: { list: withId.native.list },
+                };
             } else if (KEPT_TYPES.has(withId.type)) {
                 objects[id] = strip(withId);
             }

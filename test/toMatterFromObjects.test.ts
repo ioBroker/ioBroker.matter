@@ -267,7 +267,9 @@ describe('to-matter mapping of exported ioBroker objects', function () {
                 writeFileSync(SNAPSHOT, serialized);
                 return;
             }
-            const expected = readFileSync(SNAPSHOT, 'utf8');
+            // A checkout that translates line endings, as the Windows CI runner does, holds the snapshot
+            // with CRLF while `JSON.stringify` always produces LF.
+            const expected = readFileSync(SNAPSHOT, 'utf8').replace(/\r\n/g, '\n');
             if (serialized !== expected) {
                 // Compare parsed to get a structural diff instead of a 100 kB string mismatch.
                 expect(JSON.parse(serialized)).to.deep.equal(JSON.parse(expected));

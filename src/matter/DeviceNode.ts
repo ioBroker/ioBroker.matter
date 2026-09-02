@@ -194,6 +194,15 @@ class Device extends BaseServerNode {
         }
         if (this.serverNode.lifecycle.isCommissioned) {
             this.adapter.log.debug('Device is already commissioned ... Ignoring changes because non allowed');
+            // The caller already built and subscribed options.device; without this it stays reachable forever
+            // through SubscribeManager's static handler map.
+            if (options.device !== this.#device) {
+                try {
+                    await options.device.destroy();
+                } catch (error) {
+                    this.adapter.log.warn(`Error destroying unused device instance ${this.#parameters.uuid}: ${error}`);
+                }
+            }
             return;
         }
 

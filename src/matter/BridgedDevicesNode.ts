@@ -301,6 +301,11 @@ class BridgedDevices extends BaseServerNode {
                     newDeviceList.add(uuid);
                     this.adapter.log.debug(`Device ${uuid} already in bridge. Sync Configuration`);
                     await existingDevice.applyConfiguration(deviceOptions);
+                    // The caller already built and subscribed a replacement we do not adopt; without this it stays
+                    // reachable forever through SubscribeManager's static handler map.
+                    if (device !== undefined && device !== existingDevice) {
+                        await this.#destroyDeviceIsolated(uuid, device);
+                    }
                     continue;
                 }
                 if (!device || error) {
@@ -368,14 +373,32 @@ class BridgedDevices extends BaseServerNode {
         await this.updateUiState();
     }
 
+    /** Destroy one ioBroker device, keeping a failure from stranding the other devices of this bridge. */
+    async #destroyDeviceIsolated(uuid: string, device: GenericDevice): Promise<void> {
+        try {
+            await device.destroy();
+        } catch (error) {
+            this.adapter.log.warn(`Error destroying unused device instance ${uuid}: ${error}`);
+        }
+    }
+
     async destroy(): Promise<void> {
         this.#deviceEndpoints.clear();
-        for (const { device } of this.#devices.values()) {
-            await device?.destroy();
+        for (const [uuid, { device }] of this.#devices) {
+            if (device !== undefined) {
+                // One device that fails to tear down must not strand the rest
+                await this.#destroyDeviceIsolated(uuid, device);
+            }
         }
-        for (const mappingDevice of this.#mappingDevices.values()) {
-            await mappingDevice.destroy();
+        this.#devices.clear();
+        for (const [uuid, mappingDevice] of this.#mappingDevices) {
+            try {
+                await mappingDevice.destroy();
+            } catch (error) {
+                this.adapter.log.warn(`Error destroying mapping device ${uuid}: ${error}`);
+            }
         }
+        this.#mappingDevices.clear();
         await this.serverNode?.close();
         this.serverNode = undefined;
         this.#aggregator = undefined;

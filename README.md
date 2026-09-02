@@ -149,6 +149,8 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 
 ## Changelog
 ### **WORK IN PROGRESS**
+* (@Apollon77) Fixed several memory leaks: ioBroker device instances that were built but not adopted stayed registered with the state subscription manager, and listeners, timers, pending locks and custom state bookkeeping were not always released on teardown
+* (@Apollon77) Network visualization data is no longer collected, and neither it nor Thread diagnostics data is serialized and sent, while no admin UI is listening
 * (@Apollon77) Add support for the Room Air Conditioner device type (controller and bridge/device mode) mapped to the ioBroker airCondition type
 * (@Apollon77) Fix Thermostat cooling setpoint changes from Matter being applied as heating setpoint
 * (@Apollon77) Add a request timeout to the license verification API calls

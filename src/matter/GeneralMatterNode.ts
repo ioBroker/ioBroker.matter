@@ -41,6 +41,7 @@ import type { CommissioningController } from '@project-chip/matter.js';
 import type { MatterControllerConfig } from '../ioBrokerTypes';
 import { SubscribeManager } from '../lib';
 import type { SubscribeCallback } from '../lib/SubscribeManager';
+import { TeardownRegistry } from '../lib/TeardownRegistry';
 import { bytesToIpV4, bytesToIpV6, bytesToMac, decamelize, toHex, toUpperCaseHex } from '../lib/utils';
 import type { MatterAdapter } from '../main';
 import type { GenericDeviceToIoBroker } from './to-iobroker/GenericDeviceToIoBroker';
@@ -124,6 +125,8 @@ export class GeneralMatterNode {
     #currentUpdateState?: OtaSoftwareUpdateRequestor.UpdateState;
     #updateObservers?: ObserverGroup;
     #icd?: NodeIcdManager;
+    /** Undoes what this node generation attached to the PairedNode, which outlives it. */
+    #teardown: TeardownRegistry;
     // Outlives #icd across clear()/#createIcdManager() cycles (e.g. applyConfiguration()'s
     // clear-and-rebuild), so a subscriber only needs to attach once per GeneralMatterNode rather than
     // once per NodeIcdManager instance.
@@ -163,10 +166,23 @@ export class GeneralMatterNode {
         this.icdModeStateId = `${this.nodeBaseId}.info.icdMode`;
         this.exposeMatterApplicationClusterData = controllerConfig.defaultExposeMatterApplicationClusterData ?? false;
         this.exposeMatterSystemClusterData = controllerConfig.defaultExposeMatterSystemClusterData ?? false;
+        this.#teardown = this.#newTeardownRegistry();
+    }
+
+    #newTeardownRegistry(): TeardownRegistry {
+        return new TeardownRegistry(error =>
+            this.adapter.log.warn(`Node ${this.nodeId}: Error while tearing down: ${error.message}`),
+        );
     }
 
     async clear(): Promise<void> {
         // Clear out all things from before
+        // clear() is a re-init point, not only a teardown point, so the next generation needs a fresh registry.
+        // Swapping before the await keeps a concurrent clear() from discarding a registry that already holds an undo.
+        const previousTeardown = this.#teardown;
+        this.#teardown = this.#newTeardownRegistry();
+        await previousTeardown.close();
+
         this.#icd?.close();
         this.#icd = undefined;
 
@@ -233,6 +249,9 @@ export class GeneralMatterNode {
                 }
             };
             this.node.events.stateChanged.on(handler);
+            // stateChanged belongs to the PairedNode, which outlives every GeneralMatterNode built for it;
+            // without this a node replaced before it ever connected stays reachable through the handler.
+            this.#teardown.add(() => this.node.events.stateChanged.off(handler));
             return;
         }
 

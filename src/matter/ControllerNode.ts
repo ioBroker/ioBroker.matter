@@ -786,7 +786,7 @@ class Controller implements GeneralNode {
     }
 
     #sendThreadDiagnosticsUpdate(batch: ThreadDiagnosticsBatch): void {
-        if (this.#closing || this.#adapter.closing) {
+        if (this.#closing || this.#adapter.closing || !this.#adapter.hasGuiSubscribers) {
             return;
         }
         this.#adapter
@@ -1261,6 +1261,10 @@ class Controller implements GeneralNode {
             return;
         }
         this.#networkGraphUpdateTimer = this.#adapter.setTimeout(async () => {
+            // getNetworkGraphData() walks every endpoint of every node and does a model lookup per device type
+            if (!this.#adapter.hasGuiSubscribers) {
+                return;
+            }
             try {
                 const data = this.getNetworkGraphData();
                 await this.#adapter.sendToGui({
@@ -1569,7 +1573,12 @@ class Controller implements GeneralNode {
         }
 
         for (const node of this.#nodes.values()) {
-            await node.destroy();
+            // One node that fails to tear down must not skip the controller teardown below
+            try {
+                await node.destroy();
+            } catch (error) {
+                this.#adapter.log.warn(`Error destroying node ${node.nodeId}: ${error}`);
+            }
         }
 
         this.#nodes.clear();

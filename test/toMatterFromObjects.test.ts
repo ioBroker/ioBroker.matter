@@ -393,19 +393,35 @@ describe('to-matter mapping of exported ioBroker objects', function () {
             expect(adapter.errors).to.deep.equal([]);
         });
 
-        it('reports an unreadable colour once per value, not once per change', async () => {
-            adapter.seedValue('0_userdata.0.States-For-Devices.Color-RGB', 'red');
-            await mount(adapter, entryFor('alias.0.Test-Devices.Rgb-Single.RGB', 'rgbSingle'));
-            const invalid = (): string[] => adapter.infos.filter(message => message.includes('Invalid RGB value'));
-            const afterMount = invalid().length;
-            expect(afterMount).to.be.greaterThan(0);
+        // `RgbSingle` and `RgbwSingle` parse their own state, so each keeps its own suppression.
+        for (const { type, oid, target, marker } of [
+            {
+                type: 'rgbSingle',
+                oid: 'alias.0.Test-Devices.Rgb-Single.RGB',
+                target: '0_userdata.0.States-For-Devices.Color-RGB',
+                marker: 'Invalid RGB value',
+            },
+            {
+                type: 'rgbwSingle',
+                oid: 'alias.0.Test-Devices.Rgbw-Single.RGBW',
+                target: '0_userdata.0.States-For-Devices.Color-RGBW',
+                marker: 'Invalid RGBW value',
+            },
+        ]) {
+            it(`reports an unreadable ${type} colour once per value, not once per change`, async () => {
+                adapter.seedValue(target, 'red');
+                await mount(adapter, entryFor(oid, type));
+                const invalid = (): string[] => adapter.infos.filter(message => message.includes(marker));
+                const afterMount = invalid().length;
+                expect(afterMount).to.be.greaterThan(0);
 
-            await adapter.pushValue('alias.0.Test-Devices.Rgb-Single.RGB', 'red');
-            expect(invalid().length, 'the same unreadable value logged again').to.equal(afterMount);
+                await adapter.pushValue(oid, 'red');
+                expect(invalid().length, 'the same unreadable value logged again').to.equal(afterMount);
 
-            await adapter.pushValue('alias.0.Test-Devices.Rgb-Single.RGB', 'blue');
-            expect(invalid().length, 'a different unreadable value not logged').to.be.greaterThan(afterMount);
-        });
+                await adapter.pushValue(oid, 'blue');
+                expect(invalid().length, 'a different unreadable value not logged').to.be.greaterThan(afterMount);
+            });
+        }
 
         it('writes a controller colour change back as an ioBroker rgb string', async () => {
             adapter.seedValue('0_userdata.0.States-For-Devices.Color-RGB', '#ffffff');

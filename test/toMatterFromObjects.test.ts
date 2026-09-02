@@ -11,12 +11,21 @@ import type { GenericDevice } from '../src/lib/devices/GenericDevice';
 import { SubscribeManager } from '../src/lib/SubscribeManager';
 import type { GenericDeviceToMatter } from '../src/matter/to-matter/GenericDeviceToMatter';
 import matterDeviceFabric from '../src/matter/to-matter/matterFactory';
+import {
+    authoredBridgeEntries,
+    authoredObjects,
+    authoredValues,
+    CONTROLLER_ONLY_TYPES,
+} from './fixtures/authoredV6Devices';
 import { createMatterTestEnvironment } from './helpers/matterTestEnvironment';
 import { loadObjectFixture, MockObjectAdapter, seedDeterministicValues } from './helpers/mockObjectAdapter';
 
 const OBJECTS_FIXTURE = join(__dirname, 'fixtures/ioBrokerObjects.json');
 const BRIDGES_FIXTURE = join(__dirname, 'fixtures/ioBrokerBridges.json');
 const SNAPSHOT = join(__dirname, 'fixtures/toMatterFromObjects.snapshot.json');
+
+/** Names the authored devices in the snapshot, so exported and authored data never look alike. */
+const AUTHORED_BRIDGE = 'authored v6 device types (not exported)';
 
 /** Set `SNAPSHOT_UPDATE=1` to rewrite the snapshot; the diff is the review. */
 const updateSnapshot = process.env.SNAPSHOT_UPDATE === '1';
@@ -39,14 +48,21 @@ function bridgeEntries(): { bridge: string; entry: BridgeDeviceDescription }[] {
     }
     const seen = new Set<string>();
     const entries = new Array<{ bridge: string; entry: BridgeDeviceDescription }>();
-    for (const [id, bridge] of Object.entries(loadBridges())) {
-        for (const entry of bridge.native.list) {
+    const configured: { bridge: string; list: BridgeDeviceDescription[] }[] = [
+        ...Object.entries(loadBridges()).map(([id, bridge]) => ({
+            bridge: `${bridge.common.name} (${id.split('.').pop()})`,
+            list: bridge.native.list,
+        })),
+        { bridge: AUTHORED_BRIDGE, list: authoredBridgeEntries() },
+    ];
+    for (const { bridge, list } of configured) {
+        for (const entry of list) {
             const key = `${entry.oid}|${entry.type}`;
             if (seen.has(key)) {
                 continue;
             }
             seen.add(key);
-            entries.push({ bridge: `${bridge.common.name} (${id.split('.').pop()})`, entry });
+            entries.push({ bridge, entry });
         }
     }
     entryCache = entries;
@@ -173,12 +189,15 @@ describe('to-matter mapping of exported ioBroker objects', function () {
         previousLogLevel = Logger.defaultLogLevel;
         Logger.defaultLogLevel = LogLevel.FATAL;
         environment = await createMatterTestEnvironment('to-matter-from-objects');
-        objects = loadObjectFixture(OBJECTS_FIXTURE);
+        objects = { ...loadObjectFixture(OBJECTS_FIXTURE), ...authoredObjects() };
     });
 
     beforeEach(() => {
         adapter = new MockObjectAdapter(objects);
         seedDeterministicValues(adapter, objects);
+        for (const { id, value } of authoredValues()) {
+            adapter.seedValue(id, value);
+        }
         SubscribeManager.setAdapter(adapter.asAdapter());
     });
 
@@ -207,7 +226,7 @@ describe('to-matter mapping of exported ioBroker objects', function () {
     describe('detection', () => {
         // `determineIoBrokerDevice` reports the configured type either way, detected or as a single-state
         // fallback, so only the detector itself can answer whether detection worked.
-        it('detects the configured device type for every exported bridge entry', async () => {
+        it('detects the configured device type for every configured bridge entry', async () => {
             const mismatches = new Array<string>();
             for (const { entry } of bridgeEntries()) {
                 const detected = await getIoBrokerDeviceStates(adapter, entry.oid, entry.type);
@@ -245,13 +264,34 @@ describe('to-matter mapping of exported ioBroker objects', function () {
     });
 
     describe('endpoint structure', () => {
-        it('matches the committed snapshot for every exported bridge entry', async () => {
+        it('detects the controller-only types but exposes no Matter endpoint for them', async () => {
+            expect([...CONTROLLER_ONLY_TYPES].sort()).to.deep.equal(['coAlarm', 'electricity']);
+            for (const { entry } of bridgeEntries().filter(({ entry }) => CONTROLLER_ONLY_TYPES.has(entry.type))) {
+                const detected = await determineIoBrokerDevice(adapter, entry.oid, entry.type, entry.auto);
+                expect(detected?.type, `${entry.oid} is not detected`).to.equal(entry.type);
+                const device = await DeviceFactory(detected!, adapter.asAdapter(), entry, false);
+                expect(
+                    await matterDeviceFabric(device, entry.name, entry.uuid),
+                    `${entry.type} gained a converter`,
+                ).to.equal(null);
+                console.log(`      ${entry.type.padEnd(14)} ${entry.oid} -> detected, controller direction only`);
+                await device.destroy();
+            }
+        });
+
+        it('matches the committed snapshot for every configured bridge entry', async () => {
             const snapshot: Record<string, unknown> = {};
             for (const { bridge, entry } of bridgeEntries()) {
-                if (!hasObject(entry.oid)) {
+                if (!hasObject(entry.oid) || CONTROLLER_ONLY_TYPES.has(entry.type)) {
                     continue;
                 }
                 const mounted = await mount(adapter, entry);
+                // One line per configured device, so a CI log shows what this single test actually covered.
+                console.log(
+                    `      ${entry.type.padEnd(14)} ${entry.oid} -> ${mounted.endpoints
+                        .map(endpoint => `${endpoint.type.name}[${Object.keys(endpoint.state).length}]`)
+                        .join(' + ')}`,
+                );
                 snapshot[`${entry.type} ${entry.oid}`] = {
                     bridge,
                     endpoints: mounted.endpoints.map(endpoint => serializeEndpoint(endpoint)),
@@ -280,7 +320,7 @@ describe('to-matter mapping of exported ioBroker objects', function () {
         it('mounts a whole exported bridge on one aggregator without endpoint id collisions', async () => {
             const list = Object.values(loadBridges()).sort((a, b) => b.native.list.length - a.native.list.length)[0]
                 .native.list;
-            const mountable = list.filter(entry => hasObject(entry.oid));
+            const mountable = list.filter(entry => hasObject(entry.oid) && !CONTROLLER_ONLY_TYPES.has(entry.type));
             const node = await createNode();
             const converters = new Array<GenericDeviceToMatter>();
             cleanups.push(async () => {

@@ -2394,5 +2394,776 @@
         "parts": []
       }
     ]
+  },
+  "fan alias.0.V6-Devices.Fan-Min": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a0000001-0000-4000-8000-000000000001-Fan",
+        "deviceType": "Fan",
+        "deviceTypeId": 43,
+        "behaviors": [
+          "fanControl",
+          "groups"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "fanControl": {
+            "fanMode": 2,
+            "fanModeSequence": 2,
+            "featureMap": {
+              "multiSpeed": false,
+              "auto": true,
+              "rocking": false,
+              "wind": false,
+              "step": false,
+              "airflowDirection": false
+            },
+            "percentCurrent": 66,
+            "percentSetting": 66
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "fan alias.0.V6-Devices.Fan-Full": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a0000002-0000-4000-8000-000000000002-Fan",
+        "deviceType": "Fan",
+        "deviceTypeId": 43,
+        "behaviors": [
+          "electricalEnergyMeasurement",
+          "electricalPowerMeasurement",
+          "fanControl",
+          "groups",
+          "onOff",
+          "powerTopology"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "fanControl": {
+            "airflowDirection": 1,
+            "fanMode": 2,
+            "fanModeSequence": 2,
+            "featureMap": {
+              "multiSpeed": false,
+              "auto": true,
+              "rocking": true,
+              "wind": false,
+              "step": false,
+              "airflowDirection": true
+            },
+            "percentCurrent": 40,
+            "percentSetting": 40,
+            "rockSetting": {
+              "rockLeftRight": true,
+              "rockUpDown": false,
+              "rockRound": false
+            },
+            "rockSupport": {
+              "rockLeftRight": true,
+              "rockUpDown": true,
+              "rockRound": false
+            }
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": false,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "onOff": true
+          },
+          "electricalPowerMeasurement": {
+            "accuracy": [
+              {
+                "measurementType": 5,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              },
+              {
+                "measurementType": 2,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              },
+              {
+                "measurementType": 1,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              },
+              {
+                "measurementType": 11,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              }
+            ],
+            "activeCurrent": 50,
+            "activePower": 12000,
+            "featureMap": {
+              "directCurrent": false,
+              "alternatingCurrent": true,
+              "polyphasePower": false,
+              "harmonics": false,
+              "powerQuality": false
+            },
+            "frequency": 50000,
+            "numberOfMeasurementTypes": 4,
+            "powerMode": 2,
+            "voltage": 230000
+          },
+          "electricalEnergyMeasurement": {
+            "accuracy": {
+              "measurementType": 14,
+              "measured": true,
+              "minMeasuredValue": -9007199254740991,
+              "maxMeasuredValue": 9007199254740991,
+              "accuracyRanges": [
+                {
+                  "rangeMin": -9007199254740991,
+                  "rangeMax": 9007199254740991,
+                  "fixedMax": 1
+                }
+              ]
+            },
+            "cumulativeEnergyImported": {
+              "energy": 480000
+            },
+            "featureMap": {
+              "importedEnergy": true,
+              "exportedEnergy": false,
+              "cumulativeEnergy": true,
+              "periodicEnergy": false,
+              "apparentEnergy": false,
+              "reactiveEnergy": false
+            }
+          },
+          "powerTopology": {
+            "featureMap": {
+              "nodeTopology": false,
+              "treeTopology": true,
+              "setTopology": false,
+              "dynamicPowerFlow": false
+            }
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "airPurifier alias.0.V6-Devices.AirPurifier-Min": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a0000003-0000-4000-8000-000000000003-AirPurifier",
+        "deviceType": "AirPurifier",
+        "deviceTypeId": 45,
+        "behaviors": [
+          "fanControl",
+          "hepaFilterMonitoring"
+        ],
+        "state": {
+          "fanControl": {
+            "fanMode": 3,
+            "fanModeSequence": 2,
+            "featureMap": {
+              "multiSpeed": false,
+              "auto": true,
+              "rocking": false,
+              "wind": false,
+              "step": false,
+              "airflowDirection": false
+            },
+            "percentCurrent": 100,
+            "percentSetting": 100
+          },
+          "hepaFilterMonitoring": {
+            "changeIndication": 0,
+            "condition": 70,
+            "degradationDirection": 1,
+            "featureMap": {
+              "condition": true,
+              "warning": false,
+              "replacementProductList": false
+            }
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "airPurifier alias.0.V6-Devices.AirPurifier-Full": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a0000004-0000-4000-8000-000000000004-AirPurifier",
+        "deviceType": "AirPurifier",
+        "deviceTypeId": 45,
+        "behaviors": [
+          "activatedCarbonFilterMonitoring",
+          "fanControl",
+          "hepaFilterMonitoring",
+          "onOff"
+        ],
+        "state": {
+          "fanControl": {
+            "fanMode": 3,
+            "fanModeSequence": 2,
+            "featureMap": {
+              "multiSpeed": false,
+              "auto": true,
+              "rocking": false,
+              "wind": false,
+              "step": false,
+              "airflowDirection": false
+            },
+            "percentCurrent": 100,
+            "percentSetting": 100
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": false,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "onOff": true
+          },
+          "hepaFilterMonitoring": {
+            "changeIndication": 0,
+            "condition": 70,
+            "degradationDirection": 1,
+            "featureMap": {
+              "condition": true,
+              "warning": true,
+              "replacementProductList": false
+            }
+          },
+          "activatedCarbonFilterMonitoring": {
+            "changeIndication": 0,
+            "condition": 60,
+            "degradationDirection": 1,
+            "featureMap": {
+              "condition": true,
+              "warning": true,
+              "replacementProductList": false
+            }
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "airQuality alias.0.V6-Devices.AirQuality-Min": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a0000005-0000-4000-8000-000000000005-AirQuality",
+        "deviceType": "AirQualitySensor",
+        "deviceTypeId": 44,
+        "behaviors": [
+          "airQuality"
+        ],
+        "state": {
+          "airQuality": {
+            "airQuality": 2,
+            "featureMap": {
+              "fair": true,
+              "moderate": true,
+              "veryPoor": true,
+              "extremelyPoor": true
+            }
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "airQuality alias.0.V6-Devices.AirQuality-Full": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a0000006-0000-4000-8000-000000000006-AirQuality",
+        "deviceType": "AirQualitySensor",
+        "deviceTypeId": 44,
+        "behaviors": [
+          "airQuality",
+          "carbonDioxideConcentrationMeasurement",
+          "pm25ConcentrationMeasurement",
+          "relativeHumidityMeasurement",
+          "temperatureMeasurement",
+          "totalVolatileOrganicCompoundsConcentrationMeasurement"
+        ],
+        "state": {
+          "airQuality": {
+            "airQuality": 2,
+            "featureMap": {
+              "fair": true,
+              "moderate": true,
+              "veryPoor": true,
+              "extremelyPoor": true
+            }
+          },
+          "carbonDioxideConcentrationMeasurement": {
+            "featureMap": {
+              "numericMeasurement": true,
+              "levelIndication": true,
+              "mediumLevel": true,
+              "criticalLevel": true,
+              "peakMeasurement": false,
+              "averageMeasurement": false
+            },
+            "levelValue": 2,
+            "maxMeasuredValue": null,
+            "measuredValue": 800,
+            "measurementMedium": 0,
+            "measurementUnit": 0,
+            "minMeasuredValue": null
+          },
+          "totalVolatileOrganicCompoundsConcentrationMeasurement": {
+            "featureMap": {
+              "numericMeasurement": true,
+              "levelIndication": true,
+              "mediumLevel": true,
+              "criticalLevel": true,
+              "peakMeasurement": false,
+              "averageMeasurement": false
+            },
+            "levelValue": 0,
+            "maxMeasuredValue": null,
+            "measuredValue": 300,
+            "measurementMedium": 0,
+            "measurementUnit": 1,
+            "minMeasuredValue": null
+          },
+          "pm25ConcentrationMeasurement": {
+            "featureMap": {
+              "numericMeasurement": true,
+              "levelIndication": true,
+              "mediumLevel": true,
+              "criticalLevel": true,
+              "peakMeasurement": false,
+              "averageMeasurement": false
+            },
+            "levelValue": 0,
+            "maxMeasuredValue": null,
+            "measuredValue": 12,
+            "measurementMedium": 0,
+            "measurementUnit": 4,
+            "minMeasuredValue": null
+          },
+          "temperatureMeasurement": {
+            "featureMap": {},
+            "maxMeasuredValue": 32767,
+            "measuredValue": 2150,
+            "minMeasuredValue": -27315
+          },
+          "relativeHumidityMeasurement": {
+            "featureMap": {},
+            "maxMeasuredValue": null,
+            "measuredValue": 4800,
+            "minMeasuredValue": null
+          }
+        },
+        "parts": []
+      },
+      {
+        "id": "a0000006-0000-4000-8000-000000000006-Pressure",
+        "deviceType": "PressureSensor",
+        "deviceTypeId": 773,
+        "behaviors": [
+          "pressureMeasurement"
+        ],
+        "state": {
+          "pressureMeasurement": {
+            "featureMap": {
+              "extended": false
+            },
+            "maxMeasuredValue": null,
+            "measuredValue": 1013,
+            "minMeasuredValue": null
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "contact alias.0.V6-Devices.Contact": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a0000008-0000-4000-8000-000000000008",
+        "deviceType": "ContactSensor",
+        "deviceTypeId": 21,
+        "behaviors": [
+          "booleanState"
+        ],
+        "state": {
+          "booleanState": {
+            "featureMap": {
+              "changeEvent": true
+            },
+            "stateValue": true
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "flow alias.0.V6-Devices.Flow": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a000000a-0000-4000-8000-00000000000a",
+        "deviceType": "FlowSensor",
+        "deviceTypeId": 774,
+        "behaviors": [
+          "flowMeasurement"
+        ],
+        "state": {
+          "flowMeasurement": {
+            "featureMap": {},
+            "maxMeasuredValue": null,
+            "measuredValue": 25,
+            "minMeasuredValue": null
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "pressure alias.0.V6-Devices.Pressure": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a000000b-0000-4000-8000-00000000000b",
+        "deviceType": "PressureSensor",
+        "deviceTypeId": 773,
+        "behaviors": [
+          "pressureMeasurement"
+        ],
+        "state": {
+          "pressureMeasurement": {
+            "featureMap": {
+              "extended": false
+            },
+            "maxMeasuredValue": null,
+            "measuredValue": 1013,
+            "minMeasuredValue": null
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "pump alias.0.V6-Devices.Pump-Min": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a000000c-0000-4000-8000-00000000000c",
+        "deviceType": "Pump",
+        "deviceTypeId": 771,
+        "behaviors": [
+          "onOff",
+          "pumpConfigurationAndControl"
+        ],
+        "state": {
+          "onOff": {
+            "featureMap": {
+              "lighting": false,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "onOff": true
+          },
+          "pumpConfigurationAndControl": {
+            "capacity": null,
+            "controlMode": 0,
+            "effectiveControlMode": 0,
+            "effectiveOperationMode": 0,
+            "featureMap": {
+              "constantPressure": false,
+              "compensatedPressure": false,
+              "constantFlow": false,
+              "constantSpeed": true,
+              "constantTemperature": false,
+              "automatic": false,
+              "localOperation": false
+            },
+            "maxConstSpeed": null,
+            "maxFlow": null,
+            "maxPressure": null,
+            "maxSpeed": null,
+            "minConstSpeed": null,
+            "operationMode": 0,
+            "pumpStatus": {
+              "deviceFault": false,
+              "supplyFault": false,
+              "speedLow": false,
+              "speedHigh": false,
+              "localOverride": false,
+              "running": true,
+              "remotePressure": false,
+              "remoteFlow": false,
+              "remoteTemperature": false
+            }
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "pump alias.0.V6-Devices.Pump-Full": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a000000d-0000-4000-8000-00000000000d",
+        "deviceType": "Pump",
+        "deviceTypeId": 771,
+        "behaviors": [
+          "electricalEnergyMeasurement",
+          "electricalPowerMeasurement",
+          "flowMeasurement",
+          "levelControl",
+          "onOff",
+          "powerTopology",
+          "pressureMeasurement",
+          "pumpConfigurationAndControl",
+          "temperatureMeasurement"
+        ],
+        "state": {
+          "onOff": {
+            "featureMap": {
+              "lighting": false,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "onOff": true
+          },
+          "pumpConfigurationAndControl": {
+            "capacity": null,
+            "controlMode": 0,
+            "effectiveControlMode": 0,
+            "effectiveOperationMode": 0,
+            "featureMap": {
+              "constantPressure": false,
+              "compensatedPressure": false,
+              "constantFlow": false,
+              "constantSpeed": true,
+              "constantTemperature": false,
+              "automatic": false,
+              "localOperation": false
+            },
+            "maxConstSpeed": null,
+            "maxFlow": null,
+            "maxPressure": null,
+            "maxSpeed": null,
+            "minConstSpeed": null,
+            "operationMode": 0,
+            "pumpStatus": {
+              "deviceFault": false,
+              "supplyFault": false,
+              "speedLow": false,
+              "speedHigh": false,
+              "localOverride": false,
+              "running": true,
+              "remotePressure": false,
+              "remoteFlow": false,
+              "remoteTemperature": false
+            }
+          },
+          "levelControl": {
+            "currentLevel": 152,
+            "featureMap": {
+              "onOff": true,
+              "lighting": true,
+              "frequency": false
+            },
+            "managedTransitionTimeHandling": false,
+            "maxLevel": 254,
+            "minLevel": 0,
+            "onLevel": null,
+            "options": {
+              "executeIfOff": false,
+              "coupleColorTempToLevel": false
+            },
+            "remainingTime": 0,
+            "startUpCurrentLevel": null,
+            "transitionStepInterval": 100
+          },
+          "temperatureMeasurement": {
+            "featureMap": {},
+            "maxMeasuredValue": 32767,
+            "measuredValue": 3800,
+            "minMeasuredValue": -27315
+          },
+          "pressureMeasurement": {
+            "featureMap": {
+              "extended": false
+            },
+            "maxMeasuredValue": null,
+            "measuredValue": 2500,
+            "minMeasuredValue": null
+          },
+          "flowMeasurement": {
+            "featureMap": {},
+            "maxMeasuredValue": null,
+            "measuredValue": 18,
+            "minMeasuredValue": null
+          },
+          "electricalPowerMeasurement": {
+            "accuracy": [
+              {
+                "measurementType": 5,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              },
+              {
+                "measurementType": 2,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              },
+              {
+                "measurementType": 1,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              },
+              {
+                "measurementType": 11,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              }
+            ],
+            "activeCurrent": 50,
+            "activePower": 12000,
+            "featureMap": {
+              "directCurrent": false,
+              "alternatingCurrent": true,
+              "polyphasePower": false,
+              "harmonics": false,
+              "powerQuality": false
+            },
+            "frequency": 50000,
+            "numberOfMeasurementTypes": 4,
+            "powerMode": 2,
+            "voltage": 230000
+          },
+          "electricalEnergyMeasurement": {
+            "accuracy": {
+              "measurementType": 14,
+              "measured": true,
+              "minMeasuredValue": -9007199254740991,
+              "maxMeasuredValue": 9007199254740991,
+              "accuracyRanges": [
+                {
+                  "rangeMin": -9007199254740991,
+                  "rangeMax": 9007199254740991,
+                  "fixedMax": 1
+                }
+              ]
+            },
+            "cumulativeEnergyImported": {
+              "energy": 480000
+            },
+            "featureMap": {
+              "importedEnergy": true,
+              "exportedEnergy": false,
+              "cumulativeEnergy": true,
+              "periodicEnergy": false,
+              "apparentEnergy": false,
+              "reactiveEnergy": false
+            }
+          },
+          "powerTopology": {
+            "featureMap": {
+              "nodeTopology": false,
+              "treeTopology": true,
+              "setTopology": false,
+              "dynamicPowerFlow": false
+            }
+          }
+        },
+        "parts": []
+      }
+    ]
   }
 }

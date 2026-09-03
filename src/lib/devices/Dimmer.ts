@@ -10,6 +10,7 @@ export class Dimmer extends ElectricityDataDevice {
     #getPowerState?: DeviceStateObject<boolean>;
     #transitionTimeState?: DeviceStateObject<number>;
     #effectState?: DeviceStateObject<string>;
+    #onTimeState?: DeviceStateObject<number>;
     #lastNotZeroLevel?: number;
 
     constructor(
@@ -68,6 +69,13 @@ export class Dimmer extends ElectricityDataDevice {
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Effect,
                     callback: state => (this.#effectState = state),
+                },
+                {
+                    name: 'ON_TIME',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.OnTime,
+                    callback: state => (this.#onTimeState = state),
                 },
             ]),
         );
@@ -189,6 +197,10 @@ export class Dimmer extends ElectricityDataDevice {
         await this.#getPowerState.updateValue(value);
     }
 
+    hasPowerActual(): boolean {
+        return !!this.#getPowerState;
+    }
+
     hasTransitionTime(): boolean {
         return !!this.#transitionTimeState;
     }
@@ -244,5 +256,30 @@ export class Dimmer extends ElectricityDataDevice {
             throw new Error('Effect state not found');
         }
         return this.#effectState.getModes();
+    }
+
+    hasOnTime(): boolean {
+        return !!this.#onTimeState;
+    }
+
+    getOnTime(): number | undefined {
+        if (!this.#onTimeState) {
+            throw new Error('OnTime state not found');
+        }
+        return this.#onTimeState.value;
+    }
+
+    setOnTime(value: number): Promise<void> {
+        if (!this.#onTimeState) {
+            throw new Error('OnTime state not found');
+        }
+        return this.#onTimeState.setValue(value);
+    }
+
+    updateOnTime(value: number): Promise<void> {
+        if (!this.#onTimeState) {
+            throw new Error('OnTime state not found');
+        }
+        return this.#onTimeState.updateValue(value);
     }
 }

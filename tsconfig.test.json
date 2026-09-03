@@ -5,7 +5,8 @@
         "moduleResolution": "node16",
         "esModuleInterop": true,
         "allowSyntheticDefaultImports": true,
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "rootDir": "./test"
     },
     "ts-node": {
         "compilerOptions": {

@@ -24,6 +24,10 @@ export interface DeviceStateDescription {
     name: string;
     type: PropertyType;
     valueType: ValueType;
+    /**
+     * Unit the device model works in for this property. All values exchanged with this class are expressed
+     * in it, and values of an ioBroker object using another unit are converted via `unitConversionMap`.
+     */
     unit?: string;
     callback: (state: DeviceStateObject<any> | undefined) => void;
     accessType: StateAccessType;
@@ -62,13 +66,14 @@ export abstract class GenericDevice extends EventEmitter {
     protected _construction = new Array<() => Promise<void>>();
     readonly #teardown: TeardownRegistry;
 
-    #errorState?: DeviceStateObject<boolean>;
+    #errorState?: DeviceStateObject<boolean | string>;
     #maintenanceState?: DeviceStateObject<boolean>;
     #unreachState?: DeviceStateObject<boolean>;
     #lowbatState?: DeviceStateObject<boolean>;
     #workingState?: DeviceStateObject<boolean>;
     #directionState?: DeviceStateObject<boolean>;
     #batteryState?: DeviceStateObject<number>;
+    #rssiState?: DeviceStateObject<number>;
 
     /** Custom states storage - keyed by custom property name */
     #customStates = new Map<string, DeviceStateObject<any>>();
@@ -101,7 +106,7 @@ export abstract class GenericDevice extends EventEmitter {
             this.addDeviceStates([
                 {
                     name: 'ERROR',
-                    valueType: ValueType.Boolean,
+                    valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Error,
                     callback: state => (this.#errorState = state),
@@ -153,6 +158,13 @@ export abstract class GenericDevice extends EventEmitter {
                     type: PropertyType.Battery,
                     callback: state => (this.#batteryState = state),
                 },
+                {
+                    name: 'RSSI',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Rssi,
+                    callback: state => (this.#rssiState = state),
+                },
             ]),
         );
     }
@@ -198,6 +210,7 @@ export abstract class GenericDevice extends EventEmitter {
         accessType: StateAccessType,
         valueType: ValueType,
         unitConversionMap: { [key: string]: (value: number, toDefaultUnit: boolean) => number } = {},
+        unit?: string,
     ): Promise<void> {
         let state = this.getDeviceState(name);
         if (state) {
@@ -220,6 +233,7 @@ export abstract class GenericDevice extends EventEmitter {
                     {
                         ...state,
                         isIoBrokerState: this.#isIoBrokerDevice,
+                        deviceUnit: unit,
                     },
                     type,
                     valueType,
@@ -232,7 +246,13 @@ export abstract class GenericDevice extends EventEmitter {
             }
             const data = object.ioBrokerState;
             if (!this.#properties[type]) {
-                this.#properties[type] = { name, accessType, valueType, role: object.role };
+                this.#properties[type] = {
+                    name,
+                    accessType,
+                    valueType,
+                    role: object.role,
+                    unit: object.deviceUnit,
+                };
                 if (accessType === StateAccessType.ReadWrite) {
                     this.#properties[type].read = data.id;
                     this.#properties[type].write = data.id;
@@ -282,7 +302,7 @@ export abstract class GenericDevice extends EventEmitter {
                 // subscribe and read only if not already subscribed
                 if (stateId && !this.#subscribeObjects.find(obj => obj.state.id === stateId)) {
                     await object.subscribe(
-                        this.updateState,
+                        this.#handleIoBrokerStateChange,
                         this.#isIoBrokerDevice || this.#properties[type].accessType !== StateAccessType.Write,
                     );
                     this.#subscribeObjects.push(object);
@@ -329,6 +349,7 @@ export abstract class GenericDevice extends EventEmitter {
                     state.accessType,
                     state.valueType,
                     state.unitConversionMap,
+                    state.unit,
                 );
             }
         };
@@ -386,14 +407,18 @@ export abstract class GenericDevice extends EventEmitter {
         return this.#deviceType;
     }
 
-    protected updateState = async <T>(object: DeviceStateObject<T>): Promise<void> => {
+    /**
+     * Named apart from the `update<Property>` methods, which {@link updatePropertyValue} resolves by name - an
+     * `updateState` here would shadow the one a device type declares for its STATE property.
+     */
+    #handleIoBrokerStateChange = async <T>(object: DeviceStateObject<T>): Promise<void> => {
         if (!this.enabled && object.propertyType !== PropertyType.Unreachable) {
             // When disabled, only report unreachable ioBroker changes to Matter
             return;
         }
         if (!this.#isIoBrokerDevice && this.#properties[object.propertyType].accessType === StateAccessType.Read) {
             this.#adapter.log.info(
-                `updateState not allowed for type ${object.propertyType} and value ${object.value as string}`,
+                `State change not allowed for type ${object.propertyType} and value ${object.value as string}`,
             );
             return;
         }
@@ -450,14 +475,14 @@ export abstract class GenericDevice extends EventEmitter {
         return result;
     }
 
-    getError(): boolean | number | undefined {
+    getError(): boolean | number | string | undefined {
         if (!this.#errorState) {
             throw new Error('Error state not found');
         }
         return this.#errorState.value;
     }
 
-    updateError(value: boolean): Promise<void> {
+    updateError(value: boolean | string): Promise<void> {
         if (!this.#errorState) {
             throw new Error('Error state not found');
         }
@@ -577,6 +602,24 @@ export abstract class GenericDevice extends EventEmitter {
 
     hasBattery(): boolean {
         return this.propertyNames.includes(PropertyType.Battery);
+    }
+
+    getRssi(): number | undefined {
+        if (!this.#rssiState) {
+            throw new Error('RSSI state not found');
+        }
+        return this.#rssiState.value;
+    }
+
+    updateRssi(value: number): Promise<void> {
+        if (!this.#rssiState) {
+            throw new Error('RSSI state not found');
+        }
+        return this.#rssiState.updateValue(value);
+    }
+
+    hasRssi(): boolean {
+        return this.propertyNames.includes(PropertyType.Rssi);
     }
 
     // ==================== Custom State Methods ====================
@@ -853,7 +896,11 @@ export abstract class GenericDevice extends EventEmitter {
             }
             return 'switch';
         }
-        if (valueType === ValueType.Number || valueType === ValueType.NumberPercent || ValueType.NumberMinMax) {
+        if (
+            valueType === ValueType.Number ||
+            valueType === ValueType.NumberPercent ||
+            valueType === ValueType.NumberMinMax
+        ) {
             if (hasMinMax) {
                 return 'slider';
             }
@@ -876,11 +923,12 @@ export abstract class GenericDevice extends EventEmitter {
         }
         keys.forEach(property => {
             const stateObject = this.#registeredStates.find(obj => obj.propertyType === property);
-            const { valueType, name, unit, write, read } = this.#properties[property];
-            const { min, max, step } = stateObject?.getMinMax() ?? {};
+            const { valueType, name, write, read } = this.#properties[property];
+            // Field binds the foreign oid directly, so unit/min/max must be the object's own.
+            const { min, max, step } = stateObject?.getRawMinMax() ?? {};
             states[`__iobstate__${name}`] = {
                 oid: write ?? read,
-                unit,
+                unit: stateObject?.getRawUnit(),
                 min,
                 max,
                 step,

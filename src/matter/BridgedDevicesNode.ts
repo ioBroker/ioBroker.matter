@@ -48,6 +48,35 @@ class BridgedDevices extends BaseServerNode {
         return this.#parameters.port;
     }
 
+    /**
+     * Takes the endpoints of one bridged device off the bridge again.
+     *
+     * An endpoint that could not be deleted is still attached, so it stays registered: `applyConfiguration`
+     * removes devices by walking this map, and an endpoint missing from it can never be removed again. One
+     * device failing to leave does not tear down the bridge the other devices are serving from.
+     *
+     * @param uuid the bridged device to remove
+     * @returns whether the bridge is rid of all of its endpoints
+     */
+    async #removeDeviceEndpoints(uuid: string): Promise<boolean> {
+        const attached = new Array<Endpoint>();
+        for (const endpoint of this.#deviceEndpoints.get(uuid) ?? []) {
+            try {
+                await endpoint.delete();
+            } catch (error) {
+                const errorText = inspect(error, { depth: 10 });
+                this.adapter.log.error(`Error removing endpoint ${endpoint.id} from bridge: ${errorText}`);
+                attached.push(endpoint);
+            }
+        }
+        if (attached.length) {
+            this.#deviceEndpoints.set(uuid, attached);
+            return false;
+        }
+        this.#deviceEndpoints.delete(uuid);
+        return true;
+    }
+
     /** Creates the Matter device/endpoint and adds it to the code. It also handles Composed vs non-composed structuring. */
     async addBridgedIoBrokerDevice(device: GenericDevice, deviceOptions: BridgeDeviceDescription): Promise<void> {
         if (!this.#aggregator) {
@@ -57,18 +86,12 @@ class BridgedDevices extends BaseServerNode {
         this.adapter.log.info(`Preparing bridged device ${deviceOptions.uuid} "${deviceOptions.name}" for bridge`);
 
         if (this.#deviceEndpoints.has(deviceOptions.uuid)) {
-            this.adapter.log.warn(
-                `Device ${deviceOptions.uuid} already in bridge. Should never happen. Closing them before re-adding`,
-            );
-            for (const endpoint of this.#deviceEndpoints.get(deviceOptions.uuid) ?? []) {
-                try {
-                    await endpoint.close();
-                } catch (error) {
-                    const errorText = inspect(error, { depth: 10 });
-                    this.adapter.log.error(`Error closing endpoint ${endpoint.id} in bridge: ${errorText}`);
-                }
+            this.adapter.log.warn(`Device ${deviceOptions.uuid} still in bridge. Removing it before re-adding`);
+            if (!(await this.#removeDeviceEndpoints(deviceOptions.uuid))) {
+                throw new Error(
+                    `Device ${deviceOptions.uuid} "${deviceOptions.name}" has endpoints on the bridge that could not be removed, so it cannot be re-added`,
+                );
             }
-            this.#deviceEndpoints.delete(deviceOptions.uuid);
         }
 
         const mappingDevice = await matterDeviceFactory(device, deviceOptions.name, deviceOptions.uuid);
@@ -159,7 +182,20 @@ class BridgedDevices extends BaseServerNode {
 
                 this.#deviceEndpoints.set(deviceOptions.uuid, [composedEndpoint]);
             }
-            await mappingDevice.init();
+            try {
+                await mappingDevice.init();
+            } catch (error) {
+                // The endpoints are already mounted and advertised, but without their handlers they would
+                // answer a controller with defaults forever, so the device leaves the bridge completely.
+                const removed = await this.#removeDeviceEndpoints(deviceOptions.uuid);
+                await mappingDevice.destroy();
+                if (!removed) {
+                    this.adapter.log.error(
+                        `Device ${deviceOptions.uuid} "${deviceOptions.name}" failed to initialize and could not be removed from the bridge; it answers controllers without any ioBroker state behind it until the bridge restarts`,
+                    );
+                }
+                throw error;
+            }
             mappingDevice.validChanged.on(
                 () =>
                     void this.updateUiState().catch(error =>

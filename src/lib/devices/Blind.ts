@@ -41,7 +41,7 @@ export class Blind extends BlindButtons {
                     callback: state => (this.#setLevelState = state),
                 },
                 {
-                    name: 'DIRECTION',
+                    name: 'DIRECTION_ENUM',
                     valueType: ValueType.Enum,
                     accessType: StateAccessType.Read,
                     type: PropertyType.DirectionEnum,

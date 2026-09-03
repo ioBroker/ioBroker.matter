@@ -1,0 +1,12 @@
+{
+    "require": [
+        "./test/mocha.setup.js",
+        "ts-node/register",
+        "./test/rootHooks.ts"
+    ],
+    "spec": "test/integration/*.integration.ts",
+    "extensions": [
+        "ts"
+    ],
+    "timeout": 600000
+}

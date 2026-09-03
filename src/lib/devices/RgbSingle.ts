@@ -4,6 +4,8 @@ import { type DetectedDevice, type DeviceOptions, StateAccessType } from './Gene
 
 export class RgbSingle extends Ct {
     #rgbState?: DeviceStateObject<string>;
+    /** A device stuck on an unreadable colour reports it on every change; log it once per value. */
+    #lastInvalidValue?: string;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
@@ -50,10 +52,19 @@ export class RgbSingle extends Ct {
         if (!this.#rgbState) {
             throw new Error('RGB state not found');
         }
-        const rgb = this.#rgbState.value ?? '#000000';
+        // `DeviceStateObject` casts the raw state value to its declared type, so a state whose
+        // `common.type` says string can still hold a number at runtime.
+        const raw = this.#rgbState.value ?? '#000000';
+        const rgb = typeof raw === 'string' ? raw : String(raw);
         const match = rgb.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i);
         if (!match) {
-            throw new Error(`Invalid RGB value: ${rgb}`);
+            // Anything can write this state, and a value that is not a hex colour is not exceptional;
+            // refusing the whole device over one unreadable colour would drop it out of the bridge.
+            if (this.#lastInvalidValue !== rgb) {
+                this.#lastInvalidValue = rgb;
+                this.adapter.log.info(`${this.uuid} Invalid RGB value: ${rgb}`);
+            }
+            return { red: 0, green: 0, blue: 0 };
         }
         return {
             red: parseInt(match[1], 16),

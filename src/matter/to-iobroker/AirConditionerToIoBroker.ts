@@ -23,6 +23,7 @@ import {
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 import type { MatterAdapter } from '../../main';
 import { MatterConverters } from '../ConversionUtils';
+import { mapFanModeToSpeed, mapSpeedToFanMode } from '../FanControlUtils';
 
 export class AirConditionerToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: AirCondition;
@@ -63,38 +64,6 @@ export class AirConditionerToIoBroker extends GenericElectricityDataDeviceToIoBr
             (currentMode === AirConditionerMode.Cool && forMode === AirConditionerMode.Cool)
         ) {
             await this.#ioBrokerDevice.updateLevel(MatterConverters.fromMatterHundredths(value));
-        }
-    }
-
-    #matterFanModeToSpeed(value: MatterFanControl.FanMode): AirConditionerSpeed | undefined {
-        switch (value) {
-            case MatterFanControl.FanMode.Auto:
-            case MatterFanControl.FanMode.Smart:
-                return AirConditionerSpeed.Auto;
-            case MatterFanControl.FanMode.Low:
-                return AirConditionerSpeed.Low;
-            case MatterFanControl.FanMode.Medium:
-                return AirConditionerSpeed.Medium;
-            case MatterFanControl.FanMode.High:
-            case MatterFanControl.FanMode.On:
-                return AirConditionerSpeed.High;
-            case MatterFanControl.FanMode.Off:
-                return undefined;
-        }
-    }
-
-    #speedToMatterFanMode(value: AirConditionerSpeed): MatterFanControl.FanMode | undefined {
-        switch (value) {
-            case AirConditionerSpeed.Auto:
-                return MatterFanControl.FanMode.Auto;
-            case AirConditionerSpeed.Low:
-            case AirConditionerSpeed.Quiet:
-                return MatterFanControl.FanMode.Low;
-            case AirConditionerSpeed.Medium:
-                return MatterFanControl.FanMode.Medium;
-            case AirConditionerSpeed.High:
-            case AirConditionerSpeed.Turbo:
-                return MatterFanControl.FanMode.High;
         }
     }
 
@@ -261,7 +230,8 @@ export class AirConditionerToIoBroker extends GenericElectricityDataDeviceToIoBr
             endpointId: this.appEndpoint.number,
             clusterId: RelativeHumidityMeasurement.id,
             attributeName: 'measuredValue',
-            convertValue: value => (value === null ? null : MatterConverters.fromMatterHundredths(value)),
+            // A numeric ioBroker state cannot express "unknown", and writing null reaches parseFloat as NaN
+            convertValue: value => (value === null ? undefined : MatterConverters.fromMatterHundredths(value)),
         });
 
         this.enableDeviceTypeStateForAttribute(PropertyType.Speed, {
@@ -274,9 +244,9 @@ export class AirConditionerToIoBroker extends GenericElectricityDataDeviceToIoBr
                 [AirConditionerSpeedNumbers.MEDIUM]: AirConditionerSpeed.Medium,
                 [AirConditionerSpeedNumbers.HIGH]: AirConditionerSpeed.High,
             },
-            convertValue: (value: MatterFanControl.FanMode) => this.#matterFanModeToSpeed(value),
+            convertValue: (value: MatterFanControl.FanMode) => mapFanModeToSpeed(value),
             changeHandler: async value => {
-                const fanMode = this.#speedToMatterFanMode(value);
+                const fanMode = mapSpeedToFanMode(value);
                 if (fanMode === undefined) {
                     return;
                 }
@@ -345,7 +315,7 @@ export class AirConditionerToIoBroker extends GenericElectricityDataDeviceToIoBr
                             : Math.max(max, thermostat.absMaxCoolSetpointLimit);
                 }
             }
-            await this.#ioBrokerDevice.updateSetpointMinMax(
+            await this.#ioBrokerDevice.updateLevelMinMax(
                 min !== undefined ? MatterConverters.fromMatterHundredths(min) : undefined,
                 max !== undefined ? MatterConverters.fromMatterHundredths(max) : undefined,
             );

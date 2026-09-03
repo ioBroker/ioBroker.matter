@@ -62,10 +62,6 @@ export class OnOffPlugInUnitToIoBroker extends GenericElectricityDataDeviceToIoB
             endpointId: this.appEndpoint.number,
             clusterId: OnOff.id,
             attributeName: 'onOff',
-            convertValue: async value => {
-                await this.#ioBrokerDevice.updatePower(value); // Also Ack Power Set State
-                return value;
-            },
         });
         return super.enableDeviceTypeStates();
     }

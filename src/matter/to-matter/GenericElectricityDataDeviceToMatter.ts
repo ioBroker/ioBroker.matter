@@ -168,7 +168,7 @@ export abstract class GenericElectricityDataDeviceToMatter extends GenericDevice
                     case PropertyType.Frequency:
                         await endpoint.set({
                             electricalPowerMeasurement: {
-                                frequency: typeof event.value === 'number' ? event.value * 100 : null,
+                                frequency: typeof event.value === 'number' ? event.value * 1000 : null,
                             },
                         });
                         break;

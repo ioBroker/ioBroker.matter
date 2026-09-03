@@ -6,6 +6,7 @@ import type { CustomStatesRecord } from '../../matter/to-iobroker/custom-states'
 export class Socket extends ElectricityDataDevice {
     #setPowerState?: DeviceStateObject<boolean>;
     #getPowerState?: DeviceStateObject<boolean>;
+    #onTimeState?: DeviceStateObject<number>;
 
     constructor(
         detectedDevice: DetectedDevice,
@@ -31,6 +32,13 @@ export class Socket extends ElectricityDataDevice {
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Power,
                     callback: state => (this.#setPowerState = state),
+                },
+                {
+                    name: 'ON_TIME',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.OnTime,
+                    callback: state => (this.#onTimeState = state),
                 },
             ]),
         );
@@ -70,5 +78,34 @@ export class Socket extends ElectricityDataDevice {
             throw new Error('Level state not found');
         }
         await this.#getPowerState.updateValue(value);
+    }
+
+    hasPowerActual(): boolean {
+        return !!this.#getPowerState;
+    }
+
+    hasOnTime(): boolean {
+        return !!this.#onTimeState;
+    }
+
+    getOnTime(): number | undefined {
+        if (!this.#onTimeState) {
+            throw new Error('OnTime state not found');
+        }
+        return this.#onTimeState.value;
+    }
+
+    setOnTime(value: number): Promise<void> {
+        if (!this.#onTimeState) {
+            throw new Error('OnTime state not found');
+        }
+        return this.#onTimeState.setValue(value);
+    }
+
+    updateOnTime(value: number): Promise<void> {
+        if (!this.#onTimeState) {
+            throw new Error('OnTime state not found');
+        }
+        return this.#onTimeState.updateValue(value);
     }
 }

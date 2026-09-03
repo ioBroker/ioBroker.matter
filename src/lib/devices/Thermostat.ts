@@ -1,5 +1,7 @@
+import { ClimateControlDevice } from './ClimateControlDevice';
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
+import type { CustomStatesRecord } from '../../matter/to-iobroker/custom-states';
 
 export enum ThermostatMode {
     // MANUAL, VACATION, COOL, DRY, ECO, FAN_ONLY, HEAT, OFF
@@ -26,30 +28,37 @@ export enum ThermostatModeNumbers {
     OFF = 8,
 }
 
-export class Thermostat extends GenericDevice {
-    #levelState?: DeviceStateObject<number>;
+export enum ThermostatWorkingMode {
+    Off = 'OFF',
+    Heat = 'HEAT',
+    Cool = 'COOL',
+}
+
+export enum ThermostatWorkingModeNumbers {
+    OFF = 0,
+    HEAT = 1,
+    COOL = 2,
+}
+
+export class Thermostat extends ClimateControlDevice<ThermostatMode, ThermostatWorkingMode> {
     #getTemperatureState?: DeviceStateObject<number>;
     #powerState?: DeviceStateObject<boolean | number>;
     #getHumidityState?: DeviceStateObject<number>;
     #boostState?: DeviceStateObject<boolean | number>;
     #partyState?: DeviceStateObject<boolean | number>;
-    #modeState?: DeviceStateObject<ThermostatMode>;
+    #valveState?: DeviceStateObject<number>;
+    #windowState?: DeviceStateObject<boolean>;
 
-    constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
-        super(detectedDevice, adapter, options);
+    constructor(
+        detectedDevice: DetectedDevice,
+        adapter: ioBroker.Adapter,
+        options?: DeviceOptions,
+        customStateDefinitions?: CustomStatesRecord,
+    ) {
+        super(detectedDevice, adapter, options, customStateDefinitions);
 
         this._construction.push(
             this.addDeviceStates([
-                {
-                    name: 'SET',
-                    valueType: ValueType.NumberMinMax,
-                    accessType: StateAccessType.ReadWrite,
-                    type: PropertyType.Level,
-                    unitConversionMap: {
-                        '°F': (value, toDefaultUnit) => (toDefaultUnit ? (value - 32) / 1.8 : value * 1.8 + 32),
-                    },
-                    callback: state => (this.#levelState = state),
-                },
                 {
                     name: 'ACTUAL',
                     valueType: ValueType.Number,
@@ -89,88 +98,57 @@ export class Thermostat extends GenericDevice {
                     callback: state => (this.#partyState = state),
                 },
                 {
-                    name: 'MODE',
-                    valueType: ValueType.Enum,
-                    accessType: StateAccessType.ReadWrite,
-                    type: PropertyType.Mode,
-                    callback: state => (this.#modeState = state),
+                    name: 'VALVE',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Valve,
+                    callback: state => (this.#valveState = state),
+                },
+                {
+                    name: 'WINDOW',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Window,
+                    callback: state => (this.#windowState = state),
                 },
             ]),
         );
     }
 
-    getModes(): ThermostatMode[] {
-        if (!this.#modeState) {
-            throw new Error('Mode state not found');
+    getValve(): number | undefined {
+        if (!this.#valveState) {
+            throw new Error('Valve state not found');
         }
-        return this.#modeState.getModes();
+        return this.#valveState.value;
     }
 
-    updateModes(modes: { [key: string]: ThermostatMode }): Promise<void> {
-        if (!this.#modeState) {
-            throw new Error('Mode state not found');
+    updateValve(value: number): Promise<void> {
+        if (!this.#valveState) {
+            throw new Error('Valve state not found');
         }
-        return this.#modeState.updateModes(modes);
+        return this.#valveState.updateValue(value);
     }
 
-    setMode(mode: ThermostatMode): Promise<void> {
-        if (!this.#modeState) {
-            throw new Error('Mode state not found');
-        }
-        return this.#modeState.setValue(mode);
+    hasValve(): boolean {
+        return !!this.#valveState;
     }
 
-    getMode(): ThermostatMode | undefined {
-        if (!this.#modeState) {
-            throw new Error('Mode state not found');
+    getWindow(): boolean | undefined {
+        if (!this.#windowState) {
+            throw new Error('Window state not found');
         }
-        return this.#modeState.value;
+        return this.#windowState.value;
     }
 
-    updateMode(mode: ThermostatMode): Promise<void> {
-        if (!this.#modeState) {
-            throw new Error('Mode state not found');
+    updateWindow(value: boolean): Promise<void> {
+        if (!this.#windowState) {
+            throw new Error('Window state not found');
         }
-        return this.#modeState.updateValue(mode);
+        return this.#windowState.updateValue(value);
     }
 
-    hasMode(): boolean {
-        return !!this.#modeState;
-    }
-
-    getSetpointMinMax(): { min: number; max: number } | null {
-        if (!this.#levelState) {
-            throw new Error('Level state not found');
-        }
-        return this.#levelState.getMinMax();
-    }
-
-    updateSetpointMinMax(min: number | undefined, max: number | undefined, step = 0.5): Promise<void> {
-        if (!this.#levelState) {
-            throw new Error('Level state not found');
-        }
-        return this.#levelState.updateMinMax({ min, max, step });
-    }
-
-    getLevel(): number | undefined {
-        if (!this.#levelState) {
-            throw new Error('Level state not found');
-        }
-        return this.#levelState.value;
-    }
-
-    setLevel(value: number): Promise<void> {
-        if (!this.#levelState) {
-            throw new Error('Level state not found');
-        }
-        return this.#levelState.setValue(value);
-    }
-
-    updateLevel(value: number): Promise<void> {
-        if (!this.#levelState) {
-            throw new Error('Level state not found');
-        }
-        return this.#levelState.updateValue(value);
+    hasWindow(): boolean {
+        return !!this.#windowState;
     }
 
     getTemperature(): number | undefined {

@@ -56,9 +56,11 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
         await this.#matterEndpoint.setStateOf(EventedOnOffLightOnOffServer, {
             onOff: this.#ioBrokerDevice.hasPower()
                 ? !!this.#ioBrokerDevice.getPower()
-                : !(this.#ioBrokerDevice instanceof Light) && this.#ioBrokerDevice.hasDimmer()
-                  ? (this.#ioBrokerDevice.getDimmer() ?? 0) > 0
-                  : true,
+                : this.#ioBrokerDevice.hasPowerActual()
+                  ? !!this.#ioBrokerDevice.getPowerActual()
+                  : !(this.#ioBrokerDevice instanceof Light) && this.#ioBrokerDevice.hasDimmer()
+                    ? (this.#ioBrokerDevice.getDimmer() ?? 0) > 0
+                    : true,
         });
 
         this.matterEvents.on(this.#matterEndpoint.eventsOf(IoBrokerEvents).onOffControlled, async on => {
@@ -79,7 +81,7 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
                 }
             }
         });
-        if (!this.#ioBrokerDevice.hasPower()) {
+        if (!this.#ioBrokerDevice.hasPower() && !this.#ioBrokerDevice.hasPowerActual()) {
             this.#ioBrokerDevice.adapter.log.info(
                 `Device ${this.#ioBrokerDevice.deviceType} (${this.#ioBrokerDevice.uuid}) has no mapped power state`,
             );
@@ -141,7 +143,7 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
                 case PropertyType.LevelActual:
                 case PropertyType.Dimmer: {
                     const ioValue = (event.value ?? 100) as number;
-                    if (!this.#ioBrokerDevice.hasPower()) {
+                    if (!this.#ioBrokerDevice.hasPower() && !this.#ioBrokerDevice.hasPowerActual()) {
                         // If the device has no power state we still report the onoff state based on level
                         await this.#matterEndpoint.setStateOf(EventedOnOffLightOnOffServer, {
                             onOff: ioValue > 0,

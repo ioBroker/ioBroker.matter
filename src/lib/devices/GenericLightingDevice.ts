@@ -5,6 +5,7 @@ import type { CustomStatesRecord } from '../../matter/to-iobroker/custom-states'
 
 export abstract class GenericLightingDevice extends ElectricityDataDevice {
     #effectState?: DeviceStateObject<string>;
+    #onTimeState?: DeviceStateObject<number>;
 
     constructor(
         detectedDevice: DetectedDevice,
@@ -22,6 +23,13 @@ export abstract class GenericLightingDevice extends ElectricityDataDevice {
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Effect,
                     callback: state => (this.#effectState = state),
+                },
+                {
+                    name: 'ON_TIME',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.OnTime,
+                    callback: state => (this.#onTimeState = state),
                 },
             ]),
         );
@@ -65,5 +73,30 @@ export abstract class GenericLightingDevice extends ElectricityDataDevice {
             throw new Error('Effect state not found');
         }
         return this.#effectState.getModes();
+    }
+
+    hasOnTime(): boolean {
+        return !!this.#onTimeState;
+    }
+
+    getOnTime(): number | undefined {
+        if (!this.#onTimeState) {
+            throw new Error('OnTime state not found');
+        }
+        return this.#onTimeState.value;
+    }
+
+    setOnTime(value: number): Promise<void> {
+        if (!this.#onTimeState) {
+            throw new Error('OnTime state not found');
+        }
+        return this.#onTimeState.setValue(value);
+    }
+
+    updateOnTime(value: number): Promise<void> {
+        if (!this.#onTimeState) {
+            throw new Error('OnTime state not found');
+        }
+        return this.#onTimeState.updateValue(value);
     }
 }

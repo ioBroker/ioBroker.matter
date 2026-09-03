@@ -102,7 +102,6 @@ export abstract class GenericElectricityDataDeviceToIoBroker<
                 endpointId,
                 clusterId,
                 vendorSpecificAttributeId: AttributeId(0x130a0009),
-                convertValue: value => value * 1000, // let's assume we have A?
                 pollAttribute: isEveDevice,
             });
             this.enableDeviceTypeStateForAttribute(PropertyType.Voltage, {
@@ -138,7 +137,6 @@ export abstract class GenericElectricityDataDeviceToIoBroker<
                 endpointId,
                 clusterId,
                 vendorSpecificAttributeId: AttributeId(0x00125d0022),
-                convertValue: value => value * 1000, // let's assume we have A?
                 pollAttribute: true,
             }); // Current as float 32
             this.enableDeviceTypeStateForAttribute(PropertyType.Voltage, {

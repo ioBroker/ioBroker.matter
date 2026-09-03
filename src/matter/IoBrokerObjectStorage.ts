@@ -108,7 +108,7 @@ export class IoBrokerObjectStorage extends StorageDriver {
     }
 
     async close(): Promise<void> {
-        // Nothing to do
+        await this.#localStorageManager?.close();
     }
 
     buildKey(contexts: string[], key: string): string {

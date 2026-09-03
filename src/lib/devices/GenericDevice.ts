@@ -4,6 +4,7 @@ import type { DetectorState, Types, StateType } from '@iobroker/type-detector';
 import type { BridgeDeviceDescription } from '../../ioBrokerTypes';
 import type { CustomStateCommon, CustomStatesRecord } from '../../matter/to-iobroker/custom-states';
 import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import { TeardownRegistry } from '../TeardownRegistry';
 import { EventEmitter } from 'events';
 
 export interface DeviceOptions extends BridgeDeviceDescription {
@@ -63,6 +64,7 @@ export abstract class GenericDevice extends EventEmitter {
     #valid = true;
     #handlers = new Array<(event: { property: PropertyType; value: any; device: GenericDevice }) => Promise<void>>();
     protected _construction = new Array<() => Promise<void>>();
+    readonly #teardown: TeardownRegistry;
 
     #errorState?: DeviceStateObject<boolean | string>;
     #maintenanceState?: DeviceStateObject<boolean>;
@@ -92,6 +94,9 @@ export abstract class GenericDevice extends EventEmitter {
     ) {
         super();
         this.#adapter = adapter;
+        this.#teardown = new TeardownRegistry(error =>
+            adapter.log.warn(`Error while tearing down device ${detectedDevice.type}: ${error.message}`),
+        );
         this.#deviceType = detectedDevice.type;
         this.#detectedDevice = detectedDevice;
         this.#isIoBrokerDevice = detectedDevice.isIoBrokerDevice;
@@ -301,7 +306,8 @@ export abstract class GenericDevice extends EventEmitter {
                         this.#isIoBrokerDevice || this.#properties[type].accessType !== StateAccessType.Write,
                     );
                     this.#subscribeObjects.push(object);
-                    object.on('validChanged', () => this.#handleValidChange());
+                    this.#teardown.add(() => object.unsubscribe());
+                    this.#registerValidChangeHandler(object);
                 }
             }
             this.#registeredStates.push(object);
@@ -425,13 +431,22 @@ export abstract class GenericDevice extends EventEmitter {
         }
     };
 
+    #registerValidChangeHandler(object: DeviceStateObject<any>): void {
+        const handler = (): void => this.#handleValidChange();
+        object.on('validChanged', handler);
+        this.#teardown.add(() => object.off('validChanged', handler));
+    }
+
     async destroy(): Promise<void> {
-        for (const object of this.#subscribeObjects) {
-            await object.unsubscribe();
-        }
+        await this.#teardown.close();
         this.#subscribeObjects.length = 0;
         this.#registeredStates.length = 0;
+        this.#customStates.clear();
+        this.#customProperties = {};
         this.offChange();
+        this.offCustomChange();
+        // Outside listeners (e.g. GenericDeviceToMatter's 'validChanged') must not outlive the device
+        this.removeAllListeners();
     }
 
     getProperties(): { [key: string]: any } {
@@ -705,7 +720,8 @@ export abstract class GenericDevice extends EventEmitter {
                     await this.#updateCustomState(customPropertyName, obj);
                 }, accessType !== StateAccessType.Write);
                 this.#subscribeObjects.push(object);
-                object.on('validChanged', () => this.#handleValidChange());
+                this.#teardown.add(() => object.unsubscribe());
+                this.#registerValidChangeHandler(object);
             }
 
             this.#customStates.set(customPropertyName, object);

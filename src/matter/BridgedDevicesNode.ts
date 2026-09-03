@@ -300,11 +300,14 @@ class BridgedDevices extends BaseServerNode {
                 if (existingDevice) {
                     newDeviceList.add(uuid);
                     this.adapter.log.debug(`Device ${uuid} already in bridge. Sync Configuration`);
-                    await existingDevice.applyConfiguration(deviceOptions);
-                    // The caller already built and subscribed a replacement we do not adopt; without this it stays
-                    // reachable forever through SubscribeManager's static handler map.
-                    if (device !== undefined && device !== existingDevice) {
-                        await this.#destroyDeviceIsolated(uuid, device);
+                    try {
+                        await existingDevice.applyConfiguration(deviceOptions);
+                    } finally {
+                        // The caller already built and subscribed a replacement we do not adopt; without this it
+                        // stays reachable forever through SubscribeManager's static handler map.
+                        if (device !== undefined && device !== existingDevice) {
+                            await this.#destroyDeviceIsolated(uuid, device);
+                        }
                     }
                     continue;
                 }

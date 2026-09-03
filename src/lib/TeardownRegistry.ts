@@ -13,6 +13,7 @@ export class TeardownRegistry {
     readonly #actions = new Array<TeardownAction>();
     readonly #onError: (error: Error) => void;
     #closed = false;
+    #closing?: Promise<void>;
 
     constructor(onError: (error: Error) => void) {
         this.#onError = onError;
@@ -42,6 +43,13 @@ export class TeardownRegistry {
      */
     async close(): Promise<void> {
         this.#closed = true;
+        // Every caller must await the same drain, or a second close() could interleave with the first -
+        // running later actions concurrently and returning before teardown is actually complete.
+        this.#closing ??= this.#drain();
+        return this.#closing;
+    }
+
+    async #drain(): Promise<void> {
         while (this.#actions.length) {
             await this.#run(this.#actions.pop()!);
         }

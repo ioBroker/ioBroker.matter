@@ -109,6 +109,29 @@ describe('TeardownRegistry', () => {
         expect(errors.map(error => error.message)).to.deep.equal(['late boom']);
     });
 
+    it('makes concurrent close calls await the same completed drain', async () => {
+        const { instance } = registry();
+        const order = new Array<string>();
+        let released: () => void = () => {};
+        const gate = new Promise<void>(resolve => (released = resolve));
+
+        instance.add(() => order.push('second'));
+        instance.add(async () => {
+            await gate;
+            order.push('first');
+        });
+
+        const a = instance.close();
+        const b = instance.close();
+        // The second caller must not be able to drain past the action the first one is still awaiting
+        expect(order).to.be.empty;
+
+        released();
+        await Promise.all([a, b]);
+
+        expect(order).to.deep.equal(['first', 'second']);
+    });
+
     it('runs each action exactly once across repeated close calls', async () => {
         const { instance } = registry();
         let count = 0;

@@ -14,7 +14,6 @@ import {
     Semaphore,
     SoftwareUpdateManager,
     RemoteDescriptor,
-    ServerAddress,
     ServerNode,
     Time,
     VendorId,
@@ -75,7 +74,7 @@ import {
 import { ThreadDiagnosticsService, type ThreadDiagnosticsBatch } from './ThreadDiagnosticsService';
 import { parseRestBaseUrl, registerThreadCredentialsFromHex } from './threadCredentials';
 import { serializeBatch } from './serializeBatch';
-import { GeneralMatterNode, type PairedNodeConfig } from './GeneralMatterNode';
+import { GeneralMatterNode, operationalAddressOf, type PairedNodeConfig } from './GeneralMatterNode';
 import type { NodeIcdManager } from './NodeIcdManager';
 import { refreshWithLongIdleTimeDeferral, runDedupedByKey } from './longIdleTimeRefresh';
 import { pushNodeTime, type TimeSyncInvokers } from './timeSync/timeSyncCommands';
@@ -136,18 +135,6 @@ interface WatchedPeer {
     /** Set once the peer itself starts being destroyed, so a rebuild cannot recreate what is being removed. */
     tearingDown?: boolean;
     rebuildTimer?: ioBroker.Timeout;
-}
-
-/** The address the peer is reachable on, in the `host:port` form the ioBroker state carries. */
-function operationalAddressOf(peer: ClientNode): string | undefined {
-    const [address] = peer.state.commissioning?.addresses ?? [];
-    if (address === undefined) {
-        return undefined;
-    }
-    // matter.js knows udp, tcp, ble and ip schemes, so the prefix is not of one fixed length
-    const url = ServerAddress.urlFor(address);
-    const scheme = url.indexOf('://');
-    return scheme === -1 ? url : url.substring(scheme + 3);
 }
 
 type EndUserCommissioningOptions = (
@@ -776,6 +763,10 @@ class Controller implements GeneralNode {
         try {
             if (this.#closing || this.#adapter.closing) {
                 // A queued call may only get its slot after stop() already cleared #nodes.
+                return;
+            }
+            if (!this.#watchedPeers.has(node)) {
+                // The peer was removed while this waited for its slot, so rebuilding would bring it back.
                 return;
             }
 
@@ -1838,6 +1829,9 @@ class Controller implements GeneralNode {
             }
             this.#unregisterNodeFromTimeSync(removedNodeId);
             this.#unregisterNodeFromThreadPolling(removedNodeId);
+            // A rebuild that was queued on this lock replaces the entry, so what is dropped here is not
+            // necessarily the object the caller is tearing down.
+            await this.#nodes.get(nodeId)?.destroy();
             this.#nodes.delete(nodeId);
         } finally {
             slot.close();

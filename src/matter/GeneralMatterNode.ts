@@ -15,6 +15,7 @@ import {
     SoftwareUpdateManager,
     ObserverGroup,
     Semaphore,
+    ServerAddress,
     Observable,
     deepCopy,
     CommissioningClient,
@@ -131,6 +132,18 @@ function decodedEventOf(change: ChangeNotificationService.EventOccurrence): Deco
         [EVENT_TIMESTAMP_FIELDS[change.timestampKind]]: change.timestamp,
         data: change.payload,
     };
+}
+
+/** The address the peer is reachable on, in the `host:port` form the ioBroker state carries. */
+export function operationalAddressOf(peer: ClientNode): string | undefined {
+    const [address] = peer.state.commissioning?.addresses ?? [];
+    if (address === undefined) {
+        return undefined;
+    }
+    // matter.js knows udp, tcp, ble and ip schemes, so the prefix is not of one fixed length
+    const url = ServerAddress.urlFor(address);
+    const scheme = url.indexOf('://');
+    return scheme === -1 ? url : url.substring(scheme + 3);
 }
 
 export function resolveAttributeId(
@@ -284,6 +297,14 @@ export class GeneralMatterNode {
         await this.clear();
         const generation = this.#generation;
 
+        const existingObject = await this.adapter.getObjectAsync(this.nodeBaseId);
+        if (existingObject?.native?.enabled !== undefined) {
+            this.#enabled = existingObject.native.enabled;
+        }
+        // Before the seeding gate: a peer matter.js has as disabled never connects and so never seeds, and
+        // `setEnabled` would not reach it either because the flag it compares already says enabled.
+        await this.#applyEnabledToNode(this.#enabled);
+
         if (!this.node.lifecycle.isSeeded) {
             // An offline peer never becomes seeded, so this must be observed rather than awaited.
             this.adapter.log.warn(
@@ -292,7 +313,9 @@ export class GeneralMatterNode {
             const observers = new ObserverGroup();
             observers.on(this.node.lifecycle.seeded, () => {
                 this.adapter.log.info(`Node "${this.nodeId}" has been delayed connected. Initialize now!`);
-                this.initialize().catch(error => this.adapter.log.info(`Error while initializing node: ${error}`));
+                this.initialize(nodeDetails).catch(error =>
+                    this.adapter.log.info(`Error while initializing node: ${error}`),
+                );
             });
             // The lifecycle belongs to the ClientNode, which outlives every GeneralMatterNode built for it;
             // without this a node replaced before it ever connected stays reachable through the observer.
@@ -302,7 +325,6 @@ export class GeneralMatterNode {
 
         const rootEndpoint = this.node;
 
-        const existingObject = await this.adapter.getObjectAsync(this.nodeBaseId);
         if (existingObject) {
             if (existingObject.native?.exposeMatterApplicationClusterData !== undefined) {
                 this.exposeMatterApplicationClusterData = existingObject.native.exposeMatterApplicationClusterData;
@@ -310,10 +332,6 @@ export class GeneralMatterNode {
             if (existingObject.native?.exposeMatterSystemClusterData !== undefined) {
                 this.exposeMatterSystemClusterData = existingObject.native.exposeMatterSystemClusterData;
             }
-            if (existingObject.native?.enabled !== undefined) {
-                this.#enabled = existingObject.native.enabled;
-            }
-            await this.#applyEnabledToNode(this.#enabled);
             this.setNodeConfiguration({
                 subscriptionMaxIntervalS: existingObject.native?.subscriptionMaxIntervalS,
             });
@@ -455,7 +473,9 @@ export class GeneralMatterNode {
             this.#publishIcdMode();
         }
 
-        this.#connectedAddress = nodeDetails?.operationalAddress;
+        // A restored peer is connected before this runs and its state change does not replay, so the caller
+        // does not always have an address to hand over.
+        this.#connectedAddress = nodeDetails?.operationalAddress ?? operationalAddressOf(this.node);
         await this.adapter.setState(this.connectedAddressStateId, this.#connectedAddress ?? null, true);
 
         // Restore update info from persisted state if available

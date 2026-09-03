@@ -489,13 +489,13 @@ export class MatterAdapter extends Adapter {
         } while (deleted);
     }
 
-    /** True while at least one admin client is listening, so callers can skip building a payload nobody reads. */
-    get hasGuiSubscribers(): boolean {
+    /** True while an admin client is listening and the adapter is not unloading, so callers can skip building a payload nobody reads. */
+    get shouldSendToGui(): boolean {
         return !this.#blockGuiUpdates && !!this.#_guiSubscribes?.length;
     }
 
     sendToGui = async (data: any): Promise<void> => {
-        if (!this.hasGuiSubscribers) {
+        if (!this.shouldSendToGui) {
             return;
         }
         if (this.log.level === 'debug' || this.log.level === 'silly') {

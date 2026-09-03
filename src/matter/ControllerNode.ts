@@ -786,7 +786,7 @@ class Controller implements GeneralNode {
     }
 
     #sendThreadDiagnosticsUpdate(batch: ThreadDiagnosticsBatch): void {
-        if (this.#closing || this.#adapter.closing || !this.#adapter.hasGuiSubscribers) {
+        if (this.#closing || this.#adapter.closing || !this.#adapter.shouldSendToGui) {
             return;
         }
         this.#adapter
@@ -1262,7 +1262,7 @@ class Controller implements GeneralNode {
         }
         this.#networkGraphUpdateTimer = this.#adapter.setTimeout(async () => {
             // getNetworkGraphData() walks every endpoint of every node and does a model lookup per device type
-            if (!this.#adapter.hasGuiSubscribers) {
+            if (!this.#adapter.shouldSendToGui) {
                 return;
             }
             try {

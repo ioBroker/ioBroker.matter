@@ -31,8 +31,13 @@ export class IoBrokerObjectStorage extends StorageDriver {
         this.#storeLocalChecker = storeLocalChecker;
     }
 
+    /** Nothing of ours is stored without a context, so the checker is never asked about the root. */
     #isLocallyStored(contexts: string[]): boolean {
-        return !!(this.#nodeDataStorageDirectory !== undefined && this.#storeLocalChecker?.(contexts));
+        return !!(
+            contexts.length &&
+            this.#nodeDataStorageDirectory !== undefined &&
+            this.#storeLocalChecker?.(contexts)
+        );
     }
 
     async initialize(): Promise<void> {
@@ -60,6 +65,78 @@ export class IoBrokerObjectStorage extends StorageDriver {
         }
 
         this.initialized = true;
+
+        try {
+            await this.#adoptStrandedNodeData();
+        } catch (error) {
+            // The data stays readable where it is, so a failed move must not keep the adapter from starting
+            this.#adapter.log.error(`[STORAGE] Cannot move node data into the objects database: ${error.message}`);
+        }
+    }
+
+    /**
+     * Copy node data the local checker no longer claims into the objects database.
+     *
+     * Until 1.3.1 the checker matched every context below a peer, so entries that belong in objects were
+     * written to disk instead and would read back as missing once the checker was corrected. The file is
+     * kept: a downgrade to a version that reads only files still finds its peers, at the price of the copy
+     * going stale, and an entry already in the objects database is left alone rather than written back.
+     */
+    async #adoptStrandedNodeData(): Promise<void> {
+        const local = this.#localStorageManager;
+        if (local === undefined) {
+            return;
+        }
+
+        // Only peer data is split between the two backends; anything else in the shared directory is not ours
+        const pending = new Array<string[]>();
+        if (this.#localContexts([]).includes('nodes')) {
+            pending.push(['nodes']);
+        }
+        let adopted = 0;
+        const stranded = new Array<string>();
+        while (pending.length) {
+            const contexts = pending.shift()!;
+            if (this.#isLocallyStored(contexts)) {
+                continue;
+            }
+            pending.push(...this.#localContexts(contexts).map(context => [...contexts, context]));
+
+            const values = await local.values(contexts);
+            for (const key of await local.keys(contexts)) {
+                const file = [...contexts, key].join('.');
+                if ((await this.#getFromObjects(contexts, key)) !== undefined) {
+                    continue;
+                }
+                if (!(key in values)) {
+                    // The file storage driver drops what it cannot parse, so this entry has no value to copy
+                    stranded.push(file);
+                    continue;
+                }
+
+                await this.#setKey(contexts, key, values[key]);
+                // #setKey reports a failed write in the log and returns rather than throwing
+                if ((await this.#getFromObjects(contexts, key)) === undefined) {
+                    stranded.push(file);
+                    continue;
+                }
+                adopted++;
+            }
+        }
+
+        if (adopted) {
+            this.#adapter.log.info(
+                `[STORAGE] Copied ${adopted} node data entries into the objects database. The files stay behind ` +
+                    `so that a downgrade to an earlier adapter version still finds its nodes.`,
+            );
+        }
+        if (stranded.length) {
+            this.#adapter.log.warn(
+                `[STORAGE] Could not copy ${stranded.length} node data entries into the objects database: ` +
+                    `${stranded.join(', ')}. They are still read from the instance data directory and copying ` +
+                    `them is retried on the next start.`,
+            );
+        }
     }
 
     async #clearNamespace(): Promise<void> {
@@ -82,7 +159,9 @@ export class IoBrokerObjectStorage extends StorageDriver {
             await this.#clearNamespace();
             return;
         }
-        if (this.#localStorageManager && this.#isLocallyStored(contexts)) {
+        if (this.#localStorageManager) {
+            // A wipe addresses a whole subtree, and matter.js erases a node at contexts above the one the
+            // checker answers for, so this cannot ask where a single key would be written.
             this.#adapter.log.info(`[STORAGE] Clearing all storage for ${contexts.join('$$')} in local storage`);
             await this.#localStorageManager.clearAll(contexts);
         }
@@ -122,6 +201,20 @@ export class IoBrokerObjectStorage extends StorageDriver {
         if (this.#localStorageManager && this.#isLocallyStored(contexts)) {
             return await this.#localStorageManager.get<T>(contexts, key);
         }
+        const value = await this.#getFromObjects<T>(contexts, key);
+        if (value !== undefined) {
+            return value;
+        }
+        if (!contexts.length) {
+            // Root level entries of the shared directory belong to other components, and reading one that is
+            // a directory throws rather than reporting nothing
+            return undefined;
+        }
+        // Entries #adoptStrandedNodeData could not move stay readable from where they were written
+        return this.#localStorageManager?.get<T>(contexts, key);
+    }
+
+    async #getFromObjects<T extends SupportedStorageTypes>(contexts: string[], key: string): Promise<T | undefined> {
         const oid = this.buildKey(contexts, key);
         try {
             const valueState = await this.#adapter.getStateAsync(oid);
@@ -154,50 +247,52 @@ export class IoBrokerObjectStorage extends StorageDriver {
     }
 
     contexts(contexts: string[]): string[] {
-        const result = new Array<string>();
-        result.push(...this.#localContexts(contexts));
+        // A peer keeps its cluster data in files and the rest in objects, so both backends report it and
+        // every consumer of this list would build its store twice.
+        const result = new Set<string>(this.#localContexts(contexts));
 
         const contextKeyStart = this.buildKey(contexts, '');
         const len = contextKeyStart.length;
 
-        const foundContexts = new Set<string>();
-        Array.from(this.#existingObjectIds.keys())
-            .filter(key => key.startsWith(contextKeyStart) && key.indexOf('$$', len) !== -1)
-            .forEach(key => {
-                const context = key.substring(len, key.indexOf('$$', len));
-                if (!foundContexts.has(context)) {
-                    foundContexts.add(context);
-                }
-            });
-        result.push(...Array.from(foundContexts.keys()));
-        return result;
+        for (const oid of this.#existingObjectIds) {
+            const separator = oid.indexOf('$$', len);
+            if (oid.startsWith(contextKeyStart) && separator !== -1) {
+                result.add(oid.substring(len, separator));
+            }
+        }
+        return [...result];
     }
 
     async keys(contexts: string[]): Promise<string[]> {
-        const results = new Array<string>();
+        const results = new Set<string>();
         // Nothing of ours is ever stored locally without a context, so root-level entries of the shared
         // directory belong to other components.
         if (this.#localStorageManager && contexts.length) {
-            results.push(...(await this.#localStorageManager.keys(contexts)));
+            for (const key of await this.#localStorageManager.keys(contexts)) {
+                results.add(key);
+            }
         }
 
         const contextKeyStart = this.buildKey(contexts, '');
         const len = contextKeyStart.length;
 
-        results.push(
-            ...Array.from(this.#existingObjectIds.keys())
-                .filter(key => key.startsWith(contextKeyStart) && key.indexOf('$$', len) === -1)
-                .map(key => key.substring(len)),
-        );
-        return results;
+        for (const oid of this.#existingObjectIds) {
+            if (oid.startsWith(contextKeyStart) && oid.indexOf('$$', len) === -1) {
+                results.add(oid.substring(len));
+            }
+        }
+        return [...results];
     }
 
     async values(contexts: string[]): Promise<Record<string, SupportedStorageTypes>> {
         const values =
             this.#localStorageManager && contexts.length ? await this.#localStorageManager.values(contexts) : {};
 
-        const keys = await this.keys(contexts);
-        for (const key of keys) {
+        const readFromFiles = this.#isLocallyStored(contexts);
+        for (const key of await this.keys(contexts)) {
+            if (readFromFiles && key in values) {
+                continue;
+            }
             values[key] = await this.get(contexts, key);
         }
         return values;
@@ -224,9 +319,11 @@ export class IoBrokerObjectStorage extends StorageDriver {
                     },
                     native: {},
                 });
-                this.#existingObjectIds.add(oid);
             }
             await this.#adapter.setState(oid, toJson(value), true);
+            // Only a key that carries a value counts as existing: `keys()` and `contexts()` are built from
+            // this set, and an object without a state reports a key that reads back as undefined.
+            this.#existingObjectIds.add(oid);
         } catch (error) {
             this.#adapter.log.error(`[STORAGE] Cannot save state ${oid}: ${error.message}`);
         }
@@ -269,5 +366,12 @@ export class IoBrokerObjectStorage extends StorageDriver {
             this.#adapter.log.error(`[STORAGE] Cannot delete state ${oid}: ${error.message}`);
         }
         this.#existingObjectIds.delete(oid);
+
+        if (this.#localStorageManager && contexts.length) {
+            // An entry #adoptStrandedNodeData could not move would be served again by get()
+            await this.#localStorageManager
+                .delete(contexts, key)
+                .catch(error => this.#adapter.log.warn(`[STORAGE] Cannot delete file for ${oid}: ${error.message}`));
+        }
     }
 }

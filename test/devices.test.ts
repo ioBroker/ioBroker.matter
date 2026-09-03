@@ -4,11 +4,7 @@ import { SubscribeManager } from '../src/lib/SubscribeManager';
 import { StateAccessType } from '../src/lib/devices/GenericDevice';
 import { ValueType } from '../src/lib/devices/DeviceStateObject';
 
-const excludedTypes: string[] = [
-    'unknown',
-    'instance',
-    'valve',
-];
+const excludedTypes: string[] = ['unknown', 'instance'];
 
 // Interface for the state structure used in tests
 interface TestState {
@@ -206,6 +202,57 @@ const detectedDevices: TestDetectedDevice = {
 
         { name: 'LEVEL', id: '0_userdata.0.level', type: 'number' },
 
+        { name: 'ON_TIME', id: '0_userdata.0.on_time', type: 'number' },
+
+        { name: 'SET_HEATING', id: '0_userdata.0.set_heating', type: 'number' },
+        { name: 'SET_COOLING', id: '0_userdata.0.set_cooling', type: 'number' },
+        { name: 'WORKING_MODE', id: '0_userdata.0.working_mode', type: 'enum' },
+        { name: 'VALVE', id: '0_userdata.0.valve', type: 'number' },
+        { name: 'WINDOW', id: '0_userdata.0.window', type: 'boolean' },
+        { name: 'SPEED_LEVEL', id: '0_userdata.0.speed_level', type: 'number' },
+        { name: 'AIRFLOW_DIRECTION', id: '0_userdata.0.airflow_direction', type: 'enum' },
+        { name: 'FILTER_CONDITION', id: '0_userdata.0.filter_condition', type: 'number' },
+        { name: 'FILTER_CONDITION_CARBON', id: '0_userdata.0.filter_condition_carbon', type: 'number' },
+        { name: 'FILTER_CHANGE', id: '0_userdata.0.filter_change', type: 'boolean' },
+
+        { name: 'HOME', id: '0_userdata.0.home', type: 'boolean' },
+        { name: 'RUN_MODE', id: '0_userdata.0.run_mode', type: 'enum' },
+        { name: 'PROGRESS', id: '0_userdata.0.progress', type: 'number' },
+        { name: 'PHASE', id: '0_userdata.0.phase', type: 'string' },
+
+        { name: 'OPENED', id: '0_userdata.0.opened', type: 'boolean' },
+        { name: 'CLOSED', id: '0_userdata.0.closed', type: 'boolean' },
+
+        { name: 'SEVERITY', id: '0_userdata.0.severity', type: 'enum' },
+        { name: 'MUTED', id: '0_userdata.0.muted', type: 'boolean' },
+        { name: 'TEST', id: '0_userdata.0.test', type: 'boolean' },
+
+        { name: 'FLOW', id: '0_userdata.0.flow', type: 'number' },
+
+        { name: 'AQI', id: '0_userdata.0.aqi', type: 'enum' },
+        { name: 'CO2', id: '0_userdata.0.co2', type: 'number' },
+        { name: 'CO2_LEVEL', id: '0_userdata.0.co2_level', type: 'enum' },
+        { name: 'TVOC', id: '0_userdata.0.tvoc', type: 'number' },
+        { name: 'TVOC_LEVEL', id: '0_userdata.0.tvoc_level', type: 'enum' },
+        { name: 'PM1', id: '0_userdata.0.pm1', type: 'number' },
+        { name: 'PM1_LEVEL', id: '0_userdata.0.pm1_level', type: 'enum' },
+        { name: 'PM25', id: '0_userdata.0.pm25', type: 'number' },
+        { name: 'PM25_LEVEL', id: '0_userdata.0.pm25_level', type: 'enum' },
+        { name: 'PM10', id: '0_userdata.0.pm10', type: 'number' },
+        { name: 'PM10_LEVEL', id: '0_userdata.0.pm10_level', type: 'enum' },
+        { name: 'CO', id: '0_userdata.0.co', type: 'boolean' },
+        { name: 'CO_LEVEL', id: '0_userdata.0.co_level', type: 'enum' },
+        { name: 'NO2', id: '0_userdata.0.no2', type: 'number' },
+        { name: 'NO2_LEVEL', id: '0_userdata.0.no2_level', type: 'enum' },
+        { name: 'O3', id: '0_userdata.0.o3', type: 'number' },
+        { name: 'O3_LEVEL', id: '0_userdata.0.o3_level', type: 'enum' },
+        { name: 'CH2O', id: '0_userdata.0.ch2o', type: 'number' },
+        { name: 'CH2O_LEVEL', id: '0_userdata.0.ch2o_level', type: 'enum' },
+        { name: 'RN', id: '0_userdata.0.rn', type: 'number' },
+        { name: 'RN_LEVEL', id: '0_userdata.0.rn_level', type: 'enum' },
+        { name: 'SO2', id: '0_userdata.0.so2', type: 'number' },
+        { name: 'SO2_LEVEL', id: '0_userdata.0.so2_level', type: 'enum' },
+
         { name: 'ERROR', id: '0_userdata.0.error', type: 'boolean' },
         { name: 'MAINTAIN', id: '0_userdata.0.maintain', type: 'boolean' },
         { name: 'UNREACH', id: '0_userdata.0.unreach', type: 'boolean' },
@@ -213,10 +260,23 @@ const detectedDevices: TestDetectedDevice = {
         { name: 'WORKING', id: '0_userdata.0.working', type: 'boolean' },
         { name: 'DIRECTION', id: '0_userdata.0.direction', type: 'boolean' },
         { name: 'DIRECTION_ENUM', id: '0_userdata.0.direction_enum', type: 'enum' },
+        { name: 'RSSI', id: '0_userdata.0.rssi', type: 'number' },
     ],
     type: 'abstract' as any,
     isIoBrokerDevice: true,
 };
+
+// The flat fixture above pins one ioBroker object type per state id, but some ids are reused by
+// device classes that need a different type for the same name (e.g. CO is a boolean alarm flag for
+// FireAlarm/CoAlarm but a numeric ppm concentration for AirQuality). Override per Types member here
+// instead of forking the fixture.
+const stateTypeOverridesByType: Partial<Record<Types, Record<string, TestState['type']>>> = {
+    [Types.airQuality]: { '0_userdata.0.co': 'number' },
+};
+
+function resolveStateType(id: string, entry: TestState | undefined): TestState['type'] {
+    return stateTypeOverridesByType[detectedDevices.type]?.[id] ?? entry?.type;
+}
 
 class Adapter {
     public log: MockLog;
@@ -243,11 +303,12 @@ class Adapter {
 
     async getForeignObjectAsync(id: string): Promise<MockObject | null> {
         const entry = detectedDevices.states.find(state => state.id === id);
-        if (entry && (entry.type === 'boolean' || entry.type === 'string')) {
+        const entryType = resolveStateType(id, entry);
+        if (entryType === 'boolean' || entryType === 'string') {
             return {
                 _id: id,
                 common: {
-                    type: entry.type,
+                    type: entryType,
                 },
                 type: 'state',
             };
@@ -259,7 +320,7 @@ class Adapter {
                 max: 200,
                 unit: '°C',
                 type: 'number',
-                states: entry?.type === 'enum' ? { 0: 'Dummy', 1: 'Dummy2' } : entry?.type === 'mixed' ? { null: 'Dummy' } : undefined,
+                states: entryType === 'enum' ? { 0: 'Dummy', 1: 'Dummy2' } : entryType === 'mixed' ? { null: 'Dummy' } : undefined,
             },
             type: 'state',
         };
@@ -282,15 +343,16 @@ class Adapter {
         console.log("GET", id);
         if (!this.states[id]) {
             const entry = detectedDevices.states.find(state => state.id === id);
+            const entryType = resolveStateType(id, entry);
             if (entry && entry.val !== undefined) {
                 this.states[id] = { ts: Date.now(), val: entry.val, ack: true };
-            } else if (entry?.type === 'enum') {
+            } else if (entryType === 'enum') {
                 this.states[id] = { ts: Date.now(), val: 0, ack: true };
-            } else if (entry?.type === 'number') {
+            } else if (entryType === 'number') {
                 this.states[id] = { ts: Date.now(), val: 1, ack: true };
-            } else if (entry?.type === 'boolean') {
+            } else if (entryType === 'boolean') {
                 this.states[id] = { ts: Date.now(), val: true, ack: true };
-            } else if (entry?.type === 'string') {
+            } else if (entryType === 'string') {
                 this.states[id] = { ts: Date.now(), val: 'test', ack: true };
             } else {
                 this.states[id] = { ts: Date.now(), val: null, ack: true };
@@ -401,6 +463,12 @@ describe('Test Devices', function () {
                         if (deviceObj.getPropertyValue(prop) !== 'Dummy') {
                             throw new Error(`Property "${prop}" (Enum) of "${type}" has wrong value`);
                         }
+                    } else if (type === Types.airQuality && prop === 'co') {
+                        if (typeof deviceObj.getPropertyValue(prop) !== 'number') {
+                            throw new Error(
+                                `Property "${prop}" of "${type}" should be a number, got ${typeof deviceObj.getPropertyValue(prop)}`,
+                            );
+                        }
                     }
                 }
                 if (properties[prop].accessType === StateAccessType.Write) {
@@ -466,6 +534,36 @@ describe('Test Devices', function () {
             }
         }
     }).timeout(50000);
+
+    it('Writes a boolean power state backed by a numeric object as 1/0', async function () {
+        const Device = require(`../src/lib/devices/Pump`).Pump;
+        const adapter = new Adapter();
+        SubscribeManager.setAdapter(adapter as any);
+        adapter.setSubscribeManager(SubscribeManager);
+        // An id absent from the shared fixture, so the mock reports it as a numeric object
+        const _detectedDevices: TestDetectedDevice = {
+            states: [{ name: 'POWER', id: '0_userdata.0.numeric_power' }],
+            type: Types.pump,
+            isIoBrokerDevice: true,
+        };
+
+        const deviceObj = new Device(_detectedDevices, adapter, { enabled: true });
+        await deviceObj.init();
+
+        await deviceObj.setPower(true);
+        const on = await adapter.getForeignStateAsync('0_userdata.0.numeric_power');
+        if (on.val !== 1) {
+            throw new Error(`Expected 1 for a numeric power state set to true, got ${JSON.stringify(on.val)}`);
+        }
+
+        await deviceObj.setPower(false);
+        const off = await adapter.getForeignStateAsync('0_userdata.0.numeric_power');
+        if (off.val !== 0) {
+            throw new Error(`Expected 0 for a numeric power state set to false, got ${JSON.stringify(off.val)}`);
+        }
+
+        await deviceObj.destroy();
+    }).timeout(2000);
 
     it('Test min/max - negative', async function () {
         const Device = require(`../src/lib/devices/Thermostat`).Thermostat;
@@ -572,6 +670,68 @@ describe('Test Devices', function () {
 
         await deviceObj.destroy();
     }).timeout(20000);
+
+    it('Slider.hasPower()/hasPowerActual() reflect a read-only-only power state', async function () {
+        const Device = require(`../src/lib/devices/Slider`).Slider;
+        const adapter = new Adapter();
+        SubscribeManager.setAdapter(adapter as any);
+        adapter.setSubscribeManager(SubscribeManager);
+        // The mock resolves object types by id from the shared fixture, not from this array
+        const _detectedDevices: TestDetectedDevice = {
+            states: [
+                { name: 'SET', id: '0_userdata.0.set' },
+                { name: 'ON_ACTUAL', id: '0_userdata.0.on_actual', type: 'boolean' },
+            ],
+            type: Types.slider,
+            isIoBrokerDevice: true,
+        };
+
+        const deviceObj = new Device(_detectedDevices, adapter, { enabled: true });
+        await deviceObj.init();
+
+        if (deviceObj.hasPower()) {
+            throw new Error('hasPower() should be false when only the read-only power state exists');
+        }
+        if (!deviceObj.hasPowerActual()) {
+            throw new Error('hasPowerActual() should be true when the read-only power state exists');
+        }
+        if (deviceObj.getPower() !== true) {
+            throw new Error(`Expected getPower() to return true, got ${deviceObj.getPower()}`);
+        }
+
+        await deviceObj.destroy();
+    }).timeout(2000);
+
+    it('Dimmer.hasPower()/hasPowerActual() reflect a read-only-only power state', async function () {
+        const Device = require(`../src/lib/devices/Dimmer`).Dimmer;
+        const adapter = new Adapter();
+        SubscribeManager.setAdapter(adapter as any);
+        adapter.setSubscribeManager(SubscribeManager);
+        // The mock resolves object types by id from the shared fixture, not from this array
+        const _detectedDevices: TestDetectedDevice = {
+            states: [
+                { name: 'SET', id: '0_userdata.0.set' },
+                { name: 'ON_ACTUAL', id: '0_userdata.0.on_actual', type: 'boolean' },
+            ],
+            type: Types.dimmer,
+            isIoBrokerDevice: true,
+        };
+
+        const deviceObj = new Device(_detectedDevices, adapter, { enabled: true });
+        await deviceObj.init();
+
+        if (deviceObj.hasPower()) {
+            throw new Error('hasPower() should be false when only the read-only power state exists');
+        }
+        if (!deviceObj.hasPowerActual()) {
+            throw new Error('hasPowerActual() should be true when the read-only power state exists');
+        }
+        if (deviceObj.getPower() !== true) {
+            throw new Error(`Expected getPower() to return true, got ${deviceObj.getPower()}`);
+        }
+
+        await deviceObj.destroy();
+    }).timeout(2000);
 });
 
 describe('Test Custom States', function () {
@@ -834,5 +994,136 @@ describe('Test Custom States', function () {
         if (subscribedAfter !== 0) {
             throw new Error(`Expected SubscribeManager.subscribes.size to be 0 after destroy, but got ${subscribedAfter}`);
         }
+    }).timeout(5000);
+
+    it('Test destroy releases custom state bookkeeping and outside listeners', async function () {
+        const { Lock } = require('../src/lib/devices/Lock');
+        const adapter = new CustomStateAdapter();
+        SubscribeManager.setAdapter(adapter as any);
+        adapter.setSubscribeManager(SubscribeManager);
+
+        const _detectedDevices: TestDetectedDevice = {
+            states: [{ name: 'SET', id: '0_userdata.0.lock_set', type: 'boolean' }],
+            type: Types.lock,
+            isIoBrokerDevice: false,
+        };
+
+        const deviceObj = new Lock(_detectedDevices, adapter, { enabled: true }, TestCustomStates);
+        await deviceObj.init();
+        await deviceObj.initCustomState('testReadOnly', 'matter.0.device.custom.');
+        const customState = await deviceObj.initCustomState('testReadWrite', 'matter.0.device.custom.');
+        if (!customState) {
+            throw new Error('Custom state testReadWrite was not created');
+        }
+        const customStateId = (customState as any).state.id;
+
+        // An outside consumer (GenericDeviceToMatter does exactly this) must not outlive the device
+        deviceObj.on('validChanged', () => {});
+        if (deviceObj.listenerCount('validChanged') === 0) {
+            throw new Error('Expected the validChanged listener to be registered');
+        }
+
+        let customHandlerCalls = 0;
+        deviceObj.onCustomChange(async () => {
+            customHandlerCalls++;
+        });
+
+        // The per-state undo is separate from removeAllListeners(): this listener sits on the state object
+        if ((customState as any).listenerCount('validChanged') !== 1) {
+            throw new Error(
+                `Expected one validChanged listener on the state object, got ${(customState as any).listenerCount('validChanged')}`,
+            );
+        }
+
+        // Drive a real change first, so the post-destroy assertions are about something that worked
+        await SubscribeManager.observer(customStateId, { val: 20, ack: false } as any);
+        if (customHandlerCalls === 0) {
+            throw new Error('Expected the custom change handler to be reachable before destroy');
+        }
+
+        await deviceObj.destroy();
+
+        if (deviceObj.customPropertyNames.length !== 0) {
+            throw new Error(
+                `Expected no custom properties after destroy, got ${deviceObj.customPropertyNames.join(', ')}`,
+            );
+        }
+        if (deviceObj.hasCustomState('testReadWrite') || deviceObj.hasCustomState('testReadOnly')) {
+            throw new Error('Expected hasCustomState to be false for every custom state after destroy');
+        }
+        if (deviceObj.listenerCount('validChanged') !== 0) {
+            throw new Error(
+                `Expected no validChanged listeners after destroy, got ${deviceObj.listenerCount('validChanged')}`,
+            );
+        }
+        if ((SubscribeManager as any).subscribes.has(customStateId)) {
+            throw new Error('Expected the custom state subscription to be released after destroy');
+        }
+        if ((customState as any).listenerCount('validChanged') !== 0) {
+            throw new Error(
+                `Expected the state object's validChanged listener to be removed, got ${(customState as any).listenerCount('validChanged')}`,
+            );
+        }
+    }).timeout(5000);
+
+    it('Test one failing unsubscribe does not strand the other subscriptions', async function () {
+        const { Lock } = require('../src/lib/devices/Lock');
+        const { DeviceStateObject } = require('../src/lib/devices/DeviceStateObject');
+        const adapter = new CustomStateAdapter();
+        SubscribeManager.setAdapter(adapter as any);
+        adapter.setSubscribeManager(SubscribeManager);
+
+        const _detectedDevices: TestDetectedDevice = {
+            states: [{ name: 'SET', id: '0_userdata.0.lock_set', type: 'boolean' }],
+            type: Types.lock,
+            isIoBrokerDevice: false,
+        };
+
+        const deviceObj = new Lock(_detectedDevices, adapter, { enabled: true }, TestCustomStates);
+        await deviceObj.init();
+        const customState = await deviceObj.initCustomState('testReadWrite', 'matter.0.device.custom.');
+        if (!customState) {
+            throw new Error('Custom state testReadWrite was not created');
+        }
+        const customStateId = (customState as any).state.id;
+
+        const subscribedIds: string[] = Array.from((SubscribeManager as any).subscribes.keys());
+        if (!subscribedIds.includes('0_userdata.0.lock_set') || !subscribedIds.includes(customStateId)) {
+            throw new Error(`Expected both states to be subscribed, got ${subscribedIds.join(', ')}`);
+        }
+
+        // Poison the FIRST-registered state. Teardown runs newest-first, so this one is released last and
+        // the custom state's release becomes the assertion that discriminates; poisoning the newest instead
+        // would leave a post-condition that holds even without isolation.
+        const originalUnsubscribe = DeviceStateObject.prototype.unsubscribe;
+        DeviceStateObject.prototype.unsubscribe = async function (this: any): Promise<void> {
+            if (this.state.id === '0_userdata.0.lock_set') {
+                throw new Error('simulated unsubscribe failure');
+            }
+            return originalUnsubscribe.call(this);
+        };
+
+        let destroyRejection: unknown;
+        try {
+            await deviceObj.destroy();
+        } catch (error) {
+            // Captured rather than propagated, so the stranding assertion below is what discriminates
+            destroyRejection = error;
+        } finally {
+            DeviceStateObject.prototype.unsubscribe = originalUnsubscribe;
+        }
+
+        if ((SubscribeManager as any).subscribes.has(customStateId)) {
+            const remaining = Array.from((SubscribeManager as any).subscribes.keys());
+            throw new Error(
+                `Expected the custom state to be released despite the failing unsubscribe, still have ${remaining.join(', ')}`,
+            );
+        }
+        if (destroyRejection !== undefined) {
+            throw new Error(`destroy() must isolate a failing unsubscribe, but rejected with ${destroyRejection}`);
+        }
+
+        // The poisoned state is still registered by design - drop it so the static map does not leak
+        (SubscribeManager as any).subscribes.delete('0_userdata.0.lock_set');
     }).timeout(5000);
 });

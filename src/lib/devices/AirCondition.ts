@@ -1,5 +1,5 @@
+import { ClimateControlDevice } from './ClimateControlDevice';
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
-import { ElectricityDataDevice } from './ElectricityDataDevice';
 import { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 import { ThermostatMode } from './Thermostat';
 
@@ -55,29 +55,46 @@ export enum AirConditionerSwingNumbers {
     VERTICAL = 3,
 }
 
-export class AirCondition extends ElectricityDataDevice {
-    #levelState?: DeviceStateObject<number>;
+export enum AirConditionerWorkingMode {
+    Idle = 'IDLE',
+    Heat = 'HEAT',
+    Cool = 'COOL',
+}
+
+export enum AirConditionerWorkingModeNumbers {
+    IDLE = 0,
+    HEAT = 1,
+    COOL = 2,
+}
+
+export enum AirConditionerAirflowDirection {
+    Forward = 'FORWARD',
+    Reverse = 'REVERSE',
+}
+
+export enum AirConditionerAirflowDirectionNumbers {
+    FORWARD = 0,
+    REVERSE = 1,
+}
+
+export class AirCondition extends ClimateControlDevice<AirConditionerMode, AirConditionerWorkingMode> {
     #getTemperatureState?: DeviceStateObject<number>;
     #powerState?: DeviceStateObject<boolean | number>;
     #getHumidityState?: DeviceStateObject<number>;
     #speedState?: DeviceStateObject<AirConditionerSpeed>;
     #boostState?: DeviceStateObject<boolean | number>;
     #SwingState?: DeviceStateObject<AirConditionerSwing>;
-    #modeState?: DeviceStateObject<AirConditionerMode>;
+    #speedLevelState?: DeviceStateObject<number>;
+    #airflowDirectionState?: DeviceStateObject<AirConditionerAirflowDirection>;
+    #filterConditionState?: DeviceStateObject<number>;
+    #filterConditionCarbonState?: DeviceStateObject<number>;
+    #filterChangeState?: DeviceStateObject<boolean>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
 
         this._construction.push(
             this.addDeviceStates([
-                {
-                    name: 'SET',
-                    valueType: ValueType.NumberMinMax,
-                    accessType: StateAccessType.ReadWrite,
-                    type: PropertyType.Level,
-                    callback: state => (this.#levelState = state),
-                },
-
                 {
                     name: 'ACTUAL',
                     valueType: ValueType.Number,
@@ -121,28 +138,42 @@ export class AirCondition extends ElectricityDataDevice {
                     callback: state => (this.#SwingState = state),
                 },
                 {
-                    name: 'MODE',
+                    name: 'SPEED_LEVEL',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.SpeedLevel,
+                    callback: state => (this.#speedLevelState = state),
+                },
+                {
+                    name: 'AIRFLOW_DIRECTION',
                     valueType: ValueType.Enum,
                     accessType: StateAccessType.ReadWrite,
-                    type: PropertyType.Mode,
-                    callback: state => (this.#modeState = state),
+                    type: PropertyType.AirflowDirection,
+                    callback: state => (this.#airflowDirectionState = state),
+                },
+                {
+                    name: 'FILTER_CONDITION',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.FilterCondition,
+                    callback: state => (this.#filterConditionState = state),
+                },
+                {
+                    name: 'FILTER_CONDITION_CARBON',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.FilterConditionCarbon,
+                    callback: state => (this.#filterConditionCarbonState = state),
+                },
+                {
+                    name: 'FILTER_CHANGE',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.FilterChange,
+                    callback: state => (this.#filterChangeState = state),
                 },
             ]),
         );
-    }
-
-    getLevel(): number | undefined {
-        if (!this.#levelState) {
-            throw new Error('Level state not found');
-        }
-        return this.#levelState.value;
-    }
-
-    setLevel(value: number): Promise<void> {
-        if (!this.#levelState) {
-            throw new Error('Level state not found');
-        }
-        return this.#levelState.setValue(value);
     }
 
     getTemperature(): number | undefined {
@@ -237,70 +268,6 @@ export class AirCondition extends ElectricityDataDevice {
         return this.#SwingState.getModes();
     }
 
-    getMode(): AirConditionerMode | undefined {
-        if (!this.#modeState) {
-            throw new Error('Mode state not found');
-        }
-        return this.#modeState.value;
-    }
-
-    setMode(mode: AirConditionerMode): Promise<void> {
-        if (!this.#modeState) {
-            throw new Error('Mode state not found');
-        }
-        return this.#modeState.setValue(mode);
-    }
-
-    getModes(): AirConditionerMode[] {
-        if (!this.#modeState) {
-            throw new Error('Mode state not found');
-        }
-        return this.#modeState.getModes();
-    }
-
-    updateMode(mode: AirConditionerMode): Promise<void> {
-        if (!this.#modeState) {
-            throw new Error('Mode state not found');
-        }
-        return this.#modeState.updateValue(mode);
-    }
-
-    updateModes(modes: { [key: string]: AirConditionerMode }): Promise<void> {
-        if (!this.#modeState) {
-            throw new Error('Mode state not found');
-        }
-        return this.#modeState.updateModes(modes);
-    }
-
-    hasMode(): boolean {
-        return !!this.#modeState;
-    }
-
-    hasLevel(): boolean {
-        return !!this.#levelState;
-    }
-
-    updateLevel(value: number): Promise<void> {
-        if (!this.#levelState) {
-            throw new Error('Level state not found');
-        }
-        return this.#levelState.updateValue(value);
-    }
-
-    getSetpointMinMax(): { min: number; max: number } | null {
-        if (!this.#levelState) {
-            throw new Error('Level state not found');
-        }
-        return this.#levelState.getMinMax();
-    }
-
-    updateSetpointMinMax(min: number | undefined, max: number | undefined, step = 0.5): Promise<void> {
-        if (!this.#levelState) {
-            throw new Error('Level state not found');
-        }
-        return this.#levelState.updateMinMax({ min, max, step });
-    }
-
     hasTemperature(): boolean {
         return !!this.#getTemperatureState;
     }
@@ -372,5 +339,123 @@ export class AirCondition extends ElectricityDataDevice {
             throw new Error('Swing state not found');
         }
         return this.#SwingState.updateModes(modes);
+    }
+
+    getSpeedLevel(): number | undefined {
+        if (!this.#speedLevelState) {
+            throw new Error('Speed level state not found');
+        }
+        return this.#speedLevelState.value;
+    }
+
+    setSpeedLevel(value: number): Promise<void> {
+        if (!this.#speedLevelState) {
+            throw new Error('Speed level state not found');
+        }
+        return this.#speedLevelState.setValue(value);
+    }
+
+    updateSpeedLevel(value: number): Promise<void> {
+        if (!this.#speedLevelState) {
+            throw new Error('Speed level state not found');
+        }
+        return this.#speedLevelState.updateValue(value);
+    }
+
+    hasSpeedLevel(): boolean {
+        return !!this.#speedLevelState;
+    }
+
+    getAirflowDirection(): AirConditionerAirflowDirection | undefined {
+        if (!this.#airflowDirectionState) {
+            throw new Error('Airflow direction state not found');
+        }
+        return this.#airflowDirectionState.value;
+    }
+
+    setAirflowDirection(value: AirConditionerAirflowDirection): Promise<void> {
+        if (!this.#airflowDirectionState) {
+            throw new Error('Airflow direction state not found');
+        }
+        return this.#airflowDirectionState.setValue(value);
+    }
+
+    updateAirflowDirection(value: AirConditionerAirflowDirection): Promise<void> {
+        if (!this.#airflowDirectionState) {
+            throw new Error('Airflow direction state not found');
+        }
+        return this.#airflowDirectionState.updateValue(value);
+    }
+
+    getAirflowDirectionModes(): AirConditionerAirflowDirection[] {
+        if (!this.#airflowDirectionState) {
+            throw new Error('Airflow direction state not found');
+        }
+        return this.#airflowDirectionState.getModes();
+    }
+
+    updateAirflowDirectionModes(modes: { [key: string]: AirConditionerAirflowDirection }): Promise<void> {
+        if (!this.#airflowDirectionState) {
+            throw new Error('Airflow direction state not found');
+        }
+        return this.#airflowDirectionState.updateModes(modes);
+    }
+
+    hasAirflowDirection(): boolean {
+        return !!this.#airflowDirectionState;
+    }
+
+    getFilterCondition(): number | undefined {
+        if (!this.#filterConditionState) {
+            throw new Error('Filter condition state not found');
+        }
+        return this.#filterConditionState.value;
+    }
+
+    updateFilterCondition(value: number): Promise<void> {
+        if (!this.#filterConditionState) {
+            throw new Error('Filter condition state not found');
+        }
+        return this.#filterConditionState.updateValue(value);
+    }
+
+    hasFilterCondition(): boolean {
+        return !!this.#filterConditionState;
+    }
+
+    getFilterConditionCarbon(): number | undefined {
+        if (!this.#filterConditionCarbonState) {
+            throw new Error('Carbon filter condition state not found');
+        }
+        return this.#filterConditionCarbonState.value;
+    }
+
+    updateFilterConditionCarbon(value: number): Promise<void> {
+        if (!this.#filterConditionCarbonState) {
+            throw new Error('Carbon filter condition state not found');
+        }
+        return this.#filterConditionCarbonState.updateValue(value);
+    }
+
+    hasFilterConditionCarbon(): boolean {
+        return !!this.#filterConditionCarbonState;
+    }
+
+    getFilterChange(): boolean | undefined {
+        if (!this.#filterChangeState) {
+            throw new Error('Filter change state not found');
+        }
+        return this.#filterChangeState.value;
+    }
+
+    updateFilterChange(value: boolean): Promise<void> {
+        if (!this.#filterChangeState) {
+            throw new Error('Filter change state not found');
+        }
+        return this.#filterChangeState.updateValue(value);
+    }
+
+    hasFilterChange(): boolean {
+        return !!this.#filterChangeState;
     }
 }

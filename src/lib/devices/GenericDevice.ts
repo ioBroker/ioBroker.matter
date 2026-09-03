@@ -4,6 +4,7 @@ import type { DetectorState, Types, StateType } from '@iobroker/type-detector';
 import type { BridgeDeviceDescription } from '../../ioBrokerTypes';
 import type { CustomStateCommon, CustomStatesRecord } from '../../matter/to-iobroker/custom-states';
 import { DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
+import { TeardownRegistry } from '../TeardownRegistry';
 import { EventEmitter } from 'events';
 
 export interface DeviceOptions extends BridgeDeviceDescription {
@@ -23,6 +24,10 @@ export interface DeviceStateDescription {
     name: string;
     type: PropertyType;
     valueType: ValueType;
+    /**
+     * Unit the device model works in for this property. All values exchanged with this class are expressed
+     * in it, and values of an ioBroker object using another unit are converted via `unitConversionMap`.
+     */
     unit?: string;
     callback: (state: DeviceStateObject<any> | undefined) => void;
     accessType: StateAccessType;
@@ -59,14 +64,16 @@ export abstract class GenericDevice extends EventEmitter {
     #valid = true;
     #handlers = new Array<(event: { property: PropertyType; value: any; device: GenericDevice }) => Promise<void>>();
     protected _construction = new Array<() => Promise<void>>();
+    readonly #teardown: TeardownRegistry;
 
-    #errorState?: DeviceStateObject<boolean>;
+    #errorState?: DeviceStateObject<boolean | string>;
     #maintenanceState?: DeviceStateObject<boolean>;
     #unreachState?: DeviceStateObject<boolean>;
     #lowbatState?: DeviceStateObject<boolean>;
     #workingState?: DeviceStateObject<boolean>;
     #directionState?: DeviceStateObject<boolean>;
     #batteryState?: DeviceStateObject<number>;
+    #rssiState?: DeviceStateObject<number>;
 
     /** Custom states storage - keyed by custom property name */
     #customStates = new Map<string, DeviceStateObject<any>>();
@@ -87,6 +94,9 @@ export abstract class GenericDevice extends EventEmitter {
     ) {
         super();
         this.#adapter = adapter;
+        this.#teardown = new TeardownRegistry(error =>
+            adapter.log.warn(`Error while tearing down device ${detectedDevice.type}: ${error.message}`),
+        );
         this.#deviceType = detectedDevice.type;
         this.#detectedDevice = detectedDevice;
         this.#isIoBrokerDevice = detectedDevice.isIoBrokerDevice;
@@ -96,7 +106,7 @@ export abstract class GenericDevice extends EventEmitter {
             this.addDeviceStates([
                 {
                     name: 'ERROR',
-                    valueType: ValueType.Boolean,
+                    valueType: ValueType.String,
                     accessType: StateAccessType.Read,
                     type: PropertyType.Error,
                     callback: state => (this.#errorState = state),
@@ -148,6 +158,13 @@ export abstract class GenericDevice extends EventEmitter {
                     type: PropertyType.Battery,
                     callback: state => (this.#batteryState = state),
                 },
+                {
+                    name: 'RSSI',
+                    valueType: ValueType.Number,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Rssi,
+                    callback: state => (this.#rssiState = state),
+                },
             ]),
         );
     }
@@ -193,6 +210,7 @@ export abstract class GenericDevice extends EventEmitter {
         accessType: StateAccessType,
         valueType: ValueType,
         unitConversionMap: { [key: string]: (value: number, toDefaultUnit: boolean) => number } = {},
+        unit?: string,
     ): Promise<void> {
         let state = this.getDeviceState(name);
         if (state) {
@@ -215,6 +233,7 @@ export abstract class GenericDevice extends EventEmitter {
                     {
                         ...state,
                         isIoBrokerState: this.#isIoBrokerDevice,
+                        deviceUnit: unit,
                     },
                     type,
                     valueType,
@@ -227,7 +246,13 @@ export abstract class GenericDevice extends EventEmitter {
             }
             const data = object.ioBrokerState;
             if (!this.#properties[type]) {
-                this.#properties[type] = { name, accessType, valueType, role: object.role };
+                this.#properties[type] = {
+                    name,
+                    accessType,
+                    valueType,
+                    role: object.role,
+                    unit: object.deviceUnit,
+                };
                 if (accessType === StateAccessType.ReadWrite) {
                     this.#properties[type].read = data.id;
                     this.#properties[type].write = data.id;
@@ -277,11 +302,12 @@ export abstract class GenericDevice extends EventEmitter {
                 // subscribe and read only if not already subscribed
                 if (stateId && !this.#subscribeObjects.find(obj => obj.state.id === stateId)) {
                     await object.subscribe(
-                        this.updateState,
+                        this.#handleIoBrokerStateChange,
                         this.#isIoBrokerDevice || this.#properties[type].accessType !== StateAccessType.Write,
                     );
                     this.#subscribeObjects.push(object);
-                    object.on('validChanged', () => this.#handleValidChange());
+                    this.#teardown.add(() => object.unsubscribe());
+                    this.#registerValidChangeHandler(object);
                 }
             }
             this.#registeredStates.push(object);
@@ -323,6 +349,7 @@ export abstract class GenericDevice extends EventEmitter {
                     state.accessType,
                     state.valueType,
                     state.unitConversionMap,
+                    state.unit,
                 );
             }
         };
@@ -380,14 +407,18 @@ export abstract class GenericDevice extends EventEmitter {
         return this.#deviceType;
     }
 
-    protected updateState = async <T>(object: DeviceStateObject<T>): Promise<void> => {
+    /**
+     * Named apart from the `update<Property>` methods, which {@link updatePropertyValue} resolves by name - an
+     * `updateState` here would shadow the one a device type declares for its STATE property.
+     */
+    #handleIoBrokerStateChange = async <T>(object: DeviceStateObject<T>): Promise<void> => {
         if (!this.enabled && object.propertyType !== PropertyType.Unreachable) {
             // When disabled, only report unreachable ioBroker changes to Matter
             return;
         }
         if (!this.#isIoBrokerDevice && this.#properties[object.propertyType].accessType === StateAccessType.Read) {
             this.#adapter.log.info(
-                `updateState not allowed for type ${object.propertyType} and value ${object.value as string}`,
+                `State change not allowed for type ${object.propertyType} and value ${object.value as string}`,
             );
             return;
         }
@@ -400,13 +431,22 @@ export abstract class GenericDevice extends EventEmitter {
         }
     };
 
+    #registerValidChangeHandler(object: DeviceStateObject<any>): void {
+        const handler = (): void => this.#handleValidChange();
+        object.on('validChanged', handler);
+        this.#teardown.add(() => object.off('validChanged', handler));
+    }
+
     async destroy(): Promise<void> {
-        for (const object of this.#subscribeObjects) {
-            await object.unsubscribe();
-        }
+        await this.#teardown.close();
         this.#subscribeObjects.length = 0;
         this.#registeredStates.length = 0;
+        this.#customStates.clear();
+        this.#customProperties = {};
         this.offChange();
+        this.offCustomChange();
+        // Outside listeners (e.g. GenericDeviceToMatter's 'validChanged') must not outlive the device
+        this.removeAllListeners();
     }
 
     getProperties(): { [key: string]: any } {
@@ -435,14 +475,14 @@ export abstract class GenericDevice extends EventEmitter {
         return result;
     }
 
-    getError(): boolean | number | undefined {
+    getError(): boolean | number | string | undefined {
         if (!this.#errorState) {
             throw new Error('Error state not found');
         }
         return this.#errorState.value;
     }
 
-    updateError(value: boolean): Promise<void> {
+    updateError(value: boolean | string): Promise<void> {
         if (!this.#errorState) {
             throw new Error('Error state not found');
         }
@@ -564,6 +604,24 @@ export abstract class GenericDevice extends EventEmitter {
         return this.propertyNames.includes(PropertyType.Battery);
     }
 
+    getRssi(): number | undefined {
+        if (!this.#rssiState) {
+            throw new Error('RSSI state not found');
+        }
+        return this.#rssiState.value;
+    }
+
+    updateRssi(value: number): Promise<void> {
+        if (!this.#rssiState) {
+            throw new Error('RSSI state not found');
+        }
+        return this.#rssiState.updateValue(value);
+    }
+
+    hasRssi(): boolean {
+        return this.propertyNames.includes(PropertyType.Rssi);
+    }
+
     // ==================== Custom State Methods ====================
 
     /**
@@ -596,10 +654,7 @@ export abstract class GenericDevice extends EventEmitter {
 
         // Derive defaultType from common.type or valueType
         let defaultType: 'number' | 'string' | 'boolean' | undefined = mergedCommon.type as
-            | 'number'
-            | 'string'
-            | 'boolean'
-            | undefined;
+            'number' | 'string' | 'boolean' | undefined;
         if (!defaultType) {
             // Derive from valueType
             switch (valueType) {
@@ -662,7 +717,8 @@ export abstract class GenericDevice extends EventEmitter {
                     await this.#updateCustomState(customPropertyName, obj);
                 }, accessType !== StateAccessType.Write);
                 this.#subscribeObjects.push(object);
-                object.on('validChanged', () => this.#handleValidChange());
+                this.#teardown.add(() => object.unsubscribe());
+                this.#registerValidChangeHandler(object);
             }
 
             this.#customStates.set(customPropertyName, object);
@@ -837,7 +893,11 @@ export abstract class GenericDevice extends EventEmitter {
             }
             return 'switch';
         }
-        if (valueType === ValueType.Number || valueType === ValueType.NumberPercent || ValueType.NumberMinMax) {
+        if (
+            valueType === ValueType.Number ||
+            valueType === ValueType.NumberPercent ||
+            valueType === ValueType.NumberMinMax
+        ) {
             if (hasMinMax) {
                 return 'slider';
             }
@@ -860,11 +920,12 @@ export abstract class GenericDevice extends EventEmitter {
         }
         keys.forEach(property => {
             const stateObject = this.#registeredStates.find(obj => obj.propertyType === property);
-            const { valueType, name, unit, write, read } = this.#properties[property];
-            const { min, max, step } = stateObject?.getMinMax() ?? {};
+            const { valueType, name, write, read } = this.#properties[property];
+            // Field binds the foreign oid directly, so unit/min/max must be the object's own.
+            const { min, max, step } = stateObject?.getRawMinMax() ?? {};
             states[`__iobstate__${name}`] = {
                 oid: write ?? read,
-                unit,
+                unit: stateObject?.getRawUnit(),
                 min,
                 max,
                 step,

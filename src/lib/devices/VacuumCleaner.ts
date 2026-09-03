@@ -1,7 +1,7 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-enum VacuumCleanerMode {
+export enum VacuumCleanerMode {
     AUTO = 'AUTO',
     ECO = 'ECO',
     EXPRESS = 'EXPRESS',
@@ -17,10 +17,28 @@ enum VacuumCleanerWorkMode {
     TURBO = 'TURBO',
 }
 
-enum VacuumCleanerState {
+export enum VacuumCleanerState {
     HOME = 'HOME',
     CLEANING = 'CLEANING',
     PAUSE = 'PAUSE',
+}
+
+export enum VacuumCleanerStateNumbers {
+    HOME = 0,
+    CLEANING = 1,
+    PAUSE = 2,
+}
+
+export enum VacuumCleanerRunMode {
+    Idle = 'IDLE',
+    Cleaning = 'CLEANING',
+    Mapping = 'MAPPING',
+}
+
+export enum VacuumCleanerRunModeNumbers {
+    IDLE = 0,
+    CLEANING = 1,
+    MAPPING = 2,
 }
 
 export class VacuumCleaner extends GenericDevice {
@@ -39,6 +57,10 @@ export class VacuumCleaner extends GenericDevice {
     #getBrushState?: DeviceStateObject<number>;
     #getSensorsState?: DeviceStateObject<number>;
     #getSideBrushState?: DeviceStateObject<number>;
+    #homeState?: DeviceStateObject<boolean>;
+    #runModeState?: DeviceStateObject<VacuumCleanerRunMode>;
+    #getProgressState?: DeviceStateObject<number>;
+    #getPhaseState?: DeviceStateObject<string>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
@@ -150,6 +172,34 @@ export class VacuumCleaner extends GenericDevice {
                     type: PropertyType.SideBrush,
                     callback: state => (this.#getSideBrushState = state),
                 },
+                {
+                    name: 'HOME',
+                    valueType: ValueType.Button,
+                    accessType: StateAccessType.Write,
+                    type: PropertyType.Home,
+                    callback: state => (this.#homeState = state),
+                },
+                {
+                    name: 'RUN_MODE',
+                    valueType: ValueType.Enum,
+                    accessType: StateAccessType.ReadWrite,
+                    type: PropertyType.RunMode,
+                    callback: state => (this.#runModeState = state),
+                },
+                {
+                    name: 'PROGRESS',
+                    valueType: ValueType.NumberPercent,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Progress,
+                    callback: state => (this.#getProgressState = state),
+                },
+                {
+                    name: 'PHASE',
+                    valueType: ValueType.String,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Phase,
+                    callback: state => (this.#getPhaseState = state),
+                },
             ]),
         );
     }
@@ -176,6 +226,10 @@ export class VacuumCleaner extends GenericDevice {
         return this.#powerState.updateValue(value);
     }
 
+    hasPower(): boolean {
+        return !!this.#powerState;
+    }
+
     getMode(): VacuumCleanerMode | undefined {
         if (!this.#modeState) {
             throw new Error('Mode state not found');
@@ -190,11 +244,22 @@ export class VacuumCleaner extends GenericDevice {
         return this.#modeState.setValue(mode);
     }
 
+    updateMode(mode: VacuumCleanerMode): Promise<void> {
+        if (!this.#modeState) {
+            throw new Error('Mode state not found');
+        }
+        return this.#modeState.updateValue(mode);
+    }
+
     getModes(): VacuumCleanerMode[] {
         if (!this.#modeState) {
             throw new Error('Mode state not found');
         }
         return this.#modeState.getModes();
+    }
+
+    hasMode(): boolean {
+        return !!this.#modeState;
     }
 
     getMapBase64(): string | undefined {
@@ -253,6 +318,13 @@ export class VacuumCleaner extends GenericDevice {
         return this.#getStateState.value;
     }
 
+    updateState(value: VacuumCleanerState): Promise<void> {
+        if (!this.#getStateState) {
+            throw new Error('State state not found');
+        }
+        return this.#getStateState.updateValue(value);
+    }
+
     getStateModes(): VacuumCleanerState[] {
         if (!this.#getStateState) {
             throw new Error('State state not found');
@@ -260,11 +332,19 @@ export class VacuumCleaner extends GenericDevice {
         return this.#getStateState.getModes();
     }
 
+    hasState(): boolean {
+        return !!this.#getStateState;
+    }
+
     setPause(value: boolean): Promise<void> {
         if (!this.#pauseState) {
             throw new Error('Pause state not found');
         }
         return this.#pauseState.setValue(value);
+    }
+
+    hasPause(): boolean {
+        return !!this.#pauseState;
     }
 
     getWasteAlarm(): boolean | undefined {
@@ -307,5 +387,84 @@ export class VacuumCleaner extends GenericDevice {
             throw new Error('SideBrush state not found');
         }
         return this.#getSideBrushState.value;
+    }
+
+    setHome(value: boolean): Promise<void> {
+        if (!this.#homeState) {
+            throw new Error('Home state not found');
+        }
+        return this.#homeState.setValue(value);
+    }
+
+    hasHome(): boolean {
+        return !!this.#homeState;
+    }
+
+    getRunMode(): VacuumCleanerRunMode | undefined {
+        if (!this.#runModeState) {
+            throw new Error('RunMode state not found');
+        }
+        return this.#runModeState.value;
+    }
+
+    setRunMode(value: VacuumCleanerRunMode): Promise<void> {
+        if (!this.#runModeState) {
+            throw new Error('RunMode state not found');
+        }
+        return this.#runModeState.setValue(value);
+    }
+
+    getRunModeModes(): VacuumCleanerRunMode[] {
+        if (!this.#runModeState) {
+            throw new Error('RunMode state not found');
+        }
+        return this.#runModeState.getModes();
+    }
+
+    updateRunMode(value: VacuumCleanerRunMode): Promise<void> {
+        if (!this.#runModeState) {
+            throw new Error('RunMode state not found');
+        }
+        return this.#runModeState.updateValue(value);
+    }
+
+    hasRunMode(): boolean {
+        return !!this.#runModeState;
+    }
+
+    getProgress(): number | undefined {
+        if (!this.#getProgressState) {
+            throw new Error('Progress state not found');
+        }
+        return this.#getProgressState.value;
+    }
+
+    updateProgress(value: number): Promise<void> {
+        if (!this.#getProgressState) {
+            throw new Error('Progress state not found');
+        }
+        return this.#getProgressState.updateValue(value);
+    }
+
+    hasProgress(): boolean {
+        return !!this.#getProgressState;
+    }
+
+    getPhase(): string | undefined {
+        if (!this.#getPhaseState) {
+            throw new Error('Phase state not found');
+        }
+        return this.#getPhaseState.value;
+    }
+
+    updatePhase(value: string): Promise<void> {
+        if (!this.#getPhaseState) {
+            throw new Error('Phase state not found');
+        }
+        return this.#getPhaseState.updateValue(value);
+    }
+
+    hasPhase(): boolean {
+        return !!this.#getPhaseState;
     }
 }

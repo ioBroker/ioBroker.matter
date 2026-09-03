@@ -1,6 +1,8 @@
 import { Types } from '@iobroker/type-detector';
 import type { GenericDevice, DetectedDevice, DeviceOptions } from './devices/GenericDevice';
 import { AirCondition } from './devices/AirCondition';
+import { AirPurifier } from './devices/AirPurifier';
+import { AirQuality } from './devices/AirQuality';
 import { Blind } from './devices/Blind';
 import { BlindButtons } from './devices/BlindButtons';
 import { Button } from './devices/Button';
@@ -8,12 +10,17 @@ import { ButtonSensor } from './devices/ButtonSensor';
 import { Camera } from './devices/Camera';
 import { Chart } from './devices/Chart';
 import { Cie } from './devices/Cie';
+import { CoAlarm } from './devices/CoAlarm';
+import { Contact } from './devices/Contact';
 import { Ct } from './devices/Ct';
 import { Dimmer } from './devices/Dimmer';
 import { Door } from './devices/Door';
+import { Electricity } from './devices/Electricity';
+import { Fan } from './devices/Fan';
 import { FillLevel } from './devices/FillLevel';
 import { FireAlarm } from './devices/FireAlarm';
 import { FloodAlarm } from './devices/FloodAlarm';
+import { Flow } from './devices/Flow';
 import { Gate } from './devices/Gate';
 import { Hue } from './devices/Hue';
 import { Humidity } from './devices/Humidity';
@@ -42,12 +49,16 @@ import { Window } from './devices/Window';
 import { WindowTilt } from './devices/WindowTilt';
 import { Illuminance } from './devices/Illuminance';
 import { Percentage } from './devices/Percentage';
+import { Pressure } from './devices/Pressure';
+import { Pump } from './devices/Pump';
 
 /** Type for a class that extends a defined class to make TS understand that also derived classes are allowed. */
 type ClassExtends<C> = { new (...args: any[]): C };
 
 const types: { [key in Types]: ClassExtends<GenericDevice> | null } = {
     [Types.airCondition]: AirCondition,
+    [Types.airPurifier]: AirPurifier,
+    [Types.airQuality]: AirQuality,
     [Types.blind]: Blind,
     [Types.blindButtons]: BlindButtons,
     [Types.button]: Button,
@@ -55,11 +66,16 @@ const types: { [key in Types]: ClassExtends<GenericDevice> | null } = {
     [Types.camera]: Camera,
     [Types.image]: Image,
     [Types.chart]: Chart,
+    [Types.coAlarm]: CoAlarm,
+    [Types.contact]: Contact,
     [Types.dimmer]: Dimmer,
     [Types.door]: Door,
+    [Types.electricity]: Electricity,
+    [Types.fan]: Fan,
     [Types.fillLevel]: FillLevel,
     [Types.fireAlarm]: FireAlarm,
     [Types.floodAlarm]: FloodAlarm,
+    [Types.flow]: Flow,
     [Types.gate]: Gate,
     [Types.humidity]: Humidity,
     [Types.illuminance]: Illuminance,
@@ -79,6 +95,8 @@ const types: { [key in Types]: ClassExtends<GenericDevice> | null } = {
     [Types.cie]: Cie,
     [Types.slider]: Slider,
     [Types.percentage]: Percentage,
+    [Types.pressure]: Pressure,
+    [Types.pump]: Pump,
     [Types.socket]: Socket,
     [Types.temperature]: Temperature,
     [Types.thermostat]: Thermostat,

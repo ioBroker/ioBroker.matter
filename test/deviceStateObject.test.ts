@@ -1,10 +1,15 @@
-import { strictEqual } from 'node:assert';
+import { rejects, strictEqual } from 'node:assert';
 import { DeviceStateObject, PropertyType, ValueType } from '../src/lib/devices/DeviceStateObject';
+
+const written = new Array<ioBroker.StateValue>();
 
 function makeAdapter(common: ioBroker.StateCommon): ioBroker.Adapter {
     return {
         log: { debug: () => {}, info: () => {}, warn: () => {}, error: () => {} },
         getForeignObjectAsync: async () => ({ _id: 'test.0.state', type: 'state', common }) as ioBroker.Object,
+        setForeignStateAsync: async (_id: string, value: ioBroker.StateValue) => {
+            written.push(value);
+        },
     } as unknown as ioBroker.Adapter;
 }
 
@@ -80,5 +85,130 @@ describe('DeviceStateObject.getRawEnumValue', function () {
         strictEqual(state.getRawEnumValue(42), 42);
         strictEqual(state.getRawEnumValue('Off'), 'Off');
         strictEqual(state.getRawEnumValue(null), null);
+    });
+});
+
+describe('DeviceStateObject.setValue', function () {
+    beforeEach(function () {
+        written.length = 0;
+    });
+
+    it('writes an unset nullable attribute through as null on a numeric state', async function () {
+        const state = await createState(ValueType.Number, {
+            name: 'test',
+            type: 'number',
+            role: 'state',
+            read: true,
+            write: true,
+        });
+
+        await state.setValue(null);
+
+        strictEqual(written.length, 1);
+        strictEqual(written[0], null);
+        strictEqual(state.value, null);
+    });
+
+    it('writes an unset nullable attribute through as null on an enum state', async function () {
+        const state = await createState(ValueType.Enum, numberEnumCommon);
+
+        await state.setValue(null);
+
+        strictEqual(written.length, 1);
+        strictEqual(written[0], null);
+        strictEqual(state.value, null);
+    });
+
+    it('does not cache a percent value rejected for being non-finite', async function () {
+        const state = await createState(ValueType.NumberPercent, {
+            name: 'test',
+            type: 'number',
+            role: 'state',
+            read: true,
+            write: true,
+            min: 10,
+            max: 20,
+        });
+        await state.setValue(50);
+        strictEqual(state.value, 50);
+
+        await rejects(() => state.setValue('abc'));
+        strictEqual(state.value, 50);
+    });
+
+    it('does not cache a percent value rejected for being out of the real min/max range', async function () {
+        const state = await createState(ValueType.NumberPercent, {
+            name: 'test',
+            type: 'number',
+            role: 'state',
+            read: true,
+            write: true,
+            min: 10,
+            max: 20,
+        });
+        await state.setValue(50);
+        strictEqual(state.value, 50);
+
+        // realMin/realMax are 10/20: 200% maps far outside that range
+        await rejects(() => state.setValue(200));
+        strictEqual(state.value, 50);
+    });
+
+    it('does not cache a number value rejected for being out of min/max range', async function () {
+        const state = await createState(ValueType.Number, {
+            name: 'test',
+            type: 'number',
+            role: 'state',
+            read: true,
+            write: true,
+            min: 0,
+            max: 10,
+        });
+        await state.setValue(5);
+        strictEqual(state.value, 5);
+
+        await rejects(() => state.setValue(50));
+        strictEqual(state.value, 5);
+    });
+
+    it('does not cache a string-typed write rejected for being out of min/max range', async function () {
+        // typeof '5' !== 'number', so this takes the mismatch-repair branch, not the type-matching tail.
+        const state = await createState(ValueType.Number, {
+            name: 'test',
+            type: 'number',
+            role: 'state',
+            read: true,
+            write: true,
+            min: 0,
+            max: 10,
+        });
+        await state.setValue('5');
+        strictEqual(state.value, '5');
+
+        await rejects(() => state.setValue('50'));
+        strictEqual(state.value, '5');
+    });
+});
+
+describe('DeviceStateObject percent-mapped unit/range consistency', function () {
+    it('pairs getRawUnit() with getRawMinMax(), not the fixed 0-100 percent scale', async function () {
+        // A dimmer backed by a 0-254 object with its own unit: the Device Manager form (GenericDevice.getStates())
+        // binds unit and min/max together onto the raw oid value, so they must describe the same number space.
+        const state = await createState(ValueType.NumberPercent, {
+            name: 'test',
+            type: 'number',
+            role: 'state',
+            read: true,
+            write: true,
+            unit: 'lvl',
+            min: 0,
+            max: 254,
+        });
+        strictEqual(state.getRawUnit(), 'lvl');
+        strictEqual(state.getUnit(), '%');
+        strictEqual(state.getRawMinMax()?.min, 0);
+        strictEqual(state.getRawMinMax()?.max, 254);
+        strictEqual(state.getMinMax()?.min, 0);
+        strictEqual(state.getMinMax()?.max, 100);
     });
 });

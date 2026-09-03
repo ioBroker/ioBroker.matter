@@ -1,6 +1,13 @@
 import { Types } from '@iobroker/type-detector';
 import type { GenericDevice } from '../../lib';
 import { AirConditionerToMatter } from './AirConditionerToMatter';
+import { AirPurifierToMatter } from './AirPurifierToMatter';
+import { AirQualityToMatter } from './AirQualityToMatter';
+import { ContactToMatter } from './ContactToMatter';
+import { FanToMatter } from './FanToMatter';
+import { FlowToMatter } from './FlowToMatter';
+import { PressureToMatter } from './PressureToMatter';
+import { PumpToMatter } from './PumpToMatter';
 import { DimmerToMatter } from './DimmerToMatter';
 import { DoorToMatter } from './DoorToMatter';
 import { FloodAlarmToMatter } from './FloodAlarmToMatter';
@@ -22,6 +29,7 @@ import { ThermostatToMatter } from './ThermostatToMatter';
 import { HueAndRgbToMatter } from './HueAndRgbToMatter';
 import { CieToMatter } from './CieToMatter';
 import { VolumeToMatter } from './VolumeToMatter';
+import { VacuumCleanerToMatter } from './VacuumCleanerToMatter';
 
 /**
  * Factory function to create a Matter device from an ioBroker device.
@@ -39,6 +47,12 @@ async function matterDeviceFabric(
         case Types.airCondition:
             ToMatter = AirConditionerToMatter;
             break;
+        case Types.airPurifier:
+            ToMatter = AirPurifierToMatter;
+            break;
+        case Types.airQuality:
+            ToMatter = AirQualityToMatter;
+            break;
         case Types.blind:
         case Types.blindButtons:
             ToMatter = BlindsToMatter;
@@ -52,6 +66,9 @@ async function matterDeviceFabric(
         case Types.cie:
             ToMatter = CieToMatter;
             break;
+        case Types.contact:
+            ToMatter = ContactToMatter;
+            break;
         case Types.ct:
             ToMatter = CtToMatter;
             break;
@@ -61,8 +78,14 @@ async function matterDeviceFabric(
         case Types.door:
             ToMatter = DoorToMatter;
             break;
+        case Types.fan:
+            ToMatter = FanToMatter;
+            break;
         case Types.floodAlarm:
             ToMatter = FloodAlarmToMatter;
+            break;
+        case Types.flow:
+            ToMatter = FlowToMatter;
             break;
         case Types.hue:
             ToMatter = HueAndRgbToMatter;
@@ -82,6 +105,12 @@ async function matterDeviceFabric(
         case Types.motion:
             ToMatter = MotionToMatter;
             break;
+        case Types.pressure:
+            ToMatter = PressureToMatter;
+            break;
+        case Types.pump:
+            ToMatter = PumpToMatter;
+            break;
         case Types.rgb:
         case Types.rgbSingle:
         case Types.rgbwSingle:
@@ -95,6 +124,9 @@ async function matterDeviceFabric(
             break;
         case Types.thermostat:
             ToMatter = ThermostatToMatter;
+            break;
+        case Types.vacuumCleaner:
+            ToMatter = VacuumCleanerToMatter;
             break;
         case Types.volume:
         case Types.volumeGroup:

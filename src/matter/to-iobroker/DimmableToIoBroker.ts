@@ -88,10 +88,6 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker<D
             endpointId: this.appEndpoint.number,
             clusterId: OnOff.id,
             attributeName: 'onOff',
-            convertValue: async value => {
-                await this.#ioBrokerDevice.updatePower(value); // Also Ack Power Set State
-                return value;
-            },
         });
         this.enableDeviceTypeStateForAttribute(PropertyType.Level, {
             endpointId: this.appEndpoint.number,

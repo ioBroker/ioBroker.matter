@@ -76,6 +76,10 @@ export class Light extends GenericLightingDevice {
         await this.#getPowerState.updateValue(value);
     }
 
+    hasPowerActual(): boolean {
+        return !!this.#getPowerState;
+    }
+
     hasDimmer(): boolean {
         return false;
     }

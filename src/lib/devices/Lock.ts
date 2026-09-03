@@ -33,12 +33,6 @@ export class Lock extends GenericDevice {
     ) {
         super(detectedDevice, adapter, options, customStateDefinitions);
 
-        // Newer type-detector versions expose the enum movement direction as DIRECTION_ENUM to
-        // avoid clashing with the boolean DIRECTION indicator; older versions still name it DIRECTION.
-        const directionEnumName = detectedDevice.states.some(state => state.name === 'DIRECTION_ENUM')
-            ? 'DIRECTION_ENUM'
-            : 'DIRECTION';
-
         this._construction.push(
             this.addDeviceStates([
                 // actual value first, as it will be read first
@@ -71,7 +65,7 @@ export class Lock extends GenericDevice {
                     callback: state => (this.#doorState = state),
                 },
                 {
-                    name: directionEnumName,
+                    name: 'DIRECTION_ENUM',
                     valueType: ValueType.Enum,
                     accessType: StateAccessType.Read,
                     type: PropertyType.LockDirection,

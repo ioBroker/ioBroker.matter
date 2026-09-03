@@ -3,10 +3,12 @@ import { HumiditySensorDevice, OnOffPlugInUnitDevice, RoomAirConditionerDevice }
 import { FanControl as MatterFanControl, Thermostat as MatterThermostat } from '@matter/main/clusters';
 import { FanControlServer, OnOffServer, ThermostatServer } from '@matter/main/behaviors';
 import { hasLocalActor } from '@matter/main/protocol';
+import { SetpointKind } from '../../lib/devices/ClimateControlDevice';
+import { mapFanModeToSpeed, mapSpeedToFanMode } from '../FanControlUtils';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import {
     AirConditionerMode,
-    AirConditionerSpeed,
+    type AirConditionerSpeed,
     AirConditionerSwing,
     type AirCondition,
 } from '../../lib/devices/AirCondition';
@@ -16,6 +18,12 @@ import { IoIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 import { EventedOnOffPlugInUnitOnOffServer } from '../behaviors/EventedOnOffPlugInUnitOnOffServer';
 import { MatterConverters } from '../ConversionUtils';
+import {
+    deriveThermostatFeatures,
+    ThermostatSetpointBridge,
+    thermostatInitialState,
+    type ThermostatSetpointState,
+} from '../ThermostatUtils';
 
 const IoRoomAirConditionerDevice = RoomAirConditionerDevice.with(
     ThermostatServer,
@@ -47,102 +55,56 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
     readonly #matterEndpointBoost?: Endpoint<IoOnOffPlugInUnitDevice>;
     readonly #thermostatServer;
     readonly #fanControlServer?;
-    #supportedModes = new Array<AirConditionerMode>();
-    #validModes = new Array<AirConditionerMode>();
+    readonly #supportedModes: AirConditionerMode[];
+    readonly #validModes: AirConditionerMode[];
+    readonly #setpoints: ThermostatSetpointBridge;
     #hasFan: boolean;
     #hasSwing: boolean;
-    #temperatureDebounceTimeout?: ioBroker.Timeout;
 
     constructor(ioBrokerDevice: AirCondition, name: string, uuid: string) {
         super(name, uuid);
         this.#ioBrokerDevice = ioBrokerDevice;
 
-        const clusterModes = new Array<MatterThermostat.Feature>();
-        const ignoredModes = new Array<AirConditionerMode>();
-        const modes = this.#ioBrokerDevice.hasMode() ? this.#ioBrokerDevice.getModes() : [];
-        for (const mode of modes) {
-            switch (mode) {
-                case AirConditionerMode.Heat:
-                    this.#supportedModes.push(AirConditionerMode.Heat);
-                    this.#validModes.push(AirConditionerMode.Heat);
-                    clusterModes.push(MatterThermostat.Feature.Heating);
-                    break;
-                case AirConditionerMode.Cool:
-                    this.#supportedModes.push(AirConditionerMode.Cool);
-                    this.#validModes.push(AirConditionerMode.Cool);
-                    clusterModes.push(MatterThermostat.Feature.Cooling);
-                    break;
-                case AirConditionerMode.Auto:
-                    // handled below, needs Heating and Cooling
-                    break;
-                case AirConditionerMode.Off:
-                    this.#supportedModes.push(AirConditionerMode.Off);
-                    this.#validModes.push(AirConditionerMode.Off);
-                    break;
-                case AirConditionerMode.FanOnly:
-                    this.#supportedModes.push(AirConditionerMode.FanOnly);
-                    this.#validModes.push(AirConditionerMode.FanOnly);
-                    break;
-                case AirConditionerMode.Dry:
-                    this.#supportedModes.push(AirConditionerMode.Dry);
-                    this.#validModes.push(AirConditionerMode.Dry);
-                    break;
-                case AirConditionerMode.Eco:
-                    // Matter has no Eco mode, controlled as Auto
-                    this.#validModes.push(AirConditionerMode.Eco);
-                    break;
-                default:
-                    ignoredModes.push(mode);
-            }
-        }
-        if (
-            modes.includes(AirConditionerMode.Auto) &&
-            clusterModes.includes(MatterThermostat.Feature.Heating) &&
-            clusterModes.includes(MatterThermostat.Feature.Cooling)
-        ) {
-            clusterModes.push(MatterThermostat.Feature.AutoMode);
-            this.#supportedModes.push(AirConditionerMode.Auto);
-            this.#validModes.push(AirConditionerMode.Auto);
-        }
+        const derivation = deriveThermostatFeatures<AirConditionerMode>({
+            modes: this.#ioBrokerDevice.hasMode() ? this.#ioBrokerDevice.getModes() : [],
+            modeMap: {
+                heat: AirConditionerMode.Heat,
+                cool: AirConditionerMode.Cool,
+                auto: AirConditionerMode.Auto,
+                off: AirConditionerMode.Off,
+                fanOnly: AirConditionerMode.FanOnly,
+                dry: AirConditionerMode.Dry,
+            },
+            supportedSetpointKinds: this.#ioBrokerDevice.supportedSetpointKinds(),
+            // Matter has no Eco mode, controlled as Auto
+            passthroughModes: [AirConditionerMode.Eco],
+            fallbackFeature: MatterThermostat.Feature.Cooling,
+        });
+        this.#supportedModes = derivation.supportedModes;
+        this.#validModes = derivation.validModes;
 
-        if (
-            !clusterModes.includes(MatterThermostat.Feature.Heating) &&
-            !clusterModes.includes(MatterThermostat.Feature.Cooling)
-        ) {
+        if (derivation.autoModeIgnored) {
+            this.#ioBrokerDevice.adapter.log.info(
+                `${uuid}: AutoMode is supported, but no Heating or Cooling, ignoring AutoMode`,
+            );
+        }
+        if (derivation.fallbackApplied) {
             this.#ioBrokerDevice.adapter.log.info(
                 `${uuid}: Matter Thermostats need to either support heating or cooling. Defaulting to Cooling`,
             );
-            clusterModes.push(MatterThermostat.Feature.Cooling);
-            this.#supportedModes.push(AirConditionerMode.Cool);
         }
-        if (ignoredModes.length > 0) {
+        if (derivation.ignoredModes.length > 0) {
             this.#ioBrokerDevice.adapter.log.info(
-                `${uuid}: Ignoring unsupported modes for Air Conditioner: ${ignoredModes.join(', ')}`,
+                `${uuid}: Ignoring unsupported modes for Air Conditioner: ${derivation.ignoredModes.join(', ')}`,
             );
         }
-
-        const hasHeating = clusterModes.includes(MatterThermostat.Feature.Heating);
-        const hasCooling = clusterModes.includes(MatterThermostat.Feature.Cooling);
 
         this.#hasSwing = this.#ioBrokerDevice.hasSwing();
         this.#hasFan = this.#ioBrokerDevice.hasSpeed() || this.#hasSwing;
 
-        this.#thermostatServer = ThermostatServer.with(...clusterModes);
+        this.#thermostatServer = ThermostatServer.with(...derivation.clusterModes);
 
-        const thermostatInit = {
-            systemMode: hasCooling ? MatterThermostat.SystemMode.Cool : MatterThermostat.SystemMode.Heat,
-            controlSequenceOfOperation:
-                hasHeating && hasCooling
-                    ? MatterThermostat.ControlSequenceOfOperation.CoolingAndHeating
-                    : hasCooling
-                      ? MatterThermostat.ControlSequenceOfOperation.CoolingOnly
-                      : MatterThermostat.ControlSequenceOfOperation.HeatingOnly,
-            minSetpointDeadBand: clusterModes.includes(MatterThermostat.Feature.AutoMode) ? 0 : undefined,
-            absMinHeatSetpointLimit: hasHeating ? MatterConverters.toMatterHundredths(0) : undefined,
-            absMaxHeatSetpointLimit: hasHeating ? MatterConverters.toMatterHundredths(50) : undefined,
-            absMinCoolSetpointLimit: hasCooling ? MatterConverters.toMatterHundredths(0) : undefined,
-            absMaxCoolSetpointLimit: hasCooling ? MatterConverters.toMatterHundredths(50) : undefined,
-        };
+        const thermostatInit = thermostatInitialState(derivation.clusterModes, SetpointKind.Cooling);
 
         if (this.#hasFan) {
             const fanFeatures = new Array<MatterFanControl.Feature>(MatterFanControl.Feature.Auto);
@@ -169,6 +131,17 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                 thermostat: thermostatInit,
             });
         }
+
+        this.#setpoints = new ThermostatSetpointBridge({
+            device: ioBrokerDevice,
+            uuid,
+            supportsHeating: this.#supportedModes.includes(AirConditionerMode.Heat),
+            supportsCooling: this.#supportedModes.includes(AirConditionerMode.Cool),
+            readState: () => this.#readThermostatState(),
+            writeState: patch => this.#matterEndpoint.setStateOf(this.#thermostatServer, patch),
+            scheduleDebounce: (callback, ms) => this.setDeviceTimeout(callback, ms),
+            cancelDebounce: timeout => this.clearDeviceTimeout(timeout),
+        });
 
         if (this.#ioBrokerDevice.hasHumidity()) {
             this.#matterEndpointHumidity = new Endpoint(HumiditySensorDevice, { id: `${uuid}-Humidity` });
@@ -197,7 +170,8 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
     }
 
     #mapModeToMatter(mode: AirConditionerMode | undefined): MatterThermostat.SystemMode | undefined {
-        if (mode === undefined || !this.#validModes.includes(mode)) {
+        // Writing towards Matter, so the cluster's own feature set decides, not what the adapter reacts to
+        if (mode === undefined || !this.#supportedModes.includes(mode)) {
             return;
         }
         switch (mode) {
@@ -232,63 +206,21 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
         );
     }
 
-    #mapSpeedToFanMode(speed: AirConditionerSpeed | undefined): MatterFanControl.FanMode | undefined {
-        switch (speed) {
-            case AirConditionerSpeed.Auto:
-                return MatterFanControl.FanMode.Auto;
-            case AirConditionerSpeed.Low:
-                return MatterFanControl.FanMode.Low;
-            case AirConditionerSpeed.Quiet:
-                this.#ioBrokerDevice.adapter.log.info(`${this.uuid}: Matter has no Quiet fan speed, reporting as Low`);
-                return MatterFanControl.FanMode.Low;
-            case AirConditionerSpeed.Medium:
-                return MatterFanControl.FanMode.Medium;
-            case AirConditionerSpeed.High:
-                return MatterFanControl.FanMode.High;
-            case AirConditionerSpeed.Turbo:
-                this.#ioBrokerDevice.adapter.log.info(`${this.uuid}: Matter has no Turbo fan speed, reporting as High`);
-                return MatterFanControl.FanMode.High;
-        }
+    #speedToFanMode(speed: AirConditionerSpeed | undefined): MatterFanControl.FanMode | undefined {
+        return mapSpeedToFanMode(speed, (unsupported, reportedAs) =>
+            this.#ioBrokerDevice.adapter.log.info(
+                `${this.uuid}: Matter has no ${unsupported} fan speed, reporting as ${reportedAs}`,
+            ),
+        );
     }
 
-    #mapFanModeToSpeed(fanMode: MatterFanControl.FanMode): AirConditionerSpeed | undefined {
-        switch (fanMode) {
-            case MatterFanControl.FanMode.Auto:
-            case MatterFanControl.FanMode.Smart:
-                return AirConditionerSpeed.Auto;
-            case MatterFanControl.FanMode.Low:
-                return AirConditionerSpeed.Low;
-            case MatterFanControl.FanMode.Medium:
-                return AirConditionerSpeed.Medium;
-            case MatterFanControl.FanMode.High:
-            case MatterFanControl.FanMode.On:
-                return AirConditionerSpeed.High;
-            case MatterFanControl.FanMode.Off:
-                return undefined;
-        }
-    }
-
-    #updateSetPointTemperature(delay = 1500): void {
-        this.clearDeviceTimeout(this.#temperatureDebounceTimeout);
-        this.#temperatureDebounceTimeout = this.setDeviceTimeout(() => {
-            this.#temperatureDebounceTimeout = undefined;
-            const systemMode = this.#matterEndpoint.stateOf(this.#thermostatServer).systemMode;
-            if (systemMode === MatterThermostat.SystemMode.Heat || systemMode === MatterThermostat.SystemMode.Auto) {
-                const heatingTemp = this.#matterEndpoint.stateOf(this.#thermostatServer).occupiedHeatingSetpoint;
-                if (typeof heatingTemp === 'number') {
-                    this.#ioBrokerDevice
-                        .setLevel(MatterConverters.fromMatterHundredths(heatingTemp))
-                        .catch(error => this.#ioBrokerDevice.adapter.log.warn(`Error setting level: ${error.message}`));
-                }
-            } else if (systemMode === MatterThermostat.SystemMode.Cool) {
-                const coolingTemp = this.#matterEndpoint.stateOf(this.#thermostatServer).occupiedCoolingSetpoint;
-                if (typeof coolingTemp === 'number') {
-                    this.#ioBrokerDevice
-                        .setLevel(MatterConverters.fromMatterHundredths(coolingTemp))
-                        .catch(error => this.#ioBrokerDevice.adapter.log.warn(`Error setting level: ${error.message}`));
-                }
-            }
-        }, delay);
+    #readThermostatState(): ThermostatSetpointState {
+        const state = this.#matterEndpoint.stateOf(this.#thermostatServer);
+        return {
+            systemMode: state.systemMode,
+            occupiedHeatingSetpoint: state.occupiedHeatingSetpoint,
+            occupiedCoolingSetpoint: state.occupiedCoolingSetpoint,
+        };
     }
 
     async registerHandlersAndInitialize(): Promise<void> {
@@ -323,24 +255,9 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
             ...(systemMode !== undefined ? { systemMode } : {}),
         });
 
-        const setpointTemperature = this.#ioBrokerDevice.getLevel();
-        if (typeof setpointTemperature === 'number') {
-            const data: Record<string, number> = {};
-            const minMax = this.#ioBrokerDevice.getSetpointMinMax() ?? { min: 7, max: 35 };
-            const cropped = this.#ioBrokerDevice.cropValue(setpointTemperature, minMax.min, minMax.max, true);
-            if (this.#supportedModes.includes(AirConditionerMode.Heat)) {
-                data.occupiedHeatingSetpoint = MatterConverters.toMatterHundredths(cropped);
-                data.minHeatSetpointLimit = MatterConverters.toMatterHundredths(Math.max(minMax.min, 0));
-                data.maxHeatSetpointLimit = MatterConverters.toMatterHundredths(Math.min(minMax.max, 50));
-            }
-            if (this.#supportedModes.includes(AirConditionerMode.Cool)) {
-                data.occupiedCoolingSetpoint = MatterConverters.toMatterHundredths(cropped);
-                data.minCoolSetpointLimit = MatterConverters.toMatterHundredths(Math.max(minMax.min, 0));
-                data.maxCoolSetpointLimit = MatterConverters.toMatterHundredths(Math.min(minMax.max, 50));
-            }
-            if (Object.keys(data).length > 0) {
-                await this.#matterEndpoint.setStateOf(this.#thermostatServer, data);
-            }
+        const data = this.#setpoints.initialSetpointState();
+        if (Object.keys(data).length > 0) {
+            await this.#matterEndpoint.setStateOf(this.#thermostatServer, data);
         }
 
         // OnOff reflects the power state; for Mode-only devices it is derived from MODE != Off
@@ -353,7 +270,7 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
 
         if (this.#fanControlServer) {
             const fanMode = this.#ioBrokerDevice.hasSpeed()
-                ? this.#mapSpeedToFanMode(this.#ioBrokerDevice.getSpeed())
+                ? this.#speedToFanMode(this.#ioBrokerDevice.getSpeed())
                 : undefined;
             await this.#matterEndpoint.setStateOf(this.#fanControlServer, {
                 ...(fanMode !== undefined ? { fanMode } : {}),
@@ -425,7 +342,7 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                     if (hasLocalActor(context)) {
                         return;
                     }
-                    this.#updateSetPointTemperature();
+                    this.#setpoints.scheduleSetpointWrite();
                 },
             );
         }
@@ -440,7 +357,7 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                     if (hasLocalActor(context)) {
                         return;
                     }
-                    this.#updateSetPointTemperature();
+                    this.#setpoints.scheduleSetpointWrite();
                 },
             );
         }
@@ -476,7 +393,7 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                     if (hasLocalActor(context)) {
                         return;
                     }
-                    const speed = this.#mapFanModeToSpeed(value);
+                    const speed = mapFanModeToSpeed(value);
                     if (speed !== undefined) {
                         await this.#ioBrokerDevice.setSpeed(speed);
                     }
@@ -527,8 +444,11 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                 await setPower(true);
                 await setMode(AirConditionerMode.Heat);
                 const heatingTemp = this.#matterEndpoint.stateOf(this.#thermostatServer).occupiedHeatingSetpoint;
-                if (typeof heatingTemp === 'number') {
-                    await this.#ioBrokerDevice.setLevel(MatterConverters.fromMatterHundredths(heatingTemp));
+                if (typeof heatingTemp === 'number' && this.#ioBrokerDevice.hasSetpoint(SetpointKind.Heating)) {
+                    await this.#ioBrokerDevice.setSetpoint(
+                        SetpointKind.Heating,
+                        MatterConverters.fromMatterHundredths(heatingTemp),
+                    );
                 }
                 break;
             }
@@ -536,8 +456,11 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                 await setPower(true);
                 await setMode(AirConditionerMode.Cool);
                 const coolingTemp = this.#matterEndpoint.stateOf(this.#thermostatServer).occupiedCoolingSetpoint;
-                if (typeof coolingTemp === 'number') {
-                    await this.#ioBrokerDevice.setLevel(MatterConverters.fromMatterHundredths(coolingTemp));
+                if (typeof coolingTemp === 'number' && this.#ioBrokerDevice.hasSetpoint(SetpointKind.Cooling)) {
+                    await this.#ioBrokerDevice.setSetpoint(
+                        SetpointKind.Cooling,
+                        MatterConverters.fromMatterHundredths(coolingTemp),
+                    );
                 }
                 break;
             }
@@ -566,27 +489,15 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                         });
                     }
                     break;
-                case PropertyType.Level: {
-                    const systemMode = this.#matterEndpoint.stateOf(this.#thermostatServer).systemMode;
-                    const value = MatterConverters.toMatterHundredths(event.value as number);
-                    if (
-                        systemMode === MatterThermostat.SystemMode.Heat ||
-                        systemMode === MatterThermostat.SystemMode.Auto
-                    ) {
-                        await this.#matterEndpoint.setStateOf(this.#thermostatServer, {
-                            occupiedHeatingSetpoint: value,
-                        });
-                    }
-                    if (
-                        systemMode === MatterThermostat.SystemMode.Cool ||
-                        systemMode === MatterThermostat.SystemMode.Auto
-                    ) {
-                        await this.#matterEndpoint.setStateOf(this.#thermostatServer, {
-                            occupiedCoolingSetpoint: value,
-                        });
-                    }
+                case PropertyType.Level:
+                    await this.#setpoints.applyLevelChange(event.value as number);
                     break;
-                }
+                case PropertyType.LevelHeating:
+                    await this.#setpoints.applyDedicatedLevelChange(SetpointKind.Heating, event.value as number);
+                    break;
+                case PropertyType.LevelCooling:
+                    await this.#setpoints.applyDedicatedLevelChange(SetpointKind.Cooling, event.value as number);
+                    break;
                 case PropertyType.Power: {
                     const on = !!event.value;
                     await this.#matterEndpoint.setStateOf(OnOffServer, { onOff: on });
@@ -625,7 +536,7 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                     if (!this.#fanControlServer) {
                         return;
                     }
-                    const fanMode = this.#mapSpeedToFanMode(event.value as AirConditionerSpeed);
+                    const fanMode = this.#speedToFanMode(event.value as AirConditionerSpeed);
                     if (fanMode !== undefined) {
                         await this.#matterEndpoint.setStateOf(this.#fanControlServer, { fanMode });
                     }

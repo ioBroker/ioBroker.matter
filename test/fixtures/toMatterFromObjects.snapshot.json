@@ -1,0 +1,3167 @@
+{
+  "blindButtons alias.0.Test-Devices.BlindsButtons.STOP": {
+    "bridge": "New bridge 1 (265c41a2-9b79-4778-ae60-8122271cc46d)",
+    "endpoints": [
+      {
+        "id": "2e0974c9-eb77-4bd3-a3bd-2641431869fc",
+        "deviceType": "WindowCovering",
+        "deviceTypeId": 514,
+        "behaviors": [
+          "windowCovering"
+        ],
+        "state": {
+          "windowCovering": {
+            "configStatus": {
+              "operational": true,
+              "onlineReserved": false,
+              "liftMovementReversed": false,
+              "liftPositionAware": false,
+              "tiltPositionAware": false,
+              "liftEncoderControlled": false,
+              "tiltEncoderControlled": false
+            },
+            "endProductType": 0,
+            "featureMap": {
+              "lift": true,
+              "tilt": false,
+              "positionAwareLift": false,
+              "positionAwareTilt": false
+            },
+            "mode": {
+              "motorDirectionReversed": false,
+              "calibrationMode": false,
+              "maintenanceMode": false,
+              "ledFeedback": false
+            },
+            "operationalStatus": {},
+            "supportsMaintenanceMode": true,
+            "type": 0
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "blindButtons alias.0.Test-Devices.BlindsButtonsLiftTilt.STOP": {
+    "bridge": "New bridge 1 (265c41a2-9b79-4778-ae60-8122271cc46d)",
+    "endpoints": [
+      {
+        "id": "5786722e-80e4-4ead-8c46-560629fde7c3",
+        "deviceType": "WindowCovering",
+        "deviceTypeId": 514,
+        "behaviors": [
+          "windowCovering"
+        ],
+        "state": {
+          "windowCovering": {
+            "configStatus": {
+              "operational": true,
+              "onlineReserved": false,
+              "liftMovementReversed": false,
+              "liftPositionAware": false,
+              "tiltPositionAware": true,
+              "liftEncoderControlled": false,
+              "tiltEncoderControlled": false
+            },
+            "currentPositionTiltPercent100ths": 5000,
+            "currentPositionTiltPercentage": 50,
+            "endProductType": 255,
+            "featureMap": {
+              "lift": true,
+              "tilt": true,
+              "positionAwareLift": false,
+              "positionAwareTilt": true
+            },
+            "mode": {
+              "motorDirectionReversed": false,
+              "calibrationMode": false,
+              "maintenanceMode": false,
+              "ledFeedback": false
+            },
+            "operationalStatus": {
+              "global": 0,
+              "tilt": 0
+            },
+            "supportsMaintenanceMode": true,
+            "targetPositionTiltPercent100ths": 5000,
+            "type": 8
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "blind alias.0.Test-Devices.BlindsLift.SET": {
+    "bridge": "New bridge 1 (265c41a2-9b79-4778-ae60-8122271cc46d)",
+    "endpoints": [
+      {
+        "id": "156f2e94-61b2-4da1-be17-7ad4f559bb4e",
+        "deviceType": "WindowCovering",
+        "deviceTypeId": 514,
+        "behaviors": [
+          "windowCovering"
+        ],
+        "state": {
+          "windowCovering": {
+            "configStatus": {
+              "operational": true,
+              "onlineReserved": false,
+              "liftMovementReversed": false,
+              "liftPositionAware": true,
+              "tiltPositionAware": false,
+              "liftEncoderControlled": false,
+              "tiltEncoderControlled": false
+            },
+            "currentPositionLiftPercent100ths": 5000,
+            "currentPositionLiftPercentage": 50,
+            "endProductType": 0,
+            "featureMap": {
+              "lift": true,
+              "tilt": false,
+              "positionAwareLift": true,
+              "positionAwareTilt": false
+            },
+            "mode": {
+              "motorDirectionReversed": false,
+              "calibrationMode": false,
+              "maintenanceMode": false,
+              "ledFeedback": false
+            },
+            "operationalStatus": {
+              "global": 0,
+              "lift": 0
+            },
+            "supportsMaintenanceMode": true,
+            "targetPositionLiftPercent100ths": 5000,
+            "type": 0
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "blind alias.0.Test-Devices.BlindsLiftTilt.SET": {
+    "bridge": "New bridge 1 (265c41a2-9b79-4778-ae60-8122271cc46d)",
+    "endpoints": [
+      {
+        "id": "2bbb0e9b-e6cb-4a99-8dfd-50e943e6b077",
+        "deviceType": "WindowCovering",
+        "deviceTypeId": 514,
+        "behaviors": [
+          "windowCovering"
+        ],
+        "state": {
+          "windowCovering": {
+            "configStatus": {
+              "operational": true,
+              "onlineReserved": false,
+              "liftMovementReversed": false,
+              "liftPositionAware": true,
+              "tiltPositionAware": true,
+              "liftEncoderControlled": false,
+              "tiltEncoderControlled": false
+            },
+            "currentPositionLiftPercent100ths": 5000,
+            "currentPositionLiftPercentage": 50,
+            "currentPositionTiltPercent100ths": 5000,
+            "currentPositionTiltPercentage": 50,
+            "endProductType": 255,
+            "featureMap": {
+              "lift": true,
+              "tilt": true,
+              "positionAwareLift": true,
+              "positionAwareTilt": true
+            },
+            "mode": {
+              "motorDirectionReversed": false,
+              "calibrationMode": false,
+              "maintenanceMode": false,
+              "ledFeedback": false
+            },
+            "operationalStatus": {
+              "global": 0,
+              "lift": 0,
+              "tilt": 0
+            },
+            "supportsMaintenanceMode": true,
+            "targetPositionLiftPercent100ths": 5000,
+            "targetPositionTiltPercent100ths": 5000,
+            "type": 8
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "cie alias.0.Test-Devices.Cie": {
+    "bridge": "New bridge 1 (265c41a2-9b79-4778-ae60-8122271cc46d)",
+    "endpoints": [
+      {
+        "id": "88410601-a0fb-4bae-8a9f-c8aa40f418cb",
+        "deviceType": "ExtendedColorLight",
+        "deviceTypeId": 269,
+        "behaviors": [
+          "colorControl",
+          "groups",
+          "levelControl",
+          "onOff",
+          "scenesManagement"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": true,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "globalSceneControl": false,
+            "offWaitTime": 0,
+            "onOff": true,
+            "onTime": 0,
+            "startUpOnOff": null
+          },
+          "levelControl": {
+            "currentLevel": 107,
+            "featureMap": {
+              "onOff": true,
+              "lighting": true,
+              "frequency": false
+            },
+            "managedTransitionTimeHandling": false,
+            "maxLevel": 254,
+            "minLevel": 1,
+            "onLevel": null,
+            "options": {
+              "executeIfOff": false,
+              "coupleColorTempToLevel": false
+            },
+            "remainingTime": 0,
+            "startUpCurrentLevel": null,
+            "transitionStepInterval": 100
+          },
+          "scenesManagement": {
+            "fabricSceneInfo": [],
+            "featureMap": {
+              "sceneNames": true
+            },
+            "sceneTable": [],
+            "sceneTableSize": 128
+          },
+          "colorControl": {
+            "colorCapabilities": {
+              "hueSaturation": false,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": true,
+              "colorTemperature": true
+            },
+            "colorMode": 1,
+            "colorTempPhysicalMaxMireds": 1000,
+            "colorTempPhysicalMinMireds": 50,
+            "colorTemperatureMireds": 1000,
+            "coupleColorTempToLevelMinMireds": 50,
+            "currentX": 19661,
+            "currentY": 26214,
+            "enhancedColorMode": 1,
+            "featureMap": {
+              "hueSaturation": false,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": true,
+              "colorTemperature": true
+            },
+            "managedTransitionTimeHandling": false,
+            "numberOfPrimaries": null,
+            "options": {
+              "executeIfOff": false
+            },
+            "remainingTime": 0,
+            "startUpColorTemperatureMireds": null,
+            "transitionStepInterval": 100
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "hue alias.0.Test-Devices.Hue": {
+    "bridge": "New bridge 1 (265c41a2-9b79-4778-ae60-8122271cc46d)",
+    "endpoints": [
+      {
+        "id": "5bf5f795-73f9-4baa-a413-1a05f56bdd27",
+        "deviceType": "ExtendedColorLight",
+        "deviceTypeId": 269,
+        "behaviors": [
+          "colorControl",
+          "groups",
+          "levelControl",
+          "onOff",
+          "scenesManagement"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": true,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "globalSceneControl": false,
+            "offWaitTime": 0,
+            "onOff": true,
+            "onTime": 0,
+            "startUpOnOff": null
+          },
+          "levelControl": {
+            "currentLevel": 107,
+            "featureMap": {
+              "onOff": true,
+              "lighting": true,
+              "frequency": false
+            },
+            "managedTransitionTimeHandling": false,
+            "maxLevel": 254,
+            "minLevel": 1,
+            "onLevel": null,
+            "options": {
+              "executeIfOff": false,
+              "coupleColorTempToLevel": false
+            },
+            "remainingTime": 0,
+            "startUpCurrentLevel": null,
+            "transitionStepInterval": 100
+          },
+          "scenesManagement": {
+            "fabricSceneInfo": [],
+            "featureMap": {
+              "sceneNames": true
+            },
+            "sceneTable": [],
+            "sceneTableSize": 128
+          },
+          "colorControl": {
+            "colorCapabilities": {
+              "hueSaturation": true,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": true,
+              "colorTemperature": true
+            },
+            "colorMode": 0,
+            "colorTempPhysicalMaxMireds": 1000,
+            "colorTempPhysicalMinMireds": 50,
+            "colorTemperatureMireds": 1000,
+            "coupleColorTempToLevelMinMireds": 50,
+            "currentHue": 30,
+            "currentSaturation": 127,
+            "currentX": 24939,
+            "currentY": 24701,
+            "enhancedColorMode": 0,
+            "featureMap": {
+              "hueSaturation": true,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": true,
+              "colorTemperature": true
+            },
+            "managedTransitionTimeHandling": false,
+            "numberOfPrimaries": null,
+            "options": {
+              "executeIfOff": false
+            },
+            "remainingTime": 0,
+            "startUpColorTemperatureMireds": null,
+            "transitionStepInterval": 100
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "rgb alias.0.Test-Devices.RGB.RED": {
+    "bridge": "New bridge 1 (265c41a2-9b79-4778-ae60-8122271cc46d)",
+    "endpoints": [
+      {
+        "id": "c0e3c166-0d32-4834-bd17-3dae563a4e90",
+        "deviceType": "ExtendedColorLight",
+        "deviceTypeId": 269,
+        "behaviors": [
+          "colorControl",
+          "groups",
+          "levelControl",
+          "onOff",
+          "scenesManagement"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": true,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "globalSceneControl": false,
+            "offWaitTime": 0,
+            "onOff": true,
+            "onTime": 0,
+            "startUpOnOff": null
+          },
+          "levelControl": {
+            "currentLevel": 254,
+            "featureMap": {
+              "onOff": true,
+              "lighting": true,
+              "frequency": false
+            },
+            "managedTransitionTimeHandling": false,
+            "maxLevel": 254,
+            "minLevel": 1,
+            "onLevel": null,
+            "options": {
+              "executeIfOff": false,
+              "coupleColorTempToLevel": false
+            },
+            "remainingTime": 0,
+            "startUpCurrentLevel": null,
+            "transitionStepInterval": 100
+          },
+          "scenesManagement": {
+            "fabricSceneInfo": [],
+            "featureMap": {
+              "sceneNames": true
+            },
+            "sceneTable": [],
+            "sceneTableSize": 128
+          },
+          "colorControl": {
+            "colorCapabilities": {
+              "hueSaturation": true,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": true,
+              "colorTemperature": true
+            },
+            "colorMode": 0,
+            "colorTempPhysicalMaxMireds": 1000,
+            "colorTempPhysicalMinMireds": 50,
+            "colorTemperatureMireds": 1000,
+            "coupleColorTempToLevelMinMireds": 50,
+            "currentHue": 0,
+            "currentSaturation": 0,
+            "currentX": 24939,
+            "currentY": 24701,
+            "enhancedColorMode": 0,
+            "featureMap": {
+              "hueSaturation": true,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": true,
+              "colorTemperature": true
+            },
+            "managedTransitionTimeHandling": false,
+            "numberOfPrimaries": null,
+            "options": {
+              "executeIfOff": false
+            },
+            "remainingTime": 0,
+            "startUpColorTemperatureMireds": null,
+            "transitionStepInterval": 100
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "rgbSingle alias.0.Test-Devices.Rgb-Single.RGB": {
+    "bridge": "New bridge 1 (265c41a2-9b79-4778-ae60-8122271cc46d)",
+    "endpoints": [
+      {
+        "id": "41aa5006-0bee-4906-b995-877cdc21ca02",
+        "deviceType": "ExtendedColorLight",
+        "deviceTypeId": 269,
+        "behaviors": [
+          "colorControl",
+          "groups",
+          "levelControl",
+          "onOff",
+          "scenesManagement"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": true,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "globalSceneControl": false,
+            "offWaitTime": 0,
+            "onOff": true,
+            "onTime": 0,
+            "startUpOnOff": null
+          },
+          "levelControl": {
+            "currentLevel": 152,
+            "featureMap": {
+              "onOff": true,
+              "lighting": true,
+              "frequency": false
+            },
+            "managedTransitionTimeHandling": false,
+            "maxLevel": 254,
+            "minLevel": 1,
+            "onLevel": null,
+            "options": {
+              "executeIfOff": false,
+              "coupleColorTempToLevel": false
+            },
+            "remainingTime": 0,
+            "startUpCurrentLevel": null,
+            "transitionStepInterval": 100
+          },
+          "scenesManagement": {
+            "fabricSceneInfo": [],
+            "featureMap": {
+              "sceneNames": true
+            },
+            "sceneTable": [],
+            "sceneTableSize": 128
+          },
+          "colorControl": {
+            "colorCapabilities": {
+              "hueSaturation": true,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": true,
+              "colorTemperature": true
+            },
+            "colorMode": 0,
+            "colorTempPhysicalMaxMireds": 1000,
+            "colorTempPhysicalMinMireds": 50,
+            "colorTemperatureMireds": 1000,
+            "coupleColorTempToLevelMinMireds": 50,
+            "currentHue": 148,
+            "currentSaturation": 170,
+            "currentX": 24939,
+            "currentY": 24701,
+            "enhancedColorMode": 0,
+            "featureMap": {
+              "hueSaturation": true,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": true,
+              "colorTemperature": true
+            },
+            "managedTransitionTimeHandling": false,
+            "numberOfPrimaries": null,
+            "options": {
+              "executeIfOff": false
+            },
+            "remainingTime": 0,
+            "startUpColorTemperatureMireds": null,
+            "transitionStepInterval": 100
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "rgb alias.0.Test-Devices.Rgbw.RED": {
+    "bridge": "New bridge 1 (265c41a2-9b79-4778-ae60-8122271cc46d)",
+    "endpoints": [
+      {
+        "id": "39cb7b14-4279-446d-bf8a-5972c399d503",
+        "deviceType": "ExtendedColorLight",
+        "deviceTypeId": 269,
+        "behaviors": [
+          "colorControl",
+          "groups",
+          "levelControl",
+          "onOff",
+          "scenesManagement"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": true,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "globalSceneControl": false,
+            "offWaitTime": 0,
+            "onOff": true,
+            "onTime": 0,
+            "startUpOnOff": null
+          },
+          "levelControl": {
+            "currentLevel": 254,
+            "featureMap": {
+              "onOff": true,
+              "lighting": true,
+              "frequency": false
+            },
+            "managedTransitionTimeHandling": false,
+            "maxLevel": 254,
+            "minLevel": 1,
+            "onLevel": null,
+            "options": {
+              "executeIfOff": false,
+              "coupleColorTempToLevel": false
+            },
+            "remainingTime": 0,
+            "startUpCurrentLevel": null,
+            "transitionStepInterval": 100
+          },
+          "scenesManagement": {
+            "fabricSceneInfo": [],
+            "featureMap": {
+              "sceneNames": true
+            },
+            "sceneTable": [],
+            "sceneTableSize": 128
+          },
+          "colorControl": {
+            "colorCapabilities": {
+              "hueSaturation": true,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": true,
+              "colorTemperature": true
+            },
+            "colorMode": 0,
+            "colorTempPhysicalMaxMireds": 1000,
+            "colorTempPhysicalMinMireds": 50,
+            "colorTemperatureMireds": 1000,
+            "coupleColorTempToLevelMinMireds": 50,
+            "currentHue": 0,
+            "currentSaturation": 0,
+            "currentX": 24939,
+            "currentY": 24701,
+            "enhancedColorMode": 0,
+            "featureMap": {
+              "hueSaturation": true,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": true,
+              "colorTemperature": true
+            },
+            "managedTransitionTimeHandling": false,
+            "numberOfPrimaries": null,
+            "options": {
+              "executeIfOff": false
+            },
+            "remainingTime": 0,
+            "startUpColorTemperatureMireds": null,
+            "transitionStepInterval": 100
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "rgbwSingle alias.0.Test-Devices.Rgbw-Single.RGBW": {
+    "bridge": "New bridge 1 (265c41a2-9b79-4778-ae60-8122271cc46d)",
+    "endpoints": [
+      {
+        "id": "ebdafd0f-0d16-403d-bad4-0baf65a8ae4e",
+        "deviceType": "ExtendedColorLight",
+        "deviceTypeId": 269,
+        "behaviors": [
+          "colorControl",
+          "groups",
+          "levelControl",
+          "onOff",
+          "scenesManagement"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": true,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "globalSceneControl": false,
+            "offWaitTime": 0,
+            "onOff": true,
+            "onTime": 0,
+            "startUpOnOff": null
+          },
+          "levelControl": {
+            "currentLevel": 254,
+            "featureMap": {
+              "onOff": true,
+              "lighting": true,
+              "frequency": false
+            },
+            "managedTransitionTimeHandling": false,
+            "maxLevel": 254,
+            "minLevel": 1,
+            "onLevel": null,
+            "options": {
+              "executeIfOff": false,
+              "coupleColorTempToLevel": false
+            },
+            "remainingTime": 0,
+            "startUpCurrentLevel": null,
+            "transitionStepInterval": 100
+          },
+          "scenesManagement": {
+            "fabricSceneInfo": [],
+            "featureMap": {
+              "sceneNames": true
+            },
+            "sceneTable": [],
+            "sceneTableSize": 128
+          },
+          "colorControl": {
+            "colorCapabilities": {
+              "hueSaturation": true,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": true,
+              "colorTemperature": true
+            },
+            "colorMode": 0,
+            "colorTempPhysicalMaxMireds": 1000,
+            "colorTempPhysicalMinMireds": 50,
+            "colorTemperatureMireds": 1000,
+            "coupleColorTempToLevelMinMireds": 50,
+            "currentHue": 148,
+            "currentSaturation": 91,
+            "currentX": 24939,
+            "currentY": 24701,
+            "enhancedColorMode": 0,
+            "featureMap": {
+              "hueSaturation": true,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": true,
+              "colorTemperature": true
+            },
+            "managedTransitionTimeHandling": false,
+            "numberOfPrimaries": null,
+            "options": {
+              "executeIfOff": false
+            },
+            "remainingTime": 0,
+            "startUpColorTemperatureMireds": null,
+            "transitionStepInterval": 100
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "thermostat alias.0.Test-Devices.Thermostat": {
+    "bridge": "New bridge 1 (265c41a2-9b79-4778-ae60-8122271cc46d)",
+    "endpoints": [
+      {
+        "id": "c6392e24-eb7f-4e7d-9668-e7374e8abbfa-Thermostat",
+        "deviceType": "Thermostat",
+        "deviceTypeId": 769,
+        "behaviors": [
+          "thermostat"
+        ],
+        "state": {
+          "thermostat": {
+            "absMaxCoolSetpointLimit": 5000,
+            "absMaxHeatSetpointLimit": 5000,
+            "absMinCoolSetpointLimit": 0,
+            "absMinHeatSetpointLimit": 0,
+            "controlSequenceOfOperation": 4,
+            "externalMeasuredIndoorTemperature": 4200,
+            "featureMap": {
+              "heating": true,
+              "cooling": true,
+              "occupancy": false,
+              "setback": false,
+              "autoMode": true,
+              "localTemperatureNotExposed": false,
+              "matterScheduleConfiguration": false,
+              "presets": false,
+              "events": false,
+              "thermostatSuggestions": false
+            },
+            "localTemperature": null,
+            "maxCoolSetpointLimit": 3000,
+            "maxHeatSetpointLimit": 3000,
+            "minCoolSetpointLimit": 1000,
+            "minHeatSetpointLimit": 1000,
+            "minSetpointDeadBand": 0,
+            "occupiedCoolingSetpoint": 1800,
+            "occupiedHeatingSetpoint": 1800,
+            "systemMode": 1,
+            "useAutomaticModeManagement": false
+          }
+        },
+        "parts": []
+      },
+      {
+        "id": "c6392e24-eb7f-4e7d-9668-e7374e8abbfa-Humidity",
+        "deviceType": "HumiditySensor",
+        "deviceTypeId": 775,
+        "behaviors": [
+          "relativeHumidityMeasurement"
+        ],
+        "state": {
+          "relativeHumidityMeasurement": {
+            "featureMap": {},
+            "maxMeasuredValue": null,
+            "measuredValue": 4200,
+            "minMeasuredValue": null
+          }
+        },
+        "parts": []
+      },
+      {
+        "id": "c6392e24-eb7f-4e7d-9668-e7374e8abbfa-BoostOnOff",
+        "deviceType": "OnOffPlugInUnit",
+        "deviceTypeId": 266,
+        "behaviors": [
+          "groups",
+          "onOff",
+          "scenesManagement"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": true,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "globalSceneControl": false,
+            "offWaitTime": 0,
+            "onOff": true,
+            "onTime": 0,
+            "startUpOnOff": null
+          },
+          "scenesManagement": {
+            "fabricSceneInfo": [],
+            "featureMap": {
+              "sceneNames": true
+            },
+            "sceneTable": [],
+            "sceneTableSize": 128
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "button alias.0.Test-Devices.Button": {
+    "bridge": "Test Bridge (a6d6420a-4837-4ff8-9394-b20e1c2395e0)",
+    "endpoints": [
+      {
+        "id": "26d5f705-f699-4684-9047-acd586b1cd64",
+        "deviceType": "GenericSwitch",
+        "deviceTypeId": 15,
+        "behaviors": [
+          "switch"
+        ],
+        "state": {
+          "switch": {
+            "currentPosition": 0,
+            "featureMap": {
+              "latchingSwitch": false,
+              "momentarySwitch": true,
+              "momentarySwitchRelease": true,
+              "momentarySwitchLongPress": false,
+              "momentarySwitchMultiPress": true,
+              "actionSwitch": false
+            },
+            "momentaryNeutralPosition": 0,
+            "multiPressDelay": 300,
+            "multiPressMax": 3,
+            "numberOfPositions": 2,
+            "rawPosition": 0
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "buttonSensor alias.0.Test-Devices.Button-Sensor": {
+    "bridge": "Test Bridge (a6d6420a-4837-4ff8-9394-b20e1c2395e0)",
+    "endpoints": [
+      {
+        "id": "36c68cdb-2af0-4fca-81b7-53a5bd5ac61b",
+        "deviceType": "GenericSwitch",
+        "deviceTypeId": 15,
+        "behaviors": [
+          "switch"
+        ],
+        "state": {
+          "switch": {
+            "currentPosition": 0,
+            "featureMap": {
+              "latchingSwitch": false,
+              "momentarySwitch": true,
+              "momentarySwitchRelease": true,
+              "momentarySwitchLongPress": true,
+              "momentarySwitchMultiPress": true,
+              "actionSwitch": false
+            },
+            "longPressDelay": 450,
+            "momentaryNeutralPosition": 0,
+            "multiPressDelay": 300,
+            "multiPressMax": 3,
+            "numberOfPositions": 2,
+            "rawPosition": 0
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "buttonSensor alias.0.Test-Devices.Button-Sensor-Single": {
+    "bridge": "Test Bridge (a6d6420a-4837-4ff8-9394-b20e1c2395e0)",
+    "endpoints": [
+      {
+        "id": "9dba3ff6-e974-4caf-aceb-af67a7ed1359",
+        "deviceType": "GenericSwitch",
+        "deviceTypeId": 15,
+        "behaviors": [
+          "switch"
+        ],
+        "state": {
+          "switch": {
+            "currentPosition": 0,
+            "featureMap": {
+              "latchingSwitch": false,
+              "momentarySwitch": true,
+              "momentarySwitchRelease": true,
+              "momentarySwitchLongPress": false,
+              "momentarySwitchMultiPress": true,
+              "actionSwitch": false
+            },
+            "momentaryNeutralPosition": 0,
+            "multiPressDelay": 300,
+            "multiPressMax": 3,
+            "numberOfPositions": 2,
+            "rawPosition": 0
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "ct alias.0.Test-Devices.Ct": {
+    "bridge": "Test Bridge (a6d6420a-4837-4ff8-9394-b20e1c2395e0)",
+    "endpoints": [
+      {
+        "id": "10356d27-cf63-4683-b346-8db4c07e7cdd",
+        "deviceType": "ColorTemperatureLight",
+        "deviceTypeId": 268,
+        "behaviors": [
+          "colorControl",
+          "groups",
+          "levelControl",
+          "onOff",
+          "scenesManagement"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": true,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "globalSceneControl": false,
+            "offWaitTime": 0,
+            "onOff": true,
+            "onTime": 0,
+            "startUpOnOff": null
+          },
+          "levelControl": {
+            "currentLevel": 107,
+            "featureMap": {
+              "onOff": true,
+              "lighting": true,
+              "frequency": false
+            },
+            "managedTransitionTimeHandling": false,
+            "maxLevel": 254,
+            "minLevel": 1,
+            "onLevel": null,
+            "options": {
+              "executeIfOff": false,
+              "coupleColorTempToLevel": false
+            },
+            "remainingTime": 0,
+            "startUpCurrentLevel": null,
+            "transitionStepInterval": 100
+          },
+          "scenesManagement": {
+            "fabricSceneInfo": [],
+            "featureMap": {
+              "sceneNames": true
+            },
+            "sceneTable": [],
+            "sceneTableSize": 128
+          },
+          "colorControl": {
+            "colorCapabilities": {
+              "hueSaturation": false,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": false,
+              "colorTemperature": true
+            },
+            "colorMode": 2,
+            "colorTempPhysicalMaxMireds": 333,
+            "colorTempPhysicalMinMireds": 167,
+            "colorTemperatureMireds": 333,
+            "coupleColorTempToLevelMinMireds": 167,
+            "enhancedColorMode": 2,
+            "featureMap": {
+              "hueSaturation": false,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": false,
+              "colorTemperature": true
+            },
+            "managedTransitionTimeHandling": false,
+            "numberOfPrimaries": null,
+            "options": {
+              "executeIfOff": false
+            },
+            "remainingTime": 0,
+            "startUpColorTemperatureMireds": null,
+            "transitionStepInterval": 100
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "dimmer alias.0.Test-Devices.Ct.DIMMER": {
+    "bridge": "Test Bridge (a6d6420a-4837-4ff8-9394-b20e1c2395e0)",
+    "endpoints": [
+      {
+        "id": "a6285dbc-46a7-454f-8ed1-81c909b093ed",
+        "deviceType": "DimmableLight",
+        "deviceTypeId": 257,
+        "behaviors": [
+          "groups",
+          "levelControl",
+          "onOff",
+          "scenesManagement"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": true,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "globalSceneControl": false,
+            "offWaitTime": 0,
+            "onOff": true,
+            "onTime": 0,
+            "startUpOnOff": null
+          },
+          "levelControl": {
+            "currentLevel": 107,
+            "featureMap": {
+              "onOff": true,
+              "lighting": true,
+              "frequency": false
+            },
+            "managedTransitionTimeHandling": false,
+            "maxLevel": 254,
+            "minLevel": 1,
+            "onLevel": null,
+            "options": {
+              "executeIfOff": false,
+              "coupleColorTempToLevel": false
+            },
+            "remainingTime": 0,
+            "startUpCurrentLevel": null,
+            "transitionStepInterval": 100
+          },
+          "scenesManagement": {
+            "fabricSceneInfo": [],
+            "featureMap": {
+              "sceneNames": true
+            },
+            "sceneTable": [],
+            "sceneTableSize": 128
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "dimmer alias.0.Test-Devices.Dimmer.SET": {
+    "bridge": "Test Bridge (a6d6420a-4837-4ff8-9394-b20e1c2395e0)",
+    "endpoints": [
+      {
+        "id": "acaf7836-26fd-4ef6-aa3e-f57de96be84b",
+        "deviceType": "DimmableLight",
+        "deviceTypeId": 257,
+        "behaviors": [
+          "groups",
+          "levelControl",
+          "onOff",
+          "scenesManagement"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": true,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "globalSceneControl": false,
+            "offWaitTime": 0,
+            "onOff": true,
+            "onTime": 0,
+            "startUpOnOff": null
+          },
+          "levelControl": {
+            "currentLevel": 107,
+            "featureMap": {
+              "onOff": true,
+              "lighting": true,
+              "frequency": false
+            },
+            "managedTransitionTimeHandling": false,
+            "maxLevel": 254,
+            "minLevel": 1,
+            "onLevel": null,
+            "options": {
+              "executeIfOff": false,
+              "coupleColorTempToLevel": false
+            },
+            "remainingTime": 0,
+            "startUpCurrentLevel": null,
+            "transitionStepInterval": 100
+          },
+          "scenesManagement": {
+            "fabricSceneInfo": [],
+            "featureMap": {
+              "sceneNames": true
+            },
+            "sceneTable": [],
+            "sceneTableSize": 128
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "floodAlarm alias.0.Test-Devices.Flood-Alarm": {
+    "bridge": "Test Bridge (a6d6420a-4837-4ff8-9394-b20e1c2395e0)",
+    "endpoints": [
+      {
+        "id": "6172b416-3821-4c15-9363-5eb1c91ee63c",
+        "deviceType": "WaterLeakDetector",
+        "deviceTypeId": 67,
+        "behaviors": [
+          "booleanState"
+        ],
+        "state": {
+          "booleanState": {
+            "featureMap": {
+              "changeEvent": true
+            },
+            "stateValue": true
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "humidity alias.0.Test-Devices.Humidity": {
+    "bridge": "Test Bridge (a6d6420a-4837-4ff8-9394-b20e1c2395e0)",
+    "endpoints": [
+      {
+        "id": "7e055424-bab8-4ca2-b1f4-eb32a386ea73",
+        "deviceType": "HumiditySensor",
+        "deviceTypeId": 775,
+        "behaviors": [
+          "relativeHumidityMeasurement"
+        ],
+        "state": {
+          "relativeHumidityMeasurement": {
+            "featureMap": {},
+            "maxMeasuredValue": null,
+            "measuredValue": 4200,
+            "minMeasuredValue": null
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "lock alias.0.Test-Devices.Lock": {
+    "bridge": "Test Bridge (a6d6420a-4837-4ff8-9394-b20e1c2395e0)",
+    "endpoints": [
+      {
+        "id": "19f4872a-3bc8-489d-9e67-d8afe694e923",
+        "deviceType": "DoorLock",
+        "deviceTypeId": 10,
+        "behaviors": [
+          "doorLock"
+        ],
+        "state": {
+          "doorLock": {
+            "actuatorEnabled": true,
+            "credentials": [],
+            "featureMap": {
+              "pinCredential": false,
+              "rfidCredential": false,
+              "fingerCredentials": false,
+              "weekDayAccessSchedules": false,
+              "doorPositionSensor": false,
+              "faceCredentials": false,
+              "credentialOverTheAirAccess": false,
+              "user": false,
+              "yearDayAccessSchedules": false,
+              "holidaySchedules": false,
+              "unbolting": false,
+              "aliroProvisioning": false,
+              "aliroBleuwb": false
+            },
+            "holidaySchedules": [],
+            "lockState": 2,
+            "lockType": 2,
+            "operatingMode": 0,
+            "supportedOperatingModes": {
+              "normal": false,
+              "vacation": true,
+              "privacy": true,
+              "noRemoteLockUnlock": false,
+              "passage": true,
+              "alwaysSet": 2047
+            },
+            "users": [],
+            "weekDaySchedules": [],
+            "yearDaySchedules": []
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "socket alias.0.Test-Devices.test-Dummy": {
+    "bridge": "Test Bridge (a6d6420a-4837-4ff8-9394-b20e1c2395e0)",
+    "endpoints": [
+      {
+        "id": "2fb218a1-cde2-40ac-b1ee-14c414a688b1",
+        "deviceType": "OnOffPlugInUnit",
+        "deviceTypeId": 266,
+        "behaviors": [
+          "groups",
+          "onOff",
+          "scenesManagement"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": true,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "globalSceneControl": false,
+            "offWaitTime": 0,
+            "onOff": false,
+            "onTime": 0,
+            "startUpOnOff": null
+          },
+          "scenesManagement": {
+            "fabricSceneInfo": [],
+            "featureMap": {
+              "sceneNames": true
+            },
+            "sceneTable": [],
+            "sceneTableSize": 128
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "window alias.0.Test-Devices.Window": {
+    "bridge": "Test Bridge (a6d6420a-4837-4ff8-9394-b20e1c2395e0)",
+    "endpoints": [
+      {
+        "id": "9d0b1129-8b92-4eca-9fd3-1a28ea8451cb",
+        "deviceType": "ContactSensor",
+        "deviceTypeId": 21,
+        "behaviors": [
+          "booleanState"
+        ],
+        "state": {
+          "booleanState": {
+            "featureMap": {
+              "changeEvent": true
+            },
+            "stateValue": false
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "buttonSensor alias.0.Test-Devices.Button-Sensor.PRESS_LONG": {
+    "bridge": "Default bridge (cb81ffe7-92b7-4da6-9284-eebf8d89e698)",
+    "endpoints": [
+      {
+        "id": "dda0d366-44d9-4e55-b1fb-c7a95df0508d",
+        "deviceType": "GenericSwitch",
+        "deviceTypeId": 15,
+        "behaviors": [
+          "switch"
+        ],
+        "state": {
+          "switch": {
+            "currentPosition": 0,
+            "featureMap": {
+              "latchingSwitch": false,
+              "momentarySwitch": true,
+              "momentarySwitchRelease": true,
+              "momentarySwitchLongPress": true,
+              "momentarySwitchMultiPress": true,
+              "actionSwitch": false
+            },
+            "longPressDelay": 450,
+            "momentaryNeutralPosition": 0,
+            "multiPressDelay": 300,
+            "multiPressMax": 3,
+            "numberOfPositions": 2,
+            "rawPosition": 0
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "buttonSensor alias.0.Test-Devices.Button-Sensor-Single.PRESS": {
+    "bridge": "Default bridge (cb81ffe7-92b7-4da6-9284-eebf8d89e698)",
+    "endpoints": [
+      {
+        "id": "360ceac9-9253-4205-9db1-f3c0c9ed1ecd",
+        "deviceType": "GenericSwitch",
+        "deviceTypeId": 15,
+        "behaviors": [
+          "switch"
+        ],
+        "state": {
+          "switch": {
+            "currentPosition": 0,
+            "featureMap": {
+              "latchingSwitch": false,
+              "momentarySwitch": true,
+              "momentarySwitchRelease": true,
+              "momentarySwitchLongPress": false,
+              "momentarySwitchMultiPress": true,
+              "actionSwitch": false
+            },
+            "momentaryNeutralPosition": 0,
+            "multiPressDelay": 300,
+            "multiPressMax": 3,
+            "numberOfPositions": 2,
+            "rawPosition": 0
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "cie alias.0.Test-Devices.Cie.CIE": {
+    "bridge": "Default bridge (cb81ffe7-92b7-4da6-9284-eebf8d89e698)",
+    "endpoints": [
+      {
+        "id": "b3e9cda4-2dc9-4c53-91af-d9532db2204a",
+        "deviceType": "ExtendedColorLight",
+        "deviceTypeId": 269,
+        "behaviors": [
+          "colorControl",
+          "groups",
+          "levelControl",
+          "onOff",
+          "scenesManagement"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": true,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "globalSceneControl": false,
+            "offWaitTime": 0,
+            "onOff": true,
+            "onTime": 0,
+            "startUpOnOff": null
+          },
+          "levelControl": {
+            "currentLevel": 107,
+            "featureMap": {
+              "onOff": true,
+              "lighting": true,
+              "frequency": false
+            },
+            "managedTransitionTimeHandling": false,
+            "maxLevel": 254,
+            "minLevel": 1,
+            "onLevel": null,
+            "options": {
+              "executeIfOff": false,
+              "coupleColorTempToLevel": false
+            },
+            "remainingTime": 0,
+            "startUpCurrentLevel": null,
+            "transitionStepInterval": 100
+          },
+          "scenesManagement": {
+            "fabricSceneInfo": [],
+            "featureMap": {
+              "sceneNames": true
+            },
+            "sceneTable": [],
+            "sceneTableSize": 128
+          },
+          "colorControl": {
+            "colorCapabilities": {
+              "hueSaturation": false,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": true,
+              "colorTemperature": true
+            },
+            "colorMode": 1,
+            "colorTempPhysicalMaxMireds": 1000,
+            "colorTempPhysicalMinMireds": 50,
+            "colorTemperatureMireds": 1000,
+            "coupleColorTempToLevelMinMireds": 50,
+            "currentX": 19661,
+            "currentY": 26214,
+            "enhancedColorMode": 1,
+            "featureMap": {
+              "hueSaturation": false,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": true,
+              "colorTemperature": true
+            },
+            "managedTransitionTimeHandling": false,
+            "numberOfPrimaries": null,
+            "options": {
+              "executeIfOff": false
+            },
+            "remainingTime": 0,
+            "startUpColorTemperatureMireds": null,
+            "transitionStepInterval": 100
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "ct alias.0.Test-Devices.Ct-Only.TEMPERATURE": {
+    "bridge": "Default bridge (cb81ffe7-92b7-4da6-9284-eebf8d89e698)",
+    "endpoints": [
+      {
+        "id": "2845dd27-d05c-468a-8351-3e407cc89441",
+        "deviceType": "ColorTemperatureLight",
+        "deviceTypeId": 268,
+        "behaviors": [
+          "colorControl",
+          "groups",
+          "levelControl",
+          "onOff",
+          "scenesManagement"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": true,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "globalSceneControl": false,
+            "offWaitTime": 0,
+            "onOff": true,
+            "onTime": 0,
+            "startUpOnOff": null
+          },
+          "levelControl": {
+            "currentLevel": 254,
+            "featureMap": {
+              "onOff": true,
+              "lighting": true,
+              "frequency": false
+            },
+            "managedTransitionTimeHandling": false,
+            "maxLevel": 254,
+            "minLevel": 1,
+            "onLevel": null,
+            "options": {
+              "executeIfOff": false,
+              "coupleColorTempToLevel": false
+            },
+            "remainingTime": 0,
+            "startUpCurrentLevel": null,
+            "transitionStepInterval": 100
+          },
+          "scenesManagement": {
+            "fabricSceneInfo": [],
+            "featureMap": {
+              "sceneNames": true
+            },
+            "sceneTable": [],
+            "sceneTableSize": 128
+          },
+          "colorControl": {
+            "colorCapabilities": {
+              "hueSaturation": false,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": false,
+              "colorTemperature": true
+            },
+            "colorMode": 2,
+            "colorTempPhysicalMaxMireds": 500,
+            "colorTempPhysicalMinMireds": 150,
+            "colorTemperatureMireds": 325,
+            "coupleColorTempToLevelMinMireds": 150,
+            "enhancedColorMode": 2,
+            "featureMap": {
+              "hueSaturation": false,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": false,
+              "colorTemperature": true
+            },
+            "managedTransitionTimeHandling": false,
+            "numberOfPrimaries": null,
+            "options": {
+              "executeIfOff": false
+            },
+            "remainingTime": 0,
+            "startUpColorTemperatureMireds": null,
+            "transitionStepInterval": 100
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "door alias.0.Test-Devices.Door.ACTUAL": {
+    "bridge": "Default bridge (cb81ffe7-92b7-4da6-9284-eebf8d89e698)",
+    "endpoints": [
+      {
+        "id": "b94e25f8-2701-4e3d-9ed6-abe7d4f216d6",
+        "deviceType": "ContactSensor",
+        "deviceTypeId": 21,
+        "behaviors": [
+          "booleanState"
+        ],
+        "state": {
+          "booleanState": {
+            "featureMap": {
+              "changeEvent": true
+            },
+            "stateValue": false
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "floodAlarm alias.0.Test-Devices.Flood-Alarm.ACTUAL": {
+    "bridge": "Default bridge (cb81ffe7-92b7-4da6-9284-eebf8d89e698)",
+    "endpoints": [
+      {
+        "id": "de3c8a22-8098-433e-9474-bc2e6168c6d0",
+        "deviceType": "WaterLeakDetector",
+        "deviceTypeId": 67,
+        "behaviors": [
+          "booleanState"
+        ],
+        "state": {
+          "booleanState": {
+            "featureMap": {
+              "changeEvent": true
+            },
+            "stateValue": true
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "hue alias.0.Test-Devices.Hue.HUE": {
+    "bridge": "Default bridge (cb81ffe7-92b7-4da6-9284-eebf8d89e698)",
+    "endpoints": [
+      {
+        "id": "8e2a5be8-28be-4f71-9ce8-6da264f209e9",
+        "deviceType": "ExtendedColorLight",
+        "deviceTypeId": 269,
+        "behaviors": [
+          "colorControl",
+          "groups",
+          "levelControl",
+          "onOff",
+          "scenesManagement"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": true,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "globalSceneControl": false,
+            "offWaitTime": 0,
+            "onOff": true,
+            "onTime": 0,
+            "startUpOnOff": null
+          },
+          "levelControl": {
+            "currentLevel": 107,
+            "featureMap": {
+              "onOff": true,
+              "lighting": true,
+              "frequency": false
+            },
+            "managedTransitionTimeHandling": false,
+            "maxLevel": 254,
+            "minLevel": 1,
+            "onLevel": null,
+            "options": {
+              "executeIfOff": false,
+              "coupleColorTempToLevel": false
+            },
+            "remainingTime": 0,
+            "startUpCurrentLevel": null,
+            "transitionStepInterval": 100
+          },
+          "scenesManagement": {
+            "fabricSceneInfo": [],
+            "featureMap": {
+              "sceneNames": true
+            },
+            "sceneTable": [],
+            "sceneTableSize": 128
+          },
+          "colorControl": {
+            "colorCapabilities": {
+              "hueSaturation": true,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": true,
+              "colorTemperature": true
+            },
+            "colorMode": 0,
+            "colorTempPhysicalMaxMireds": 1000,
+            "colorTempPhysicalMinMireds": 50,
+            "colorTemperatureMireds": 1000,
+            "coupleColorTempToLevelMinMireds": 50,
+            "currentHue": 30,
+            "currentSaturation": 127,
+            "currentX": 24939,
+            "currentY": 24701,
+            "enhancedColorMode": 0,
+            "featureMap": {
+              "hueSaturation": true,
+              "enhancedHue": false,
+              "colorLoop": false,
+              "xy": true,
+              "colorTemperature": true
+            },
+            "managedTransitionTimeHandling": false,
+            "numberOfPrimaries": null,
+            "options": {
+              "executeIfOff": false
+            },
+            "remainingTime": 0,
+            "startUpColorTemperatureMireds": null,
+            "transitionStepInterval": 100
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "illuminance alias.0.Test-Devices.Illuminance.ACTUAL": {
+    "bridge": "Default bridge (cb81ffe7-92b7-4da6-9284-eebf8d89e698)",
+    "endpoints": [
+      {
+        "id": "3d243a2d-d56e-4ed8-96ce-3ec2f2b8443c",
+        "deviceType": "LightSensor",
+        "deviceTypeId": 262,
+        "behaviors": [
+          "illuminanceMeasurement"
+        ],
+        "state": {
+          "illuminanceMeasurement": {
+            "featureMap": {},
+            "maxMeasuredValue": null,
+            "measuredValue": 16233,
+            "minMeasuredValue": null
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "light alias.0.Test-Devices.Light.SET": {
+    "bridge": "Default bridge (cb81ffe7-92b7-4da6-9284-eebf8d89e698)",
+    "endpoints": [
+      {
+        "id": "4b23a845-a5ef-4948-87c6-3218fe1872b9",
+        "deviceType": "OnOffLight",
+        "deviceTypeId": 256,
+        "behaviors": [
+          "electricalEnergyMeasurement",
+          "electricalPowerMeasurement",
+          "groups",
+          "onOff",
+          "powerTopology",
+          "scenesManagement"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": true,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "globalSceneControl": false,
+            "offWaitTime": 0,
+            "onOff": true,
+            "onTime": 0,
+            "startUpOnOff": null
+          },
+          "scenesManagement": {
+            "fabricSceneInfo": [],
+            "featureMap": {
+              "sceneNames": true
+            },
+            "sceneTable": [],
+            "sceneTableSize": 128
+          },
+          "electricalPowerMeasurement": {
+            "accuracy": [
+              {
+                "measurementType": 5,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              },
+              {
+                "measurementType": 2,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              },
+              {
+                "measurementType": 1,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              },
+              {
+                "measurementType": 11,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              }
+            ],
+            "activeCurrent": 42000,
+            "activePower": 42000000,
+            "featureMap": {
+              "directCurrent": false,
+              "alternatingCurrent": true,
+              "polyphasePower": false,
+              "harmonics": false,
+              "powerQuality": false
+            },
+            "frequency": 42000,
+            "numberOfMeasurementTypes": 4,
+            "powerMode": 2,
+            "voltage": 42
+          },
+          "electricalEnergyMeasurement": {
+            "accuracy": {
+              "measurementType": 14,
+              "measured": true,
+              "minMeasuredValue": -9007199254740991,
+              "maxMeasuredValue": 9007199254740991,
+              "accuracyRanges": [
+                {
+                  "rangeMin": -9007199254740991,
+                  "rangeMax": 9007199254740991,
+                  "fixedMax": 1
+                }
+              ]
+            },
+            "cumulativeEnergyImported": {
+              "energy": 42000
+            },
+            "featureMap": {
+              "importedEnergy": true,
+              "exportedEnergy": false,
+              "cumulativeEnergy": true,
+              "periodicEnergy": false,
+              "apparentEnergy": false,
+              "reactiveEnergy": false
+            }
+          },
+          "powerTopology": {
+            "featureMap": {
+              "nodeTopology": false,
+              "treeTopology": true,
+              "setTopology": false,
+              "dynamicPowerFlow": false
+            }
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "lock alias.0.Test-Devices.Lock.SET": {
+    "bridge": "Default bridge (cb81ffe7-92b7-4da6-9284-eebf8d89e698)",
+    "endpoints": [
+      {
+        "id": "1e921d1c-de2e-472c-a5d4-5b59306a5175",
+        "deviceType": "DoorLock",
+        "deviceTypeId": 10,
+        "behaviors": [
+          "doorLock"
+        ],
+        "state": {
+          "doorLock": {
+            "actuatorEnabled": true,
+            "credentials": [],
+            "featureMap": {
+              "pinCredential": false,
+              "rfidCredential": false,
+              "fingerCredentials": false,
+              "weekDayAccessSchedules": false,
+              "doorPositionSensor": false,
+              "faceCredentials": false,
+              "credentialOverTheAirAccess": false,
+              "user": false,
+              "yearDayAccessSchedules": false,
+              "holidaySchedules": false,
+              "unbolting": false,
+              "aliroProvisioning": false,
+              "aliroBleuwb": false
+            },
+            "holidaySchedules": [],
+            "lockState": 2,
+            "lockType": 2,
+            "operatingMode": 0,
+            "supportedOperatingModes": {
+              "normal": false,
+              "vacation": true,
+              "privacy": true,
+              "noRemoteLockUnlock": false,
+              "passage": true,
+              "alwaysSet": 2047
+            },
+            "users": [],
+            "weekDaySchedules": [],
+            "yearDaySchedules": []
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "lock alias.0.Test-Devices.Lock-With-Open.SET": {
+    "bridge": "Default bridge (cb81ffe7-92b7-4da6-9284-eebf8d89e698)",
+    "endpoints": [
+      {
+        "id": "0e28781a-97b6-4ee9-a2d3-bdb65648dcba",
+        "deviceType": "DoorLock",
+        "deviceTypeId": 10,
+        "behaviors": [
+          "doorLock"
+        ],
+        "state": {
+          "doorLock": {
+            "actuatorEnabled": true,
+            "credentials": [],
+            "featureMap": {
+              "pinCredential": false,
+              "rfidCredential": false,
+              "fingerCredentials": false,
+              "weekDayAccessSchedules": false,
+              "doorPositionSensor": false,
+              "faceCredentials": false,
+              "credentialOverTheAirAccess": false,
+              "user": false,
+              "yearDayAccessSchedules": false,
+              "holidaySchedules": false,
+              "unbolting": true,
+              "aliroProvisioning": false,
+              "aliroBleuwb": false
+            },
+            "holidaySchedules": [],
+            "lockState": 2,
+            "lockType": 2,
+            "operatingMode": 0,
+            "supportedOperatingModes": {
+              "normal": false,
+              "vacation": true,
+              "privacy": true,
+              "noRemoteLockUnlock": false,
+              "passage": true,
+              "alwaysSet": 2047
+            },
+            "users": [],
+            "weekDaySchedules": [],
+            "yearDaySchedules": []
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "motion alias.0.Test-Devices.Motion.ACTUAL": {
+    "bridge": "Default bridge (cb81ffe7-92b7-4da6-9284-eebf8d89e698)",
+    "endpoints": [
+      {
+        "id": "6331aaf3-83c1-4734-8a93-e4b1b77517d1-Occupancy",
+        "deviceType": "OccupancySensor",
+        "deviceTypeId": 263,
+        "behaviors": [
+          "occupancySensing"
+        ],
+        "state": {
+          "occupancySensing": {
+            "featureMap": {
+              "other": false,
+              "passiveInfrared": true,
+              "ultrasonic": false,
+              "physicalContact": false,
+              "activeInfrared": false,
+              "radar": false,
+              "rfSensing": false,
+              "vision": false,
+              "occupancyEvent": false
+            },
+            "occupancy": {
+              "occupied": true
+            },
+            "occupancySensorType": 0,
+            "occupancySensorTypeBitmap": {
+              "pir": true,
+              "ultrasonic": false,
+              "physicalContact": false
+            }
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "motion alias.0.Test-Devices.Motion-With-Brightness.ACTUAL": {
+    "bridge": "Default bridge (cb81ffe7-92b7-4da6-9284-eebf8d89e698)",
+    "endpoints": [
+      {
+        "id": "de3d489e-3e56-49f9-874d-dc03e47ef812-Occupancy",
+        "deviceType": "OccupancySensor",
+        "deviceTypeId": 263,
+        "behaviors": [
+          "occupancySensing"
+        ],
+        "state": {
+          "occupancySensing": {
+            "featureMap": {
+              "other": false,
+              "passiveInfrared": true,
+              "ultrasonic": false,
+              "physicalContact": false,
+              "activeInfrared": false,
+              "radar": false,
+              "rfSensing": false,
+              "vision": false,
+              "occupancyEvent": false
+            },
+            "occupancy": {
+              "occupied": true
+            },
+            "occupancySensorType": 0,
+            "occupancySensorTypeBitmap": {
+              "pir": true,
+              "ultrasonic": false,
+              "physicalContact": false
+            }
+          }
+        },
+        "parts": []
+      },
+      {
+        "id": "de3d489e-3e56-49f9-874d-dc03e47ef812-LightSensor",
+        "deviceType": "LightSensor",
+        "deviceTypeId": 262,
+        "behaviors": [
+          "illuminanceMeasurement"
+        ],
+        "state": {
+          "illuminanceMeasurement": {
+            "featureMap": {},
+            "maxMeasuredValue": null,
+            "measuredValue": 16233,
+            "minMeasuredValue": null
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "light 0_userdata.0.Test_light.onoff": {
+    "bridge": "Default bridge (cb81ffe7-92b7-4da6-9284-eebf8d89e698)",
+    "endpoints": [
+      {
+        "id": "18f746c0-df24-423d-9a40-3403276a4886",
+        "deviceType": "OnOffLight",
+        "deviceTypeId": 256,
+        "behaviors": [
+          "groups",
+          "onOff",
+          "scenesManagement"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": true,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "globalSceneControl": false,
+            "offWaitTime": 0,
+            "onOff": true,
+            "onTime": 0,
+            "startUpOnOff": null
+          },
+          "scenesManagement": {
+            "fabricSceneInfo": [],
+            "featureMap": {
+              "sceneNames": true
+            },
+            "sceneTable": [],
+            "sceneTableSize": 128
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "temperature alias.0.Test-Devices.Temparature.ACTUAL": {
+    "bridge": "Default bridge (cb81ffe7-92b7-4da6-9284-eebf8d89e698)",
+    "endpoints": [
+      {
+        "id": "251840f5-bd42-40ad-8da9-64895243e6b5-Temperature",
+        "deviceType": "TemperatureSensor",
+        "deviceTypeId": 770,
+        "behaviors": [
+          "temperatureMeasurement"
+        ],
+        "state": {
+          "temperatureMeasurement": {
+            "featureMap": {},
+            "maxMeasuredValue": 32767,
+            "measuredValue": 4200,
+            "minMeasuredValue": -27315
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "temperature alias.0.Test-Devices.TemperatureAndHumidity.ACTUAL": {
+    "bridge": "Default bridge (cb81ffe7-92b7-4da6-9284-eebf8d89e698)",
+    "endpoints": [
+      {
+        "id": "4a2d9c46-2dde-4dd2-a652-40ef43fb3ed3-Temperature",
+        "deviceType": "TemperatureSensor",
+        "deviceTypeId": 770,
+        "behaviors": [
+          "temperatureMeasurement"
+        ],
+        "state": {
+          "temperatureMeasurement": {
+            "featureMap": {},
+            "maxMeasuredValue": 32767,
+            "measuredValue": 4200,
+            "minMeasuredValue": -27315
+          }
+        },
+        "parts": []
+      },
+      {
+        "id": "4a2d9c46-2dde-4dd2-a652-40ef43fb3ed3-Humidity",
+        "deviceType": "HumiditySensor",
+        "deviceTypeId": 775,
+        "behaviors": [
+          "relativeHumidityMeasurement"
+        ],
+        "state": {
+          "relativeHumidityMeasurement": {
+            "featureMap": {},
+            "maxMeasuredValue": null,
+            "measuredValue": 4200,
+            "minMeasuredValue": null
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "thermostat alias.0.Test-Devices.Thermostat.SET": {
+    "bridge": "Default bridge (cb81ffe7-92b7-4da6-9284-eebf8d89e698)",
+    "endpoints": [
+      {
+        "id": "08ea0bb5-dfd3-4740-a476-96f7c63161b8-Thermostat",
+        "deviceType": "Thermostat",
+        "deviceTypeId": 769,
+        "behaviors": [
+          "thermostat"
+        ],
+        "state": {
+          "thermostat": {
+            "absMaxCoolSetpointLimit": 5000,
+            "absMaxHeatSetpointLimit": 5000,
+            "absMinCoolSetpointLimit": 0,
+            "absMinHeatSetpointLimit": 0,
+            "controlSequenceOfOperation": 4,
+            "externalMeasuredIndoorTemperature": 4200,
+            "featureMap": {
+              "heating": true,
+              "cooling": true,
+              "occupancy": false,
+              "setback": false,
+              "autoMode": true,
+              "localTemperatureNotExposed": false,
+              "matterScheduleConfiguration": false,
+              "presets": false,
+              "events": false,
+              "thermostatSuggestions": false
+            },
+            "localTemperature": null,
+            "maxCoolSetpointLimit": 3000,
+            "maxHeatSetpointLimit": 3000,
+            "minCoolSetpointLimit": 1000,
+            "minHeatSetpointLimit": 1000,
+            "minSetpointDeadBand": 0,
+            "occupiedCoolingSetpoint": 1800,
+            "occupiedHeatingSetpoint": 1800,
+            "systemMode": 1,
+            "useAutomaticModeManagement": false
+          }
+        },
+        "parts": []
+      },
+      {
+        "id": "08ea0bb5-dfd3-4740-a476-96f7c63161b8-Humidity",
+        "deviceType": "HumiditySensor",
+        "deviceTypeId": 775,
+        "behaviors": [
+          "relativeHumidityMeasurement"
+        ],
+        "state": {
+          "relativeHumidityMeasurement": {
+            "featureMap": {},
+            "maxMeasuredValue": null,
+            "measuredValue": 4200,
+            "minMeasuredValue": null
+          }
+        },
+        "parts": []
+      },
+      {
+        "id": "08ea0bb5-dfd3-4740-a476-96f7c63161b8-BoostOnOff",
+        "deviceType": "OnOffPlugInUnit",
+        "deviceTypeId": 266,
+        "behaviors": [
+          "groups",
+          "onOff",
+          "scenesManagement"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": true,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "globalSceneControl": false,
+            "offWaitTime": 0,
+            "onOff": true,
+            "onTime": 0,
+            "startUpOnOff": null
+          },
+          "scenesManagement": {
+            "fabricSceneInfo": [],
+            "featureMap": {
+              "sceneNames": true
+            },
+            "sceneTable": [],
+            "sceneTableSize": 128
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "window alias.0.Test-Devices.Window.ACTUAL": {
+    "bridge": "Default bridge (cb81ffe7-92b7-4da6-9284-eebf8d89e698)",
+    "endpoints": [
+      {
+        "id": "23f5d7d1-8d61-40a5-9089-2899692408ce",
+        "deviceType": "ContactSensor",
+        "deviceTypeId": 21,
+        "behaviors": [
+          "booleanState"
+        ],
+        "state": {
+          "booleanState": {
+            "featureMap": {
+              "changeEvent": true
+            },
+            "stateValue": false
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "fan alias.0.V6-Devices.Fan-Min": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a0000001-0000-4000-8000-000000000001-Fan",
+        "deviceType": "Fan",
+        "deviceTypeId": 43,
+        "behaviors": [
+          "fanControl",
+          "groups"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "fanControl": {
+            "fanMode": 2,
+            "fanModeSequence": 2,
+            "featureMap": {
+              "multiSpeed": false,
+              "auto": true,
+              "rocking": false,
+              "wind": false,
+              "step": false,
+              "airflowDirection": false
+            },
+            "percentCurrent": 66,
+            "percentSetting": 66
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "fan alias.0.V6-Devices.Fan-Full": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a0000002-0000-4000-8000-000000000002-Fan",
+        "deviceType": "Fan",
+        "deviceTypeId": 43,
+        "behaviors": [
+          "electricalEnergyMeasurement",
+          "electricalPowerMeasurement",
+          "fanControl",
+          "groups",
+          "onOff",
+          "powerTopology"
+        ],
+        "state": {
+          "groups": {
+            "featureMap": {
+              "groupNames": true
+            },
+            "nameSupport": {
+              "groupNames": true
+            }
+          },
+          "fanControl": {
+            "airflowDirection": 1,
+            "fanMode": 2,
+            "fanModeSequence": 2,
+            "featureMap": {
+              "multiSpeed": false,
+              "auto": true,
+              "rocking": true,
+              "wind": false,
+              "step": false,
+              "airflowDirection": true
+            },
+            "percentCurrent": 40,
+            "percentSetting": 40,
+            "rockSetting": {
+              "rockLeftRight": true,
+              "rockUpDown": false,
+              "rockRound": false
+            },
+            "rockSupport": {
+              "rockLeftRight": true,
+              "rockUpDown": true,
+              "rockRound": false
+            }
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": false,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "onOff": true
+          },
+          "electricalPowerMeasurement": {
+            "accuracy": [
+              {
+                "measurementType": 5,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              },
+              {
+                "measurementType": 2,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              },
+              {
+                "measurementType": 1,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              },
+              {
+                "measurementType": 11,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              }
+            ],
+            "activeCurrent": 50,
+            "activePower": 12000,
+            "featureMap": {
+              "directCurrent": false,
+              "alternatingCurrent": true,
+              "polyphasePower": false,
+              "harmonics": false,
+              "powerQuality": false
+            },
+            "frequency": 50000,
+            "numberOfMeasurementTypes": 4,
+            "powerMode": 2,
+            "voltage": 230000
+          },
+          "electricalEnergyMeasurement": {
+            "accuracy": {
+              "measurementType": 14,
+              "measured": true,
+              "minMeasuredValue": -9007199254740991,
+              "maxMeasuredValue": 9007199254740991,
+              "accuracyRanges": [
+                {
+                  "rangeMin": -9007199254740991,
+                  "rangeMax": 9007199254740991,
+                  "fixedMax": 1
+                }
+              ]
+            },
+            "cumulativeEnergyImported": {
+              "energy": 480000
+            },
+            "featureMap": {
+              "importedEnergy": true,
+              "exportedEnergy": false,
+              "cumulativeEnergy": true,
+              "periodicEnergy": false,
+              "apparentEnergy": false,
+              "reactiveEnergy": false
+            }
+          },
+          "powerTopology": {
+            "featureMap": {
+              "nodeTopology": false,
+              "treeTopology": true,
+              "setTopology": false,
+              "dynamicPowerFlow": false
+            }
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "airPurifier alias.0.V6-Devices.AirPurifier-Min": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a0000003-0000-4000-8000-000000000003-AirPurifier",
+        "deviceType": "AirPurifier",
+        "deviceTypeId": 45,
+        "behaviors": [
+          "fanControl",
+          "hepaFilterMonitoring"
+        ],
+        "state": {
+          "fanControl": {
+            "fanMode": 3,
+            "fanModeSequence": 2,
+            "featureMap": {
+              "multiSpeed": false,
+              "auto": true,
+              "rocking": false,
+              "wind": false,
+              "step": false,
+              "airflowDirection": false
+            },
+            "percentCurrent": 100,
+            "percentSetting": 100
+          },
+          "hepaFilterMonitoring": {
+            "changeIndication": 0,
+            "condition": 70,
+            "degradationDirection": 1,
+            "featureMap": {
+              "condition": true,
+              "warning": false,
+              "replacementProductList": false
+            }
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "airPurifier alias.0.V6-Devices.AirPurifier-Full": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a0000004-0000-4000-8000-000000000004-AirPurifier",
+        "deviceType": "AirPurifier",
+        "deviceTypeId": 45,
+        "behaviors": [
+          "activatedCarbonFilterMonitoring",
+          "fanControl",
+          "hepaFilterMonitoring",
+          "onOff"
+        ],
+        "state": {
+          "fanControl": {
+            "fanMode": 3,
+            "fanModeSequence": 2,
+            "featureMap": {
+              "multiSpeed": false,
+              "auto": true,
+              "rocking": false,
+              "wind": false,
+              "step": false,
+              "airflowDirection": false
+            },
+            "percentCurrent": 100,
+            "percentSetting": 100
+          },
+          "onOff": {
+            "featureMap": {
+              "lighting": false,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "onOff": true
+          },
+          "hepaFilterMonitoring": {
+            "changeIndication": 0,
+            "condition": 70,
+            "degradationDirection": 1,
+            "featureMap": {
+              "condition": true,
+              "warning": true,
+              "replacementProductList": false
+            }
+          },
+          "activatedCarbonFilterMonitoring": {
+            "changeIndication": 0,
+            "condition": 60,
+            "degradationDirection": 1,
+            "featureMap": {
+              "condition": true,
+              "warning": true,
+              "replacementProductList": false
+            }
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "airQuality alias.0.V6-Devices.AirQuality-Min": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a0000005-0000-4000-8000-000000000005-AirQuality",
+        "deviceType": "AirQualitySensor",
+        "deviceTypeId": 44,
+        "behaviors": [
+          "airQuality"
+        ],
+        "state": {
+          "airQuality": {
+            "airQuality": 2,
+            "featureMap": {
+              "fair": true,
+              "moderate": true,
+              "veryPoor": true,
+              "extremelyPoor": true
+            }
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "airQuality alias.0.V6-Devices.AirQuality-Full": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a0000006-0000-4000-8000-000000000006-AirQuality",
+        "deviceType": "AirQualitySensor",
+        "deviceTypeId": 44,
+        "behaviors": [
+          "airQuality",
+          "carbonDioxideConcentrationMeasurement",
+          "pm25ConcentrationMeasurement",
+          "relativeHumidityMeasurement",
+          "temperatureMeasurement",
+          "totalVolatileOrganicCompoundsConcentrationMeasurement"
+        ],
+        "state": {
+          "airQuality": {
+            "airQuality": 2,
+            "featureMap": {
+              "fair": true,
+              "moderate": true,
+              "veryPoor": true,
+              "extremelyPoor": true
+            }
+          },
+          "carbonDioxideConcentrationMeasurement": {
+            "featureMap": {
+              "numericMeasurement": true,
+              "levelIndication": true,
+              "mediumLevel": true,
+              "criticalLevel": true,
+              "peakMeasurement": false,
+              "averageMeasurement": false
+            },
+            "levelValue": 2,
+            "maxMeasuredValue": null,
+            "measuredValue": 800,
+            "measurementMedium": 0,
+            "measurementUnit": 0,
+            "minMeasuredValue": null
+          },
+          "totalVolatileOrganicCompoundsConcentrationMeasurement": {
+            "featureMap": {
+              "numericMeasurement": true,
+              "levelIndication": true,
+              "mediumLevel": true,
+              "criticalLevel": true,
+              "peakMeasurement": false,
+              "averageMeasurement": false
+            },
+            "levelValue": 0,
+            "maxMeasuredValue": null,
+            "measuredValue": 300,
+            "measurementMedium": 0,
+            "measurementUnit": 1,
+            "minMeasuredValue": null
+          },
+          "pm25ConcentrationMeasurement": {
+            "featureMap": {
+              "numericMeasurement": true,
+              "levelIndication": true,
+              "mediumLevel": true,
+              "criticalLevel": true,
+              "peakMeasurement": false,
+              "averageMeasurement": false
+            },
+            "levelValue": 0,
+            "maxMeasuredValue": null,
+            "measuredValue": 12,
+            "measurementMedium": 0,
+            "measurementUnit": 4,
+            "minMeasuredValue": null
+          },
+          "temperatureMeasurement": {
+            "featureMap": {},
+            "maxMeasuredValue": 32767,
+            "measuredValue": 2150,
+            "minMeasuredValue": -27315
+          },
+          "relativeHumidityMeasurement": {
+            "featureMap": {},
+            "maxMeasuredValue": null,
+            "measuredValue": 4800,
+            "minMeasuredValue": null
+          }
+        },
+        "parts": []
+      },
+      {
+        "id": "a0000006-0000-4000-8000-000000000006-Pressure",
+        "deviceType": "PressureSensor",
+        "deviceTypeId": 773,
+        "behaviors": [
+          "pressureMeasurement"
+        ],
+        "state": {
+          "pressureMeasurement": {
+            "featureMap": {
+              "extended": false
+            },
+            "maxMeasuredValue": null,
+            "measuredValue": 1013,
+            "minMeasuredValue": null
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "contact alias.0.V6-Devices.Contact": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a0000008-0000-4000-8000-000000000008",
+        "deviceType": "ContactSensor",
+        "deviceTypeId": 21,
+        "behaviors": [
+          "booleanState"
+        ],
+        "state": {
+          "booleanState": {
+            "featureMap": {
+              "changeEvent": true
+            },
+            "stateValue": true
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "flow alias.0.V6-Devices.Flow": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a000000a-0000-4000-8000-00000000000a",
+        "deviceType": "FlowSensor",
+        "deviceTypeId": 774,
+        "behaviors": [
+          "flowMeasurement"
+        ],
+        "state": {
+          "flowMeasurement": {
+            "featureMap": {},
+            "maxMeasuredValue": null,
+            "measuredValue": 25,
+            "minMeasuredValue": null
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "pressure alias.0.V6-Devices.Pressure": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a000000b-0000-4000-8000-00000000000b",
+        "deviceType": "PressureSensor",
+        "deviceTypeId": 773,
+        "behaviors": [
+          "pressureMeasurement"
+        ],
+        "state": {
+          "pressureMeasurement": {
+            "featureMap": {
+              "extended": false
+            },
+            "maxMeasuredValue": null,
+            "measuredValue": 1013,
+            "minMeasuredValue": null
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "pump alias.0.V6-Devices.Pump-Min": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a000000c-0000-4000-8000-00000000000c",
+        "deviceType": "Pump",
+        "deviceTypeId": 771,
+        "behaviors": [
+          "onOff",
+          "pumpConfigurationAndControl"
+        ],
+        "state": {
+          "onOff": {
+            "featureMap": {
+              "lighting": false,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "onOff": true
+          },
+          "pumpConfigurationAndControl": {
+            "capacity": null,
+            "controlMode": 0,
+            "effectiveControlMode": 0,
+            "effectiveOperationMode": 0,
+            "featureMap": {
+              "constantPressure": false,
+              "compensatedPressure": false,
+              "constantFlow": false,
+              "constantSpeed": true,
+              "constantTemperature": false,
+              "automatic": false,
+              "localOperation": false
+            },
+            "maxConstSpeed": null,
+            "maxFlow": null,
+            "maxPressure": null,
+            "maxSpeed": null,
+            "minConstSpeed": null,
+            "operationMode": 0,
+            "pumpStatus": {
+              "deviceFault": false,
+              "supplyFault": false,
+              "speedLow": false,
+              "speedHigh": false,
+              "localOverride": false,
+              "running": true,
+              "remotePressure": false,
+              "remoteFlow": false,
+              "remoteTemperature": false
+            }
+          }
+        },
+        "parts": []
+      }
+    ]
+  },
+  "pump alias.0.V6-Devices.Pump-Full": {
+    "bridge": "authored v6 device types (not exported)",
+    "endpoints": [
+      {
+        "id": "a000000d-0000-4000-8000-00000000000d",
+        "deviceType": "Pump",
+        "deviceTypeId": 771,
+        "behaviors": [
+          "electricalEnergyMeasurement",
+          "electricalPowerMeasurement",
+          "flowMeasurement",
+          "levelControl",
+          "onOff",
+          "powerTopology",
+          "pressureMeasurement",
+          "pumpConfigurationAndControl",
+          "temperatureMeasurement"
+        ],
+        "state": {
+          "onOff": {
+            "featureMap": {
+              "lighting": false,
+              "deadFrontBehavior": false,
+              "offOnly": false
+            },
+            "onOff": true
+          },
+          "pumpConfigurationAndControl": {
+            "capacity": null,
+            "controlMode": 0,
+            "effectiveControlMode": 0,
+            "effectiveOperationMode": 0,
+            "featureMap": {
+              "constantPressure": false,
+              "compensatedPressure": false,
+              "constantFlow": false,
+              "constantSpeed": true,
+              "constantTemperature": false,
+              "automatic": false,
+              "localOperation": false
+            },
+            "maxConstSpeed": null,
+            "maxFlow": null,
+            "maxPressure": null,
+            "maxSpeed": null,
+            "minConstSpeed": null,
+            "operationMode": 0,
+            "pumpStatus": {
+              "deviceFault": false,
+              "supplyFault": false,
+              "speedLow": false,
+              "speedHigh": false,
+              "localOverride": false,
+              "running": true,
+              "remotePressure": false,
+              "remoteFlow": false,
+              "remoteTemperature": false
+            }
+          },
+          "levelControl": {
+            "currentLevel": 152,
+            "featureMap": {
+              "onOff": false,
+              "lighting": false,
+              "frequency": false
+            },
+            "managedTransitionTimeHandling": false,
+            "maxLevel": 254,
+            "minLevel": 0,
+            "onLevel": null,
+            "options": {
+              "executeIfOff": false,
+              "coupleColorTempToLevel": false
+            },
+            "transitionStepInterval": 100
+          },
+          "temperatureMeasurement": {
+            "featureMap": {},
+            "maxMeasuredValue": 32767,
+            "measuredValue": 3800,
+            "minMeasuredValue": -27315
+          },
+          "pressureMeasurement": {
+            "featureMap": {
+              "extended": false
+            },
+            "maxMeasuredValue": null,
+            "measuredValue": 2500,
+            "minMeasuredValue": null
+          },
+          "flowMeasurement": {
+            "featureMap": {},
+            "maxMeasuredValue": null,
+            "measuredValue": 18,
+            "minMeasuredValue": null
+          },
+          "electricalPowerMeasurement": {
+            "accuracy": [
+              {
+                "measurementType": 5,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              },
+              {
+                "measurementType": 2,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              },
+              {
+                "measurementType": 1,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              },
+              {
+                "measurementType": 11,
+                "measured": true,
+                "minMeasuredValue": -9007199254740991,
+                "maxMeasuredValue": 9007199254740991,
+                "accuracyRanges": [
+                  {
+                    "rangeMin": -9007199254740991,
+                    "rangeMax": 9007199254740991,
+                    "fixedMax": 1
+                  }
+                ]
+              }
+            ],
+            "activeCurrent": 50,
+            "activePower": 12000,
+            "featureMap": {
+              "directCurrent": false,
+              "alternatingCurrent": true,
+              "polyphasePower": false,
+              "harmonics": false,
+              "powerQuality": false
+            },
+            "frequency": 50000,
+            "numberOfMeasurementTypes": 4,
+            "powerMode": 2,
+            "voltage": 230000
+          },
+          "electricalEnergyMeasurement": {
+            "accuracy": {
+              "measurementType": 14,
+              "measured": true,
+              "minMeasuredValue": -9007199254740991,
+              "maxMeasuredValue": 9007199254740991,
+              "accuracyRanges": [
+                {
+                  "rangeMin": -9007199254740991,
+                  "rangeMax": 9007199254740991,
+                  "fixedMax": 1
+                }
+              ]
+            },
+            "cumulativeEnergyImported": {
+              "energy": 480000
+            },
+            "featureMap": {
+              "importedEnergy": true,
+              "exportedEnergy": false,
+              "cumulativeEnergy": true,
+              "periodicEnergy": false,
+              "apparentEnergy": false,
+              "reactiveEnergy": false
+            }
+          },
+          "powerTopology": {
+            "featureMap": {
+              "nodeTopology": false,
+              "treeTopology": true,
+              "setTopology": false,
+              "dynamicPowerFlow": false
+            }
+          }
+        },
+        "parts": []
+      }
+    ]
+  }
+}

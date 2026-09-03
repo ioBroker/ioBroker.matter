@@ -1,5 +1,7 @@
 import DeviceFactory from './DeviceFactory';
 import { AirCondition } from './devices/AirCondition';
+import { AirPurifier } from './devices/AirPurifier';
+import { AirQuality } from './devices/AirQuality';
 import { Blind } from './devices/Blind';
 import { BlindButtons } from './devices/BlindButtons';
 import { Button } from './devices/Button';
@@ -7,12 +9,17 @@ import { ButtonSensor } from './devices/ButtonSensor';
 import { Camera } from './devices/Camera';
 import { Chart } from './devices/Chart';
 import { Cie } from './devices/Cie';
+import { CoAlarm } from './devices/CoAlarm';
+import { Contact } from './devices/Contact';
 import { Ct } from './devices/Ct';
 import { Dimmer } from './devices/Dimmer';
 import { Door } from './devices/Door';
+import { Electricity } from './devices/Electricity';
+import { Fan } from './devices/Fan';
 import { FillLevel } from './devices/FillLevel';
 import { FireAlarm } from './devices/FireAlarm';
 import { FloodAlarm } from './devices/FloodAlarm';
+import { Flow } from './devices/Flow';
 import { Gate } from './devices/Gate';
 import { GenericDevice } from './devices/GenericDevice';
 import { Hue } from './devices/Hue';
@@ -25,6 +32,8 @@ import { LocationOne } from './devices/LocationOne';
 import { Lock } from './devices/Lock';
 import { Media } from './devices/Media';
 import { Motion } from './devices/Motion';
+import { Pressure } from './devices/Pressure';
+import { Pump } from './devices/Pump';
 import { Rgb } from './devices/Rgb';
 import { RgbSingle } from './devices/RgbSingle';
 import { RgbwSingle } from './devices/RgbwSingle';
@@ -44,6 +53,8 @@ import { SubscribeManager } from './SubscribeManager';
 
 export {
     AirCondition,
+    AirPurifier,
+    AirQuality,
     Blind,
     BlindButtons,
     Button,
@@ -51,13 +62,18 @@ export {
     Camera,
     Chart,
     Cie,
+    CoAlarm,
+    Contact,
     Ct,
     DeviceFactory,
     Dimmer,
     Door,
+    Electricity,
+    Fan,
     FillLevel,
     FireAlarm,
     FloodAlarm,
+    Flow,
     Gate,
     GenericDevice,
     Hue,
@@ -70,6 +86,8 @@ export {
     Lock,
     Media,
     Motion,
+    Pressure,
+    Pump,
     Rgb,
     RgbSingle,
     RgbwSingle,

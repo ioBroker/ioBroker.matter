@@ -289,7 +289,16 @@ The frontend linter (`npm run lint-frontend`) uses ESLint with Prettier and must
 ### Testing
 
 ```bash
-npm test  # Runs mocha tests in test/ directory
+npm test              # Unit tests, hermetic and fast
+npm run test:integration  # Commissions a real Matter bridge fixture; needs a network
+```
+
+The integration test spawns `test/fixtures/TestBridgeDevice.ts` as its own process, commissions it,
+and checks that each bridged endpoint maps to the expected ioBroker device. It uses real mDNS, so on
+a host with VPN or tunnel interfaces pin the interface:
+
+```bash
+MATTER_MDNS_NETWORK_INTERFACE=en0 npm run test:integration
 ```
 
 ### Debug Logging

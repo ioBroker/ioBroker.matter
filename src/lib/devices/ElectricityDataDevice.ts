@@ -42,6 +42,8 @@ export class ElectricityDataDevice extends GenericDevice {
                 {
                     name: 'CURRENT',
                     valueType: ValueType.Number,
+                    // The detector's `mA` default for `value.current` is the odd one out among the
+                    // electricity readings; the Matter converters on both sides work in amperes
                     unit: 'A',
                     accessType: StateAccessType.Read,
                     type: PropertyType.Current,

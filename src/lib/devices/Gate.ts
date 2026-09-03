@@ -12,6 +12,8 @@ export class Gate extends GenericDevice {
     #powerState?: DeviceStateObject<boolean>;
     #setStopState?: DeviceStateObject<boolean>;
     #directionEnumState?: DeviceStateObject<GateDirections>;
+    #openedState?: DeviceStateObject<boolean>;
+    #closedState?: DeviceStateObject<boolean>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
@@ -40,11 +42,25 @@ export class Gate extends GenericDevice {
                     callback: state => (this.#setStopState = state),
                 },
                 {
-                    name: 'DIRECTION',
+                    name: 'DIRECTION_ENUM',
                     valueType: ValueType.Enum,
                     accessType: StateAccessType.Read,
                     type: PropertyType.DirectionEnum,
                     callback: state => (this.#directionEnumState = state),
+                },
+                {
+                    name: 'OPENED',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Opened,
+                    callback: state => (this.#openedState = state),
+                },
+                {
+                    name: 'CLOSED',
+                    valueType: ValueType.Boolean,
+                    accessType: StateAccessType.Read,
+                    type: PropertyType.Closed,
+                    callback: state => (this.#closedState = state),
                 },
             ]),
         );
@@ -119,5 +135,41 @@ export class Gate extends GenericDevice {
 
     hasDirectionEnum(): boolean {
         return !!this.#directionEnumState;
+    }
+
+    getOpened(): boolean | undefined {
+        if (!this.#openedState) {
+            throw new Error('Opened state not found');
+        }
+        return this.#openedState.value;
+    }
+
+    updateOpened(value: boolean): Promise<void> {
+        if (!this.#openedState) {
+            throw new Error('Opened state not found');
+        }
+        return this.#openedState.updateValue(value);
+    }
+
+    hasOpened(): boolean {
+        return !!this.#openedState;
+    }
+
+    getClosed(): boolean | undefined {
+        if (!this.#closedState) {
+            throw new Error('Closed state not found');
+        }
+        return this.#closedState.value;
+    }
+
+    updateClosed(value: boolean): Promise<void> {
+        if (!this.#closedState) {
+            throw new Error('Closed state not found');
+        }
+        return this.#closedState.updateValue(value);
+    }
+
+    hasClosed(): boolean {
+        return !!this.#closedState;
     }
 }

@@ -217,7 +217,7 @@ export class ThermostatToIoBroker extends GenericElectricityDataDeviceToIoBroker
         if (max !== undefined) {
             max = MatterConverters.fromMatterHundredths(max);
         }
-        await this.ioBrokerDevice.updateSetpointMinMax(min, max);
+        await this.ioBrokerDevice.updateLevelMinMax(min, max);
 
         // Process delayed State init after correcting min/max values
         await this.initializeStates();

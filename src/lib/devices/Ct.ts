@@ -219,6 +219,10 @@ export class Ct extends GenericLightingDevice {
         await this.#getPowerState.updateValue(value);
     }
 
+    hasPowerActual(): boolean {
+        return !!this.#getPowerState;
+    }
+
     hasTransitionTime(): boolean {
         return !!this.#transitionTimeState;
     }

@@ -93,7 +93,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
     readonly baseId: string;
     readonly #node: ClientNode;
     protected readonly appEndpoint: Endpoint;
-    readonly #rootEndpoint: Endpoint;
+    protected readonly rootEndpoint: Endpoint;
     readonly #observers = new ObserverGroup();
     readonly #behaviorIdCache = new Map<string, string | undefined>();
     #name?: string;
@@ -102,7 +102,11 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
     readonly #deviceOptions: DeviceOptions;
     #enabledAttributeProperties = new Map<PropertyType, EnabledAttributeProperty>();
     #enabledEventProperties = new Map<PropertyType, EnabledEventProperty[]>();
-    #matterMappings = new Map<string, PropertyType | ((value: any) => MaybePromise<any>)>();
+    /**
+     * Several properties may read one Matter attribute - an X and its X_ACTUAL, or a device type deriving two of its
+     * states from one value - so a path carries every mapping registered for it, in registration order.
+     */
+    #matterMappings = new Map<string, (PropertyType | ((value: any) => MaybePromise<any>))[]>();
     #connectionStateId: string;
     #hasBridgedReachabilityAttribute = false;
     #pollTimeout?: ioBroker.Timeout;
@@ -137,7 +141,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         this.#adapter = adapter;
         this.#node = node;
         this.appEndpoint = endpoint;
-        this.#rootEndpoint = rootEndpoint;
+        this.rootEndpoint = rootEndpoint;
         this.baseId = endpointDeviceBaseId;
         this.#defaultName = defaultName;
         this.deviceType = deviceTypeName;
@@ -254,7 +258,47 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
 
     #enablePowerSourceStates(): void {
         if (!this.#enablePowerSourceStatesForEndpoint(this.appEndpoint)) {
-            this.#enablePowerSourceStatesForEndpoint(this.#rootEndpoint);
+            this.#enablePowerSourceStatesForEndpoint(this.rootEndpoint);
+        }
+    }
+
+    /**
+     * Enable a state that the device type derives from several Matter attributes, such as a maintenance flag that two
+     * monitoring clusters both raise.
+     *
+     * Each source converts on its own, because the attribute that changed has to be combined with the attributes that
+     * did not. The first supported source owns the state, and every further one reaches it through a handler, because
+     * a property is enabled once and the later registration would otherwise be dropped.
+     */
+    protected enableDeviceTypeStateForAttributes(
+        type: PropertyType,
+        sources: {
+            endpointId: EndpointNumber;
+            clusterId: ClusterId;
+            attributeName: string;
+            convertValue: (value: any) => MaybePromise<any>;
+        }[],
+    ): void {
+        let owned = false;
+        for (const source of sources) {
+            if (!owned) {
+                this.enableDeviceTypeStateForAttribute(type, source);
+                owned = this.#enabledAttributeProperties.has(type);
+                if (owned) {
+                    continue;
+                }
+            }
+            this.registerStateChangeHandlerForAttribute({
+                endpointId: source.endpointId,
+                clusterId: source.clusterId,
+                attributeName: source.attributeName,
+                matterValueChanged: async value => {
+                    const converted = await source.convertValue(value);
+                    if (converted !== undefined) {
+                        await this.ioBrokerDevice.updatePropertyValue(type, converted);
+                    }
+                },
+            });
         }
     }
 
@@ -280,8 +324,16 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
             );
             return;
         }
-        const pathId = attributePathToString({ endpointId, clusterId, attributeName });
-        this.#matterMappings.set(pathId, matterValueChanged);
+        this.#addMatterMapping(attributePathToString({ endpointId, clusterId, attributeName }), matterValueChanged);
+    }
+
+    #addMatterMapping(pathId: string, mapping: PropertyType | ((value: any) => MaybePromise<any>)): void {
+        const mappings = this.#matterMappings.get(pathId);
+        if (mappings === undefined) {
+            this.#matterMappings.set(pathId, [mapping]);
+        } else {
+            mappings.push(mapping);
+        }
     }
 
     /**
@@ -328,8 +380,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
             }
 
             if (endpointId !== undefined && clusterId !== undefined && attributeName !== undefined) {
-                const pathId = attributePathToString({ endpointId, clusterId, attributeName });
-                this.#matterMappings.set(pathId, type);
+                this.#addMatterMapping(attributePathToString({ endpointId, clusterId, attributeName }), type);
             }
             this.#enabledAttributeProperties.set(type, {
                 type: 'attribute',
@@ -383,12 +434,8 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         if (stateData.id === undefined) {
             stateData.id = `${this.baseId}.`;
         }
-        const pathId = eventPathToString({ endpointId, clusterId, eventName });
         this.#deviceOptions.additionalStateData![type] = stateData;
-        if (this.#matterMappings.get(pathId)) {
-            this.#adapter.log.warn(`State path ${pathId} already enabled, overwriting`);
-        }
-        this.#matterMappings.set(pathId, type);
+        this.#addMatterMapping(eventPathToString({ endpointId, clusterId, eventName }), type);
         const knownEvents = this.#enabledEventProperties.get(type) ?? [];
         knownEvents.push({
             type: 'event',
@@ -564,13 +611,15 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         const pathId = attributePathToString(data);
 
         // Check standard property mappings first
-        const pathProperty = this.#matterMappings.get(pathId);
-        if (pathProperty !== undefined) {
-            if (typeof pathProperty === 'function') {
-                await pathProperty(data.value);
-                return;
+        const pathProperties = this.#matterMappings.get(pathId);
+        if (pathProperties !== undefined) {
+            for (const pathProperty of pathProperties) {
+                if (typeof pathProperty === 'function') {
+                    await pathProperty(data.value);
+                } else {
+                    await this.updateIoBrokerState(pathProperty, data.value);
+                }
             }
-            await this.updateIoBrokerState(pathProperty, data.value);
             return;
         }
 
@@ -593,28 +642,32 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         events: DecodedEventData<any>[];
     }): Promise<void> {
         const pathId = eventPathToString(data);
-        const pathProperty = this.#matterMappings.get(pathId);
-        if (pathProperty === undefined) {
+        const pathProperties = this.#matterMappings.get(pathId);
+        if (pathProperties === undefined) {
             return;
         }
-        if (typeof pathProperty === 'function') {
-            for (const event of data.events) {
-                await pathProperty(event);
+        for (const pathProperty of pathProperties) {
+            if (typeof pathProperty === 'function') {
+                for (const event of data.events) {
+                    await pathProperty(event);
+                }
+                continue;
             }
-            return;
-        }
-        const propertyHandlers = this.#enabledEventProperties.get(pathProperty);
-        if (propertyHandlers === undefined) {
-            return;
-        }
-        for (const { convertValue } of propertyHandlers) {
-            for (const event of data.events) {
-                const value = await convertValue(pathProperty, event);
-                if (value !== undefined) {
-                    try {
-                        await this.ioBrokerDevice.updatePropertyValue(pathProperty, value);
-                    } catch (e) {
-                        this.#adapter.log.error(`Error updating property ${pathProperty} with value ${value}: ${e}`);
+            const propertyHandlers = this.#enabledEventProperties.get(pathProperty);
+            if (propertyHandlers === undefined) {
+                continue;
+            }
+            for (const { convertValue } of propertyHandlers) {
+                for (const event of data.events) {
+                    const value = await convertValue(pathProperty, event);
+                    if (value !== undefined) {
+                        try {
+                            await this.ioBrokerDevice.updatePropertyValue(pathProperty, value);
+                        } catch (e) {
+                            this.#adapter.log.error(
+                                `Error updating property ${pathProperty} with value ${value}: ${e}`,
+                            );
+                        }
                     }
                 }
             }
@@ -983,7 +1036,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
     }
 
     getMatterStates(): Record<string, unknown> {
-        return this.#addPowerSourceStates(this.appEndpoint) ?? this.#addPowerSourceStates(this.#rootEndpoint) ?? {};
+        return this.#addPowerSourceStates(this.appEndpoint) ?? this.#addPowerSourceStates(this.rootEndpoint) ?? {};
     }
 
     getDeviceDetails(nodeConnected: boolean): StructuredJsonFormData {
@@ -1104,7 +1157,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         if (behaviorId === undefined) {
             return undefined;
         }
-        const ep = endpointId === 0 ? this.#rootEndpoint : this.appEndpoint;
+        const ep = endpointId === 0 ? this.rootEndpoint : this.appEndpoint;
         return (ep.state as any)[behaviorId];
     }
 
@@ -1113,7 +1166,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         if (this.#behaviorIdCache.has(cacheKey)) {
             return this.#behaviorIdCache.get(cacheKey);
         }
-        const ep = endpointId === 0 ? this.#rootEndpoint : this.appEndpoint;
+        const ep = endpointId === 0 ? this.rootEndpoint : this.appEndpoint;
         let behaviorId: string | undefined;
         for (const [id, BehaviorType] of Object.entries(ep.behaviors.supported)) {
             if (ClusterBehavior.is(BehaviorType) && BehaviorType.cluster.id === clusterId) {
@@ -1131,7 +1184,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         };
 
         if (status.connection === 'connected') {
-            status.battery = this.#getBatteryStatus(this.appEndpoint) ?? this.#getBatteryStatus(this.#rootEndpoint);
+            status.battery = this.#getBatteryStatus(this.appEndpoint) ?? this.#getBatteryStatus(this.rootEndpoint);
         }
         return status;
     }

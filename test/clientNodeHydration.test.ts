@@ -1,6 +1,16 @@
 import { strictEqual } from 'node:assert';
-import { ControllerBehavior, EndpointLifecycle, Environment, ServerNode, type ClientNode } from '@matter/main';
-import { MockStorageService, StorageService, type SupportedStorageTypes } from '@matter/general';
+import {
+    ControllerBehavior,
+    DeviceTypeId,
+    EndpointLifecycle,
+    MockStorageService,
+    ServerNode,
+    StorageService,
+    type ClientNode,
+    type Environment,
+    type SupportedStorageTypes,
+} from '@matter/main';
+import { createMatterTestEnvironment } from './helpers/matterTestEnvironment';
 import { FabricAuthority } from '@matter/main/protocol';
 
 /**
@@ -103,9 +113,11 @@ async function createControllerNode(environment: Environment): Promise<ServerNod
  * seeded into it.  The second boot is what an adapter restart looks like to matter.js.
  */
 async function withRestoredPeer<T>(action: (peer: ClientNode) => Promise<T>, options?: SeedOptions): Promise<T> {
-    const environment = new Environment('test', Environment.default);
-    const storage = new MockStorageService(environment);
-    environment.set(StorageService, storage);
+    const environment = await createMatterTestEnvironment('client-node-hydration');
+    const storage = environment.get(StorageService);
+    if (!(storage instanceof MockStorageService)) {
+        throw new Error('the test environment must keep its storage in memory');
+    }
 
     let fabricIndex: number;
     const firstBoot = await createControllerNode(environment);
@@ -163,7 +175,7 @@ describe('ClientNode hydration', () => {
                 }
             });
 
-            peer.endpoints.require(2, { deviceType: 256 });
+            peer.endpoints.require(2, { deviceType: DeviceTypeId(256) });
             return seen;
         });
 

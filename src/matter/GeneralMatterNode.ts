@@ -47,6 +47,7 @@ import {
 import type { MatterControllerConfig } from '../ioBrokerTypes';
 import { SubscribeManager } from '../lib';
 import type { SubscribeCallback } from '../lib/SubscribeManager';
+import { TeardownRegistry } from '../lib/TeardownRegistry';
 import { bytesToIpV4, bytesToIpV6, bytesToMac, decamelize, toHex, toUpperCaseHex } from '../lib/utils';
 import type { MatterAdapter } from '../main';
 import type { GenericDeviceToIoBroker } from './to-iobroker/GenericDeviceToIoBroker';
@@ -165,7 +166,6 @@ export class GeneralMatterNode {
     #hasAggregatorEndpoint = false;
     #enabled = true;
     #subscriptionMaxIntervalS?: number;
-    readonly #seededObserver = new ObserverGroup();
     /**
      * Raised by everything that retires the current structure, so a build that is still running between its
      * awaits notices it is building for a node state that no longer exists.
@@ -178,6 +178,8 @@ export class GeneralMatterNode {
     #currentUpdateState?: OtaSoftwareUpdateRequestor.UpdateState;
     #updateObservers?: ObserverGroup;
     #icd?: NodeIcdManager;
+    /** Undoes what this node generation attached to the PairedNode, which outlives it. */
+    #teardown: TeardownRegistry;
     // Outlives #icd across clear()/#createIcdManager() cycles (e.g. applyConfiguration()'s
     // clear-and-rebuild), so a subscriber only needs to attach once per GeneralMatterNode rather than
     // once per NodeIcdManager instance.
@@ -217,11 +219,24 @@ export class GeneralMatterNode {
         this.icdModeStateId = `${this.nodeBaseId}.info.icdMode`;
         this.exposeMatterApplicationClusterData = controllerConfig.defaultExposeMatterApplicationClusterData ?? false;
         this.exposeMatterSystemClusterData = controllerConfig.defaultExposeMatterSystemClusterData ?? false;
+        this.#teardown = this.#newTeardownRegistry();
+    }
+
+    #newTeardownRegistry(): TeardownRegistry {
+        return new TeardownRegistry(error =>
+            this.adapter.log.warn(`Node ${this.nodeId}: Error while tearing down: ${error.message}`),
+        );
     }
 
     async clear(): Promise<void> {
         this.#generation++;
         // Clear out all things from before
+        // clear() is a re-init point, not only a teardown point, so the next generation needs a fresh registry.
+        // Swapping before the await keeps a concurrent clear() from discarding a registry that already holds an undo.
+        const previousTeardown = this.#teardown;
+        this.#teardown = this.#newTeardownRegistry();
+        await previousTeardown.close();
+
         this.#icd?.close();
         this.#icd = undefined;
 
@@ -268,18 +283,20 @@ export class GeneralMatterNode {
     async #initialize(nodeDetails?: { operationalAddress?: string }): Promise<void> {
         await this.clear();
         const generation = this.#generation;
-        // Re-entered from the listener below, so a previous registration must go first.
-        this.#seededObserver.close();
 
         if (!this.node.lifecycle.isSeeded) {
             // An offline peer never becomes seeded, so this must be observed rather than awaited.
             this.adapter.log.warn(
                 `Node "${this.nodeId}" has not yet been initialized! Waiting for initial connection.`,
             );
-            this.#seededObserver.on(this.node.lifecycle.seeded, () => {
+            const observers = new ObserverGroup();
+            observers.on(this.node.lifecycle.seeded, () => {
                 this.adapter.log.info(`Node "${this.nodeId}" has been delayed connected. Initialize now!`);
                 this.initialize().catch(error => this.adapter.log.info(`Error while initializing node: ${error}`));
             });
+            // The lifecycle belongs to the ClientNode, which outlives every GeneralMatterNode built for it;
+            // without this a node replaced before it ever connected stays reachable through the observer.
+            this.#teardown.add(() => observers.close());
             return;
         }
 
@@ -1174,16 +1191,21 @@ export class GeneralMatterNode {
 
         await this.initializeEndpointRawDataStates(endpoint, endpointDeviceBaseDataId, options, endpointPath.join('-'));
 
-        if (id !== 0) {
-            for (const childEndpoint of endpoint.parts) {
-                // Recursive call to process all sub endpoints for raw states
-                await this.#processEndpointRawDataStructure(
-                    childEndpoint,
-                    endpointDeviceBaseDataId,
-                    options,
-                    endpointPath,
-                );
-            }
+        if (id === 0) {
+            return;
+        }
+
+        // Below the endpoint the device walk stopped at, every descendant belongs to that same device.
+        const ownsChildren = path !== undefined || !childEndpointsAreOwnDevices(id, identifyDeviceTypes(endpoint));
+        if (!ownsChildren) {
+            // Each of those children carries its raw data under its own device object, so a copy nested here
+            // would never be updated again.
+            await this.adapter.delObjectAsync(`${endpointDeviceBaseDataId}.data`, { recursive: true });
+            return;
+        }
+
+        for (const childEndpoint of endpoint.parts) {
+            await this.#processEndpointRawDataStructure(childEndpoint, endpointDeviceBaseDataId, options, endpointPath);
         }
     }
 
@@ -1701,10 +1723,14 @@ export class GeneralMatterNode {
     }
 
     async destroy(): Promise<void> {
-        this.#seededObserver.close();
-        await this.adapter.setState(this.connectionStateId, false, true);
-        await this.adapter.setState(this.connectionStatusId, NodeConnectionState.Disconnected, true);
-        await this.clear();
+        try {
+            await this.adapter.setState(this.connectionStateId, false, true);
+            await this.adapter.setState(this.connectionStatusId, NodeConnectionState.Disconnected, true);
+        } finally {
+            // These writes reject once the states DB is going away during unload, and the caller then has no
+            // way back to this node - so releasing its subscriptions must not depend on them succeeding.
+            await this.clear();
+        }
     }
 
     async remove(): Promise<void> {

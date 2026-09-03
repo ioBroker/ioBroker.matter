@@ -32,7 +32,7 @@ jobs:
         steps:
             - uses: actions/checkout@v7
             - name: Use Node.js 24.x
-              uses: actions/setup-node@v6
+              uses: actions/setup-node@v7
               with:
                   node-version: 24.x
 
@@ -59,7 +59,7 @@ jobs:
                   build
                 key: ${{ github.ref }}-${{ github.sha }}-build
 
-    # Runs adapter tests on all supported node versions and OSes
+    # Runs adapter tests on the tested node versions and OSes (Node.js 20 temporarily excluded, see below)
     adapter-tests:
         if: contains(github.event.head_commit.message, '[skip ci]') == false
 
@@ -68,7 +68,7 @@ jobs:
         runs-on: ${{ matrix.os }}
         strategy:
             matrix:
-                node-version: [20.x, 22.x, 24.x]
+                node-version: [22.x, 24.x]
                 os: [ubuntu-latest, windows-latest, macos-latest]
                 exclude:
                     - os: macos-latest
@@ -88,7 +88,7 @@ jobs:
                 fail-on-cache-miss: true
 
             - name: Use Node.js ${{ matrix.node-version }}
-              uses: actions/setup-node@v6
+              uses: actions/setup-node@v7
               with:
                   node-version: ${{ matrix.node-version }}
 
@@ -98,11 +98,44 @@ jobs:
             - name: Run local tests
               run: npm test
 
+    # Commissions a real Matter bridge over the loopback/mDNS stack, so it runs once rather than
+    # across the matrix: it needs the network, not several node versions.
+    integration-tests:
+        if: contains(github.event.head_commit.message, '[skip ci]') == false
+
+        needs: [check-and-lint]
+
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v7
+
+            - name: Restore build output cache
+              uses: actions/cache/restore@v6
+              with:
+                path: |
+                  admin
+                  build
+                key: ${{ github.ref }}-${{ github.sha }}-build
+                enableCrossOsArchive: true
+                fail-on-cache-miss: true
+
+            - name: Use Node.js 24.x
+              uses: actions/setup-node@v6
+              with:
+                  node-version: 24.x
+
+            - name: Install Base Dependencies
+              run: npm ci && cd src-admin && npm ci
+
+            - name: Run integration tests
+              run: npm run test:integration
+
     auto-merge:
         if: |
             always() &&
             github.event_name == 'pull_request'
-        needs: [adapter-tests]
+        needs: [adapter-tests, integration-tests]
         runs-on: ubuntu-latest
         permissions:
             contents: write
@@ -133,7 +166,7 @@ jobs:
 
             - name: Use Node.js 24
               if: steps.automerge.outputs.mergeResult == 'merged'
-              uses: actions/setup-node@v6
+              uses: actions/setup-node@v7
               with:
                   node-version: 24
 

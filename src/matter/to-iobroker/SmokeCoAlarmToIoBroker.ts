@@ -10,7 +10,6 @@ import type { MatterAdapter } from '../../main';
 
 export class SmokeCoAlarmToIoBroker extends GenericDeviceToIoBroker {
     readonly #ioBrokerDevice: FireAlarm;
-    readonly #rootEndpoint: Endpoint;
 
     constructor(
         node: ClientNode,
@@ -44,7 +43,6 @@ export class SmokeCoAlarmToIoBroker extends GenericDeviceToIoBroker {
                 'Smoke alarm is not supported by device, but ioBroker does not support CO2 alarm currently.',
             );
         }
-        this.#rootEndpoint = rootEndpoint;
     }
 
     protected enableDeviceTypeStates(): DeviceOptions {
@@ -56,7 +54,7 @@ export class SmokeCoAlarmToIoBroker extends GenericDeviceToIoBroker {
         });
 
         if (!this.#enableCustomLowPowerMapping(this.appEndpoint, this.appEndpoint)) {
-            this.#enableCustomLowPowerMapping(this.#rootEndpoint, this.appEndpoint);
+            this.#enableCustomLowPowerMapping(this.rootEndpoint, this.appEndpoint);
         }
         return super.enableDeviceTypeStates();
     }
@@ -68,7 +66,10 @@ export class SmokeCoAlarmToIoBroker extends GenericDeviceToIoBroker {
         }
         const smokeCo = appEndpoint.maybeStateOf(SmokeCoAlarmClient);
         this.enableDeviceTypeStateForAttribute(PropertyType.LowBattery, {
-            endpointId: this.appEndpoint.number,
+            // The endpoint the power source was found on, which is the root one for a device that has no
+            // power source of its own: registering against the application endpoint there enables nothing,
+            // and the generic mapping would take over and drop `batteryAlert`.
+            endpointId: endpoint.number,
             clusterId: PowerSource.id,
             attributeName: 'batChargeLevel',
             convertValue: value => {

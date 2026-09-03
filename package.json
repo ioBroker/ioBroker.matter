@@ -16,23 +16,23 @@
         "matter"
     ],
     "engines": {
-        "node": ">=20"
+        "node": ">=22"
     },
     "repository": {
         "type": "git",
         "url": "https://github.com/ioBroker/ioBroker.matter"
     },
     "optionalDependencies": {
-        "@matter/nodejs-ble": "0.18.0-alpha.0-20260814-a1fd0e210"
+        "@matter/nodejs-ble": "0.18.0-alpha.0-20260829-8a1db3e6b"
     },
     "dependencies": {
         "@iobroker/adapter-core": "^3.4.3",
         "@iobroker/dm-utils": "^3.2.0",
-        "@iobroker/type-detector": "^5.0.15",
-        "@matter/main": "0.18.0-alpha.0-20260814-a1fd0e210",
-        "@matter/nodejs": "0.18.0-alpha.0-20260814-a1fd0e210",
-        "@matter/thread-br-client": "0.18.0-alpha.0-20260814-a1fd0e210",
-        "axios": "^1.19.0",
+        "@iobroker/type-detector": "^6.0.1",
+        "@matter/main": "0.18.0-alpha.0-20260829-8a1db3e6b",
+        "@matter/nodejs": "0.18.0-alpha.0-20260829-8a1db3e6b",
+        "@matter/thread-br-client": "0.18.0-alpha.0-20260829-8a1db3e6b",
+        "axios": "^1.20.0",
         "jsonwebtoken": "^9.0.3"
     },
     "devDependencies": {
@@ -43,14 +43,14 @@
         "@iobroker/build-tools": "^3.0.1",
         "@iobroker/dev-server": "^0.8.0",
         "@iobroker/eslint-config": "^2.3.4",
-        "@iobroker/legacy-testing": "^3.0.0",
+        "@iobroker/legacy-testing": "^3.0.1",
         "@iobroker/testing": "^5.3.0",
         "@iobroker/types": "^7.2.2",
         "@types/jsonwebtoken": "^9.0.10",
         "@types/node": "^22.20.1",
         "colorette": "^2.0.20",
         "cross-env": "^10.1.0",
-        "esbuild": "^0.28.1",
+        "esbuild": "^0.28.2",
         "eslint-plugin-import": "^2.32.0",
         "puppeteer": "^24.43.1",
         "ts-node": "^10.9.2",
@@ -68,7 +68,11 @@
         "data/"
     ],
     "scripts": {
+        "check-types": "tsc -p tsconfig.json --noEmit",
+        "pretest": "npm run check-types",
         "test": "cross-env TS_NODE_PROJECT=./tsconfig.test.json mocha --exit test/**/*.test.ts",
+        "test:fixtures": "cross-env TS_NODE_PROJECT=./tsconfig.test.json ts-node test/fixtures/generateObjectFixtures.ts",
+        "test:integration": "cross-env TS_NODE_PROJECT=./tsconfig.test.json mocha --exit --config .mocharc.integration.json",
         "prepublishOnly": "npm run build",
         "npm": "npm i && cd src-admin && npm i",
         "lint": "eslint -c eslint.config.mjs",
@@ -94,7 +98,7 @@
         "@serialport/bindings-cpp@12.0.1": true,
         "@stoprocent/bleno@0.13.1": true,
         "@stoprocent/bluetooth-hci-socket@2.3.0": true,
-        "@stoprocent/noble@2.6.5": true,
+        "@stoprocent/noble@2.7.1": true,
         "diskusage@1.2.0": true,
         "fsevents@2.3.3": true,
         "protobufjs@7.6.2": true,
@@ -103,6 +107,6 @@
         "usb@2.18.0": true,
         "esbuild@0.11.23": true,
         "esbuild@0.25.12": true,
-        "esbuild@0.28.1": true
+        "esbuild@0.28.2": true
     }
 }

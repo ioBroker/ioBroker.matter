@@ -1597,9 +1597,14 @@ export class GeneralMatterNode {
     }
 
     async destroy(): Promise<void> {
-        await this.adapter.setState(this.connectionStateId, false, true);
-        await this.adapter.setState(this.connectionStatusId, PairedNodeStates.Disconnected, true);
-        await this.clear();
+        try {
+            await this.adapter.setState(this.connectionStateId, false, true);
+            await this.adapter.setState(this.connectionStatusId, PairedNodeStates.Disconnected, true);
+        } finally {
+            // These writes reject once the states DB is going away during unload, and the caller then has no
+            // way back to this node - so releasing its subscriptions must not depend on them succeeding.
+            await this.clear();
+        }
     }
 
     async remove(): Promise<void> {

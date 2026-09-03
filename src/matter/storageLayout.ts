@@ -23,26 +23,6 @@ export namespace StorageLayout {
         { name: 'custom-ota', to: targets.customOtaDir },
     ];
 
-    /**
-     * Whether a controller storage entry holds cluster data of a paired node.
-     *
-     * Those attributes change with every report, so they stay in the instance data directory instead of
-     * becoming ioBroker states. The rest of what a peer stores — its commissioning and network state —
-     * is small, changes rarely, and belongs in the objects database with everything else.
-     */
-    export function isClusterData(contexts: string[]): boolean {
-        // Peer data of matter.js 0.17 and earlier, kept where it was written
-        if (contexts[0]?.startsWith('node-')) {
-            return true;
-        }
-        return (
-            contexts[0] === 'nodes' &&
-            contexts[1]?.startsWith('peer') === true &&
-            contexts[2] === 'endpoints' &&
-            /^\d+$/.test(contexts[4] ?? '')
-        );
-    }
-
     export interface Targets {
         /** Root for the files matter.js downloads and can fetch again. */
         cacheDir: string;

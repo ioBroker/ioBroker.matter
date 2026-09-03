@@ -178,7 +178,6 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) Network visualization data is no longer assembled, and neither it nor Thread diagnostics data is serialized and sent, while no admin UI is listening
 * (@Apollon77) Updated matter.js to 0.18 and migrated the controller to its ClientNode API
 * (@Apollon77) A bridged pump no longer advertises the Matter Lighting feature on its level and on/off clusters, so its speed setpoint can reach zero as intended
-* (@Apollon77) Controller node data of paired nodes is stored in the objects database again, so an ioBroker backup carries the pairing data. The files below the instance data directory are kept as they are, so that downgrading to an earlier adapter version still finds the paired nodes. **Be careful when downgrading**: addresses learned after the update stay in the objects database only, so a downgraded instance may need a moment to rediscover its nodes.
 * (@Apollon77) Fix vendor specific attributes of paired nodes not being updated anymore
 * (@Apollon77) Fix the ioBroker structure of a paired node not being rebuilt when a bridge gains or loses a device
 * (@Apollon77) Fix leftover objects and observers when a node is removed, and no longer create a second node tree while removing one

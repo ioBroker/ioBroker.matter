@@ -11,17 +11,7 @@ import LoginPassword from './LoginPassword';
 import type { MatterAdapterConfig } from '../types';
 
 type Platform =
-    | 'aix'
-    | 'android'
-    | 'darwin'
-    | 'freebsd'
-    | 'haiku'
-    | 'linux'
-    | 'openbsd'
-    | 'sunos'
-    | 'win32'
-    | 'cygwin'
-    | 'netbsd';
+    'aix' | 'android' | 'darwin' | 'freebsd' | 'haiku' | 'linux' | 'openbsd' | 'sunos' | 'win32' | 'cygwin' | 'netbsd';
 
 type DockerInformation =
     | {

@@ -1781,11 +1781,11 @@ export class GeneralMatterNode {
                 result.node.uniqueId = details.uniqueId;
             }
 
-            const { threadPan } = ClientNodePhysicalProperties(this.node);
+            const properties = ClientNodePhysicalProperties(this.node);
             result.capabilities = {
-                ...ClientNodePhysicalProperties(this.node),
+                ...properties,
 
-                threadPan: threadPan !== undefined ? toUpperCaseHex(threadPan) : undefined,
+                threadPan: properties.threadPan !== undefined ? toUpperCaseHex(properties.threadPan) : undefined,
 
                 // hide these two entries
                 dataRevision: undefined,

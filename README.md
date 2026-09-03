@@ -192,6 +192,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) Changes made in the admin while the adapter starts are now applied once the start is done, instead of being missed until the next change or restart
 * (@Apollon77) A robot vacuum cleaner exposed to Matter now reports the end of a cleaning run with the OperationCompletion event the device type requires, including the error a run ended in
 * (@Apollon77) A bridged pump no longer advertises the Matter Lighting feature on its level control, so its speed setpoint can reach zero as intended
+* (@Apollon77) Controller node data of paired nodes is stored in the objects database again, so an ioBroker backup carries the pairing data. The files below the instance data directory are kept as they are, so that downgrading to an earlier adapter version still finds the paired nodes. **Be careful when downgrading**: addresses learned after the update stay in the objects database only, so a downgraded instance may need a moment to rediscover its nodes.
 * (@Apollon77) Fix a paired node keeping its old ioBroker mapping until the adapter restarts when one of its endpoints changes its device type
 * (@Apollon77) The ioBroker structure of a paired node is now rebuilt once the device has finished reporting a change, so a bridge whose new devices arrive in several reports in a row is rebuilt once with all of them. The rebuild waits at most 10 seconds after the first change
 * (@Apollon77) Fix leftover observers when a node is removed

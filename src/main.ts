@@ -489,15 +489,25 @@ export class MatterAdapter extends Adapter {
         } while (deleted);
     }
 
+    /** True while an admin client is listening and the adapter is not unloading, so callers can skip building a payload nobody reads. */
+    get shouldSendToGui(): boolean {
+        return !this.#blockGuiUpdates && !!this.#_guiSubscribes?.length;
+    }
+
     sendToGui = async (data: any): Promise<void> => {
-        if (!this.#_guiSubscribes || this.#blockGuiUpdates) {
+        if (!this.shouldSendToGui) {
             return;
         }
-        if (this.sendToUI) {
+        if (this.log.level === 'debug' || this.log.level === 'silly') {
             this.log.debug(`Send to GUI: ${JSON.stringify(data)}`);
+        }
 
-            for (let i = 0; i < this.#_guiSubscribes.length; i++) {
-                await this.sendToUI({ clientId: this.#_guiSubscribes[i].clientId, data });
+        for (const { clientId } of [...this.#_guiSubscribes!]) {
+            try {
+                await this.sendToUI({ clientId, data });
+            } catch (error) {
+                // sendToClient throws for a client that unregistered mid-loop; the remaining ones must still get it
+                this.log.debug(`Error sending to GUI client ${clientId}: ${error}`);
             }
         }
     };
@@ -704,8 +714,10 @@ export class MatterAdapter extends Adapter {
         }
         if (this.#objectProcessQueueTimeout) {
             this.clearTimeout(this.#objectProcessQueueTimeout);
-            this.#controllerActionQueue.clear();
+            this.#objectProcessQueueTimeout = undefined;
         }
+        // Unload must abort queue waiters, independently of the object-change queue
+        this.#controllerActionQueue.clear();
         if (this.#objectProcessQueue.length && this.#objectProcessQueue[0].inProgress) {
             const promise = this.#currentObjectProcessPromise;
             this.#objectProcessQueue.length = 1;
@@ -803,6 +815,7 @@ export class MatterAdapter extends Adapter {
 
         if (this.#objectProcessQueueTimeout) {
             this.clearTimeout(this.#objectProcessQueueTimeout);
+            this.#objectProcessQueueTimeout = undefined;
         }
 
         const now = Date.now();

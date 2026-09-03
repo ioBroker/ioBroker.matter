@@ -835,4 +835,135 @@ describe('Test Custom States', function () {
             throw new Error(`Expected SubscribeManager.subscribes.size to be 0 after destroy, but got ${subscribedAfter}`);
         }
     }).timeout(5000);
+
+    it('Test destroy releases custom state bookkeeping and outside listeners', async function () {
+        const { Lock } = require('../src/lib/devices/Lock');
+        const adapter = new CustomStateAdapter();
+        SubscribeManager.setAdapter(adapter as any);
+        adapter.setSubscribeManager(SubscribeManager);
+
+        const _detectedDevices: TestDetectedDevice = {
+            states: [{ name: 'SET', id: '0_userdata.0.lock_set', type: 'boolean' }],
+            type: Types.lock,
+            isIoBrokerDevice: false,
+        };
+
+        const deviceObj = new Lock(_detectedDevices, adapter, { enabled: true }, TestCustomStates);
+        await deviceObj.init();
+        await deviceObj.initCustomState('testReadOnly', 'matter.0.device.custom.');
+        const customState = await deviceObj.initCustomState('testReadWrite', 'matter.0.device.custom.');
+        if (!customState) {
+            throw new Error('Custom state testReadWrite was not created');
+        }
+        const customStateId = (customState as any).state.id;
+
+        // An outside consumer (GenericDeviceToMatter does exactly this) must not outlive the device
+        deviceObj.on('validChanged', () => {});
+        if (deviceObj.listenerCount('validChanged') === 0) {
+            throw new Error('Expected the validChanged listener to be registered');
+        }
+
+        let customHandlerCalls = 0;
+        deviceObj.onCustomChange(async () => {
+            customHandlerCalls++;
+        });
+
+        // The per-state undo is separate from removeAllListeners(): this listener sits on the state object
+        if ((customState as any).listenerCount('validChanged') !== 1) {
+            throw new Error(
+                `Expected one validChanged listener on the state object, got ${(customState as any).listenerCount('validChanged')}`,
+            );
+        }
+
+        // Drive a real change first, so the post-destroy assertions are about something that worked
+        await SubscribeManager.observer(customStateId, { val: 20, ack: false } as any);
+        if (customHandlerCalls === 0) {
+            throw new Error('Expected the custom change handler to be reachable before destroy');
+        }
+
+        await deviceObj.destroy();
+
+        if (deviceObj.customPropertyNames.length !== 0) {
+            throw new Error(
+                `Expected no custom properties after destroy, got ${deviceObj.customPropertyNames.join(', ')}`,
+            );
+        }
+        if (deviceObj.hasCustomState('testReadWrite') || deviceObj.hasCustomState('testReadOnly')) {
+            throw new Error('Expected hasCustomState to be false for every custom state after destroy');
+        }
+        if (deviceObj.listenerCount('validChanged') !== 0) {
+            throw new Error(
+                `Expected no validChanged listeners after destroy, got ${deviceObj.listenerCount('validChanged')}`,
+            );
+        }
+        if ((SubscribeManager as any).subscribes.has(customStateId)) {
+            throw new Error('Expected the custom state subscription to be released after destroy');
+        }
+        if ((customState as any).listenerCount('validChanged') !== 0) {
+            throw new Error(
+                `Expected the state object's validChanged listener to be removed, got ${(customState as any).listenerCount('validChanged')}`,
+            );
+        }
+    }).timeout(5000);
+
+    it('Test one failing unsubscribe does not strand the other subscriptions', async function () {
+        const { Lock } = require('../src/lib/devices/Lock');
+        const { DeviceStateObject } = require('../src/lib/devices/DeviceStateObject');
+        const adapter = new CustomStateAdapter();
+        SubscribeManager.setAdapter(adapter as any);
+        adapter.setSubscribeManager(SubscribeManager);
+
+        const _detectedDevices: TestDetectedDevice = {
+            states: [{ name: 'SET', id: '0_userdata.0.lock_set', type: 'boolean' }],
+            type: Types.lock,
+            isIoBrokerDevice: false,
+        };
+
+        const deviceObj = new Lock(_detectedDevices, adapter, { enabled: true }, TestCustomStates);
+        await deviceObj.init();
+        const customState = await deviceObj.initCustomState('testReadWrite', 'matter.0.device.custom.');
+        if (!customState) {
+            throw new Error('Custom state testReadWrite was not created');
+        }
+        const customStateId = (customState as any).state.id;
+
+        const subscribedIds: string[] = Array.from((SubscribeManager as any).subscribes.keys());
+        if (!subscribedIds.includes('0_userdata.0.lock_set') || !subscribedIds.includes(customStateId)) {
+            throw new Error(`Expected both states to be subscribed, got ${subscribedIds.join(', ')}`);
+        }
+
+        // Poison the FIRST-registered state. Teardown runs newest-first, so this one is released last and
+        // the custom state's release becomes the assertion that discriminates; poisoning the newest instead
+        // would leave a post-condition that holds even without isolation.
+        const originalUnsubscribe = DeviceStateObject.prototype.unsubscribe;
+        DeviceStateObject.prototype.unsubscribe = async function (this: any): Promise<void> {
+            if (this.state.id === '0_userdata.0.lock_set') {
+                throw new Error('simulated unsubscribe failure');
+            }
+            return originalUnsubscribe.call(this);
+        };
+
+        let destroyRejection: unknown;
+        try {
+            await deviceObj.destroy();
+        } catch (error) {
+            // Captured rather than propagated, so the stranding assertion below is what discriminates
+            destroyRejection = error;
+        } finally {
+            DeviceStateObject.prototype.unsubscribe = originalUnsubscribe;
+        }
+
+        if ((SubscribeManager as any).subscribes.has(customStateId)) {
+            const remaining = Array.from((SubscribeManager as any).subscribes.keys());
+            throw new Error(
+                `Expected the custom state to be released despite the failing unsubscribe, still have ${remaining.join(', ')}`,
+            );
+        }
+        if (destroyRejection !== undefined) {
+            throw new Error(`destroy() must isolate a failing unsubscribe, but rejected with ${destroyRejection}`);
+        }
+
+        // The poisoned state is still registered by design - drop it so the static map does not leak
+        (SubscribeManager as any).subscribes.delete('0_userdata.0.lock_set');
+    }).timeout(5000);
 });

@@ -184,8 +184,6 @@ async function main(): Promise<void> {
             lockType: DoorLock.LockType.DeadBolt,
             actuatorEnabled: true,
             operatingMode: DoorLock.OperatingMode.Normal,
-            wrongCodeEntryLimit: 5,
-            userCodeTemporaryDisableTime: 10,
         },
     });
     await addBridged(

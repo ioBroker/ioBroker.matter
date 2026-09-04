@@ -1412,15 +1412,15 @@ export class GeneralMatterNode {
                 });
                 addedAttributes++;
 
-                if (this.node.lifecycle.isConnected) {
-                    const attributeValue = clusterState[attributeId];
-                    if (attributeValue !== undefined) {
-                        await this.adapter.setState(
-                            attributeBaseId,
-                            this.#formatAttributeServerValue(endpoint.number, attributeValue, targetType),
-                            true,
-                        );
-                    }
+                // An attribute the peer never reported is absent from its state, so what is there is worth
+                // publishing whether or not the peer is reachable right now.
+                const attributeValue = clusterState[attributeId];
+                if (attributeValue !== undefined) {
+                    await this.adapter.setState(
+                        attributeBaseId,
+                        this.#formatAttributeServerValue(endpoint.number, attributeValue, targetType),
+                        true,
+                    );
                 }
 
                 if (writable && !unknown) {

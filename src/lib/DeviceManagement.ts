@@ -21,7 +21,8 @@ import { inspect } from 'util';
 import { convertDataToJsonConfig } from './JsonConfigUtils';
 import { logControllerEndpoint } from '../matter/ControllerEndpointStructureInspector';
 import { SpecificationVersion } from '@matter/main/types';
-import { CommissioningClient, isObject } from '@matter/main';
+import { ClientNodePhysicalProperties, CommissioningClient, isObject } from '@matter/main';
+import { BasicInformationClient } from '@matter/main/behaviors';
 import { PeerAddress } from '@matter/main/protocol';
 import { ICD_LIT_ICON } from './icons';
 import { formatDuration, icdWaitingLabel, icdWakeInstructionText } from '../matter/icdUtils';
@@ -241,8 +242,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         let updateAvailableMessage: string | undefined = undefined;
         let version: string | undefined = undefined;
         let newVersion: string | undefined = undefined;
-        if (ioNode.node.basicInformation) {
-            version = `${ioNode.node.basicInformation.softwareVersionString} (${ioNode.node.basicInformation.softwareVersion})`;
+        const basicInformation = ioNode.node.maybeStateOf(BasicInformationClient);
+        if (basicInformation) {
+            version = `${basicInformation.softwareVersionString} (${basicInformation.softwareVersion})`;
         }
         if (ioNode.softwareUpdateAvailable !== undefined) {
             const info = ioNode.softwareUpdateAvailable;
@@ -482,7 +484,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             return { refresh: 'none' };
         }
 
-        if (!node.node.isConnected) {
+        if (!node.node.lifecycle.isConnected) {
             if (
                 !(await context.showConfirmation(
                     this.#adapter.t(
@@ -562,7 +564,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
      * Handle new pairing code request
      */
     async #handlePairingCode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        const result = await this.adapter.controllerNode?.showNewCommissioningCode(node.node.nodeId);
+        const result = await this.adapter.controllerNode?.showNewCommissioningCode(node.peerAddress.nodeId);
 
         this.adapter.log.info(`New pairing code for node ${node.nodeId}: ${JSON.stringify(result)}`);
 
@@ -606,7 +608,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     async #handleLogDebugNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        const rootEndpoint = node.node.node;
+        const rootEndpoint = node.node;
         const peerAddress = PeerAddress(rootEndpoint.maybeStateOf(CommissioningClient)?.peerAddress);
 
         const endpointInfos = rootEndpoint ? logControllerEndpoint(rootEndpoint) : 'No root endpoint found';
@@ -662,13 +664,14 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         context: ActionContext,
     ): Promise<{ refresh: DeviceRefresh }> {
         const info = node.softwareUpdateAvailable;
-        if (!info || !node.node.basicInformation) {
+        const basicInformation = node.node.maybeStateOf(BasicInformationClient);
+        if (!info || !basicInformation) {
             await context.showMessage(this.#adapter.t('No software update information available'));
             return { refresh: 'none' };
         }
 
-        const currentVersion = node.node.basicInformation.softwareVersionString;
-        const currentVersionNum = node.node.basicInformation.softwareVersion;
+        const currentVersion = basicInformation.softwareVersionString;
+        const currentVersionNum = basicInformation.softwareVersion;
 
         const sourceLabels: Record<string, string> = {
             'dcl-prod': 'OTA Update Source dcl-prod',
@@ -1231,7 +1234,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 };
                 data.pollInterval = deviceConfig.pollInterval;
 
-                if (device.node.deviceInformation?.isBatteryPowered) {
+                if (ClientNodePhysicalProperties(device.node).isBatteryPowered) {
                     addBatteryPoweredInfo = true;
                 }
             }
@@ -1240,7 +1243,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
             // Because of a Matter SDK Bug setting the subscriptionMaxIntervalS only makes sense
             // for Matter versions >= 1.3
-            const specVersion = node.node.basicInformation?.specificationVersion;
+            const specVersion = node.node.maybeStateOf(BasicInformationClient)?.specificationVersion;
             if (typeof specVersion === 'number' && specVersion !== 0) {
                 const { major, minor } = SpecificationVersion.decode(specVersion);
                 const matterVersion = parseFloat((major + minor / 100).toFixed(1));
@@ -1263,7 +1266,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                             'This value is just a proposal for the device The device may decide for an other maximum interval.',
                         ),
                     };
-                    if (node.node.deviceInformation?.isBatteryPowered) {
+                    if (ClientNodePhysicalProperties(node.node).isBatteryPowered) {
                         addBatteryPoweredInfo = true;
                     }
                 }

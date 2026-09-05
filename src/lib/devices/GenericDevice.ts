@@ -654,10 +654,7 @@ export abstract class GenericDevice extends EventEmitter {
 
         // Derive defaultType from common.type or valueType
         let defaultType: 'number' | 'string' | 'boolean' | undefined = mergedCommon.type as
-            | 'number'
-            | 'string'
-            | 'boolean'
-            | undefined;
+            'number' | 'string' | 'boolean' | undefined;
         if (!defaultType) {
             // Derive from valueType
             switch (valueType) {

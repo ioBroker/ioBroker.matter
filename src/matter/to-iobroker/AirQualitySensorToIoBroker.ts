@@ -1,5 +1,5 @@
 import ChannelDetector from '@iobroker/type-detector';
-import type { Behavior, ClusterId, Endpoint } from '@matter/main';
+import type { Behavior, ClusterId, Endpoint, ClientNode } from '@matter/main';
 import {
     AirQuality as MatterAirQuality,
     CarbonDioxideConcentrationMeasurement,
@@ -31,7 +31,6 @@ import {
     RadonConcentrationMeasurementClient,
     TotalVolatileOrganicCompoundsConcentrationMeasurementClient,
 } from '@matter/main/behaviors';
-import type { PairedNode } from '@project-chip/matter.js/device';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { AirQuality, AirQualityIndex, PollutantLevel } from '../../lib/devices/AirQuality';
@@ -180,7 +179,7 @@ export class AirQualitySensorToIoBroker extends GenericDeviceToIoBroker {
     readonly #ioBrokerDevice: AirQuality;
 
     constructor(
-        node: PairedNode,
+        node: ClientNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         adapter: MatterAdapter,

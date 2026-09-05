@@ -1,8 +1,7 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { FanControl as MatterFanControl, OnOff as MatterOnOff } from '@matter/main/clusters';
 import { FanControlClient, OnOffClient } from '@matter/main/behaviors';
-import type { Endpoint } from '@matter/main';
-import type { PairedNode } from '@project-chip/matter.js/device';
+import type { Endpoint, ClientNode } from '@matter/main';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import {
@@ -22,7 +21,7 @@ export class FanToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Fan;
 
     constructor(
-        node: PairedNode,
+        node: ClientNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         adapter: MatterAdapter,

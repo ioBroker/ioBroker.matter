@@ -10,10 +10,10 @@
 
 import { expect } from 'chai';
 import type { ChildProcess } from 'node:child_process';
-import type { Endpoint } from '@matter/main';
+import type { ClientNode, Endpoint } from '@matter/main';
 import { Logger, LogLevel } from '@matter/main';
-import { AttributeId, ClusterId, EndpointNumber } from '@matter/main/types';
-import { BridgedDeviceBasicInformationClient } from '@matter/main/behaviors';
+import { AttributeId, ClusterId, EndpointNumber, NodeId } from '@matter/main/types';
+import { BridgedDeviceBasicInformationClient, TemperatureMeasurementClient } from '@matter/main/behaviors';
 import {
     ActivatedCarbonFilterMonitoring,
     FanControl,
@@ -50,6 +50,15 @@ interface MappedEndpoint {
     baseId: string;
     matterDeviceTypeId?: number;
     error?: unknown;
+}
+
+/** The node id the controller gave the fixture, which a `ClientNode` carries in its commissioning state. */
+function peerNodeId(peer: ClientNode): NodeId {
+    const nodeId = peer.state.commissioning.peerAddress?.nodeId;
+    if (nodeId === undefined) {
+        throw new Error('the commissioned fixture has no node id');
+    }
+    return nodeId;
 }
 
 describe('Matter -> ioBroker controller mapping', function () {
@@ -109,8 +118,7 @@ describe('Matter -> ioBroker controller mapping', function () {
         adapter = new MockControllerAdapter();
         SubscribeManager.setAdapter(adapter as unknown as ioBroker.Adapter);
 
-        const rootEndpoint = commissioned.node.node;
-        expect(rootEndpoint, 'controller did not expose a root endpoint').to.not.equal(undefined);
+        const rootEndpoint = commissioned.node;
 
         const aggregator = ([...rootEndpoint!.parts] as Endpoint[]).find(
             part =>
@@ -430,7 +438,7 @@ describe('Matter -> ioBroker controller mapping', function () {
         };
 
         const bridgedEndpoint = (label: string): Endpoint => {
-            const rootEndpoint = commissioned!.node.node!;
+            const rootEndpoint = commissioned!.node;
             for (const part of [...rootEndpoint.parts] as Endpoint[]) {
                 for (const child of [...part.parts] as Endpoint[]) {
                     if (child.maybeStateOf(BridgedDeviceBasicInformationClient)?.nodeLabel === label) {
@@ -445,7 +453,7 @@ describe('Matter -> ioBroker controller mapping', function () {
             node = new GeneralMatterNode(adapter as unknown as MatterAdapter, commissioned!.node, {});
             await node.applyConfiguration(
                 {
-                    nodeId: commissioned!.node.nodeId,
+                    nodeId: peerNodeId(commissioned!.node),
                     exposeMatterApplicationClusterData: true,
                     exposeMatterSystemClusterData: false,
                 },
@@ -498,19 +506,12 @@ describe('Matter -> ioBroker controller mapping', function () {
             )}.attributes.measuredValue`;
             expect(adapter.states.get(stateId)?.val, 'raw state not initialized').to.equal(2350);
 
-            await node.handleChangedAttribute({
-                path: {
-                    nodeId: commissioned!.node.nodeId,
-                    endpointId: EndpointNumber(sensor!.number!),
-                    clusterId: ClusterId(TEMPERATURE_MEASUREMENT),
-                    attributeId: AttributeId(MEASURED_VALUE),
-                    attributeName: 'measuredValue',
-                },
-                version: 1,
-                value: 2500,
-            });
+            // The fixture cannot be told to report a new value, so this drives the fan-out with the value
+            // the device holds: it proves the notification reaches this raw state, not that it changes.
+            adapter.states.delete(stateId);
+            await node.handleChangedAttributes(sensor!, TemperatureMeasurementClient, ['measuredValue']);
 
-            expect(adapter.states.get(stateId)?.val).to.equal(2500);
+            expect(adapter.states.get(stateId)?.val, 'raw state not written by the change handler').to.equal(2350);
         });
     });
 });

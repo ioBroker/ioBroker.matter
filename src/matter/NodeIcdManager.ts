@@ -1,7 +1,13 @@
-import { IcdClient, IcdMultiAdminError, Observable, ObserverGroup, type MaybePromise } from '@matter/main';
+import {
+    IcdClient,
+    IcdMultiAdminError,
+    Observable,
+    ObserverGroup,
+    type ClientNode,
+    type MaybePromise,
+} from '@matter/main';
 import { IcdManagementClient, OperationalCredentialsClient } from '@matter/main/behaviors';
 import type { IcdManagement } from '@matter/main/clusters';
-import type { PairedNode } from '@project-chip/matter.js/device';
 import { deriveIcdMode, otherFabricClientCount, type IcdMode } from './icdUtils';
 
 /** One administrator on the peer that is not us, as far as it can be identified. */
@@ -43,14 +49,14 @@ export interface IcdInfo {
 export class NodeIcdManager {
     readonly changed = Observable<[]>();
 
-    readonly #node: PairedNode;
+    readonly #node: ClientNode;
     readonly #observers = new ObserverGroup();
     #pending = false;
 
-    constructor(node: PairedNode) {
+    constructor(node: ClientNode) {
         this.#node = node;
 
-        const root = node.node;
+        const root = node;
         // Both behaviors are absent for a non-ICD peer, and IcdClient is only injected once the peer's
         // IcdManagement cluster is discovered — eventsOf() throws on a behavior that isn't installed yet.
         if (root.behaviors.has(IcdClient)) {
@@ -82,32 +88,32 @@ export class NodeIcdManager {
     }
 
     get supported(): boolean {
-        return this.#node.node.maybeStateOf(IcdManagementClient) !== undefined;
+        return this.#node.maybeStateOf(IcdManagementClient) !== undefined;
     }
 
     /** True only with the LongIdleTimeSupport feature AND a reported Matter specification version >= 1.4.0. */
     get litCapable(): boolean {
-        return IcdClient.litSupported(this.#node.node);
+        return IcdClient.litSupported(this.#node);
     }
 
     get registered(): boolean {
-        return this.#node.node.maybeStateOf(IcdClient)?.registered === true;
+        return this.#node.maybeStateOf(IcdClient)?.registered === true;
     }
 
     /**
      * Whether the peer is within its expected check-in window. A sleeping LIT device is available, so this
-     * is the reachability signal for ICD, not `PairedNode.isConnected`.
+     * is the reachability signal for ICD, not `ClientNode.lifecycle.isConnected`.
      */
     get available(): boolean {
-        return this.#node.node.maybeStateOf(IcdClient)?.available ?? true;
+        return this.#node.maybeStateOf(IcdClient)?.available ?? true;
     }
 
     get info(): IcdInfo | undefined {
-        const state = this.#node.node.maybeStateOf(IcdManagementClient);
+        const state = this.#node.maybeStateOf(IcdManagementClient);
         if (state === undefined) {
             return undefined;
         }
-        const features = this.#node.node.maybeFeaturesOf(IcdManagementClient);
+        const features = this.#node.maybeFeaturesOf(IcdManagementClient);
         return {
             features: {
                 checkInProtocolSupport: features?.checkInProtocolSupport === true,
@@ -126,7 +132,7 @@ export class NodeIcdManager {
     #derivedMode(): IcdMode {
         return deriveIcdMode({
             litCapable: this.litCapable,
-            operatingMode: this.#node.node.maybeStateOf(IcdManagementClient)?.operatingMode,
+            operatingMode: this.#node.maybeStateOf(IcdManagementClient)?.operatingMode,
             available: this.available,
         });
     }
@@ -164,7 +170,7 @@ export class NodeIcdManager {
     /** @throws {IcdMultiAdminConflictError} when other-vendor administrators block registration */
     async register(allowMultiAdmin: boolean): Promise<void> {
         try {
-            await this.#node.node.act(agent => agent.get(IcdClient).register({ allowMultiAdmin }));
+            await this.#node.act(agent => agent.get(IcdClient).register({ allowMultiAdmin }));
         } catch (error) {
             IcdMultiAdminError.accept(error);
             throw new IcdMultiAdminConflictError(await this.#foreignAdmins(error.adminVendorIds));
@@ -184,7 +190,7 @@ export class NodeIcdManager {
      */
     async #foreignAdmins(vendorIds: readonly number[]): Promise<IcdForeignAdmin[]> {
         try {
-            const { fabrics, currentFabricIndex } = await this.#node.node.getStateOf(
+            const { fabrics, currentFabricIndex } = await this.#node.getStateOf(
                 OperationalCredentialsClient,
                 ['fabrics', 'currentFabricIndex'],
                 { fabricFilter: false },
@@ -212,18 +218,18 @@ export class NodeIcdManager {
 
     /** `force` clears only local state, for a peer that cannot be reached any more. */
     async unregister(force: boolean): Promise<void> {
-        await this.#node.node.act(agent => (force ? agent.get(IcdClient).forget() : agent.get(IcdClient).unregister()));
+        await this.#node.act(agent => (force ? agent.get(IcdClient).forget() : agent.get(IcdClient).unregister()));
     }
 
     /**
-     * Drops the local registration and reconnects; a LIT peer re-registers itself once subscribed.
-     * `triggerReconnect` preserves the node's stored connect options and is fire-and-forget by design: its
-     * awaitable form only awaits the internal resubscribe toggle, not the reconnect outcome, so awaiting it
-     * would tell the caller nothing more than this does.
+     * A LIT peer re-registers itself once it is subscribed again, so re-arming `autoSubscribe` is enough to
+     * recover the registration. Re-establishment proceeds in the background: this returns before the peer
+     * is back.
      */
     async resync(): Promise<void> {
-        await this.#node.node.act(agent => agent.get(IcdClient).forget());
-        this.#node.triggerReconnect();
+        await this.#node.act(agent => agent.get(IcdClient).forget());
+        await this.#node.set({ network: { autoSubscribe: false } });
+        await this.#node.set({ network: { autoSubscribe: true } });
     }
 
     /**
@@ -233,8 +239,8 @@ export class NodeIcdManager {
      */
     async otherFabricClientCount(): Promise<number> {
         const [registrations, credentials] = await Promise.all([
-            this.#node.node.getStateOf(IcdManagementClient, ['registeredClients'], { fabricFilter: false }),
-            this.#node.node.getStateOf(OperationalCredentialsClient, ['currentFabricIndex'], { fabricFilter: false }),
+            this.#node.getStateOf(IcdManagementClient, ['registeredClients'], { fabricFilter: false }),
+            this.#node.getStateOf(OperationalCredentialsClient, ['currentFabricIndex'], { fabricFilter: false }),
         ]);
         return otherFabricClientCount(
             registrations.registeredClients ?? new Array<IcdManagement.MonitoringRegistration>(),

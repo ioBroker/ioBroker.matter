@@ -963,11 +963,19 @@ export class GeneralMatterNode {
             return;
         }
 
-        await this.clear();
-        // clear() closed the ICD manager; recreate it before the structure rebuild (matching
-        // initialize()'s order) so a throw below cannot leave the node without one.
-        this.#createIcdManager();
-        await this.#processRootEndpointStructure(rootEndpoint);
+        // Shares the build lock with initialize(): both clear the structure and then rebuild it, so running
+        // them at once leaves the maps and subscriptions of one half inside the other's structure.
+        this.#generation++;
+        const slot = await this.#buildLock.obtainSlot();
+        try {
+            await this.clear();
+            // clear() closed the ICD manager; recreate it before the structure rebuild (matching
+            // initialize()'s order) so a throw below cannot leave the node without one.
+            this.#createIcdManager();
+            await this.#processRootEndpointStructure(rootEndpoint);
+        } finally {
+            slot.close();
+        }
     }
 
     // On Root level we create devices for all endpoints because these are devices

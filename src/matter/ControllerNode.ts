@@ -1181,15 +1181,17 @@ class Controller implements GeneralNode {
 
         const finish = async (): Promise<void> => {
             observers.close();
-            this.#activeDiscovery = undefined;
             this.#discovering = false;
             await this.#adapter
                 .setState('controller.info.discovering', false, true)
                 .catch(error => this.#adapter.log.info(`Error setting state: ${error}`));
         };
+        // The scan stays the active one until its callers have been answered, so a command arriving while
+        // it finishes joins it and is answered here rather than waiting for a scan that is already over.
         const answer = (response: Record<string, unknown>): void => {
             const callers = this.#discoveryCallbacks;
             this.#discoveryCallbacks = [];
+            this.#activeDiscovery = undefined;
             for (const caller of callers) {
                 if (caller.callback) {
                     this.#adapter.sendTo(caller.from, caller.command, response, caller.callback);

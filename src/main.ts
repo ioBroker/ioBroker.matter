@@ -217,6 +217,20 @@ export class MatterAdapter extends Adapter {
         await this.delObjectAsync('storage', { recursive: true });
         // clear all nodes in the controller
         await this.delObjectAsync('controller', { recursive: true });
+        // A peer keeps its cluster data here, and one left behind reads as a node without commissioning
+        // state, which matter.js loads but its expiration cull never removes
+        if (this.#instanceDataDir !== undefined) {
+            try {
+                for (const entry of await fs.readdir(this.#instanceDataDir)) {
+                    if (StorageLayout.isNodeDataEntry(entry)) {
+                        await fs.rm(path.join(this.#instanceDataDir, entry), { recursive: true, force: true });
+                    }
+                }
+            } catch (error) {
+                this.log.error(`Can not remove the node data in ${this.#instanceDataDir}: ${error.message}`);
+            }
+        }
+
         // restart adapter
         this.restart();
     }
@@ -555,16 +569,7 @@ export class MatterAdapter extends Adapter {
                     adapter,
                     namespace,
                     namespace === 'controller' ? instanceDataDir : undefined,
-                    namespace === 'controller'
-                        ? (contexts: string[]): boolean =>
-                              // Legacy node data
-                              contexts[0]?.startsWith('node-') ||
-                              // Or new node data for endpoints (not internal clusters)
-                              (contexts[0] === 'nodes' &&
-                                  contexts[2] === 'endpoints' &&
-                                  contexts[1]?.startsWith('peer') &&
-                                  !Number.isNaN(contexts[4]))
-                        : undefined,
+                    namespace === 'controller' ? StorageLayout.isClusterData : undefined,
                 );
                 await store.initialize();
                 return store;

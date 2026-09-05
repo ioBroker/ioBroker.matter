@@ -43,6 +43,16 @@ export namespace StorageLayout {
         );
     }
 
+    /**
+     * Whether a file in the instance data directory belongs to the controller node store.
+     *
+     * A relocation that found its target occupied leaves the source behind, so the directory can also hold
+     * the user's own OTA images, which a reset must not take with it.
+     */
+    export function isNodeDataEntry(name: string): boolean {
+        return name.startsWith('nodes.') || name.startsWith('node-');
+    }
+
     export interface Targets {
         /** Root for the files matter.js downloads and can fetch again. */
         cacheDir: string;

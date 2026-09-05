@@ -294,9 +294,8 @@ describe('IoBrokerObjectStorage', () => {
         it('does not serve a deleted value from a file that could not be moved', async () => {
             await withStrandedData(async (storage, mock, dir) => {
                 // The move of this entry failed, so both a file and, from now on, the objects entry exist
-                mock.states.delete(
-                    `${NAMESPACE}.storage.controller.nodes$$peer1$$endpoints$$0$$commissioning$$peerAddress`,
-                );
+                // The mock keeps the ids the driver passes, which carry no adapter namespace
+                mock.states.delete('storage.controller.nodes$$peer1$$endpoints$$0$$commissioning$$peerAddress');
                 writeFileSync(
                     join(dir, 'nodes.peer1.endpoints.0.commissioning.peerAddress'),
                     '"{\\"fabricIndex\\":1}"',

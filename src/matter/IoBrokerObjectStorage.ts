@@ -105,18 +105,24 @@ export class IoBrokerObjectStorage extends StorageDriver {
             const values = await local.values(contexts);
             for (const key of await local.keys(contexts)) {
                 const file = [...contexts, key].join('.');
-                if ((await this.#getFromObjects(contexts, key)) !== undefined) {
-                    continue;
-                }
-                if (!(key in values)) {
-                    // The file storage driver drops what it cannot parse, so this entry has no value to copy
-                    stranded.push(file);
-                    continue;
-                }
+                try {
+                    if (await this.#objectsHoldValue(contexts, key)) {
+                        continue;
+                    }
+                    if (!(key in values)) {
+                        // The file storage driver drops what it cannot parse, so there is no value to copy
+                        stranded.push(file);
+                        continue;
+                    }
 
-                await this.#setKey(contexts, key, values[key]);
-                // #setKey reports a failed write in the log and returns rather than throwing
-                if ((await this.#getFromObjects(contexts, key)) === undefined) {
+                    await this.#setKey(contexts, key, values[key]);
+                    // #setKey reports a failed write in the log and returns rather than throwing
+                    if (!(await this.#objectsHoldValue(contexts, key))) {
+                        stranded.push(file);
+                        continue;
+                    }
+                } catch (error) {
+                    this.#adapter.log.warn(`[STORAGE] Cannot read ${file} from the objects database: ${error.message}`);
                     stranded.push(file);
                     continue;
                 }
@@ -212,6 +218,17 @@ export class IoBrokerObjectStorage extends StorageDriver {
         }
         // Entries #adoptStrandedNodeData could not move stay readable from where they were written
         return this.#localStorageManager?.get<T>(contexts, key);
+    }
+
+    /**
+     * Whether the objects database holds a value for this entry.
+     *
+     * Throws when the database cannot be read, because treating that as "absent" would copy the file over a
+     * value that is only unreadable right now.
+     */
+    async #objectsHoldValue(contexts: string[], key: string): Promise<boolean> {
+        const valueState = await this.#adapter.getStateAsync(this.buildKey(contexts, key));
+        return typeof valueState?.val === 'string';
     }
 
     async #getFromObjects<T extends SupportedStorageTypes>(contexts: string[], key: string): Promise<T | undefined> {

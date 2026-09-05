@@ -308,6 +308,20 @@ describe('IoBrokerObjectStorage', () => {
             });
         });
 
+        it('reports nothing rather than the older file when the objects database cannot be read', async () => {
+            await withStrandedData(async (storage, mock, dir) => {
+                writeFileSync(
+                    join(dir, 'nodes.peer1.endpoints.0.commissioning.peerAddress'),
+                    '"{\\"fabricIndex\\":1}"',
+                );
+                mock.adapter.getStateAsync = (() => {
+                    throw new Error('objects database unavailable');
+                }) as unknown as ioBroker.Adapter['getStateAsync'];
+
+                strictEqual(await storage.get(COMMISSIONING, 'peerAddress'), undefined);
+            });
+        });
+
         it('leaves an entry the objects database already holds alone', async () => {
             const dir = mkdtempSync(join(tmpdir(), 'iobroker-matter-storage-'));
             try {

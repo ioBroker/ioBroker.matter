@@ -216,6 +216,11 @@ export class IoBrokerObjectStorage extends StorageDriver {
             // a directory throws rather than reporting nothing
             return undefined;
         }
+        if (this.#existingObjectIds.has(this.buildKey(contexts, key))) {
+            // The objects database owns this entry, so a read that failed must report nothing rather than
+            // the copy #adoptStrandedNodeData left behind, which is older by definition.
+            return undefined;
+        }
         // Entries #adoptStrandedNodeData could not move stay readable from where they were written
         return this.#localStorageManager?.get<T>(contexts, key);
     }
@@ -377,18 +382,17 @@ export class IoBrokerObjectStorage extends StorageDriver {
 
         const oid = this.buildKey(contexts, key);
 
+        // The copy #adoptStrandedNodeData left behind goes first and its failure is not swallowed: while it
+        // is there, the value the objects database still holds is what keeps `get()` from serving it again.
+        if (this.#localStorageManager && contexts.length) {
+            await this.#localStorageManager.delete(contexts, key);
+        }
+
         try {
             await this.#adapter.delObjectAsync(oid);
         } catch (error) {
             this.#adapter.log.error(`[STORAGE] Cannot delete state ${oid}: ${error.message}`);
         }
         this.#existingObjectIds.delete(oid);
-
-        if (this.#localStorageManager && contexts.length) {
-            // An entry #adoptStrandedNodeData could not move would be served again by get()
-            await this.#localStorageManager
-                .delete(contexts, key)
-                .catch(error => this.#adapter.log.warn(`[STORAGE] Cannot delete file for ${oid}: ${error.message}`));
-        }
     }
 }

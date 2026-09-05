@@ -221,7 +221,11 @@ export class MatterAdapter extends Adapter {
         // state, which matter.js loads but its expiration cull never removes
         if (this.#instanceDataDir !== undefined) {
             try {
-                await fs.rm(this.#instanceDataDir, { recursive: true, force: true });
+                for (const entry of await fs.readdir(this.#instanceDataDir)) {
+                    if (StorageLayout.isNodeDataEntry(entry)) {
+                        await fs.rm(path.join(this.#instanceDataDir, entry), { recursive: true, force: true });
+                    }
+                }
             } catch (error) {
                 this.log.error(`Can not remove the node data in ${this.#instanceDataDir}: ${error.message}`);
             }

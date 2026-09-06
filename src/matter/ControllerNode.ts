@@ -127,6 +127,11 @@ export type {
  */
 const STRUCTURE_REBUILD_DELAY_MS = 5_000;
 
+/** What makes two discovery announcements the same device. */
+function discoveredDeviceIdentifier(device: CommissionableDevice): string {
+    return device.deviceIdentifier ?? JSON.stringify(device.addresses ?? []);
+}
+
 interface WatchedPeer {
     peer: ClientNode;
     observers: ObserverGroup;
@@ -1163,7 +1168,7 @@ class Controller implements GeneralNode {
                 return;
             }
             const device = RemoteDescriptor.fromLongForm(commissioning) as CommissionableDevice;
-            const identifier = device.deviceIdentifier ?? JSON.stringify(device.addresses ?? []);
+            const identifier = discoveredDeviceIdentifier(device);
             if (seen.has(identifier)) {
                 return;
             }
@@ -1201,10 +1206,21 @@ class Controller implements GeneralNode {
 
         discovery
             .then(async nodes => {
+                // Discovery collects a node per announcement, so a device that advertises repeatedly is
+                // in there as often as it did.
+                const reported = new Set<string>();
                 const result = nodes
                     .map(node => node.maybeStateOf(CommissioningClient))
                     .filter(commissioning => commissioning !== undefined)
-                    .map(commissioning => RemoteDescriptor.fromLongForm(commissioning) as CommissionableDevice);
+                    .map(commissioning => RemoteDescriptor.fromLongForm(commissioning) as CommissionableDevice)
+                    .filter(device => {
+                        const identifier = discoveredDeviceIdentifier(device);
+                        if (reported.has(identifier)) {
+                            return false;
+                        }
+                        reported.add(identifier);
+                        return true;
+                    });
                 await finish();
                 this.#adapter.log.info(`Discovering stopped. Found ${result.length} devices.`);
                 answer({ result });

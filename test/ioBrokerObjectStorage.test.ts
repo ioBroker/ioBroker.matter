@@ -284,6 +284,26 @@ describe('IoBrokerObjectStorage', () => {
             }
         });
 
+        it('stops reporting a peer whose files were wiped', async () => {
+            const dir = mkdtempSync(join(tmpdir(), 'iobroker-matter-storage-'));
+            try {
+                const mock = makeAdapter();
+                const storage = new IoBrokerObjectStorage(mock.adapter, 'controller', dir, StorageLayout.isClusterData);
+                await storage.initialize();
+                await storage.set(CLUSTER, '3', 'Test Product');
+                deepStrictEqual(storage.contexts(['nodes']), ['peer1']);
+
+                await storage.clearAll(['nodes', 'peer1', 'endpoints', '0']);
+
+                // The file driver keeps an emptied context in its index, and a peer reported without data
+                // reads as a node matter.js loads but never culls
+                deepStrictEqual(storage.contexts(['nodes', 'peer1', 'endpoints']), []);
+                await storage.close();
+            } finally {
+                rmSync(dir, { recursive: true, force: true });
+            }
+        });
+
         it('reports a peer once although both backends hold part of it', async () => {
             await withStrandedData(async storage => {
                 deepStrictEqual(storage.contexts(['nodes']), ['peer1']);

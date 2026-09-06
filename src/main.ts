@@ -227,7 +227,13 @@ export class MatterAdapter extends Adapter {
                     }
                 }
             } catch (error) {
-                this.log.error(`Can not remove the node data in ${this.#instanceDataDir}: ${error.message}`);
+                // Restarting now would load the files that are still there and copy them back into the
+                // objects database, so the nodes this reset reported as erased would simply return.
+                this.log.error(
+                    `Can not remove the node data in ${this.#instanceDataDir}: ${error.message}. The reset is ` +
+                        `incomplete, so the adapter is not restarted. Remove the directory by hand and restart.`,
+                );
+                return;
             }
         }
 

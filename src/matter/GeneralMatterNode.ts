@@ -130,7 +130,8 @@ function decodedEventOf(change: ChangeNotificationService.EventOccurrence): Deco
         eventNumber: change.number,
         priority: change.priority,
         [EVENT_TIMESTAMP_FIELDS[change.timestampKind]]: change.timestamp,
-        data: change.payload,
+        // An event that carries no fields at all has no payload, and it still occurred
+        data: change.payload ?? {},
     };
 }
 
@@ -1643,9 +1644,6 @@ export class GeneralMatterNode {
         const clusterId = change.behavior.cluster.id;
         const eventName = change.event.name;
         const eventId = EventId(change.event.id);
-        if (change.payload === undefined) {
-            return;
-        }
         const events = [decodedEventOf(change)];
         this.adapter.log.debug(
             `handleTriggeredEvent "${this.nodeId}": Event ${endpointId}/${toHex(clusterId)}/${eventName} triggered with ${Diagnostic.json(

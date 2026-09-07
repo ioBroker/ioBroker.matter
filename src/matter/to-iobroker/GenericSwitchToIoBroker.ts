@@ -1,8 +1,7 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { Switch } from '@matter/main/clusters';
 import { SwitchClient } from '@matter/main/behaviors';
-import type { Endpoint } from '@matter/main';
-import type { PairedNode } from '@project-chip/matter.js/device';
+import type { Endpoint, ClientNode } from '@matter/main';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { ButtonSensor } from '../../lib/devices/ButtonSensor';
@@ -14,7 +13,7 @@ export class GenericSwitchToIoBroker extends GenericDeviceToIoBroker {
     readonly #ioBrokerDevice: ButtonSensor | Socket;
 
     constructor(
-        node: PairedNode,
+        node: ClientNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         adapter: MatterAdapter,

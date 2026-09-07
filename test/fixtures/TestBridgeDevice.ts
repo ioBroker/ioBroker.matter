@@ -22,6 +22,7 @@ import {
     OccupancySensingServer,
     OnOffServer,
     Pm25ConcentrationMeasurementServer,
+    DoorLockServer,
     PowerSourceServer,
     PressureMeasurementServer,
     PumpConfigurationAndControlServer,
@@ -178,16 +179,21 @@ async function main(): Promise<void> {
         onOff: { onOff: true },
         levelControl: { currentLevel: 64 },
     });
-    await addBridged('doorlock', Devices.DoorLockDevice, {
-        doorLock: {
-            lockState: DoorLock.LockState.Locked,
-            lockType: DoorLock.LockType.DeadBolt,
-            actuatorEnabled: true,
-            operatingMode: DoorLock.OperatingMode.Normal,
-            wrongCodeEntryLimit: 5,
-            userCodeTemporaryDisableTime: 10,
+    await addBridged(
+        'doorlock',
+        Devices.DoorLockDevice,
+        {
+            doorLock: {
+                lockState: DoorLock.LockState.Locked,
+                lockType: DoorLock.LockType.DeadBolt,
+                actuatorEnabled: true,
+                operatingMode: DoorLock.OperatingMode.Normal,
+                doorState: DoorLock.DoorState.DoorClosed,
+            },
         },
-    });
+        // `doorState` is conformant only with the door position sensor
+        [DoorLockServer.with('DoorPositionSensor')],
+    );
     await addBridged(
         'windowcovering',
         Devices.WindowCoveringDevice,

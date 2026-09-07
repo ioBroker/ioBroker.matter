@@ -1,5 +1,5 @@
 import ChannelDetector from '@iobroker/type-detector';
-import type { Endpoint } from '@matter/main';
+import type { Endpoint, ClientNode } from '@matter/main';
 import {
     ModeBase,
     OperationalState,
@@ -9,7 +9,6 @@ import {
     ServiceArea,
 } from '@matter/main/clusters';
 import { RvcCleanModeClient, RvcOperationalStateClient, RvcRunModeClient } from '@matter/main/behaviors';
-import type { PairedNode } from '@project-chip/matter.js/device';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import {
@@ -87,7 +86,7 @@ export class RoboticVacuumCleanerToIoBroker extends GenericDeviceToIoBroker {
     readonly #ioBrokerDevice: VacuumCleaner;
 
     constructor(
-        node: PairedNode,
+        node: ClientNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         adapter: MatterAdapter,

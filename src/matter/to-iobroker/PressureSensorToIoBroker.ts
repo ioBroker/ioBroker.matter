@@ -1,7 +1,6 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { PressureMeasurement } from '@matter/main/clusters';
-import type { Endpoint } from '@matter/main';
-import type { PairedNode } from '@project-chip/matter.js/device';
+import type { Endpoint, ClientNode } from '@matter/main';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { Pressure } from '../../lib/devices/Pressure';
@@ -12,7 +11,7 @@ export class PressureSensorToIoBroker extends GenericDeviceToIoBroker {
     readonly #ioBrokerDevice: Pressure;
 
     constructor(
-        node: PairedNode,
+        node: ClientNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         adapter: MatterAdapter,

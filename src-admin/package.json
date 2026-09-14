@@ -10,7 +10,7 @@
         "@iobroker/type-detector": "^6.0.1",
         "@mdi/js": "^7.4.47",
         "@types/react": "^19.2.18",
-        "@types/react-dom": "^19.2.5",
+        "@types/react-dom": "^19.2.7",
         "@vitejs/plugin-react": "^6.1.1",
         "@yudiel/react-qr-scanner": "^2.6.0",
         "react": "^19.2.8",

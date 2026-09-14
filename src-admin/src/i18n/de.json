@@ -143,7 +143,7 @@
     "Not used devices": "Nicht verwendete Geräte",
     "Nothing detected": "Nichts erkannt",
     "Off": "Aus",
-    "On": "An",
+    "On": "Ein",
     "Options": "Optionen",
     "Pairing Info Text": "Erkennen von Geräten in Ihrem IP-Netzwerk. \nBitte stellen Sie sicher, dass der ioBroker-Host im Netzwerk und im Netzwerk der zu erkennenden Geräte frei UDP-Nachrichten senden und empfangen kann. \nSetzen Sie die Geräte bei Bedarf auf die Werkseinstellungen zurück oder schalten Sie sie aus und wieder ein.",
     "Pairing Info Text BLE": "Erkennen von Geräten in Ihrem IP-Netzwerk und über BLE. \nBitte stellen Sie sicher, dass der ioBroker-Host im Netzwerk und im Netzwerk der zu erkennenden Geräte frei UDP-Nachrichten senden und empfangen kann. \nSetzen Sie die Geräte bei Bedarf auf die Werkseinstellungen zurück oder schalten Sie sie aus und wieder ein.",

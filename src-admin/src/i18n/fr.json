@@ -39,7 +39,7 @@
     "Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.": "La numérisation locale du code QR n'est pas possible car ioBroker Admin est utilisé sans HTTPS.\nVeuillez utiliser le scanner de code QR ioBroker Cloud à l'aide du bouton ci-dessous ou activer HTTPS pour ioBroker Admin.",
     "Cancel": "Annuler",
     "Cannot pair device": "Impossible de coupler l'appareil",
-    "Close": "Fermer",
+    "Close": "proche",
     "Cloud Account": "Compte Cloud",
     "Code must start with \"MT:\"": "Le code doit commencer par « MT : »",
     "Collapse all": "Tout réduire",

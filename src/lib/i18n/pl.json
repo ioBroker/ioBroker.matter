@@ -51,7 +51,7 @@
     "ICD cannot disable other controllers": "Nie można wyłączyć trybu oszczędzania baterii: nadal zarejestrowanych jest %s inny(ch) kontroler(ów) dla tego urządzenia. Najpierw usuń urządzenie z tych ekosystemów lub wyłącz tam tryb oszczędzania baterii.",
     "ICD confirm resync": "Zsynchronizować ponownie stan trybu oszczędzania baterii? Spowoduje to usunięcie lokalnej rejestracji trybu oszczędzania baterii i rozpoczęcie nowej próby ponownego połączenia w tle. Użyj tego, gdy urządzenie wygląda na trwale offline, mimo że powinno być osiągalne.",
     "ICD operation already running": "Dla tego urządzenia jest już uruchomiona operacja trybu oszczędzania baterii. Poczekaj, aż się zakończy.",
-    "Close": "Zamknąć",
+    "Close": "Blisko",
     "Configure device": "Konfiguruj urządzenie",
     "Configure node": "Konfiguruj węzeł",
     "Configure this device": "Skonfiguruj to urządzenie",

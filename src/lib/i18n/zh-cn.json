@@ -51,7 +51,7 @@
     "ICD cannot disable other controllers": "无法禁用省电模式：此设备仍注册了 %s 个其他控制器。请先将设备从这些生态系统中移除，或在那里禁用省电模式。",
     "ICD confirm resync": "重新同步省电模式状态？这将删除本地的省电模式注册信息，并在后台开始新的重新连接尝试。当设备明明应该可以访问却似乎一直处于离线状态时，请使用此选项。",
     "ICD operation already running": "此设备已经有一个省电模式操作正在进行。请等待其完成。",
-    "Close": "关闭",
+    "Close": "关",
     "Configure device": "配置设备",
     "Configure node": "配置节点",
     "Configure this device": "配置此设备",

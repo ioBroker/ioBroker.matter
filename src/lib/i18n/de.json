@@ -50,7 +50,7 @@
     "ICD cannot disable other controllers": "Der Akkusparmodus kann nicht deaktiviert werden: %s andere(r) Controller sind noch bei diesem Gerät registriert. Entfernen Sie das Gerät zuerst aus diesen Ökosystemen oder deaktivieren Sie dort den Akkusparmodus.",
     "ICD confirm resync": "Akkusparmodus-Status neu synchronisieren? Dies entfernt die lokale Akkusparmodus-Registrierung und startet im Hintergrund einen neuen Verbindungsversuch. Verwenden Sie dies, wenn das Gerät scheinbar dauerhaft offline hängt, obwohl es erreichbar sein sollte.",
     "ICD operation already running": "Für dieses Gerät läuft bereits ein Akkusparmodus-Vorgang. Bitte warten Sie, bis dieser abgeschlossen ist.",
-    "Close": "Schließen",
+    "Close": "Zumachen",
     "Configure device": "Gerät konfigurieren",
     "Current Version": "Aktuelle Version",
     "Custom OTA Updates": "Eigene OTA-Updates",

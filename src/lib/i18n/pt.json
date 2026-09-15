@@ -51,7 +51,7 @@
     "ICD cannot disable other controllers": "Não é possível desativar o modo de poupança de bateria: ainda há %s outro(s) controlador(es) registado(s) neste dispositivo. Remove primeiro o dispositivo desses ecossistemas, ou desativa lá o modo de poupança de bateria.",
     "ICD confirm resync": "Ressincronizar o estado do modo de poupança de bateria? Isto remove o registo local do modo de poupança de bateria e inicia uma nova tentativa de reconexão em segundo plano. Usa isto quando o dispositivo parecer preso offline apesar de dever estar acessível.",
     "ICD operation already running": "Já está em curso uma operação do modo de poupança de bateria para este dispositivo. Aguarda que termine.",
-    "Close": "Fechar",
+    "Close": "Perto",
     "Configure device": "Configurar dispositivo",
     "Configure node": "Configurar nó",
     "Configure this device": "Configurar este dispositivo",

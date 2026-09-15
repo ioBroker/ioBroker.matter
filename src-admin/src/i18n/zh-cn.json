@@ -39,7 +39,7 @@
     "Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.": "由于 ioBroker Admin 未使用 HTTPS，因此无法进行本地二维码扫描。\n请使用下面的按钮使用 ioBroker Cloud 二维码扫描器，或为 ioBroker Admin 激活 HTTPS。",
     "Cancel": "取消",
     "Cannot pair device": "无法配对设备",
-    "Close": "关闭",
+    "Close": "关",
     "Cloud Account": "云帐户",
     "Code must start with \"MT:\"": "代码必须以“MT:”开头",
     "Collapse all": "全部收缩",

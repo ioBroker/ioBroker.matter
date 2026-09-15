@@ -51,7 +51,7 @@
     "ICD cannot disable other controllers": "Impossibile disattivare la modalità risparmio energetico: %s altro/i controller sono ancora registrati con questo dispositivo. Rimuovi prima il dispositivo da quegli ecosistemi, oppure disattiva lì la modalità risparmio energetico.",
     "ICD confirm resync": "Risincronizzare lo stato della modalità risparmio energetico? Questo rimuove la registrazione locale della modalità risparmio energetico e avvia un nuovo tentativo di riconnessione in background. Usa questa opzione quando il dispositivo sembra bloccato offline pur dovendo essere raggiungibile.",
     "ICD operation already running": "Un'operazione della modalità risparmio energetico è già in corso per questo dispositivo. Attendi che finisca.",
-    "Close": "Vicino",
+    "Close": "Chiudere",
     "Configure device": "Configurare il dispositivo",
     "Configure node": "Configurare il nodo",
     "Configure this device": "Configurare questo dispositivo",

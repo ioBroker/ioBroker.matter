@@ -51,7 +51,7 @@
     "ICD cannot disable other controllers": "Le mode économie de batterie ne peut pas être désactivé : %s autre(s) contrôleur(s) sont encore enregistrés auprès de cet appareil. Retirez d'abord l'appareil de ces écosystèmes, ou désactivez-y le mode économie de batterie.",
     "ICD confirm resync": "Resynchroniser l'état du mode économie de batterie ? Cela supprime l'enregistrement local du mode économie de batterie et lance une nouvelle tentative de reconnexion en arrière-plan. Utilisez ceci lorsque l'appareil semble bloqué hors ligne alors qu'il devrait être joignable.",
     "ICD operation already running": "Une opération du mode économie de batterie est déjà en cours pour cet appareil. Veuillez attendre qu'elle se termine.",
-    "Close": "Fermer",
+    "Close": "proche",
     "Configure device": "Configurer l'appareil",
     "Configure node": "Configurer le nœud",
     "Configure this device": "Configurer cet appareil",

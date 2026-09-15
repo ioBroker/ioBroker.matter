@@ -39,7 +39,7 @@
     "Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.": "Локальне сканування QR-коду неможливе, оскільки ioBroker Admin використовується без HTTPS.\nСкористайтеся хмарним сканером QR-коду ioBroker за допомогою кнопки нижче або активуйте HTTPS для адміністратора ioBroker.",
     "Cancel": "Скасувати",
     "Cannot pair device": "Неможливо підключити пристрій",
-    "Close": "Закрити",
+    "Close": "Закрыть",
     "Cloud Account": "Хмарний обліковий запис",
     "Code must start with \"MT:\"": "Код має починатися з \"MT:\"",
     "Collapse all": "Закрити все",

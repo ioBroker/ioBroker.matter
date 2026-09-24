@@ -17,6 +17,8 @@ on:
     pull_request:
         branches:
             - 'main'
+            # A pull request stacked on another feature branch is tested as well
+            - 'feat/**'
 
 concurrency:
     group: ${{ github.ref }}

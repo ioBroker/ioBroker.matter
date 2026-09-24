@@ -176,6 +176,12 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) The ioBroker device model now covers the new states type detector v6 exposes on existing device types, such as signal strength, on-time countdown, separate heating and cooling setpoints, valve position, filter condition and alarm severity
 * (@Apollon77) Fixed several memory leaks: ioBroker device instances that were built but not adopted stayed registered with the state subscription manager, and listeners, timers, pending locks and custom state bookkeeping were not always released on teardown
 * (@Apollon77) Network visualization data is no longer assembled, and neither it nor Thread diagnostics data is serialized and sent, while no admin UI is listening
+* (@Apollon77) Updated matter.js to 0.18 and migrated the controller to its ClientNode API
+* (@Apollon77) A bridged pump no longer advertises the Matter Lighting feature on its level and on/off clusters, so its speed setpoint can reach zero as intended
+* (@Apollon77) Fix vendor specific attributes of paired nodes not being updated anymore
+* (@Apollon77) Fix the ioBroker structure of a paired node not being rebuilt when a bridge gains or loses a device
+* (@Apollon77) Fix leftover objects and observers when a node is removed, and no longer create a second node tree while removing one
+* (@Apollon77) A second discovery request joins the running discovery instead of starting a competing one
 * (@Apollon77) Add support for the Room Air Conditioner device type (controller and bridge/device mode) mapped to the ioBroker airCondition type
 * (@Apollon77) Fix Thermostat cooling setpoint changes from Matter being applied as heating setpoint
 * (@Apollon77) Add a request timeout to the license verification API calls
@@ -187,7 +193,6 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) Added Enhanced Thread diagnostics (tries to get data from BRs when credentials are known or REST API is available)
 * (@Apollon77) Added options to store multiple Thread and WiFi credentials to use in commissioning and Visualization
 * (@Apollon77) Optimizations and Improvements for the Thread and WiFi visualizations
-* (@Apollon77) Updated matter.js to 0.17.9 
 * (@GermanBluefox) Updated GUI to React 19
 
 ### 1.3.1 (2026-07-23)

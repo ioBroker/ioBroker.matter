@@ -3022,8 +3022,8 @@
           "levelControl": {
             "currentLevel": 152,
             "featureMap": {
-              "onOff": true,
-              "lighting": true,
+              "onOff": false,
+              "lighting": false,
               "frequency": false
             },
             "managedTransitionTimeHandling": false,
@@ -3034,8 +3034,6 @@
               "executeIfOff": false,
               "coupleColorTempToLevel": false
             },
-            "remainingTime": 0,
-            "startUpCurrentLevel": null,
             "transitionStepInterval": 100
           },
           "temperatureMeasurement": {

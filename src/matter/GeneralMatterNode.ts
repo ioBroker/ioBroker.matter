@@ -187,6 +187,8 @@ export class GeneralMatterNode {
     #generation = 0;
     /** One build of this node at a time: they clear each other's structure and write the same objects. */
     readonly #buildLock = new Semaphore('general-matter-node-build');
+    /** Set by destroy() before it waits for the build lock, so a build queued behind it never starts. */
+    #destroyed = false;
     #softwareUpdateAvailable?: SoftwareUpdateInfo;
     #softwareUpdateInProgress = false;
     #currentUpdateState?: OtaSoftwareUpdateRequestor.UpdateState;
@@ -194,7 +196,7 @@ export class GeneralMatterNode {
     #icd?: NodeIcdManager;
     /** Undoes what this node generation attached to the PairedNode, which outlives it. */
     #teardown: TeardownRegistry;
-    // Outlives #icd across clear()/#createIcdManager() cycles (e.g. applyConfiguration()'s
+    // Outlives #icd across #clear()/#createIcdManager() cycles (e.g. applyConfiguration()'s
     // clear-and-rebuild), so a subscriber only needs to attach once per GeneralMatterNode rather than
     // once per NodeIcdManager instance.
     readonly #icdChanged = Observable<[]>();
@@ -242,11 +244,10 @@ export class GeneralMatterNode {
         );
     }
 
-    async clear(): Promise<void> {
+    async #clear(): Promise<void> {
         this.#generation++;
         // Clear out all things from before
-        // clear() is a re-init point, not only a teardown point, so the next generation needs a fresh registry.
-        // Swapping before the await keeps a concurrent clear() from discarding a registry that already holds an undo.
+        // #clear() is a re-init point, not only a teardown point, so the next generation needs a fresh registry.
         const previousTeardown = this.#teardown;
         this.#teardown = this.#newTeardownRegistry();
         await previousTeardown.close();
@@ -284,10 +285,13 @@ export class GeneralMatterNode {
     }
 
     async initialize(nodeDetails?: { operationalAddress?: string }): Promise<void> {
-        // clear() retires whatever is building, so a run waiting here leaves the structure it finds alone
+        // #clear() retires whatever is building, so a run waiting here leaves the structure it finds alone
         this.#generation++;
         const slot = await this.#buildLock.obtainSlot();
         try {
+            if (this.#destroyed) {
+                return;
+            }
             await this.#initialize(nodeDetails);
         } finally {
             slot.close();
@@ -295,7 +299,7 @@ export class GeneralMatterNode {
     }
 
     async #initialize(nodeDetails?: { operationalAddress?: string }): Promise<void> {
-        await this.clear();
+        await this.#clear();
         const generation = this.#generation;
 
         const existingObject = await this.adapter.getObjectAsync(this.nodeBaseId);
@@ -736,7 +740,7 @@ export class GeneralMatterNode {
     }
 
     #createIcdManager(): void {
-        if (this.#icd !== undefined) {
+        if (this.#icd !== undefined || this.#destroyed) {
             return;
         }
         let icd: NodeIcdManager;
@@ -969,8 +973,11 @@ export class GeneralMatterNode {
         this.#generation++;
         const slot = await this.#buildLock.obtainSlot();
         try {
-            await this.clear();
-            // clear() closed the ICD manager; recreate it before the structure rebuild (matching
+            if (this.#destroyed) {
+                return;
+            }
+            await this.#clear();
+            // #clear() closed the ICD manager; recreate it before the structure rebuild (matching
             // initialize()'s order) so a throw below cannot leave the node without one.
             this.#createIcdManager();
             await this.#processRootEndpointStructure(rootEndpoint);
@@ -990,18 +997,19 @@ export class GeneralMatterNode {
         this.#hasAggregatorEndpoint = false;
 
         const generation = this.#generation;
-        await this.#endpointToIoBrokerDevices(rootEndpoint, rootEndpoint, this.nodeBaseId, options);
+        await this.#endpointToIoBrokerDevices(generation, rootEndpoint, rootEndpoint, this.nodeBaseId, options);
 
         for (const childEndpoint of rootEndpoint.parts) {
             if (generation !== this.#generation) {
                 // Retired while building, so the rest belongs to whoever cleared it
                 return;
             }
-            await this.#endpointToIoBrokerDevices(childEndpoint, rootEndpoint, this.nodeBaseId, options);
+            await this.#endpointToIoBrokerDevices(generation, childEndpoint, rootEndpoint, this.nodeBaseId, options);
         }
     }
 
     async #endpointToIoBrokerDevices(
+        generation: number,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         baseId: string,
@@ -1012,6 +1020,10 @@ export class GeneralMatterNode {
             endpointBaseName?: string;
         },
     ): Promise<void> {
+        if (generation !== this.#generation) {
+            // Retired while building, so the rest belongs to whoever cleared it
+            return;
+        }
         const id = endpoint.number;
         if (id === undefined) {
             this.adapter.log.warn(`Node ${this.nodeId}: Endpoint ${endpoint.id} has no number!`);
@@ -1109,6 +1121,7 @@ export class GeneralMatterNode {
             if (childrenAreOwnDevices) {
                 for (const childEndpoint of [...endpoint.parts]) {
                     await this.#endpointToIoBrokerDevices(
+                        generation,
                         childEndpoint,
                         rootEndpoint,
                         endpointDeviceBaseId,
@@ -1161,6 +1174,7 @@ export class GeneralMatterNode {
                 if (childrenAreOwnDevices) {
                     for (const childEndpoint of [...endpoint.parts]) {
                         await this.#endpointToIoBrokerDevices(
+                            generation,
                             childEndpoint,
                             rootEndpoint,
                             endpointDeviceBaseId,
@@ -1747,14 +1761,29 @@ export class GeneralMatterNode {
         return value;
     }
 
+    /**
+     * Ends this instance for good. A build that is running is retired and finishes first; a build queued behind it,
+     * such as a delayed initialize() or a configuration change, does nothing afterwards. Safe to call again.
+     */
     async destroy(): Promise<void> {
+        this.#destroyed = true;
+        this.#generation++;
+        const slot = await this.#buildLock.obtainSlot();
         try {
             await this.adapter.setState(this.connectionStateId, false, true);
             await this.adapter.setState(this.connectionStatusId, NodeConnectionState.Disconnected, true);
         } finally {
             // These writes reject once the states DB is going away during unload, and the caller then has no
             // way back to this node - so releasing its subscriptions must not depend on them succeeding.
-            await this.clear();
+            try {
+                this.#cleanupUpdateObservers();
+                await this.#clear();
+                // #clear() hands the next build an open registry; nothing builds again, so anything added later
+                // is undone at once
+                await this.#teardown.close();
+            } finally {
+                slot.close();
+            }
         }
     }
 
@@ -1763,7 +1792,7 @@ export class GeneralMatterNode {
             throw new Error('Controller seems not to be initialized ... can not unpair device!');
         }
         await this.adapter.controllerNode.decommissionNode(this.nodeId);
-        await this.clear();
+        await this.destroy();
         this.adapter.log.info(`Node "${this.nodeId}" removed. Removing Storage in ${this.nodeBaseId}`);
         await this.adapter.delObjectAsync(this.nodeBaseId, { recursive: true });
     }

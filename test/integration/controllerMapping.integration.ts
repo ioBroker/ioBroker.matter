@@ -470,7 +470,7 @@ describe('Matter -> ioBroker controller mapping', function () {
         });
 
         after(async () => {
-            await node?.clear();
+            await node?.destroy();
         });
 
         it('places the raw data of a child that is its own device below that child', () => {
@@ -562,6 +562,51 @@ describe('Matter -> ioBroker controller mapping', function () {
                 `data.${button.number}.${toHex(SwitchClient.cluster.id)}.events.initialPress`,
             );
             expect(raw, 'raw event state not written').to.be.a('string');
+        });
+
+        it('retires a running build and runs none queued behind destroy()', async () => {
+            const subscriptionCount = (): number =>
+                [...SubscribeManager.subscribes.values()].reduce((sum, callbacks) => sum + callbacks.length, 0);
+            const before = subscriptionCount();
+
+            // Its own adapter, so destroy() does not write the connection states of the node the other tests use
+            const isolated = new MockControllerAdapter();
+            let reachedBuild!: () => void;
+            const inBuild = new Promise<void>(resolve => (reachedBuild = resolve));
+            let releaseBuild!: () => void;
+            const buildHeld = new Promise<void>(resolve => (releaseBuild = resolve));
+            const readObject = isolated.getObjectAsync.bind(isolated);
+            // Pauses in the middle of the endpoint walk, after a few devices are already built
+            let endpointReads = 0;
+            isolated.getObjectAsync = async (id: string): Promise<ioBroker.Object | null> => {
+                if (id.startsWith(`${discarded.nodeBaseId}.`) && ++endpointReads === 3) {
+                    reachedBuild();
+                    await buildHeld;
+                }
+                return readObject(id);
+            };
+            const discarded = new GeneralMatterNode(isolated as unknown as MatterAdapter, commissioned!.node, {});
+            const config = {
+                nodeId: peerNodeId(commissioned!.node),
+                exposeMatterApplicationClusterData: true,
+                exposeMatterSystemClusterData: false,
+            };
+
+            const building = discarded.initialize();
+            await inBuild;
+            const destroying = discarded.destroy();
+            const queuedConfiguration = discarded.applyConfiguration(config, true);
+            const queuedInitialize = discarded.initialize();
+            releaseBuild();
+            await destroying;
+            const objectsWhenDestroyed = isolated.objects.size;
+            await Promise.all([building, queuedConfiguration, queuedInitialize]);
+
+            expect(isolated.objects.size, 'the build kept writing after destroy() returned').to.equal(
+                objectsWhenDestroyed,
+            );
+            expect(discarded.devices.size, 'a build ran on the destroyed node').to.equal(0);
+            expect(subscriptionCount(), 'the destroyed node left subscriptions behind').to.equal(before);
         });
     });
 });

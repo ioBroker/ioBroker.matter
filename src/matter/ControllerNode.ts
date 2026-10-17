@@ -433,8 +433,12 @@ class Controller implements GeneralNode {
             const watched: WatchedPeer = { peer, observers };
             this.#watchedPeers.set(peer, watched);
 
-            // A peer can be watched before it is commissioned, so the id is kept current while it is known.
+            // `added` emits before the peer's construction starts, and a peer that crashed on load stays
+            // unreadable, so the id is taken whenever the state can be read.
             const rememberNodeId = (): void => {
+                if (!peer.lifecycle.isReadable) {
+                    return;
+                }
                 const nodeId = peer.state.commissioning?.peerAddress?.nodeId;
                 if (nodeId !== undefined) {
                     watched.commissionedNodeId = nodeId;
@@ -444,7 +448,7 @@ class Controller implements GeneralNode {
 
             observers.on(peer.lifecycle.connectionStateChanged, state => {
                 rememberNodeId();
-                this.#handleConnectionState(peer, state);
+                this.#handleConnectionState(peer, state, watched.commissionedNodeId);
             });
             // Seeding happens on the first structure read, which for a peer restored from cache is before this
             // runs; `seeded` emits once and does not replay, so the Connected path below arms these as well.
@@ -499,13 +503,7 @@ class Controller implements GeneralNode {
 
         // Restored peers include discovered ones, which forDescriptor() reuses without another `added`
         for (const peer of serverNode.peers) {
-            try {
-                watchPeer(peer);
-            } catch (error) {
-                // A peer that crashed on load throws on any state access
-                this.#adapter.log.warn(`Cannot watch node "${peer.id}": ${error}`);
-                unwatchPeer(peer);
-            }
+            watchPeer(peer);
         }
         this.#observers.on(serverNode.peers.added, watchPeer);
         this.#observers.on(serverNode.peers.deleted, unwatchPeer);
@@ -603,11 +601,15 @@ class Controller implements GeneralNode {
         }
     }
 
-    #handleConnectionState(peer: ClientNode, state: NodeConnectionState): void {
-        const nodeIdStr = peer.state.commissioning.peerAddress?.nodeId.toString() ?? peer.id;
+    /** `nodeId` is passed in because the state of a peer being closed or destroyed can no longer be read. */
+    #handleConnectionState(peer: ClientNode, state: NodeConnectionState, nodeId: NodeId | undefined): void {
+        const nodeIdStr = nodeId?.toString() ?? peer.id;
         const deviceNode = this.#nodes.get(nodeIdStr);
         if (deviceNode) {
-            deviceNode.handleStateChange(state, { operationalAddress: operationalAddressOf(peer) });
+            deviceNode.handleStateChange(
+                state,
+                peer.lifecycle.isReadable ? { operationalAddress: operationalAddressOf(peer) } : undefined,
+            );
         } else if (state !== NodeConnectionState.Disconnected) {
             this.#adapter.log.info(`Matter node "${nodeIdStr}" not initialized ... Got State change to ${state}`);
         }

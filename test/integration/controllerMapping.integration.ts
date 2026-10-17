@@ -11,9 +11,13 @@
 import { expect } from 'chai';
 import type { ChildProcess } from 'node:child_process';
 import type { ClientNode, Endpoint } from '@matter/main';
-import { Logger, LogLevel } from '@matter/main';
-import { AttributeId, ClusterId, EndpointNumber, NodeId } from '@matter/main/types';
-import { BridgedDeviceBasicInformationClient, TemperatureMeasurementClient } from '@matter/main/behaviors';
+import { Logger, LogLevel, Timestamp } from '@matter/main';
+import { AttributeId, ClusterId, EndpointNumber, EventNumber, NodeId, Priority } from '@matter/main/types';
+import {
+    BridgedDeviceBasicInformationClient,
+    SwitchClient,
+    TemperatureMeasurementClient,
+} from '@matter/main/behaviors';
 import {
     ActivatedCarbonFilterMonitoring,
     FanControl,
@@ -512,6 +516,28 @@ describe('Matter -> ioBroker controller mapping', function () {
             await node.handleChangedAttributes(sensor!, TemperatureMeasurementClient, ['measuredValue']);
 
             expect(adapter.states.get(stateId)?.val, 'raw state not written by the change handler').to.equal(2350);
+        });
+
+        it('delivers an event to the mapping under its camelCase name', async () => {
+            const button = bridgedEndpoint('genericswitch');
+            const initialPress = [...SwitchClient.schema.events].find(event => event.name === 'InitialPress');
+            expect(initialPress, 'the Switch schema has no InitialPress event').to.not.equal(undefined);
+
+            // The fixture cannot be told to press its button, so this hands the handler the occurrence matter.js
+            // would report for one.
+            await node.handleTriggeredEvent({
+                kind: 'event',
+                endpoint: button,
+                behavior: SwitchClient,
+                event: initialPress!,
+                number: EventNumber(1),
+                timestamp: Timestamp(0),
+                timestampKind: 'epoch',
+                priority: Priority.Info,
+                payload: { newPosition: 1 },
+            });
+
+            expect(adapter.valueOf(deviceObjectId(button.number), 'PRESS'), 'press not delivered').to.equal(true);
         });
     });
 });

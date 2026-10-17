@@ -1642,7 +1642,8 @@ export class GeneralMatterNode {
         }
         const endpointId = change.endpoint.number;
         const clusterId = change.behavior.cluster.id;
-        const eventName = change.event.name;
+        // The mappings and the raw event states use the camelCase name
+        const eventName = change.event.propertyName;
         const eventId = EventId(change.event.id);
         const events = [decodedEventOf(change)];
         this.adapter.log.debug(

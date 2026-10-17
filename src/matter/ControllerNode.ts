@@ -37,6 +37,7 @@ import {
     CertificateAuthority,
     DclOtaUpdateService,
     FabricAuthority,
+    FabricManager,
     PeerAddress,
     type CommissionableDevice,
     type DiscoveryData,
@@ -150,7 +151,6 @@ class Controller implements GeneralNode {
     #fabricLabel: string;
     #serverNode?: ServerNode;
     #otaProvider?: Endpoint<OtaProviderEndpoint>;
-    #fabric?: Fabric;
     #nodes = new Map<string, GeneralMatterNode>();
     /** Serializes nodeToIoBrokerStructure per node id; entries are pruned once a node is decommissioned. */
     #nodeLocks = new Map<string, Semaphore>();
@@ -324,8 +324,8 @@ class Controller implements GeneralNode {
                     // Returns the data needed to initialize a PaseCommissioner on the mobile App
                     // The app reconstructs our fabric from the CA root and the fabric material, runs PASE
                     // itself, and hands the node back through controllerCompletePaseCommissioning.
-                    const caConfig = this.#serverNode?.env.get(CertificateAuthority).config;
-                    const fabricData = this.#fabric?.config;
+                    const caConfig = this.#serverNode?.env.maybeGet(CertificateAuthority)?.config;
+                    const fabricData = this.#currentFabric()?.config;
                     if (caConfig === undefined || fabricData === undefined) {
                         return { error: 'Controller fabric is not available.' };
                     }
@@ -405,7 +405,6 @@ class Controller implements GeneralNode {
     async #discardServerNode(serverNode: ServerNode): Promise<void> {
         this.#serverNode = undefined;
         this.#otaProvider = undefined;
-        this.#fabric = undefined;
         this.#fabricIndex = undefined;
         this.#unwatchAllPeers();
         // A node that will not close keeps its mDNS sockets and storage handles
@@ -651,9 +650,10 @@ class Controller implements GeneralNode {
 
         await this.#adapter.setState('controller.info.discovering', false, true);
 
+        let fabricIndex: FabricIndex;
         try {
             const fabricAuthority = await serverNode.env.load(FabricAuthority);
-            this.#fabric = await fabricAuthority.defaultFabric({ adminFabricLabel: this.#fabricLabel });
+            fabricIndex = (await fabricAuthority.defaultFabric({ adminFabricLabel: this.#fabricLabel })).fabricIndex;
             await serverNode.start();
         } catch (error) {
             const errorText = inspect(error, { depth: 10 });
@@ -662,7 +662,7 @@ class Controller implements GeneralNode {
             return;
         }
 
-        this.#fabricIndex = this.#fabric?.fabricIndex;
+        this.#fabricIndex = fabricIndex;
 
         let peers: ClientNode[];
         try {
@@ -784,6 +784,18 @@ class Controller implements GeneralNode {
         } finally {
             slot.close();
         }
+    }
+
+    /**
+     * matter.js replaces the controller's `Fabric` object when it rotates the operational key, which the first
+     * commissioning on fresh storage does, so the fabric is resolved by index on every use instead of being kept.
+     */
+    #currentFabric(): Fabric | undefined {
+        if (this.#serverNode === undefined || this.#fabricIndex === undefined) {
+            return undefined;
+        }
+        // get() would construct a FabricManager again while the closing node has already removed it
+        return this.#serverNode.env.maybeGet(FabricManager)?.maybeFor(this.#fabricIndex);
     }
 
     #peerAddress(nodeId: NodeId): PeerAddress | undefined {

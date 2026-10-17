@@ -2221,9 +2221,9 @@
         "state": {
           "temperatureMeasurement": {
             "featureMap": {},
-            "maxMeasuredValue": 32767,
+            "maxMeasuredValue": null,
             "measuredValue": 4200,
-            "minMeasuredValue": -27315
+            "minMeasuredValue": null
           }
         },
         "parts": []
@@ -2243,9 +2243,9 @@
         "state": {
           "temperatureMeasurement": {
             "featureMap": {},
-            "maxMeasuredValue": 32767,
+            "maxMeasuredValue": null,
             "measuredValue": 4200,
-            "minMeasuredValue": -27315
+            "minMeasuredValue": null
           }
         },
         "parts": []
@@ -2801,9 +2801,9 @@
           },
           "temperatureMeasurement": {
             "featureMap": {},
-            "maxMeasuredValue": 32767,
+            "maxMeasuredValue": null,
             "measuredValue": 2150,
-            "minMeasuredValue": -27315
+            "minMeasuredValue": null
           },
           "relativeHumidityMeasurement": {
             "featureMap": {},
@@ -3038,9 +3038,9 @@
           },
           "temperatureMeasurement": {
             "featureMap": {},
-            "maxMeasuredValue": 32767,
+            "maxMeasuredValue": null,
             "measuredValue": 3800,
-            "minMeasuredValue": -27315
+            "minMeasuredValue": null
           },
           "pressureMeasurement": {
             "featureMap": {

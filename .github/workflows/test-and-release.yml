@@ -95,6 +95,10 @@ jobs:
             - name: Install Base Dependencies
               run: npm ci && cd src-admin && npm ci
 
+            # puppeteer's postinstall left no browser behind on Node.js 26, so the GUI test does not rely on it
+            - name: Install the browser for the GUI test
+              run: npx puppeteer browsers install chrome
+
             - name: Run local tests
               run: npm test
 

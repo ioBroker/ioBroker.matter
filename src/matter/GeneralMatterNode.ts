@@ -1460,12 +1460,10 @@ export class GeneralMatterNode {
             }
 
             let addedEvents = 0;
-            const eventList: EventId[] = clusterState.eventList ?? [];
-            for (const eventId of eventList) {
-                const eventModel = clusterModel?.events(eventId);
-                if (!eventModel) {
-                    continue;
-                }
+            // matter.js delivers exactly the events of this schema, which follows the peer's features; the
+            // EventList attribute is deprecated since Matter 1.4 and current devices do not report it
+            for (const eventModel of BehaviorType.schema.conformant.events) {
+                const eventId = EventId(eventModel.id);
                 const eventName = camelize(eventModel.name);
                 const eventBaseId = `${clusterBaseId}.events.${eventName}`;
 

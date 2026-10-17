@@ -518,7 +518,25 @@ describe('Matter -> ioBroker controller mapping', function () {
             expect(adapter.states.get(stateId)?.val, 'raw state not written by the change handler').to.equal(2350);
         });
 
-        it('delivers an event to the mapping under its camelCase name', async () => {
+        const switchEventsOf = (endpoint: Endpoint): string[] => {
+            const prefix = `${deviceObjectId(endpoint.number)}.data.${endpoint.number}.${toHex(SwitchClient.cluster.id)}.events.`;
+            return adapter
+                .objectsBelow(prefix.slice(0, -1))
+                .filter(id => id.startsWith(prefix))
+                .map(id => id.slice(prefix.length));
+        };
+
+        it('creates the raw event states the features of a switch allow, without an EventList', () => {
+            expect(switchEventsOf(bridgedEndpoint('genericswitch'))).to.have.members([
+                'initialPress',
+                'longPress',
+                'shortRelease',
+                'longRelease',
+            ]);
+            expect(switchEventsOf(bridgedEndpoint('genericswitchlatching'))).to.deep.equal(['switchLatched']);
+        });
+
+        it('delivers an event to the mapping and the raw state under its camelCase name', async () => {
             const button = bridgedEndpoint('genericswitch');
             const initialPress = [...SwitchClient.schema.events].find(event => event.name === 'InitialPress');
             expect(initialPress, 'the Switch schema has no InitialPress event').to.not.equal(undefined);
@@ -537,7 +555,13 @@ describe('Matter -> ioBroker controller mapping', function () {
                 payload: { newPosition: 1 },
             });
 
-            expect(adapter.valueOf(deviceObjectId(button.number), 'PRESS'), 'press not delivered').to.equal(true);
+            const base = deviceObjectId(button.number);
+            expect(adapter.valueOf(base, 'PRESS'), 'press not delivered').to.equal(true);
+            const raw = adapter.valueOf(
+                base,
+                `data.${button.number}.${toHex(SwitchClient.cluster.id)}.events.initialPress`,
+            );
+            expect(raw, 'raw event state not written').to.be.a('string');
         });
     });
 });

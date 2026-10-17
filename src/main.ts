@@ -247,7 +247,8 @@ export class MatterAdapter extends Adapter {
                 // objects database, so the nodes this reset reported as erased would simply return.
                 this.log.error(
                     `Can not remove the node data in ${this.#instanceDataDir}: ${error.message}. The reset is ` +
-                        `incomplete, so the adapter is not restarted. Remove the directory by hand and restart.`,
+                        `incomplete, so the adapter is not restarted. Remove the entries starting with "nodes." or "node-" ` +
+                        `in it by hand and restart.`,
                 );
                 return;
             }

@@ -92,6 +92,8 @@ export class MatterAdapter extends Adapter {
     }>();
     #objectProcessQueueTimeout?: ioBroker.Timeout;
     #currentObjectProcessPromise?: Promise<void>;
+    /** Object changes queued while the initial sync runs are processed once it is done. */
+    #initialSyncDone = false;
     #controllerActionQueue = new Semaphore('controller-action');
     #blockGuiUpdates = false;
 
@@ -619,6 +621,11 @@ export class MatterAdapter extends Adapter {
         )) as ioBroker.SystemConfigObject;
         this.sysLanguage = systemConfig?.common?.language || 'en';
 
+        // Subscribed before the initial sync reads the objects, so a change made in the meantime is queued
+        await this.subscribeObjectsAsync('bridges.*');
+        await this.subscribeObjectsAsync('devices.*');
+        await this.subscribeObjectsAsync('controller.*');
+
         this.log.debug('Sync devices');
 
         await this.syncDevices();
@@ -630,11 +637,9 @@ export class MatterAdapter extends Adapter {
          */
         await this.startUpMatterNodes();
 
-        this.subscribeObjects('bridges.*');
-        this.subscribeObjects('devices.*');
-        this.subscribeObjects('controller.*');
-
-        this.log.debug('Initialization done, Objects subscribed');
+        this.#initialSyncDone = true;
+        this.log.debug('Initialization done, processing object changes');
+        this.#processObjectChangeQueue();
 
         // this allows to GUI to read the devices. So make it after all devices are loaded
         this.#_guiSubscribes ||= [];
@@ -774,6 +779,9 @@ export class MatterAdapter extends Adapter {
     }
 
     #processObjectChangeQueue(): void {
+        if (!this.#initialSyncDone) {
+            return;
+        }
         // inform GUI about whats in progress
         this.sendToGui({
             command: 'processing',
@@ -816,8 +824,17 @@ export class MatterAdapter extends Adapter {
     }
 
     #onObjectChange(id: string, obj: ioBroker.Object | null | undefined): void {
+        if (!this.#initialSyncDone && obj?.from === `system.adapter.${this.namespace}`) {
+            // The initial sync writes these objects itself and already acts on what it writes
+            return;
+        }
         const mainObjectId = id.split('.').slice(0, 4).join('.'); // get the device or controller object
-        if (this.#objectProcessQueue[0]?.id.startsWith(mainObjectId) && id !== mainObjectId) {
+        const queuedId = this.#objectProcessQueue[0]?.id;
+        if (
+            queuedId !== undefined &&
+            (queuedId === mainObjectId || queuedId.startsWith(`${mainObjectId}.`)) &&
+            id !== mainObjectId
+        ) {
             this.log.debug(
                 `Sub object changed ${id}, type = ${obj?.type} - Already in queue via ${mainObjectId}, ignore ...`,
             );
@@ -830,13 +847,29 @@ export class MatterAdapter extends Adapter {
         }
 
         this.log.debug(`Object changed ${id}, type = ${obj?.type} - Register to process delayed ...`);
+        this.#queueObjectChange(id);
+    }
 
+    #queueObjectChange(id: string): void {
         this.#objectProcessQueue.push({
             id,
             func: async () => this.#processObjectChange(id),
             earliest: Date.now() + 5000,
         });
         this.#processObjectChangeQueue();
+    }
+
+    /**
+     * Apply a change the adapter made to one of its own configuration objects on behalf of the user, such as a node
+     * configured in the Device Manager. While the initial sync runs, the adapter's own writes are not taken from the
+     * object subscription, so such a change is queued here; afterwards the subscription delivers it.
+     *
+     * @param id the relative id of the changed object, such as `controller.<nodeId>`
+     */
+    queueOwnObjectChange(id: string): void {
+        if (!this.#initialSyncDone) {
+            this.#queueObjectChange(`${this.namespace}.${id}`);
+        }
     }
 
     #onStateChange(id: string, state: ioBroker.State | null | undefined): void {

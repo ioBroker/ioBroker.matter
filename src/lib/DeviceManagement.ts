@@ -1319,6 +1319,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     ...(node !== undefined ? node.nodeConfiguration : {}),
                 },
             });
+            this.adapter.queueOwnObjectChange(baseId);
         }
         return { refresh: 'none' };
     }

@@ -180,6 +180,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) Pairing a device with a wrong pairing code now says so, instead of showing a generic commissioning error that cannot be told apart from an unreachable device
 * (@Apollon77) Fixed the ioBroker Visu app being handed outdated controller credentials after the first device was paired on a fresh installation, until the adapter was restarted
 * (@Apollon77) The raw event states of a controller device are now created for the events its clusters support. They were only created from the EventList attribute, which current devices no longer report, so most devices had none
+* (@Apollon77) Changes made in the admin while the adapter starts are now applied once the start is done, instead of being missed until the next change or restart
 * (@Apollon77) A bridged pump no longer advertises the Matter Lighting feature on its level and on/off clusters, so its speed setpoint can reach zero as intended
 * (@Apollon77) Fix vendor specific attributes of paired nodes not being updated anymore
 * (@Apollon77) Fix the ioBroker structure of a paired node not being rebuilt when a bridge gains or loses a device

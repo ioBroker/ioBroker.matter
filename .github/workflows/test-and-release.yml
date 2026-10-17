@@ -97,6 +97,18 @@ jobs:
             - name: Install Base Dependencies
               run: npm ci && cd src-admin && npm ci
 
+            # puppeteer cannot download its own browser on Node.js 26, so the GUI test uses the runner's Chrome
+            - name: Use the runner's Chrome for the GUI test
+              shell: bash
+              run: |
+                  case "$RUNNER_OS" in
+                      Linux) chrome="$(command -v google-chrome)" ;;
+                      macOS) chrome="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ;;
+                      Windows) chrome="C:/Program Files/Google/Chrome/Application/chrome.exe" ;;
+                  esac
+                  test -n "$chrome" && test -e "$chrome"
+                  echo "PUPPETEER_EXECUTABLE_PATH=$chrome" >> "$GITHUB_ENV"
+
             - name: Run local tests
               run: npm test
 

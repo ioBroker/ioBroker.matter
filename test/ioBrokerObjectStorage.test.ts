@@ -320,9 +320,9 @@ describe('IoBrokerObjectStorage', () => {
 
                 await storage.clearAll(['nodes', 'peer1', 'endpoints', '0']);
 
-                // The file driver keeps an emptied context in its index, and a peer reported without data
-                // reads as a node matter.js loads but never culls
+                // A peer reported without data reads as a node matter.js loads but never culls
                 deepStrictEqual(storage.contexts(['nodes', 'peer1', 'endpoints']), []);
+                deepStrictEqual(storage.contexts(['nodes']), []);
                 await storage.close();
             } finally {
                 rmSync(dir, { recursive: true, force: true });

@@ -15,12 +15,6 @@ export class IoBrokerObjectStorage extends StorageDriver {
     readonly #adapter: ioBroker.Adapter;
     #namespace: string;
     #localStorageManager?: FileStorageDriver;
-    /**
-     * Contexts wiped from the file backend, which keeps them in its index until it is recreated. An emptied
-     * peer that is still reported reads as a node without commissioning state - one matter.js loads and its
-     * expiration cull never removes.
-     */
-    readonly #clearedLocalContexts = new Set<string>();
     #storeLocalChecker?: (contexts: string[]) => boolean;
 
     constructor(
@@ -176,7 +170,6 @@ export class IoBrokerObjectStorage extends StorageDriver {
             // checker answers for, so this cannot ask where a single key would be written.
             this.#adapter.log.info(`[STORAGE] Clearing all storage for ${contexts.join('$$')} in local storage`);
             await this.#localStorageManager.clearAll(contexts);
-            this.#clearedLocalContexts.add(contexts.join('.'));
         }
 
         const contextKey = `${this.#adapter.namespace}.${this.buildKey(contexts, '')}`;
@@ -272,12 +265,7 @@ export class IoBrokerObjectStorage extends StorageDriver {
      * named "". Passing that on makes `clearAll` throw on the empty segment.
      */
     #localContexts(contexts: string[]): string[] {
-        return (
-            this.#localStorageManager
-                ?.contexts(contexts)
-                .filter(name => name.length > 0)
-                .filter(name => !this.#clearedLocalContexts.has([...contexts, name].join('.'))) ?? []
-        );
+        return this.#localStorageManager?.contexts(contexts).filter(name => name.length > 0) ?? [];
     }
 
     contexts(contexts: string[]): string[] {
@@ -369,7 +357,6 @@ export class IoBrokerObjectStorage extends StorageDriver {
         value?: SupportedStorageTypes,
     ): Promise<void> {
         if (this.#localStorageManager && this.#isLocallyStored(contexts)) {
-            this.#clearedLocalContexts.clear();
             return this.#localStorageManager.set(contexts, keyOrValue as string, value);
         }
 

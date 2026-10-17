@@ -493,8 +493,15 @@ class Controller implements GeneralNode {
             this.#watchedPeers.delete(peer);
         };
 
-        for (const peer of serverNode.peers.commissioned) {
-            watchPeer(peer);
+        // Restored peers include discovered ones, which forDescriptor() reuses without another `added`
+        for (const peer of serverNode.peers) {
+            try {
+                watchPeer(peer);
+            } catch (error) {
+                // A peer that crashed on load throws on any state access
+                this.#adapter.log.warn(`Cannot watch node "${peer.id}": ${error}`);
+                unwatchPeer(peer);
+            }
         }
         this.#observers.on(serverNode.peers.added, watchPeer);
         this.#observers.on(serverNode.peers.deleted, unwatchPeer);

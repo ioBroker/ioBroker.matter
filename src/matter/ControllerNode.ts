@@ -478,6 +478,10 @@ class Controller implements GeneralNode {
                             this.#scheduleStructureRebuild(watched);
                         }
                         break;
+                    // A changed cluster set or feature map on an endpoint, the root included
+                    case EndpointLifecycle.Change.ServersChanged:
+                        this.#scheduleStructureRebuild(watched);
+                        break;
                 }
             });
         };
@@ -764,7 +768,13 @@ class Controller implements GeneralNode {
     }
 
     async nodeToIoBrokerStructure(node: ClientNode, nodeDetails?: { operationalAddress?: string }): Promise<void> {
-        const nodeIdStr = node.state.commissioning.peerAddress?.nodeId.toString() ?? node.id;
+        const nodeId = node.state.commissioning.peerAddress?.nodeId;
+        if (nodeId === undefined) {
+            // Without a node id the structure would be written under the peer id, beside the node's real tree
+            this.#adapter.log.debug(`Node "${node.id}" has no node id, so it has no ioBroker structure`);
+            return;
+        }
+        const nodeIdStr = nodeId.toString();
 
         // One rebuild per node id at a time, so a losing GeneralMatterNode is never overwritten in #nodes undestroyed.
         const slot = await this.#getNodeLock(nodeIdStr).obtainSlot();

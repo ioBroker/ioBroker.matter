@@ -337,5 +337,6 @@
     "\"%s\" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.": "\"%s\" è un dispositivo assopito (Matter LIT). Risponde solo al prossimo risveglio, quindi i suoi dati di rete arriveranno più tardi.",
     "Refresh %s connected online neighbor(s) for current link data": "Aggiorna %s vicino/i online connesso/i per i dati di collegamento attuali",
     "No online neighbor can report its current link data either.": "Nessun vicino online può segnalare i suoi dati di collegamento attuali.",
-    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s nodo/i sono dispositivi assopiti (Matter LIT), quindi l'aggiornamento non li attende: i loro dati appariranno al risveglio."
+    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s nodo/i sono dispositivi assopiti (Matter LIT), quindi l'aggiornamento non li attende: i loro dati appariranno al risveglio.",
+    "The pairing code is wrong": "Il codice di associazione è errato"
 }

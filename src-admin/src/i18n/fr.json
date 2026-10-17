@@ -337,5 +337,6 @@
     "\"%s\" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.": "\"%s\" est un appareil en veille (Matter LIT). Il ne répond qu'à son prochain réveil, donc ses propres données réseau arriveront plus tard.",
     "Refresh %s connected online neighbor(s) for current link data": "Actualiser %s voisin(s) en ligne connecté(s) pour obtenir les données de liaison actuelles",
     "No online neighbor can report its current link data either.": "Aucun voisin en ligne ne peut non plus signaler ses données de liaison actuelles.",
-    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s nœud(s) sont des appareils en veille (Matter LIT), donc la mise à jour ne les attend pas : leurs données apparaîtront à leur réveil."
+    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s nœud(s) sont des appareils en veille (Matter LIT), donc la mise à jour ne les attend pas : leurs données apparaîtront à leur réveil.",
+    "The pairing code is wrong": "Le code d'appairage est incorrect"
 }

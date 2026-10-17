@@ -35,7 +35,6 @@ import {
 } from '@matter/main/behaviors';
 import {
     CertificateAuthority,
-    CommissioningError,
     DclOtaUpdateService,
     FabricAuthority,
     PeerAddress,
@@ -74,6 +73,7 @@ import {
 import { ThreadDiagnosticsService, type ThreadDiagnosticsBatch } from './ThreadDiagnosticsService';
 import { parseRestBaseUrl, registerThreadCredentialsFromHex } from './threadCredentials';
 import { serializeBatch } from './serializeBatch';
+import { isWrongPasscode, WrongPairingCodeError } from './commissioningErrors';
 import { GeneralMatterNode, operationalAddressOf, type PairedNodeConfig } from './GeneralMatterNode';
 import type { NodeIcdManager } from './NodeIcdManager';
 import { refreshWithLongIdleTimeDeferral, runDedupedByKey } from './longIdleTimeRefresh';
@@ -276,19 +276,12 @@ class Controller implements GeneralNode {
                         // We return the pollingId and execute the commissioning async
                         this.commissionDevice(options)
                             .then(result => this.#commissioningStatus.set(pollingId, { status: 'finished', result }))
-                            .catch(error => {
-                                if (error instanceof CommissioningError) {
-                                    // TODO Remove after next matter.js update
-                                    if (error.message.startsWith('Commission error for "addNoc": 9,')) {
-                                        error.message =
-                                            'This device is already paired to this Controller! You can not pair it again.';
-                                    }
-                                }
+                            .catch(error =>
                                 this.#commissioningStatus.set(pollingId, {
                                     status: 'error',
                                     result: { error: error.message },
-                                });
-                            })
+                                }),
+                            )
                             .finally(() =>
                                 this.#adapter.setTimeout(
                                     () => this.#commissioningStatus.delete(pollingId),
@@ -297,7 +290,15 @@ class Controller implements GeneralNode {
                             );
                         return { result: { pollingId } };
                     }
-                    return await this.commissionDevice(options);
+                    try {
+                        return await this.commissionDevice(options);
+                    } catch (error) {
+                        // Without the generic command prefix, so the admin can translate the message
+                        if (error instanceof WrongPairingCodeError) {
+                            return { error: error.message, result: false };
+                        }
+                        throw error;
+                    }
                 }
                 case 'controllerCommissionDeviceStatus': {
                     // Get the status of a commissioning process
@@ -1084,16 +1085,26 @@ class Controller implements GeneralNode {
         // An address the mobile app supplied is more specific than a discovery record, so it wins.
         const descriptor = knownAddress !== undefined ? { addresses: [knownAddress] } : (device ?? undefined);
         let peer: ClientNode;
-        if (descriptor !== undefined) {
-            peer = await serverNode.peers.forDescriptor(descriptor);
-            await peer.commission(options);
-        } else {
-            // Without a descriptor the identifiers steer discovery, which commission() runs itself.
-            peer = await serverNode.peers.commission({
-                ...options,
-                ...(shortDiscriminator !== undefined ? { shortDiscriminator } : {}),
-                ...(vendorId !== undefined ? { vendorId, productId } : {}),
-            });
+        try {
+            if (descriptor !== undefined) {
+                peer = await serverNode.peers.forDescriptor(descriptor);
+                await peer.commission(options);
+            } else {
+                // Without a descriptor the identifiers steer discovery, which commission() runs itself.
+                peer = await serverNode.peers.commission({
+                    ...options,
+                    ...(shortDiscriminator !== undefined ? { shortDiscriminator } : {}),
+                    ...(vendorId !== undefined ? { vendorId, productId } : {}),
+                });
+            }
+        } catch (error) {
+            if (!isWrongPasscode(error)) {
+                throw error;
+            }
+            this.#adapter.log.warn(
+                `Commissioning failed because the pairing code is wrong: ${inspect(error, { depth: 10 })}`,
+            );
+            throw new WrongPairingCodeError(error);
         }
 
         const nodeId = peer.state.commissioning.peerAddress?.nodeId;

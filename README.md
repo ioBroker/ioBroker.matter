@@ -177,6 +177,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) Fixed several memory leaks: ioBroker device instances that were built but not adopted stayed registered with the state subscription manager, and listeners, timers, pending locks and custom state bookkeeping were not always released on teardown
 * (@Apollon77) Network visualization data is no longer assembled, and neither it nor Thread diagnostics data is serialized and sent, while no admin UI is listening
 * (@Apollon77) Updated matter.js to 0.18 and migrated the controller to its ClientNode API
+* (@Apollon77) Pairing a device with a wrong pairing code now says so, instead of showing a generic commissioning error that cannot be told apart from an unreachable device
 * (@Apollon77) A bridged pump no longer advertises the Matter Lighting feature on its level and on/off clusters, so its speed setpoint can reach zero as intended
 * (@Apollon77) Fix vendor specific attributes of paired nodes not being updated anymore
 * (@Apollon77) Fix the ioBroker structure of a paired node not being rebuilt when a bridge gains or loses a device

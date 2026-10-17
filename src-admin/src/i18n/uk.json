@@ -337,5 +337,6 @@
     "\"%s\" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.": "«%s» — сплячий пристрій (Matter LIT). Він відповідає лише після наступного пробудження, тому його власні мережеві дані з'являться пізніше.",
     "Refresh %s connected online neighbor(s) for current link data": "Оновити %s підключених онлайн-сусідів для отримання поточних даних про з'єднання",
     "No online neighbor can report its current link data either.": "Жоден онлайн-сусід також не може повідомити поточні дані про з'єднання.",
-    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s вузол(-лів) є сплячими пристроями (Matter LIT), тому оновлення не очікуватиме на них — їхні дані з'являться, коли вони прокинуться."
+    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s вузол(-лів) є сплячими пристроями (Matter LIT), тому оновлення не очікуватиме на них — їхні дані з'являться, коли вони прокинуться.",
+    "The pairing code is wrong": "Неправильний код сполучення"
 }

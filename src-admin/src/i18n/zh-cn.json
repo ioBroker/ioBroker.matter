@@ -337,5 +337,6 @@
     "\"%s\" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.": "“%s”是一个休眠设备(Matter LIT)。它只有在下次唤醒时才会响应,因此它自己的网络数据会稍后到达。",
     "Refresh %s connected online neighbor(s) for current link data": "刷新 %s 个已连接的在线邻居以获取当前链路数据",
     "No online neighbor can report its current link data either.": "没有在线邻居能够报告当前的链路数据。",
-    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s 个节点是休眠设备(Matter LIT),因此更新不会等待它们——它们的数据会在唤醒后出现。"
+    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s 个节点是休眠设备(Matter LIT),因此更新不会等待它们——它们的数据会在唤醒后出现。",
+    "The pairing code is wrong": "配对码错误"
 }

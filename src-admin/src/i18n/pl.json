@@ -337,5 +337,6 @@
     "\"%s\" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.": "\"%s\" to urządzenie uśpione (Matter LIT). Odpowiada dopiero przy następnym przebudzeniu, więc jego własne dane sieciowe pojawią się później.",
     "Refresh %s connected online neighbor(s) for current link data": "Odśwież %s połączonych sąsiadów online, aby uzyskać aktualne dane łącza",
     "No online neighbor can report its current link data either.": "Żaden sąsiad online również nie może zgłosić aktualnych danych łącza.",
-    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s węzeł/węzły to urządzenia uśpione (Matter LIT), więc aktualizacja na nie nie czeka — ich dane pojawią się, gdy się obudzą."
+    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s węzeł/węzły to urządzenia uśpione (Matter LIT), więc aktualizacja na nie nie czeka — ich dane pojawią się, gdy się obudzą.",
+    "The pairing code is wrong": "Kod parowania jest nieprawidłowy"
 }

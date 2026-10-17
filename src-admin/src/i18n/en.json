@@ -360,5 +360,6 @@
     "\"%s\" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.": "\"%s\" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.",
     "Refresh %s connected online neighbor(s) for current link data": "Refresh %s connected online neighbor(s) for current link data",
     "No online neighbor can report its current link data either.": "No online neighbor can report its current link data either.",
-    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up."
+    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.",
+    "The pairing code is wrong": "The pairing code is wrong"
 }

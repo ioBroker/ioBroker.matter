@@ -98,7 +98,9 @@ export default class DiscoveredDevicesDialog extends Component<
                         this.setState({ backendProcessingActive: false });
 
                         if (result.error || !result.result) {
-                            window.alert(`Cannot connect: ${result.error || 'Unknown error'}`);
+                            window.alert(
+                                `${I18n.t('Cannot pair device')}: ${I18n.t(result.error) || I18n.t('Unknown error')}`,
+                            );
                         } else {
                             window.alert(I18n.t('Connected'));
                             const deviceId = device.deviceIdentifier;

@@ -337,5 +337,6 @@
     "\"%s\" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.": "\"%s\" is een slapend apparaat (Matter LIT). Het reageert pas de volgende keer dat het wakker wordt, dus de eigen netwerkgegevens komen later binnen.",
     "Refresh %s connected online neighbor(s) for current link data": "%s verbonden online buren vernieuwen voor actuele verbindingsgegevens",
     "No online neighbor can report its current link data either.": "Geen enkele online buur kan ook actuele verbindingsgegevens melden.",
-    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s node(s) zijn slapende apparaten (Matter LIT), dus de update wacht niet op ze — hun gegevens verschijnen zodra ze wakker worden."
+    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s node(s) zijn slapende apparaten (Matter LIT), dus de update wacht niet op ze — hun gegevens verschijnen zodra ze wakker worden.",
+    "The pairing code is wrong": "De koppelcode is onjuist"
 }

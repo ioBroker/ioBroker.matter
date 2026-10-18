@@ -6,6 +6,7 @@ import {
     ConcentrationMeasurement,
     FanControl,
     ModeBase,
+    OperationalState,
     ResourceMonitoring,
     RvcCleanMode,
     RvcOperationalState,
@@ -22,6 +23,7 @@ import type { GenericDeviceToMatter } from '../src/matter/to-matter/GenericDevic
 import { AirPurifierToMatter } from '../src/matter/to-matter/AirPurifierToMatter';
 import { AirQualityToMatter } from '../src/matter/to-matter/AirQualityToMatter';
 import { ContactToMatter } from '../src/matter/to-matter/ContactToMatter';
+import { IoRvcOperationalStateServer } from '../src/matter/behaviors/EventedRvcServers';
 import { FanToMatter } from '../src/matter/to-matter/FanToMatter';
 import { FlowToMatter } from '../src/matter/to-matter/FlowToMatter';
 import { PressureToMatter } from '../src/matter/to-matter/PressureToMatter';
@@ -1030,6 +1032,36 @@ describe('to-matter converters for type-detector v6 device types', function () {
                 RvcOperationalState.ErrorState.CommandInvalidInState,
             );
             expect(await mounted.adapter.getForeignStateAsync(mounted.adapter.idOf('HOME'))).to.include({ val: false });
+        });
+
+        it('reports the end of a cleaning run as OperationCompletion, with the error it ended in', async () => {
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(true),
+                STATE: enumeration(VACUUM_STATES, 1),
+                ERROR: { type: 'string', val: '' },
+            });
+            const [endpoint] = endpointsOf(mounted);
+            const completions = new Array<number>();
+            endpoint
+                .eventsOf(IoRvcOperationalStateServer)
+                .operationCompletion.on(({ completionErrorCode }: OperationalState.OperationCompletionEvent) =>
+                    completions.push(completionErrorCode),
+                );
+
+            await mounted.adapter.pushValue('STATE', 2);
+            expect(completions, 'pausing does not end the run').to.deep.equal([]);
+            await mounted.adapter.pushValue('STATE', 0);
+            await mounted.adapter.pushValue('STATE', 1);
+            await mounted.adapter.pushValue('ERROR', 'Stuck');
+            // Neither leaving Error nor entering it from the dock is the end of a run
+            await mounted.adapter.pushValue('STATE', 0);
+            await mounted.adapter.pushValue('ERROR', '');
+            await mounted.adapter.pushValue('ERROR', 'Stuck');
+
+            expect(completions).to.deep.equal([
+                OperationalState.ErrorState.NoError,
+                OperationalState.ErrorState.UnableToCompleteOperation,
+            ]);
         });
 
         it('raises and clears the operational error from the ioBroker ERROR state', async () => {

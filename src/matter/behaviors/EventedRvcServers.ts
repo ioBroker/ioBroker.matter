@@ -5,15 +5,51 @@ import {
     RvcOperationalStateServer,
     RvcRunModeServer,
 } from '@matter/main/behaviors';
-import { ModeBase, OperationalState, type RvcOperationalState } from '@matter/main/clusters';
+import { ModeBase, OperationalState, RvcOperationalState } from '@matter/main/clusters';
+
+/** The states in which a cleaning operation is in progress; leaving them ends it. */
+const OPERATION_IN_PROGRESS = new Set<RvcOperationalState.OperationalState>([
+    RvcOperationalState.OperationalState.Running,
+    RvcOperationalState.OperationalState.Paused,
+]);
+
+const CompletingRvcOperationalStateServer = RvcOperationalStateServer.alter({
+    events: { operationCompletion: { optional: false } },
+});
 
 /**
  * The events are awaited, so a command response only goes out once the ioBroker side has taken the change. Matter
  * derives the accepted command list from the methods a behavior implements, so a robot that cannot be paused or sent
  * home must be served by a class that does not carry the method at all.
+ *
+ * The Robotic Vacuum Cleaner device type makes the OperationCompletion event mandatory. It is reported when the
+ * robot leaves Running or Paused, with the operational error when it ends in Error. ioBroker cannot tell an error
+ * the robot resumes from, which Matter reports as Paused, from one that ends the run, so entering Error always ends
+ * it; a run that continues after the error is cleared reports its own completion.
  */
-export class IoRvcOperationalStateServer extends RvcOperationalStateServer {
+
+export class IoRvcOperationalStateServer extends CompletingRvcOperationalStateServer {
     declare events: IoRvcOperationalStateServer.Events;
+
+    override initialize(): MaybePromise {
+        const result = super.initialize();
+        this.reactTo(this.events.operationalState$Changed, this.#reportOperationCompletion);
+        return result;
+    }
+
+    #reportOperationCompletion(
+        operationalState: RvcOperationalState.OperationalState,
+        previousState: RvcOperationalState.OperationalState,
+    ): void {
+        if (!OPERATION_IN_PROGRESS.has(previousState) || OPERATION_IN_PROGRESS.has(operationalState)) {
+            return;
+        }
+        const completionErrorCode =
+            operationalState === RvcOperationalState.OperationalState.Error
+                ? this.state.operationalError.errorStateId
+                : OperationalState.ErrorState.NoError;
+        this.events.operationCompletion.emit({ completionErrorCode }, this.context);
+    }
 
     protected emitAndRespond(
         result: OperationalState.OperationalCommandResponse,
@@ -34,7 +70,7 @@ export class IoRvcOperationalStateServer extends RvcOperationalStateServer {
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace IoRvcOperationalStateServer {
-    export class Events extends RvcOperationalStateServer.Events {
+    export class Events extends CompletingRvcOperationalStateServer.Events {
         rvcPauseTriggered = AsyncObservable();
         rvcResumeTriggered = AsyncObservable();
         rvcGoHomeTriggered = AsyncObservable();

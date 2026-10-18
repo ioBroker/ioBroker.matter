@@ -6,7 +6,15 @@
  *   npx ts-node --project tsconfig.test.json test/fixtures/TestBridgeDevice.ts --storage-path=<path> --port=<port>
  */
 
-import { CommonAreaNamespaceTag, Endpoint, Environment, MutableEndpoint, ServerNode, VendorId } from '@matter/main';
+import {
+    CommonAreaNamespaceTag,
+    DeviceTypeConformanceService,
+    Endpoint,
+    Environment,
+    MutableEndpoint,
+    ServerNode,
+    VendorId,
+} from '@matter/main';
 import type { Behavior, SupportedBehaviors } from '@matter/main';
 import {
     ActivatedCarbonFilterMonitoringServer,
@@ -33,7 +41,6 @@ import {
     ServiceAreaServer,
     SmokeCoAlarmServer,
     SwitchServer,
-    TemperatureControlServer,
     TemperatureMeasurementServer,
     ThermostatServer,
     TotalVolatileOrganicCompoundsConcentrationMeasurementServer,
@@ -56,6 +63,7 @@ import {
     RvcRunMode,
     ServiceArea,
     SmokeCoAlarm,
+    TemperatureControl,
     Thermostat,
     WindowCovering,
 } from '@matter/main/clusters';
@@ -66,7 +74,7 @@ import { BRIDGE_DISCRIMINATOR, BRIDGE_PASSCODE, BRIDGE_PORT_BASE, READY_MARKER }
  * A robot that accepts the optional operational-state commands. Matter derives the accepted command list from the
  * methods a behavior implements, so the default server would advertise none of them.
  */
-class CommandingRvcOperationalStateServer extends RvcOperationalStateServer {
+class CommandingRvcOperationalStateServer extends Devices.RoboticVacuumCleanerRequirements.RvcOperationalStateServer {
     override pause(): RvcOperationalState.OperationalCommandResponse {
         return OperationalStateUtils.assertRvcPause(this.state.operationalState);
     }
@@ -80,12 +88,63 @@ class CommandingRvcOperationalStateServer extends RvcOperationalStateServer {
     }
 }
 
+/** A cabinet whose setpoint can be set; the default server does not implement the command its feature requires. */
+class SettableTemperatureControlServer
+    extends Devices.TemperatureControlledCabinetRequirements.TemperatureControlServer
+{
+    override setTemperature({ targetTemperature }: TemperatureControl.SetTemperatureRequest): void {
+        if (targetTemperature !== undefined) {
+            this.state.temperatureSetpoint = targetTemperature;
+        }
+    }
+}
+
 const args = process.argv.slice(2);
 const argValue = (name: string): string | undefined => args.find(a => a.startsWith(`--${name}=`))?.split('=')[1];
 
 const storagePath = argValue('storage-path') ?? '.bridge-storage';
 const portArg = argValue('port');
 const port = portArg !== undefined ? Number.parseInt(portArg, 10) : BRIDGE_PORT_BASE;
+
+/**
+ * The deliberate departures from the device types. The mains alarm has no PowerSource of its own, which spec 1.6.1
+ * requires of a Smoke CO Alarm, so the controller's fallback to the root endpoint has a peer to map.
+ */
+const INTENDED_VIOLATIONS = [
+    {
+        endpoint: 'smokecoalarmmains',
+        deviceType: 'SmokeCoAlarm',
+        kind: 'instanceCount',
+        requirement: 'device:PowerSource',
+    },
+];
+
+/**
+ * Fails the fixture on any device type violation other than {@link INTENDED_VIOLATIONS}. The fixture runs in the
+ * default `warn` mode, because `strict` would refuse the intended violation at construction. A cluster server whose
+ * mandatory command is unimplemented is therefore only logged: the fixture stands in for remote devices the controller
+ * reads, and the adapter's own servers are held to `strict` by the unit tests.
+ */
+function assertConformance(node: ServerNode): void {
+    const verdict = node.env.get(DeviceTypeConformanceService).validateNodeScope(node, { refuse: false });
+    const unexpected = [...verdict].flatMap(([endpoint, violations]) =>
+        violations
+            .filter(
+                violation =>
+                    !INTENDED_VIOLATIONS.some(
+                        intended =>
+                            intended.endpoint === endpoint.id &&
+                            intended.deviceType === violation.deviceType &&
+                            intended.kind === violation.kind &&
+                            intended.requirement === violation.requirement,
+                    ),
+            )
+            .map(({ kind, requirement, detail }) => `${endpoint.id}: ${kind} ${requirement} (${detail})`),
+    );
+    if (unexpected.length > 0) {
+        throw new Error(`The bridge fixture violates device type requirements:\n${unexpected.join('\n')}`);
+    }
+}
 
 /** Loose shape of a matter.js device definition; the fixture only ever calls `with()` on it. */
 type DeviceDefinition = { with: (...behaviors: SupportedBehaviors.List) => MutableEndpoint };
@@ -172,7 +231,11 @@ async function main(): Promise<void> {
                 colorMode: ColorControl.ColorMode.CurrentHueAndCurrentSaturation,
             },
         },
-        [ColorControlServer.with('HueSaturation', 'ColorTemperature', 'Xy')],
+        [
+            ColorControlServer.with('HueSaturation', 'ColorTemperature', 'Xy').alter({
+                attributes: { remainingTime: { optional: false } },
+            }),
+        ],
     );
     await addBridged('onoffplug', Devices.OnOffPlugInUnitDevice, { onOff: { onOff: false } });
     await addBridged('dimmableplug', Devices.DimmablePlugInUnitDevice, {
@@ -574,7 +637,11 @@ async function main(): Promise<void> {
             // matter.js 0.17.9 asserts supportedMaps unconditionally, so the Maps feature cannot be left out here
             serviceArea: { supportedMaps: [], supportedAreas: [], selectedAreas: [], progress: [] },
         },
-        [RvcRunModeServer, RvcOperationalStateServer, ServiceAreaServer.with('ProgressReporting', 'Maps')],
+        [
+            RvcRunModeServer,
+            Devices.RoboticVacuumCleanerRequirements.RvcOperationalStateServer,
+            ServiceAreaServer.with('ProgressReporting', 'Maps'),
+        ],
     );
 
     /**
@@ -652,40 +719,52 @@ async function main(): Promise<void> {
 
     // Counter case: a Refrigerator composes a mandatory TemperatureControlledCabinet, so the cabinet is a part of
     // the fridge and must not turn into a device of its own.
-    const composedFridge = await addComposed('fridgecomposed', Devices.RefrigeratorDevice);
-    await composedFridge.add(
-        Devices.TemperatureControlledCabinetDevice.with(
-            TemperatureControlServer.with('TemperatureLevel'),
-            TemperatureMeasurementServer,
-        ),
-        {
-            id: 'fridgecabinet',
-            temperatureControl: { selectedTemperatureLevel: 0, supportedTemperatureLevels: ['cold', 'colder'] },
-            temperatureMeasurement: { measuredValue: 500 },
-        },
-    );
+    // The mandatory cabinet is a part from the start, because a Refrigerator without it fails its construction check
+    await addComposed('fridgecomposed', Devices.RefrigeratorDevice, {
+        parts: [
+            new Endpoint(
+                Devices.TemperatureControlledCabinetDevice.with(
+                    SettableTemperatureControlServer,
+                    TemperatureMeasurementServer,
+                ),
+                {
+                    id: 'fridgecabinet',
+                    temperatureControl: { temperatureSetpoint: 500, minTemperature: 200, maxTemperature: 800 },
+                    temperatureMeasurement: { measuredValue: 500 },
+                },
+            ),
+        ],
+    });
 
     // A mandatory child of a utility device type does not make the alarm a composition either. The two alarms
     // above pin the on-endpoint and the root-endpoint battery paths, so this case needs its own endpoint.
-    const composedAlarm = await addComposed('smokecoalarmcomposed', Devices.SmokeCoAlarmDevice, smokeCoAlarmState, [
-        SmokeCoAlarmServer.with('SmokeAlarm'),
-    ]);
-    await composedAlarm.add(PowerSourceEndpoint.with(PowerSourceServer.with('Battery')), {
-        id: 'alarmpowersource',
-        powerSource: {
-            status: PowerSource.PowerSourceStatus.Active,
-            order: 0,
-            description: 'Battery',
-            batChargeLevel: PowerSource.BatChargeLevel.Ok,
-            batPercentRemaining: 140,
-            batReplacementNeeded: false,
-            batReplaceability: PowerSource.BatReplaceability.UserReplaceable,
+    await addComposed(
+        'smokecoalarmcomposed',
+        Devices.SmokeCoAlarmDevice,
+        {
+            ...smokeCoAlarmState,
+            parts: [
+                new Endpoint(PowerSourceEndpoint.with(PowerSourceServer.with('Battery')), {
+                    id: 'alarmpowersource',
+                    powerSource: {
+                        status: PowerSource.PowerSourceStatus.Active,
+                        order: 0,
+                        description: 'Battery',
+                        batChargeLevel: PowerSource.BatChargeLevel.Ok,
+                        batPercentRemaining: 140,
+                        batReplacementNeeded: false,
+                        batReplaceability: PowerSource.BatReplaceability.UserReplaceable,
+                    },
+                }),
+            ],
         },
-    });
+        [SmokeCoAlarmServer.with('SmokeAlarm')],
+    );
 
     console.log(`Storage path: ${storagePath}`);
     console.log(`Bridge endpoints: ${[...aggregator.parts].map(part => part.id).join(', ')}`);
 
+    assertConformance(node);
     // Only announce readiness once the node is online: before that it is not yet advertising over mDNS and a
     // controller starting immediately would search for a device that cannot answer.
     node.lifecycle.online.on(() => console.log(READY_MARKER));

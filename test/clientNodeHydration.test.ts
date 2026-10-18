@@ -167,19 +167,20 @@ describe('ClientNode hydration', () => {
     // The controller rebuilds a peer's ioBroker structure from these two signals: no change notification
     // reports an endpoint that appeared, and none reaches a peer restored from storage at all.
     it('reports an endpoint that appears on a restored peer', async () => {
-        const installed = await withRestoredPeer(async peer => {
+        const ready = await withRestoredPeer(async peer => {
             const seen = new Array<string>();
             peer.lifecycle.changed.on((type, endpoint) => {
-                if (type === EndpointLifecycle.Change.Installed && endpoint !== peer) {
+                if (type === EndpointLifecycle.Change.PartsReady && endpoint !== peer) {
                     seen.push(endpoint.maybeId ?? String(endpoint.maybeNumber));
                 }
             });
 
-            peer.endpoints.require(2, { deviceType: DeviceTypeId(256) });
+            const endpoint = peer.endpoints.require(2, { deviceType: DeviceTypeId(256) });
+            await endpoint.construction;
             return seen;
         });
 
-        strictEqual(installed.length, 1, `expected one installed endpoint, saw ${installed.join(', ')}`);
+        strictEqual(ready.length, 1, `expected one ready endpoint, saw ${ready.join(', ')}`);
     }).timeout(20000);
 
     it('announces the teardown of a peer before its endpoints are destroyed', async () => {

@@ -476,7 +476,8 @@ class Controller implements GeneralNode {
                             this.#cancelStructureRebuild(watched);
                         }
                         break;
-                    case EndpointLifecycle.Change.Installed:
+                    // The rebuild reads the endpoint and its parts, which are readable once PartsReady fired
+                    case EndpointLifecycle.Change.PartsReady:
                     case EndpointLifecycle.Change.Destroyed:
                         if (endpoint !== peer) {
                             this.#scheduleStructureRebuild(watched);

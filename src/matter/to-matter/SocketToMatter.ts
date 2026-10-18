@@ -5,13 +5,13 @@ import type { Socket } from '../../lib/devices/Socket';
 import { GenericElectricityDataDeviceToMatter } from './GenericElectricityDataDeviceToMatter';
 import { EventedOnOffPlugInUnitOnOffServer } from '../behaviors/EventedOnOffPlugInUnitOnOffServer';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
-import { IoIdentifyServer } from '../behaviors/IdentifyServer';
+import { IoPlugInUnitIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 
 const IoBrokerOnOffPlugInUnitDevice = OnOffPlugInUnitDevice.with(
     EventedOnOffPlugInUnitOnOffServer,
     IoBrokerEvents,
-    IoIdentifyServer,
+    IoPlugInUnitIdentifyServer,
     IoBrokerContext,
 );
 type IoBrokerOnOffPlugInUnitDevice = typeof IoBrokerOnOffPlugInUnitDevice;

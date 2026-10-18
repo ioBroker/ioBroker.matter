@@ -14,7 +14,7 @@ import {
 } from '../../lib/devices/AirCondition';
 import { GenericDeviceToMatter } from './GenericDeviceToMatter';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
-import { IoIdentifyServer } from '../behaviors/IdentifyServer';
+import { IoIdentifyServer, IoPlugInUnitIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 import { EventedOnOffPlugInUnitOnOffServer } from '../behaviors/EventedOnOffPlugInUnitOnOffServer';
 import { MatterConverters } from '../ConversionUtils';
@@ -42,7 +42,7 @@ const IoRoomAirConditionerDeviceWithFan = RoomAirConditionerDevice.with(
 const IoOnOffPlugInUnitDevice = OnOffPlugInUnitDevice.with(
     EventedOnOffPlugInUnitOnOffServer,
     IoBrokerEvents,
-    IoIdentifyServer,
+    IoPlugInUnitIdentifyServer,
     IoBrokerContext,
 );
 type IoOnOffPlugInUnitDevice = typeof IoOnOffPlugInUnitDevice;

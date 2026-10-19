@@ -1,5 +1,6 @@
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
+import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {
@@ -79,6 +80,17 @@ export class MatterAdapter extends Adapter {
     /** Default location for OTA images the user imports by hand — theirs to manage, so it stands on its own. */
     get defaultCustomOtaPath(): string {
         return getAbsoluteInstanceDataDir(`${this.namespace}.custom-ota`);
+    }
+
+    /** The folder custom OTA images are imported from, see {@link StorageLayout.customOtaPath}. */
+    get customOtaPath(): string {
+        const legacyDir = path.join(getAbsoluteInstanceDataDir(this), 'custom-ota');
+        return StorageLayout.customOtaPath(
+            (this.config as MatterAdapterConfig).customUpdatesPath,
+            legacyDir,
+            this.defaultCustomOtaPath,
+            existsSync(legacyDir),
+        );
     }
     t: (word: string, ...args: (string | number | boolean | null)[]) => string;
     getText: (word: string, ...args: (string | number | boolean | null)[]) => ioBroker.Translated;
@@ -864,11 +876,11 @@ export class MatterAdapter extends Adapter {
      * configured in the Device Manager. While the initial sync runs, the adapter's own writes are not taken from the
      * object subscription, so such a change is queued here; afterwards the subscription delivers it.
      *
-     * @param id the relative id of the changed object, such as `controller.<nodeId>`
+     * @param id the id of the changed object, relative such as `controller.<nodeId>` or with the adapter namespace
      */
     queueOwnObjectChange(id: string): void {
         if (!this.#initialSyncDone) {
-            this.#queueObjectChange(`${this.namespace}.${id}`);
+            this.#queueObjectChange(id.startsWith(`${this.namespace}.`) ? id : `${this.namespace}.${id}`);
         }
     }
 

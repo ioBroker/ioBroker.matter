@@ -60,6 +60,40 @@ export namespace StorageLayout {
         return true;
     }
 
+    /** Windows paths are case-insensitive, so a setting typed with other casing still names the same folder. */
+    function samePath(a: string, b: string): boolean {
+        const [first, second] = [path.resolve(a), path.resolve(b)];
+        return process.platform === 'win32' ? first.toLowerCase() === second.toLowerCase() : first === second;
+    }
+
+    /**
+     * The folder to import custom OTA images from.
+     *
+     * Before the relocation the default folder was `custom-ota` inside the instance data directory, and a user may
+     * have entered that path as the setting. Once the start moved that folder, the setting would point at a folder
+     * that is recreated empty, so it then means the new default. While the old folder still exists, because it could
+     * not be moved, it holds the images and stays in use.
+     *
+     * @param configured the `customUpdatesPath` setting, empty for the default
+     * @param legacyDir the former default folder inside the instance data directory
+     * @param defaultDir the current default folder
+     * @param legacyDirExists whether the former default folder still exists
+     */
+    export function customOtaPath(
+        configured: string | undefined,
+        legacyDir: string,
+        defaultDir: string,
+        legacyDirExists: boolean,
+    ): string {
+        if (!configured) {
+            return defaultDir;
+        }
+        if (!legacyDirExists && samePath(configured, legacyDir)) {
+            return defaultDir;
+        }
+        return configured;
+    }
+
     /**
      * Move everything that used to share the instance data directory to where it belongs now.
      *

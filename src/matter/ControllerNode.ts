@@ -1480,7 +1480,7 @@ class Controller implements GeneralNode {
         const adapterConfig = this.#adapter.config as MatterAdapterConfig;
 
         // Determine the path to scan
-        const path = customPath || adapterConfig.customUpdatesPath || this.#adapter.defaultCustomOtaPath;
+        const path = customPath || this.#adapter.customOtaPath;
 
         // Check if custom updates are enabled
         if (!adapterConfig.allowUnofficialUpdates) {

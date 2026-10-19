@@ -45,6 +45,28 @@ function makeDataDir(): string {
     return dir;
 }
 
+describe('StorageLayout.customOtaPath', () => {
+    const legacyDir = join('/data', 'matter.0', 'custom-ota');
+    const defaultDir = join('/data', 'matter.0.custom-ota');
+
+    it('uses the default folder when nothing is configured', () => {
+        strictEqual(StorageLayout.customOtaPath('', legacyDir, defaultDir, false), defaultDir);
+        strictEqual(StorageLayout.customOtaPath(undefined, legacyDir, defaultDir, true), defaultDir);
+    });
+
+    it('reads the former default as the new one once its folder was moved', () => {
+        strictEqual(StorageLayout.customOtaPath(`${legacyDir}/`, legacyDir, defaultDir, false), defaultDir);
+    });
+
+    it('keeps the former default while its folder could not be moved', () => {
+        strictEqual(StorageLayout.customOtaPath(legacyDir, legacyDir, defaultDir, true), legacyDir);
+    });
+
+    it('keeps any other configured folder', () => {
+        strictEqual(StorageLayout.customOtaPath('/media/ota', legacyDir, defaultDir, false), '/media/ota');
+    });
+});
+
 describe('StorageLayout.relocate', () => {
     beforeEach(() => {
         root = mkdtempSync(join(tmpdir(), 'iobroker-matter-layout-'));

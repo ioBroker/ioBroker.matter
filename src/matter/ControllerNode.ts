@@ -96,6 +96,7 @@ import {
     TimeSyncManager,
 } from './timeSync/TimeSyncManager';
 import { identifyDeviceTypes } from './to-iobroker/ioBrokerFactory';
+import { changesNodeStructure, StructureRebuildTimer, type RebuildTimerHost } from './structureRebuild';
 import type { GeneralNode, MessageResponse } from './GeneralNode';
 import { inspect } from 'util';
 import { createReadStream } from 'fs';
@@ -128,14 +129,6 @@ export type {
     BorderRouterEntry,
 };
 
-/**
- * How long endpoint changes of one peer are collected before its ioBroker structure is rebuilt.
- *
- * Measured from the first change, not restarted by later ones, so a device reporting its endpoints slowly
- * still ends in one rebuild.
- */
-const STRUCTURE_REBUILD_DELAY_MS = 5_000;
-
 interface WatchedPeer {
     peer: ClientNode;
     observers: ObserverGroup;
@@ -148,7 +141,7 @@ interface WatchedPeer {
     tearingDown?: boolean;
     /** Whether the peer was Connected since it is watched or last Disconnected, see `isConnectedForIoBroker()`. */
     firstReportApplied: boolean;
-    rebuildTimer?: ioBroker.Timeout;
+    rebuild: StructureRebuildTimer<ioBroker.Timeout>;
 }
 
 type EndUserCommissioningOptions = (
@@ -191,6 +184,11 @@ class Controller implements GeneralNode {
     readonly #icdChangeSubscribed = new WeakSet<GeneralMatterNode>();
     /** Node ids with an unawaited LIT network-data read still in flight; see `refreshNodeNetworkData`. */
     readonly #pendingLongIdleTimeReads = new Set<string>();
+    readonly #rebuildTimerHost: RebuildTimerHost<ioBroker.Timeout> = {
+        now: () => performance.now(),
+        setTimeout: (callback, ms) => this.#adapter.setTimeout(callback, ms),
+        clearTimeout: handle => this.#adapter.clearTimeout(handle),
+    };
 
     constructor(options: ControllerCreateOptions) {
         const { adapter, controllerOptions, updateCallback, fabricLabel } = options;
@@ -446,7 +444,12 @@ class Controller implements GeneralNode {
                 return;
             }
             const observers = new ObserverGroup();
-            const watched: WatchedPeer = { peer, observers, firstReportApplied: peer.lifecycle.isConnected };
+            const watched: WatchedPeer = {
+                peer,
+                observers,
+                firstReportApplied: peer.lifecycle.isConnected,
+                rebuild: new StructureRebuildTimer(this.#rebuildTimerHost, () => this.#rebuildStructure(watched)),
+            };
             this.#watchedPeers.set(peer, watched);
 
             // `added` emits before the peer's construction starts, and a peer that crashed on load stays
@@ -492,7 +495,7 @@ class Controller implements GeneralNode {
                     this.#adapter.log.info(`Node "${peer.id}" decommissioned`);
                     // matter.js deletes the peer next, on both paths
                     watched.tearingDown = true;
-                    this.#cancelStructureRebuild(watched);
+                    watched.rebuild.cancel();
                     const nodeId = watched.commissionedNodeId;
                     if (nodeId !== undefined) {
                         this.#unregisterNodeFromTimeSync(nodeId);
@@ -516,7 +519,7 @@ class Controller implements GeneralNode {
                         case EndpointLifecycle.Change.Destroying:
                             if (endpoint === peer) {
                                 watched.tearingDown = true;
-                                this.#cancelStructureRebuild(watched);
+                                watched.rebuild.cancel();
                             }
                             break;
                         // The rebuild reads the endpoint and its parts, which are readable once PartsReady fired
@@ -533,6 +536,10 @@ class Controller implements GeneralNode {
                     }
                 }),
             );
+            observers.on(
+                peer.eventsOf(NetworkClient).subscriptionAlive,
+                this.#contained('subscription report', () => watched.rebuild.reportCompleted()),
+            );
         };
         // Discovery adds commissionable devices to the same collection, and the expiration cull drops them
         // again, so the observers of a peer have to go when the peer does.
@@ -541,7 +548,7 @@ class Controller implements GeneralNode {
             if (watched === undefined) {
                 return;
             }
-            this.#cancelStructureRebuild(watched);
+            watched.rebuild.cancel();
             watched.observers.close();
             this.#watchedPeers.delete(peer);
         };
@@ -574,35 +581,29 @@ class Controller implements GeneralNode {
 
     #unwatchAllPeers(): void {
         for (const watched of this.#watchedPeers.values()) {
-            this.#cancelStructureRebuild(watched);
+            watched.rebuild.cancel();
             watched.observers.close();
         }
         this.#watchedPeers.clear();
     }
 
-    /** Rebuild the ioBroker structure of a peer whose endpoints changed. */
+    /** Rebuild the ioBroker structure of a peer whose structure changed, once its reports settled. */
     #scheduleStructureRebuild(watched: WatchedPeer): void {
-        if (watched.tearingDown || this.#closing || this.#adapter.closing || watched.rebuildTimer !== undefined) {
+        if (watched.tearingDown || this.#closing || this.#adapter.closing) {
             return;
         }
-        watched.rebuildTimer = this.#adapter.setTimeout(() => {
-            watched.rebuildTimer = undefined;
-            if (watched.tearingDown || this.#closing || this.#adapter.closing) {
-                return;
-            }
-            this.#adapter.log.info(`Node "${watched.peer.id}" structure changed`);
-            this.nodeToIoBrokerStructure(watched.peer).then(
-                () => this.#updateCallback(),
-                error => this.#adapter.log.info(`Error while updating structure: ${error}`),
-            );
-        }, STRUCTURE_REBUILD_DELAY_MS);
+        watched.rebuild.changed();
     }
 
-    #cancelStructureRebuild(watched: WatchedPeer): void {
-        if (watched.rebuildTimer !== undefined) {
-            this.#adapter.clearTimeout(watched.rebuildTimer);
-            watched.rebuildTimer = undefined;
+    #rebuildStructure(watched: WatchedPeer): void {
+        if (watched.tearingDown || this.#closing || this.#adapter.closing) {
+            return;
         }
+        this.#adapter.log.info(`Node "${watched.peer.id}" structure changed`);
+        this.nodeToIoBrokerStructure(watched.peer).then(
+            () => this.#updateCallback(),
+            error => this.#adapter.log.info(`Error while updating structure: ${error}`),
+        );
     }
 
     #handlePeerChange(peer: ClientNode, change: ChangeNotificationService.Change): void {
@@ -620,6 +621,12 @@ class Controller implements GeneralNode {
                     .catch(error => this.#adapter.log.error(`Error handling attribute change: ${error}`));
                 if (this.#isNetworkRelevantCluster(clusterId)) {
                     this.#sendNetworkGraphUpdate();
+                }
+                if (changesNodeStructure(clusterId, change.properties)) {
+                    const watched = this.#watchedPeers.get(peer);
+                    if (watched !== undefined) {
+                        this.#scheduleStructureRebuild(watched);
+                    }
                 }
                 break;
             }

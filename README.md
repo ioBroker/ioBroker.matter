@@ -193,6 +193,8 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) A bridged pump no longer advertises the Matter Lighting feature on its level and on/off clusters, so its speed setpoint can reach zero as intended
 * (@Apollon77) Fix vendor specific attributes of paired nodes not being updated anymore
 * (@Apollon77) Fix the ioBroker structure of a paired node not being rebuilt when a bridge gains or loses a device
+* (@Apollon77) Fix a paired node keeping its old ioBroker mapping until the adapter restarts when one of its endpoints changes its device type
+* (@Apollon77) The ioBroker structure of a paired node is now rebuilt once the device has finished reporting a change, so a bridge whose new devices arrive in several reports in a row is rebuilt once with all of them. The rebuild waits at most 10 seconds after the first change
 * (@Apollon77) Fix leftover objects and observers when a node is removed, and no longer create a second node tree while removing one
 * (@Apollon77) A second discovery request joins the running discovery instead of starting a competing one
 * (@Apollon77) Add support for the Room Air Conditioner device type (controller and bridge/device mode) mapped to the ioBroker airCondition type

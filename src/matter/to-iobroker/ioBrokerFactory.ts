@@ -35,8 +35,7 @@ export function identifyDeviceTypes(endpoint: Endpoint): {
     appTypes: { deviceType: DeviceTypeModel; revision: number }[];
     primaryDeviceType?: { deviceType: DeviceTypeModel; revision: number };
 } {
-    const deviceTypeList: { deviceType: number; revision: number }[] =
-        (endpoint as any).stateOf(DescriptorClient)?.deviceTypeList ?? [];
+    const deviceTypeList = endpoint.stateOf(DescriptorClient)?.deviceTypeList ?? [];
     const matterDeviceTypes = deviceTypeList.map(({ deviceType, revision }) => ({
         code: deviceType,
         revision,

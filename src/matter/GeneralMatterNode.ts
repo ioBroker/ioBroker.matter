@@ -361,8 +361,14 @@ export class GeneralMatterNode {
             },
             native: {
                 nodeId: this.nodeId,
-                exposeMatterApplicationClusterData: this.exposeMatterApplicationClusterData,
-                exposeMatterSystemClusterData: this.exposeMatterSystemClusterData,
+                // Only as defaults: the values were read from the object above, and writing them back would undo
+                // a change the user made to the object while this build was running
+                ...(existingObject?.native?.exposeMatterApplicationClusterData === undefined
+                    ? { exposeMatterApplicationClusterData: this.exposeMatterApplicationClusterData }
+                    : {}),
+                ...(existingObject?.native?.exposeMatterSystemClusterData === undefined
+                    ? { exposeMatterSystemClusterData: this.exposeMatterSystemClusterData }
+                    : {}),
             },
         };
 

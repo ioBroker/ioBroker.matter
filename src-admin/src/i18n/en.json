@@ -361,5 +361,9 @@
     "Refresh %s connected online neighbor(s) for current link data": "Refresh %s connected online neighbor(s) for current link data",
     "No online neighbor can report its current link data either.": "No online neighbor can report its current link data either.",
     "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.",
-    "The pairing code is wrong": "The pairing code is wrong"
+    "The pairing code is wrong": "The pairing code is wrong",
+    "The device attestation was rejected": "The device attestation was rejected",
+    "The device was not found in the network": "The device was not found in the network",
+    "The device is already paired with this controller": "The device is already paired with this controller",
+    "The node was removed, but the device could not be told to leave. It may still be paired with this controller and needs a factory reset before it can be paired again.": "The node was removed, but the device could not be told to leave. It may still be paired with this controller and needs a factory reset before it can be paired again."
 }

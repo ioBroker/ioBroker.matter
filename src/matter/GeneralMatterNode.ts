@@ -625,6 +625,21 @@ export class GeneralMatterNode {
             throw new Error('Node does not support over-the-air software updates');
         }
 
+        // The in-memory flag is lost with a restart or rebuild, the device keeps its own state
+        if (!this.isConnected) {
+            throw new Error('Node is not connected. Retry when it is online');
+        }
+        const deviceUpdateState = this.node.maybeStateOf(OtaSoftwareUpdateRequestorClient)?.updateState;
+        if (
+            deviceUpdateState !== undefined &&
+            deviceUpdateState !== OtaSoftwareUpdateRequestor.UpdateState.Idle &&
+            deviceUpdateState !== OtaSoftwareUpdateRequestor.UpdateState.Unknown
+        ) {
+            throw new Error(
+                `Node is already updating (state: ${OtaSoftwareUpdateRequestor.UpdateState[deviceUpdateState]})`,
+            );
+        }
+
         this.#softwareUpdateInProgress = true;
         this.adapter.log.info(
             `Starting software update for node ${this.nodeId} to version ${updateInfo.softwareVersionString} (${updateInfo.softwareVersion}), source: ${updateInfo.source}`,
@@ -1787,14 +1802,21 @@ export class GeneralMatterNode {
         }
     }
 
-    async remove(): Promise<void> {
+    /**
+     * Removes the node from the controller and deletes its ioBroker objects.
+     *
+     * @returns whether the device confirmed the removal. When it did not, the node is removed anyway and the
+     *   device may still hold our fabric.
+     */
+    async remove(): Promise<{ deviceNotified: boolean }> {
         if (this.adapter.controllerNode === undefined) {
             throw new Error('Controller seems not to be initialized ... can not unpair device!');
         }
-        await this.adapter.controllerNode.decommissionNode(this.nodeId);
+        const result = await this.adapter.controllerNode.decommissionNode(this.nodeId);
         await this.destroy();
         this.adapter.log.info(`Node "${this.nodeId}" removed. Removing Storage in ${this.nodeBaseId}`);
         await this.adapter.delObjectAsync(this.nodeBaseId, { recursive: true });
+        return result;
     }
 
     async rename(newName: string): Promise<void> {

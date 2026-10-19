@@ -338,5 +338,9 @@
     "Refresh %s connected online neighbor(s) for current link data": "%s verbonden online buren vernieuwen voor actuele verbindingsgegevens",
     "No online neighbor can report its current link data either.": "Geen enkele online buur kan ook actuele verbindingsgegevens melden.",
     "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s node(s) zijn slapende apparaten (Matter LIT), dus de update wacht niet op ze — hun gegevens verschijnen zodra ze wakker worden.",
-    "The pairing code is wrong": "De koppelcode is onjuist"
+    "The pairing code is wrong": "De koppelcode is onjuist",
+    "The device attestation was rejected": "De apparaatattestatie is geweigerd",
+    "The device was not found in the network": "Het apparaat is niet gevonden in het netwerk",
+    "The device is already paired with this controller": "Het apparaat is al gekoppeld aan deze controller",
+    "The node was removed, but the device could not be told to leave. It may still be paired with this controller and needs a factory reset before it can be paired again.": "Het knooppunt is verwijderd, maar het apparaat kon niet worden gevraagd het te verlaten. Het kan nog aan deze controller gekoppeld zijn en moet worden teruggezet naar de fabrieksinstellingen voordat het opnieuw kan worden gekoppeld."
 }

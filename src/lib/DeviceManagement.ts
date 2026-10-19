@@ -484,7 +484,8 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             return { refresh: 'none' };
         }
 
-        if (!node.node.lifecycle.isConnected) {
+        const wasConnected = node.node.lifecycle.isConnected;
+        if (!wasConnected) {
             if (
                 !(await context.showConfirmation(
                     this.#adapter.t(
@@ -507,8 +508,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         // Start an interval that normally covers 30 seconds, and with each update the number gets slower increased for the percentage
         let errorHappened = false;
+        let deviceNotified = true;
         try {
-            await node.remove();
+            ({ deviceNotified } = await node.remove());
         } catch (error) {
             const errorText = inspect(error, { depth: 10 });
             this.adapter.log.error(`Error during unpairing for node ${node.nodeId}: ${errorText}`);
@@ -524,6 +526,12 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         if (errorHappened) {
             await context.showMessage(this.#adapter.t('Error happened during unpairing. Please check the log.'));
+        } else if (wasConnected && !deviceNotified) {
+            await context.showMessage(
+                this.#adapter.t(
+                    'The node was removed, but the device could not be told to leave. It may still be paired with this controller and needs a factory reset before it can be paired again.',
+                ),
+            );
         }
         return { refresh: 'devices' };
     }

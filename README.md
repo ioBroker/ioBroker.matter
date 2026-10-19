@@ -178,6 +178,11 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) Network visualization data is no longer assembled, and neither it nor Thread diagnostics data is serialized and sent, while no admin UI is listening
 * (@Apollon77) Updated matter.js to 0.18 and migrated the controller to its ClientNode API
 * (@Apollon77) Pairing a device with a wrong pairing code now says so, instead of showing a generic commissioning error that cannot be told apart from an unreachable device
+* (@Apollon77) Pairing failures now give a specific reason when the device was not found in the network or is already paired with this controller
+* (@Apollon77) Pairing with an address from the Visu app now falls back to discovering the device when that address is outdated
+* (@Apollon77) Fixed paired nodes of the previous adapter version that connected but never reported changes
+* (@Apollon77) A node whose device cannot be reached can now always be removed; the adapter tells you when the device could not be told to leave and may need a factory reset
+* (@Apollon77) A software update is no longer started on a node that is offline or already updating, including after an adapter restart during an update
 * (@Apollon77) Fixed the ioBroker Visu app being handed outdated controller credentials after the first device was paired on a fresh installation, until the adapter was restarted
 * (@Apollon77) The raw event states of a controller device are now created for the events its clusters support. They were only created from the EventList attribute, which current devices no longer report, so most devices had none
 * (@Apollon77) Changes made in the admin while the adapter starts are now applied once the start is done, instead of being missed until the next change or restart

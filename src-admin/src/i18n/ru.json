@@ -338,5 +338,9 @@
     "Refresh %s connected online neighbor(s) for current link data": "Обновить %s подключенных онлайн-соседей для получения текущих данных о соединении",
     "No online neighbor can report its current link data either.": "Ни один онлайн-сосед также не может сообщить текущие данные о соединении.",
     "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s узел(-ов) являются спящими устройствами (Matter LIT), поэтому обновление не будет их ожидать — их данные появятся, когда они проснутся.",
-    "The pairing code is wrong": "Неверный код сопряжения"
+    "The pairing code is wrong": "Неверный код сопряжения",
+    "The device attestation was rejected": "Аттестация устройства отклонена",
+    "The device was not found in the network": "Устройство не найдено в сети",
+    "The device is already paired with this controller": "Устройство уже сопряжено с этим контроллером",
+    "The node was removed, but the device could not be told to leave. It may still be paired with this controller and needs a factory reset before it can be paired again.": "Узел удалён, но устройству не удалось сообщить о выходе. Оно может всё ещё быть сопряжено с этим контроллером и требует сброса к заводским настройкам, прежде чем его можно будет сопрячь снова."
 }

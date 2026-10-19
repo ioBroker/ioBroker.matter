@@ -141,8 +141,13 @@ interface WatchedPeer {
     observers: ObserverGroup;
     /** Last address the peer reported, because it is already gone when the decommission is announced. */
     commissionedNodeId?: NodeId;
-    /** Set once the peer itself starts being destroyed, so a rebuild cannot recreate what is being removed. */
+    /**
+     * Set once the peer left the fabric or starts being destroyed, so a rebuild cannot recreate what is being
+     * removed.
+     */
     tearingDown?: boolean;
+    /** Whether the peer was Connected since it is watched or last Disconnected, see `isConnectedForIoBroker()`. */
+    firstReportApplied: boolean;
     rebuildTimer?: ioBroker.Timeout;
 }
 
@@ -441,7 +446,7 @@ class Controller implements GeneralNode {
                 return;
             }
             const observers = new ObserverGroup();
-            const watched: WatchedPeer = { peer, observers };
+            const watched: WatchedPeer = { peer, observers, firstReportApplied: peer.lifecycle.isConnected };
             this.#watchedPeers.set(peer, watched);
 
             // `added` emits before the peer's construction starts, and a peer that crashed on load stays
@@ -461,6 +466,12 @@ class Controller implements GeneralNode {
                 peer.lifecycle.connectionStateChanged,
                 this.#contained('connection state', state => {
                     rememberNodeId();
+                    if (state === NodeConnectionState.Connected) {
+                        watched.firstReportApplied = true;
+                    } else if (state === NodeConnectionState.Disconnected) {
+                        // A disabled or stopped peer resumes on the cache from before, as after a restart
+                        watched.firstReportApplied = false;
+                    }
                     this.#handleConnectionState(peer, state, watched.commissionedNodeId);
                 }),
             );
@@ -474,15 +485,28 @@ class Controller implements GeneralNode {
                     this.#registerNodeForThreadPolling(peer);
                 }),
             );
-            observers.on(peer.lifecycle.decommissioned, () => {
-                this.#adapter.log.info(`Node "${peer.id}" decommissioned`);
-                const nodeId = watched.commissionedNodeId;
-                if (nodeId !== undefined) {
-                    this.#unregisterNodeFromTimeSync(nodeId);
-                    this.#unregisterNodeFromThreadPolling(nodeId);
-                }
-                this.#updateCallback();
-            });
+            // Emitted inside matter.js's decommission transaction, and for a device that left the fabric on its own
+            observers.on(
+                peer.lifecycle.decommissioned,
+                this.#contained('peer decommissioned', () => {
+                    this.#adapter.log.info(`Node "${peer.id}" decommissioned`);
+                    // matter.js deletes the peer next, on both paths
+                    watched.tearingDown = true;
+                    this.#cancelStructureRebuild(watched);
+                    const nodeId = watched.commissionedNodeId;
+                    if (nodeId !== undefined) {
+                        this.#unregisterNodeFromTimeSync(nodeId);
+                        this.#unregisterNodeFromThreadPolling(nodeId);
+                        const nodeIdStr = nodeId.toString();
+                        this.#removeDecommissionedNode(nodeIdStr).catch(error =>
+                            this.#adapter.log.warn(
+                                `Error removing decommissioned node "${nodeIdStr}": ${inspect(error, { depth: 10 })}`,
+                            ),
+                        );
+                    }
+                    this.#updateCallback();
+                }),
+            );
             // A change notification reports an endpoint that went away but never one that appeared, so the
             // structure of a bridge that gains a device is only seen here.
             observers.on(
@@ -825,6 +849,45 @@ class Controller implements GeneralNode {
         }
     }
 
+    /**
+     * Drops the lock of a node that is gone. Only when nothing is queued or running on it, so a call holding or
+     * awaiting its slot never loses it.
+     */
+    #pruneNodeLock(nodeIdStr: string): void {
+        const lock = this.#nodeLocks.get(nodeIdStr);
+        if (lock !== undefined && lock.count === 0 && lock.running === 0) {
+            this.#nodeLocks.delete(nodeIdStr);
+        }
+    }
+
+    /**
+     * Removes a decommissioned node and its ioBroker objects. A device that left the fabric, through a factory
+     * reset or a removal by another controller, is gone for good, so nothing of it is kept.
+     *
+     * A removal from ioBroker emits the same `decommissioned` while {@link decommissionNode} holds the node lock,
+     * and that call drops the node from `#nodes` before it releases the lock, so this finds nothing left to do.
+     */
+    async #removeDecommissionedNode(nodeIdStr: string): Promise<void> {
+        const slot = await this.#getNodeLock(nodeIdStr).obtainSlot();
+        const node = this.#nodes.get(nodeIdStr);
+        try {
+            if (node !== undefined) {
+                this.#nodes.delete(nodeIdStr);
+                this.#adapter.log.info(
+                    `Node "${nodeIdStr}" left the fabric, for example after a factory reset or a removal by another controller. Removing it and its objects in ${node.nodeBaseId}`,
+                );
+                await node.destroy();
+                await this.#adapter.delObjectAsync(node.nodeBaseId, { recursive: true });
+            }
+        } finally {
+            slot.close();
+            this.#pruneNodeLock(nodeIdStr);
+        }
+        if (node !== undefined) {
+            this.#updateCallback();
+        }
+    }
+
     #getNodeLock(nodeIdStr: string): Semaphore {
         let lock = this.#nodeLocks.get(nodeIdStr);
         if (lock === undefined) {
@@ -850,15 +913,23 @@ class Controller implements GeneralNode {
                 // A queued call may only get its slot after stop() already cleared #nodes.
                 return;
             }
-            if (!this.#watchedPeers.has(node)) {
+            const watched = this.#watchedPeers.get(node);
+            if (watched === undefined || watched.tearingDown) {
                 // The peer was removed while this waited for its slot, so rebuilding would bring it back.
                 return;
             }
 
             const oldDevice = this.#nodes.get(nodeIdStr);
-            await oldDevice?.destroy();
+            // The replacement writes the connection state itself, so the devices do not blink offline
+            await oldDevice?.destroy({ keepConnectionState: true });
 
-            const device = new GeneralMatterNode(this.#adapter, node, this.#parameters, this.#otaProvider);
+            const device = new GeneralMatterNode(
+                this.#adapter,
+                node,
+                this.#parameters,
+                () => watched.firstReportApplied,
+                this.#otaProvider,
+            );
             this.#nodes.set(nodeIdStr, device);
             await device.initialize(nodeDetails);
 
@@ -2054,12 +2125,7 @@ class Controller implements GeneralNode {
         } finally {
             slot.close();
         }
-        // Only prune if nothing is currently queued or running on this node's lock, so an in-flight
-        // nodeToIoBrokerStructure call never has its slot pulled out from under it.
-        const lock = this.#nodeLocks.get(nodeId);
-        if (lock !== undefined && lock.count === 0 && lock.running === 0) {
-            this.#nodeLocks.delete(nodeId);
-        }
+        this.#pruneNodeLock(nodeId);
         this.#updateCallback();
         return { deviceNotified };
     }

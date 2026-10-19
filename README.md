@@ -183,6 +183,8 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) Fixed paired nodes of the previous adapter version that connected but never reported changes
 * (@Apollon77) A node whose device cannot be reached can now always be removed; the adapter tells you when the device could not be told to leave and may need a factory reset
 * (@Apollon77) A software update is no longer started on a node that is offline or already updating, including after an adapter restart during an update
+* (@Apollon77) The connection state of a paired node and of its devices no longer switches to offline while the controller only re-establishes a lost connection; they go offline when the device is known to be unreachable. After an adapter start, or after the node was disabled, it shows as online only once the device has reported its current state. The Device Manager still shows the node as disconnected while it reconnects
+* (@Apollon77) A paired node whose device leaves the fabric on its own, for example after a factory reset or when another controller removes it, is now removed together with its objects, instead of staying behind as a node whose commands fail
 * (@Apollon77) Fixed the ioBroker Visu app being handed outdated controller credentials after the first device was paired on a fresh installation, until the adapter was restarted
 * (@Apollon77) The raw event states of a controller device are now created for the events its clusters support. They were only created from the EventList attribute, which current devices no longer report, so most devices had none
 * (@Apollon77) Changes made in the admin while the adapter starts are now applied once the start is done, instead of being missed until the next change or restart

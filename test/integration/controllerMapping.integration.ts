@@ -11,7 +11,7 @@
 import { expect } from 'chai';
 import type { ChildProcess } from 'node:child_process';
 import type { ClientNode, Endpoint } from '@matter/main';
-import { Logger, LogLevel, Timestamp } from '@matter/main';
+import { Logger, LogLevel, NodeConnectionState, Timestamp } from '@matter/main';
 import { AttributeId, ClusterId, EndpointNumber, EventNumber, NodeId, Priority } from '@matter/main/types';
 import {
     BridgedDeviceBasicInformationClient,
@@ -454,7 +454,7 @@ describe('Matter -> ioBroker controller mapping', function () {
         };
 
         before(async () => {
-            node = new GeneralMatterNode(adapter as unknown as MatterAdapter, commissioned!.node, {});
+            node = new GeneralMatterNode(adapter as unknown as MatterAdapter, commissioned!.node, {}, () => false);
             await node.applyConfiguration(
                 {
                     nodeId: peerNodeId(commissioned!.node),
@@ -585,7 +585,12 @@ describe('Matter -> ioBroker controller mapping', function () {
                 }
                 return readObject(id);
             };
-            const discarded = new GeneralMatterNode(isolated as unknown as MatterAdapter, commissioned!.node, {});
+            const discarded = new GeneralMatterNode(
+                isolated as unknown as MatterAdapter,
+                commissioned!.node,
+                {},
+                () => false,
+            );
             const config = {
                 nodeId: peerNodeId(commissioned!.node),
                 exposeMatterApplicationClusterData: true,
@@ -607,6 +612,60 @@ describe('Matter -> ioBroker controller mapping', function () {
             );
             expect(discarded.devices.size, 'a build ran on the destroyed node').to.equal(0);
             expect(subscriptionCount(), 'the destroyed node left subscriptions behind').to.equal(before);
+        });
+    });
+
+    /**
+     * The decision itself is unit-tested with `isConnectedForIoBroker`; this pins that the node writes it, and that
+     * the status state keeps the exact connection state.
+     */
+    describe('node connection state', () => {
+        it('counts a reconnecting node as connected only after its first report', async () => {
+            // Its own adapter, so these writes do not reach the node the other tests use
+            const isolated = new MockControllerAdapter();
+            let firstReportApplied = false;
+            const node = new GeneralMatterNode(
+                isolated as unknown as MatterAdapter,
+                commissioned!.node,
+                {},
+                () => firstReportApplied,
+            );
+            const written = async (state: NodeConnectionState): Promise<{ connection: unknown; status: unknown }> => {
+                node.handleStateChange(state);
+                // The state writes are not awaited by handleStateChange
+                await new Promise(resolve => setImmediate(resolve));
+                return {
+                    connection: isolated.states.get(node.connectionStateId)?.val,
+                    status: isolated.states.get(node.connectionStatusId)?.val,
+                };
+            };
+
+            try {
+                expect(await written(NodeConnectionState.Reconnecting)).to.deep.equal({
+                    connection: false,
+                    status: NodeConnectionState.Reconnecting,
+                });
+                expect(await written(NodeConnectionState.Connected)).to.deep.equal({
+                    connection: true,
+                    status: NodeConnectionState.Connected,
+                });
+
+                firstReportApplied = true;
+                expect(await written(NodeConnectionState.Reconnecting)).to.deep.equal({
+                    connection: true,
+                    status: NodeConnectionState.Reconnecting,
+                });
+                expect(await written(NodeConnectionState.WaitingForDeviceDiscovery)).to.deep.equal({
+                    connection: false,
+                    status: NodeConnectionState.WaitingForDeviceDiscovery,
+                });
+                expect(await written(NodeConnectionState.Disconnected)).to.deep.equal({
+                    connection: false,
+                    status: NodeConnectionState.Disconnected,
+                });
+            } finally {
+                await node.destroy();
+            }
         });
     });
 });

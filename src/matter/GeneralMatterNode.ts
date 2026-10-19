@@ -57,6 +57,7 @@ import type { StructuredJsonFormData } from '../lib/JsonConfigUtils';
 import type { DeviceStatus, ConfigConnectionType } from '@iobroker/dm-utils';
 import { VendorIds } from '../lib/vendorIDs';
 import { NodeIcdManager } from './NodeIcdManager';
+import { isConnectedForIoBroker } from './nodeConnection';
 
 export type PairedNodeConfig = {
     nodeId: NodeId;
@@ -224,6 +225,11 @@ export class GeneralMatterNode {
         protected readonly adapter: MatterAdapter,
         readonly node: ClientNode,
         controllerConfig: MatterControllerConfig,
+        /**
+         * Whether the peer's subscription applied a first report since the controller started watching it. Read on
+         * every connection state write, so it answers for the peer, not for this instance, which a rebuild replaces.
+         */
+        private readonly firstReportApplied: () => boolean,
         private readonly otaProvider?: Endpoint<OtaProviderEndpoint>,
     ) {
         this.nodeId = node.state.commissioning.peerAddress?.nodeId.toString() ?? node.id;
@@ -469,8 +475,13 @@ export class GeneralMatterNode {
             return;
         }
 
-        await this.adapter.setState(this.connectionStateId, this.node.lifecycle.isConnected, true);
-        await this.adapter.setState(this.connectionStatusId, this.node.lifecycle.connectionState, true);
+        const { connectionState } = this.node.lifecycle;
+        await this.adapter.setState(
+            this.connectionStateId,
+            isConnectedForIoBroker(connectionState, this.firstReportApplied()),
+            true,
+        );
+        await this.adapter.setState(this.connectionStatusId, connectionState, true);
 
         this.#createIcdManager();
         if (this.#icd === undefined) {
@@ -512,6 +523,11 @@ export class GeneralMatterNode {
         return this.node.behaviors.internalsOf(NetworkClient).activeSubscription?.maxInterval;
     }
 
+    /**
+     * Whether the peer is Connected right now, with a live subscription over an open session. Reads, commands and
+     * software updates are only tried then. The `info.connection` state also counts a node that is reconnecting,
+     * see {@link isConnectedForIoBroker}.
+     */
     get isConnected(): boolean {
         return this.node.lifecycle.isConnected;
     }
@@ -1706,7 +1722,9 @@ export class GeneralMatterNode {
 
     handleStateChange(state: NodeConnectionState, nodeDetails?: { operationalAddress?: string }): void {
         const connected = state === NodeConnectionState.Connected;
-        this.adapter.setState(this.connectionStateId, connected, true).catch(() => {});
+        this.adapter
+            .setState(this.connectionStateId, isConnectedForIoBroker(state, this.firstReportApplied()), true)
+            .catch(() => {});
         this.adapter.setState(this.connectionStatusId, state, true).catch(() => {});
 
         // A node offline at startup has no root endpoint behaviors yet, so retry ICD detection on connect.
@@ -1779,14 +1797,20 @@ export class GeneralMatterNode {
     /**
      * Ends this instance for good. A build that is running is retired and finishes first; a build queued behind it,
      * such as a delayed initialize() or a configuration change, does nothing afterwards. Safe to call again.
+     *
+     * @param options optional settings
+     * @param options.keepConnectionState leave the connection states as they are, for an instance a rebuild of the
+     *   same peer replaces; the replacement writes them itself
      */
-    async destroy(): Promise<void> {
+    async destroy(options?: { keepConnectionState?: boolean }): Promise<void> {
         this.#destroyed = true;
         this.#generation++;
         const slot = await this.#buildLock.obtainSlot();
         try {
-            await this.adapter.setState(this.connectionStateId, false, true);
-            await this.adapter.setState(this.connectionStatusId, NodeConnectionState.Disconnected, true);
+            if (!options?.keepConnectionState) {
+                await this.adapter.setState(this.connectionStateId, false, true);
+                await this.adapter.setState(this.connectionStatusId, NodeConnectionState.Disconnected, true);
+            }
         } finally {
             // These writes reject once the states DB is going away during unload, and the caller then has no
             // way back to this node - so releasing its subscriptions must not depend on them succeeding.

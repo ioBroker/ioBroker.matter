@@ -75,15 +75,18 @@ describe('StorageLayout.customOtaPath', () => {
 
     it('compares case-insensitively on Windows only', () => {
         const typed = join('/DATA', 'Matter.0', 'Custom-OTA', 'Vendor');
-        strictEqual(StorageLayout.customOtaPath(typed, legacyDir, defaultDir, false), typed);
+        const onPlatform = (platform: NodeJS.Platform): string => {
+            const original = Object.getOwnPropertyDescriptor(process, 'platform')!;
+            Object.defineProperty(process, 'platform', { value: platform });
+            try {
+                return StorageLayout.customOtaPath(typed, legacyDir, defaultDir, false);
+            } finally {
+                Object.defineProperty(process, 'platform', original);
+            }
+        };
 
-        const platform = Object.getOwnPropertyDescriptor(process, 'platform')!;
-        Object.defineProperty(process, 'platform', { value: 'win32' });
-        try {
-            strictEqual(StorageLayout.customOtaPath(typed, legacyDir, defaultDir, false), join(defaultDir, 'Vendor'));
-        } finally {
-            Object.defineProperty(process, 'platform', platform);
-        }
+        strictEqual(onPlatform('linux'), typed);
+        strictEqual(onPlatform('win32'), join(defaultDir, 'Vendor'));
     });
 
     it('keeps any other configured folder', () => {

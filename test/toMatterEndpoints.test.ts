@@ -330,6 +330,18 @@ describe('to-matter converters for type-detector v6 device types', function () {
         });
     });
 
+    describe('AirConditionerToMatter', () => {
+        it('initializes an air conditioner with swing, whose Rocking feature needs rockSupport from construction', async () => {
+            const mounted = await mount(Types.airCondition, {
+                SET_COOLING: { type: 'number', val: 24, min: 16, max: 32, unit: '°C' },
+                SWING: enumeration(FAN_SWINGS, 1),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.rockSupport.rockLeftRight).to.equal(true);
+            expect(endpoint.state.fanControl.rockSetting.rockLeftRight).to.equal(true);
+        });
+    });
+
     describe('AirPurifierToMatter', () => {
         it('initializes an air purifier that only has the detector-required SPEED state', async () => {
             const mounted = await mount(Types.airPurifier, { SPEED: enumeration(FAN_SPEEDS, 1) });

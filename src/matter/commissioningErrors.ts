@@ -14,24 +14,28 @@ export class CommissioningFailure extends Error {
     }
 }
 
+/** The device rejected the pairing code. */
 export class WrongPairingCodeError extends CommissioningFailure {
     constructor(cause: unknown) {
         super('The pairing code is wrong', cause);
     }
 }
 
+/** The device attestation failed a check that matter.js does not leave to the attestation policy. */
 export class AttestationRejectedError extends CommissioningFailure {
     constructor(cause: unknown) {
         super('The device attestation was rejected', cause);
     }
 }
 
+/** Discovery ended without a device that matched the pairing code. */
 export class DeviceNotFoundError extends CommissioningFailure {
     constructor(cause: unknown) {
         super('The device was not found in the network', cause);
     }
 }
 
+/** The device already holds this controller's fabric. */
 export class DeviceAlreadyCommissionedError extends CommissioningFailure {
     constructor(cause: unknown) {
         super('The device is already paired with this controller', cause);

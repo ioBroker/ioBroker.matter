@@ -1,5 +1,5 @@
 import { deepStrictEqual, ok, strictEqual } from 'node:assert';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { StorageLayout } from '../src/matter/storageLayout';
@@ -71,6 +71,19 @@ describe('StorageLayout.customOtaPath', () => {
 
     it('keeps the former default while its folder could not be moved', () => {
         strictEqual(StorageLayout.customOtaPath(legacyDir, legacyDir, defaultDir, true), legacyDir);
+    });
+
+    it('compares case-insensitively on Windows only', () => {
+        const typed = join('/DATA', 'Matter.0', 'Custom-OTA', 'Vendor');
+        strictEqual(StorageLayout.customOtaPath(typed, legacyDir, defaultDir, false), typed);
+
+        const platform = Object.getOwnPropertyDescriptor(process, 'platform')!;
+        Object.defineProperty(process, 'platform', { value: 'win32' });
+        try {
+            strictEqual(StorageLayout.customOtaPath(typed, legacyDir, defaultDir, false), join(defaultDir, 'Vendor'));
+        } finally {
+            Object.defineProperty(process, 'platform', platform);
+        }
     });
 
     it('keeps any other configured folder', () => {
@@ -171,5 +184,43 @@ describe('StorageLayout.relocate', () => {
         strictEqual(log.errors.length, 1);
         ok(log.errors[0].includes('"ota"'));
         ok(log.errors[0].includes(target));
+    });
+
+    it('moves the certificate namespace into the cache', async () => {
+        mkdirSync(join(dataDir, 'ns-certificates'));
+        writeFileSync(join(dataDir, 'ns-certificates', 'paa'), 'certificate');
+
+        await StorageLayout.relocate(dataDir, { cacheDir, customOtaDir }, makeLog());
+
+        ok(!existsSync(join(dataDir, 'ns-certificates')));
+        strictEqual(readFileSync(join(cacheDir, 'ns-certificates', 'paa'), 'utf8'), 'certificate');
+    });
+
+    it('treats an existing but empty target directory as taken', async () => {
+        mkdirSync(join(cacheDir, 'ota'), { recursive: true });
+        const log = makeLog();
+
+        await StorageLayout.relocate(dataDir, { cacheDir, customOtaDir }, log);
+
+        strictEqual(readFileSync(join(dataDir, 'ota', 'bin.130a.50.prod.9082'), 'utf8'), 'current image');
+        deepStrictEqual(readdirSync(join(cacheDir, 'ota')), []);
+        strictEqual(log.errors.length, 1);
+        ok(log.errors[0].includes('"ota"'));
+    });
+
+    it('warns and reports every directory it fails to move', async () => {
+        writeFileSync(join(root, 'blocker'), 'a file where the cache folder should be created');
+        const blockedCacheDir = join(root, 'blocker', 'cache');
+        const log = makeLog();
+
+        await StorageLayout.relocate(dataDir, { cacheDir: blockedCacheDir, customOtaDir }, log);
+
+        strictEqual(log.warnings.length, 2);
+        ok(log.warnings.every(warning => warning.includes('Can not move storage directory')));
+        strictEqual(log.errors.length, 1);
+        ok(log.errors[0].includes('"ota"') && log.errors[0].includes('"ns-vendors"'));
+        ok(existsSync(join(dataDir, 'ota')) && existsSync(join(dataDir, 'ns-vendors')));
+        // The directory that could be moved still was
+        strictEqual(readFileSync(join(customOtaDir, 'my-image.ota'), 'utf8'), 'hand imported');
     });
 });

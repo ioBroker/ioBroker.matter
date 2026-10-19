@@ -21,6 +21,7 @@ export function contained<Args extends unknown[]>(
     };
 }
 
+/** One step of a shutdown that {@link runShutdownSteps} runs whether or not the steps before it failed. */
 export interface ShutdownStep {
     /** Names the step in the error report. */
     what: string;

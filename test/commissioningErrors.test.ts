@@ -96,6 +96,16 @@ describe('classifyCommissioningFailure', () => {
     });
 });
 
+describe('CommissioningFailure subclasses', () => {
+    it('carry the name of their own class', () => {
+        const cause = new Error('x');
+        expect(new WrongPairingCodeError(cause).name).to.equal('WrongPairingCodeError');
+        expect(new AttestationRejectedError(cause).name).to.equal('AttestationRejectedError');
+        expect(new DeviceNotFoundError(cause).name).to.equal('DeviceNotFoundError');
+        expect(new DeviceAlreadyCommissionedError(cause).name).to.equal('DeviceAlreadyCommissionedError');
+    });
+});
+
 describe('isUnreachedAddress', () => {
     it('is true for a device that did not answer and for failures without a dedicated reason', () => {
         expect(isUnreachedAddress(new DiscoveryIncompleteError('timeout'))).to.equal(true);

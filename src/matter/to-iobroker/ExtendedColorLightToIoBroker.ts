@@ -132,11 +132,11 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
         }
     }
 
-    override async destroy(): Promise<void> {
+    override async destroy(options?: { keepConnectionState?: boolean }): Promise<void> {
         // The base releases the ioBroker subscription that arms this timer, so a change landing during
         // super.destroy() can still re-arm it; clearing afterwards is what actually leaves nothing pending.
         try {
-            await super.destroy();
+            await super.destroy(options);
         } finally {
             if (this.#hueSaturationTimeout) {
                 this.#ioBrokerDevice.adapter.clearTimeout(this.#hueSaturationTimeout);

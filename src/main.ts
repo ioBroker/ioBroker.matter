@@ -601,7 +601,7 @@ export class MatterAdapter extends Adapter {
                 this.#instanceDataDir = dataDir;
             } else {
                 this.log.info(
-                    `Can not create pairing data storage directory ${this.#instanceDataDir}. Pairing data can not be persisted!`,
+                    `Can not create pairing data storage directory ${dataDir}. Pairing data can not be persisted!`,
                 );
             }
         }

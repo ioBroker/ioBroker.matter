@@ -613,6 +613,104 @@ describe('Matter -> ioBroker controller mapping', function () {
             expect(discarded.devices.size, 'a build ran on the destroyed node').to.equal(0);
             expect(subscriptionCount(), 'the destroyed node left subscriptions behind').to.equal(before);
         });
+
+        it('stops a running build at its next checkpoint once destroy() is called', async () => {
+            const endpointReadsOfBuild = async (destroyAtRead?: number): Promise<number> => {
+                const isolated = new MockControllerAdapter();
+                const readObject = isolated.getObjectAsync.bind(isolated);
+                let reads = 0;
+                let destroying: Promise<void> | undefined;
+                isolated.getObjectAsync = async (id: string): Promise<ioBroker.Object | null> => {
+                    if (id.startsWith(`${node.nodeBaseId}.`) && ++reads === destroyAtRead) {
+                        destroying = node.destroy();
+                    }
+                    return readObject(id);
+                };
+                const node = new GeneralMatterNode(
+                    isolated as unknown as MatterAdapter,
+                    commissioned!.node,
+                    {},
+                    () => false,
+                );
+                await node.initialize();
+                await destroying;
+                await node.destroy();
+                return reads;
+            };
+
+            const fullBuild = await endpointReadsOfBuild();
+            const retiredBuild = await endpointReadsOfBuild(3);
+            expect(fullBuild, 'the baseline build read too few endpoints to tell').to.be.greaterThan(10);
+            expect(retiredBuild, 'the build kept walking the endpoints after destroy()').to.be.lessThan(fullBuild / 2);
+        });
+
+        it('sets the connection state of a device that was not built again to offline', async () => {
+            const ghost = `${node.nodeBaseId}.Ghost-99.info.connection`;
+            await adapter.setObjectNotExists(ghost, {
+                type: 'state',
+                common: { name: 'Connected', role: 'indicator.connected', type: 'boolean', read: true, write: false },
+                native: {},
+            });
+            await adapter.setState(ghost, { val: true, ack: true });
+            const builtDevice = bridgedEndpoint('genericswitch');
+            const builtId = `${deviceObjectId(builtDevice.number)}.info.connection`;
+            const builtBefore = adapter.states.get(builtId)?.val;
+
+            await node.applyConfiguration(
+                {
+                    nodeId: peerNodeId(commissioned!.node),
+                    exposeMatterApplicationClusterData: true,
+                    exposeMatterSystemClusterData: false,
+                },
+                true,
+            );
+
+            expect(adapter.states.get(ghost)?.val, 'the vanished device stayed online').to.equal(false);
+            expect(adapter.states.get(builtId)?.val, 'a rebuilt device lost its state').to.equal(builtBefore);
+        });
+
+        it('leaves the node and device connection states alone for keepConnectionState and writes them false otherwise', async () => {
+            const builtNode = async (): Promise<{
+                isolated: MockControllerAdapter;
+                node: GeneralMatterNode;
+                connectionIds: string[];
+            }> => {
+                const isolated = new MockControllerAdapter();
+                const node = new GeneralMatterNode(
+                    isolated as unknown as MatterAdapter,
+                    commissioned!.node,
+                    {},
+                    () => true,
+                );
+                await node.initialize();
+                const connectionIds = [...node.devices.values()]
+                    .map(device => device.connectionStateId)
+                    .filter(id => id !== node.connectionStateId);
+                expect(connectionIds, 'no device with its own connection state was built').to.not.be.empty;
+                for (const id of [node.connectionStateId, ...connectionIds]) {
+                    await isolated.setState(id, { val: true, ack: true });
+                }
+                await isolated.setState(node.connectionStatusId, { val: NodeConnectionState.Connected, ack: true });
+                return { isolated, node, connectionIds };
+            };
+
+            const kept = await builtNode();
+            await kept.node.destroy({ keepConnectionState: true });
+            for (const id of [kept.node.connectionStateId, ...kept.connectionIds]) {
+                expect((await kept.isolated.getStateAsync(id))?.val, `${id} written by a replaced instance`).to.equal(
+                    true,
+                );
+            }
+            expect((await kept.isolated.getStateAsync(kept.node.connectionStatusId))?.val).to.equal(
+                NodeConnectionState.Connected,
+            );
+
+            const plain = await builtNode();
+            await plain.node.destroy();
+            for (const id of [plain.node.connectionStateId, ...plain.connectionIds]) {
+                expect((await plain.isolated.getStateAsync(id))?.val, `${id} not written false`).to.equal(false);
+            }
+        });
     });
 
     /**

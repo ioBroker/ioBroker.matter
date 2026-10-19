@@ -107,7 +107,8 @@ export namespace StorageLayout {
     /**
      * Move everything that used to share the instance data directory to where it belongs now.
      *
-     * Idempotent — once moved, the sources are gone and every step becomes a no-op.
+     * Safe to run at every start: once a directory is moved, its source is gone and its step does nothing. A
+     * directory that could not be moved stays where it is and is reported again at the next start.
      */
     export async function relocate(dataDir: string, targets: Targets, log: Log): Promise<void> {
         for (const name of SUPERSEDED_DIRS) {
@@ -139,12 +140,14 @@ export namespace StorageLayout {
         }
 
         if (stranded.length) {
-            // These are read from their new locations from now on, so anything left behind is invisible.
+            // The new locations are read from now on. Only the custom OTA folder stays in use where the
+            // customUpdatesPath setting points into it (see customOtaPath).
             log.error(
-                `Could not move ${stranded.join(', ')} out of ${dataDir}, so ` +
-                    `${stranded.length === 1 ? 'it' : 'they'} will not be used. Move ` +
+                `Could not move ${stranded.join(', ')} out of ${dataDir}. ` +
+                    `${stranded.length === 1 ? 'It is' : 'They are'} not read from there any more, except a custom OTA ` +
+                    `folder that the custom updates path setting points to. Move ` +
                     `${stranded.length === 1 ? 'it' : 'them'} by hand, or delete ` +
-                    `${stranded.length === 1 ? 'it' : 'them'} to start over.`,
+                    `${stranded.length === 1 ? 'it' : 'them'} to start over. This is reported at every start until then.`,
             );
         }
     }

@@ -145,7 +145,7 @@ export class IoBrokerObjectStorage extends StorageDriver {
     }
 
     /**
-     * Contexts the local storage reports, minus the empty name a foreign dotfile in the shared instance data
+     * Contexts the local storage reports, minus the empty name a stray dotfile in the instance data
      * directory produces: the file storage driver splits an entry on ".", so ".DS_Store" indexes as a context
      * named "". Passing that on makes `clearAll` throw on the empty segment.
      */
@@ -175,8 +175,8 @@ export class IoBrokerObjectStorage extends StorageDriver {
 
     async keys(contexts: string[]): Promise<string[]> {
         const results = new Array<string>();
-        // Nothing of ours is ever stored locally without a context, so root-level entries of the shared
-        // directory belong to other components.
+        // Nothing of ours is ever stored locally without a context, so a root-level entry, such as a stray
+        // dotfile, is not ours.
         if (this.#localStorageManager && contexts.length) {
             results.push(...(await this.#localStorageManager.keys(contexts)));
         }

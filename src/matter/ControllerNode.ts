@@ -132,7 +132,7 @@ export type {
 interface WatchedPeer {
     peer: ClientNode;
     observers: ObserverGroup;
-    /** Last address the peer reported, because it is already gone when the decommission is announced. */
+    /** Last node id the peer reported, because it is already gone when the decommission is announced. */
     commissionedNodeId?: NodeId;
     /**
      * Set once the peer left the fabric or starts being destroyed, so a rebuild cannot recreate what is being
@@ -492,7 +492,9 @@ class Controller implements GeneralNode {
             observers.on(
                 peer.lifecycle.decommissioned,
                 this.#contained('peer decommissioned', () => {
-                    this.#adapter.log.info(`Node "${peer.id}" decommissioned`);
+                    this.#adapter.log.info(
+                        `Node "${this.#nodeLabel(peer, watched.commissionedNodeId)}" decommissioned`,
+                    );
                     // matter.js deletes the peer next, on both paths
                     watched.tearingDown = true;
                     watched.rebuild.cancel();
@@ -510,8 +512,8 @@ class Controller implements GeneralNode {
                     this.#updateCallback();
                 }),
             );
-            // A change notification reports an endpoint that went away but never one that appeared, so the
-            // structure of a bridge that gains a device is only seen here.
+            // The lifecycle says when the parts or the cluster set of an endpoint changed, and `Destroying` fires
+            // before the teardown, which stops a rebuild from recreating a peer that is going away.
             observers.on(
                 peer.lifecycle.changed,
                 this.#contained('peer lifecycle', (type, endpoint) => {
@@ -561,6 +563,13 @@ class Controller implements GeneralNode {
         this.#observers.on(serverNode.peers.deleted, this.#contained('peer deleted', unwatchPeer));
     }
 
+    /** The node id as the logs of the node print it; the peer id only while the node has none yet. */
+    #nodeLabel(peer: ClientNode, knownNodeId?: NodeId): string {
+        const nodeId =
+            knownNodeId ?? (peer.lifecycle.isReadable ? peer.state.commissioning?.peerAddress?.nodeId : undefined);
+        return nodeId?.toString() ?? peer.id;
+    }
+
     /** See {@link contained}; the handler's failure is logged with the observable it belongs to. */
     #contained<Args extends unknown[]>(context: string, handler: (...args: Args) => void): (...args: Args) => void {
         return contained(handler, error =>
@@ -599,7 +608,7 @@ class Controller implements GeneralNode {
         if (watched.tearingDown || this.#closing || this.#adapter.closing) {
             return;
         }
-        this.#adapter.log.info(`Node "${watched.peer.id}" structure changed`);
+        this.#adapter.log.info(`Node "${this.#nodeLabel(watched.peer, watched.commissionedNodeId)}" structure changed`);
         this.nodeToIoBrokerStructure(watched.peer).then(
             () => this.#updateCallback(),
             error => this.#adapter.log.info(`Error while updating structure: ${error}`),
@@ -775,10 +784,10 @@ class Controller implements GeneralNode {
         // Connecting them is automatic; this only builds their ioBroker representation.
         for (const peer of peers) {
             try {
-                this.#adapter.log.info(`Initializing node "${peer.id}" ...`);
+                this.#adapter.log.info(`Initializing node "${this.#nodeLabel(peer)}" ...`);
                 await this.nodeToIoBrokerStructure(peer);
             } catch (error) {
-                this.#adapter.log.info(`Failed to initialize node "${peer.id}": ${error.stack}`);
+                this.#adapter.log.info(`Failed to initialize node "${this.#nodeLabel(peer)}": ${error.stack}`);
             }
         }
 
@@ -940,7 +949,7 @@ class Controller implements GeneralNode {
             this.#nodes.set(nodeIdStr, device);
             await device.initialize(nodeDetails);
 
-            // An already-connected node emits no further stateChanged, so register it here too
+            // An already-connected node emits no further connectionStateChanged, so register it here too
             this.#registerNodeForTimeSync(node);
             this.#registerNodeForThreadPolling(node);
         } finally {
@@ -1021,7 +1030,7 @@ class Controller implements GeneralNode {
             const icd = deviceNode !== undefined ? this.#ensureIcdTracking(node, deviceNode) : undefined;
             this.#timeSyncManager.registerNode(peer, readTimeSyncCapabilities(node), icd?.longIdleTimeActive ?? false);
         } catch (error) {
-            this.#adapter.log.debug(`Error registering node ${node.id} for time synchronization: ${error}`);
+            this.#adapter.log.debug(`Error registering node ${peer.nodeId} for time synchronization: ${error}`);
         }
     }
 
@@ -1046,7 +1055,7 @@ class Controller implements GeneralNode {
             const isThreadNode = this.#getNetworkType(node) === 'thread';
             this.#threadDetailsPoller.registerNode(peer, isThreadNode, icd?.longIdleTimeActive ?? false);
         } catch (error) {
-            this.#adapter.log.debug(`Error registering node ${node.id} for Thread topology polling: ${error}`);
+            this.#adapter.log.debug(`Error registering node ${peer.nodeId} for Thread topology polling: ${error}`);
         }
     }
 
@@ -1449,12 +1458,13 @@ class Controller implements GeneralNode {
     }
 
     async #discoveryStop(): Promise<void> {
-        if (this.#activeDiscovery) {
+        const activeDiscovery = this.#activeDiscovery;
+        if (activeDiscovery) {
             this.#discovering = false;
             await this.#adapter.setState('controller.info.discovering', false, true);
             this.#adapter.log.info(`Stop the discovering...`);
             // Resolves the discovery, so its own handler answers the callers and clears #activeDiscovery
-            this.#activeDiscovery.stop();
+            activeDiscovery.stop();
         }
     }
 

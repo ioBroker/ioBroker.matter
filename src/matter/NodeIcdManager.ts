@@ -228,8 +228,12 @@ export class NodeIcdManager {
      */
     async resync(): Promise<void> {
         await this.#node.act(agent => agent.get(IcdClient).forget());
-        await this.#node.set({ network: { autoSubscribe: false } });
-        await this.#node.set({ network: { autoSubscribe: true } });
+        try {
+            await this.#node.set({ network: { autoSubscribe: false } });
+        } finally {
+            // A failure above must not leave the node without auto-subscribe until the next restart
+            await this.#node.set({ network: { autoSubscribe: true } });
+        }
     }
 
     /**

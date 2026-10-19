@@ -56,6 +56,25 @@ function setup(): { timers: FakeTimers; runs: number[]; rebuild: StructureRebuil
 }
 
 describe('StructureRebuildTimer', () => {
+    it('settles for 2 s and defers at most 10 s when no timing is passed', () => {
+        const timers = new FakeTimers();
+        const runs = new Array<number>();
+        const settled = new StructureRebuildTimer(timers, () => runs.push(timers.now()));
+        settled.changed();
+        timers.advance(1_999);
+        expect(runs).to.deep.equal([]);
+        timers.advance(1);
+        expect(runs).to.deep.equal([2_000]);
+
+        const capped = new StructureRebuildTimer(timers, () => runs.push(timers.now()));
+        capped.changed();
+        for (let elapsed = 0; elapsed < 12_000; elapsed += 1_000) {
+            timers.advance(1_000);
+            capped.reportCompleted();
+        }
+        expect(runs).to.deep.equal([2_000, 12_000]);
+    });
+
     it('rebuilds once, the settle time after the first change, without any report', () => {
         const { timers, runs, rebuild } = setup();
         rebuild.changed();

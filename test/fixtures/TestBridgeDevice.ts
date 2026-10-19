@@ -107,8 +107,9 @@ const portArg = argValue('port');
 const port = portArg !== undefined ? Number.parseInt(portArg, 10) : BRIDGE_PORT_BASE;
 
 /**
- * The deliberate departures from the device types. The mains alarm has no PowerSource of its own, which spec 1.6.1
- * requires of a Smoke CO Alarm, so the controller's fallback to the root endpoint has a peer to map.
+ * The deliberate departures from the device types. The mains alarm has no Power Source device type on its own
+ * endpoint. Spec 1.6.1 only requires an instance "on some endpoint"; matter.js checks it per endpoint and reports
+ * this one. The controller's fallback to the root endpoint then has a peer to map.
  */
 const INTENDED_VIOLATIONS = [
     {

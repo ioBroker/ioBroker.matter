@@ -105,13 +105,6 @@ export type NodeDetails = {
     backgroundColor?: string;
 };
 
-/**
- * The numeric id of a changed attribute.
- *
- * A peer carries attributes the global Matter model has no entry for - vendor specific ones, and anything
- * matter.js could not recognize, which it names `attr$<hex>`. Both are in the schema matter.js built for
- * that peer's behavior, so that decides before the global model does.
- */
 /** The timestamp field of a decoded event report the notification's kind stands for. */
 const EVENT_TIMESTAMP_FIELDS = {
     epoch: 'epochTimestamp',
@@ -148,6 +141,13 @@ export function operationalAddressOf(peer: ClientNode): string | undefined {
     return scheme === -1 ? url : url.substring(scheme + 3);
 }
 
+/**
+ * The numeric id of a changed attribute.
+ *
+ * A peer carries attributes the global Matter model has no entry for - vendor specific ones, and anything
+ * matter.js could not recognize, which it names `attr$<hex>`. Both are in the schema matter.js built for
+ * that peer's behavior, so that decides before the global model does.
+ */
 export function resolveAttributeId(
     behavior: ClusterBehavior.Type,
     attributeName: string,
@@ -195,7 +195,7 @@ export class GeneralMatterNode {
     #currentUpdateState?: OtaSoftwareUpdateRequestor.UpdateState;
     #updateObservers?: ObserverGroup;
     #icd?: NodeIcdManager;
-    /** Undoes what this node generation attached to the PairedNode, which outlives it. */
+    /** Undoes what this node generation attached to the ClientNode, which outlives it. */
     #teardown: TeardownRegistry;
     // Outlives #icd across #clear()/#createIcdManager() cycles (e.g. applyConfiguration()'s
     // clear-and-rebuild), so a subscriber only needs to attach once per GeneralMatterNode rather than
@@ -250,7 +250,7 @@ export class GeneralMatterNode {
         );
     }
 
-    async #clear(): Promise<void> {
+    async #clear(options?: { keepConnectionState?: boolean }): Promise<void> {
         this.#generation++;
         // Clear out all things from before
         // #clear() is a re-init point, not only a teardown point, so the next generation needs a fresh registry.
@@ -269,7 +269,7 @@ export class GeneralMatterNode {
         for (const device of this.#deviceMap.values()) {
             // One endpoint that fails to tear down must not leave the rest of the node half destroyed
             try {
-                await device.destroy();
+                await device.destroy(options);
             } catch (error) {
                 this.adapter.log.warn(`Node ${this.nodeId}: Error destroying device: ${error}`);
             }
@@ -305,7 +305,7 @@ export class GeneralMatterNode {
     }
 
     async #initialize(nodeDetails?: { operationalAddress?: string }): Promise<void> {
-        await this.#clear();
+        await this.#clear({ keepConnectionState: true });
         const generation = this.#generation;
 
         const existingObject = await this.adapter.getObjectAsync(this.nodeBaseId);
@@ -343,9 +343,7 @@ export class GeneralMatterNode {
             if (existingObject.native?.exposeMatterSystemClusterData !== undefined) {
                 this.exposeMatterSystemClusterData = existingObject.native.exposeMatterSystemClusterData;
             }
-            this.setNodeConfiguration({
-                subscriptionMaxIntervalS: existingObject.native?.subscriptionMaxIntervalS,
-            });
+            this.#storeSubscriptionInterval(existingObject.native?.subscriptionMaxIntervalS);
         }
         // Runs for every node, so the interval floor applies whether or not a ceiling is configured.
         await this.#applySubscriptionInterval();
@@ -510,6 +508,35 @@ export class GeneralMatterNode {
         await this.#processRootEndpointStructure(rootEndpoint, {
             endpointBaseName: deviceObj.native.nodeLabel || deviceObj.common.name,
         });
+        await this.#markVanishedDevicesOffline(generation);
+    }
+
+    /**
+     * Sets the connection state of every device below this node that the build did not create again to offline.
+     * A rebuild keeps the connection states of the devices it replaces, so the state of a device whose endpoint
+     * went away would otherwise stay online.
+     */
+    async #markVanishedDevicesOffline(generation: number): Promise<void> {
+        const namespace = `${this.adapter.namespace}.`;
+        const withNamespace = (id: string): string => (id.startsWith(namespace) ? id : `${namespace}${id}`);
+        const kept = new Set([...this.#deviceMap.values()].map(device => withNamespace(device.connectionStateId)));
+        kept.add(withNamespace(this.connectionStateId));
+        const prefix = withNamespace(`${this.nodeBaseId}.`);
+        const { rows } = await this.adapter.getObjectViewAsync('system', 'state', {
+            startkey: prefix,
+            endkey: `${prefix}\u9999`,
+        });
+        for (const { id } of rows) {
+            if (generation !== this.#generation) {
+                return;
+            }
+            if (!id.endsWith('.info.connection') || kept.has(id)) {
+                continue;
+            }
+            if ((await this.adapter.getStateAsync(id))?.val === true) {
+                await this.adapter.setState(id, false, true);
+            }
+        }
     }
 
     /** The peer's address on our fabric. A commissioned node always carries one. */
@@ -955,23 +982,26 @@ export class GeneralMatterNode {
     }
 
     setNodeConfiguration(config: GenericNodeConfiguration): void {
-        const { subscriptionMaxIntervalS } = config;
-        if (subscriptionMaxIntervalS !== undefined && subscriptionMaxIntervalS !== 0) {
-            if (
-                isNaN(subscriptionMaxIntervalS) ||
-                subscriptionMaxIntervalS < 30 ||
-                subscriptionMaxIntervalS > 2_147_482
-            ) {
-                this.adapter.log.warn(
-                    `Invalid polling interval ${subscriptionMaxIntervalS} seconds, use ${this.#subscriptionMaxIntervalS ? `former value of ${Math.round(this.#subscriptionMaxIntervalS)}` : ' default value'}.`,
-                );
-                return;
-            }
-            this.#subscriptionMaxIntervalS = subscriptionMaxIntervalS;
+        if (this.#storeSubscriptionInterval(config.subscriptionMaxIntervalS)) {
             this.#applySubscriptionInterval().catch(error =>
                 this.adapter.log.warn(`Node "${this.nodeId}": Could not apply the subscription interval: ${error}`),
             );
         }
+    }
+
+    /** Validates and keeps the ceiling without applying it, so a caller can apply it exactly once. */
+    #storeSubscriptionInterval(subscriptionMaxIntervalS: number | undefined): boolean {
+        if (subscriptionMaxIntervalS === undefined || subscriptionMaxIntervalS === 0) {
+            return false;
+        }
+        if (isNaN(subscriptionMaxIntervalS) || subscriptionMaxIntervalS < 30 || subscriptionMaxIntervalS > 2_147_482) {
+            this.adapter.log.warn(
+                `Invalid polling interval ${subscriptionMaxIntervalS} seconds, use ${this.#subscriptionMaxIntervalS ? `former value of ${Math.round(this.#subscriptionMaxIntervalS)}` : ' default value'}.`,
+            );
+            return false;
+        }
+        this.#subscriptionMaxIntervalS = subscriptionMaxIntervalS;
+        return true;
     }
 
     /** The sustained subscription re-establishes itself when this changes, so no reconnect is needed. */
@@ -1013,11 +1043,13 @@ export class GeneralMatterNode {
             if (this.#destroyed) {
                 return;
             }
-            await this.#clear();
+            await this.#clear({ keepConnectionState: true });
             // #clear() closed the ICD manager; recreate it before the structure rebuild (matching
             // initialize()'s order) so a throw below cannot leave the node without one.
             this.#createIcdManager();
+            const generation = this.#generation;
             await this.#processRootEndpointStructure(rootEndpoint);
+            await this.#markVanishedDevicesOffline(generation);
         } finally {
             slot.close();
         }
@@ -1512,7 +1544,7 @@ export class GeneralMatterNode {
 
             let addedEvents = 0;
             // matter.js delivers exactly the events of this schema, which follows the peer's features; the
-            // EventList attribute is deprecated since Matter 1.4 and current devices do not report it
+            // EventList attribute is deprecated (D) in the specification and current devices do not report it
             for (const eventModel of BehaviorType.schema.conformant.events) {
                 const eventId = EventId(eventModel.id);
                 const eventName = camelize(eventModel.name);
@@ -1701,14 +1733,12 @@ export class GeneralMatterNode {
             )}`,
         );
 
-        if (endpointId === 0) {
-            for (const device of this.#deviceMap.values()) {
-                await device.handleTriggeredEvent({ clusterId, endpointId, eventId, eventName, events });
-            }
-        } else {
-            const device = this.#deviceMap.get(endpointId);
-            if (device !== undefined) {
-                await device.handleTriggeredEvent({ clusterId, endpointId, eventId, eventName, events });
+        const targets = endpointId === 0 ? [...this.#deviceMap.values()] : [this.#deviceMap.get(endpointId)];
+        for (const device of targets) {
+            try {
+                await device?.handleTriggeredEvent({ clusterId, endpointId, eventId, eventName, events });
+            } catch (error) {
+                this.adapter.log.warn(`Failed to handle triggered event: ${error.message}`);
             }
         }
 
@@ -1747,14 +1777,12 @@ export class GeneralMatterNode {
         }
 
         switch (state) {
-            case NodeConnectionState.Connected:
+            case NodeConnectionState.Connected: {
                 this.adapter.log.info(`Node "${this.nodeId}" connected`);
-                if (
-                    this.#subscriptionMaxIntervalS &&
-                    this.#negotiatedSubscriptionIntervalS !== this.#subscriptionMaxIntervalS
-                ) {
+                const negotiatedIntervalS = this.#negotiatedSubscriptionIntervalS;
+                if (this.#subscriptionMaxIntervalS && negotiatedIntervalS !== this.#subscriptionMaxIntervalS) {
                     this.adapter.log.info(
-                        `Node "${this.nodeId}" subscription interval was requested with ${this.#subscriptionMaxIntervalS}s but device returned ${this.#negotiatedSubscriptionIntervalS}s`,
+                        `Node "${this.nodeId}" subscription interval was requested with ${this.#subscriptionMaxIntervalS}s but device returned ${negotiatedIntervalS === undefined ? 'none' : `${negotiatedIntervalS}s`}`,
                     );
                 }
                 // Check persisted update info and compare with current version
@@ -1762,6 +1790,7 @@ export class GeneralMatterNode {
                     this.adapter.log.warn(`Failed to restore update info on connect: ${error}`);
                 });
                 break;
+            }
             case NodeConnectionState.Disconnected:
                 this.adapter.log.info(`Node "${this.nodeId}" disconnected`);
                 break;
@@ -1805,8 +1834,8 @@ export class GeneralMatterNode {
      * such as a delayed initialize() or a configuration change, does nothing afterwards. Safe to call again.
      *
      * @param options optional settings
-     * @param options.keepConnectionState leave the connection states as they are, for an instance a rebuild of the
-     *   same peer replaces; the replacement writes them itself
+     * @param options.keepConnectionState leave the connection states of the node and of its devices as they are, for
+     *   an instance a rebuild of the same peer replaces; the replacement writes them itself
      */
     async destroy(options?: { keepConnectionState?: boolean }): Promise<void> {
         this.#destroyed = true;
@@ -1822,7 +1851,7 @@ export class GeneralMatterNode {
             // way back to this node - so releasing its subscriptions must not depend on them succeeding.
             try {
                 this.#cleanupUpdateObservers();
-                await this.#clear();
+                await this.#clear(options);
                 // #clear() hands the next build an open registry; nothing builds again, so anything added later
                 // is undone at once
                 await this.#teardown.close();
@@ -2115,7 +2144,10 @@ export class GeneralMatterNode {
         }
 
         if (this.node.lifecycle.isConnected) {
-            result.connection.subscriptionMaximumInterval = `${this.#negotiatedSubscriptionIntervalS}s`;
+            const negotiatedIntervalS = this.#negotiatedSubscriptionIntervalS;
+            if (negotiatedIntervalS !== undefined) {
+                result.connection.subscriptionMaximumInterval = `${negotiatedIntervalS}s`;
+            }
             const operationalCredentials = this.node.maybeStateOf(OperationalCredentialsClient);
             if (operationalCredentials !== undefined) {
                 result.connection.__header__operationalCredentials = 'Connected Fabrics';

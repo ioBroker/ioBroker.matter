@@ -32,6 +32,7 @@ export interface RebuildTimerHost<Handle> {
     clearTimeout(handle: Handle): void;
 }
 
+/** The waits of a {@link StructureRebuildTimer}. */
 export interface StructureRebuildTiming {
     /** How long after the first change, or after the last completed report batch, the rebuild waits. */
     settleMs: number;

@@ -2,6 +2,7 @@ import { deepStrictEqual, ok, strictEqual } from 'node:assert';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { FileStorageDriver } from '@matter/nodejs';
 import { IoBrokerObjectStorage } from '../src/matter/IoBrokerObjectStorage';
 
 const NAMESPACE = 'matter.0';
@@ -131,10 +132,34 @@ describe('IoBrokerObjectStorage', () => {
         });
     });
 
-    describe('shared instance data directory', () => {
-        // The local storage is rooted at the instance data directory, which also holds other
-        // components' directories ("ota", "custom-ota", …) and, on a developer machine, dotfiles.
-        // The file storage driver indexes those as entries of this store.
+    describe('close()', () => {
+        it('closes the local file storage driver', async () => {
+            const dir = mkdtempSync(join(tmpdir(), 'iobroker-matter-storage-'));
+            const originalClose = FileStorageDriver.prototype.close;
+            let closed = 0;
+            FileStorageDriver.prototype.close = async function (this: FileStorageDriver) {
+                closed++;
+                return originalClose.call(this);
+            };
+            try {
+                const storage = new IoBrokerObjectStorage(makeAdapter().adapter, 'controller', dir, () => true);
+                await storage.initialize();
+                strictEqual(closed, 0);
+
+                await storage.close();
+
+                strictEqual(closed, 1);
+            } finally {
+                FileStorageDriver.prototype.close = originalClose;
+                rmSync(dir, { recursive: true, force: true });
+            }
+        });
+    });
+
+    describe('instance data directory with stray entries', () => {
+        // The local storage is rooted at the instance data directory. Entries that are not ours, such as a
+        // leftover directory or, on a developer machine, dotfiles, are indexed by the file storage driver as
+        // entries of this store.
         async function withSharedDir(
             test: (storage: IoBrokerObjectStorage, adapter: MockAdapter) => Promise<void>,
         ): Promise<void> {

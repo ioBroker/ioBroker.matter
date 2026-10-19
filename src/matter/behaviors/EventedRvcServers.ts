@@ -24,8 +24,10 @@ const CompletingRvcOperationalStateServer = RvcOperationalStateServer.alter({
  *
  * The Robotic Vacuum Cleaner device type makes the OperationCompletion event mandatory. It is reported when the
  * robot leaves Running or Paused, with the operational error when it ends in Error. ioBroker cannot tell an error
- * the robot resumes from, which Matter reports as Paused, from one that ends the run, so entering Error always ends
- * it; a run that continues after the error is cleared reports its own completion.
+ * the robot resumes from, which the specification (device type, "Device Error Handling") has the device report as
+ * Paused, from one that ends the run, so entering Error always ends it. Any other state ends the run as well,
+ * Docked and Charging included, so a robot that docks to recharge in the middle of a run reports a completion.
+ * A run that continues afterwards reports its own completion.
  */
 
 export class IoRvcOperationalStateServer extends CompletingRvcOperationalStateServer {

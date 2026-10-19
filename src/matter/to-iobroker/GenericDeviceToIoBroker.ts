@@ -969,14 +969,19 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         }
     }
 
-    async destroy(): Promise<void> {
+    /**
+     * @param options optional settings
+     * @param options.keepConnectionState do not write the connection state false, for a device a rebuild of the
+     *   same node replaces
+     */
+    async destroy(options?: { keepConnectionState?: boolean }): Promise<void> {
         this.#destroyed = true;
         if (this.#pollTimeout !== undefined) {
             this.#adapter.clearTimeout(this.#pollTimeout);
             this.#pollTimeout = undefined;
         }
         this.#observers.close();
-        if (this.#hasBridgedReachabilityAttribute) {
+        if (this.#hasBridgedReachabilityAttribute && !options?.keepConnectionState) {
             // Unsubscribing must happen even when the connection state can no longer be written
             try {
                 await this.#adapter.setState(this.#connectionStateId, { val: false, ack: true });

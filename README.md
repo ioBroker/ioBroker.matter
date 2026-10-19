@@ -60,7 +60,7 @@ For testing pre-release or community firmware:
 **Setup:**
 1. Go to **General** tab → **Custom OTA Updates** section
 2. Enable **Allow custom/unofficial OTA updates**
-3. Optionally set a custom path (default: `<instance data>/custom-ota`)
+3. Optionally set a custom path (default: `matter.<instance>.custom-ota` beside the instance data directory)
 4. The path will be created on the next restart of the adapter if not already existing
 
 **Adding files:**
@@ -176,26 +176,24 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) The ioBroker device model now covers the new states type detector v6 exposes on existing device types, such as signal strength, on-time countdown, separate heating and cooling setpoints, valve position, filter condition and alarm severity
 * (@Apollon77) Fixed several memory leaks: ioBroker device instances that were built but not adopted stayed registered with the state subscription manager, and listeners, timers, pending locks and custom state bookkeeping were not always released on teardown
 * (@Apollon77) Network visualization data is no longer assembled, and neither it nor Thread diagnostics data is serialized and sent, while no admin UI is listening
-* (@Apollon77) Updated matter.js to 0.18 and migrated the controller to its ClientNode API
+* (@Apollon77) Updated matter.js to a 0.18 development version and migrated the controller to its ClientNode API
+* (@Apollon77) The files matter.js downloads (OTA images, certificates, vendor data) now live in `matter.<instance>.cache` beside the instance data directory, and the folder for hand-imported OTA images moves to `matter.<instance>.custom-ota`. Both are moved on the first start; a folder that cannot be moved, for example because its target already exists, is reported in the log and has to be sorted out by hand. A custom OTA path that pointed into the old folder keeps working
+* (@Apollon77) The raw cluster states of a paired node are now filled from the values it reported before, also while the node is not connected
+* (@Apollon77) Changing the subscription interval of a paired node no longer reconnects it
 * (@Apollon77) Pairing a device with a wrong pairing code now says so, instead of showing a generic commissioning error that cannot be told apart from an unreachable device
 * (@Apollon77) Pairing failures now give a specific reason when the device was not found in the network or is already paired with this controller
 * (@Apollon77) Pairing with an address from the Visu app now falls back to discovering the device when that address is outdated
-* (@Apollon77) Fixed paired nodes of the previous adapter version that connected but never reported changes
-* (@Apollon77) A node whose device cannot be reached can now always be removed; the adapter tells you when the device could not be told to leave and may need a factory reset
+* (@Apollon77) A node whose device does not answer can now be removed; the adapter tells you when the device could not be told to leave and may need a factory reset
 * (@Apollon77) A software update is no longer started on a node that is offline or already updating, including after an adapter restart during an update
 * (@Apollon77) The connection state of a paired node and of its devices no longer switches to offline while the controller only re-establishes a lost connection; they go offline when the device is known to be unreachable. After an adapter start, or after the node was disabled, it shows as online only once the device has reported its current state. The Device Manager still shows the node as disconnected while it reconnects
 * (@Apollon77) A paired node whose device leaves the fabric on its own, for example after a factory reset or when another controller removes it, is now removed together with its objects, instead of staying behind as a node whose commands fail
-* (@Apollon77) Fixed the ioBroker Visu app being handed outdated controller credentials after the first device was paired on a fresh installation, until the adapter was restarted
 * (@Apollon77) The raw event states of a controller device are now created for the events its clusters support. They were only created from the EventList attribute, which current devices no longer report, so most devices had none
 * (@Apollon77) Changes made in the admin while the adapter starts are now applied once the start is done, instead of being missed until the next change or restart
-* (@Apollon77) Sockets and the power and boost switches of air quality, thermostat and air conditioner devices offer the Identify TriggerEffect command again, which their On/Off Plug-in Unit device type requires
 * (@Apollon77) A robot vacuum cleaner exposed to Matter now reports the end of a cleaning run with the OperationCompletion event the device type requires, including the error a run ended in
-* (@Apollon77) A bridged pump no longer advertises the Matter Lighting feature on its level and on/off clusters, so its speed setpoint can reach zero as intended
-* (@Apollon77) Fix vendor specific attributes of paired nodes not being updated anymore
-* (@Apollon77) Fix the ioBroker structure of a paired node not being rebuilt when a bridge gains or loses a device
+* (@Apollon77) A bridged pump no longer advertises the Matter Lighting feature on its level control, so its speed setpoint can reach zero as intended
 * (@Apollon77) Fix a paired node keeping its old ioBroker mapping until the adapter restarts when one of its endpoints changes its device type
 * (@Apollon77) The ioBroker structure of a paired node is now rebuilt once the device has finished reporting a change, so a bridge whose new devices arrive in several reports in a row is rebuilt once with all of them. The rebuild waits at most 10 seconds after the first change
-* (@Apollon77) Fix leftover objects and observers when a node is removed, and no longer create a second node tree while removing one
+* (@Apollon77) Fix leftover observers when a node is removed
 * (@Apollon77) A second discovery request joins the running discovery instead of starting a competing one
 * (@Apollon77) Add support for the Room Air Conditioner device type (controller and bridge/device mode) mapped to the ioBroker airCondition type
 * (@Apollon77) Fix Thermostat cooling setpoint changes from Matter being applied as heating setpoint

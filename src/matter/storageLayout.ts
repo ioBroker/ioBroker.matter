@@ -60,19 +60,28 @@ export namespace StorageLayout {
         return true;
     }
 
-    /** Windows paths are case-insensitive, so a setting typed with other casing still names the same folder. */
-    function samePath(a: string, b: string): boolean {
-        const [first, second] = [path.resolve(a), path.resolve(b)];
-        return process.platform === 'win32' ? first.toLowerCase() === second.toLowerCase() : first === second;
+    /**
+     * The part of `target` below `base`, or `undefined` when `target` is not `base` or inside it. Windows paths are
+     * case-insensitive, so a setting typed with other casing still names the same folder.
+     */
+    function pathBelow(target: string, base: string): string | undefined {
+        const [resolvedTarget, resolvedBase] = [path.resolve(target), path.resolve(base)];
+        const fold = (entry: string): string => (process.platform === 'win32' ? entry.toLowerCase() : entry);
+        if (fold(resolvedTarget) === fold(resolvedBase)) {
+            return '';
+        }
+        return fold(resolvedTarget).startsWith(`${fold(resolvedBase)}${path.sep}`)
+            ? resolvedTarget.slice(resolvedBase.length + 1)
+            : undefined;
     }
 
     /**
      * The folder to import custom OTA images from.
      *
      * Before the relocation the default folder was `custom-ota` inside the instance data directory, and a user may
-     * have entered that path as the setting. Once the start moved that folder, the setting would point at a folder
-     * that is recreated empty, so it then means the new default. While the old folder still exists, because it could
-     * not be moved, it holds the images and stays in use.
+     * have entered that path, or a folder inside it, as the setting. Once the start moved that folder, the setting
+     * would point at a folder that is recreated empty, so it then means the same place below the new default. While
+     * the old folder still exists, because it could not be moved, it holds the images and stays in use.
      *
      * @param configured the `customUpdatesPath` setting, empty for the default
      * @param legacyDir the former default folder inside the instance data directory
@@ -88,8 +97,9 @@ export namespace StorageLayout {
         if (!configured) {
             return defaultDir;
         }
-        if (!legacyDirExists && samePath(configured, legacyDir)) {
-            return defaultDir;
+        const below = legacyDirExists ? undefined : pathBelow(configured, legacyDir);
+        if (below !== undefined) {
+            return path.join(defaultDir, below);
         }
         return configured;
     }

@@ -58,6 +58,17 @@ describe('StorageLayout.customOtaPath', () => {
         strictEqual(StorageLayout.customOtaPath(`${legacyDir}/`, legacyDir, defaultDir, false), defaultDir);
     });
 
+    it('keeps a folder inside the former default at the same place below the new one', () => {
+        strictEqual(
+            StorageLayout.customOtaPath(join(legacyDir, 'vendor'), legacyDir, defaultDir, false),
+            join(defaultDir, 'vendor'),
+        );
+    });
+
+    it('does not take a sibling whose name only starts like the former default', () => {
+        strictEqual(StorageLayout.customOtaPath(`${legacyDir}-old`, legacyDir, defaultDir, false), `${legacyDir}-old`);
+    });
+
     it('keeps the former default while its folder could not be moved', () => {
         strictEqual(StorageLayout.customOtaPath(legacyDir, legacyDir, defaultDir, true), legacyDir);
     });

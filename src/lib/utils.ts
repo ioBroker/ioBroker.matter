@@ -44,3 +44,17 @@ export function bytesToIpV6(bytes: Bytes): string {
     // Compress the longest sequence of zeroes using "::"
     return ipv6.replace(/(?:^|:)0(:0)*(:|$)/, '::');
 }
+
+/**
+ * Return a deep, JSON-serializable clone of a value, turning every `bigint` into its decimal string.
+ *
+ * Matter identifiers such as `NodeId` and `FabricId` are `bigint`. When a `controller*`/`device*`
+ * command result that carries one is handed to `sendTo`, the js-controller states DB serializes the
+ * callback with `JSON.stringify`, which throws `TypeError: Do not know how to serialize a BigInt` and
+ * crashes the adapter (#916, same error class as #815). Running the result through this helper first
+ * mirrors exactly that serialization - so nothing which would survive the wire is lost - while
+ * rescuing bigints as strings, the way the GUI path in JsonConfigUtils already does.
+ */
+export function sanitizeBigIntForJson<T>(value: T): T {
+    return JSON.parse(JSON.stringify(value, (_key, val) => (typeof val === 'bigint' ? val.toString() : val)));
+}

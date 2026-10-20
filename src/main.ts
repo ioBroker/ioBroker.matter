@@ -36,6 +36,7 @@ import type { MessageResponse } from './matter/GeneralNode';
 import { IoBrokerObjectStorage } from './matter/IoBrokerObjectStorage';
 import { type StructuredJsonFormData, convertDataToJsonConfig } from './lib/JsonConfigUtils';
 import { determineIoBrokerDevice } from './lib/deviceDetection';
+import { sanitizeBigIntForJson } from './lib/utils';
 
 // Prepare BLE
 import '@matter/nodejs-ble';
@@ -226,7 +227,7 @@ export class MatterAdapter extends Adapter {
                 try {
                     const result = await this.#controller?.handleCommand(obj);
                     if (result !== undefined && obj.callback) {
-                        this.sendTo(obj.from, obj.command, result, obj.callback);
+                        this.sendTo(obj.from, obj.command, sanitizeBigIntForJson(result), obj.callback);
                     }
                 } catch (error) {
                     this.log.warn(`Error while handling command "${obj.command}" for controller: ${error.stack}`);
@@ -250,7 +251,7 @@ export class MatterAdapter extends Adapter {
                     try {
                         const result = await bridge.handleCommand(obj);
                         if (result !== undefined && obj.callback) {
-                            this.sendTo(obj.from, obj.command, result, obj.callback);
+                            this.sendTo(obj.from, obj.command, sanitizeBigIntForJson(result), obj.callback);
                         }
                     } catch (error) {
                         this.log.warn(
@@ -278,7 +279,7 @@ export class MatterAdapter extends Adapter {
                     try {
                         const result = await device.handleCommand(obj);
                         if (result !== undefined && obj.callback) {
-                            this.sendTo(obj.from, obj.command, result, obj.callback);
+                            this.sendTo(obj.from, obj.command, sanitizeBigIntForJson(result), obj.callback);
                         }
                     } catch (error) {
                         this.log.warn(

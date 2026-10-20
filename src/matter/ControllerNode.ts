@@ -69,6 +69,7 @@ import {
     TimeSyncManager,
 } from './timeSync/TimeSyncManager';
 import { identifyDeviceTypes } from './to-iobroker/ioBrokerFactory';
+import { explainBleOnlyCommissioningFailure } from './bleOnlyCommissioning';
 import type { GeneralNode, MessageResponse } from './GeneralNode';
 import { inspect } from 'util';
 import { createReadStream } from 'fs';
@@ -838,6 +839,7 @@ class Controller implements GeneralNode {
         let productId: number | undefined = undefined;
         let vendorId: VendorId | undefined = undefined;
         let knownAddress: ServerAddressUdp | undefined = undefined;
+        let bleOnlyWithoutBle = false;
         if ('manualCode' in data && data.manualCode.length > 0) {
             const pairingCodeCodec = ManualPairingCodeCodec.decode(data.manualCode);
             shortDiscriminator = pairingCodeCodec.shortDiscriminator;
@@ -847,9 +849,10 @@ class Controller implements GeneralNode {
             const pairingCodeCodec = QrPairingCodeCodec.decode(data.qrCode);
             // TODO handle the case where multiple devices are included
             const capabilities = DiscoveryCapabilitiesSchema.decode(pairingCodeCodec[0].discoveryCapabilities);
-            if (!capabilities.onIpNetwork && capabilities.ble && !this.#useBle) {
-                throw new Error(
-                    'This device can only be paired using BLE but BLE is disabled. Please use the ioBroker Visu App to pair this device or enable the Host BLE.',
+            bleOnlyWithoutBle = !capabilities.onIpNetwork && !!capabilities.ble && !this.#useBle;
+            if (bleOnlyWithoutBle) {
+                this.#adapter.log.info(
+                    'The QR code offers only BLE, but BLE is disabled. Searching for the device on the IP network instead.',
                 );
             }
             longDiscriminator = pairingCodeCodec[0].discriminator;
@@ -904,7 +907,12 @@ class Controller implements GeneralNode {
             passcode,
         };
 
-        const nodeId = await this.#commissioningController.commissionNode(options);
+        let nodeId: NodeId;
+        try {
+            nodeId = await this.#commissioningController.commissionNode(options);
+        } catch (error) {
+            throw (bleOnlyWithoutBle && explainBleOnlyCommissioningFailure(error)) || error;
+        }
 
         await this.registerCommissionedNode(nodeId);
 

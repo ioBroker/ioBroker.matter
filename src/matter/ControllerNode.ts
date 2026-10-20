@@ -56,7 +56,6 @@ import {
 import { ThreadDiagnosticsService, type ThreadDiagnosticsBatch } from './ThreadDiagnosticsService';
 import { parseRestBaseUrl, registerThreadCredentialsFromHex } from './threadCredentials';
 import { serializeBatch } from './serializeBatch';
-import { explainBleOnlyCommissioningFailure } from './bleOnlyCommissioning';
 import { GeneralMatterNode, type PairedNodeConfig } from './GeneralMatterNode';
 import type { NodeIcdManager } from './NodeIcdManager';
 import { refreshWithLongIdleTimeDeferral, runDedupedByKey } from './longIdleTimeRefresh';
@@ -70,6 +69,7 @@ import {
     TimeSyncManager,
 } from './timeSync/TimeSyncManager';
 import { identifyDeviceTypes } from './to-iobroker/ioBrokerFactory';
+import { explainBleOnlyCommissioningFailure } from './bleOnlyCommissioning';
 import type { GeneralNode, MessageResponse } from './GeneralNode';
 import { inspect } from 'util';
 import { createReadStream } from 'fs';

@@ -48,6 +48,15 @@ interface NodeStatesOptions {
     controller?: boolean;
 }
 
+/**
+ * sendTo() serializes the payload asynchronously, so a value JSON can not carry (e.g. a BigInt) surfaces as an
+ * unhandled rejection that restarts the adapter while the sender waits forever. Throw here instead, inside the
+ * caller's try/catch, so the sender gets an error response.
+ */
+function assertJsonSerializable(payload: unknown): void {
+    JSON.stringify(payload);
+}
+
 export class MatterAdapter extends Adapter {
     readonly #devices = new Map<string, { device?: MatterDevice; error?: string }>();
     readonly #bridges = new Map<string, { bridge?: BridgedDevice; error?: string }>();
@@ -226,6 +235,7 @@ export class MatterAdapter extends Adapter {
                 try {
                     const result = await this.#controller?.handleCommand(obj);
                     if (result !== undefined && obj.callback) {
+                        assertJsonSerializable(result);
                         this.sendTo(obj.from, obj.command, result, obj.callback);
                     }
                 } catch (error) {
@@ -250,6 +260,7 @@ export class MatterAdapter extends Adapter {
                     try {
                         const result = await bridge.handleCommand(obj);
                         if (result !== undefined && obj.callback) {
+                            assertJsonSerializable(result);
                             this.sendTo(obj.from, obj.command, result, obj.callback);
                         }
                     } catch (error) {
@@ -278,6 +289,7 @@ export class MatterAdapter extends Adapter {
                     try {
                         const result = await device.handleCommand(obj);
                         if (result !== undefined && obj.callback) {
+                            assertJsonSerializable(result);
                             this.sendTo(obj.from, obj.command, result, obj.callback);
                         }
                     } catch (error) {

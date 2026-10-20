@@ -129,16 +129,22 @@ export type {
     BorderRouterEntry,
 };
 
+/**
+ * ```
+ * active ──decommission, left the fabric, Destroying──▶ retiring ──removed from the peers, stop()──▶ gone
+ *    └──────────────────────────────removed from the peers, stop()──────────────────────────────────▲
+ * ```
+ * Only an active peer gets an ioBroker structure and timers. A retiring peer keeps its observers until matter.js
+ * removed it, which after a failed delete is only at the next start.
+ */
+type PeerPhase = 'active' | 'retiring' | 'gone';
+
 interface WatchedPeer {
     peer: ClientNode;
     observers: ObserverGroup;
     /** Last node id the peer reported, because it is already gone when the decommission is announced. */
     commissionedNodeId?: NodeId;
-    /**
-     * Set once the peer left the fabric or starts being destroyed, so a rebuild cannot recreate what is being
-     * removed.
-     */
-    tearingDown?: boolean;
+    phase: PeerPhase;
     /** Whether the peer was Connected since it is watched or last Disconnected, see `isConnectedForIoBroker()`. */
     firstReportApplied: boolean;
     rebuild: StructureRebuildTimer<ioBroker.Timeout>;
@@ -174,6 +180,7 @@ class Controller implements GeneralNode {
     readonly #watchedPeers = new Map<Endpoint, WatchedPeer>();
     #networkGraphUpdateTimer?: ioBroker.Timeout;
     #closing = false;
+    #starting?: Promise<void>;
     #borderRouterRegistry?: BorderRouterRegistry;
     readonly #threadCredentials = new ThreadCredentialsRegistry();
     #threadDiagnostics?: ThreadDiagnosticsService;
@@ -447,6 +454,7 @@ class Controller implements GeneralNode {
             const watched: WatchedPeer = {
                 peer,
                 observers,
+                phase: 'active',
                 firstReportApplied: peer.lifecycle.isConnected,
                 rebuild: new StructureRebuildTimer(this.#rebuildTimerHost, () => this.#rebuildStructure(watched)),
             };
@@ -475,7 +483,7 @@ class Controller implements GeneralNode {
                         // A disabled or stopped peer resumes on the cache from before, as after a restart
                         watched.firstReportApplied = false;
                     }
-                    this.#handleConnectionState(peer, state, watched.commissionedNodeId);
+                    this.#handleConnectionState(watched, state);
                 }),
             );
             // Seeding happens on the first structure read, which for a peer restored from cache is before this
@@ -484,6 +492,9 @@ class Controller implements GeneralNode {
                 peer.lifecycle.seeded,
                 this.#contained('peer seeded', () => {
                     rememberNodeId();
+                    if (!this.#isActive(watched)) {
+                        return;
+                    }
                     this.#registerNodeForTimeSync(peer);
                     this.#registerNodeForThreadPolling(peer);
                 }),
@@ -496,8 +507,7 @@ class Controller implements GeneralNode {
                         `Node "${this.#nodeLabel(peer, watched.commissionedNodeId)}" decommissioned`,
                     );
                     // matter.js deletes the peer next, on both paths
-                    watched.tearingDown = true;
-                    watched.rebuild.cancel();
+                    this.#retire(watched);
                     const nodeId = watched.commissionedNodeId;
                     if (nodeId !== undefined) {
                         this.#unregisterNodeFromTimeSync(nodeId);
@@ -520,8 +530,7 @@ class Controller implements GeneralNode {
                     switch (type) {
                         case EndpointLifecycle.Change.Destroying:
                             if (endpoint === peer) {
-                                watched.tearingDown = true;
-                                watched.rebuild.cancel();
+                                this.#retire(watched);
                             }
                             break;
                         // The rebuild reads the endpoint and its parts, which are readable once PartsReady fired
@@ -550,8 +559,7 @@ class Controller implements GeneralNode {
             if (watched === undefined) {
                 return;
             }
-            watched.rebuild.cancel();
-            watched.observers.close();
+            this.#forget(watched);
             this.#watchedPeers.delete(peer);
         };
 
@@ -590,22 +598,39 @@ class Controller implements GeneralNode {
 
     #unwatchAllPeers(): void {
         for (const watched of this.#watchedPeers.values()) {
-            watched.rebuild.cancel();
-            watched.observers.close();
+            this.#forget(watched);
         }
         this.#watchedPeers.clear();
     }
 
+    /** Whether the peer may still get an ioBroker structure; checked again after every await of a build. */
+    #isActive(watched: WatchedPeer): boolean {
+        return watched.phase === 'active' && !this.#closing && !this.#adapter.closing;
+    }
+
+    #retire(watched: WatchedPeer): void {
+        if (watched.phase === 'active') {
+            watched.phase = 'retiring';
+        }
+        watched.rebuild.cancel();
+    }
+
+    #forget(watched: WatchedPeer): void {
+        watched.phase = 'gone';
+        watched.rebuild.cancel();
+        watched.observers.close();
+    }
+
     /** Rebuild the ioBroker structure of a peer whose structure changed, once its reports settled. */
     #scheduleStructureRebuild(watched: WatchedPeer): void {
-        if (watched.tearingDown || this.#closing || this.#adapter.closing) {
+        if (!this.#isActive(watched)) {
             return;
         }
         watched.rebuild.changed();
     }
 
     #rebuildStructure(watched: WatchedPeer): void {
-        if (watched.tearingDown || this.#closing || this.#adapter.closing) {
+        if (!this.#isActive(watched)) {
             return;
         }
         this.#adapter.log.info(`Node "${this.#nodeLabel(watched.peer, watched.commissionedNodeId)}" structure changed`);
@@ -658,7 +683,7 @@ class Controller implements GeneralNode {
             }
             case 'delete': {
                 const watched = this.#watchedPeers.get(peer);
-                if (watched === undefined || watched.tearingDown) {
+                if (watched === undefined || !this.#isActive(watched)) {
                     // The peer itself is going away, so rebuilding would recreate what is being removed
                     return;
                 }
@@ -669,9 +694,10 @@ class Controller implements GeneralNode {
         }
     }
 
-    /** `nodeId` is passed in because the state of a peer being closed or destroyed can no longer be read. */
-    #handleConnectionState(peer: ClientNode, state: NodeConnectionState, nodeId: NodeId | undefined): void {
-        const nodeIdStr = nodeId?.toString() ?? peer.id;
+    /** Uses the remembered node id, because the state of a peer being closed or destroyed can no longer be read. */
+    #handleConnectionState(watched: WatchedPeer, state: NodeConnectionState): void {
+        const { peer } = watched;
+        const nodeIdStr = watched.commissionedNodeId?.toString() ?? peer.id;
         const deviceNode = this.#nodes.get(nodeIdStr);
         if (deviceNode) {
             deviceNode.handleStateChange(
@@ -683,7 +709,7 @@ class Controller implements GeneralNode {
         }
         this.#updateCallback();
 
-        if (state === NodeConnectionState.Connected) {
+        if (state === NodeConnectionState.Connected && this.#isActive(watched)) {
             this.#registerNodeForTimeSync(peer);
             this.#registerNodeForThreadPolling(peer);
         }
@@ -691,11 +717,23 @@ class Controller implements GeneralNode {
         this.#sendNetworkGraphUpdate();
     }
 
+    /** A `stop()` while this runs waits for it and then tears down whatever it brought up. */
     async start(): Promise<void> {
-        if (this.#serverNode) {
+        if (this.#serverNode || this.#starting) {
             throw new Error('Controller already started!');
         }
+        if (this.#closing) {
+            throw new Error('Controller was stopped and can not be started again');
+        }
+        this.#starting = this.#start();
+        try {
+            await this.#starting;
+        } finally {
+            this.#starting = undefined;
+        }
+    }
 
+    async #start(): Promise<void> {
         const serverNode = await ServerNode.create(ServerNode.RootEndpoint.with(ControllerBehavior), {
             environment: this.#adapter.matterEnvironment,
             id: 'controller',
@@ -761,6 +799,10 @@ class Controller implements GeneralNode {
         // Before the node goes online, so matter.js subscribes the peers with the corrected setting
         await this.#repairAutoSubscribe(peers);
 
+        if (this.#closing) {
+            return;
+        }
+
         try {
             await serverNode.start();
         } catch (error) {
@@ -771,6 +813,9 @@ class Controller implements GeneralNode {
         }
 
         this.#fabricIndex = fabricIndex;
+        if (this.#closing) {
+            return;
+        }
 
         this.#startTimeSync();
 
@@ -922,22 +967,24 @@ class Controller implements GeneralNode {
         }
         const nodeIdStr = nodeId.toString();
 
+        const watched = this.#watchedPeers.get(node);
+        if (watched === undefined) {
+            return;
+        }
         // One rebuild per node id at a time, so a losing GeneralMatterNode is never overwritten in #nodes undestroyed.
         const slot = await this.#getNodeLock(nodeIdStr).obtainSlot();
         try {
-            if (this.#closing || this.#adapter.closing) {
-                // A queued call may only get its slot after stop() already cleared #nodes.
-                return;
-            }
-            const watched = this.#watchedPeers.get(node);
-            if (watched === undefined || watched.tearingDown) {
-                // The peer was removed while this waited for its slot, so rebuilding would bring it back.
+            if (!this.#isActive(watched)) {
                 return;
             }
 
             const oldDevice = this.#nodes.get(nodeIdStr);
             // The replacement writes the connection state itself, so the devices do not blink offline
             await oldDevice?.destroy({ keepConnectionState: true });
+            // stop() and the removals destroy what is in #nodes, so a node added after they ran would be missed
+            if (!this.#isActive(watched)) {
+                return;
+            }
 
             const device = new GeneralMatterNode(
                 this.#adapter,
@@ -948,6 +995,9 @@ class Controller implements GeneralNode {
             );
             this.#nodes.set(nodeIdStr, device);
             await device.initialize(nodeDetails);
+            if (!this.#isActive(watched)) {
+                return;
+            }
 
             // An already-connected node emits no further connectionStateChanged, so register it here too
             this.#registerNodeForTimeSync(node);
@@ -1980,6 +2030,8 @@ class Controller implements GeneralNode {
     async stop(): Promise<void> {
         this.#closing = true;
         this.#adapter.log.info(`Stopping Controller...`);
+        // A failed start() is reported to its own caller
+        await this.#starting?.catch(() => {});
 
         // An in-flight setUtcTime or topology read on a node that silently went offline is not cancelable and
         // can outlast the adapter's stopTimeout, so shutdown never waits for them longer than this. Adapter
@@ -2059,7 +2111,6 @@ class Controller implements GeneralNode {
             {
                 what: 'nodes',
                 run: async () => {
-                    // Read live: a rebuild that was already running can still add a node while this runs
                     await runShutdownSteps(
                         [...this.#nodes.values()].map(node => ({
                             what: `node ${node.nodeId}`,
@@ -2100,13 +2151,18 @@ class Controller implements GeneralNode {
         if (!serverNode) {
             throw new Error(`Can not decommission NodeId "${nodeId}" because controller not initialized.`);
         }
-        // Shares nodeToIoBrokerStructure's lock so a concurrent rebuild can't race the delete below.
         const removedNodeId = NodeId(BigInt(nodeId));
+        const removedPeerAddress = this.#peerAddress(removedNodeId);
+        const peer = removedPeerAddress === undefined ? undefined : serverNode.peers.get(removedPeerAddress);
+        // Before the first await, so no build queued behind this one recreates the node, also when the delete fails
+        const watched = peer === undefined ? undefined : this.#watchedPeers.get(peer);
+        if (watched !== undefined) {
+            this.#retire(watched);
+        }
+        // Shares nodeToIoBrokerStructure's lock so a concurrent rebuild can't race the delete below.
         const slot = await this.#getNodeLock(nodeId).obtainSlot();
         let deviceNotified = false;
         try {
-            const removedPeerAddress = this.#peerAddress(removedNodeId);
-            const peer = removedPeerAddress === undefined ? undefined : serverNode.peers.get(removedPeerAddress);
             try {
                 if (peer === undefined) {
                     this.#adapter.log.warn(
@@ -2134,8 +2190,6 @@ class Controller implements GeneralNode {
                 // Runs also when the delete failed, so the timers and ioBroker objects do not outlive the node
                 this.#unregisterNodeFromTimeSync(removedNodeId);
                 this.#unregisterNodeFromThreadPolling(removedNodeId);
-                // A rebuild that was queued on this lock replaces the entry, so what is dropped here is not
-                // necessarily the object the caller is tearing down.
                 await this.#nodes.get(nodeId)?.destroy();
                 this.#nodes.delete(nodeId);
             }

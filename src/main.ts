@@ -209,17 +209,19 @@ export class MatterAdapter extends Adapter {
             await device?.start();
         }
 
-        if (this.#controller) {
-            await this.#controller.start();
+        // Disabling the controller during the start clears #controller and stops this instance
+        const controller = this.#controller;
+        if (controller) {
+            await controller.start();
 
             // Import custom OTA updates after the controller is started
-            if ((this.config as MatterAdapterConfig).allowUnofficialUpdates && this.#controller.otaProvider) {
-                await this.#controller.otaProvider.setStateOf(SoftwareUpdateManager, {
+            if ((this.config as MatterAdapterConfig).allowUnofficialUpdates && controller.otaProvider) {
+                await controller.otaProvider.setStateOf(SoftwareUpdateManager, {
                     allowTestOtaImages: true,
                 });
                 this.log.info('Enabled test OTA images (test-net DCL)');
 
-                await this.#controller.importCustomOtaUpdates();
+                await controller.importCustomOtaUpdates();
             }
         }
     }

@@ -177,7 +177,7 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) The ioBroker device model now covers the new states type detector v6 exposes on existing device types, such as signal strength, on-time countdown, separate heating and cooling setpoints, valve position, filter condition and alarm severity
 * (@Apollon77) Fixed several memory leaks: ioBroker device instances that were built but not adopted stayed registered with the state subscription manager, and listeners, timers, pending locks and custom state bookkeeping were not always released on teardown
 * (@Apollon77) Network visualization data is no longer assembled, and neither it nor Thread diagnostics data is serialized and sent, while no admin UI is listening
-* (@Apollon77) Updated matter.js to a 0.18 development version and migrated the controller to its ClientNode API
+* (@Apollon77) Updated matter.js to 0.18.0 and migrated the controller to its ClientNode API
 * (@Apollon77) The files matter.js downloads (OTA images, certificates, vendor data) now live in `matter.<instance>.cache` beside the instance data directory, and the folder for hand-imported OTA images moves to `matter.<instance>.custom-ota`. Both are moved on the first start; a folder that cannot be moved, for example because its target already exists, is reported in the log and has to be sorted out by hand. A custom OTA path that pointed into the old folder keeps working
 * (@Apollon77) The raw cluster states of a paired node are now filled from the values it reported before, also while the node is not connected
 * (@Apollon77) Changing the subscription interval of a paired node no longer reconnects it

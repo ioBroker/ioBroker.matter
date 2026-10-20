@@ -56,6 +56,7 @@ import {
 import { ThreadDiagnosticsService, type ThreadDiagnosticsBatch } from './ThreadDiagnosticsService';
 import { parseRestBaseUrl, registerThreadCredentialsFromHex } from './threadCredentials';
 import { serializeBatch } from './serializeBatch';
+import { encodePaseCommissionerConfig } from './paseCommissionerConfig';
 import { GeneralMatterNode, type PairedNodeConfig } from './GeneralMatterNode';
 import type { NodeIcdManager } from './NodeIcdManager';
 import { refreshWithLongIdleTimeDeferral, runDedupedByKey } from './longIdleTimeRefresh';
@@ -275,17 +276,17 @@ class Controller implements GeneralNode {
                     return { result: await this.showNewCommissioningCode(message.nodeId) };
                 case 'controllerInitializePaseCommissioner': {
                     // Returns the data needed to initialize a PaseCommissioner on the mobile App
-                    const { caConfig, fabricData } = this.#commissioningController.paseCommissionerConfig;
                     return {
-                        result: {
-                            rootCertificateData: caConfig,
-                            fabricData,
-                        },
+                        result: encodePaseCommissionerConfig(this.#commissioningController.paseCommissionerConfig),
                     };
                 }
                 case 'controllerCompletePaseCommissioning':
                     // Completes a commissioning process that was started by the mobile app in the main controller
-                    return await this.completeCommissioningForNode(message.peerNodeId, message.discoveryData);
+                    // The node id arrives as JSON number or string, matter.js expects a bigint NodeId
+                    return await this.completeCommissioningForNode(
+                        NodeId(BigInt(message.peerNodeId)),
+                        message.discoveryData,
+                    );
                 case 'controllerCancelUpdate': {
                     // Cancel an ongoing software update for a node
                     const nodeId = message.nodeId as string;

@@ -82,6 +82,7 @@ import {
     isUnreachedAddress,
 } from './commissioningErrors';
 import { enableAutoSubscribe } from './autoSubscribeRepair';
+import { formatNodeLabel, formatPeerLabel } from './nodeLabel';
 import { contained, runShutdownSteps, type ShutdownStep } from './containment';
 import { GeneralMatterNode, operationalAddressOf, type PairedNodeConfig } from './GeneralMatterNode';
 import type { NodeIcdManager } from './NodeIcdManager';
@@ -259,7 +260,7 @@ class Controller implements GeneralNode {
     async applyPairedNodeConfiguration(nodeId: string, config: PairedNodeConfig, forcedUpdate = false): Promise<void> {
         const node = this.#nodes.get(nodeId);
         if (node === undefined) {
-            this.#adapter.log.warn(`Node ${nodeId} not found`);
+            this.#adapter.log.warn(`Node ${this.#nodeIdLabel(nodeId)} not found`);
             return;
         }
         return node.applyConfiguration(config, forcedUpdate);
@@ -515,7 +516,7 @@ class Controller implements GeneralNode {
                         const nodeIdStr = nodeId.toString();
                         this.#removeDecommissionedNode(nodeIdStr).catch(error =>
                             this.#adapter.log.warn(
-                                `Error removing decommissioned node "${nodeIdStr}": ${inspect(error, { depth: 10 })}`,
+                                `Error removing decommissioned node "${this.#nodeIdLabel(nodeId)}": ${inspect(error, { depth: 10 })}`,
                             ),
                         );
                     }
@@ -571,11 +572,19 @@ class Controller implements GeneralNode {
         this.#observers.on(serverNode.peers.deleted, this.#contained('peer deleted', unwatchPeer));
     }
 
-    /** The node id as the logs of the node print it; the peer id only while the node has none yet. */
+    /** The node as the logs print it, see {@link formatNodeLabel}; the peer id only while the node has none yet. */
     #nodeLabel(peer: ClientNode, knownNodeId?: NodeId): string {
         const nodeId =
             knownNodeId ?? (peer.lifecycle.isReadable ? peer.state.commissioning?.peerAddress?.nodeId : undefined);
-        return nodeId?.toString() ?? peer.id;
+        return nodeId === undefined ? peer.id : this.#nodeIdLabel(nodeId);
+    }
+
+    /** Label for a node id or its decimal string, which is the key of `#nodes`. Anything else is printed as given. */
+    #nodeIdLabel(nodeId: NodeId | string): string {
+        if (typeof nodeId === 'string') {
+            return /^\d+$/.test(nodeId) ? formatNodeLabel(NodeId(BigInt(nodeId)), this.#fabricIndex) : nodeId;
+        }
+        return formatNodeLabel(nodeId, this.#fabricIndex);
     }
 
     /** See {@link contained}; the handler's failure is logged with the observable it belongs to. */
@@ -675,7 +684,7 @@ class Controller implements GeneralNode {
                 if (change.behavior.cluster.id === TIME_SYNC_CLUSTER_ID && change.event.id === TIME_FAILURE_EVENT_ID) {
                     const peerAddress = peer.state.commissioning.peerAddress;
                     if (peerAddress !== undefined) {
-                        this.#adapter.log.debug(`Received timeFailure event from node ${nodeIdStr}`);
+                        this.#adapter.log.debug(`Received timeFailure event from node ${this.#nodeLabel(peer)}`);
                         this.#timeSyncManager?.syncNode(peerAddress, SyncTrigger.TimeFailure);
                     }
                 }
@@ -687,7 +696,7 @@ class Controller implements GeneralNode {
                     // The peer itself is going away, so rebuilding would recreate what is being removed
                     return;
                 }
-                this.#adapter.log.info(`Node "${nodeIdStr}" lost endpoint ${change.endpoint.maybeNumber}`);
+                this.#adapter.log.info(`Node "${this.#nodeLabel(peer)}" lost endpoint ${change.endpoint.maybeNumber}`);
                 this.#scheduleStructureRebuild(watched);
                 break;
             }
@@ -705,7 +714,9 @@ class Controller implements GeneralNode {
                 peer.lifecycle.isReadable ? { operationalAddress: operationalAddressOf(peer) } : undefined,
             );
         } else if (state !== NodeConnectionState.Disconnected) {
-            this.#adapter.log.info(`Matter node "${nodeIdStr}" not initialized ... Got State change to ${state}`);
+            this.#adapter.log.info(
+                `Matter node "${this.#nodeLabel(peer, watched.commissionedNodeId)}" not initialized ... Got State change to ${state}`,
+            );
         }
         this.#updateCallback();
 
@@ -823,9 +834,7 @@ class Controller implements GeneralNode {
 
         this.#registerChangeHandlers();
 
-        this.#adapter.log.info(
-            `Found ${peers.length} nodes: ${peers.map(peer => peer.state.commissioning.peerAddress?.nodeId).join(', ')}`,
-        );
+        this.#adapter.log.info(`Found ${peers.length} nodes: ${peers.map(peer => this.#nodeLabel(peer)).join(', ')}`);
         // Connecting them is automatic; this only builds their ioBroker representation.
         for (const peer of peers) {
             try {
@@ -847,7 +856,7 @@ class Controller implements GeneralNode {
                 }
                 // Use the new method that persists to state
                 this.#adapter.log.info(
-                    `Software update available for node ${nodeIdStr}: version ${info.softwareVersionString} (${info.softwareVersion}), source: ${info.source}`,
+                    `Software update available for node ${node.nodeLabel}: version ${info.softwareVersionString} (${info.softwareVersion}), source: ${info.source}`,
                 );
                 node.setSoftwareUpdateAvailable(info);
                 // Refresh UI to show the update available icon
@@ -864,11 +873,13 @@ class Controller implements GeneralNode {
                 }
                 // Use the new method that clears the persisted state
                 node.clearSoftwareUpdateAvailable().catch(error => {
-                    this.#adapter.log.error(`Error clearing update available state for node ${nodeIdStr}: ${error}`);
+                    this.#adapter.log.error(
+                        `Error clearing update available state for node ${node.nodeLabel}: ${error}`,
+                    );
                 });
                 // Notify the node that the update is complete (closes progress dialog)
                 node.onSoftwareUpdateComplete(true).catch(error => {
-                    this.#adapter.log.error(`Error handling update complete for node ${nodeIdStr}: ${error}`);
+                    this.#adapter.log.error(`Error handling update complete for node ${node.nodeLabel}: ${error}`);
                 });
                 // Refresh UI to remove the update available icon
                 this.#adapter.refreshControllerDevices();
@@ -882,10 +893,10 @@ class Controller implements GeneralNode {
                 if (node === undefined) {
                     return;
                 }
-                this.#adapter.log.warn(`Software update failed for node ${nodeIdStr}`);
+                this.#adapter.log.warn(`Software update failed for node ${node.nodeLabel}`);
                 // Notify the node that the update failed (closes progress dialog, shows error)
                 node.onSoftwareUpdateFailed().catch(error => {
-                    this.#adapter.log.error(`Error handling update failure for node ${nodeIdStr}: ${error}`);
+                    this.#adapter.log.error(`Error handling update failure for node ${node.nodeLabel}: ${error}`);
                 });
                 // Refresh UI
                 this.#adapter.refreshControllerDevices();
@@ -935,7 +946,7 @@ class Controller implements GeneralNode {
             if (node !== undefined) {
                 this.#nodes.delete(nodeIdStr);
                 this.#adapter.log.info(
-                    `Node "${nodeIdStr}" left the fabric, for example after a factory reset or a removal by another controller. Removing it and its objects in ${node.nodeBaseId}`,
+                    `Node "${node.nodeLabel}" left the fabric, for example after a factory reset or a removal by another controller. Removing it and its objects in ${node.nodeBaseId}`,
                 );
                 await node.destroy();
                 await this.#adapter.delObjectAsync(node.nodeBaseId, { recursive: true });
@@ -1080,7 +1091,9 @@ class Controller implements GeneralNode {
             const icd = deviceNode !== undefined ? this.#ensureIcdTracking(node, deviceNode) : undefined;
             this.#timeSyncManager.registerNode(peer, readTimeSyncCapabilities(node), icd?.longIdleTimeActive ?? false);
         } catch (error) {
-            this.#adapter.log.debug(`Error registering node ${peer.nodeId} for time synchronization: ${error}`);
+            this.#adapter.log.debug(
+                `Error registering node ${formatPeerLabel(peer)} for time synchronization: ${error}`,
+            );
         }
     }
 
@@ -1105,7 +1118,9 @@ class Controller implements GeneralNode {
             const isThreadNode = this.#getNetworkType(node) === 'thread';
             this.#threadDetailsPoller.registerNode(peer, isThreadNode, icd?.longIdleTimeActive ?? false);
         } catch (error) {
-            this.#adapter.log.debug(`Error registering node ${peer.nodeId} for Thread topology polling: ${error}`);
+            this.#adapter.log.debug(
+                `Error registering node ${formatPeerLabel(peer)} for Thread topology polling: ${error}`,
+            );
         }
     }
 
@@ -1417,7 +1432,7 @@ class Controller implements GeneralNode {
 
         await this.nodeToIoBrokerStructure(node, { operationalAddress: operationalAddressOf(node) });
 
-        this.#adapter.log.debug(`Commissioning successfully completed with nodeId "${nodeId}"`);
+        this.#adapter.log.debug(`Commissioning successfully completed with nodeId "${this.#nodeIdLabel(nodeId)}"`);
         this.#updateCallback();
     }
 
@@ -1628,7 +1643,9 @@ class Controller implements GeneralNode {
                     nodes.push(nodeData);
                 }
             } catch (error) {
-                this.#adapter.log.debug(`Error collecting network data for node ${nodeId}: ${error}`);
+                this.#adapter.log.debug(
+                    `Error collecting network data for node ${this.#nodeIdLabel(nodeId)}: ${error}`,
+                );
             }
         }
 
@@ -1644,7 +1661,9 @@ class Controller implements GeneralNode {
      * shared controller-action queue this command runs under.
      */
     async refreshNodeNetworkData(nodeIds: string[]): Promise<void> {
-        this.#adapter.log.debug(`Refreshing network data for nodes: ${nodeIds.join(', ')}`);
+        this.#adapter.log.debug(
+            `Refreshing network data for nodes: ${nodeIds.map(nodeId => this.#nodeIdLabel(nodeId)).join(', ')}`,
+        );
 
         const isLongIdleTime = (nodeIdStr: string): boolean => {
             const node = this.#nodes.get(nodeIdStr);
@@ -1659,7 +1678,9 @@ class Controller implements GeneralNode {
             try {
                 await this.#refreshSingleNodeNetworkData(nodeIdStr);
             } catch (error) {
-                this.#adapter.log.debug(`Error refreshing network data for node ${nodeIdStr}: ${error}`);
+                this.#adapter.log.debug(
+                    `Error refreshing network data for node ${this.#nodeIdLabel(nodeIdStr)}: ${error}`,
+                );
             }
         };
 
@@ -1672,7 +1693,10 @@ class Controller implements GeneralNode {
                 this.#pendingLongIdleTimeReads,
                 nodeIdStr,
                 () => readNode(nodeIdStr),
-                () => this.#adapter.log.debug(`Skipping refresh for node ${nodeIdStr}: a LIT read is already pending`),
+                () =>
+                    this.#adapter.log.debug(
+                        `Skipping refresh for node ${this.#nodeIdLabel(nodeIdStr)}: a LIT read is already pending`,
+                    ),
             );
         };
 
@@ -1707,12 +1731,12 @@ class Controller implements GeneralNode {
     async #refreshSingleNodeNetworkData(nodeIdStr: string): Promise<void> {
         const node = this.#nodes.get(nodeIdStr);
         if (!node) {
-            this.#adapter.log.debug(`Node ${nodeIdStr} not found for refresh`);
+            this.#adapter.log.debug(`Node ${this.#nodeIdLabel(nodeIdStr)} not found for refresh`);
             return;
         }
 
         if (!node.isConnected) {
-            this.#adapter.log.debug(`Node ${nodeIdStr} is offline, skipping refresh`);
+            this.#adapter.log.debug(`Node ${this.#nodeIdLabel(nodeIdStr)} is offline, skipping refresh`);
             return;
         }
 
@@ -1727,7 +1751,9 @@ class Controller implements GeneralNode {
                 'rloc16',
             ]);
             if (attributes.length === 0) {
-                this.#adapter.log.debug(`Node ${nodeIdStr} exposes no Thread diagnostics attributes to refresh`);
+                this.#adapter.log.debug(
+                    `Node ${this.#nodeIdLabel(nodeIdStr)} exposes no Thread diagnostics attributes to refresh`,
+                );
                 return;
             }
             await node.node.getStateOf(ThreadNetworkDiagnosticsClient, attributes, {
@@ -1742,18 +1768,20 @@ class Controller implements GeneralNode {
                 'rssi',
             ]);
             if (attributes.length === 0) {
-                this.#adapter.log.debug(`Node ${nodeIdStr} exposes no WiFi diagnostics attributes to refresh`);
+                this.#adapter.log.debug(
+                    `Node ${this.#nodeIdLabel(nodeIdStr)} exposes no WiFi diagnostics attributes to refresh`,
+                );
                 return;
             }
             await node.node.getStateOf(WiFiNetworkDiagnosticsClient, attributes, {
                 includeKnownVersions: true,
             });
         } else {
-            this.#adapter.log.debug(`Node ${nodeIdStr} has no network diagnostics to refresh`);
+            this.#adapter.log.debug(`Node ${this.#nodeIdLabel(nodeIdStr)} has no network diagnostics to refresh`);
             return;
         }
 
-        this.#adapter.log.debug(`Successfully refreshed network data for node ${nodeIdStr}`);
+        this.#adapter.log.debug(`Successfully refreshed network data for node ${this.#nodeIdLabel(nodeIdStr)}`);
     }
 
     /**
@@ -2113,7 +2141,7 @@ class Controller implements GeneralNode {
                 run: async () => {
                     await runShutdownSteps(
                         [...this.#nodes.values()].map(node => ({
-                            what: `node ${node.nodeId}`,
+                            what: `node ${node.nodeLabel}`,
                             run: () => node.destroy(),
                         })),
                         (what, error) =>
@@ -2166,7 +2194,7 @@ class Controller implements GeneralNode {
             try {
                 if (peer === undefined) {
                     this.#adapter.log.warn(
-                        `Node "${nodeId}" is unknown to the controller; removing it locally only. It may still hold our fabric.`,
+                        `Node "${this.#nodeIdLabel(nodeId)}" is unknown to the controller; removing it locally only. It may still hold our fabric.`,
                     );
                 } else {
                     // Decommissioning talks to the device; a peer we cannot reach is only dropped locally.
@@ -2175,7 +2203,7 @@ class Controller implements GeneralNode {
                             await peer.decommission();
                         } catch (error) {
                             this.#adapter.log.warn(
-                                `Decommissioning node "${nodeId}" failed, removing it locally only. It may still hold our fabric: ${inspect(error, { depth: 10 })}`,
+                                `Decommissioning node "${this.#nodeIdLabel(nodeId)}" failed, removing it locally only. It may still hold our fabric: ${inspect(error, { depth: 10 })}`,
                             );
                         }
                         // The device has left the fabric once the peer is no longer commissioned, even when

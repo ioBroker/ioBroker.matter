@@ -58,6 +58,7 @@ import type { DeviceStatus, ConfigConnectionType } from '@iobroker/dm-utils';
 import { VendorIds } from '../lib/vendorIDs';
 import { NodeIcdManager } from './NodeIcdManager';
 import { isConnectedForIoBroker } from './nodeConnection';
+import { formatPeerLabel } from './nodeLabel';
 
 export type PairedNodeConfig = {
     nodeId: NodeId;
@@ -161,6 +162,11 @@ export function resolveAttributeId(
 
 export class GeneralMatterNode {
     readonly nodeId: string;
+    /**
+     * The node id for log lines, with the peer address as matter.js prints it, see {@link formatPeerLabel}. Taken at
+     * construction, so logging never reads the state of a peer that is being destroyed.
+     */
+    readonly nodeLabel: string;
     readonly nodeBaseId: string;
     readonly connectionStateId: string;
     readonly connectionStatusId: string;
@@ -233,6 +239,8 @@ export class GeneralMatterNode {
         private readonly otaProvider?: Endpoint<OtaProviderEndpoint>,
     ) {
         this.nodeId = node.state.commissioning.peerAddress?.nodeId.toString() ?? node.id;
+        const peerAddress = node.state.commissioning.peerAddress;
+        this.nodeLabel = peerAddress === undefined ? this.nodeId : formatPeerLabel(peerAddress);
         this.nodeBaseId = `controller.${this.nodeId}`;
         this.connectionStateId = `${this.nodeBaseId}.info.connection`;
         this.connectionStatusId = `${this.nodeBaseId}.info.status`;
@@ -246,7 +254,7 @@ export class GeneralMatterNode {
 
     #newTeardownRegistry(): TeardownRegistry {
         return new TeardownRegistry(error =>
-            this.adapter.log.warn(`Node ${this.nodeId}: Error while tearing down: ${error.message}`),
+            this.adapter.log.warn(`Node ${this.nodeLabel}: Error while tearing down: ${error.message}`),
         );
     }
 
@@ -271,7 +279,7 @@ export class GeneralMatterNode {
             try {
                 await device.destroy(options);
             } catch (error) {
-                this.adapter.log.warn(`Node ${this.nodeId}: Error destroying device: ${error}`);
+                this.adapter.log.warn(`Node ${this.nodeLabel}: Error destroying device: ${error}`);
             }
         }
         this.#deviceMap.clear();
@@ -319,11 +327,11 @@ export class GeneralMatterNode {
         if (!this.node.lifecycle.isSeeded) {
             // An offline peer never becomes seeded, so this must be observed rather than awaited.
             this.adapter.log.warn(
-                `Node "${this.nodeId}" has not yet been initialized! Waiting for initial connection.`,
+                `Node "${this.nodeLabel}" has not yet been initialized! Waiting for initial connection.`,
             );
             const observers = new ObserverGroup();
             observers.on(this.node.lifecycle.seeded, () => {
-                this.adapter.log.info(`Node "${this.nodeId}" has been delayed connected. Initialize now!`);
+                this.adapter.log.info(`Node "${this.nodeLabel}" has been delayed connected. Initialize now!`);
                 this.initialize(nodeDetails).catch(error =>
                     this.adapter.log.info(`Error while initializing node: ${error}`),
                 );
@@ -597,7 +605,7 @@ export class GeneralMatterNode {
         if (this.node.state.network.isDisabled === shouldBeDisabled) {
             return;
         }
-        this.adapter.log.info(`Node "${this.nodeId}" is ${enabled ? 'enabled' : 'disabled'}, applying to the peer`);
+        this.adapter.log.info(`Node "${this.nodeLabel}" is ${enabled ? 'enabled' : 'disabled'}, applying to the peer`);
         await (enabled ? this.node.enable() : this.node.disable());
     }
 
@@ -691,7 +699,7 @@ export class GeneralMatterNode {
 
         this.#softwareUpdateInProgress = true;
         this.adapter.log.info(
-            `Starting software update for node ${this.nodeId} to version ${updateInfo.softwareVersionString} (${updateInfo.softwareVersion}), source: ${updateInfo.source}`,
+            `Starting software update for node ${this.nodeLabel} to version ${updateInfo.softwareVersionString} (${updateInfo.softwareVersion}), source: ${updateInfo.source}`,
         );
 
         // Show the initial progress dialog with cancel support
@@ -717,7 +725,7 @@ export class GeneralMatterNode {
         this.#updateObservers.on(otaEvents.stateTransition, async (payload, _context) => {
             const { newState, previousState, targetSoftwareVersion } = payload;
             this.adapter.log.debug(
-                `OTA state transition for node ${this.nodeId}: ${OtaSoftwareUpdateRequestor.UpdateState[newState]} (target: ${targetSoftwareVersion})`,
+                `OTA state transition for node ${this.nodeLabel}: ${OtaSoftwareUpdateRequestor.UpdateState[newState]} (target: ${targetSoftwareVersion})`,
             );
             await this.updateSoftwareUpdateProgress(newState, previousState);
         });
@@ -788,18 +796,18 @@ export class GeneralMatterNode {
             if (currentSoftwareVersion !== undefined && currentSoftwareVersion >= persistedInfo.softwareVersion) {
                 // Update has been applied (or a newer version is installed), clear the state
                 this.adapter.log.debug(
-                    `Node ${this.nodeId}: Current version ${currentSoftwareVersion} >= persisted update version ${persistedInfo.softwareVersion}, clearing update state`,
+                    `Node ${this.nodeLabel}: Current version ${currentSoftwareVersion} >= persisted update version ${persistedInfo.softwareVersion}, clearing update state`,
                 );
                 await this.clearSoftwareUpdateAvailable();
             } else if (this.#softwareUpdateAvailable === undefined) {
                 // Restore the update info if we don't have any in memory
                 this.adapter.log.info(
-                    `Node ${this.nodeId}: Restoring update info from state (version ${persistedInfo.softwareVersion})`,
+                    `Node ${this.nodeLabel}: Restoring update info from state (version ${persistedInfo.softwareVersion})`,
                 );
                 this.#softwareUpdateAvailable = persistedInfo;
             }
         } catch (error) {
-            this.adapter.log.warn(`Failed to restore update info from state for node ${this.nodeId}: ${error}`);
+            this.adapter.log.warn(`Failed to restore update info from state for node ${this.nodeLabel}: ${error}`);
         }
     }
 
@@ -812,7 +820,7 @@ export class GeneralMatterNode {
             icd = new NodeIcdManager(this.node);
         } catch (error) {
             // Battery Saver Mode is an optional extra; a node must still come up without it.
-            this.adapter.log.warn(`Could not set up ICD handling for node "${this.nodeId}": ${error}`);
+            this.adapter.log.warn(`Could not set up ICD handling for node "${this.nodeLabel}": ${error}`);
             return;
         }
         if (!icd.supported) {
@@ -842,7 +850,7 @@ export class GeneralMatterNode {
             return;
         }
 
-        this.adapter.log.info(`Cancelling software update for node ${this.nodeId}`);
+        this.adapter.log.info(`Cancelling software update for node ${this.nodeLabel}`);
 
         await otaProvider.act(agent => agent.get(SoftwareUpdateManager).removeConsent(this.peerAddress));
         this.#cleanupUpdateObservers();
@@ -863,7 +871,7 @@ export class GeneralMatterNode {
             return;
         }
 
-        this.adapter.log.warn(`Software update failed or was cancelled for node ${this.nodeId}`);
+        this.adapter.log.warn(`Software update failed or was cancelled for node ${this.nodeLabel}`);
         this.#cleanupUpdateObservers();
         this.#softwareUpdateInProgress = false;
 
@@ -888,9 +896,9 @@ export class GeneralMatterNode {
         }
 
         if (completed) {
-            this.adapter.log.info(`Software update successfully completed for node ${this.nodeId}`);
+            this.adapter.log.info(`Software update successfully completed for node ${this.nodeLabel}`);
         } else {
-            this.adapter.log.info(`Software update ended or cancelled for node ${this.nodeId}`);
+            this.adapter.log.info(`Software update ended or cancelled for node ${this.nodeLabel}`);
         }
         this.#cleanupUpdateObservers();
         this.#softwareUpdateInProgress = false;
@@ -984,7 +992,7 @@ export class GeneralMatterNode {
     setNodeConfiguration(config: GenericNodeConfiguration): void {
         if (this.#storeSubscriptionInterval(config.subscriptionMaxIntervalS)) {
             this.#applySubscriptionInterval().catch(error =>
-                this.adapter.log.warn(`Node "${this.nodeId}": Could not apply the subscription interval: ${error}`),
+                this.adapter.log.warn(`Node "${this.nodeLabel}": Could not apply the subscription interval: ${error}`),
             );
         }
     }
@@ -1031,7 +1039,7 @@ export class GeneralMatterNode {
 
         const rootEndpoint = this.node;
         if (rootEndpoint === undefined) {
-            this.adapter.log.warn(`Node "${this.nodeId}" has not yet been initialized! Should not not happen`);
+            this.adapter.log.warn(`Node "${this.nodeLabel}" has not yet been initialized! Should not not happen`);
             return;
         }
 
@@ -1095,7 +1103,7 @@ export class GeneralMatterNode {
         }
         const id = endpoint.number;
         if (id === undefined) {
-            this.adapter.log.warn(`Node ${this.nodeId}: Endpoint ${endpoint.id} has no number!`);
+            this.adapter.log.warn(`Node ${this.nodeLabel}: Endpoint ${endpoint.id} has no number!`);
             return;
         }
 
@@ -1103,14 +1111,14 @@ export class GeneralMatterNode {
         const { appTypes, primaryDeviceType } = deviceTypes;
         if (appTypes.length > 1) {
             this.adapter.log.info(
-                `Node ${this.nodeId}: Multiple device types detected: ${appTypes.map(t => t.deviceType.name).join(', ')}`,
+                `Node ${this.nodeLabel}: Multiple device types detected: ${appTypes.map(t => t.deviceType.name).join(', ')}`,
             );
         }
 
         const deviceTypeName = primaryDeviceType?.deviceType.name ?? endpoint.id ?? 'Unknown';
 
         this.adapter.log.info(
-            `Node ${this.nodeId}: Endpoint ${id} to ioBroker Devices ${endpoint.id} / ${deviceTypeName}`,
+            `Node ${this.nodeLabel}: Endpoint ${id} to ioBroker Devices ${endpoint.id} / ${deviceTypeName}`,
         );
 
         const endpointDeviceBaseId = `${baseId}.${deviceTypeName}-${id}`;
@@ -1147,7 +1155,7 @@ export class GeneralMatterNode {
 
         if (primaryDeviceType === undefined) {
             this.adapter.log.warn(
-                `Node ${this.nodeId}: Unknown device type: ${serialize(endpoint.type.name)}. Please report this issue.`,
+                `Node ${this.nodeLabel}: Unknown device type: ${serialize(endpoint.type.name)}. Please report this issue.`,
             );
         } else if (
             primaryDeviceType.deviceType.id === AggregatorEndpointDefinition.deviceType ||
@@ -1155,7 +1163,7 @@ export class GeneralMatterNode {
         ) {
             // An Aggregator device type has a slightly different structure
             this.#hasAggregatorEndpoint = true;
-            this.adapter.log.info(`Node ${this.nodeId}: ${primaryDeviceType.deviceType.name} device type detected`);
+            this.adapter.log.info(`Node ${this.nodeLabel}: ${primaryDeviceType.deviceType.name} device type detected`);
             await this.adapter.extendObjectAsync(endpointDeviceBaseId, {
                 type: 'folder',
                 common: {
@@ -1281,7 +1289,7 @@ export class GeneralMatterNode {
         const id = endpoint.number;
         if (id === undefined) {
             this.adapter.log.warn(
-                `Node ${this.nodeId}: Endpoint ${String(endpoint.type?.name ?? 'unknown')} has no number!`,
+                `Node ${this.nodeLabel}: Endpoint ${String(endpoint.type?.name ?? 'unknown')} has no number!`,
             );
             return;
         }
@@ -1404,7 +1412,7 @@ export class GeneralMatterNode {
     ): Promise<void> {
         if (endpoint.number === undefined) {
             this.adapter.log.warn(
-                `Node ${this.nodeId}: Endpoint ${String(endpoint.type?.name ?? 'unknown')} has no number!`,
+                `Node ${this.nodeLabel}: Endpoint ${String(endpoint.type?.name ?? 'unknown')} has no number!`,
             );
             return;
         }
@@ -1613,7 +1621,7 @@ export class GeneralMatterNode {
                                 parsedValue = JSON.parse(`"${state.val}"`);
                             } catch {
                                 this.adapter.log.info(
-                                    `Node ${this.nodeId}: ERROR: Could not parse value ${state.val} as JSON.`,
+                                    `Node ${this.nodeLabel}: ERROR: Could not parse value ${state.val} as JSON.`,
                                 );
                                 return;
                             }
@@ -1627,7 +1635,7 @@ export class GeneralMatterNode {
                             asTimedRequest: commandModel.effectiveAccess.timed,
                         });
                     } catch (e: unknown) {
-                        this.adapter.log.warn(`Node ${this.nodeId}: Error: ${(e as Error).message}`);
+                        this.adapter.log.warn(`Node ${this.nodeLabel}: Error: ${(e as Error).message}`);
                     }
                 };
                 this.#subscriptions.set(commandBaseId, handler);
@@ -1681,7 +1689,7 @@ export class GeneralMatterNode {
         value: unknown,
     ): Promise<void> {
         this.adapter.log.debug(
-            `handleChangedAttribute "${this.nodeId}": Attribute ${endpointId}/${toHex(clusterId)}/${attributeName} changed to ${Diagnostic.json(
+            `handleChangedAttribute "${this.nodeLabel}": Attribute ${endpointId}/${toHex(clusterId)}/${attributeName} changed to ${Diagnostic.json(
                 value,
             )}`,
         );
@@ -1728,7 +1736,7 @@ export class GeneralMatterNode {
         const eventId = EventId(change.event.id);
         const events = [decodedEventOf(change)];
         this.adapter.log.debug(
-            `handleTriggeredEvent "${this.nodeId}": Event ${endpointId}/${toHex(clusterId)}/${eventName} triggered with ${Diagnostic.json(
+            `handleTriggeredEvent "${this.nodeLabel}": Event ${endpointId}/${toHex(clusterId)}/${eventName} triggered with ${Diagnostic.json(
                 events,
             )}`,
         );
@@ -1778,11 +1786,11 @@ export class GeneralMatterNode {
 
         switch (state) {
             case NodeConnectionState.Connected: {
-                this.adapter.log.info(`Node "${this.nodeId}" connected`);
+                this.adapter.log.info(`Node "${this.nodeLabel}" connected`);
                 const negotiatedIntervalS = this.#negotiatedSubscriptionIntervalS;
                 if (this.#subscriptionMaxIntervalS && negotiatedIntervalS !== this.#subscriptionMaxIntervalS) {
                     this.adapter.log.info(
-                        `Node "${this.nodeId}" subscription interval was requested with ${this.#subscriptionMaxIntervalS}s but device returned ${negotiatedIntervalS === undefined ? 'none' : `${negotiatedIntervalS}s`}`,
+                        `Node "${this.nodeLabel}" subscription interval was requested with ${this.#subscriptionMaxIntervalS}s but device returned ${negotiatedIntervalS === undefined ? 'none' : `${negotiatedIntervalS}s`}`,
                     );
                 }
                 // Check persisted update info and compare with current version
@@ -1792,13 +1800,13 @@ export class GeneralMatterNode {
                 break;
             }
             case NodeConnectionState.Disconnected:
-                this.adapter.log.info(`Node "${this.nodeId}" disconnected`);
+                this.adapter.log.info(`Node "${this.nodeLabel}" disconnected`);
                 break;
             case NodeConnectionState.Reconnecting:
-                this.adapter.log.info(`Node "${this.nodeId}" reconnecting`);
+                this.adapter.log.info(`Node "${this.nodeLabel}" reconnecting`);
                 break;
             case NodeConnectionState.WaitingForDeviceDiscovery:
-                this.adapter.log.info(`Node "${this.nodeId}" offline, waiting for device discovery`);
+                this.adapter.log.info(`Node "${this.nodeLabel}" offline, waiting for device discovery`);
                 break;
         }
     }
@@ -1873,7 +1881,7 @@ export class GeneralMatterNode {
         }
         const result = await this.adapter.controllerNode.decommissionNode(this.nodeId);
         await this.destroy();
-        this.adapter.log.info(`Node "${this.nodeId}" removed. Removing Storage in ${this.nodeBaseId}`);
+        this.adapter.log.info(`Node "${this.nodeLabel}" removed. Removing Storage in ${this.nodeBaseId}`);
         await this.adapter.delObjectAsync(this.nodeBaseId, { recursive: true });
         return result;
     }

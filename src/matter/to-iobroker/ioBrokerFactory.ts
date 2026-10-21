@@ -3,6 +3,7 @@ import type { ClassExtends, Endpoint, ClientNode } from '@matter/main';
 import * as Devices from '@matter/main/devices';
 import * as Endpoints from '@matter/main/endpoints';
 import { DescriptorClient } from '@matter/main/behaviors';
+import { formatPeerLabel } from '../nodeLabel';
 import { ContactSensorToIoBroker } from './ContactSensorToIoBroker';
 import { DimmableToIoBroker } from './DimmableToIoBroker';
 import { DoorLockToIoBroker } from './DoorLockToIoBroker';
@@ -134,10 +135,11 @@ async function ioBrokerDeviceFabric(
 ): Promise<GenericDeviceToIoBroker<any>> {
     const { primaryDeviceType, utilityTypes } = identifyDeviceTypes(endpoint);
 
-    const nodeId = node.state.commissioning.peerAddress?.nodeId.toString() ?? node.id;
+    const peerAddress = node.state.commissioning.peerAddress;
+    const nodeLabel = peerAddress === undefined ? node.id : formatPeerLabel(peerAddress);
     const fullEndpointDeviceBaseId = `${adapter.namespace}.${endpointDeviceBaseId}`;
     const mainDeviceTypeName = primaryDeviceType?.deviceType.name ?? 'Unknown';
-    adapter.log.info(`Node ${nodeId}: Creating device for ${mainDeviceTypeName} (endpoint ${endpoint.number})`);
+    adapter.log.info(`Node ${nodeLabel}: Creating device for ${mainDeviceTypeName} (endpoint ${endpoint.number})`);
 
     let DeviceType: ClassExtends<GenericDeviceToIoBroker<any>>;
     let isSupportedDeviceType = true;
@@ -227,7 +229,7 @@ async function ioBrokerDeviceFabric(
         default:
             if (utilityTypes.length === 0) {
                 adapter.log.info(
-                    `Node ${nodeId}: Unknown device type: ${mainDeviceTypeName}. We enabled exposing of the application clusters for this node if you need this device type.`,
+                    `Node ${nodeLabel}: Unknown device type: ${mainDeviceTypeName}. We enabled exposing of the application clusters for this node if you need this device type.`,
                 );
             }
             // ... but device has a utility type, so we can expose it

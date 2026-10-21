@@ -473,6 +473,12 @@ describe('Matter -> ioBroker controller mapping', function () {
             await node?.destroy();
         });
 
+        it('keeps its objects under the decimal node id and names the peer address only in its log label', () => {
+            const nodeId = peerNodeId(commissioned!.node);
+            expect(node.nodeBaseId).to.equal(`controller.${nodeId}`);
+            expect(node.nodeLabel).to.equal(`${nodeId} (@1:${nodeId.toString(16)})`);
+        });
+
         it('places the raw data of a child that is its own device below that child', () => {
             for (const child of [...purifier.parts] as Endpoint[]) {
                 const childBase = deviceObjectId(child.number);

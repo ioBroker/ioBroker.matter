@@ -12,6 +12,7 @@
 import { Hours, Logger } from '@matter/main';
 import type { PeerAddress } from '@matter/main/protocol';
 import { NodeProcessor } from './NodeProcessor';
+import { formatPeerLabel } from '../nodeLabel';
 import { STARTUP_BASE_DELAY as TIME_SYNC_STARTUP_BASE_DELAY } from './TimeSyncManager';
 
 const logger = Logger.get('ThreadDetailsPoller');
@@ -26,10 +27,6 @@ export interface ThreadTopologyConnector {
     nodeConnected(peer: PeerAddress): boolean;
     /** Re-read a Thread node's topology attributes and refresh the network graph. */
     readTopology(peer: PeerAddress): Promise<void>;
-}
-
-function formatNodeId(peer: PeerAddress): string {
-    return peer.nodeId.toString();
 }
 
 /**
@@ -63,7 +60,7 @@ export class ThreadDetailsPoller extends NodeProcessor {
         }
 
         if (this.registerPeer(peer, longIdleTime)) {
-            logger.info(`Registered node ${formatNodeId(peer)} for Thread topology polling`);
+            logger.info(`Registered node ${formatPeerLabel(peer)} for Thread topology polling`);
         }
 
         this.scheduleIfNeeded();
@@ -71,7 +68,7 @@ export class ThreadDetailsPoller extends NodeProcessor {
 
     unregisterNode(peer: PeerAddress): void {
         if (this.unregisterPeer(peer)) {
-            logger.info(`Unregistered node ${formatNodeId(peer)} from Thread topology polling`);
+            logger.info(`Unregistered node ${formatPeerLabel(peer)} from Thread topology polling`);
         }
     }
 
@@ -83,7 +80,7 @@ export class ThreadDetailsPoller extends NodeProcessor {
         try {
             await this.#connector.readTopology(peer);
         } catch (error) {
-            logger.warn(`Failed to poll Thread topology for node ${formatNodeId(peer)}:`, error);
+            logger.warn(`Failed to poll Thread topology for node ${formatPeerLabel(peer)}:`, error);
         }
     }
 

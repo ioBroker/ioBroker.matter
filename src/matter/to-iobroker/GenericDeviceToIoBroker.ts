@@ -26,7 +26,7 @@ import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DeviceOptions } from '../../lib/devices/GenericDevice';
 import { decamelize, toHex } from '../../lib/utils';
-import { formatPeerLabel } from '../nodeLabel';
+import { formatPeerLogLabel } from '../nodeLogLabel';
 import type { StructuredJsonFormData } from '../../lib/JsonConfigUtils';
 import type { DeviceStatus } from '@iobroker/dm-utils';
 import type {
@@ -198,9 +198,9 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
     }
 
     /** For log messages: the peer address carries no node id until the node is commissioned. */
-    get #nodeLabel(): string {
+    get #logLabel(): string {
         const peerAddress = this.#node.state.commissioning.peerAddress;
-        return peerAddress === undefined ? this.#node.id : formatPeerLabel(peerAddress);
+        return peerAddress === undefined ? this.#node.id : formatPeerLogLabel(peerAddress);
     }
 
     /**
@@ -956,11 +956,11 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                         }
                     }
                 } catch (e) {
-                    this.#adapter.log.info(`Error polling attributes for node ${this.#nodeLabel}: ${e}`);
+                    this.#adapter.log.info(`Error polling attributes for node ${this.#logLabel}: ${e}`);
                 }
             }
         } else {
-            this.#adapter.log.debug(`Node ${this.#nodeLabel} is not connected, do not poll attributes`);
+            this.#adapter.log.debug(`Node ${this.#logLabel} is not connected, do not poll attributes`);
         }
 
         if (!this.#destroyed && generation === this.#pollGeneration) {

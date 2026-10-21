@@ -12,7 +12,7 @@
 import { Hours, Logger } from '@matter/main';
 import type { PeerAddress } from '@matter/main/protocol';
 import { NodeProcessor } from './NodeProcessor';
-import { formatPeerLabel } from '../nodeLabel';
+import { formatPeerLogLabel } from '../nodeLogLabel';
 import { STARTUP_BASE_DELAY as TIME_SYNC_STARTUP_BASE_DELAY } from './TimeSyncManager';
 
 const logger = Logger.get('ThreadDetailsPoller');
@@ -60,7 +60,7 @@ export class ThreadDetailsPoller extends NodeProcessor {
         }
 
         if (this.registerPeer(peer, longIdleTime)) {
-            logger.info(`Registered node ${formatPeerLabel(peer)} for Thread topology polling`);
+            logger.info(`Registered node ${formatPeerLogLabel(peer)} for Thread topology polling`);
         }
 
         this.scheduleIfNeeded();
@@ -68,7 +68,7 @@ export class ThreadDetailsPoller extends NodeProcessor {
 
     unregisterNode(peer: PeerAddress): void {
         if (this.unregisterPeer(peer)) {
-            logger.info(`Unregistered node ${formatPeerLabel(peer)} from Thread topology polling`);
+            logger.info(`Unregistered node ${formatPeerLogLabel(peer)} from Thread topology polling`);
         }
     }
 
@@ -80,7 +80,7 @@ export class ThreadDetailsPoller extends NodeProcessor {
         try {
             await this.#connector.readTopology(peer);
         } catch (error) {
-            logger.warn(`Failed to poll Thread topology for node ${formatPeerLabel(peer)}:`, error);
+            logger.warn(`Failed to poll Thread topology for node ${formatPeerLogLabel(peer)}:`, error);
         }
     }
 

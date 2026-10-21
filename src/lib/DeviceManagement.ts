@@ -479,7 +479,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     async #handleDeleteNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        this.adapter.log.info(`Delete node ${node.nodeLabel}`);
+        this.adapter.log.info(`Delete node ${node.logLabel}`);
         if (!(await context.showConfirmation(this.#adapter.t('Are you sure?')))) {
             return { refresh: 'none' };
         }
@@ -513,7 +513,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             ({ deviceNotified } = await node.remove());
         } catch (error) {
             const errorText = inspect(error, { depth: 10 });
-            this.adapter.log.error(`Error during unpairing for node ${node.nodeLabel}: ${errorText}`);
+            this.adapter.log.error(`Error during unpairing for node ${node.logLabel}: ${errorText}`);
             errorHappened = true;
         }
 
@@ -561,7 +561,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         );
 
         if (result?.name !== undefined && result.name !== node.name) {
-            this.adapter.log.info(`Rename node ${node.nodeLabel} to "${result.name}"`);
+            this.adapter.log.info(`Rename node ${node.logLabel} to "${result.name}"`);
             await node.rename(result.name);
             return { refresh: 'devices' };
         }
@@ -574,7 +574,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     async #handlePairingCode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
         const result = await this.adapter.controllerNode?.showNewCommissioningCode(node.peerAddress.nodeId);
 
-        this.adapter.log.info(`New pairing code for node ${node.nodeLabel}: ${JSON.stringify(result)}`);
+        this.adapter.log.info(`New pairing code for node ${node.logLabel}: ${JSON.stringify(result)}`);
 
         if (result?.manualPairingCode || result?.qrPairingCode) {
             const schema: JsonFormSchema = {
@@ -796,7 +796,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         if (isObject(result)) {
             // User clicked "Update now" - start the update process
-            this.adapter.log.info(`User requested software update for node ${node.nodeLabel}`);
+            this.adapter.log.info(`User requested software update for node ${node.logLabel}`);
 
             // Start the update process directly on the node
             // Progress will be shown via sendToGui with cancel support
@@ -979,7 +979,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         try {
             return await call();
         } catch (error) {
-            this.adapter.log.warn(`${description} for node ${ioNode.nodeLabel}: ${inspect(error, { depth: 5 })}`);
+            this.adapter.log.warn(`${description} for node ${ioNode.logLabel}: ${inspect(error, { depth: 5 })}`);
             return fallback;
         }
     }
@@ -1044,7 +1044,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             error = caught;
         }
         if (failed) {
-            this.adapter.log.warn(`ICD operation failed for node ${ioNode.nodeLabel}: ${inspect(error, { depth: 5 })}`);
+            this.adapter.log.warn(`ICD operation failed for node ${ioNode.logLabel}: ${inspect(error, { depth: 5 })}`);
             await this.#guardedDialogCall(
                 ioNode,
                 'Failed to show ICD failure message',
@@ -1332,7 +1332,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     async #handleConfigureNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        this.adapter.log.info(`Configure node ${node.nodeLabel}`);
+        this.adapter.log.info(`Configure node ${node.logLabel}`);
 
         return await this.#handleConfigureNodeOrDevice('Configure node', node.nodeBaseId, context, node);
     }

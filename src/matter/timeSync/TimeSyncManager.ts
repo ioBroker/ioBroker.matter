@@ -22,7 +22,7 @@ import { type PeerAddress, PeerAddressMap, PeerAddressSet } from '@matter/main/p
 import { StatusResponseError } from '@matter/main/types';
 import { nextOffsetChangeMs, resolveHostTimeZone, timeZonePlan } from './hostTimeZone';
 import { MAX_TIMER_DELAY_MS, NodeProcessor } from './NodeProcessor';
-import { formatPeerLabel } from '../nodeLabel';
+import { formatPeerLogLabel } from '../nodeLogLabel';
 
 const logger = Logger.get('TimeSyncManager');
 
@@ -140,10 +140,10 @@ export function readTimeSyncCapabilities(rootEndpoint: Endpoint): TimeSyncCapabi
 /** TimeNotAccepted means the node keeps a time source it prefers — expected, not an error. */
 function logSyncFailure(prefix: string, peer: PeerAddress, error: unknown): void {
     if (error instanceof StatusResponseError && error.clusterCode === TimeSynchronization.StatusCode.TimeNotAccepted) {
-        logger.info(`${prefix}Node ${formatPeerLabel(peer)} declined the provided time`);
+        logger.info(`${prefix}Node ${formatPeerLogLabel(peer)} declined the provided time`);
         return;
     }
-    logger.warn(`${prefix}Failed to sync time on node ${formatPeerLabel(peer)}:`, error);
+    logger.warn(`${prefix}Failed to sync time on node ${formatPeerLogLabel(peer)}:`, error);
 }
 
 /**
@@ -198,7 +198,7 @@ export class TimeSyncManager extends NodeProcessor {
         }
 
         if (this.registerPeer(peer, longIdleTime)) {
-            logger.info(`Registered node ${formatPeerLabel(peer)} for time synchronization`);
+            logger.info(`Registered node ${formatPeerLogLabel(peer)} for time synchronization`);
         }
 
         // Only sync immediately if the startup window has elapsed. During startup,
@@ -237,7 +237,7 @@ export class TimeSyncManager extends NodeProcessor {
         this.#inFlightSyncs.delete(peer);
         this.#longIdleTimeSyncs.delete(peer);
         if (this.unregisterPeer(peer)) {
-            logger.info(`Unregistered node ${formatPeerLabel(peer)} from time synchronization`);
+            logger.info(`Unregistered node ${formatPeerLogLabel(peer)} from time synchronization`);
         }
     }
 
@@ -251,17 +251,17 @@ export class TimeSyncManager extends NodeProcessor {
         }
         if (!this.#startupComplete) {
             // Nodes are still being initialized; the first periodic cycle covers every peer shortly.
-            logger.debug(`Time sync for node ${formatPeerLabel(peer)} deferred to the first periodic cycle`);
+            logger.debug(`Time sync for node ${formatPeerLogLabel(peer)} deferred to the first periodic cycle`);
             return;
         }
         if (this.#inFlightSyncs.has(peer)) {
-            logger.debug(`Time sync already in progress for node ${formatPeerLabel(peer)}, skipping`);
+            logger.debug(`Time sync already in progress for node ${formatPeerLogLabel(peer)}, skipping`);
             return;
         }
         // Never on the timeFailure path: the node is reporting it has no usable time, so a push we
         // just made is evidence it did not take, not a reason to refuse. Only its own cooldown applies.
         if (trigger !== SyncTrigger.TimeFailure && this.#syncedRecently(peer)) {
-            logger.debug(`Time sync for node ${formatPeerLabel(peer)} skipped, pushed moments ago`);
+            logger.debug(`Time sync for node ${formatPeerLogLabel(peer)} skipped, pushed moments ago`);
             return;
         }
         const { cooldown, stamps } =
@@ -271,7 +271,7 @@ export class TimeSyncManager extends NodeProcessor {
         const lastSync = stamps.get(peer);
         if (lastSync !== undefined && Time.nowMs - lastSync < cooldown) {
             logger.debug(
-                `Time sync for node ${formatPeerLabel(peer)} skipped, within ${Duration.format(cooldown)} ${trigger} cooldown`,
+                `Time sync for node ${formatPeerLogLabel(peer)} skipped, within ${Duration.format(cooldown)} ${trigger} cooldown`,
             );
             return;
         }
@@ -281,7 +281,7 @@ export class TimeSyncManager extends NodeProcessor {
             peer,
             this.#connector
                 .syncTime(peer)
-                .then(() => logger.info(`Synced time on node ${formatPeerLabel(peer)}`))
+                .then(() => logger.info(`Synced time on node ${formatPeerLogLabel(peer)}`))
                 .catch(error => logSyncFailure('', peer, error)),
         );
     }
@@ -367,7 +367,7 @@ export class TimeSyncManager extends NodeProcessor {
                 if (counted) {
                     this.#cycleSyncedCount++;
                 }
-                logger.info(`Periodic resync: synced time on node ${formatPeerLabel(peer)}`);
+                logger.info(`Periodic resync: synced time on node ${formatPeerLogLabel(peer)}`);
             })
             .catch(error => logSyncFailure('Periodic resync: ', peer, error));
         this.#trackInFlight(peer, push);

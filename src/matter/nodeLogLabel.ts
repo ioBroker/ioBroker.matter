@@ -16,7 +16,7 @@ import { PeerAddress } from '@matter/main/protocol';
  * @param nodeId the node id of the peer
  * @param fabricIndex the fabric index the peer is commissioned into, when known
  */
-export function formatNodeLabel(nodeId: NodeId, fabricIndex?: FabricIndex): string {
+export function formatNodeLogLabel(nodeId: NodeId, fabricIndex?: FabricIndex): string {
     const peerAddress = fabricIndex === undefined ? undefined : PeerAddress({ fabricIndex, nodeId });
     // PeerAddress gets its toString from a prototype that its interface does not declare
     // eslint-disable-next-line @typescript-eslint/no-base-to-string
@@ -24,7 +24,7 @@ export function formatNodeLabel(nodeId: NodeId, fabricIndex?: FabricIndex): stri
     return `${nodeId} (${address})`;
 }
 
-/** {@link formatNodeLabel} for a peer address. */
-export function formatPeerLabel(peer: PeerAddress): string {
-    return formatNodeLabel(peer.nodeId, peer.fabricIndex);
+/** {@link formatNodeLogLabel} for a peer address. */
+export function formatPeerLogLabel(peer: PeerAddress): string {
+    return formatNodeLogLabel(peer.nodeId, peer.fabricIndex);
 }

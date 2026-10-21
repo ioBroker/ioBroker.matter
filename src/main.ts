@@ -865,6 +865,10 @@ export class MatterAdapter extends Adapter {
     }
 
     #queueObjectChange(id: string): void {
+        if (this.#objectProcessQueue.some(entry => entry.id === id && !entry.inProgress)) {
+            // The waiting entry reads the object when it runs, so it already covers this change
+            return;
+        }
         this.#objectProcessQueue.push({
             id,
             func: async () => this.#processObjectChange(id),
@@ -874,15 +878,20 @@ export class MatterAdapter extends Adapter {
     }
 
     /**
-     * Apply a change the adapter made to one of its own configuration objects on behalf of the user, such as a node
-     * configured in the Device Manager. While the initial sync runs, the adapter's own writes are not taken from the
-     * object subscription, so such a change is queued here; afterwards the subscription delivers it.
+     * Write a change to one of the adapter's own configuration objects on behalf of the user, such as a node configured
+     * in the Device Manager, and make sure it is applied. While the initial sync runs, the adapter's own writes are not
+     * taken from the object subscription, so a write that starts then is queued here once it is done; afterwards the
+     * subscription delivers it.
      *
-     * @param id the id of the changed object, relative such as `controller.<nodeId>` or with the adapter namespace
+     * @param id the id of the object, relative such as `controller.<nodeId>`
+     * @param objPart the part of the object to write, as for `extendObjectAsync`
      */
-    queueOwnObjectChange(id: string): void {
-        if (!this.#initialSyncDone) {
-            this.#queueObjectChange(id.startsWith(`${this.namespace}.`) ? id : `${this.namespace}.${id}`);
+    async extendOwnConfigObject(id: string, objPart: ioBroker.PartialObject): Promise<void> {
+        // Decided before the write: the start can end while it runs, after the subscription already dropped the change
+        const queue = !this.#initialSyncDone;
+        await this.extendObjectAsync(id, objPart);
+        if (queue) {
+            this.#queueObjectChange(`${this.namespace}.${id}`);
         }
     }
 

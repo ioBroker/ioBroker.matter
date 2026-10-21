@@ -1319,7 +1319,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             result?.exposeMatterApplicationClusterData !== undefined &&
             result?.exposeMatterSystemClusterData !== undefined
         ) {
-            await this.adapter.extendObjectAsync(baseId, {
+            await this.adapter.extendOwnConfigObject(baseId, {
                 native: {
                     exposeMatterApplicationClusterData: strToBool(result.exposeMatterApplicationClusterData),
                     exposeMatterSystemClusterData: strToBool(result.exposeMatterSystemClusterData),
@@ -1327,7 +1327,6 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                     ...(node !== undefined ? node.nodeConfiguration : {}),
                 },
             });
-            this.adapter.queueOwnObjectChange(baseId);
         }
         return { refresh: 'none' };
     }

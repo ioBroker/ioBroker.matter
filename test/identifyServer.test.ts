@@ -34,6 +34,8 @@ class LightAdapter {
     };
     readonly writes = new Array<boolean>();
     failWrites = false;
+    /** Delays each write, so a test can check that the caller waits for it. */
+    writeDelayMs = 0;
     readonly #id: string;
     #value: boolean;
 
@@ -68,6 +70,9 @@ class LightAdapter {
         }
         if (this.failWrites) {
             throw new Error('write refused');
+        }
+        if (this.writeDelayMs > 0) {
+            await sleep(this.writeDelayMs);
         }
         this.#value = value;
         this.writes.push(value);
@@ -434,9 +439,9 @@ describe('IoLightingIdentifyServer', function () {
             await triggerEffect(light, Identify.EffectIdentifier.Breathe);
             await waitForWrites(light, 1);
 
+            light.adapter.writeDelayMs = 200;
             await light.node.close();
-            await waitForWrites(light, 2);
-            expect(light.adapter.writes).to.deep.equal([true, false]);
+            expect(light.adapter.writes, 'restore written before close resolves').to.deep.equal([true, false]);
             expect(clock.running).to.deep.equal([]);
         });
     });
@@ -514,8 +519,9 @@ describe('IoLightingIdentifyServer', function () {
             await identify(light, 5);
             await waitForWrites(light, 1);
 
+            light.adapter.writeDelayMs = 200;
             await light.node.close();
-            await waitFor(() => !light.adapter.power, 'light restored to off');
+            expect(light.adapter.power, 'restore written before close resolves').to.equal(false);
             await expectNoFurtherWrite(light, 1500, 'no toggle after close');
         });
     });

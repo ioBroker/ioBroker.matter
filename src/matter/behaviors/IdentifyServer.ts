@@ -129,8 +129,9 @@ function flashSteps(count: number, initialPower: boolean): EffectStep[] {
  * flash ends with the return to the initial power state.
  *
  * The steps are 1 s long, not 0.5 s as in the examples, and Breathe has 7 flashes instead of 15 to stay near the
- * 15 s of the example: every step is a write to the ioBroker light, and this keeps the number of writes low. Identify 1.2.6.2.1 allows this: "Implementors MAY deviate from the example light effects
- * in EffectIdentifierEnum, but they SHOULD indicate during testing how they handle each effect."
+ * 15 s of the example: every step is a write to the ioBroker light, and this keeps the number of writes low.
+ * Identify 1.2.6.2.1 allows this: "Implementors MAY deviate from the example light effects in EffectIdentifierEnum,
+ * but they SHOULD indicate during testing how they handle each effect."
  *
  * @returns undefined for FinishEffect, StopEffect and unknown effects, which start no effect
  */
@@ -174,17 +175,23 @@ export class IoLightingIdentifyServer extends IoIdentifyServer {
         return undefined;
     }
 
-    #setPower(light: GenericLightingDevice, power: boolean): void {
-        light
-            .setPower(power)
-            .catch(error =>
-                this.internal.adapter.log.info(
-                    `Can not set power for identify of ${this.internal.device.uuid}: ${error.message}`,
-                ),
+    /** Never rejects: a failed write is logged. */
+    async #setPower(light: GenericLightingDevice, power: boolean): Promise<void> {
+        try {
+            await light.setPower(power);
+        } catch (error) {
+            this.internal.adapter.log.info(
+                `Can not set power for identify of ${this.internal.device.uuid}: ${error.message}`,
             );
+        }
     }
 
     stopIdentifying(): void {
+        void this.#endIdentify();
+    }
+
+    /** @returns the restoring power write, or undefined when there is nothing to restore */
+    #endIdentify(): Promise<void> | undefined {
         super.stopIdentifying();
 
         const initialState = this.internal.identifyState?.initialState;
@@ -195,7 +202,7 @@ export class IoLightingIdentifyServer extends IoIdentifyServer {
         }
         const light = this.#light();
         if (light !== undefined) {
-            this.#setPower(light, initialState);
+            return this.#setPower(light, initialState);
         }
     }
 
@@ -205,7 +212,7 @@ export class IoLightingIdentifyServer extends IoIdentifyServer {
             let currentState = false;
             if (light !== undefined) {
                 currentState = this.internal.effect?.initialPower ?? !!light.getPower();
-                this.#stopEffect();
+                void this.#stopEffect();
             }
             this.internal.identifyState = { currentState, initialState: currentState };
         }
@@ -238,7 +245,7 @@ export class IoLightingIdentifyServer extends IoIdentifyServer {
 
         switch (effectIdentifier) {
             case Identify.EffectIdentifier.StopEffect:
-                this.#stopEffect();
+                void this.#stopEffect();
                 return;
             case Identify.EffectIdentifier.FinishEffect:
                 if (this.internal.effect !== undefined) {
@@ -264,14 +271,15 @@ export class IoLightingIdentifyServer extends IoIdentifyServer {
         }
         const step = effect.remainingSteps.shift();
         if (step === undefined) {
-            this.#stopEffect();
+            void this.#stopEffect();
             return;
         }
-        this.#setPower(light, step.power);
+        void this.#setPower(light, step.power);
         effect.timer = Time.getTimer('Identify effect', step.duration, () => this.#runNextEffectStep(light)).start();
     }
 
-    #stopEffect(): void {
+    /** @returns the restoring power write, or undefined when no effect runs */
+    #stopEffect(): Promise<void> | undefined {
         const effect = this.internal.effect;
         if (effect === undefined) {
             return;
@@ -280,12 +288,13 @@ export class IoLightingIdentifyServer extends IoIdentifyServer {
         this.internal.effect = undefined;
         const light = this.#light();
         if (light !== undefined) {
-            this.#setPower(light, effect.initialPower);
+            return this.#setPower(light, effect.initialPower);
         }
     }
 
+    /** Resolves after the light's power state is restored, so the adapter does not unload before that write. */
     override async [Symbol.asyncDispose](): Promise<void> {
-        this.#stopEffect();
+        await Promise.all([this.#stopEffect(), this.#endIdentify()]);
         await super[Symbol.asyncDispose]();
     }
 }

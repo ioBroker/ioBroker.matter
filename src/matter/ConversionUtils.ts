@@ -33,10 +33,11 @@ export namespace MatterConverters {
  * | `fromPercent`    | 0..100  | 1..254 (0 % gives MIN)                    |
  *
  * Both directions round to the nearest value, but never map a non-zero value to 0 or to off: in ioBroker 0 means
- * off, in Matter off is the OnOff attribute and level 1 is the dimmest on state. For a light or speaker without its own
- * power or mute state, callers turn an ioBroker 0 into OnOff false and leave CurrentLevel unchanged. Every integer percent from 1 to 100 survives
- * `toPercent(fromPercent(p))`; a level does not, because 254 levels share 100 percent values (levels 1 and 2 both
- * read as 1 %, which writes back as level 3), but the result is stable after one round trip.
+ * off, in Matter off is the OnOff attribute and level 1 is the dimmest on state. For a light or speaker without its
+ * own power or mute state, callers turn an ioBroker 0 into OnOff false and leave CurrentLevel unchanged. Every integer
+ * percent from 1 to 100 survives `toPercent(fromPercent(p))`; a level does not, because 254 levels share 100 percent
+ * values (levels 1 and 2 both read as 1 %, which writes back as level 3), but the result is stable after one round
+ * trip.
  */
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace LightingLevel {

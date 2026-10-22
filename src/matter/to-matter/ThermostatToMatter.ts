@@ -7,7 +7,7 @@ import { ThermostatServer } from '@matter/main/behaviors';
 import { ThermostatMode, type Thermostat } from '../../lib/devices/Thermostat';
 import { GenericDeviceToMatter } from './GenericDeviceToMatter';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
-import { IoIdentifyServer } from '../behaviors/IdentifyServer';
+import { IoIdentifyServer, IoPlugInUnitIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 import { EventedOnOffPlugInUnitOnOffServer } from '../behaviors/EventedOnOffPlugInUnitOnOffServer';
 import { hasLocalActor } from '@matter/main/protocol';
@@ -25,6 +25,7 @@ type IoThermostatDevice = typeof IoThermostatDevice;
 const IoOnOffPlugInUnitDevice = OnOffPlugInUnitDevice.with(
     EventedOnOffPlugInUnitOnOffServer,
     IoBrokerEvents,
+    IoPlugInUnitIdentifyServer,
     IoBrokerContext,
 );
 type IoOnOffPlugInUnitDevice = typeof IoOnOffPlugInUnitDevice;
@@ -107,21 +108,10 @@ export class ThermostatToMatter extends GenericDeviceToMatter {
             this.#matterEndpointHumidity = new Endpoint(HumiditySensorDevice, { id: `${uuid}-Humidity` });
         }
         if (this.#ioBrokerDevice.hasBoost()) {
-            this.#matterEndpointBoost = new Endpoint(
-                OnOffPlugInUnitDevice.with(
-                    EventedOnOffPlugInUnitOnOffServer,
-                    IoBrokerEvents,
-                    IoIdentifyServer,
-                    IoBrokerContext,
-                ),
-                {
-                    id: `${uuid}-BoostOnOff`,
-                    ioBrokerContext: {
-                        device: ioBrokerDevice,
-                        adapter: ioBrokerDevice.adapter,
-                    },
-                },
-            );
+            this.#matterEndpointBoost = new Endpoint(IoOnOffPlugInUnitDevice, {
+                id: `${uuid}-BoostOnOff`,
+                ioBrokerContext: { device: ioBrokerDevice, adapter: ioBrokerDevice.adapter },
+            });
         }
     }
 

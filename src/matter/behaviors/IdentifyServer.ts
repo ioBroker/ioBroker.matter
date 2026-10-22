@@ -82,6 +82,14 @@ export namespace IoIdentifyServer {
     }
 }
 
+/**
+ * {@link IoIdentifyServer} for device types whose Identify requirement makes TriggerEffect mandatory, such as the
+ * On/Off Plug-in Unit. The command runs the inherited implementation, which only emits `effectTriggered`. The plug
+ * has no visible effect of its own, although the specification (Identify, TriggerEffect) has the device execute the
+ * requested effect.
+ */
+export const IoPlugInUnitIdentifyServer = IoIdentifyServer.alter({ commands: { triggerEffect: { optional: false } } });
+
 export class IoLightingIdentifyServer extends IoIdentifyServer {
     declare protected internal: IoLightingIdentifyServer.Internal;
 

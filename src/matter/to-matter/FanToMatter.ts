@@ -17,6 +17,7 @@ export type FanControlInit = {
     fanMode: MatterFanControl.FanMode;
     fanModeSequence: MatterFanControl.FanModeSequence;
     airflowDirection?: MatterFanControl.AirflowDirection;
+    rockSupport?: RockValues;
 };
 
 /**
@@ -73,7 +74,9 @@ export class FanToMatter<T extends Fan = Fan> extends GenericElectricityDataDevi
         const fanControlInit: FanControlInit = {
             fanMode: MatterFanControl.FanMode.Off,
             fanModeSequence: this.#fanModeSequence(),
-            // airflowDirection has no cluster default, so declaring the feature also obliges us to seed the attribute
+            // Declaring these features obliges us to seed the attributes: airflowDirection has no cluster default,
+            // and the rockSupport default 0 violates its "min 1" constraint
+            ...(this.#hasSwing ? { rockSupport: this.#rockSupport() } : {}),
             ...(this.#hasAirflowDirection
                 ? { airflowDirection: this.#mapAirflowDirectionToMatter(ioBrokerDevice.getAirflowDirection()) }
                 : {}),
@@ -284,12 +287,7 @@ export class FanToMatter<T extends Fan = Fan> extends GenericElectricityDataDevi
         await this.#matterEndpoint.setStateOf(this.#fanControlServer, {
             fanMode,
             ...this.#percentValues(fanMode, this.#speedLevel()),
-            ...(this.#hasSwing
-                ? {
-                      rockSupport: this.#rockSupport(),
-                      rockSetting: this.#mapSwingToRock(this.#ioBrokerDevice.getSwing()),
-                  }
-                : {}),
+            ...(this.#hasSwing ? { rockSetting: this.#mapSwingToRock(this.#ioBrokerDevice.getSwing()) } : {}),
             ...(this.#hasAirflowDirection
                 ? { airflowDirection: this.#mapAirflowDirectionToMatter(this.#ioBrokerDevice.getAirflowDirection()) }
                 : {}),

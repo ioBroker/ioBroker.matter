@@ -102,6 +102,8 @@
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "该节点当前未连接。现在取消配对时，您需要将节点恢复出厂设置才能再次投入使用。您确定吗？",
     "Unpair this node": "取消此节点的配对",
     "Unpairing node...": "正在取消配对节点...",
+    "Error happened during unpairing. Please check the log.": "取消配对时发生错误。请检查日志。",
+    "The node was removed, but the device could not be told to leave. It may still be paired with this controller and needs a factory reset before it can be paired again.": "节点已移除，但无法通知设备离开。该设备可能仍与此控制器配对，需要恢复出厂设置后才能再次配对。",
     "Unverified OTA Update Source Warning": "警告：此更新来自未经验证的来源。来自测试网络或本地来源的更新未经认证，可能包含未经测试的固件，可能导致设备无法正常工作。应用这些更新完全由您自行承担风险。",
     "Update now": "立即更新",
     "Update Source": "更新来源",

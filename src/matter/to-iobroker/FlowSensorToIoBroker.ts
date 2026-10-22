@@ -1,7 +1,6 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { FlowMeasurement } from '@matter/main/clusters';
-import type { Endpoint } from '@matter/main';
-import type { PairedNode } from '@project-chip/matter.js/device';
+import type { Endpoint, ClientNode } from '@matter/main';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { Flow } from '../../lib/devices/Flow';
@@ -12,7 +11,7 @@ export class FlowSensorToIoBroker extends GenericDeviceToIoBroker {
     readonly #ioBrokerDevice: Flow;
 
     constructor(
-        node: PairedNode,
+        node: ClientNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         adapter: MatterAdapter,

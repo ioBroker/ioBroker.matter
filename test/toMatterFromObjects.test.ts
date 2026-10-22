@@ -1,7 +1,9 @@
 import { expect } from 'chai';
+import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DeviceTypeId, Endpoint, Environment, LogLevel, Logger, ServerNode, VendorId } from '@matter/main';
+import { BridgedDeviceBasicInformationServer } from '@matter/main/behaviors';
 import { DoorLock, Thermostat } from '@matter/main/clusters';
 import { AggregatorEndpoint } from '@matter/main/endpoints';
 import type { BridgeDeviceDescription } from '../src/ioBrokerTypes';
@@ -340,6 +342,13 @@ describe('to-matter mapping of exported ioBroker objects', function () {
                 expect(converter, `no to-matter converter for ${entry.type}`).to.not.equal(null);
                 converters.push(converter!);
                 for (const endpoint of converter!.matterEndpoints) {
+                    // As BridgedDevicesNode does for a single endpoint; the cluster also makes the endpoint a Bridged
+                    // Node, which exempts sibling devices of the same type from needing a TagList
+                    endpoint.behaviors.require(BridgedDeviceBasicInformationServer, {
+                        nodeLabel: entry.name.slice(0, 32),
+                        uniqueId: createHash('md5').update(endpoint.id).digest('hex'),
+                        reachable: true,
+                    });
                     await aggregator.add(endpoint);
                 }
                 await converter!.init();

@@ -1,5 +1,6 @@
 import { rejects, strictEqual } from 'node:assert';
 import { DeviceStateObject, PropertyType, ValueType } from '../src/lib/devices/DeviceStateObject';
+import { SubscribeManager } from '../src/lib/SubscribeManager';
 
 const written = new Array<ioBroker.StateValue>();
 
@@ -210,5 +211,70 @@ describe('DeviceStateObject percent-mapped unit/range consistency', function () 
         strictEqual(state.getRawMinMax()?.max, 254);
         strictEqual(state.getMinMax()?.min, 0);
         strictEqual(state.getMinMax()?.max, 100);
+    });
+});
+
+describe('DeviceStateObject.subscribe initial read', function () {
+    async function subscribeWithStoredState(
+        isIoBrokerState: boolean,
+        storedState: ioBroker.State = { val: 1, ack: true, ts: 0, lc: 0, from: 'test', q: 0 },
+    ): Promise<{
+        state: DeviceStateObject<any>;
+        handled: number;
+        storedState: ioBroker.State;
+    }> {
+        const adapter = {
+            ...makeAdapter(numberEnumCommon),
+            namespace: 'test.0',
+            subscribeStates: () => {},
+            getForeignStateAsync: async () => storedState,
+            extendObjectAsync: async () => ({}),
+        } as unknown as ioBroker.Adapter;
+        SubscribeManager.setAdapter(adapter);
+        const state = await DeviceStateObject.create<any>(
+            adapter,
+            { name: 'test', id: 'test.0.state', isIoBrokerState },
+            PropertyType.Custom,
+            ValueType.Number,
+            true,
+        );
+        const result = { state, handled: 0, storedState };
+        await state.subscribe(async () => {
+            result.handled++;
+        });
+        return result;
+    }
+
+    afterEach(function () {
+        SubscribeManager.subscribes.clear();
+    });
+
+    it('does not send the stored value of a Matter-side state back to the device', async function () {
+        const { state, handled } = await subscribeWithStoredState(false);
+        strictEqual(handled, 0);
+        strictEqual(state.value, 1);
+    });
+
+    it('drops an unacked command that was stored while the adapter was stopped', async function () {
+        const { handled } = await subscribeWithStoredState(false, {
+            val: 2,
+            ack: false,
+            ts: 0,
+            lc: 0,
+            from: 'test',
+            q: 0,
+        });
+        strictEqual(handled, 0);
+    });
+
+    it('still forwards a later unacked change of a Matter-side state', async function () {
+        const result = await subscribeWithStoredState(false);
+        await result.state.updateState({ ...result.storedState, val: 2, ack: false });
+        strictEqual(result.handled, 1);
+    });
+
+    it('forwards the stored value of an ioBroker state', async function () {
+        const { handled } = await subscribeWithStoredState(true);
+        strictEqual(handled, 1);
     });
 });

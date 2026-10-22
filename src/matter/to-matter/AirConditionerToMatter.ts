@@ -14,7 +14,7 @@ import {
 } from '../../lib/devices/AirCondition';
 import { GenericDeviceToMatter } from './GenericDeviceToMatter';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
-import { IoIdentifyServer } from '../behaviors/IdentifyServer';
+import { IoIdentifyServer, IoPlugInUnitIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 import { EventedOnOffPlugInUnitOnOffServer } from '../behaviors/EventedOnOffPlugInUnitOnOffServer';
 import { MatterConverters } from '../ConversionUtils';
@@ -42,10 +42,13 @@ const IoRoomAirConditionerDeviceWithFan = RoomAirConditionerDevice.with(
 const IoOnOffPlugInUnitDevice = OnOffPlugInUnitDevice.with(
     EventedOnOffPlugInUnitOnOffServer,
     IoBrokerEvents,
-    IoIdentifyServer,
+    IoPlugInUnitIdentifyServer,
     IoBrokerContext,
 );
 type IoOnOffPlugInUnitDevice = typeof IoOnOffPlugInUnitDevice;
+
+/** FanControl.rockSupport must be non-zero from construction on, so it is seeded with the endpoint. */
+const AC_ROCK_SUPPORT = { rockLeftRight: true, rockUpDown: true, rockRound: false };
 
 /** Mapping Logic to map an ioBroker Air Conditioner device to a Matter RoomAirConditionerDevice. */
 export class AirConditionerToMatter extends GenericDeviceToMatter {
@@ -121,6 +124,7 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                     fanControl: {
                         fanMode: MatterFanControl.FanMode.Auto,
                         fanModeSequence: MatterFanControl.FanModeSequence.OffLowMedHighAuto,
+                        ...(this.#hasSwing ? { rockSupport: AC_ROCK_SUPPORT } : {}),
                     },
                 },
             );
@@ -276,7 +280,7 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                 ...(fanMode !== undefined ? { fanMode } : {}),
                 ...(this.#hasSwing
                     ? {
-                          rockSupport: { rockLeftRight: true, rockUpDown: true, rockRound: false },
+                          rockSupport: AC_ROCK_SUPPORT,
                           rockSetting: this.#mapSwingToRock(this.#ioBrokerDevice.getSwing()),
                       }
                     : {}),

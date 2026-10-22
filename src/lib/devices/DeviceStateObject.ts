@@ -807,6 +807,11 @@ export class DeviceStateObject<T> extends EventEmitter {
         } else {
             this.value = value as T;
         }
+        if (isInitialState && !this.#isIoBrokerState) {
+            // The stored value of a Matter-side state is what the device last reported, not a command for it
+            this.adapter.log.debug(`Read initial value for ${this.#id}: ${JSON.stringify(this.value)}`);
+            return;
+        }
         const callUpdateHandler = this.#enabled || ignoreEnabledStatus;
         this.adapter.log.debug(
             `Received state change for ${this.#id}: ${JSON.stringify(state.val)} (ack=${state.ack}) --> ${JSON.stringify(this.value)} (triggerUpdate=${callUpdateHandler})`,
@@ -818,6 +823,14 @@ export class DeviceStateObject<T> extends EventEmitter {
         }
     };
 
+    /**
+     * Calls `handler` for every change that is a command for the other side.
+     *
+     * @param handler called for an acked change of an ioBroker state and for an unacked change of a Matter-side state
+     * @param updateState read the current value once. For an ioBroker state that value is passed to `handler`; for a
+     *   Matter-side state it is only taken as the current value, so a value the device reported is never written
+     *   back to it.
+     */
     async subscribe(handler: (object: DeviceStateObject<T>) => Promise<void>, updateState = true): Promise<void> {
         this.updateHandler = handler;
         await SubscribeManager.subscribe(this.#id, this.updateState);

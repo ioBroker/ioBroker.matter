@@ -102,6 +102,8 @@
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "O nó não está atualmente ligado. Quando o desemparelhar, terá de repor as predefinições do nó para o colocar novamente em funcionamento. Tem a certeza?",
     "Unpair this node": "Desemparelhar este nó",
     "Unpairing node...": "A desemparelhar nó...",
+    "Error happened during unpairing. Please check the log.": "Ocorreu um erro ao desemparelhar. Verifique o registo.",
+    "The node was removed, but the device could not be told to leave. It may still be paired with this controller and needs a factory reset before it can be paired again.": "O nó foi removido, mas não foi possível indicar ao dispositivo que o abandone. Pode ainda estar emparelhado com este controlador e precisa de uma reposição de fábrica antes de poder ser emparelhado novamente.",
     "Unverified OTA Update Source Warning": "Aviso: Esta atualização foi encontrada numa fonte não verificada. As atualizações de redes de teste ou fontes locais não estão certificadas e podem conter firmware não testado que pode resultar em dispositivos não funcionais. A aplicação destas atualizações é inteiramente por sua conta e risco.",
     "Update now": "Atualizar agora",
     "Update Source": "Fonte de atualização",

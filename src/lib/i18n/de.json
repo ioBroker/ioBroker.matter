@@ -101,6 +101,8 @@
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "Der Knoten ist derzeit nicht verbunden. Wenn Sie das Pairing jetzt aufheben, müssen Sie den Knoten auf die Werkseinstellungen zurücksetzen, um ihn wieder in Betrieb zu nehmen. Sind Sie sicher?",
     "Unpair this node": "Diesen Knoten entkoppeln",
     "Unpairing node...": "Knoten wird entkoppelt...",
+    "Error happened during unpairing. Please check the log.": "Beim Entkoppeln ist ein Fehler aufgetreten. Bitte das Protokoll prüfen.",
+    "The node was removed, but the device could not be told to leave. It may still be paired with this controller and needs a factory reset before it can be paired again.": "Der Knoten wurde entfernt, aber das Gerät konnte nicht zum Verlassen aufgefordert werden. Es ist möglicherweise noch mit diesem Controller gekoppelt und muss auf Werkseinstellungen zurückgesetzt werden, bevor es erneut gekoppelt werden kann.",
     "Unverified OTA Update Source Warning": "Warnung: Dieses Update wurde von einer nicht verifizierten Quelle gefunden. Updates aus Testnetzwerken oder lokalen Quellen sind nicht zertifiziert und können ungetestete Firmware enthalten, die zu nicht funktionsfähigen Geräten führen kann. Die Anwendung dieser Updates erfolgt vollständig auf eigenes Risiko.",
     "Update now": "Jetzt aktualisieren",
     "Update Source": "Update-Quelle",

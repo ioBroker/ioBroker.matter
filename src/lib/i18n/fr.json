@@ -102,6 +102,8 @@
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "Le nœud n'est actuellement pas connecté. Lorsque vous le désappariez, vous devez réinitialiser le nœud pour qu'il soit à nouveau opérationnel. Êtes-vous sûr ?",
     "Unpair this node": "Désapparier ce nœud",
     "Unpairing node...": "Désappariement du nœud...",
+    "Error happened during unpairing. Please check the log.": "Une erreur s'est produite lors du désappariement. Veuillez consulter le journal.",
+    "The node was removed, but the device could not be told to leave. It may still be paired with this controller and needs a factory reset before it can be paired again.": "Le nœud a été supprimé, mais l'appareil n'a pas pu être invité à le quitter. Il peut rester apparié à ce contrôleur et doit être réinitialisé aux paramètres d'usine avant de pouvoir être apparié à nouveau.",
     "Unverified OTA Update Source Warning": "Avertissement : Cette mise à jour provient d'une source non vérifiée. Les mises à jour provenant de réseaux de test ou de sources locales ne sont pas certifiées et peuvent contenir un firmware non testé pouvant rendre les appareils non fonctionnels. L'application de ces mises à jour est entièrement à vos propres risques.",
     "Update now": "Mettre à jour maintenant",
     "Update Source": "Source de mise à jour",

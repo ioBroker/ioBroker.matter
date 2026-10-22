@@ -1,21 +1,31 @@
 import {
-    camelize,
+    AttributeId,
     ClusterBehavior,
     ClusterId,
-    type AttributeId,
+    EventId,
+    type ChangeNotificationService,
+    type EndpointNumber,
+    camelize,
+    serialize,
     type CommandId,
-    type EventId,
+    type Endpoint,
     type NodeId,
     type SoftwareUpdateInfo,
-    type Endpoint,
-    serialize,
     Diagnostic,
     SoftwareUpdateManager,
     ObserverGroup,
+    Semaphore,
+    ServerAddress,
     Observable,
     deepCopy,
     CommissioningClient,
+    ClientNodePhysicalProperties,
+    NetworkClient,
+    NodeConnectionState,
+    Seconds,
+    type ClientNode,
 } from '@matter/main';
+import type { MatterModel } from '@matter/main/model';
 import type { ThreadNetworkDiagnostics } from '@matter/main/clusters';
 import { OtaSoftwareUpdateRequestor } from '@matter/main/clusters';
 import {
@@ -27,17 +37,14 @@ import {
     OperationalCredentialsClient,
     OtaSoftwareUpdateRequestorClient,
 } from '@matter/main/behaviors';
-import type { DecodedAttributeReportValue, DecodedEventReportValue } from '@matter/main/protocol';
-import { PeerAddress } from '@matter/main/protocol';
-import { FabricIndex, SpecificationVersion } from '@matter/main/types';
+import { PeerAddress, type DecodedEventData } from '@matter/main/protocol';
+import { ClusterLookup, SpecificationVersion } from '@matter/main/types';
 import { AttributeModel, Matter } from '@matter/main/model';
-import { AggregatorEndpointDefinition, BridgedNodeEndpointDefinition } from '@matter/main/endpoints';
 import {
-    NodeStates as PairedNodeStates,
-    type PairedNode,
-    type CommissioningControllerNodeOptions,
-} from '@project-chip/matter.js/device';
-import type { CommissioningController } from '@project-chip/matter.js';
+    AggregatorEndpointDefinition,
+    BridgedNodeEndpointDefinition,
+    type OtaProviderEndpoint,
+} from '@matter/main/endpoints';
 import type { MatterControllerConfig } from '../ioBrokerTypes';
 import { SubscribeManager } from '../lib';
 import type { SubscribeCallback } from '../lib/SubscribeManager';
@@ -50,6 +57,8 @@ import type { StructuredJsonFormData } from '../lib/JsonConfigUtils';
 import type { DeviceStatus, ConfigConnectionType } from '@iobroker/dm-utils';
 import { VendorIds } from '../lib/vendorIDs';
 import { NodeIcdManager } from './NodeIcdManager';
+import { isConnectedForIoBroker } from './nodeConnection';
+import { formatPeerLogLabel } from './nodeLogLabel';
 
 export type PairedNodeConfig = {
     nodeId: NodeId;
@@ -97,8 +106,67 @@ export type NodeDetails = {
     backgroundColor?: string;
 };
 
+/** The timestamp field of a decoded event report the notification's kind stands for. */
+const EVENT_TIMESTAMP_FIELDS = {
+    epoch: 'epochTimestamp',
+    system: 'systemTimestamp',
+    'epoch-delta': 'deltaEpochTimestamp',
+    'system-delta': 'deltaSystemTimestamp',
+} as const;
+
+/**
+ * An event occurrence in the shape of a decoded event report.
+ *
+ * The notification carries the event's data fields on their own, while the device mappings and the raw
+ * `events.<name>` state carry the report entry around them.
+ */
+function decodedEventOf(change: ChangeNotificationService.EventOccurrence): DecodedEventData<unknown> {
+    return {
+        eventNumber: change.number,
+        priority: change.priority,
+        [EVENT_TIMESTAMP_FIELDS[change.timestampKind]]: change.timestamp,
+        // An event that carries no fields at all has no payload, and it still occurred
+        data: change.payload ?? {},
+    };
+}
+
+/** The address the peer is reachable on, in the `host:port` form the ioBroker state carries. */
+export function operationalAddressOf(peer: ClientNode): string | undefined {
+    const [address] = peer.state.commissioning?.addresses ?? [];
+    if (address === undefined) {
+        return undefined;
+    }
+    // matter.js knows udp, tcp, ble and ip schemes, so the prefix is not of one fixed length
+    const url = ServerAddress.urlFor(address);
+    const scheme = url.indexOf('://');
+    return scheme === -1 ? url : url.substring(scheme + 3);
+}
+
+/**
+ * The numeric id of a changed attribute.
+ *
+ * A peer carries attributes the global Matter model has no entry for - vendor specific ones, and anything
+ * matter.js could not recognize, which it names `attr$<hex>`. Both are in the schema matter.js built for
+ * that peer's behavior, so that decides before the global model does.
+ */
+export function resolveAttributeId(
+    behavior: ClusterBehavior.Type,
+    attributeName: string,
+    matter?: MatterModel,
+): number | undefined {
+    return (
+        behavior.schema?.attributes(attributeName)?.id ??
+        ClusterLookup.attributeId(behavior.cluster.id, attributeName, matter)
+    );
+}
+
 export class GeneralMatterNode {
     readonly nodeId: string;
+    /**
+     * The node id for log lines, with the peer address as matter.js prints it, see {@link formatPeerLogLabel}. Taken at
+     * construction, so logging never reads the state of a peer that is being destroyed.
+     */
+    readonly logLabel: string;
     readonly nodeBaseId: string;
     readonly connectionStateId: string;
     readonly connectionStatusId: string;
@@ -119,15 +187,23 @@ export class GeneralMatterNode {
     #hasAggregatorEndpoint = false;
     #enabled = true;
     #subscriptionMaxIntervalS?: number;
-    #connectOptions?: CommissioningControllerNodeOptions;
+    /**
+     * Raised by everything that retires the current structure, so a build that is still running between its
+     * awaits notices it is building for a node state that no longer exists.
+     */
+    #generation = 0;
+    /** One build of this node at a time: they clear each other's structure and write the same objects. */
+    readonly #buildLock = new Semaphore('general-matter-node-build');
+    /** Set by destroy() before it waits for the build lock, so a build queued behind it never starts. */
+    #destroyed = false;
     #softwareUpdateAvailable?: SoftwareUpdateInfo;
     #softwareUpdateInProgress = false;
     #currentUpdateState?: OtaSoftwareUpdateRequestor.UpdateState;
     #updateObservers?: ObserverGroup;
     #icd?: NodeIcdManager;
-    /** Undoes what this node generation attached to the PairedNode, which outlives it. */
+    /** Undoes what this node generation attached to the ClientNode, which outlives it. */
     #teardown: TeardownRegistry;
-    // Outlives #icd across clear()/#createIcdManager() cycles (e.g. applyConfiguration()'s
+    // Outlives #icd across #clear()/#createIcdManager() cycles (e.g. applyConfiguration()'s
     // clear-and-rebuild), so a subscriber only needs to attach once per GeneralMatterNode rather than
     // once per NodeIcdManager instance.
     readonly #icdChanged = Observable<[]>();
@@ -153,11 +229,18 @@ export class GeneralMatterNode {
 
     constructor(
         protected readonly adapter: MatterAdapter,
-        readonly node: PairedNode,
+        readonly node: ClientNode,
         controllerConfig: MatterControllerConfig,
-        private readonly commissioningController?: CommissioningController,
+        /**
+         * Whether the peer's subscription applied a first report since the controller started watching it. Read on
+         * every connection state write, so it answers for the peer, not for this instance, which a rebuild replaces.
+         */
+        private readonly firstReportApplied: () => boolean,
+        private readonly otaProvider?: Endpoint<OtaProviderEndpoint>,
     ) {
-        this.nodeId = node.nodeId.toString();
+        this.nodeId = node.state.commissioning.peerAddress?.nodeId.toString() ?? node.id;
+        const peerAddress = node.state.commissioning.peerAddress;
+        this.logLabel = peerAddress === undefined ? this.nodeId : formatPeerLogLabel(peerAddress);
         this.nodeBaseId = `controller.${this.nodeId}`;
         this.connectionStateId = `${this.nodeBaseId}.info.connection`;
         this.connectionStatusId = `${this.nodeBaseId}.info.status`;
@@ -171,14 +254,14 @@ export class GeneralMatterNode {
 
     #newTeardownRegistry(): TeardownRegistry {
         return new TeardownRegistry(error =>
-            this.adapter.log.warn(`Node ${this.nodeId}: Error while tearing down: ${error.message}`),
+            this.adapter.log.warn(`Node ${this.logLabel}: Error while tearing down: ${error.message}`),
         );
     }
 
-    async clear(): Promise<void> {
+    async #clear(options?: { keepConnectionState?: boolean }): Promise<void> {
+        this.#generation++;
         // Clear out all things from before
-        // clear() is a re-init point, not only a teardown point, so the next generation needs a fresh registry.
-        // Swapping before the await keeps a concurrent clear() from discarding a registry that already holds an undo.
+        // #clear() is a re-init point, not only a teardown point, so the next generation needs a fresh registry.
         const previousTeardown = this.#teardown;
         this.#teardown = this.#newTeardownRegistry();
         await previousTeardown.close();
@@ -194,9 +277,9 @@ export class GeneralMatterNode {
         for (const device of this.#deviceMap.values()) {
             // One endpoint that fails to tear down must not leave the rest of the node half destroyed
             try {
-                await device.destroy();
+                await device.destroy(options);
             } catch (error) {
-                this.adapter.log.warn(`Node ${this.nodeId}: Error destroying device: ${error}`);
+                this.adapter.log.warn(`Node ${this.logLabel}: Error destroying device: ${error}`);
             }
         }
         this.#deviceMap.clear();
@@ -215,53 +298,52 @@ export class GeneralMatterNode {
         return this.#hasAggregatorEndpoint;
     }
 
-    connect(connectOptions?: CommissioningControllerNodeOptions, reconnect = false): void {
-        if (connectOptions !== undefined) {
-            this.#connectOptions = connectOptions;
-        }
-        if (!this.#enabled) {
-            this.adapter.log.warn(`Node "${this.node.nodeId}" is disabled, so do not connect`);
-            return;
-        }
-        this.#connectOptions = {
-            ...this.#connectOptions,
-            ...(this.#subscriptionMaxIntervalS
-                ? { subscribeMaxIntervalCeilingSeconds: this.#subscriptionMaxIntervalS }
-                : {}),
-        };
-        if (!this.node.isConnected || reconnect) {
-            this.node.connect(this.#connectOptions);
+    async initialize(nodeDetails?: { operationalAddress?: string }): Promise<void> {
+        // #clear() retires whatever is building, so a run waiting here leaves the structure it finds alone
+        this.#generation++;
+        const slot = await this.#buildLock.obtainSlot();
+        try {
+            if (this.#destroyed) {
+                return;
+            }
+            await this.#initialize(nodeDetails);
+        } finally {
+            slot.close();
         }
     }
 
-    async initialize(nodeDetails?: { operationalAddress?: string }): Promise<void> {
-        await this.clear();
-
-        if (!this.node.initialized) {
-            this.adapter.log.warn(
-                `Node "${this.node.nodeId}" has not yet been initialized! Waiting for initial connection.`,
-            );
-            const handler = (state: PairedNodeStates): void => {
-                if (state === PairedNodeStates.Connected) {
-                    this.node.events.stateChanged.off(handler);
-                    this.adapter.log.info(`Node "${this.node.nodeId}" has been delayed connected. Initialize now!`);
-                    this.initialize().catch(error => this.adapter.log.info(`Error while initializing node: ${error}`));
-                }
-            };
-            this.node.events.stateChanged.on(handler);
-            // stateChanged belongs to the PairedNode, which outlives every GeneralMatterNode built for it;
-            // without this a node replaced before it ever connected stays reachable through the handler.
-            this.#teardown.add(() => this.node.events.stateChanged.off(handler));
-            return;
-        }
-
-        const rootEndpoint = this.node.node;
-        if (rootEndpoint === undefined) {
-            this.adapter.log.warn(`Node "${this.node.nodeId}" has not yet been initialized! Should not happen`);
-            return;
-        }
+    async #initialize(nodeDetails?: { operationalAddress?: string }): Promise<void> {
+        await this.#clear({ keepConnectionState: true });
+        const generation = this.#generation;
 
         const existingObject = await this.adapter.getObjectAsync(this.nodeBaseId);
+        if (existingObject?.native?.enabled !== undefined) {
+            this.#enabled = existingObject.native.enabled;
+        }
+        // Before the seeding gate: a peer matter.js has as disabled never connects and so never seeds, and
+        // `setEnabled` would not reach it either because the flag it compares already says enabled.
+        await this.#applyEnabledToNode(this.#enabled);
+
+        if (!this.node.lifecycle.isSeeded) {
+            // An offline peer never becomes seeded, so this must be observed rather than awaited.
+            this.adapter.log.warn(
+                `Node "${this.logLabel}" has not yet been initialized! Waiting for initial connection.`,
+            );
+            const observers = new ObserverGroup();
+            observers.on(this.node.lifecycle.seeded, () => {
+                this.adapter.log.info(`Node "${this.logLabel}" has been delayed connected. Initialize now!`);
+                this.initialize(nodeDetails).catch(error =>
+                    this.adapter.log.info(`Error while initializing node: ${error}`),
+                );
+            });
+            // The lifecycle belongs to the ClientNode, which outlives every GeneralMatterNode built for it;
+            // without this a node replaced before it ever connected stays reachable through the observer.
+            this.#teardown.add(() => observers.close());
+            return;
+        }
+
+        const rootEndpoint = this.node;
+
         if (existingObject) {
             if (existingObject.native?.exposeMatterApplicationClusterData !== undefined) {
                 this.exposeMatterApplicationClusterData = existingObject.native.exposeMatterApplicationClusterData;
@@ -269,13 +351,10 @@ export class GeneralMatterNode {
             if (existingObject.native?.exposeMatterSystemClusterData !== undefined) {
                 this.exposeMatterSystemClusterData = existingObject.native.exposeMatterSystemClusterData;
             }
-            if (existingObject.native?.enabled !== undefined) {
-                this.#enabled = existingObject.native.enabled;
-            }
-            this.setNodeConfiguration({
-                subscriptionMaxIntervalS: existingObject.native?.subscriptionMaxIntervalS,
-            });
+            this.#storeSubscriptionInterval(existingObject.native?.subscriptionMaxIntervalS);
         }
+        // Runs for every node, so the interval floor applies whether or not a ceiling is configured.
+        await this.#applySubscriptionInterval();
         // create device
         const deviceObj: ioBroker.Object = {
             _id: this.nodeBaseId,
@@ -288,8 +367,14 @@ export class GeneralMatterNode {
             },
             native: {
                 nodeId: this.nodeId,
-                exposeMatterApplicationClusterData: this.exposeMatterApplicationClusterData,
-                exposeMatterSystemClusterData: this.exposeMatterSystemClusterData,
+                // Only as defaults: the values were read from the object above, and writing them back would undo
+                // a change the user made to the object while this build was running
+                ...(existingObject?.native?.exposeMatterApplicationClusterData === undefined
+                    ? { exposeMatterApplicationClusterData: this.exposeMatterApplicationClusterData }
+                    : {}),
+                ...(existingObject?.native?.exposeMatterSystemClusterData === undefined
+                    ? { exposeMatterSystemClusterData: this.exposeMatterSystemClusterData }
+                    : {}),
             },
         };
 
@@ -343,10 +428,10 @@ export class GeneralMatterNode {
                 role: 'state',
                 type: 'number',
                 states: {
-                    [PairedNodeStates.Connected]: 'connected',
-                    [PairedNodeStates.Disconnected]: 'disconnected',
-                    [PairedNodeStates.Reconnecting]: 'reconnecting',
-                    [PairedNodeStates.WaitingForDeviceDiscovery]: 'waitingForDeviceDiscovery',
+                    [NodeConnectionState.Connected]: 'connected',
+                    [NodeConnectionState.Disconnected]: 'disconnected',
+                    [NodeConnectionState.Reconnecting]: 'reconnecting',
+                    [NodeConnectionState.WaitingForDeviceDiscovery]: 'waitingForDeviceDiscovery',
                 },
                 read: true,
                 write: false,
@@ -398,8 +483,17 @@ export class GeneralMatterNode {
             native: {},
         });
 
-        await this.adapter.setState(this.connectionStateId, this.node.isConnected, true);
-        await this.adapter.setState(this.connectionStatusId, this.node.connectionState, true);
+        if (generation !== this.#generation) {
+            return;
+        }
+
+        const { connectionState } = this.node.lifecycle;
+        await this.adapter.setState(
+            this.connectionStateId,
+            isConnectedForIoBroker(connectionState, this.firstReportApplied()),
+            true,
+        );
+        await this.adapter.setState(this.connectionStatusId, connectionState, true);
 
         this.#createIcdManager();
         if (this.#icd === undefined) {
@@ -407,19 +501,76 @@ export class GeneralMatterNode {
             this.#publishIcdMode();
         }
 
-        this.#connectedAddress = nodeDetails?.operationalAddress?.substring(6);
+        // A restored peer is connected before this runs and its state change does not replay, so the caller
+        // does not always have an address to hand over.
+        this.#connectedAddress = nodeDetails?.operationalAddress ?? operationalAddressOf(this.node);
         await this.adapter.setState(this.connectedAddressStateId, this.#connectedAddress ?? null, true);
 
         // Restore update info from persisted state if available
         await this.#restoreUpdateInfoFromState();
 
+        if (generation !== this.#generation) {
+            return;
+        }
+
         await this.#processRootEndpointStructure(rootEndpoint, {
             endpointBaseName: deviceObj.native.nodeLabel || deviceObj.common.name,
         });
+        await this.#markVanishedDevicesOffline(generation);
     }
 
+    /**
+     * Sets the connection state of every device below this node that the build did not create again to offline.
+     * A rebuild keeps the connection states of the devices it replaces, so the state of a device whose endpoint
+     * went away would otherwise stay online.
+     */
+    async #markVanishedDevicesOffline(generation: number): Promise<void> {
+        const namespace = `${this.adapter.namespace}.`;
+        const withNamespace = (id: string): string => (id.startsWith(namespace) ? id : `${namespace}${id}`);
+        const kept = new Set([...this.#deviceMap.values()].map(device => withNamespace(device.connectionStateId)));
+        kept.add(withNamespace(this.connectionStateId));
+        const prefix = withNamespace(`${this.nodeBaseId}.`);
+        const { rows } = await this.adapter.getObjectViewAsync('system', 'state', {
+            startkey: prefix,
+            endkey: `${prefix}\u9999`,
+        });
+        for (const { id } of rows) {
+            if (generation !== this.#generation) {
+                return;
+            }
+            if (!id.endsWith('.info.connection') || kept.has(id)) {
+                continue;
+            }
+            if ((await this.adapter.getStateAsync(id))?.val === true) {
+                await this.adapter.setState(id, false, true);
+            }
+        }
+    }
+
+    /** The peer's address on our fabric. A commissioned node always carries one. */
+    get peerAddress(): PeerAddress {
+        const peerAddress = this.node.state.commissioning.peerAddress;
+        if (peerAddress === undefined) {
+            throw new Error(`Node "${this.nodeId}" is not commissioned`);
+        }
+        return peerAddress;
+    }
+
+    /**
+     * The interval the device actually granted, which can exceed the one we asked for. matter.js negotiates it
+     * on the sustained subscription and does not surface it publicly.
+     */
+    get #negotiatedSubscriptionIntervalS(): number | undefined {
+        return this.node.behaviors.internalsOf(NetworkClient).activeSubscription?.maxInterval;
+    }
+
+    /**
+     * Whether the peer is Connected right now, with a live subscription over an open session. Reads, commands and
+     * software updates are only tried then. The `info.connection` state also counts a node that is reconnecting,
+     * see {@link isConnectedForIoBroker}.
+     */
     get isConnected(): boolean {
-        return this.node.isConnected;
+        return this.node.lifecycle.isConnected;
     }
 
     get isEnabled(): boolean {
@@ -431,11 +582,7 @@ export class GeneralMatterNode {
             return;
         }
         try {
-            if (enabled) {
-                this.node.connect();
-            } else {
-                await this.node.disconnect();
-            }
+            await this.#applyEnabledToNode(enabled);
             await this.adapter.extendObjectAsync(this.nodeBaseId, {
                 native: {
                     enabled,
@@ -446,6 +593,20 @@ export class GeneralMatterNode {
             return;
         }
         this.#enabled = enabled;
+    }
+
+    /**
+     * matter.js persists the disabled flag itself and skips disabled peers when the controller comes online,
+     * so the two stores can disagree — after a restore of the ioBroker objects, for instance. Ours is the one
+     * the user edits, so it wins.
+     */
+    async #applyEnabledToNode(enabled: boolean): Promise<void> {
+        const shouldBeDisabled = !enabled;
+        if (this.node.state.network.isDisabled === shouldBeDisabled) {
+            return;
+        }
+        this.adapter.log.info(`Node "${this.logLabel}" is ${enabled ? 'enabled' : 'disabled'}, applying to the peer`);
+        await (enabled ? this.node.enable() : this.node.disable());
     }
 
     get name(): string {
@@ -500,15 +661,16 @@ export class GeneralMatterNode {
             throw new Error('No software update available');
         }
 
-        if (!this.commissioningController) {
-            throw new Error('Commissioning controller not available');
+        const otaProvider = this.otaProvider;
+        if (!otaProvider) {
+            throw new Error('OTA provider not available');
         }
 
         if (this.#softwareUpdateInProgress) {
             throw new Error('Software update already in progress');
         }
 
-        const basicInfo = this.node.basicInformation;
+        const basicInfo = this.node.maybeStateOf(BasicInformationClient);
         if (!basicInfo) {
             throw new Error('Node basic information not available');
         }
@@ -516,13 +678,28 @@ export class GeneralMatterNode {
         // Availability can come from a persisted state that outlived the peer's actual cluster set, and
         // eventsOf() throws for a behavior the peer does not expose. Checked before the progress dialog
         // opens, so a mismatch cannot leave that dialog stranded.
-        if (!this.node.node.behaviors.has(OtaSoftwareUpdateRequestorClient)) {
+        if (!this.node.behaviors.has(OtaSoftwareUpdateRequestorClient)) {
             throw new Error('Node does not support over-the-air software updates');
+        }
+
+        // The in-memory flag is lost with a restart or rebuild, the device keeps its own state
+        if (!this.isConnected) {
+            throw new Error('Node is not connected. Retry when it is online');
+        }
+        const deviceUpdateState = this.node.maybeStateOf(OtaSoftwareUpdateRequestorClient)?.updateState;
+        if (
+            deviceUpdateState !== undefined &&
+            deviceUpdateState !== OtaSoftwareUpdateRequestor.UpdateState.Idle &&
+            deviceUpdateState !== OtaSoftwareUpdateRequestor.UpdateState.Unknown
+        ) {
+            throw new Error(
+                `Node is already updating (state: ${OtaSoftwareUpdateRequestor.UpdateState[deviceUpdateState]})`,
+            );
         }
 
         this.#softwareUpdateInProgress = true;
         this.adapter.log.info(
-            `Starting software update for node ${this.nodeId} to version ${updateInfo.softwareVersionString} (${updateInfo.softwareVersion}), source: ${updateInfo.source}`,
+            `Starting software update for node ${this.logLabel} to version ${updateInfo.softwareVersionString} (${updateInfo.softwareVersion}), source: ${updateInfo.source}`,
         );
 
         // Show the initial progress dialog with cancel support
@@ -539,7 +716,7 @@ export class GeneralMatterNode {
         });
 
         // Get the OTA events from the ClientNode
-        const otaEvents = this.node.node.eventsOf(OtaSoftwareUpdateRequestorClient);
+        const otaEvents = this.node.eventsOf(OtaSoftwareUpdateRequestorClient);
 
         // Set up observers for OTA progress events
         this.#updateObservers = new ObserverGroup();
@@ -548,7 +725,7 @@ export class GeneralMatterNode {
         this.#updateObservers.on(otaEvents.stateTransition, async (payload, _context) => {
             const { newState, previousState, targetSoftwareVersion } = payload;
             this.adapter.log.debug(
-                `OTA state transition for node ${this.nodeId}: ${OtaSoftwareUpdateRequestor.UpdateState[newState]} (target: ${targetSoftwareVersion})`,
+                `OTA state transition for node ${this.logLabel}: ${OtaSoftwareUpdateRequestor.UpdateState[newState]} (target: ${targetSoftwareVersion})`,
             );
             await this.updateSoftwareUpdateProgress(newState, previousState);
         });
@@ -566,15 +743,12 @@ export class GeneralMatterNode {
 
         try {
             // Trigger the update via the OTA provider
-            await this.commissioningController.otaProvider.act(agent => {
-                return agent
-                    .get(SoftwareUpdateManager)
-                    .forceUpdate(
-                        PeerAddress({ nodeId: this.node.nodeId, fabricIndex: FabricIndex(1) }),
-                        basicInfo.vendorId,
-                        basicInfo.productId,
-                        updateInfo.softwareVersion,
-                    );
+            await otaProvider.act(agent => {
+                return agent.get(SoftwareUpdateManager).forceUpdate(this.peerAddress, {
+                    vendorId: basicInfo.vendorId,
+                    productId: basicInfo.productId,
+                    targetSoftwareVersion: updateInfo.softwareVersion,
+                });
             });
 
             // The progress updates will now come from the OTA Update Requestor cluster events
@@ -617,28 +791,28 @@ export class GeneralMatterNode {
             }
 
             const persistedInfo = JSON.parse(state.val as string) as SoftwareUpdateInfo;
-            const currentSoftwareVersion = this.node.basicInformation?.softwareVersion;
+            const currentSoftwareVersion = this.node.maybeStateOf(BasicInformationClient)?.softwareVersion;
 
             if (currentSoftwareVersion !== undefined && currentSoftwareVersion >= persistedInfo.softwareVersion) {
                 // Update has been applied (or a newer version is installed), clear the state
                 this.adapter.log.debug(
-                    `Node ${this.nodeId}: Current version ${currentSoftwareVersion} >= persisted update version ${persistedInfo.softwareVersion}, clearing update state`,
+                    `Node ${this.logLabel}: Current version ${currentSoftwareVersion} >= persisted update version ${persistedInfo.softwareVersion}, clearing update state`,
                 );
                 await this.clearSoftwareUpdateAvailable();
             } else if (this.#softwareUpdateAvailable === undefined) {
                 // Restore the update info if we don't have any in memory
                 this.adapter.log.info(
-                    `Node ${this.nodeId}: Restoring update info from state (version ${persistedInfo.softwareVersion})`,
+                    `Node ${this.logLabel}: Restoring update info from state (version ${persistedInfo.softwareVersion})`,
                 );
                 this.#softwareUpdateAvailable = persistedInfo;
             }
         } catch (error) {
-            this.adapter.log.warn(`Failed to restore update info from state for node ${this.nodeId}: ${error}`);
+            this.adapter.log.warn(`Failed to restore update info from state for node ${this.logLabel}: ${error}`);
         }
     }
 
     #createIcdManager(): void {
-        if (this.#icd !== undefined) {
+        if (this.#icd !== undefined || this.#destroyed) {
             return;
         }
         let icd: NodeIcdManager;
@@ -646,7 +820,7 @@ export class GeneralMatterNode {
             icd = new NodeIcdManager(this.node);
         } catch (error) {
             // Battery Saver Mode is an optional extra; a node must still come up without it.
-            this.adapter.log.warn(`Could not set up ICD handling for node "${this.nodeId}": ${error}`);
+            this.adapter.log.warn(`Could not set up ICD handling for node "${this.logLabel}": ${error}`);
             return;
         }
         if (!icd.supported) {
@@ -671,17 +845,14 @@ export class GeneralMatterNode {
      * Cancel an ongoing software update.
      */
     async cancelSoftwareUpdate(): Promise<void> {
-        if (!this.#softwareUpdateInProgress || !this.commissioningController) {
+        const otaProvider = this.otaProvider;
+        if (!this.#softwareUpdateInProgress || !otaProvider) {
             return;
         }
 
-        this.adapter.log.info(`Cancelling software update for node ${this.nodeId}`);
+        this.adapter.log.info(`Cancelling software update for node ${this.logLabel}`);
 
-        await this.commissioningController.otaProvider.act(agent =>
-            agent
-                .get(SoftwareUpdateManager)
-                .removeConsent(PeerAddress({ nodeId: this.node.nodeId, fabricIndex: FabricIndex(1) })),
-        );
+        await otaProvider.act(agent => agent.get(SoftwareUpdateManager).removeConsent(this.peerAddress));
         this.#cleanupUpdateObservers();
         this.#softwareUpdateInProgress = false;
 
@@ -700,7 +871,7 @@ export class GeneralMatterNode {
             return;
         }
 
-        this.adapter.log.warn(`Software update failed or was cancelled for node ${this.nodeId}`);
+        this.adapter.log.warn(`Software update failed or was cancelled for node ${this.logLabel}`);
         this.#cleanupUpdateObservers();
         this.#softwareUpdateInProgress = false;
 
@@ -725,9 +896,9 @@ export class GeneralMatterNode {
         }
 
         if (completed) {
-            this.adapter.log.info(`Software update successfully completed for node ${this.nodeId}`);
+            this.adapter.log.info(`Software update successfully completed for node ${this.logLabel}`);
         } else {
-            this.adapter.log.info(`Software update ended or cancelled for node ${this.nodeId}`);
+            this.adapter.log.info(`Software update ended or cancelled for node ${this.logLabel}`);
         }
         this.#cleanupUpdateObservers();
         this.#softwareUpdateInProgress = false;
@@ -819,23 +990,40 @@ export class GeneralMatterNode {
     }
 
     setNodeConfiguration(config: GenericNodeConfiguration): void {
-        const { subscriptionMaxIntervalS } = config;
-        if (subscriptionMaxIntervalS !== undefined && subscriptionMaxIntervalS !== 0) {
-            if (
-                isNaN(subscriptionMaxIntervalS) ||
-                subscriptionMaxIntervalS < 30 ||
-                subscriptionMaxIntervalS > 2_147_482
-            ) {
-                this.adapter.log.warn(
-                    `Invalid polling interval ${subscriptionMaxIntervalS} seconds, use ${this.#subscriptionMaxIntervalS ? `former value of ${Math.round(this.#subscriptionMaxIntervalS)}` : ' default value'}.`,
-                );
-                return;
-            }
-            this.#subscriptionMaxIntervalS = subscriptionMaxIntervalS;
-            if (this.#enabled && this.node.isConnected) {
-                this.connect(undefined, true);
-            }
+        if (this.#storeSubscriptionInterval(config.subscriptionMaxIntervalS)) {
+            this.#applySubscriptionInterval().catch(error =>
+                this.adapter.log.warn(`Node "${this.logLabel}": Could not apply the subscription interval: ${error}`),
+            );
         }
+    }
+
+    /** Validates and keeps the ceiling without applying it, so a caller can apply it exactly once. */
+    #storeSubscriptionInterval(subscriptionMaxIntervalS: number | undefined): boolean {
+        if (subscriptionMaxIntervalS === undefined || subscriptionMaxIntervalS === 0) {
+            return false;
+        }
+        if (isNaN(subscriptionMaxIntervalS) || subscriptionMaxIntervalS < 30 || subscriptionMaxIntervalS > 2_147_482) {
+            this.adapter.log.warn(
+                `Invalid polling interval ${subscriptionMaxIntervalS} seconds, use ${this.#subscriptionMaxIntervalS ? `former value of ${Math.round(this.#subscriptionMaxIntervalS)}` : ' default value'}.`,
+            );
+            return false;
+        }
+        this.#subscriptionMaxIntervalS = subscriptionMaxIntervalS;
+        return true;
+    }
+
+    /** The sustained subscription re-establishes itself when this changes, so no reconnect is needed. */
+    async #applySubscriptionInterval(): Promise<void> {
+        await this.node.set({
+            network: {
+                defaultSubscription: {
+                    minIntervalFloor: Seconds(1),
+                    ...(this.#subscriptionMaxIntervalS === undefined
+                        ? {}
+                        : { maxIntervalCeiling: Seconds(this.#subscriptionMaxIntervalS) }),
+                },
+            },
+        });
     }
 
     async applyConfiguration(config: PairedNodeConfig, forcedUpdate = false): Promise<void> {
@@ -849,17 +1037,30 @@ export class GeneralMatterNode {
         this.exposeMatterApplicationClusterData = config.exposeMatterApplicationClusterData;
         this.exposeMatterSystemClusterData = config.exposeMatterSystemClusterData;
 
-        const rootEndpoint = this.node.node;
+        const rootEndpoint = this.node;
         if (rootEndpoint === undefined) {
-            this.adapter.log.warn(`Node "${this.node.nodeId}" has not yet been initialized! Should not not happen`);
+            this.adapter.log.warn(`Node "${this.logLabel}" has not yet been initialized! Should not not happen`);
             return;
         }
 
-        await this.clear();
-        // clear() closed the ICD manager; recreate it before the structure rebuild (matching
-        // initialize()'s order) so a throw below cannot leave the node without one.
-        this.#createIcdManager();
-        await this.#processRootEndpointStructure(rootEndpoint);
+        // Shares the build lock with initialize(): both clear the structure and then rebuild it, so running
+        // them at once leaves the maps and subscriptions of one half inside the other's structure.
+        this.#generation++;
+        const slot = await this.#buildLock.obtainSlot();
+        try {
+            if (this.#destroyed) {
+                return;
+            }
+            await this.#clear({ keepConnectionState: true });
+            // #clear() closed the ICD manager; recreate it before the structure rebuild (matching
+            // initialize()'s order) so a throw below cannot leave the node without one.
+            this.#createIcdManager();
+            const generation = this.#generation;
+            await this.#processRootEndpointStructure(rootEndpoint);
+            await this.#markVanishedDevicesOffline(generation);
+        } finally {
+            slot.close();
+        }
     }
 
     // On Root level we create devices for all endpoints because these are devices
@@ -872,14 +1073,20 @@ export class GeneralMatterNode {
         // Redetected below, but a node that lost its aggregator must not keep reporting one
         this.#hasAggregatorEndpoint = false;
 
-        await this.#endpointToIoBrokerDevices(rootEndpoint, rootEndpoint, this.nodeBaseId, options);
+        const generation = this.#generation;
+        await this.#endpointToIoBrokerDevices(generation, rootEndpoint, rootEndpoint, this.nodeBaseId, options);
 
         for (const childEndpoint of rootEndpoint.parts) {
-            await this.#endpointToIoBrokerDevices(childEndpoint, rootEndpoint, this.nodeBaseId, options);
+            if (generation !== this.#generation) {
+                // Retired while building, so the rest belongs to whoever cleared it
+                return;
+            }
+            await this.#endpointToIoBrokerDevices(generation, childEndpoint, rootEndpoint, this.nodeBaseId, options);
         }
     }
 
     async #endpointToIoBrokerDevices(
+        generation: number,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         baseId: string,
@@ -890,9 +1097,13 @@ export class GeneralMatterNode {
             endpointBaseName?: string;
         },
     ): Promise<void> {
+        if (generation !== this.#generation) {
+            // Retired while building, so the rest belongs to whoever cleared it
+            return;
+        }
         const id = endpoint.number;
         if (id === undefined) {
-            this.adapter.log.warn(`Node ${this.node.nodeId}: Endpoint ${endpoint.id} has no number!`);
+            this.adapter.log.warn(`Node ${this.logLabel}: Endpoint ${endpoint.id} has no number!`);
             return;
         }
 
@@ -900,14 +1111,14 @@ export class GeneralMatterNode {
         const { appTypes, primaryDeviceType } = deviceTypes;
         if (appTypes.length > 1) {
             this.adapter.log.info(
-                `Node ${this.node.nodeId}: Multiple device types detected: ${appTypes.map(t => t.deviceType.name).join(', ')}`,
+                `Node ${this.logLabel}: Multiple device types detected: ${appTypes.map(t => t.deviceType.name).join(', ')}`,
             );
         }
 
         const deviceTypeName = primaryDeviceType?.deviceType.name ?? endpoint.id ?? 'Unknown';
 
         this.adapter.log.info(
-            `Node ${this.node.nodeId}: Endpoint ${id} to ioBroker Devices ${endpoint.id} / ${deviceTypeName}`,
+            `Node ${this.logLabel}: Endpoint ${id} to ioBroker Devices ${endpoint.id} / ${deviceTypeName}`,
         );
 
         const endpointDeviceBaseId = `${baseId}.${deviceTypeName}-${id}`;
@@ -944,7 +1155,7 @@ export class GeneralMatterNode {
 
         if (primaryDeviceType === undefined) {
             this.adapter.log.warn(
-                `Node ${this.node.nodeId}: Unknown device type: ${serialize(endpoint.type.name)}. Please report this issue.`,
+                `Node ${this.logLabel}: Unknown device type: ${serialize(endpoint.type.name)}. Please report this issue.`,
             );
         } else if (
             primaryDeviceType.deviceType.id === AggregatorEndpointDefinition.deviceType ||
@@ -952,9 +1163,7 @@ export class GeneralMatterNode {
         ) {
             // An Aggregator device type has a slightly different structure
             this.#hasAggregatorEndpoint = true;
-            this.adapter.log.info(
-                `Node ${this.node.nodeId}: ${primaryDeviceType.deviceType.name} device type detected`,
-            );
+            this.adapter.log.info(`Node ${this.logLabel}: ${primaryDeviceType.deviceType.name} device type detected`);
             await this.adapter.extendObjectAsync(endpointDeviceBaseId, {
                 type: 'folder',
                 common: {
@@ -989,6 +1198,7 @@ export class GeneralMatterNode {
             if (childrenAreOwnDevices) {
                 for (const childEndpoint of [...endpoint.parts]) {
                     await this.#endpointToIoBrokerDevices(
+                        generation,
                         childEndpoint,
                         rootEndpoint,
                         endpointDeviceBaseId,
@@ -1041,6 +1251,7 @@ export class GeneralMatterNode {
                 if (childrenAreOwnDevices) {
                     for (const childEndpoint of [...endpoint.parts]) {
                         await this.#endpointToIoBrokerDevices(
+                            generation,
                             childEndpoint,
                             rootEndpoint,
                             endpointDeviceBaseId,
@@ -1078,7 +1289,7 @@ export class GeneralMatterNode {
         const id = endpoint.number;
         if (id === undefined) {
             this.adapter.log.warn(
-                `Node ${this.node.nodeId}: Endpoint ${String(endpoint.type?.name ?? 'unknown')} has no number!`,
+                `Node ${this.logLabel}: Endpoint ${String(endpoint.type?.name ?? 'unknown')} has no number!`,
             );
             return;
         }
@@ -1201,7 +1412,7 @@ export class GeneralMatterNode {
     ): Promise<void> {
         if (endpoint.number === undefined) {
             this.adapter.log.warn(
-                `Node ${this.node.nodeId}: Endpoint ${String(endpoint.type?.name ?? 'unknown')} has no number!`,
+                `Node ${this.logLabel}: Endpoint ${String(endpoint.type?.name ?? 'unknown')} has no number!`,
             );
             return;
         }
@@ -1301,15 +1512,15 @@ export class GeneralMatterNode {
                 });
                 addedAttributes++;
 
-                if (this.node.isConnected) {
-                    const attributeValue = clusterState[attributeId];
-                    if (attributeValue !== undefined) {
-                        await this.adapter.setState(
-                            attributeBaseId,
-                            this.#formatAttributeServerValue(endpoint.number, attributeValue, targetType),
-                            true,
-                        );
-                    }
+                // An attribute the peer never reported is absent from its state, so what is there is worth
+                // publishing whether or not the peer is reachable right now.
+                const attributeValue = clusterState[attributeId];
+                if (attributeValue !== undefined) {
+                    await this.adapter.setState(
+                        attributeBaseId,
+                        this.#formatAttributeServerValue(endpoint.number, attributeValue, targetType),
+                        true,
+                    );
                 }
 
                 if (writable && !unknown) {
@@ -1340,12 +1551,10 @@ export class GeneralMatterNode {
             }
 
             let addedEvents = 0;
-            const eventList: EventId[] = clusterState.eventList ?? [];
-            for (const eventId of eventList) {
-                const eventModel = clusterModel?.events(eventId);
-                if (!eventModel) {
-                    continue;
-                }
+            // matter.js delivers exactly the events of this schema, which follows the peer's features; the
+            // EventList attribute is deprecated (D) in the specification and current devices do not report it
+            for (const eventModel of BehaviorType.schema.conformant.events) {
+                const eventId = EventId(eventModel.id);
                 const eventName = camelize(eventModel.name);
                 const eventBaseId = `${clusterBaseId}.events.${eventName}`;
 
@@ -1412,7 +1621,7 @@ export class GeneralMatterNode {
                                 parsedValue = JSON.parse(`"${state.val}"`);
                             } catch {
                                 this.adapter.log.info(
-                                    `Node ${this.node.nodeId}: ERROR: Could not parse value ${state.val} as JSON.`,
+                                    `Node ${this.logLabel}: ERROR: Could not parse value ${state.val} as JSON.`,
                                 );
                                 return;
                             }
@@ -1426,7 +1635,7 @@ export class GeneralMatterNode {
                             asTimedRequest: commandModel.effectiveAccess.timed,
                         });
                     } catch (e: unknown) {
-                        this.adapter.log.warn(`Node ${this.node.nodeId}: Error: ${(e as Error).message}`);
+                        this.adapter.log.warn(`Node ${this.logLabel}: Error: ${(e as Error).message}`);
                     }
                 };
                 this.#subscriptions.set(commandBaseId, handler);
@@ -1445,13 +1654,42 @@ export class GeneralMatterNode {
         }
     }
 
-    async handleChangedAttribute(data: DecodedAttributeReportValue<any>): Promise<void> {
-        const {
-            path: { nodeId, clusterId, endpointId, attributeId, attributeName },
-            value,
-        } = data;
+    /**
+     * One change notification covers a whole behavior, so it can carry several attributes at once, and an
+     * absent property list means every attribute of that behavior may have changed.
+     */
+    async handleChangedAttributes(
+        endpoint: Endpoint,
+        behavior: ClusterBehavior.Type,
+        properties: string[] | undefined,
+    ): Promise<void> {
+        const endpointId = endpoint.number;
+        const clusterId = behavior.cluster.id;
+        const state: Record<string, unknown> = endpoint.stateOf(behavior);
+        for (const attributeName of properties ?? Object.keys(state)) {
+            const attributeId = resolveAttributeId(behavior, attributeName, this.node.matter);
+            if (attributeId === undefined) {
+                continue;
+            }
+            await this.#handleChangedAttribute(
+                endpointId,
+                clusterId,
+                AttributeId(attributeId),
+                attributeName,
+                state[attributeName],
+            );
+        }
+    }
+
+    async #handleChangedAttribute(
+        endpointId: EndpointNumber,
+        clusterId: ClusterId,
+        attributeId: AttributeId,
+        attributeName: string,
+        value: unknown,
+    ): Promise<void> {
         this.adapter.log.debug(
-            `handleChangedAttribute "${this.nodeId}": Attribute ${nodeId}/${endpointId}/${toHex(clusterId)}/${attributeName} changed to ${Diagnostic.json(
+            `handleChangedAttribute "${this.logLabel}": Attribute ${endpointId}/${toHex(clusterId)}/${attributeName} changed to ${Diagnostic.json(
                 value,
             )}`,
         );
@@ -1487,25 +1725,28 @@ export class GeneralMatterNode {
         );
     }
 
-    async handleTriggeredEvent(data: DecodedEventReportValue<any>): Promise<void> {
-        const {
-            path: { nodeId, clusterId, endpointId, eventId, eventName },
-            events,
-        } = data;
+    async handleTriggeredEvent(change: ChangeNotificationService.EventOccurrence): Promise<void> {
+        if (!ClusterBehavior.is(change.behavior)) {
+            return;
+        }
+        const endpointId = change.endpoint.number;
+        const clusterId = change.behavior.cluster.id;
+        // The mappings and the raw event states use the camelCase name
+        const eventName = change.event.propertyName;
+        const eventId = EventId(change.event.id);
+        const events = [decodedEventOf(change)];
         this.adapter.log.debug(
-            `handleTriggeredEvent "${this.nodeId}": Event ${nodeId}/${endpointId}/${toHex(clusterId)}/${eventName} triggered with ${Diagnostic.json(
+            `handleTriggeredEvent "${this.logLabel}": Event ${endpointId}/${toHex(clusterId)}/${eventName} triggered with ${Diagnostic.json(
                 events,
             )}`,
         );
 
-        if (endpointId === 0) {
-            for (const device of this.#deviceMap.values()) {
-                await device.handleTriggeredEvent({ clusterId, endpointId, eventId, eventName, events });
-            }
-        } else {
-            const device = this.#deviceMap.get(endpointId);
-            if (device !== undefined) {
-                await device.handleTriggeredEvent({ clusterId, endpointId, eventId, eventName, events });
+        const targets = endpointId === 0 ? [...this.#deviceMap.values()] : [this.#deviceMap.get(endpointId)];
+        for (const device of targets) {
+            try {
+                await device?.handleTriggeredEvent({ clusterId, endpointId, eventId, eventName, events });
+            } catch (error) {
+                this.adapter.log.warn(`Failed to handle triggered event: ${error.message}`);
             }
         }
 
@@ -1523,15 +1764,11 @@ export class GeneralMatterNode {
         );
     }
 
-    handleConnectionAlive(): void {
-        if (this.node.isConnected) {
-            this.adapter.setState(this.connectionStateId, true, true).catch(() => {});
-        }
-    }
-
-    handleStateChange(state: PairedNodeStates, nodeDetails?: { operationalAddress?: string }): void {
-        const connected = state === PairedNodeStates.Connected;
-        this.adapter.setState(this.connectionStateId, connected, true).catch(() => {});
+    handleStateChange(state: NodeConnectionState, nodeDetails?: { operationalAddress?: string }): void {
+        const connected = state === NodeConnectionState.Connected;
+        this.adapter
+            .setState(this.connectionStateId, isConnectedForIoBroker(state, this.firstReportApplied()), true)
+            .catch(() => {});
         this.adapter.setState(this.connectionStatusId, state, true).catch(() => {});
 
         // A node offline at startup has no root endpoint behaviors yet, so retry ICD detection on connect.
@@ -1543,19 +1780,17 @@ export class GeneralMatterNode {
             this.#publishIcdMode();
         }
         if (connected && nodeDetails) {
-            this.#connectedAddress = nodeDetails.operationalAddress?.substring(6);
+            this.#connectedAddress = nodeDetails.operationalAddress;
             this.adapter.setState(this.connectedAddressStateId, this.#connectedAddress ?? null, true).catch(() => {});
         }
 
         switch (state) {
-            case PairedNodeStates.Connected:
-                this.adapter.log.info(`Node "${this.nodeId}" connected`);
-                if (
-                    this.#subscriptionMaxIntervalS &&
-                    this.node.currentSubscriptionIntervalSeconds !== this.#subscriptionMaxIntervalS
-                ) {
+            case NodeConnectionState.Connected: {
+                this.adapter.log.info(`Node "${this.logLabel}" connected`);
+                const negotiatedIntervalS = this.#negotiatedSubscriptionIntervalS;
+                if (this.#subscriptionMaxIntervalS && negotiatedIntervalS !== this.#subscriptionMaxIntervalS) {
                     this.adapter.log.info(
-                        `Node "${this.nodeId}" subscription interval was requested with ${this.#subscriptionMaxIntervalS}s but device returned ${this.node.currentSubscriptionIntervalSeconds}s`,
+                        `Node "${this.logLabel}" subscription interval was requested with ${this.#subscriptionMaxIntervalS}s but device returned ${negotiatedIntervalS === undefined ? 'none' : `${negotiatedIntervalS}s`}`,
                     );
                 }
                 // Check persisted update info and compare with current version
@@ -1563,14 +1798,15 @@ export class GeneralMatterNode {
                     this.adapter.log.warn(`Failed to restore update info on connect: ${error}`);
                 });
                 break;
-            case PairedNodeStates.Disconnected:
-                this.adapter.log.info(`Node "${this.nodeId}" disconnected`);
+            }
+            case NodeConnectionState.Disconnected:
+                this.adapter.log.info(`Node "${this.logLabel}" disconnected`);
                 break;
-            case PairedNodeStates.Reconnecting:
-                this.adapter.log.info(`Node "${this.nodeId}" reconnecting`);
+            case NodeConnectionState.Reconnecting:
+                this.adapter.log.info(`Node "${this.logLabel}" reconnecting`);
                 break;
-            case PairedNodeStates.WaitingForDeviceDiscovery:
-                this.adapter.log.info(`Node "${this.nodeId}" offline, waiting for device discovery`);
+            case NodeConnectionState.WaitingForDeviceDiscovery:
+                this.adapter.log.info(`Node "${this.logLabel}" offline, waiting for device discovery`);
                 break;
         }
     }
@@ -1601,25 +1837,53 @@ export class GeneralMatterNode {
         return value;
     }
 
-    async destroy(): Promise<void> {
+    /**
+     * Ends this instance for good. A build that is running is retired and finishes first; a build queued behind it,
+     * such as a delayed initialize() or a configuration change, does nothing afterwards. Safe to call again.
+     *
+     * @param options optional settings
+     * @param options.keepConnectionState leave the connection states of the node and of its devices as they are, for
+     *   an instance a rebuild of the same peer replaces; the replacement writes them itself
+     */
+    async destroy(options?: { keepConnectionState?: boolean }): Promise<void> {
+        this.#destroyed = true;
+        this.#generation++;
+        const slot = await this.#buildLock.obtainSlot();
         try {
-            await this.adapter.setState(this.connectionStateId, false, true);
-            await this.adapter.setState(this.connectionStatusId, PairedNodeStates.Disconnected, true);
+            if (!options?.keepConnectionState) {
+                await this.adapter.setState(this.connectionStateId, false, true);
+                await this.adapter.setState(this.connectionStatusId, NodeConnectionState.Disconnected, true);
+            }
         } finally {
             // These writes reject once the states DB is going away during unload, and the caller then has no
             // way back to this node - so releasing its subscriptions must not depend on them succeeding.
-            await this.clear();
+            try {
+                this.#cleanupUpdateObservers();
+                await this.#clear(options);
+                // #clear() hands the next build an open registry; nothing builds again, so anything added later
+                // is undone at once
+                await this.#teardown.close();
+            } finally {
+                slot.close();
+            }
         }
     }
 
-    async remove(): Promise<void> {
+    /**
+     * Removes the node from the controller and deletes its ioBroker objects.
+     *
+     * @returns whether the device confirmed the removal. When it did not, the node is removed anyway and the
+     *   device may still hold our fabric.
+     */
+    async remove(): Promise<{ deviceNotified: boolean }> {
         if (this.adapter.controllerNode === undefined) {
             throw new Error('Controller seems not to be initialized ... can not unpair device!');
         }
-        await this.adapter.controllerNode.decommissionNode(this.nodeId);
-        await this.clear();
-        this.adapter.log.info(`Node "${this.nodeId}" removed. Removing Storage in ${this.nodeBaseId}`);
+        const result = await this.adapter.controllerNode.decommissionNode(this.nodeId);
+        await this.destroy();
+        this.adapter.log.info(`Node "${this.logLabel}" removed. Removing Storage in ${this.nodeBaseId}`);
         await this.adapter.delObjectAsync(this.nodeBaseId, { recursive: true });
+        return result;
     }
 
     async rename(newName: string): Promise<void> {
@@ -1630,12 +1894,12 @@ export class GeneralMatterNode {
     getNodeDetails(): StructuredJsonFormData {
         const result: StructuredJsonFormData = {};
 
-        const details = this.node.basicInformation;
+        const details = this.node.maybeStateOf(BasicInformationClient);
 
         if (details) {
             result.node = {};
 
-            const peerAddress = PeerAddress(this.node.node.maybeStateOf(CommissioningClient)?.peerAddress);
+            const peerAddress = PeerAddress(this.node.maybeStateOf(CommissioningClient)?.peerAddress);
 
             result.node.nodeId = this.nodeId;
             if (peerAddress) {
@@ -1660,22 +1924,22 @@ export class GeneralMatterNode {
                 result.node.uniqueId = details.uniqueId;
             }
 
-            const { threadPan } = this.node.deviceInformation;
+            const properties = ClientNodePhysicalProperties(this.node);
             result.capabilities = {
-                ...this.node.deviceInformation,
+                ...properties,
 
-                threadPan: threadPan !== undefined ? toUpperCaseHex(threadPan) : undefined,
+                threadPan: properties.threadPan !== undefined ? toUpperCaseHex(properties.threadPan) : undefined,
 
                 // hide these two entries
                 dataRevision: undefined,
                 rootEndpointServerList: undefined,
             };
 
-            if (this.node.isConnected) {
+            if (this.node.lifecycle.isConnected) {
                 result.network = {
                     connectedAddress: this.#connectedAddress,
                 };
-                const generalDiag = this.node.node.maybeStateOf(GeneralDiagnosticsClient);
+                const generalDiag = this.node.maybeStateOf(GeneralDiagnosticsClient);
                 if (generalDiag !== undefined) {
                     try {
                         const networkInterfaces = generalDiag.networkInterfaces;
@@ -1735,7 +1999,7 @@ export class GeneralMatterNode {
             }
         }
 
-        const rootEndpoint = this.node.node;
+        const rootEndpoint = this.node;
         if (rootEndpoint) {
             result.rootEndpointClusters = {};
             for (const [behaviorId, BehaviorType] of Object.entries(rootEndpoint.behaviors.supported)) {
@@ -1763,24 +2027,24 @@ export class GeneralMatterNode {
 
     getStatus(): DeviceStatus {
         const status: DeviceStatus = {
-            connection: this.node.isConnected ? 'connected' : 'disconnected',
+            connection: this.node.lifecycle.isConnected ? 'connected' : 'disconnected',
         };
 
-        if (!this.node.initialized) {
+        if (!this.node.lifecycle.isSeeded) {
             status.warning = 'The Node is not yet initialized ... Trying to connect.';
-        } else if (this.node.connectionState === PairedNodeStates.Reconnecting) {
+        } else if (this.node.lifecycle.connectionState === NodeConnectionState.Reconnecting) {
             status.warning = 'The Node is currently reconnecting ...';
         }
 
-        if (this.node.isConnected) {
-            const wifiNetworkDiagnostics = this.node.node.maybeStateOf(WiFiNetworkDiagnosticsClient);
+        if (this.node.lifecycle.isConnected) {
+            const wifiNetworkDiagnostics = this.node.maybeStateOf(WiFiNetworkDiagnosticsClient);
             const rssi = wifiNetworkDiagnostics?.rssi;
             if (rssi !== null) {
                 status.rssi = rssi;
             }
 
             if (status.rssi === undefined) {
-                const threadNetworkDiagnostics = this.node.node.maybeStateOf(ThreadNetworkDiagnosticsClient);
+                const threadNetworkDiagnostics = this.node.maybeStateOf(ThreadNetworkDiagnosticsClient);
                 if (threadNetworkDiagnostics?.neighborTable !== undefined) {
                     const neighborTable = threadNetworkDiagnostics?.neighborTable;
                     const routeTable = threadNetworkDiagnostics.routeTable ?? [];
@@ -1856,9 +2120,10 @@ export class GeneralMatterNode {
     }
 
     get connectionType(): ConfigConnectionType {
-        if (this.node.deviceInformation?.threadActive || this.node.deviceInformation?.supportsThread) {
+        const properties = ClientNodePhysicalProperties(this.node);
+        if (properties.threadActive || properties.supportsThread) {
             return 'thread';
-        } else if (this.node.deviceInformation?.supportsWifi) {
+        } else if (properties.supportsWifi) {
             return 'wifi';
         }
         return 'lan';
@@ -1868,34 +2133,41 @@ export class GeneralMatterNode {
         const result: StructuredJsonFormData = {};
 
         result.connection = {
-            __text__connected: this.node.isConnected
+            __text__connected: this.node.lifecycle.isConnected
                 ? 'The node is successfully connected.'
                 : this.#enabled
                   ? 'The node is currently not connected.'
                   : 'The node is disabled.',
-            status: decamelize(PairedNodeStates[this.node.connectionState]),
+            status: decamelize(NodeConnectionState[this.node.lifecycle.connectionState]),
         };
 
         result.connection.address = this.#connectedAddress;
-        if (this.node.deviceInformation?.threadActive || this.node.deviceInformation?.supportsThread) {
+        const properties = ClientNodePhysicalProperties(this.node);
+        if (properties.threadActive || properties.supportsThread) {
             result.connection.connectedVia = 'Thread';
-        } else if (this.node.deviceInformation?.supportsWifi) {
+        } else if (properties.supportsWifi) {
             result.connection.connectedVia = 'WiFi';
-        } else if (this.node.deviceInformation?.supportsEthernet) {
+        } else if (properties.supportsEthernet) {
             result.connection.connectedVia = 'Ethernet';
         }
 
-        if (this.node.isConnected) {
-            result.connection.subscriptionMaximumInterval = `${this.node.currentSubscriptionIntervalSeconds}s`;
-            const operationalCredentials = this.node.node.maybeStateOf(OperationalCredentialsClient);
+        if (this.node.lifecycle.isConnected) {
+            const negotiatedIntervalS = this.#negotiatedSubscriptionIntervalS;
+            if (negotiatedIntervalS !== undefined) {
+                result.connection.subscriptionMaximumInterval = `${negotiatedIntervalS}s`;
+            }
+            const operationalCredentials = this.node.maybeStateOf(OperationalCredentialsClient);
             if (operationalCredentials !== undefined) {
                 result.connection.__header__operationalCredentials = 'Connected Fabrics';
-                const ownFabricIndex = operationalCredentials.currentFabricIndex;
-                const fabrics = (
-                    await this.node.node.getStateOf(OperationalCredentialsClient, ['fabrics'], {
-                        fabricFilter: false,
-                    })
-                )?.fabrics;
+                // currentFabricIndex is our index in the peer's table rather than ours locally, and is read with
+                // the list so that both describe the same snapshot.
+                const credentials = await this.node.getStateOf(
+                    OperationalCredentialsClient,
+                    ['fabrics', 'currentFabricIndex'],
+                    { fabricFilter: false },
+                );
+                const ownFabricIndex = credentials?.currentFabricIndex;
+                const fabrics = credentials?.fabrics;
                 if (fabrics) {
                     fabrics.forEach(fabric => {
                         const fabricId = fabric.fabricId;

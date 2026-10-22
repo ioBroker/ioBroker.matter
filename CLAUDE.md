@@ -11,9 +11,9 @@ Built on `@matter/main` (matter.js) library and follows the ioBroker adapter dev
 
 ## Technology Stack
 
-- **Backend**: TypeScript, Node.js 20+
+- **Backend**: TypeScript, Node.js 22+
 - **Frontend**: React 18, Vite, Material-UI
-- **Matter Library**: `@matter/main`, `@matter/nodejs`, `@project-chip/matter.js`
+- **Matter Library**: `@matter/main`, `@matter/nodejs`
 - **ioBroker Integration**: `@iobroker/adapter-core`, `@iobroker/type-detector`, `@iobroker/dm-utils`
 
 ## Project Structure

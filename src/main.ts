@@ -1,5 +1,6 @@
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
+import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {
@@ -12,7 +13,7 @@ import {
     SoftwareUpdateManager,
     type WorkSlot,
 } from '@matter/main';
-import { StorageBackendDisk } from '@matter/nodejs';
+import { FileStorageDriver } from '@matter/nodejs';
 import { inspect } from 'util';
 
 import { type AdapterOptions, Adapter, getAbsoluteInstanceDataDir, I18n } from '@iobroker/adapter-core';
@@ -34,6 +35,7 @@ import MatterDevice, { type DeviceCreateOptions } from './matter/DeviceNode';
 import type { PairedNodeConfig } from './matter/GeneralMatterNode';
 import type { MessageResponse } from './matter/GeneralNode';
 import { IoBrokerObjectStorage } from './matter/IoBrokerObjectStorage';
+import { StorageLayout } from './matter/storageLayout';
 import { type StructuredJsonFormData, convertDataToJsonConfig } from './lib/JsonConfigUtils';
 import { determineIoBrokerDevice } from './lib/deviceDetection';
 
@@ -65,6 +67,31 @@ export class MatterAdapter extends Adapter {
     get instanceDataDir(): string {
         return this.#instanceDataDir ?? '';
     }
+
+    /**
+     * Root for the downloaded and re-fetchable files: OTA images, BDX transfers, DCL caches. Kept beside the
+     * instance data directory rather than inside it, so that directory holds nothing but the controller node
+     * store, whose storage driver would otherwise index these as entries of its own.
+     */
+    get cacheDir(): string {
+        return getAbsoluteInstanceDataDir(`${this.namespace}.cache`);
+    }
+
+    /** Default location for OTA images the user imports by hand — theirs to manage, so it stands on its own. */
+    get defaultCustomOtaPath(): string {
+        return getAbsoluteInstanceDataDir(`${this.namespace}.custom-ota`);
+    }
+
+    /** The folder custom OTA images are imported from, see {@link StorageLayout.customOtaPath}. */
+    get customOtaPath(): string {
+        const legacyDir = path.join(getAbsoluteInstanceDataDir(this), 'custom-ota');
+        return StorageLayout.customOtaPath(
+            (this.config as MatterAdapterConfig).customUpdatesPath,
+            legacyDir,
+            this.defaultCustomOtaPath,
+            existsSync(legacyDir),
+        );
+    }
     t: (word: string, ...args: (string | number | boolean | null)[]) => string;
     getText: (word: string, ...args: (string | number | boolean | null)[]) => ioBroker.Translated;
     #closing = false;
@@ -77,6 +104,8 @@ export class MatterAdapter extends Adapter {
     }>();
     #objectProcessQueueTimeout?: ioBroker.Timeout;
     #currentObjectProcessPromise?: Promise<void>;
+    /** Object changes queued while the initial sync runs are processed once it is done. */
+    #initialSyncDone = false;
     #controllerActionQueue = new Semaphore('controller-action');
     #blockGuiUpdates = false;
 
@@ -180,17 +209,19 @@ export class MatterAdapter extends Adapter {
             await device?.start();
         }
 
-        if (this.#controller) {
-            await this.#controller.start();
+        // Disabling the controller during the start clears #controller and stops this instance
+        const controller = this.#controller;
+        if (controller) {
+            await controller.start();
 
             // Import custom OTA updates after the controller is started
-            if ((this.config as MatterAdapterConfig).allowUnofficialUpdates && this.#controller.otaProvider) {
-                await this.#controller.otaProvider.setStateOf(SoftwareUpdateManager, {
+            if ((this.config as MatterAdapterConfig).allowUnofficialUpdates && controller.otaProvider) {
+                await controller.otaProvider.setStateOf(SoftwareUpdateManager, {
                     allowTestOtaImages: true,
                 });
                 this.log.info('Enabled test OTA images (test-net DCL)');
 
-                await this.#controller.importCustomOtaUpdates();
+                await controller.importCustomOtaUpdates();
             }
         }
     }
@@ -202,7 +233,6 @@ export class MatterAdapter extends Adapter {
         await this.delObjectAsync('storage', { recursive: true });
         // clear all nodes in the controller
         await this.delObjectAsync('controller', { recursive: true });
-
         // restart adapter
         this.restart();
     }
@@ -357,9 +387,8 @@ export class MatterAdapter extends Adapter {
                 break;
             }
             case 'getDefaultCustomOtaPath': {
-                const customOtaPath = path.join(this.instanceDataDir, 'custom-ota');
                 if (obj.callback) {
-                    this.sendTo(obj.from, obj.command, { path: customOtaPath }, obj.callback);
+                    this.sendTo(obj.from, obj.command, { path: this.defaultCustomOtaPath }, obj.callback);
                 }
                 break;
             }
@@ -522,26 +551,25 @@ export class MatterAdapter extends Adapter {
 
         const adapter = this;
         const instanceDataDir = this.#instanceDataDir;
+        const cacheDir = this.cacheDir;
         if (instanceDataDir !== undefined) {
-            this.#matterEnvironment.vars.set('storage.path', instanceDataDir);
+            this.#matterEnvironment.vars.set('storage.path', cacheDir);
         }
         const storageService = this.#matterEnvironment.get(StorageService);
         storageService.registerDriver({
             id: 'iobroker',
             create: async ns => {
                 const namespace = ns.namespace;
-                // We put special namespaces with temporary data into the filesystem
-                // We reuse the dir of the normal storage but use subdirectories, so should be fine
-                if (namespace === 'ota' || namespace === 'certificates' || namespace === 'vendors') {
-                    const namespacePath = path.join(instanceDataDir!, `ns-${namespace}`);
-                    const store = new StorageBackendDisk(namespacePath, false);
+                // Caches that are re-fetched anyway; they live in the filesystem rather than in objects
+                if (instanceDataDir !== undefined && (namespace === 'certificates' || namespace === 'vendors')) {
+                    const namespacePath = path.join(cacheDir, `ns-${namespace}`);
+                    const store = new FileStorageDriver(namespacePath);
                     await store.initialize();
                     return store;
                 }
                 const store = new IoBrokerObjectStorage(
                     adapter,
                     namespace,
-                    false,
                     namespace === 'controller' ? instanceDataDir : undefined,
                     namespace === 'controller'
                         ? (contexts: string[]): boolean =>
@@ -575,9 +603,17 @@ export class MatterAdapter extends Adapter {
                 this.#instanceDataDir = dataDir;
             } else {
                 this.log.info(
-                    `Can not create pairing data storage directory ${this.#instanceDataDir}. Pairing data can not be persisted!`,
+                    `Can not create pairing data storage directory ${dataDir}. Pairing data can not be persisted!`,
                 );
             }
+        }
+
+        if (this.#instanceDataDir !== undefined) {
+            await StorageLayout.relocate(
+                this.#instanceDataDir,
+                { cacheDir: this.cacheDir, customOtaDir: this.defaultCustomOtaPath },
+                this.log,
+            );
         }
 
         try {
@@ -599,6 +635,11 @@ export class MatterAdapter extends Adapter {
         )) as ioBroker.SystemConfigObject;
         this.sysLanguage = systemConfig?.common?.language || 'en';
 
+        // Subscribed before the initial sync reads the objects, so a change made in the meantime is queued
+        await this.subscribeObjectsAsync('bridges.*');
+        await this.subscribeObjectsAsync('devices.*');
+        await this.subscribeObjectsAsync('controller.*');
+
         this.log.debug('Sync devices');
 
         await this.syncDevices();
@@ -610,11 +651,9 @@ export class MatterAdapter extends Adapter {
          */
         await this.startUpMatterNodes();
 
-        this.subscribeObjects('bridges.*');
-        this.subscribeObjects('devices.*');
-        this.subscribeObjects('controller.*');
-
-        this.log.debug('Initialization done, Objects subscribed');
+        this.#initialSyncDone = true;
+        this.log.debug('Initialization done, processing object changes');
+        this.#processObjectChangeQueue();
 
         // this allows to GUI to read the devices. So make it after all devices are loaded
         this.#_guiSubscribes ||= [];
@@ -754,6 +793,9 @@ export class MatterAdapter extends Adapter {
     }
 
     #processObjectChangeQueue(): void {
+        if (!this.#initialSyncDone) {
+            return;
+        }
         // inform GUI about whats in progress
         this.sendToGui({
             command: 'processing',
@@ -796,8 +838,17 @@ export class MatterAdapter extends Adapter {
     }
 
     #onObjectChange(id: string, obj: ioBroker.Object | null | undefined): void {
+        if (!this.#initialSyncDone && obj?.from === `system.adapter.${this.namespace}`) {
+            // The initial sync writes these objects itself and already acts on what it writes
+            return;
+        }
         const mainObjectId = id.split('.').slice(0, 4).join('.'); // get the device or controller object
-        if (this.#objectProcessQueue[0]?.id.startsWith(mainObjectId) && id !== mainObjectId) {
+        const queuedId = this.#objectProcessQueue[0]?.id;
+        if (
+            queuedId !== undefined &&
+            (queuedId === mainObjectId || queuedId.startsWith(`${mainObjectId}.`)) &&
+            id !== mainObjectId
+        ) {
             this.log.debug(
                 `Sub object changed ${id}, type = ${obj?.type} - Already in queue via ${mainObjectId}, ignore ...`,
             );
@@ -810,13 +861,38 @@ export class MatterAdapter extends Adapter {
         }
 
         this.log.debug(`Object changed ${id}, type = ${obj?.type} - Register to process delayed ...`);
+        this.#queueObjectChange(id);
+    }
 
+    #queueObjectChange(id: string): void {
+        if (this.#objectProcessQueue.some(entry => entry.id === id && !entry.inProgress)) {
+            // The waiting entry reads the object when it runs, so it already covers this change
+            return;
+        }
         this.#objectProcessQueue.push({
             id,
             func: async () => this.#processObjectChange(id),
             earliest: Date.now() + 5000,
         });
         this.#processObjectChangeQueue();
+    }
+
+    /**
+     * Write a change to one of the adapter's own configuration objects on behalf of the user, such as a node configured
+     * in the Device Manager, and make sure it is applied. While the initial sync runs, the adapter's own writes are not
+     * taken from the object subscription, so a write that starts then is queued here once it is done; afterwards the
+     * subscription delivers it.
+     *
+     * @param id the id of the object, relative such as `controller.<nodeId>`
+     * @param objPart the part of the object to write, as for `extendObjectAsync`
+     */
+    async extendOwnConfigObject(id: string, objPart: ioBroker.PartialObject): Promise<void> {
+        // Decided before the write: the start can end while it runs, after the subscription already dropped the change
+        const queue = !this.#initialSyncDone;
+        await this.extendObjectAsync(id, objPart);
+        if (queue) {
+            this.#queueObjectChange(`${this.namespace}.${id}`);
+        }
     }
 
     #onStateChange(id: string, state: ioBroker.State | null | undefined): void {
@@ -1378,7 +1454,7 @@ export class MatterAdapter extends Adapter {
     async deleteBridgeOrDevice(type: 'bridge' | 'device', id: string, uuid: string): Promise<void> {
         await this.stopBridgeOrDevice(type, id);
         const storage = new IoBrokerObjectStorage(this, uuid);
-        await storage.clear();
+        await storage.clearAll([]);
     }
 
     getGenericErrorDetails(

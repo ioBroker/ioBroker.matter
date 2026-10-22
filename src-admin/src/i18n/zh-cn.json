@@ -39,7 +39,7 @@
     "Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.": "由于 ioBroker Admin 未使用 HTTPS，因此无法进行本地二维码扫描。\n请使用下面的按钮使用 ioBroker Cloud 二维码扫描器，或为 ioBroker Admin 激活 HTTPS。",
     "Cancel": "取消",
     "Cannot pair device": "无法配对设备",
-    "Close": "关闭",
+    "Close": "关",
     "Cloud Account": "云帐户",
     "Code must start with \"MT:\"": "代码必须以“MT:”开头",
     "Collapse all": "全部收缩",
@@ -337,5 +337,10 @@
     "\"%s\" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.": "“%s”是一个休眠设备(Matter LIT)。它只有在下次唤醒时才会响应,因此它自己的网络数据会稍后到达。",
     "Refresh %s connected online neighbor(s) for current link data": "刷新 %s 个已连接的在线邻居以获取当前链路数据",
     "No online neighbor can report its current link data either.": "没有在线邻居能够报告当前的链路数据。",
-    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s 个节点是休眠设备(Matter LIT),因此更新不会等待它们——它们的数据会在唤醒后出现。"
+    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s 个节点是休眠设备(Matter LIT),因此更新不会等待它们——它们的数据会在唤醒后出现。",
+    "The pairing code is wrong": "配对码错误",
+    "The device attestation was rejected": "设备认证被拒绝",
+    "The device was not found in the network": "在网络中未找到该设备",
+    "The device is already paired with this controller": "该设备已与此控制器配对",
+    "The node was removed, but the device could not be told to leave. It may still be paired with this controller and needs a factory reset before it can be paired again.": "节点已移除，但无法通知设备离开。设备可能仍与此控制器配对，需要恢复出厂设置后才能再次配对。"
 }

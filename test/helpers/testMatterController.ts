@@ -1,12 +1,10 @@
 /**
- * The only place in the integration test that touches the matter.js 0.17 controller API
- * (`CommissioningController` / `PairedNode` from `@project-chip/matter.js`). Everything else works against
- * `Endpoint` and the adapter's own factory, so the 0.18 `ClientNode` rewrite only has to replace this file.
+ * The only place in the integration test that touches the matter.js controller API directly. Everything
+ * else works against `Endpoint` and the adapter's own factory.
  */
 
-import { Environment } from '@matter/main';
-import { CommissioningController } from '@project-chip/matter.js';
-import type { PairedNode } from '@project-chip/matter.js/device';
+import { ControllerBehavior, Environment, ServerNode, type ClientNode } from '@matter/main';
+import { FabricAuthority } from '@matter/main/protocol';
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, what: string): Promise<T> {
     let timer: NodeJS.Timeout | undefined;
@@ -25,7 +23,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, what: stri
 }
 
 export interface CommissionedFixture {
-    node: PairedNode;
+    node: ClientNode;
     close: () => Promise<void>;
 }
 
@@ -46,34 +44,34 @@ export async function commissionFixture(options: {
         environment.vars.set('mdns.networkInterface', mdnsInterface);
     }
 
-    const controller = new CommissioningController({
-        autoConnect: false,
-        environment: { environment, id: 'controller' },
-        adminFabricLabel: fabricLabel,
+    const serverNode = await ServerNode.create(ServerNode.RootEndpoint.with(ControllerBehavior), {
+        environment,
+        id: 'controller',
+        // A controller is not commissionable itself, and the fixture is short lived
+        commissioning: { enabled: false },
+        subscriptions: { persistenceEnabled: false },
+        controller: { adminFabricLabel: fabricLabel },
     });
-    await controller.start();
 
-    let node: PairedNode;
+    let node: ClientNode;
     try {
-        const nodeId = await withTimeout(
-            controller.commissionNode({
-                subscribeMinIntervalFloorSeconds: 1,
-                subscribeMaxIntervalCeilingSeconds: undefined,
-                commissioning: {},
-                discovery: { identifierData: { longDiscriminator: discriminator } },
-                passcode,
-            }),
+        const fabricAuthority = await serverNode.env.load(FabricAuthority);
+        await fabricAuthority.defaultFabric({ adminFabricLabel: fabricLabel });
+        await serverNode.start();
+
+        node = await withTimeout(
+            serverNode.peers.commission({ passcode, longDiscriminator: discriminator }),
             timeoutMs,
-            'commissionNode',
+            'commission',
         );
-        node = await withTimeout(controller.getNode(nodeId), timeoutMs, 'getNode');
-        // Awaiting the observable never resolves once it has already fired, so only wait when it still has to.
-        if (!node.initialized) {
-            await withTimeout(Promise.resolve(node.events.initialized), timeoutMs, 'node initialization');
+        // The structure is read once the peer is seeded, and the mapping needs it
+        if (!node.lifecycle.isSeeded) {
+            const seeded = new Promise<void>(resolve => node.lifecycle.seeded.once(() => resolve()));
+            await withTimeout(seeded, timeoutMs, 'node initialization');
         }
     } catch (error) {
         // The caller retries with a fresh fixture, so this attempt's mDNS and storage must not outlive it
-        await controller.close().catch(() => undefined);
+        await serverNode.close().catch(() => undefined);
         environment[Symbol.dispose]();
         throw error;
     }
@@ -81,7 +79,7 @@ export async function commissionFixture(options: {
     return {
         node,
         close: async () => {
-            await controller.close();
+            await serverNode.close();
             environment[Symbol.dispose]();
         },
     };

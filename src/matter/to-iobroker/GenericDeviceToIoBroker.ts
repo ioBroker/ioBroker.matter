@@ -9,21 +9,24 @@ import {
     EndpointNumber,
     Matter,
     ObserverGroup,
+    ClientNodePhysicalProperties,
+    type ClientNode,
 } from '@matter/main';
 import type { MatterAdapter } from '../../main';
 import { BasicInformation, BridgedDeviceBasicInformation, PowerSource } from '@matter/main/clusters';
 import {
+    BasicInformationClient,
     BridgedDeviceBasicInformationClient,
     DescriptorClient,
     IdentifyClient,
     PowerSourceClient,
 } from '@matter/main/behaviors';
 import { type DecodedEventData, Read } from '@matter/main/protocol';
-import type { PairedNode } from '@project-chip/matter.js/device';
 import type { GenericDevice } from '../../lib';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DeviceOptions } from '../../lib/devices/GenericDevice';
 import { decamelize, toHex } from '../../lib/utils';
+import { formatPeerLogLabel } from '../nodeLogLabel';
 import type { StructuredJsonFormData } from '../../lib/JsonConfigUtils';
 import type { DeviceStatus } from '@iobroker/dm-utils';
 import type {
@@ -89,7 +92,7 @@ function eventPathToString(path: { endpointId: EndpointNumber; clusterId: Cluste
 export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = EmptyCustomStates> {
     readonly #adapter: MatterAdapter;
     readonly baseId: string;
-    readonly #node: PairedNode;
+    readonly #node: ClientNode;
     protected readonly appEndpoint: Endpoint;
     protected readonly rootEndpoint: Endpoint;
     readonly #observers = new ObserverGroup();
@@ -127,7 +130,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
 
     protected constructor(
         adapter: MatterAdapter,
-        node: PairedNode,
+        node: ClientNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         endpointDeviceBaseId: string,
@@ -187,11 +190,17 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
     }
 
     get nodeBasicInformation(): Record<string, unknown> {
-        return this.#node.basicInformation ?? {};
+        return this.#node.maybeStateOf(BasicInformationClient) ?? {};
     }
 
-    get node(): PairedNode {
+    get node(): ClientNode {
         return this.#node;
+    }
+
+    /** For log messages: the peer address carries no node id until the node is commissioned. */
+    get #logLabel(): string {
+        const peerAddress = this.#node.state.commissioning.peerAddress;
+        return peerAddress === undefined ? this.#node.id : formatPeerLogLabel(peerAddress);
     }
 
     /**
@@ -883,7 +892,10 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
     }
 
     get pollInterval(): number {
-        return this.#pollInterval ?? (this.#node.deviceInformation?.isBatteryPowered ? 24 * 60 * 60_000 : 60_000);
+        return (
+            this.#pollInterval ??
+            (ClientNodePhysicalProperties(this.#node).isBatteryPowered ? 24 * 60 * 60_000 : 60_000)
+        );
     }
 
     async #pollAttributes(
@@ -900,7 +912,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
             return;
         }
 
-        if (this.#node.isConnected) {
+        if (this.#node.lifecycle.isConnected) {
             // The read result carries only numeric paths, so map (endpoint, cluster, attribute) back to its name
             const attributeNames = new Map<string, string>();
             for (const { endpointId, clusterId, attributeId, attributeName } of attributes) {
@@ -921,7 +933,7 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                 });
 
                 try {
-                    for await (const chunk of this.#node.node.interaction.read(request)) {
+                    for await (const chunk of this.#node.interaction.read(request)) {
                         for await (const report of chunk) {
                             if (this.#destroyed || generation !== this.#pollGeneration) {
                                 return;
@@ -944,11 +956,11 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
                         }
                     }
                 } catch (e) {
-                    this.#adapter.log.info(`Error polling attributes for node ${this.#node.nodeId}: ${e}`);
+                    this.#adapter.log.info(`Error polling attributes for node ${this.#logLabel}: ${e}`);
                 }
             }
         } else {
-            this.#adapter.log.debug(`Node ${this.#node.nodeId} is not connected, do not poll attributes`);
+            this.#adapter.log.debug(`Node ${this.#logLabel} is not connected, do not poll attributes`);
         }
 
         if (!this.#destroyed && generation === this.#pollGeneration) {
@@ -959,14 +971,19 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
         }
     }
 
-    async destroy(): Promise<void> {
+    /**
+     * @param options optional settings
+     * @param options.keepConnectionState do not write the connection state false, for a device a rebuild of the
+     *   same node replaces
+     */
+    async destroy(options?: { keepConnectionState?: boolean }): Promise<void> {
         this.#destroyed = true;
         if (this.#pollTimeout !== undefined) {
             this.#adapter.clearTimeout(this.#pollTimeout);
             this.#pollTimeout = undefined;
         }
         this.#observers.close();
-        if (this.#hasBridgedReachabilityAttribute) {
+        if (this.#hasBridgedReachabilityAttribute && !options?.keepConnectionState) {
             // Unsubscribing must happen even when the connection state can no longer be written
             try {
                 await this.#adapter.setState(this.#connectionStateId, { val: false, ack: true });

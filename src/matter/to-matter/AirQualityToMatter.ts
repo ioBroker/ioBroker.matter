@@ -20,7 +20,7 @@ import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { type AirQuality, AirQualityIndex, PollutantLevel } from '../../lib/devices/AirQuality';
 import { GenericDeviceToMatter } from './GenericDeviceToMatter';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
-import { IoIdentifyServer } from '../behaviors/IdentifyServer';
+import { IoIdentifyServer, IoPlugInUnitIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 import { EventedOnOffPlugInUnitOnOffServer } from '../behaviors/EventedOnOffPlugInUnitOnOffServer';
 
@@ -183,7 +183,7 @@ const IoAirQualitySensorDevice = AirQualitySensorDevice.with(IoAirQualityServer,
 const IoOnOffPlugInUnitDevice = OnOffPlugInUnitDevice.with(
     EventedOnOffPlugInUnitOnOffServer,
     IoBrokerEvents,
-    IoIdentifyServer,
+    IoPlugInUnitIdentifyServer,
     IoBrokerContext,
 );
 type IoOnOffPlugInUnitDevice = typeof IoOnOffPlugInUnitDevice;

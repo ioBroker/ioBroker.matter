@@ -10,10 +10,14 @@
 
 import { expect } from 'chai';
 import type { ChildProcess } from 'node:child_process';
-import type { Endpoint } from '@matter/main';
-import { Logger, LogLevel } from '@matter/main';
-import { AttributeId, ClusterId, EndpointNumber } from '@matter/main/types';
-import { BridgedDeviceBasicInformationClient } from '@matter/main/behaviors';
+import type { ClientNode, Endpoint } from '@matter/main';
+import { Logger, LogLevel, NodeConnectionState, Timestamp } from '@matter/main';
+import { AttributeId, ClusterId, EndpointNumber, EventNumber, NodeId, Priority } from '@matter/main/types';
+import {
+    BridgedDeviceBasicInformationClient,
+    SwitchClient,
+    TemperatureMeasurementClient,
+} from '@matter/main/behaviors';
 import {
     ActivatedCarbonFilterMonitoring,
     FanControl,
@@ -50,6 +54,15 @@ interface MappedEndpoint {
     baseId: string;
     matterDeviceTypeId?: number;
     error?: unknown;
+}
+
+/** The node id the controller gave the fixture, which a `ClientNode` carries in its commissioning state. */
+function peerNodeId(peer: ClientNode): NodeId {
+    const nodeId = peer.state.commissioning.peerAddress?.nodeId;
+    if (nodeId === undefined) {
+        throw new Error('the commissioned fixture has no node id');
+    }
+    return nodeId;
 }
 
 describe('Matter -> ioBroker controller mapping', function () {
@@ -109,8 +122,7 @@ describe('Matter -> ioBroker controller mapping', function () {
         adapter = new MockControllerAdapter();
         SubscribeManager.setAdapter(adapter as unknown as ioBroker.Adapter);
 
-        const rootEndpoint = commissioned.node.node;
-        expect(rootEndpoint, 'controller did not expose a root endpoint').to.not.equal(undefined);
+        const rootEndpoint = commissioned.node;
 
         const aggregator = ([...rootEndpoint!.parts] as Endpoint[]).find(
             part =>
@@ -430,7 +442,7 @@ describe('Matter -> ioBroker controller mapping', function () {
         };
 
         const bridgedEndpoint = (label: string): Endpoint => {
-            const rootEndpoint = commissioned!.node.node!;
+            const rootEndpoint = commissioned!.node;
             for (const part of [...rootEndpoint.parts] as Endpoint[]) {
                 for (const child of [...part.parts] as Endpoint[]) {
                     if (child.maybeStateOf(BridgedDeviceBasicInformationClient)?.nodeLabel === label) {
@@ -442,10 +454,10 @@ describe('Matter -> ioBroker controller mapping', function () {
         };
 
         before(async () => {
-            node = new GeneralMatterNode(adapter as unknown as MatterAdapter, commissioned!.node, {});
+            node = new GeneralMatterNode(adapter as unknown as MatterAdapter, commissioned!.node, {}, () => false);
             await node.applyConfiguration(
                 {
-                    nodeId: commissioned!.node.nodeId,
+                    nodeId: peerNodeId(commissioned!.node),
                     exposeMatterApplicationClusterData: true,
                     exposeMatterSystemClusterData: false,
                 },
@@ -458,7 +470,13 @@ describe('Matter -> ioBroker controller mapping', function () {
         });
 
         after(async () => {
-            await node?.clear();
+            await node?.destroy();
+        });
+
+        it('keeps its objects under the decimal node id and names the peer address only in its log label', () => {
+            const nodeId = peerNodeId(commissioned!.node);
+            expect(node.nodeBaseId).to.equal(`controller.${nodeId}`);
+            expect(node.logLabel).to.equal(`${nodeId} (@1:${nodeId.toString(16)})`);
         });
 
         it('places the raw data of a child that is its own device below that child', () => {
@@ -498,19 +516,260 @@ describe('Matter -> ioBroker controller mapping', function () {
             )}.attributes.measuredValue`;
             expect(adapter.states.get(stateId)?.val, 'raw state not initialized').to.equal(2350);
 
-            await node.handleChangedAttribute({
-                path: {
-                    nodeId: commissioned!.node.nodeId,
-                    endpointId: EndpointNumber(sensor!.number!),
-                    clusterId: ClusterId(TEMPERATURE_MEASUREMENT),
-                    attributeId: AttributeId(MEASURED_VALUE),
-                    attributeName: 'measuredValue',
-                },
-                version: 1,
-                value: 2500,
+            // The fixture cannot be told to report a new value, so this drives the fan-out with the value
+            // the device holds: it proves the notification reaches this raw state, not that it changes.
+            adapter.states.delete(stateId);
+            await node.handleChangedAttributes(sensor!, TemperatureMeasurementClient, ['measuredValue']);
+
+            expect(adapter.states.get(stateId)?.val, 'raw state not written by the change handler').to.equal(2350);
+        });
+
+        const switchEventsOf = (endpoint: Endpoint): string[] => {
+            const prefix = `${deviceObjectId(endpoint.number)}.data.${endpoint.number}.${toHex(SwitchClient.cluster.id)}.events.`;
+            return adapter
+                .objectsBelow(prefix.slice(0, -1))
+                .filter(id => id.startsWith(prefix))
+                .map(id => id.slice(prefix.length));
+        };
+
+        it('creates the raw event states the features of a switch allow, without an EventList', () => {
+            expect(switchEventsOf(bridgedEndpoint('genericswitch'))).to.have.members([
+                'initialPress',
+                'longPress',
+                'shortRelease',
+                'longRelease',
+            ]);
+            expect(switchEventsOf(bridgedEndpoint('genericswitchlatching'))).to.deep.equal(['switchLatched']);
+        });
+
+        it('delivers an event to the mapping and the raw state under its camelCase name', async () => {
+            const button = bridgedEndpoint('genericswitch');
+            const initialPress = [...SwitchClient.schema.events].find(event => event.name === 'InitialPress');
+            expect(initialPress, 'the Switch schema has no InitialPress event').to.not.equal(undefined);
+
+            // The fixture cannot be told to press its button, so this hands the handler the occurrence matter.js
+            // would report for one.
+            await node.handleTriggeredEvent({
+                kind: 'event',
+                endpoint: button,
+                behavior: SwitchClient,
+                event: initialPress!,
+                number: EventNumber(1),
+                timestamp: Timestamp(0),
+                timestampKind: 'epoch',
+                priority: Priority.Info,
+                payload: { newPosition: 1 },
             });
 
-            expect(adapter.states.get(stateId)?.val).to.equal(2500);
+            const base = deviceObjectId(button.number);
+            expect(adapter.valueOf(base, 'PRESS'), 'press not delivered').to.equal(true);
+            const raw = adapter.valueOf(
+                base,
+                `data.${button.number}.${toHex(SwitchClient.cluster.id)}.events.initialPress`,
+            );
+            expect(raw, 'raw event state not written').to.be.a('string');
+        });
+
+        it('retires a running build and runs none queued behind destroy()', async () => {
+            const subscriptionCount = (): number =>
+                [...SubscribeManager.subscribes.values()].reduce((sum, callbacks) => sum + callbacks.length, 0);
+            const before = subscriptionCount();
+
+            // Its own adapter, so destroy() does not write the connection states of the node the other tests use
+            const isolated = new MockControllerAdapter();
+            let reachedBuild!: () => void;
+            const inBuild = new Promise<void>(resolve => (reachedBuild = resolve));
+            let releaseBuild!: () => void;
+            const buildHeld = new Promise<void>(resolve => (releaseBuild = resolve));
+            const readObject = isolated.getObjectAsync.bind(isolated);
+            // Pauses in the middle of the endpoint walk, after a few devices are already built
+            let endpointReads = 0;
+            isolated.getObjectAsync = async (id: string): Promise<ioBroker.Object | null> => {
+                if (id.startsWith(`${discarded.nodeBaseId}.`) && ++endpointReads === 3) {
+                    reachedBuild();
+                    await buildHeld;
+                }
+                return readObject(id);
+            };
+            const discarded = new GeneralMatterNode(
+                isolated as unknown as MatterAdapter,
+                commissioned!.node,
+                {},
+                () => false,
+            );
+            const config = {
+                nodeId: peerNodeId(commissioned!.node),
+                exposeMatterApplicationClusterData: true,
+                exposeMatterSystemClusterData: false,
+            };
+
+            const building = discarded.initialize();
+            await inBuild;
+            const destroying = discarded.destroy();
+            const queuedConfiguration = discarded.applyConfiguration(config, true);
+            const queuedInitialize = discarded.initialize();
+            releaseBuild();
+            await destroying;
+            const objectsWhenDestroyed = isolated.objects.size;
+            await Promise.all([building, queuedConfiguration, queuedInitialize]);
+
+            expect(isolated.objects.size, 'the build kept writing after destroy() returned').to.equal(
+                objectsWhenDestroyed,
+            );
+            expect(discarded.devices.size, 'a build ran on the destroyed node').to.equal(0);
+            expect(subscriptionCount(), 'the destroyed node left subscriptions behind').to.equal(before);
+        });
+
+        it('stops a running build at its next checkpoint once destroy() is called', async () => {
+            const endpointReadsOfBuild = async (destroyAtRead?: number): Promise<number> => {
+                const isolated = new MockControllerAdapter();
+                const readObject = isolated.getObjectAsync.bind(isolated);
+                let reads = 0;
+                let destroying: Promise<void> | undefined;
+                isolated.getObjectAsync = async (id: string): Promise<ioBroker.Object | null> => {
+                    if (id.startsWith(`${node.nodeBaseId}.`) && ++reads === destroyAtRead) {
+                        destroying = node.destroy();
+                    }
+                    return readObject(id);
+                };
+                const node = new GeneralMatterNode(
+                    isolated as unknown as MatterAdapter,
+                    commissioned!.node,
+                    {},
+                    () => false,
+                );
+                await node.initialize();
+                await destroying;
+                await node.destroy();
+                return reads;
+            };
+
+            const fullBuild = await endpointReadsOfBuild();
+            const retiredBuild = await endpointReadsOfBuild(3);
+            expect(fullBuild, 'the baseline build read too few endpoints to tell').to.be.greaterThan(10);
+            expect(retiredBuild, 'the build kept walking the endpoints after destroy()').to.be.lessThan(fullBuild / 2);
+        });
+
+        it('sets the connection state of a device that was not built again to offline', async () => {
+            const ghost = `${node.nodeBaseId}.Ghost-99.info.connection`;
+            await adapter.setObjectNotExists(ghost, {
+                type: 'state',
+                common: { name: 'Connected', role: 'indicator.connected', type: 'boolean', read: true, write: false },
+                native: {},
+            });
+            await adapter.setState(ghost, { val: true, ack: true });
+            const builtDevice = bridgedEndpoint('genericswitch');
+            const builtId = `${deviceObjectId(builtDevice.number)}.info.connection`;
+            const builtBefore = adapter.states.get(builtId)?.val;
+
+            await node.applyConfiguration(
+                {
+                    nodeId: peerNodeId(commissioned!.node),
+                    exposeMatterApplicationClusterData: true,
+                    exposeMatterSystemClusterData: false,
+                },
+                true,
+            );
+
+            expect(adapter.states.get(ghost)?.val, 'the vanished device stayed online').to.equal(false);
+            expect(adapter.states.get(builtId)?.val, 'a rebuilt device lost its state').to.equal(builtBefore);
+        });
+
+        it('leaves the node and device connection states alone for keepConnectionState and writes them false otherwise', async () => {
+            const builtNode = async (): Promise<{
+                isolated: MockControllerAdapter;
+                node: GeneralMatterNode;
+                connectionIds: string[];
+            }> => {
+                const isolated = new MockControllerAdapter();
+                const node = new GeneralMatterNode(
+                    isolated as unknown as MatterAdapter,
+                    commissioned!.node,
+                    {},
+                    () => true,
+                );
+                await node.initialize();
+                const connectionIds = [...node.devices.values()]
+                    .map(device => device.connectionStateId)
+                    .filter(id => id !== node.connectionStateId);
+                expect(connectionIds, 'no device with its own connection state was built').to.not.be.empty;
+                for (const id of [node.connectionStateId, ...connectionIds]) {
+                    await isolated.setState(id, { val: true, ack: true });
+                }
+                await isolated.setState(node.connectionStatusId, { val: NodeConnectionState.Connected, ack: true });
+                return { isolated, node, connectionIds };
+            };
+
+            const kept = await builtNode();
+            await kept.node.destroy({ keepConnectionState: true });
+            for (const id of [kept.node.connectionStateId, ...kept.connectionIds]) {
+                expect((await kept.isolated.getStateAsync(id))?.val, `${id} written by a replaced instance`).to.equal(
+                    true,
+                );
+            }
+            expect((await kept.isolated.getStateAsync(kept.node.connectionStatusId))?.val).to.equal(
+                NodeConnectionState.Connected,
+            );
+
+            const plain = await builtNode();
+            await plain.node.destroy();
+            for (const id of [plain.node.connectionStateId, ...plain.connectionIds]) {
+                expect((await plain.isolated.getStateAsync(id))?.val, `${id} not written false`).to.equal(false);
+            }
+        });
+    });
+
+    /**
+     * The decision itself is unit-tested with `isConnectedForIoBroker`; this pins that the node writes it, and that
+     * the status state keeps the exact connection state.
+     */
+    describe('node connection state', () => {
+        it('counts a reconnecting node as connected only after its first report', async () => {
+            // Its own adapter, so these writes do not reach the node the other tests use
+            const isolated = new MockControllerAdapter();
+            let firstReportApplied = false;
+            const node = new GeneralMatterNode(
+                isolated as unknown as MatterAdapter,
+                commissioned!.node,
+                {},
+                () => firstReportApplied,
+            );
+            const written = async (state: NodeConnectionState): Promise<{ connection: unknown; status: unknown }> => {
+                node.handleStateChange(state);
+                // The state writes are not awaited by handleStateChange
+                await new Promise(resolve => setImmediate(resolve));
+                return {
+                    connection: isolated.states.get(node.connectionStateId)?.val,
+                    status: isolated.states.get(node.connectionStatusId)?.val,
+                };
+            };
+
+            try {
+                expect(await written(NodeConnectionState.Reconnecting)).to.deep.equal({
+                    connection: false,
+                    status: NodeConnectionState.Reconnecting,
+                });
+                expect(await written(NodeConnectionState.Connected)).to.deep.equal({
+                    connection: true,
+                    status: NodeConnectionState.Connected,
+                });
+
+                firstReportApplied = true;
+                expect(await written(NodeConnectionState.Reconnecting)).to.deep.equal({
+                    connection: true,
+                    status: NodeConnectionState.Reconnecting,
+                });
+                expect(await written(NodeConnectionState.WaitingForDeviceDiscovery)).to.deep.equal({
+                    connection: false,
+                    status: NodeConnectionState.WaitingForDeviceDiscovery,
+                });
+                expect(await written(NodeConnectionState.Disconnected)).to.deep.equal({
+                    connection: false,
+                    status: NodeConnectionState.Disconnected,
+                });
+            } finally {
+                await node.destroy();
+            }
         });
     });
 });

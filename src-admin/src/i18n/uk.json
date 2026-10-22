@@ -39,7 +39,7 @@
     "Camera access is only permitted in secure context. Use HTTPS or localhost rather than HTTP.": "Локальне сканування QR-коду неможливе, оскільки ioBroker Admin використовується без HTTPS.\nСкористайтеся хмарним сканером QR-коду ioBroker за допомогою кнопки нижче або активуйте HTTPS для адміністратора ioBroker.",
     "Cancel": "Скасувати",
     "Cannot pair device": "Неможливо підключити пристрій",
-    "Close": "Закрити",
+    "Close": "Закрыть",
     "Cloud Account": "Хмарний обліковий запис",
     "Code must start with \"MT:\"": "Код має починатися з \"MT:\"",
     "Collapse all": "Закрити все",
@@ -150,7 +150,7 @@
     "Pairing requirement": "Пристрої мають бути в режимі сполучення. Пристрої, які ще не пов’язані, найкраще зв’язувати через додаток ioBroker Visu. В іншому випадку переведіть пристрій у режим сполучення через уже пов’язану екосистему.",
     "Password repeat": "Повторення пароля",
     "Password repeat is not equal to password": "Повторення пароля не дорівнює паролю",
-    "Please DO NOT use the QR code / pairing code that is printed on the Matter device.": " Будь ласка, НЕ використовуйте QR-код/код сполучення, надрукований на пристрої Matter.",
+    "Please DO NOT use the QR code / pairing code that is printed on the Matter device.": "Будь ласка, НЕ використовуйте QR-код/код сполучення, надрукований на пристрої Matter.",
     "Please confirm": "Будь-ласка підтвердіть",
     "Please scan this QR-Code with the App of the ecosystem you want to pair it to or use the below printed setup code.": "Будь ласка, відскануйте цей QR-код за допомогою програми екосистеми, до якої ви хочете підключити його, або скористайтеся надрукованим нижче кодом налаштування.",
     "Product ID": "ID продукту",
@@ -337,5 +337,10 @@
     "\"%s\" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.": "«%s» — сплячий пристрій (Matter LIT). Він відповідає лише після наступного пробудження, тому його власні мережеві дані з'являться пізніше.",
     "Refresh %s connected online neighbor(s) for current link data": "Оновити %s підключених онлайн-сусідів для отримання поточних даних про з'єднання",
     "No online neighbor can report its current link data either.": "Жоден онлайн-сусід також не може повідомити поточні дані про з'єднання.",
-    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s вузол(-лів) є сплячими пристроями (Matter LIT), тому оновлення не очікуватиме на них — їхні дані з'являться, коли вони прокинуться."
+    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s вузол(-лів) є сплячими пристроями (Matter LIT), тому оновлення не очікуватиме на них — їхні дані з'являться, коли вони прокинуться.",
+    "The pairing code is wrong": "Неправильний код сполучення",
+    "The device attestation was rejected": "Атестацію пристрою відхилено",
+    "The device was not found in the network": "Пристрій не знайдено в мережі",
+    "The device is already paired with this controller": "Пристрій уже сполучено з цим контролером",
+    "The node was removed, but the device could not be told to leave. It may still be paired with this controller and needs a factory reset before it can be paired again.": "Вузол видалено, але пристрою не вдалося повідомити про вихід. Він може все ще бути сполучений з цим контролером і потребує скидання до заводських налаштувань, перш ніж його можна буде сполучити знову."
 }

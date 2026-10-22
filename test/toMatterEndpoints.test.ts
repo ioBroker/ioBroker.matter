@@ -2,8 +2,10 @@ import { expect } from 'chai';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DeviceTypeId, Environment, LogLevel, Logger, ServerNode, VendorId } from '@matter/main';
+import { MeasurementType } from '@matter/main/types';
 import {
     ConcentrationMeasurement,
+    ElectricalPowerMeasurement,
     FanControl,
     ModeBase,
     OperationalState,
@@ -628,6 +630,68 @@ describe('to-matter converters for type-detector v6 device types', function () {
 
             await mounted.adapter.pushValue('PRESSURE', 98.7);
             expect(endpoint.state.pressureMeasurement.measuredValue).to.equal(987);
+        });
+    });
+
+    describe('electrical power measurement', () => {
+        function measurementTypesOf(endpoint: any): MeasurementType[] {
+            const state = endpoint.state.electricalPowerMeasurement;
+            expect(state.numberOfMeasurementTypes).to.equal(state.accuracy.length);
+            return state.accuracy.map((accuracy: { measurementType: MeasurementType }) => accuracy.measurementType);
+        }
+
+        const withoutPower: [string, StateSpec, MeasurementType][] = [
+            ['current', num(1, 'A'), MeasurementType.ActiveCurrent],
+            ['voltage', num(230, 'V'), MeasurementType.Voltage],
+            ['frequency', num(50, 'Hz'), MeasurementType.Frequency],
+        ];
+        for (const [name, spec, measurementType] of withoutPower) {
+            it(`lists ActivePower in Accuracy for a device that measures ${name} but not power`, async () => {
+                const mounted = await mount(Types.pump, { POWER: bool(true), [name.toUpperCase()]: spec });
+                const [endpoint] = endpointsOf(mounted);
+                const state = endpoint.state.electricalPowerMeasurement;
+                expect(measurementTypesOf(endpoint)).to.deep.equal([MeasurementType.ActivePower, measurementType]);
+                expect(state.accuracy[0].measured).to.equal(false);
+                expect(state.activePower).to.equal(null);
+                expect(state.attributeList).to.include(ElectricalPowerMeasurement.Cluster.attributes.activePower.id);
+            });
+        }
+
+        it('keeps ActivePower null and adds no other attribute while a current-only device reports', async () => {
+            const mounted = await mount(Types.pump, { POWER: bool(true), CURRENT: num(1, 'A') });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('CURRENT', 2.5);
+            const state = endpoint.state.electricalPowerMeasurement;
+            expect(state.activeCurrent).to.equal(2500);
+            expect(state.activePower).to.equal(null);
+            expect(state.attributeList).to.not.include(ElectricalPowerMeasurement.Cluster.attributes.voltage.id);
+        });
+
+        it('lists ActivePower once, as measured, ahead of the other types of a device that measures power', async () => {
+            const mounted = await mount(Types.pump, {
+                POWER: bool(true),
+                ELECTRIC_POWER: num(30, 'W'),
+                CURRENT: num(1, 'A'),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(measurementTypesOf(endpoint)).to.deep.equal([
+                MeasurementType.ActivePower,
+                MeasurementType.ActiveCurrent,
+            ]);
+            expect(endpoint.state.electricalPowerMeasurement.accuracy[0].measured).to.equal(true);
+            expect(endpoint.state.electricalPowerMeasurement.activePower).to.equal(30000);
+        });
+
+        it('lists only ActivePower for a device that measures power and nothing else', async () => {
+            const mounted = await mount(Types.pump, { POWER: bool(true), ELECTRIC_POWER: num(30, 'W') });
+            const [endpoint] = endpointsOf(mounted);
+            expect(measurementTypesOf(endpoint)).to.deep.equal([MeasurementType.ActivePower]);
+        });
+
+        it('adds no power measurement cluster to a device without electricity states', async () => {
+            const mounted = await mount(Types.pump, { POWER: bool(true) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.behaviors.has('electricalPowerMeasurement')).to.equal(false);
         });
     });
 

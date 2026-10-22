@@ -41,16 +41,16 @@ export abstract class GenericElectricityDataDeviceToMatter extends GenericDevice
     #hasFrequency = false;
 
     protected addElectricityDataClusters(endpoint: Endpoint<any>, ioBrokerDevice: ElectricityDataDevice): void {
-        const measuredAccuracies = [];
-        const initialValues: any = {};
-        if (ioBrokerDevice.hasElectricPower()) {
-            measuredAccuracies.push({
+        this.#hasActivePower = ioBrokerDevice.hasElectricPower();
+        // Accuracy must list ActivePower even when the device has no power state (spec 2.13.6.3)
+        const measuredAccuracies = [
+            {
                 measurementType: MeasurementType.ActivePower,
                 ...fakedAccuracyDetails,
-            });
-            initialValues.activePower = null;
-            this.#hasActivePower = true;
-        }
+                measured: this.#hasActivePower,
+            },
+        ];
+        const initialValues: any = {};
         if (ioBrokerDevice.hasCurrent()) {
             measuredAccuracies.push({
                 measurementType: MeasurementType.ActiveCurrent,
@@ -76,8 +76,7 @@ export abstract class GenericElectricityDataDeviceToMatter extends GenericDevice
             this.#hasFrequency = true;
         }
 
-        if (measuredAccuracies.length) {
-            // Adds the ElectricalPowerMeasurement cluster to the endpoint
+        if (this.#hasActivePower || this.#hasActiveCurrent || this.#hasVoltage || this.#hasFrequency) {
             endpoint.behaviors.require(
                 ElectricalPowerMeasurementServer.with(ElectricalPowerMeasurement.Feature.AlternatingCurrent),
                 {

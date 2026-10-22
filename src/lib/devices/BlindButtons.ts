@@ -143,7 +143,7 @@ export class BlindButtons extends GenericDevice {
     }
 
     getTiltLevel(): number | undefined {
-        if (!this.#getTiltState) {
+        if (!this.#getTiltState && !this.#setTiltState) {
             throw new Error('Tilt state not found');
         }
         return (this.#getTiltState || this.#setTiltState)?.value;
@@ -169,10 +169,10 @@ export class BlindButtons extends GenericDevice {
     }
 
     getTiltLevelActual(): number | undefined {
-        if (!this.#setTiltState) {
+        if (!this.#getTiltState) {
             throw new Error('Level state not found');
         }
-        return this.#setTiltState.value;
+        return this.#getTiltState.value;
     }
 
     async updateTiltLevelActual(value: number): Promise<void> {

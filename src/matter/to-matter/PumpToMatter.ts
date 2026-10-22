@@ -17,10 +17,11 @@ import { IoIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { EventedTransitions } from '../behaviors/EventedTransitions';
+import { PumpLevel } from '../ConversionUtils';
 
 /**
  * Pump's LevelControl (unlike the Dimmer/Volume lighting- or speaker-flavored ones) does not enable the
- * Lighting feature, so 0 is a representable speed setpoint once minLevel is lowered to it. Otherwise identical to
+ * Lighting feature, so matter.js initializes minLevel to 0 and a stopped pump's level 0 is representable. Otherwise identical to
  * EventedLightingLevelControlServer/EventedSpeakerLevelControlServer: collapse a transition into one event with
  * the target level so intermediate Move/Step steps don't each turn into a separate ioBroker write.
  */
@@ -94,9 +95,6 @@ const IoBrokerPumpDevice = PumpDevice.with(
 );
 type IoBrokerPumpDevice = typeof IoBrokerPumpDevice;
 
-const MIN_LEVEL_VALUE = 0;
-const MAX_LEVEL_VALUE = 0xfe;
-
 /** Mapping Logic to map an ioBroker Pump device to a Matter PumpDevice. */
 export class PumpToMatter extends GenericElectricityDataDeviceToMatter {
     readonly #ioBrokerDevice: Pump;
@@ -122,8 +120,11 @@ export class PumpToMatter extends GenericElectricityDataDeviceToMatter {
         });
 
         if (ioBrokerDevice.hasLevel()) {
-            // The cluster schema defaults minLevel to 1, which would reject a stopped pump's level of 0
-            this.#matterEndpoint.behaviors.require(EventedPumpLevelControlServer, { minLevel: MIN_LEVEL_VALUE });
+            // The default maxLevel 254 would let a controller computing currentLevel / maxLevel read full speed (200)
+            // as 79 %
+            this.#matterEndpoint.behaviors.require(EventedPumpLevelControlServer, {
+                maxLevel: PumpLevel.FULL_SPEED,
+            });
         }
         if (ioBrokerDevice.hasTemperature()) {
             this.#matterEndpoint.behaviors.require(TemperatureMeasurementServer);
@@ -176,9 +177,8 @@ export class PumpToMatter extends GenericElectricityDataDeviceToMatter {
                     if (!this.#ioBrokerDevice.hasLevel() || typeof event.value !== 'number') {
                         break;
                     }
-                    const value = this.#ioBrokerDevice.cropValue(event.value, 0, 100);
                     await this.#matterEndpoint.setStateOf(EventedPumpLevelControlServer, {
-                        currentLevel: this.#asMatterLevel(value),
+                        currentLevel: PumpLevel.fromPercent(this.#ioBrokerDevice.cropValue(event.value, 0, 100)),
                     });
                     await this.#updatePumpStatus();
                     break;
@@ -265,11 +265,11 @@ export class PumpToMatter extends GenericElectricityDataDeviceToMatter {
         const ioBrokerDevice = this.#ioBrokerDevice;
         const level = ioBrokerDevice.cropValue(ioBrokerDevice.getLevel() ?? 100, 0, 100);
         await this.#matterEndpoint.setStateOf(EventedPumpLevelControlServer, {
-            currentLevel: this.#asMatterLevel(level),
+            currentLevel: PumpLevel.fromPercent(level),
         });
 
         this.matterEvents.on(this.#matterEndpoint.eventsOf(IoBrokerEvents).dimmerLevelControlled, async level => {
-            await ioBrokerDevice.setLevel(this.#asIoBrokerLevel(level));
+            await ioBrokerDevice.setLevel(PumpLevel.toPercent(level));
             await this.#updatePumpStatus();
         });
     }
@@ -293,16 +293,6 @@ export class PumpToMatter extends GenericElectricityDataDeviceToMatter {
         await this.#matterEndpoint.setStateOf(FlowMeasurementServer, {
             measuredValue: typeof value === 'number' ? this.#toMatterFlow(value) : null,
         });
-    }
-
-    /** Converts the given value in 0..100 range to a valid Level Matter value. */
-    #asMatterLevel(value: number): number {
-        return this.#ioBrokerDevice.cropValue(Math.round((value / 100) * 254), MIN_LEVEL_VALUE, MAX_LEVEL_VALUE);
-    }
-
-    /** Converts the given Matter Level value (0..254) to a 0..100 percent value. */
-    #asIoBrokerLevel(value: number): number {
-        return this.#ioBrokerDevice.cropValue(Math.round((value / 254) * 100), 0, 100);
     }
 
     /** Matter TemperatureMeasurement.measuredValue = °C x 100 (int16, -27315..32767 range). */

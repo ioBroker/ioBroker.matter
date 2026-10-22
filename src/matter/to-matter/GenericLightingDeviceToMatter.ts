@@ -11,6 +11,7 @@ import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { EventedLightingLevelControlServer } from '../behaviors/EventedLightingLevelControlServer';
 import { EventedOnOffLightOnOffServer } from '../behaviors/EventedOnOffLightOnOffServer';
+import { LightingLevel } from '../ConversionUtils';
 
 const MIN_CIE_XY_VALUE = 0;
 const MAX_CIE_XY_VALUE = 0xfeff; // this value comes directly from the ZCL specification table 5.3
@@ -18,8 +19,6 @@ const MIN_HUE_VALUE = 0;
 const MAX_HUE_VALUE = 0xfe;
 const MIN_SATURATION_VALUE = 0;
 const MAX_SATURATION_VALUE = 0xfe;
-const MIN_LEVEL_VALUE = 1;
-const MAX_LEVEL_VALUE = 0xfe;
 
 export abstract class GenericLightingDeviceToMatter extends GenericElectricityDataDeviceToMatter {
     readonly #ioBrokerDevice: Light | Dimmer | Ct | Cie | Rgb | RgbSingle | RgbwSingle;
@@ -73,7 +72,7 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
                             EventedLightingLevelControlServer,
                         )?.currentLevel;
                         await this.#ioBrokerDevice.setDimmer(
-                            typeof currentLevel === 'number' ? Math.round((currentLevel / 254) * 100) : 100,
+                            typeof currentLevel === 'number' ? LightingLevel.toPercent(currentLevel) : 100,
                         );
                     }
                 } else {
@@ -106,7 +105,7 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
         const ioBrokerDevice = this.#ioBrokerDevice; // Pin limited type for the scope of this function
 
         const currentLevel = ioBrokerDevice.hasDimmer()
-            ? ioBrokerDevice.cropValue(ioBrokerDevice.getDimmer() ?? 100, 1, 100)
+            ? ioBrokerDevice.cropValue(ioBrokerDevice.getDimmer() ?? 100, 0, 100)
             : 100;
         await this.#matterEndpoint.setStateOf(EventedLightingLevelControlServer, {
             currentLevel: this.asMatterLevel(currentLevel),
@@ -121,12 +120,12 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
                     }
 
                     if (level !== null) {
-                        await ioBrokerDevice.setDimmer(Math.round((level / 254) * 100));
+                        await ioBrokerDevice.setDimmer(LightingLevel.toPercent(level));
                     }
                 } else {
                     // Report always 100% when no Dimmer is supported
                     await this.#matterEndpoint.setStateOf(EventedLightingLevelControlServer, {
-                        currentLevel: 254,
+                        currentLevel: LightingLevel.MAX,
                     });
                 }
             },
@@ -151,10 +150,8 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
                     }
 
                     if (ioValue > 0) {
-                        const value = ioBrokerDevice.cropValue(ioValue ?? 100, 1, 100);
-
                         await this.#matterEndpoint.setStateOf(EventedLightingLevelControlServer, {
-                            currentLevel: this.asMatterLevel(value),
+                            currentLevel: this.asMatterLevel(ioBrokerDevice.cropValue(ioValue, 0, 100)),
                         });
                     }
                     break;
@@ -166,6 +163,11 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
     /** Converts the given value in 0..1 range to a valid CIE XY Matter value. */
     asMatterXOrY(value: number): number {
         return this.#ioBrokerDevice.cropValue(Math.round(value * 65536), MIN_CIE_XY_VALUE, MAX_CIE_XY_VALUE);
+    }
+
+    /** Converts a CIE XY Matter value (CurrentX/CurrentY, value x 65536) to the 0..1 range. */
+    asIoBrokerXOrY(value: number): number {
+        return value / 65536;
     }
 
     /** Converts the given value in 0..360 range to a valid Hue Matter value. */
@@ -182,8 +184,8 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
         );
     }
 
-    /** Converts the given value in 0..100 range to a valid Level Matter value. */
+    /** Converts the given value in 0..100 range to a valid Level Matter value, see {@link LightingLevel.fromPercent}. */
     asMatterLevel(value: number): number {
-        return this.#ioBrokerDevice.cropValue(Math.round((value / 100) * 254), MIN_LEVEL_VALUE, MAX_LEVEL_VALUE);
+        return LightingLevel.fromPercent(value);
     }
 }

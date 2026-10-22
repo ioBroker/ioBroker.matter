@@ -13,6 +13,7 @@ import {
     ColorControlClient,
 } from '@matter/main/behaviors';
 import type { MatterAdapter } from '../../main';
+import { LightingLevel } from '../ConversionUtils';
 import { ColorLightCustomStates, type ColorLightCustomStatesType } from './custom-states';
 
 /**
@@ -24,7 +25,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
     readonly #ioBrokerDevice: Ct;
     #isLighting = false;
     #minLevel = 1;
-    #maxLevel = 254;
+    #maxLevel = LightingLevel.MAX;
     #colorTemperatureMinMireds = kelvinToMireds(20_000);
     #colorTemperatureMaxMireds = kelvinToMireds(1_000);
 
@@ -66,7 +67,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
         if (levelControl && lc) {
             this.#isLighting = lc.features.lighting; // Should always be the case
             this.#minLevel = levelControl.minLevel ?? (this.#isLighting ? 1 : 0);
-            this.#maxLevel = levelControl.maxLevel ?? 254;
+            this.#maxLevel = levelControl.maxLevel ?? LightingLevel.MAX;
         }
 
         const colorControl = this.appEndpoint.stateOf(ColorControlClient);
@@ -91,7 +92,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                         // Check if the Dimmer in ioBroker still matches the Device Dimmer and correct if needed
                         const currentLevel = this.appEndpoint.maybeStateOf(LevelControlClient)?.currentLevel;
                         if (typeof currentLevel === 'number' && currentLevel <= 1) {
-                            const ioLevel = Math.round((currentLevel / 100) * 254);
+                            const ioLevel = LightingLevel.toPercent(currentLevel);
                             if (ioLevel !== this.#ioBrokerDevice.getDimmer()) {
                                 await this.#ioBrokerDevice.updateDimmer(ioLevel);
                             }
@@ -120,7 +121,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                     await this.appEndpoint.commandsOf(OnOffClient)?.off();
                     return;
                 }
-                let level = Math.round((value / 100) * 254);
+                let level = LightingLevel.fromPercent(value);
                 if (level < this.#minLevel) {
                     level = this.#minLevel;
                 } else if (level > this.#maxLevel) {
@@ -140,7 +141,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                     await this.appEndpoint.commandsOf(OnOffClient)?.on();
                 }
             },
-            convertValue: value => Math.round((value / 254) * 100),
+            convertValue: value => LightingLevel.toPercent(value),
         });
 
         this.enableDeviceTypeStateForAttribute(PropertyType.Temperature, {
@@ -191,12 +192,11 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
             clusterId: LevelControl.id,
             attributeName: 'startUpCurrentLevel',
             changeHandler: async (value: number | null) => {
-                const startUpCurrentLevel = value !== null ? Math.round((value / 100) * 254) : null;
                 await this.appEndpoint.setStateOf(LevelControlClient, {
-                    startUpCurrentLevel,
+                    startUpCurrentLevel: LightingLevel.startUpFromPercent(value),
                 });
             },
-            convertValue: value => (value !== null ? Math.round((value / 254) * 100) : null),
+            convertValue: value => LightingLevel.startUpToPercent(value),
         });
 
         // StartUp Color Temperature - defines the color temperature on power-up (Kelvin in ioBroker, Mireds in Matter)

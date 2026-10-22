@@ -8,6 +8,7 @@ import { SpeakerDevice } from '@matter/main/devices';
 import { EventedSpeakerOnOffServer } from '../behaviors/EventedSpeakerOnOffServer';
 import { EventedSpeakerLevelControlServer } from '../behaviors/EventedSpeakerLevelControlServer';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
+import { LightingLevel } from '../ConversionUtils';
 
 const IoBrokerVolumeDevice = SpeakerDevice.with(
     EventedSpeakerLevelControlServer,
@@ -16,9 +17,6 @@ const IoBrokerVolumeDevice = SpeakerDevice.with(
     IoIdentifyServer,
     IoBrokerContext,
 );
-
-const MIN_LEVEL_VALUE = 1;
-const MAX_LEVEL_VALUE = 0xfe;
 
 export class VolumeToMatter extends GenericDeviceToMatter {
     readonly #ioBrokerDevice: Volume | VolumeGroup;
@@ -61,7 +59,7 @@ export class VolumeToMatter extends GenericDeviceToMatter {
 
         await this.#matterEndpoint.set({
             levelControl: {
-                currentLevel: this.asMatterLevel(level),
+                currentLevel: LightingLevel.fromPercent(ioBrokerDevice.cropValue(level, 0, 100)),
             },
         });
 
@@ -93,14 +91,14 @@ export class VolumeToMatter extends GenericDeviceToMatter {
 
                 let targetIoBrokerLevel = 100;
                 if (typeof currentLevel === 'number') {
-                    targetIoBrokerLevel = this.asIoBrokerLevel(currentLevel);
+                    targetIoBrokerLevel = LightingLevel.toPercent(currentLevel);
                 }
                 await this.#ioBrokerDevice.setLevel(targetIoBrokerLevel);
             }
         });
 
         this.matterEvents.on(this.#matterEndpoint.eventsOf(IoBrokerEvents).dimmerLevelControlled, async level => {
-            await this.#ioBrokerDevice.setLevel(this.asIoBrokerLevel(level));
+            await this.#ioBrokerDevice.setLevel(LightingLevel.toPercent(level));
 
             if (!this.#ioBrokerDevice.hasMute()) {
                 await this.#matterEndpoint.setStateOf(EventedSpeakerOnOffServer, {
@@ -138,10 +136,8 @@ export class VolumeToMatter extends GenericDeviceToMatter {
                     }
 
                     if (ioValue > 0) {
-                        const value = ioBrokerDevice.cropValue(ioValue, 1, 100);
-
                         await this.#matterEndpoint.setStateOf(EventedSpeakerLevelControlServer, {
-                            currentLevel: this.asMatterLevel(value),
+                            currentLevel: LightingLevel.fromPercent(ioBrokerDevice.cropValue(ioValue, 0, 100)),
                         });
                     }
 
@@ -149,14 +145,5 @@ export class VolumeToMatter extends GenericDeviceToMatter {
                 }
             }
         });
-    }
-
-    /** Converts the given value in 0..100 range to a valid Level Matter value. */
-    asMatterLevel(value: number): number {
-        return this.#ioBrokerDevice.cropValue(Math.round((value / 100) * 254), MIN_LEVEL_VALUE, MAX_LEVEL_VALUE);
-    }
-
-    asIoBrokerLevel(level: number): number {
-        return this.#ioBrokerDevice.cropValue(Math.round((level / 254) * 100), 0, 100);
     }
 }

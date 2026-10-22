@@ -6,11 +6,11 @@ import { EventedLightingLevelControlServer } from '../behaviors/EventedLightingL
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { EventedExtendedColorXyColorControlServer } from '../behaviors/EventedLightingColorControlServer';
 import { ColorControl } from '@matter/main/clusters';
-import { kelvinToMireds, miredsToKelvin } from '@matter/main/behaviors';
 import { GenericLightingDeviceToMatter } from './GenericLightingDeviceToMatter';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { IoLightingIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
+import { ColorTemperatureMapping } from './ColorTemperatureMapping';
 
 const IoBrokerExtendedColorLightDevice = ExtendedColorLightDevice.with(
     EventedOnOffLightOnOffServer,
@@ -59,26 +59,11 @@ export class CieToMatter extends GenericLightingDeviceToMatter {
         await this.initializeOnOffClusterHandlers();
         await this.initializeLevelControlClusterHandlers();
 
-        if (!this.#ioBrokerDevice.hasTemperature()) {
-            this.#ioBrokerDevice.adapter.log.info(
-                `Device ${this.#ioBrokerDevice.uuid} does not support color temperature, so commands will be ignored`,
-            );
-        }
-        const { min = 1_000, max = 20_000 } = this.#ioBrokerDevice.hasTemperature()
-            ? (this.#ioBrokerDevice.getTemperatureMinMax() ?? {})
-            : {}; // 50 till 1.000 mireds
-        const currentTemperature = this.#ioBrokerDevice.cropValue(
-            this.#ioBrokerDevice.hasTemperature() ? (this.#ioBrokerDevice.getTemperature() ?? min) : min,
-            min,
-            max,
-        );
+        const colorTemperature = new ColorTemperatureMapping(this.#ioBrokerDevice);
         const currentXy = this.#ioBrokerDevice.getXy() ?? { x: 0.381, y: 0.377 };
         await this.#matterEndpoint.set({
             colorControl: {
-                colorTempPhysicalMinMireds: kelvinToMireds(max),
-                colorTempPhysicalMaxMireds: kelvinToMireds(min),
-                colorTemperatureMireds: kelvinToMireds(currentTemperature),
-                coupleColorTempToLevelMinMireds: kelvinToMireds(max),
+                ...colorTemperature.state,
                 currentX: this.asMatterXOrY(currentXy.x),
                 currentY: this.asMatterXOrY(currentXy.y),
             },
@@ -86,22 +71,15 @@ export class CieToMatter extends GenericLightingDeviceToMatter {
 
         this.matterEvents.on(
             this.#matterEndpoint.eventsOf(IoBrokerEvents).colorTemperatureControlled,
-            async (mireds, transitionTime) => {
-                if (!this.#ioBrokerDevice.hasTemperature()) {
-                    if (this.#ioBrokerDevice.hasTransitionTime() && typeof transitionTime === 'number') {
-                        await this.#ioBrokerDevice.setTransitionTime(transitionTime * 100);
-                    }
-
-                    const kelvin = miredsToKelvin(mireds);
-                    await this.#ioBrokerDevice.setTemperature(kelvin);
-                } else {
-                    await this.#matterEndpoint.set({
-                        colorControl: {
-                            colorTemperatureMireds: kelvinToMireds(min),
-                        },
-                    });
-                }
-            },
+            (mireds, transitionTime) =>
+                colorTemperature.applyCommand(
+                    mireds,
+                    transitionTime,
+                    ColorControl.ColorMode.CurrentXAndCurrentY,
+                    async colorControl => {
+                        await this.#matterEndpoint.set({ colorControl });
+                    },
+                ),
         );
         this.matterEvents.on(
             this.#matterEndpoint.eventsOf(IoBrokerEvents).colorXyControlled,
@@ -110,21 +88,19 @@ export class CieToMatter extends GenericLightingDeviceToMatter {
                     await this.#ioBrokerDevice.setTransitionTime(transitionTime * 100);
                 }
 
-                await this.#ioBrokerDevice.setXy(x, y);
+                await this.#ioBrokerDevice.setXy(this.asIoBrokerXOrY(x), this.asIoBrokerXOrY(y));
             },
         );
 
         this.#ioBrokerDevice.onChange(async event => {
             switch (event.property) {
-                case PropertyType.Temperature: {
-                    const value = this.#ioBrokerDevice.cropValue((event.value as number) ?? min, min, max);
+                case PropertyType.Temperature:
                     await this.#matterEndpoint.set({
                         colorControl: {
-                            colorTemperatureMireds: kelvinToMireds(value),
+                            colorTemperatureMireds: colorTemperature.asMatterMireds(event.value),
                         },
                     });
                     break;
-                }
                 case PropertyType.Cie: {
                     const value = this.#ioBrokerDevice.parseCieValue(event.value as string);
                     if (value !== undefined) {

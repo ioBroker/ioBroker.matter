@@ -515,7 +515,7 @@ async function main(): Promise<void> {
         Devices.PumpDevice,
         {
             onOff: { onOff: false },
-            levelControl: { currentLevel: 127, minLevel: 0 },
+            levelControl: { currentLevel: 101, minLevel: 0, maxLevel: 200 },
             pumpConfigurationAndControl: {
                 effectiveOperationMode: PumpConfigurationAndControl.OperationMode.Normal,
                 effectiveControlMode: PumpConfigurationAndControl.ControlMode.ConstantSpeed,

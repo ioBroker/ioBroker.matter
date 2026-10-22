@@ -207,7 +207,7 @@ export class Rgb extends Ct {
     }
 
     isRgbw(): boolean {
-        return !!(this.#redState && this.#redState && this.#blueState && this.#whiteState);
+        return !!(this.#redState && this.#greenState && this.#blueState && this.#whiteState);
     }
 
     getRgbComponents(): { red: number; green: number; blue: number } {

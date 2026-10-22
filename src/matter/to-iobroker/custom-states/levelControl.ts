@@ -10,9 +10,9 @@ export const LevelControlCustomStates = {
      * StartUp Current Level - Defines the level when the device starts up
      * LevelControl cluster, startUpCurrentLevel attribute (optional, writable, nullable)
      *
-     * Values (in ioBroker as percentage, converted to 0-254 for Matter):
-     * - 0: Set level to minimum
-     * - 1-100: Set level to this percentage (clamped to device min/max)
+     * Values (in ioBroker as percentage; Level Control 1.6.6.15):
+     * - 0: Matter value 0, the device sets its minimum level
+     * - 1-100: Matter level 1-254 (the Lighting scale)
      * - null: Restore previous level
      */
     startUpCurrentLevel: {

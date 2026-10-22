@@ -91,6 +91,13 @@ export class Volume extends GenericDevice {
         return this.#muteState.setValue(value);
     }
 
+    async updateMute(value: boolean): Promise<void> {
+        if (!this.#muteState) {
+            throw new Error('Mute state not found');
+        }
+        await this.#muteState.updateValue(value);
+    }
+
     hasMute(): boolean {
         return this.#muteState !== undefined;
     }

@@ -722,7 +722,7 @@ describe('to-matter converters for type-detector v6 device types', function () {
                 FREQUENCY: num(50, 'Hz'),
             });
             const [endpoint] = endpointsOf(mounted);
-            expect(endpoint.state.levelControl.currentLevel).to.equal(127);
+            expect(endpoint.state.levelControl.currentLevel).to.equal(100);
             expect(endpoint.state.temperatureMeasurement.measuredValue).to.equal(2150);
             expect(endpoint.state.pressureMeasurement.measuredValue).to.equal(1013);
             expect(endpoint.state.flowMeasurement.measuredValue).to.equal(125);

@@ -15,12 +15,15 @@ import { Logger, LogLevel, NodeConnectionState, Timestamp } from '@matter/main';
 import { AttributeId, ClusterId, EndpointNumber, EventNumber, NodeId, Priority } from '@matter/main/types';
 import {
     BridgedDeviceBasicInformationClient,
+    LevelControlClient,
+    OnOffClient,
     SwitchClient,
     TemperatureMeasurementClient,
 } from '@matter/main/behaviors';
 import {
     ActivatedCarbonFilterMonitoring,
     FanControl,
+    LevelControl,
     ResourceMonitoring,
     RvcOperationalState,
     RvcRunMode,
@@ -305,6 +308,7 @@ describe('Matter -> ioBroker controller mapping', function () {
             RvcOperationalState.Cluster,
             ActivatedCarbonFilterMonitoring.Cluster,
             FanControl.Cluster,
+            LevelControl.Cluster,
         ];
 
         const pushAttribute = async (id: string, clusterId: number, attributeName: string, value: unknown) => {
@@ -388,6 +392,38 @@ describe('Matter -> ioBroker controller mapping', function () {
             await pushAttribute('fannoonoff', FanControl.id, 'fanMode', FanControl.FanMode.High);
             expect(adapter.valueOf(baseId, 'POWER')).to.equal(true);
             expect(adapter.valueOf(baseId, 'SPEED')).to.equal(1);
+        });
+
+        it('shows the lowest lighting and speaker level as 1 %, not as off', async () => {
+            for (const [id, states] of [
+                ['dimmable', ['ACTUAL', 'SET']],
+                ['colortemp', ['DIMMER']],
+                ['speaker', ['ACTUAL', 'SET']],
+            ] as const) {
+                const { baseId } = mapped.get(id)!;
+                await pushAttribute(id, LevelControl.id, 'currentLevel', 1);
+                for (const state of states) {
+                    expect(adapter.valueOf(baseId, state), `${id}.${state}`).to.equal(1);
+                }
+            }
+        });
+
+        it('reads startUpCurrentLevel 0 as 0 % and the lowest level as 1 %', async () => {
+            const { baseId } = mapped.get('dimmable')!;
+            await pushAttribute('dimmable', LevelControl.id, 'startUpCurrentLevel', 0);
+            expect(adapter.valueOf(baseId, 'startUpCurrentLevel')).to.equal(0);
+            await pushAttribute('dimmable', LevelControl.id, 'startUpCurrentLevel', 1);
+            expect(adapter.valueOf(baseId, 'startUpCurrentLevel')).to.equal(1);
+        });
+
+        it('reads the pump level on the pump scale, where 201..254 are full speed', async () => {
+            const { baseId } = mapped.get('pump')!;
+            await pushAttribute('pump', LevelControl.id, 'currentLevel', 1);
+            expect(adapter.valueOf(baseId, 'LEVEL')).to.equal(0.5);
+            await pushAttribute('pump', LevelControl.id, 'currentLevel', 200);
+            expect(adapter.valueOf(baseId, 'LEVEL')).to.equal(100);
+            await pushAttribute('pump', LevelControl.id, 'currentLevel', 254);
+            expect(adapter.valueOf(baseId, 'LEVEL')).to.equal(100);
         });
 
         it('reports the robot error by name and clears it again', async () => {
@@ -770,6 +806,85 @@ describe('Matter -> ioBroker controller mapping', function () {
             } finally {
                 await node.destroy();
             }
+        });
+    });
+
+    /**
+     * Writes an ioBroker state the way a user does (ack false) and waits until the commissioned device reports the
+     * result back, so the controller write path runs against the real fixture.
+     */
+    describe('level writes to the device', () => {
+        const deviceEndpoint = (label: string): Endpoint => {
+            for (const part of [...commissioned!.node.parts] as Endpoint[]) {
+                for (const child of [...part.parts] as Endpoint[]) {
+                    if (child.maybeStateOf(BridgedDeviceBasicInformationClient)?.nodeLabel === label) {
+                        return child;
+                    }
+                }
+            }
+            throw new Error(`bridged endpoint ${label} not found`);
+        };
+
+        const writeState = async (id: string, name: string, value: ioBroker.StateValue): Promise<void> => {
+            await adapter.setForeignStateAsync(`${mapped.get(id)!.baseId}.${name}`, value, false);
+        };
+
+        const eventually = async (description: string, condition: () => boolean): Promise<void> => {
+            for (let i = 0; i < 100 && !condition(); i++) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            expect(condition(), description).to.equal(true);
+        };
+
+        it('turns a dimmer off for 0 and leaves its level alone', async () => {
+            const endpoint = deviceEndpoint('dimmable');
+            const level = endpoint.stateOf(LevelControlClient).currentLevel;
+            await writeState('dimmable', 'SET', 0);
+            await eventually('dimmable is off', () => endpoint.stateOf(OnOffClient).onOff === false);
+            expect(endpoint.stateOf(LevelControlClient).currentLevel).to.equal(level);
+
+            await writeState('dimmable', 'SET', 1);
+            await eventually('dimmable is on', () => endpoint.stateOf(OnOffClient).onOff === true);
+            await eventually('dimmable is at level 3', () => endpoint.stateOf(LevelControlClient).currentLevel === 3);
+        });
+
+        it('inverts MUTE into the speaker OnOff and writes volume without touching OnOff', async () => {
+            const endpoint = deviceEndpoint('speaker');
+            await writeState('speaker', 'MUTE', false);
+            await eventually('speaker is unmuted', () => endpoint.stateOf(OnOffClient).onOff === true);
+
+            await writeState('speaker', 'SET', 0);
+            await eventually('speaker is at level 0', () => endpoint.stateOf(LevelControlClient).currentLevel === 0);
+            expect(endpoint.stateOf(OnOffClient).onOff).to.equal(true);
+
+            await writeState('speaker', 'MUTE', true);
+            await eventually('speaker is muted', () => endpoint.stateOf(OnOffClient).onOff === false);
+            await writeState('speaker', 'SET', 50);
+            await eventually(
+                'speaker is at level 127',
+                () => endpoint.stateOf(LevelControlClient).currentLevel === 127,
+            );
+            expect(endpoint.stateOf(OnOffClient).onOff).to.equal(false);
+        });
+
+        it('writes startUpCurrentLevel 0 as the Matter minimum-level value 0, not as level 1', async () => {
+            const endpoint = deviceEndpoint('dimmable');
+            await writeState('dimmable', 'startUpCurrentLevel', 50);
+            await eventually(
+                'dimmable startUpCurrentLevel is 127',
+                () => endpoint.stateOf(LevelControlClient).startUpCurrentLevel === 127,
+            );
+            await writeState('dimmable', 'startUpCurrentLevel', 0);
+            await eventually(
+                'dimmable startUpCurrentLevel is 0',
+                () => endpoint.stateOf(LevelControlClient).startUpCurrentLevel === 0,
+            );
+        });
+
+        it('writes a half percent pump setpoint as its Table 5 level', async () => {
+            const endpoint = deviceEndpoint('pump');
+            await writeState('pump', 'LEVEL', 75.5);
+            await eventually('pump is at level 151', () => endpoint.stateOf(LevelControlClient).currentLevel === 151);
         });
     });
 });

@@ -9,11 +9,13 @@ import { EventedLightingLevelControlServer } from '../behaviors/EventedLightingL
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { EventedExtendedColorHueSaturationColorControlServer } from '../behaviors/EventedLightingColorControlServer';
 import { ColorControl } from '@matter/main/clusters';
-import { rgbToXy, rgbToHsv, hsvToRgb, xyToRgb, kelvinToMireds, miredsToKelvin } from '@matter/main/behaviors';
+import { rgbToXy, rgbToHsv, hsvToRgb, xyToRgb } from '@matter/main/behaviors';
 import { GenericLightingDeviceToMatter } from './GenericLightingDeviceToMatter';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { IoLightingIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
+import { ColorTemperatureMapping, type NonTemperatureColorMode } from './ColorTemperatureMapping';
+import { LightingLevel } from '../ConversionUtils';
 
 const IoBrokerExtendedColorLightDevice = ExtendedColorLightDevice.with(
     EventedOnOffLightOnOffServer,
@@ -29,6 +31,7 @@ type IoBrokerExtendedColorLightDevice = typeof IoBrokerExtendedColorLightDevice;
 export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
     readonly #ioBrokerDevice: Hue | Rgb | RgbSingle | RgbwSingle;
     readonly #matterEndpoint: Endpoint<IoBrokerExtendedColorLightDevice>;
+    #lightColorMode: NonTemperatureColorMode = ColorControl.ColorMode.CurrentHueAndCurrentSaturation;
     readonly #rgbSingleDelayTimer = Time.getTimer('rgbSingleDelayTimer', Millis(100), () =>
         this.#setRgbValue().catch(error =>
             this.#ioBrokerDevice.adapter.log.warn(`Failed to set RGB value: ${error.message}`),
@@ -78,8 +81,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
         }
         if (this.#ioBrokerDevice.isRgbw()) {
             const { red, green, blue, white } = this.#ioBrokerDevice.getRgbwComponents();
-            const w = white / 255;
-            const [x, y] = rgbToXy(red / 255 + w, green / 255 + w, blue / 255 + w);
+            const [x, y] = rgbToXy(...this.#rgbwAsRgb(red, green, blue, white));
             return { x, y };
         }
 
@@ -98,12 +100,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
 
         if (this.#ioBrokerDevice.isRgbw()) {
             const { red, green, blue, white } = this.#ioBrokerDevice.getRgbwComponents();
-            const w = white / 255;
-            const [h, s, v] = rgbToHsv(
-                Math.min(red / 255 + w, 255),
-                Math.min(green / 255 + w, 255),
-                Math.min(blue / 255 + w, 255),
-            );
+            const [h, s, v] = rgbToHsv(...this.#rgbwAsRgb(red, green, blue, white));
             return { h, s: Math.round(s * 100), v: Math.round(v * 100) };
         }
 
@@ -112,8 +109,46 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
         return { h, s: Math.round(s * 100), v: Math.round(v * 100) };
     }
 
-    #xyToRgbw(x: number, y: number): { red: number; green: number; blue: number; white: number } {
-        let [red, green, blue] = xyToRgb(x, y);
+    /**
+     * CurrentLevel as the HSV value (0..1) of an RGB device, whose RGB state carries the brightness. The level is
+     * used directly, not through the ioBroker percent, so the RGB value keeps the 254 steps of the level.
+     */
+    #levelAsColorValue(): number {
+        return (this.#matterEndpoint.state.levelControl.currentLevel ?? LightingLevel.MAX) / LightingLevel.MAX;
+    }
+
+    /** Mixes the white channel into red, green and blue; the result is in 0..1, as the colour conversions expect. */
+    #rgbwAsRgb(red: number, green: number, blue: number, white: number): [number, number, number] {
+        const mix = (value: number): number => Math.min((value + white) / 255, 1);
+        return [mix(red), mix(green), mix(blue)];
+    }
+
+    /**
+     * Brightness (HSV value, 0..1) an xy command keeps: that of the current RGB or RGBW state, white mixed in as for
+     * the Matter colour. A black state gives full brightness, because a colour command on a light that reports on
+     * must show the colour.
+     */
+    #xyBrightness(device: Rgb | RgbSingle | RgbwSingle): number {
+        let brightness: number;
+        if (device.isRgbw()) {
+            const { red, green, blue, white } = device.getRgbwComponents();
+            brightness = Math.max(...this.#rgbwAsRgb(red, green, blue, white));
+        } else {
+            const { red, green, blue } = device.getRgbComponents();
+            brightness = Math.max(red, green, blue) / 255;
+        }
+        return brightness || 1;
+    }
+
+    /** RGB (0..1) of an xy colour, scaled so that its largest channel is the given HSV value. */
+    #xyToRgb(x: number, y: number, brightness: number): [number, number, number] {
+        const [red, green, blue] = xyToRgb(x, y);
+        const scale = brightness / (Math.max(red, green, blue) || 1);
+        return [red * scale, green * scale, blue * scale];
+    }
+
+    #xyToRgbw(x: number, y: number, brightness: number): { red: number; green: number; blue: number; white: number } {
+        let [red, green, blue] = this.#xyToRgb(x, y, brightness);
         const white = Math.min(red, green, blue); // White component
         red -= white;
         green -= white;
@@ -180,30 +215,13 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
         await this.initializeOnOffClusterHandlers();
         await this.initializeLevelControlClusterHandlers();
 
-        if (!this.#ioBrokerDevice.hasTemperature()) {
-            this.#ioBrokerDevice.adapter.log.info(
-                `Device ${this.#ioBrokerDevice.uuid} does not support color temperature, so commands will be ignored`,
-            );
-        }
-        let { min = 1_000, max = 20_000 } = this.#ioBrokerDevice.hasTemperature()
-            ? (this.#ioBrokerDevice.getTemperatureMinMax() ?? {})
-            : {}; // 50 till 1.000 mireds
-        min = this.#ioBrokerDevice.cropValue(min, 1_000, 20_000);
-        max = this.#ioBrokerDevice.cropValue(max, 1_000, 20_000);
-        const currentTemperature = this.#ioBrokerDevice.cropValue(
-            this.#ioBrokerDevice.hasTemperature() ? (this.#ioBrokerDevice.getTemperature() ?? min) : min,
-            min,
-            max,
-        );
+        const colorTemperature = new ColorTemperatureMapping(this.#ioBrokerDevice);
         const { h, s, v } = this.#colorAsHsv();
         await this.#matterEndpoint.set({
             colorControl: {
                 colorMode: ColorControl.ColorMode.CurrentHueAndCurrentSaturation,
                 enhancedColorMode: ColorControl.EnhancedColorMode.CurrentHueAndCurrentSaturation,
-                colorTempPhysicalMinMireds: kelvinToMireds(max),
-                colorTempPhysicalMaxMireds: kelvinToMireds(min),
-                colorTemperatureMireds: kelvinToMireds(currentTemperature),
-                coupleColorTempToLevelMinMireds: kelvinToMireds(max),
+                ...colorTemperature.state,
                 currentHue: this.asMatterHue(h),
                 currentSaturation: this.asMatterSaturation(s),
             },
@@ -212,50 +230,40 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
             },
         });
 
+        this.matterEvents.on(this.#matterEndpoint.events.colorControl.colorMode$Changed, colorMode => {
+            if (colorMode !== ColorControl.ColorMode.ColorTemperatureMireds) {
+                this.#lightColorMode = colorMode;
+            }
+        });
         this.matterEvents.on(
             this.#matterEndpoint.eventsOf(IoBrokerEvents).colorTemperatureControlled,
-            async (mireds, transitionTime) => {
-                if (this.#ioBrokerDevice.hasTemperature()) {
-                    if (this.#ioBrokerDevice.hasTransitionTime() && typeof transitionTime === 'number') {
-                        await this.#ioBrokerDevice.setTransitionTime(transitionTime * 100);
-                    }
-
-                    const kelvin = miredsToKelvin(mireds);
-                    await this.#ioBrokerDevice.setTemperature(kelvin);
-                } else {
-                    await this.#matterEndpoint.set({
-                        colorControl: {
-                            colorMode: ColorControl.ColorMode.CurrentHueAndCurrentSaturation,
-                            enhancedColorMode: ColorControl.EnhancedColorMode.CurrentHueAndCurrentSaturation,
-                            colorTemperatureMireds: kelvinToMireds(min),
-                        },
-                    });
-                }
-            },
+            (mireds, transitionTime) =>
+                colorTemperature.applyCommand(mireds, transitionTime, this.#lightColorMode, async colorControl => {
+                    await this.#matterEndpoint.set({ colorControl });
+                }),
         );
 
         this.matterEvents.on(
             this.#matterEndpoint.eventsOf(IoBrokerEvents).colorXyControlled,
-            async (x, y, transitionTime) => {
+            async (matterX, matterY, transitionTime) => {
+                const x = this.asIoBrokerXOrY(matterX);
+                const y = this.asIoBrokerXOrY(matterY);
                 if (this.#ioBrokerDevice.hasTransitionTime() && typeof transitionTime === 'number') {
                     await this.#ioBrokerDevice.setTransitionTime(transitionTime * 100);
                 }
 
                 if (this.#ioBrokerDevice instanceof Hue) {
                     const [r, g, b] = xyToRgb(x, y);
-                    const [h, s, v] = rgbToHsv(r, g, b);
-                    await this.#ioBrokerDevice.setHue(h);
+                    const [h, s] = rgbToHsv(r, g, b);
+                    await this.#ioBrokerDevice.setHue(Math.round(h));
                     if (this.#ioBrokerDevice.hasSaturation()) {
                         await this.#ioBrokerDevice.setSaturation(Math.round(s * 100));
-                    }
-                    if (this.#ioBrokerDevice.hasDimmer()) {
-                        await this.#ioBrokerDevice.setDimmer(Math.round(v * 100));
                     }
                 } else if (
                     (this.#ioBrokerDevice instanceof RgbwSingle || this.#ioBrokerDevice instanceof Rgb) &&
                     this.#ioBrokerDevice.isRgbw()
                 ) {
-                    const { red, green, blue, white } = this.#xyToRgbw(x, y);
+                    const { red, green, blue, white } = this.#xyToRgbw(x, y, this.#xyBrightness(this.#ioBrokerDevice));
                     await this.#ioBrokerDevice.setRgbw(
                         this.#toRgbString(
                             Math.round(red * 255),
@@ -265,7 +273,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                         ),
                     );
                 } else if (this.#ioBrokerDevice instanceof RgbSingle || this.#ioBrokerDevice instanceof Rgb) {
-                    const [red, green, blue] = xyToRgb(x, y);
+                    const [red, green, blue] = this.#xyToRgb(x, y, this.#xyBrightness(this.#ioBrokerDevice));
                     await this.#ioBrokerDevice.setRgb(
                         this.#toRgbString(Math.round(red * 255), Math.round(green * 255), Math.round(blue * 255)),
                     );
@@ -276,6 +284,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
         this.matterEvents.on(
             this.#matterEndpoint.eventsOf(IoBrokerEvents).colorHueControlled,
             async (hue, transitionTime) => {
+                hue = (hue / 254) * 360;
                 if (this.#ioBrokerDevice.hasTransitionTime() && typeof transitionTime === 'number') {
                     await this.#ioBrokerDevice.setTransitionTime(transitionTime * 100);
                 }
@@ -289,7 +298,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                     const { red, green, blue, white } = this.#hsvToRgbw(
                         hue,
                         this.#matterEndpoint.state.colorControl.currentSaturation / 254,
-                        (this.#matterEndpoint.state.levelControl.currentLevel ?? 254) / 254,
+                        this.#levelAsColorValue(),
                     );
                     await this.#ioBrokerDevice.setRgbw(
                         this.#toRgbString(
@@ -303,7 +312,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                     const [red, green, blue] = hsvToRgb(
                         hue,
                         this.#matterEndpoint.state.colorControl.currentSaturation / 254,
-                        (this.#matterEndpoint.state.levelControl.currentLevel ?? 254) / 254,
+                        this.#levelAsColorValue(),
                     );
                     await this.#ioBrokerDevice.setRgb(
                         this.#toRgbString(Math.round(red * 255), Math.round(green * 255), Math.round(blue * 255)),
@@ -337,7 +346,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                     const { red, green, blue, white } = this.#hsvToRgbw(
                         (this.#matterEndpoint.state.colorControl.currentHue / 254) * 360,
                         saturation,
-                        (this.#matterEndpoint.state.levelControl.currentLevel ?? 254) / 254,
+                        this.#levelAsColorValue(),
                     );
                     await this.#ioBrokerDevice.setRgbw(
                         this.#toRgbString(
@@ -351,7 +360,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                     const [red, green, blue] = hsvToRgb(
                         (this.#matterEndpoint.state.colorControl.currentHue / 254) * 360,
                         saturation,
-                        (this.#matterEndpoint.state.levelControl.currentLevel ?? 254) / 254,
+                        this.#levelAsColorValue(),
                     );
                     await this.#ioBrokerDevice.setRgb(
                         this.#toRgbString(Math.round(red * 255), Math.round(green * 255), Math.round(blue * 255)),
@@ -386,11 +395,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                     (this.#ioBrokerDevice instanceof RgbwSingle || this.#ioBrokerDevice instanceof Rgb) &&
                     this.#ioBrokerDevice.isRgbw()
                 ) {
-                    const { red, green, blue, white } = this.#hsvToRgbw(
-                        hue,
-                        saturation,
-                        (this.#matterEndpoint.state.levelControl.currentLevel ?? 254) / 254,
-                    );
+                    const { red, green, blue, white } = this.#hsvToRgbw(hue, saturation, this.#levelAsColorValue());
                     await this.#ioBrokerDevice.setRgbw(
                         this.#toRgbString(
                             Math.round(red * 255),
@@ -400,11 +405,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                         ),
                     );
                 } else if (this.#ioBrokerDevice instanceof RgbSingle || this.#ioBrokerDevice instanceof Rgb) {
-                    const [red, green, blue] = hsvToRgb(
-                        hue,
-                        saturation,
-                        (this.#matterEndpoint.state.levelControl.currentLevel ?? 254) / 254,
-                    );
+                    const [red, green, blue] = hsvToRgb(hue, saturation, this.#levelAsColorValue());
                     await this.#ioBrokerDevice.setRgb(
                         this.#toRgbString(Math.round(red * 255), Math.round(green * 255), Math.round(blue * 255)),
                     );
@@ -414,15 +415,13 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
 
         this.#ioBrokerDevice.onChange(async event => {
             switch (event.property) {
-                case PropertyType.Temperature: {
-                    const value = this.#ioBrokerDevice.cropValue((event.value as number) ?? min, min, max);
+                case PropertyType.Temperature:
                     await this.#matterEndpoint.set({
                         colorControl: {
-                            colorTemperatureMireds: kelvinToMireds(value),
+                            colorTemperatureMireds: colorTemperature.asMatterMireds(event.value),
                         },
                     });
                     break;
-                }
                 case PropertyType.Hue:
                     await this.#matterEndpoint.set({
                         colorControl: {

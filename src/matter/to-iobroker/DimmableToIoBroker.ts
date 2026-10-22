@@ -7,13 +7,14 @@ import { Dimmer } from '../../lib/devices/Dimmer';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 import type { MatterAdapter } from '../../main';
+import { LightingLevel } from '../ConversionUtils';
 import { DimmableCustomStates, type DimmableCustomStatesType } from './custom-states';
 
 export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker<DimmableCustomStatesType> {
     readonly #ioBrokerDevice: Dimmer;
     #isLighting = false;
     #minLevel = 0;
-    #maxLevel = 254;
+    #maxLevel = LightingLevel.MAX;
 
     constructor(
         node: ClientNode,
@@ -53,7 +54,7 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker<D
         if (levelControl && lc) {
             this.#isLighting = lc.features.lighting; // Should always be the case
             this.#minLevel = levelControl.minLevel ?? (this.#isLighting ? 1 : 0);
-            this.#maxLevel = levelControl.maxLevel ?? 254;
+            this.#maxLevel = levelControl.maxLevel ?? LightingLevel.MAX;
         }
     }
 
@@ -72,7 +73,7 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker<D
                         // Check if the Dimmer in ioBroker still matches the Device Dimmer and correct if needed
                         const currentLevel = this.appEndpoint.maybeStateOf(LevelControlClient)?.currentLevel;
                         if (typeof currentLevel === 'number' && currentLevel <= 1) {
-                            const ioLevel = Math.round((currentLevel / 100) * 254);
+                            const ioLevel = LightingLevel.toPercent(currentLevel);
                             if (ioLevel !== this.#ioBrokerDevice.getDimmer()) {
                                 await this.#ioBrokerDevice.updateDimmer(ioLevel);
                             }
@@ -100,14 +101,14 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker<D
                     await this.appEndpoint.commandsOf(OnOffClient)?.off();
                     return;
                 }
-                let level = Math.round((value / 100) * 254);
+                let level = LightingLevel.fromPercent(value);
                 if (level < this.#minLevel) {
                     level = this.#minLevel;
                 } else if (level > this.#maxLevel) {
                     level = this.#maxLevel;
                 }
 
-                const isOn = this.#ioBrokerDevice.getPower() ?? false;
+                const isOn = this.isDeviceOn;
                 const transitionTime = isOn ? (this.ioBrokerDevice.getTransitionTime() ?? null) : null;
 
                 await this.appEndpoint.commandsOf(LevelControlClient).moveToLevel({
@@ -121,13 +122,13 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker<D
                     await this.appEndpoint.commandsOf(OnOffClient)?.on();
                 }
             },
-            convertValue: value => Math.round((value / 254) * 100),
+            convertValue: value => LightingLevel.toPercent(value),
         });
         this.enableDeviceTypeStateForAttribute(PropertyType.LevelActual, {
             endpointId: this.appEndpoint.number,
             clusterId: LevelControl.id,
             attributeName: 'currentLevel',
-            convertValue: value => Math.round((value / 254) * 100),
+            convertValue: value => LightingLevel.toPercent(value),
         });
         return super.enableDeviceTypeStates();
     }
@@ -153,12 +154,11 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker<D
             clusterId: LevelControl.id,
             attributeName: 'startUpCurrentLevel',
             changeHandler: async (value: number | null) => {
-                const startUpCurrentLevel = value !== null ? Math.round((value / 100) * 254) : null;
                 await this.appEndpoint.setStateOf(LevelControlClient, {
-                    startUpCurrentLevel,
+                    startUpCurrentLevel: LightingLevel.startUpFromPercent(value),
                 });
             },
-            convertValue: value => (value !== null ? Math.round((value / 254) * 100) : null),
+            convertValue: value => LightingLevel.startUpToPercent(value),
         });
     }
 

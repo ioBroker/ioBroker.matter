@@ -95,7 +95,7 @@ export class MockControllerAdapter {
                 ? ({ ack: true, ts: Date.now(), ...(value as object) } as ioBroker.State)
                 : ({ val: value as ioBroker.StateValue, ack: ack ?? true, ts: Date.now() } as ioBroker.State);
         this.states.set(key, state);
-        await SubscribeManager.observer(key, state);
+        await SubscribeManager.observer(this.#fullId(key), state);
     }
 
     /**

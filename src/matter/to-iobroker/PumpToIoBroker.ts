@@ -13,14 +13,12 @@ import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDev
 import { Pump } from '../../lib/devices/Pump';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 import type { MatterAdapter } from '../../main';
-import { MatterConverters } from '../ConversionUtils';
-
-const MAX_LEVEL_VALUE = 0xfe;
+import { MatterConverters, PumpLevel } from '../ConversionUtils';
 
 export class PumpToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Pump;
     #minLevel = 0;
-    #maxLevel = MAX_LEVEL_VALUE;
+    #maxLevel = PumpLevel.FULL_SPEED;
 
     constructor(
         node: ClientNode,
@@ -57,7 +55,7 @@ export class PumpToIoBroker extends GenericElectricityDataDeviceToIoBroker {
         if (levelControl !== undefined) {
             // A pump LevelControl does not use the Lighting feature, so 0 is a valid setpoint unless declared otherwise
             this.#minLevel = levelControl.minLevel ?? 0;
-            this.#maxLevel = levelControl.maxLevel ?? MAX_LEVEL_VALUE;
+            this.#maxLevel = levelControl.maxLevel ?? PumpLevel.FULL_SPEED;
         }
     }
 
@@ -81,9 +79,9 @@ export class PumpToIoBroker extends GenericElectricityDataDeviceToIoBroker {
             endpointId,
             clusterId: MatterLevelControl.id,
             attributeName: 'currentLevel',
-            convertValue: (value: number | null) => (value === null ? undefined : Math.round((value / 254) * 100)),
+            convertValue: (value: number | null) => (value === null ? undefined : PumpLevel.toPercent(value)),
             changeHandler: async (value: number) => {
-                let level = Math.round((value / 100) * 254);
+                let level = PumpLevel.fromPercent(value);
                 if (level < this.#minLevel) {
                     level = this.#minLevel;
                 } else if (level > this.#maxLevel) {

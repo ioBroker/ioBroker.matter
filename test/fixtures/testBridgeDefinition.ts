@@ -221,8 +221,8 @@ export const BRIDGED_ENDPOINTS: BridgedEndpointSpec[] = [
         expectedConverter: 'SpeakerToIoBroker',
         expectedIoBrokerType: 'volume',
         expectedStates: ['ACTUAL', 'MUTE', 'SET', ...CONNECTION_STATES],
-        // currentLevel 100 of 254 is 39%.
-        expectedValues: { ACTUAL: 39, SET: 39 },
+        // currentLevel 100 of 254 is 39%; OnOff false is the muted state.
+        expectedValues: { ACTUAL: 39, SET: 39, MUTE: true },
     },
     {
         id: 'waterleak',
@@ -392,8 +392,8 @@ export const SENSOR_AND_APPLIANCE_ENDPOINTS: BridgedEndpointSpec[] = [
         expectedConverter: 'PumpToIoBroker',
         expectedIoBrokerType: 'pump',
         expectedStates: ['FLOW', 'LEVEL', 'POWER', 'PRESSURE', 'TEMPERATURE', ...CONNECTION_STATES],
-        // currentLevel 127 of 254 is 50%, MeasuredValue 4550 is 45.5 °C, 2000 is 2000 mbar, 250 is 25 m³/h.
-        expectedValues: { POWER: false, LEVEL: 50, TEMPERATURE: 45.5, PRESSURE: 2000, FLOW: 25 },
+        // Pump Level 101 is 50.5 %, MeasuredValue 4550 is 45.5 °C, 2000 is 2000 mbar, 250 is 25 m³/h.
+        expectedValues: { POWER: false, LEVEL: 50.5, TEMPERATURE: 45.5, PRESSURE: 2000, FLOW: 25 },
     },
     {
         id: 'roboticvacuum',

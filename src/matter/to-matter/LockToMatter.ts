@@ -1,4 +1,4 @@
-import { Endpoint } from '@matter/main';
+import { Endpoint, InternalError } from '@matter/main';
 import { DoorLock } from '@matter/main/clusters';
 import { DoorLockDevice } from '@matter/main/devices';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
@@ -16,9 +16,6 @@ const IoBrokerDoorLockDevice = DoorLockDevice.with(
     IoBrokerContext,
 );
 type IoBrokerDoorLockDevice = typeof IoBrokerDoorLockDevice;
-
-//const DoorPositionDoorLockServer = EventedDoorLockServer.with(DoorLock.Feature.DoorPositionSensor);
-//const UnboltingDoorLockServer = EventedDoorLockServer.with(DoorLock.Feature.Unbolting);
 
 /** Mapping Logic to map a ioBroker Lock device to a Matter DoorLockDevice. */
 export class LockToMatter extends GenericElectricityDataDeviceToMatter {
@@ -91,25 +88,31 @@ export class LockToMatter extends GenericElectricityDataDeviceToMatter {
             });
         }
 
-        this.matterEvents.on(this.#matterEndpoint.events.ioBrokerEvents.doorLockStateControlled, async state => {
-            switch (state) {
-                case null:
-                    return;
-                case DoorLock.LockState.NotFullyLocked:
-                    // NotFullyLocked is not a valid state for a lock, ignore it
-                    return;
-                case DoorLock.LockState.Unlatched:
-                    if (this.ioBrokerDevice.hasOpen()) {
-                        await this.#ioBrokerDevice.setOpen();
-                    } else {
-                        await this.#ioBrokerDevice.setLockState(true); // Unlocked
+        this.matterEvents.on(
+            this.#matterEndpoint.eventsOf(EventedDoorLockServer).lockActuationRequested,
+            async actuation => {
+                switch (actuation) {
+                    case 'lock':
+                        await this.#ioBrokerDevice.setLockState(false);
+                        break;
+                    case 'unbolt':
+                        await this.#ioBrokerDevice.setLockState(true);
+                        break;
+                    case 'unlock':
+                        await this.#ioBrokerDevice.setLockState(true);
+                        // With Unbolting, UnlockDoor also pulls the latch (Matter 1.6.1 § 5.2.4.11)
+                        if (this.#ioBrokerDevice.hasOpen()) {
+                            await this.#ioBrokerDevice.setOpen();
+                        }
+                        break;
+                    default: {
+                        // A new matter.js actuation must fail the command, not report success without moving the lock
+                        const unsupported: never = actuation;
+                        throw new InternalError(`Unsupported lock actuation "${String(unsupported)}"`);
                     }
-                    break;
-                default:
-                    await this.#ioBrokerDevice.setLockState(state === DoorLock.LockState.Unlocked);
-                    break;
-            }
-        });
+                }
+            },
+        );
 
         this.#ioBrokerDevice.onChange(async event => {
             switch (event.property) {

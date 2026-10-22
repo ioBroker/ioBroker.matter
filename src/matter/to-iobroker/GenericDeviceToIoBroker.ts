@@ -19,6 +19,7 @@ import {
     BridgedDeviceBasicInformationClient,
     DescriptorClient,
     IdentifyClient,
+    OnOffClient,
     PowerSourceClient,
 } from '@matter/main/behaviors';
 import { type DecodedEventData, Read } from '@matter/main/protocol';
@@ -178,6 +179,14 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
 
     get number(): EndpointNumber {
         return this.appEndpoint.number;
+    }
+
+    /**
+     * OnOff as last reported by the Matter device; false when unknown or the device has no OnOff cluster. The ioBroker
+     * power state is a copy of this report that is written later.
+     */
+    protected get isDeviceOn(): boolean {
+        return this.appEndpoint.maybeStateOf(OnOffClient)?.onOff ?? false;
     }
 
     get connectionStateId(): string {

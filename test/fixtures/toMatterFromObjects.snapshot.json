@@ -771,8 +771,8 @@
             "colorTempPhysicalMinMireds": 50,
             "colorTemperatureMireds": 1000,
             "coupleColorTempToLevelMinMireds": 50,
-            "currentHue": 148,
-            "currentSaturation": 91,
+            "currentHue": 141,
+            "currentSaturation": 76,
             "currentX": 24939,
             "currentY": 24701,
             "enhancedColorMode": 0,
@@ -3020,14 +3020,14 @@
             }
           },
           "levelControl": {
-            "currentLevel": 152,
+            "currentLevel": 120,
             "featureMap": {
               "onOff": false,
               "lighting": false,
               "frequency": false
             },
             "managedTransitionTimeHandling": false,
-            "maxLevel": 254,
+            "maxLevel": 200,
             "minLevel": 0,
             "onLevel": null,
             "options": {

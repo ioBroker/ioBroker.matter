@@ -1,5 +1,4 @@
 import { Behavior, Observable } from '@matter/main';
-import type { DoorLock } from '@matter/main/clusters';
 import type { MovementType, MovementDirection } from '@matter/main/behaviors';
 
 export class IoBrokerEvents extends Behavior {
@@ -32,9 +31,6 @@ export namespace IoBrokerEvents {
             [hue: number, saturation: number, transitionTime: number | null | undefined]
         >();
         colorHueAndSaturationMovementStopped = new Observable<[]>(); // TODO
-
-        // DoorLock cluster events
-        doorLockStateControlled = new Observable<[DoorLock.LockState]>();
 
         // WindowCovering cluster events
         windowCoveringTriggerMovement = new Observable<

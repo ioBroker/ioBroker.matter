@@ -71,7 +71,7 @@
     "Expose Matter Application Cluster Data": "Раскрыть данные кластера приложений Matter",
     "Expose Matter System Cluster Data": "Раскрыть данные системного кластера Matter",
     "Failed to start software update": "Не удалось запустить обновление программного обеспечения",
-    "Generate new pairing code": "Сгенерировать новый код сопряжения",
+    "Generate new pairing code": "Создать новый код сопряжения",
     "Identify this device": "Идентифицировать это устройство",
     "Import updates now": "Импортировать обновления сейчас",
     "Imported %s OTA update files": "Импортировано файлов OTA-обновлений: %s",

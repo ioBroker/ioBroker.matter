@@ -10,7 +10,7 @@ export interface MatterAdapterConfig extends ioBroker.AdapterConfig {
     controllerFabricLabel: string;
     /** Allow unofficial/custom OTA updates */
     allowUnofficialUpdates: boolean;
-    /** Custom path for OTA update files (default: instanceDataDir/custom-ota) */
+    /** Custom path for OTA update files (default: the `<namespace>.custom-ota` folder beside the instance data directory) */
     customUpdatesPath: string;
     /** Push host time to paired nodes that support the TimeSynchronization cluster */
     enableTimeSync: boolean;

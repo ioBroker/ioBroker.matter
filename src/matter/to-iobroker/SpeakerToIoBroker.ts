@@ -1,8 +1,7 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { LevelControl, OnOff } from '@matter/main/clusters';
 import { LevelControlClient, OnOffClient } from '@matter/main/behaviors';
-import type { Endpoint } from '@matter/main';
-import type { PairedNode } from '@project-chip/matter.js/device';
+import type { Endpoint, ClientNode } from '@matter/main';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
@@ -15,7 +14,7 @@ export class SpeakerToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     #maxLevel = 254;
 
     constructor(
-        node: PairedNode,
+        node: ClientNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         adapter: MatterAdapter,

@@ -102,6 +102,8 @@
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "Węzeł nie jest obecnie podłączony. Po rozparowaniu należy przywrócić ustawienia fabryczne, aby ponownie uruchomić węzeł. Czy na pewno?",
     "Unpair this node": "Rozparuj ten węzeł",
     "Unpairing node...": "Rozparowywanie węzła...",
+    "Error happened during unpairing. Please check the log.": "Podczas usuwania parowania wystąpił błąd. Sprawdź dziennik.",
+    "The node was removed, but the device could not be told to leave. It may still be paired with this controller and needs a factory reset before it can be paired again.": "Węzeł został usunięty, ale nie udało się poinformować urządzenia, że ma go opuścić. Urządzenie może nadal być sparowane z tym kontrolerem i wymaga przywrócenia ustawień fabrycznych, zanim będzie można je sparować ponownie.",
     "Unverified OTA Update Source Warning": "Ostrzeżenie: Ta aktualizacja została znaleziona w niezweryfikowanym źródle. Aktualizacje z sieci testowych lub lokalnych źródeł nie są certyfikowane i mogą zawierać niesprawdzone oprogramowanie układowe, które może spowodować niedziałające urządzenia. Stosowanie tych aktualizacji odbywa się całkowicie na własne ryzyko.",
     "Update now": "Aktualizuj teraz",
     "Update Source": "Źródło aktualizacji",

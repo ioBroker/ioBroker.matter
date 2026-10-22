@@ -102,6 +102,8 @@
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "Het knooppunt is momenteel niet verbonden. Als je het nu ontkoppelt, moet je het knooppunt fabrieksreset geven om het weer in gebruik te nemen. Weet je het zeker?",
     "Unpair this node": "Ontkoppel dit knooppunt",
     "Unpairing node...": "Knooppunt ontkoppelen...",
+    "Error happened during unpairing. Please check the log.": "Er is een fout opgetreden bij het ontkoppelen. Controleer het logboek.",
+    "The node was removed, but the device could not be told to leave. It may still be paired with this controller and needs a factory reset before it can be paired again.": "De node is verwijderd, maar het apparaat kon niet worden gevraagd te vertrekken. Het is mogelijk nog gekoppeld aan deze controller en moet worden teruggezet naar de fabrieksinstellingen voordat het opnieuw kan worden gekoppeld.",
     "Unverified OTA Update Source Warning": "Waarschuwing: Deze update is gevonden op een niet-geverifieerde bron. Updates van testnetwerken of lokale bronnen zijn niet gecertificeerd en kunnen ongetest firmware bevatten dat kan leiden tot niet-functionerende apparaten. Het toepassen van deze updates is volledig op eigen risico.",
     "Update now": "Nu bijwerken",
     "Update Source": "Updatebron",

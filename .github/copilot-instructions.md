@@ -15,9 +15,9 @@ This is an ioBroker adapter for integrating Matter devices into the ioBroker hom
 
 ### Backend (src/)
 - **Language**: TypeScript
-- **Runtime**: Node.js 20+
+- **Runtime**: Node.js 22+
 - **Framework**: ioBroker Adapter Core (@iobroker/adapter-core)
-- **Matter Library**: @matter/main, @project-chip/matter.js
+- **Matter Library**: @matter/main, @matter/nodejs
 - **Device Detection**: @iobroker/type-detector
 - **Testing**: Mocha
 
@@ -111,7 +111,7 @@ This is an ioBroker adapter for integrating Matter devices into the ioBroker hom
 - Handle adapter lifecycle methods (onReady, onUnload, etc.)
 
 ### Matter Integration
-- Use Matter.js official libraries (@matter/main, @project-chip/matter.js)
+- Use Matter.js official libraries (@matter/main, @matter/nodejs)
 - Implement proper device commissioning flows
 - Handle Matter cluster implementations correctly
 - Follow Matter specification for device types and features
@@ -143,7 +143,7 @@ npm run 2-build   # Build frontend with Vite
 npm run 3-copy    # Copy files to admin directory
 npm run 4-patch   # Patch HTML files for ioBroker
 ```
-`tasks.ts` is executed with `ts-node --project tsconfig.tasks.json` so it runs on Node.js 20
+`tasks.ts` is executed with `ts-node --project tsconfig.tasks.json` so it runs on the minimum supported Node.js
 (no native TypeScript stripping required).
 
 ## Key Architectural Patterns

@@ -36,6 +36,8 @@ class LightAdapter {
     failWrites = false;
     /** Delays each write, so a test can check that the caller waits for it. */
     writeDelayMs = 0;
+    /** Delays for the next writes in call order, before {@link writeDelayMs} applies; lets a later write finish first. */
+    readonly writeDelays = new Array<number>();
     readonly #id: string;
     #value: boolean;
 
@@ -71,8 +73,9 @@ class LightAdapter {
         if (this.failWrites) {
             throw new Error('write refused');
         }
-        if (this.writeDelayMs > 0) {
-            await sleep(this.writeDelayMs);
+        const delay = this.writeDelays.shift() ?? this.writeDelayMs;
+        if (delay > 0) {
+            await sleep(delay);
         }
         this.#value = value;
         this.writes.push(value);
@@ -434,6 +437,17 @@ describe('IoLightingIdentifyServer', function () {
             );
         });
 
+        it('restores the power state after a step write that is still running when StopEffect arrives', async () => {
+            const light = await mountLight(false);
+            light.adapter.writeDelays.push(200, 0);
+            await triggerEffect(light, Identify.EffectIdentifier.Blink);
+            await triggerEffect(light, Identify.EffectIdentifier.StopEffect);
+
+            await waitForWrites(light, 2);
+            expect(light.adapter.writes).to.deep.equal([true, false]);
+            expect(light.adapter.power).to.equal(false);
+        });
+
         it('stops a running effect and restores the power state when the node closes', async () => {
             const light = await mountLight(false);
             await triggerEffect(light, Identify.EffectIdentifier.Breathe);
@@ -512,6 +526,17 @@ describe('IoLightingIdentifyServer', function () {
             await waitForIdentifyEnd(light);
             await expectNoFurtherWrite(light, 300, 'restore written');
             expect(light.adapter.power).to.equal(false);
+        });
+
+        it('toggles for Identify only after a running effect restore write has finished', async () => {
+            const light = await mountLight(false);
+            await triggerEffect(light, Identify.EffectIdentifier.Blink);
+            await waitForWrites(light, 1);
+
+            light.adapter.writeDelays.push(200, 0);
+            await identify(light, 5);
+            await waitForWrites(light, 3);
+            expect(light.adapter.writes, 'effect restored, then Identify toggled').to.deep.equal([true, false, true]);
         });
 
         it('stops identification and restores the power state when the node closes', async () => {

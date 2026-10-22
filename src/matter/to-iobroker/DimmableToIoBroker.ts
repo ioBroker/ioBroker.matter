@@ -108,7 +108,7 @@ export class DimmableToIoBroker extends GenericElectricityDataDeviceToIoBroker<D
                     level = this.#maxLevel;
                 }
 
-                const isOn = this.#ioBrokerDevice.getPower() ?? false;
+                const isOn = this.isDeviceOn;
                 const transitionTime = isOn ? (this.ioBrokerDevice.getTransitionTime() ?? null) : null;
 
                 await this.appEndpoint.commandsOf(LevelControlClient).moveToLevel({

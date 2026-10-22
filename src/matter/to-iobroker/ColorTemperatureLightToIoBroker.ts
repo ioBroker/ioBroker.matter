@@ -127,7 +127,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                 } else if (level > this.#maxLevel) {
                     level = this.#maxLevel;
                 }
-                const isOn = this.#ioBrokerDevice.getPower() ?? false;
+                const isOn = this.isDeviceOn;
                 const transitionTime = isOn ? (this.ioBrokerDevice.getTransitionTime() ?? null) : null;
 
                 await this.appEndpoint.commandsOf(LevelControlClient).moveToLevel({
@@ -156,7 +156,7 @@ export class ColorTemperatureLightToIoBroker extends GenericElectricityDataDevic
                     colorTemperatureMireds = this.#colorTemperatureMaxMireds;
                 }
 
-                const isOn = this.#ioBrokerDevice.getPower() ?? false;
+                const isOn = this.isDeviceOn;
                 const transitionTime = isOn ? Math.round((this.ioBrokerDevice.getTransitionTime() ?? 0) / 100) : 0;
 
                 await this.appEndpoint.commandsOf(ColorControlClient).moveToColorTemperature({

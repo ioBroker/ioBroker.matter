@@ -11,6 +11,7 @@ import type { GenericDeviceToMatter } from '../src/matter/to-matter/GenericDevic
 import matterDeviceFabric from '../src/matter/to-matter/matterFactory';
 import { ColorTemperatureMapping } from '../src/matter/to-matter/ColorTemperatureMapping';
 import { createMatterTestEnvironment } from './helpers/matterTestEnvironment';
+import { LightingLevel } from '../src/matter/ConversionUtils';
 
 // A Matter controller drives colour commands on an ioBroker light we expose; the tests check what the
 // converter writes to the ioBroker states.
@@ -483,6 +484,16 @@ describe('colour commands from a Matter controller to an ioBroker light', functi
 
     describe('HueAndRgbToMatter', () => {
         const HUE_180 = 127;
+
+        it('starts at the minimum level when the DIMMER state has no value yet', async () => {
+            const { endpoint } = await mount(Types.hue, {
+                HUE: { type: 'number', val: 0, min: 0, max: 360 },
+                DIMMER: { type: 'number', val: null, min: 0, max: 255 },
+                ON: { type: 'boolean', val: true },
+            });
+
+            expect((endpoint.state as any).levelControl.currentLevel).to.equal(LightingLevel.MIN);
+        });
 
         it('writes a MoveToHue command to the HUE state in degrees', async () => {
             const { adapter, endpoint } = await mount(Types.hue, {

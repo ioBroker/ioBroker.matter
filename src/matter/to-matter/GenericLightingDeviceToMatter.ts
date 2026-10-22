@@ -104,9 +104,7 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
         }
         const ioBrokerDevice = this.#ioBrokerDevice; // Pin limited type for the scope of this function
 
-        const currentLevel = ioBrokerDevice.hasDimmer()
-            ? ioBrokerDevice.cropValue(ioBrokerDevice.getDimmer() ?? 100, 0, 100)
-            : 100;
+        const currentLevel = ioBrokerDevice.hasDimmer() ? (ioBrokerDevice.getDimmer() ?? 100) : 100;
         await this.#matterEndpoint.setStateOf(EventedLightingLevelControlServer, {
             currentLevel: this.asMatterLevel(currentLevel),
         });
@@ -151,7 +149,7 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
 
                     if (ioValue > 0) {
                         await this.#matterEndpoint.setStateOf(EventedLightingLevelControlServer, {
-                            currentLevel: this.asMatterLevel(ioBrokerDevice.cropValue(ioValue, 0, 100)),
+                            currentLevel: this.asMatterLevel(ioValue),
                         });
                     }
                     break;
@@ -184,8 +182,11 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
         );
     }
 
-    /** Converts the given value in 0..100 range to a valid Level Matter value, see {@link LightingLevel.fromPercent}. */
+    /**
+     * Converts a percent to a valid Level Matter value, see {@link LightingLevel.fromPercent}. NaN, which an ioBroker
+     * state without a value gives, becomes the minimum level.
+     */
     asMatterLevel(value: number): number {
-        return LightingLevel.fromPercent(value);
+        return LightingLevel.fromPercent(this.#ioBrokerDevice.cropValue(value, 0, 100));
     }
 }

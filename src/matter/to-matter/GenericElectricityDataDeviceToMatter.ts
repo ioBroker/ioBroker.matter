@@ -43,14 +43,7 @@ export abstract class GenericElectricityDataDeviceToMatter extends GenericDevice
     protected addElectricityDataClusters(endpoint: Endpoint<any>, ioBrokerDevice: ElectricityDataDevice): void {
         const measuredAccuracies = [];
         const initialValues: any = {};
-        if (ioBrokerDevice.hasElectricPower()) {
-            measuredAccuracies.push({
-                measurementType: MeasurementType.ActivePower,
-                ...fakedAccuracyDetails,
-            });
-            initialValues.activePower = null;
-            this.#hasActivePower = true;
-        }
+        this.#hasActivePower = ioBrokerDevice.hasElectricPower();
         if (ioBrokerDevice.hasCurrent()) {
             measuredAccuracies.push({
                 measurementType: MeasurementType.ActiveCurrent,
@@ -76,24 +69,17 @@ export abstract class GenericElectricityDataDeviceToMatter extends GenericDevice
             this.#hasFrequency = true;
         }
 
-        if (measuredAccuracies.length) {
-            // Adds the ElectricalPowerMeasurement cluster to the endpoint
+        if (this.#hasActivePower || measuredAccuracies.length) {
+            // ActivePower and its Accuracy entry are mandatory (spec 2.13.6) even when the device has no power state
+            measuredAccuracies.unshift({
+                measurementType: MeasurementType.ActivePower,
+                ...fakedAccuracyDetails,
+            });
             endpoint.behaviors.require(
                 ElectricalPowerMeasurementServer.with(ElectricalPowerMeasurement.Feature.AlternatingCurrent),
                 {
                     activePower: null,
-                    activeCurrent: null,
-                    voltage: null,
-                    frequency: null,
                     ...initialValues,
-                    reactiveCurrent: null,
-                    apparentCurrent: null,
-                    reactivePower: null,
-                    apparentPower: null,
-                    rmsVoltage: null,
-                    rmsCurrent: null,
-                    rmsPower: null,
-                    powerFactor: null,
                     powerMode: ElectricalPowerMeasurement.PowerMode.Ac,
                     numberOfMeasurementTypes: measuredAccuracies.length,
                     accuracy: measuredAccuracies,

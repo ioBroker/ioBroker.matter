@@ -180,9 +180,25 @@ export class IoLightingIdentifyServer extends IoIdentifyServer {
      * Identify toggle that is still being written. Rejects when this write fails; the queue goes on.
      */
     #queuePowerWrite(light: GenericLightingDevice, power: boolean): Promise<void> {
+        this.internal.queuedPower = power;
         const write = this.internal.powerWrites.then(() => light.setPower(power));
-        this.internal.powerWrites = write.catch(() => {});
+        const end: Promise<void> = write
+            .catch(() => {})
+            .then(() => {
+                if (this.internal.powerWrites === end) {
+                    this.internal.queuedPower = undefined;
+                }
+            });
+        this.internal.powerWrites = end;
         return write;
+    }
+
+    /**
+     * The power state the light ends in once all queued writes are done, so a new effect or Identify does not save a
+     * step of the previous effect as the state to restore.
+     */
+    #power(light: GenericLightingDevice): boolean {
+        return this.internal.queuedPower ?? !!light.getPower();
     }
 
     #setPower(light: GenericLightingDevice, power: boolean): void {
@@ -213,7 +229,7 @@ export class IoLightingIdentifyServer extends IoIdentifyServer {
         if (startToIdentify) {
             let currentState = false;
             if (light !== undefined) {
-                currentState = this.internal.effect?.initialPower ?? !!light.getPower();
+                currentState = this.internal.effect?.initialPower ?? this.#power(light);
                 this.#stopEffect();
             }
             this.internal.identifyState = { currentState, initialState: currentState };
@@ -256,7 +272,7 @@ export class IoLightingIdentifyServer extends IoIdentifyServer {
                 return;
         }
 
-        const initialPower = this.internal.effect?.initialPower ?? !!light.getPower();
+        const initialPower = this.internal.effect?.initialPower ?? this.#power(light);
         const steps = effectSteps(effectIdentifier, initialPower);
         if (steps === undefined) {
             return;
@@ -309,5 +325,7 @@ export namespace IoLightingIdentifyServer {
         effect?: RunningEffect;
         /** End of the queue that every power write of the behavior goes through */
         powerWrites: Promise<void> = Promise.resolve();
+        /** Power of the last queued write while the queue is not empty */
+        queuedPower?: boolean;
     }
 }

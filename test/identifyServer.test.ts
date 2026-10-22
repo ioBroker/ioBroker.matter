@@ -50,6 +50,12 @@ class LightAdapter {
         return this.#value;
     }
 
+    /** A power change from outside the adapter, such as a wall switch, that reaches the device as a state change. */
+    async switchFromOutside(value: boolean): Promise<void> {
+        this.#value = value;
+        await SubscribeManager.observer(this.#id, { val: value, ack: true, ts: Date.now() } as ioBroker.State);
+    }
+
     async getForeignObjectAsync(id: string): Promise<ioBroker.Object | null> {
         if (id !== this.#id) {
             return null;
@@ -446,6 +452,31 @@ describe('IoLightingIdentifyServer', function () {
             await waitForWrites(light, 2);
             expect(light.adapter.writes).to.deep.equal([true, false]);
             expect(light.adapter.power).to.equal(false);
+        });
+
+        it('keeps the power state from before the effects when one starts while a restore is still queued', async () => {
+            const light = await mountLight(false);
+            light.adapter.writeDelays.push(1000);
+            await triggerEffect(light, Identify.EffectIdentifier.Blink);
+            await triggerEffect(light, Identify.EffectIdentifier.StopEffect);
+            await triggerEffect(light, Identify.EffectIdentifier.Blink);
+            await waitForWrites(light, 3);
+
+            await runEffect(light);
+            expect(light.adapter.writes).to.deep.equal([true, false, true, false]);
+            expect(light.adapter.power).to.equal(false);
+        });
+
+        it('starts the next effect from a power change made outside after all writes are done', async () => {
+            const light = await mountLight(false);
+            await triggerEffect(light, Identify.EffectIdentifier.Blink);
+            await waitForWrites(light, 1);
+            await runEffect(light);
+
+            await light.adapter.switchFromOutside(true);
+            await triggerEffect(light, Identify.EffectIdentifier.Blink);
+            await waitForWrites(light, 3);
+            expect(light.adapter.writes[2], 'the flash inverts the power set outside').to.equal(false);
         });
 
         it('stops a running effect and restores the power state when the node closes', async () => {

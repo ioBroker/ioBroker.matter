@@ -120,6 +120,12 @@ export class MockControllerAdapter {
         return this.states.get(this.#shortId(id)) ?? null;
     }
 
+    async getStateAsync(id: string): Promise<ioBroker.State | null> {
+        return this.states.get(this.#shortId(id)) ?? null;
+    }
+
+    async sendToGui(_message: unknown): Promise<void> {}
+
     async subscribeForeignStatesAsync(): Promise<void> {}
     async unsubscribeForeignStatesAsync(): Promise<void> {}
     subscribeStates(): void {}

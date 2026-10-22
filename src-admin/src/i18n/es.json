@@ -337,5 +337,10 @@
     "\"%s\" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.": "\"%s\" es un dispositivo inactivo (Matter LIT). Solo responde la próxima vez que se despierte, por lo que sus propios datos de red llegarán más tarde.",
     "Refresh %s connected online neighbor(s) for current link data": "Actualizar %s vecino(s) en línea conectado(s) para obtener los datos de enlace actuales",
     "No online neighbor can report its current link data either.": "Ningún vecino en línea puede informar tampoco sus datos de enlace actuales.",
-    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s nodo(s) son dispositivos inactivos (Matter LIT), por lo que la actualización no espera por ellos: sus datos aparecerán en cuanto se despierten."
+    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s nodo(s) son dispositivos inactivos (Matter LIT), por lo que la actualización no espera por ellos: sus datos aparecerán en cuanto se despierten.",
+    "The pairing code is wrong": "El código de emparejamiento es incorrecto",
+    "The device attestation was rejected": "Se rechazó la atestación del dispositivo",
+    "The device was not found in the network": "No se encontró el dispositivo en la red",
+    "The device is already paired with this controller": "El dispositivo ya está emparejado con este controlador",
+    "The node was removed, but the device could not be told to leave. It may still be paired with this controller and needs a factory reset before it can be paired again.": "El nodo se eliminó, pero no se pudo indicar al dispositivo que lo abandone. Es posible que siga emparejado con este controlador y necesite un restablecimiento de fábrica antes de poder emparejarlo de nuevo."
 }

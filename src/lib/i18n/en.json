@@ -101,6 +101,8 @@
     "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?": "The node is currently not connected. When you unpair it now you need to factory reset the node to commission again. Are you sure?",
     "Unpair this node": "Unpair this node",
     "Unpairing node...": "Unpairing node...",
+    "Error happened during unpairing. Please check the log.": "Error happened during unpairing. Please check the log.",
+    "The node was removed, but the device could not be told to leave. It may still be paired with this controller and needs a factory reset before it can be paired again.": "The node was removed, but the device could not be told to leave. It may still be paired with this controller and needs a factory reset before it can be paired again.",
     "Unverified OTA Update Source Warning": "Warning: This update was found on an unverified source. Updates from test-net or local sources have not been certified and may contain untested firmware that could result in non-functional devices. Applying these updates is entirely at your own risk.",
     "Update now": "Update now",
     "Update Source": "Update Source",

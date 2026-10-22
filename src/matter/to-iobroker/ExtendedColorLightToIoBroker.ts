@@ -7,8 +7,7 @@ import {
     kelvinToMireds,
     miredsToKelvin,
 } from '@matter/main/behaviors';
-import type { Endpoint } from '@matter/main';
-import type { PairedNode } from '@project-chip/matter.js/device';
+import type { Endpoint, ClientNode } from '@matter/main';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { Cie } from '../../lib/devices/Cie';
 import { Ct } from '../../lib/devices/Ct';
@@ -27,7 +26,7 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
     #colorTemperatureMaxMireds = kelvinToMireds(1_000);
 
     constructor(
-        node: PairedNode,
+        node: ClientNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         adapter: MatterAdapter,
@@ -133,11 +132,11 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
         }
     }
 
-    override async destroy(): Promise<void> {
+    override async destroy(options?: { keepConnectionState?: boolean }): Promise<void> {
         // The base releases the ioBroker subscription that arms this timer, so a change landing during
         // super.destroy() can still re-arm it; clearing afterwards is what actually leaves nothing pending.
         try {
-            await super.destroy();
+            await super.destroy(options);
         } finally {
             if (this.#hueSaturationTimeout) {
                 this.#ioBrokerDevice.adapter.clearTimeout(this.#hueSaturationTimeout);

@@ -21,7 +21,8 @@ import { inspect } from 'util';
 import { convertDataToJsonConfig } from './JsonConfigUtils';
 import { logControllerEndpoint } from '../matter/ControllerEndpointStructureInspector';
 import { SpecificationVersion } from '@matter/main/types';
-import { CommissioningClient, isObject } from '@matter/main';
+import { ClientNodePhysicalProperties, CommissioningClient, isObject } from '@matter/main';
+import { BasicInformationClient } from '@matter/main/behaviors';
 import { PeerAddress } from '@matter/main/protocol';
 import { ICD_LIT_ICON } from './icons';
 import { formatDuration, icdWaitingLabel, icdWakeInstructionText } from '../matter/icdUtils';
@@ -241,8 +242,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         let updateAvailableMessage: string | undefined = undefined;
         let version: string | undefined = undefined;
         let newVersion: string | undefined = undefined;
-        if (ioNode.node.basicInformation) {
-            version = `${ioNode.node.basicInformation.softwareVersionString} (${ioNode.node.basicInformation.softwareVersion})`;
+        const basicInformation = ioNode.node.maybeStateOf(BasicInformationClient);
+        if (basicInformation) {
+            version = `${basicInformation.softwareVersionString} (${basicInformation.softwareVersion})`;
         }
         if (ioNode.softwareUpdateAvailable !== undefined) {
             const info = ioNode.softwareUpdateAvailable;
@@ -477,12 +479,13 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     async #handleDeleteNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        this.adapter.log.info(`Delete node ${node.nodeId}`);
+        this.adapter.log.info(`Delete node ${node.logLabel}`);
         if (!(await context.showConfirmation(this.#adapter.t('Are you sure?')))) {
             return { refresh: 'none' };
         }
 
-        if (!node.node.isConnected) {
+        const wasConnected = node.node.lifecycle.isConnected;
+        if (!wasConnected) {
             if (
                 !(await context.showConfirmation(
                     this.#adapter.t(
@@ -505,11 +508,12 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         // Start an interval that normally covers 30 seconds, and with each update the number gets slower increased for the percentage
         let errorHappened = false;
+        let deviceNotified = true;
         try {
-            await node.remove();
+            ({ deviceNotified } = await node.remove());
         } catch (error) {
             const errorText = inspect(error, { depth: 10 });
-            this.adapter.log.error(`Error during unpairing for node ${node.nodeId}: ${errorText}`);
+            this.adapter.log.error(`Error during unpairing for node ${node.logLabel}: ${errorText}`);
             errorHappened = true;
         }
 
@@ -522,6 +526,12 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         if (errorHappened) {
             await context.showMessage(this.#adapter.t('Error happened during unpairing. Please check the log.'));
+        } else if (wasConnected && !deviceNotified) {
+            await context.showMessage(
+                this.#adapter.t(
+                    'The node was removed, but the device could not be told to leave. It may still be paired with this controller and needs a factory reset before it can be paired again.',
+                ),
+            );
         }
         return { refresh: 'devices' };
     }
@@ -551,7 +561,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         );
 
         if (result?.name !== undefined && result.name !== node.name) {
-            this.adapter.log.info(`Rename node ${node.nodeId} to "${result.name}"`);
+            this.adapter.log.info(`Rename node ${node.logLabel} to "${result.name}"`);
             await node.rename(result.name);
             return { refresh: 'devices' };
         }
@@ -562,9 +572,9 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
      * Handle new pairing code request
      */
     async #handlePairingCode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        const result = await this.adapter.controllerNode?.showNewCommissioningCode(node.node.nodeId);
+        const result = await this.adapter.controllerNode?.showNewCommissioningCode(node.peerAddress.nodeId);
 
-        this.adapter.log.info(`New pairing code for node ${node.nodeId}: ${JSON.stringify(result)}`);
+        this.adapter.log.info(`New pairing code for node ${node.logLabel}: ${JSON.stringify(result)}`);
 
         if (result?.manualPairingCode || result?.qrPairingCode) {
             const schema: JsonFormSchema = {
@@ -606,7 +616,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     async #handleLogDebugNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        const rootEndpoint = node.node.node;
+        const rootEndpoint = node.node;
         const peerAddress = PeerAddress(rootEndpoint.maybeStateOf(CommissioningClient)?.peerAddress);
 
         const endpointInfos = rootEndpoint ? logControllerEndpoint(rootEndpoint) : 'No root endpoint found';
@@ -662,13 +672,14 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         context: ActionContext,
     ): Promise<{ refresh: DeviceRefresh }> {
         const info = node.softwareUpdateAvailable;
-        if (!info || !node.node.basicInformation) {
+        const basicInformation = node.node.maybeStateOf(BasicInformationClient);
+        if (!info || !basicInformation) {
             await context.showMessage(this.#adapter.t('No software update information available'));
             return { refresh: 'none' };
         }
 
-        const currentVersion = node.node.basicInformation.softwareVersionString;
-        const currentVersionNum = node.node.basicInformation.softwareVersion;
+        const currentVersion = basicInformation.softwareVersionString;
+        const currentVersionNum = basicInformation.softwareVersion;
 
         const sourceLabels: Record<string, string> = {
             'dcl-prod': 'OTA Update Source dcl-prod',
@@ -785,7 +796,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
         if (isObject(result)) {
             // User clicked "Update now" - start the update process
-            this.adapter.log.info(`User requested software update for node ${node.nodeId}`);
+            this.adapter.log.info(`User requested software update for node ${node.logLabel}`);
 
             // Start the update process directly on the node
             // Progress will be shown via sendToGui with cancel support
@@ -968,7 +979,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
         try {
             return await call();
         } catch (error) {
-            this.adapter.log.warn(`${description} for node ${ioNode.nodeId}: ${inspect(error, { depth: 5 })}`);
+            this.adapter.log.warn(`${description} for node ${ioNode.logLabel}: ${inspect(error, { depth: 5 })}`);
             return fallback;
         }
     }
@@ -1033,7 +1044,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             error = caught;
         }
         if (failed) {
-            this.adapter.log.warn(`ICD operation failed for node ${ioNode.nodeId}: ${inspect(error, { depth: 5 })}`);
+            this.adapter.log.warn(`ICD operation failed for node ${ioNode.logLabel}: ${inspect(error, { depth: 5 })}`);
             await this.#guardedDialogCall(
                 ioNode,
                 'Failed to show ICD failure message',
@@ -1231,7 +1242,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                 };
                 data.pollInterval = deviceConfig.pollInterval;
 
-                if (device.node.deviceInformation?.isBatteryPowered) {
+                if (ClientNodePhysicalProperties(device.node).isBatteryPowered) {
                     addBatteryPoweredInfo = true;
                 }
             }
@@ -1240,7 +1251,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
 
             // Because of a Matter SDK Bug setting the subscriptionMaxIntervalS only makes sense
             // for Matter versions >= 1.3
-            const specVersion = node.node.basicInformation?.specificationVersion;
+            const specVersion = node.node.maybeStateOf(BasicInformationClient)?.specificationVersion;
             if (typeof specVersion === 'number' && specVersion !== 0) {
                 const { major, minor } = SpecificationVersion.decode(specVersion);
                 const matterVersion = parseFloat((major + minor / 100).toFixed(1));
@@ -1263,7 +1274,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
                             'This value is just a proposal for the device The device may decide for an other maximum interval.',
                         ),
                     };
-                    if (node.node.deviceInformation?.isBatteryPowered) {
+                    if (ClientNodePhysicalProperties(node.node).isBatteryPowered) {
                         addBatteryPoweredInfo = true;
                     }
                 }
@@ -1308,7 +1319,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
             result?.exposeMatterApplicationClusterData !== undefined &&
             result?.exposeMatterSystemClusterData !== undefined
         ) {
-            await this.adapter.extendObjectAsync(baseId, {
+            await this.adapter.extendOwnConfigObject(baseId, {
                 native: {
                     exposeMatterApplicationClusterData: strToBool(result.exposeMatterApplicationClusterData),
                     exposeMatterSystemClusterData: strToBool(result.exposeMatterSystemClusterData),
@@ -1321,7 +1332,7 @@ class MatterAdapterDeviceManagement extends DeviceManagement<MatterAdapter> {
     }
 
     async #handleConfigureNode(node: GeneralMatterNode, context: ActionContext): Promise<{ refresh: DeviceRefresh }> {
-        this.adapter.log.info(`Configure node ${node.nodeId}`);
+        this.adapter.log.info(`Configure node ${node.logLabel}`);
 
         return await this.#handleConfigureNodeOrDevice('Configure node', node.nodeBaseId, context, node);
     }

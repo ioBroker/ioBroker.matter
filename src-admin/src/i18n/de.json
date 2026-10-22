@@ -360,5 +360,10 @@
     "\"%s\" is a sleepy device (Matter LIT). It answers only when it next wakes, so its own network data arrives later.": "\"%s\" ist ein schlafendes Gerät (Matter LIT). Es antwortet erst, wenn es das nächste Mal aufwacht, daher treffen seine eigenen Netzwerkdaten erst später ein.",
     "Refresh %s connected online neighbor(s) for current link data": "%s verbundene Online-Nachbarn für aktuelle Verbindungsdaten aktualisieren",
     "No online neighbor can report its current link data either.": "Auch kein Online-Nachbar kann aktuelle Verbindungsdaten melden.",
-    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s Knoten sind schlafende Geräte (Matter LIT), daher wartet die Aktualisierung nicht auf sie – ihre Daten erscheinen, sobald sie aufwachen."
+    "%s node(s) are sleepy devices (Matter LIT), so the update does not wait for them — their data appears once they wake up.": "%s Knoten sind schlafende Geräte (Matter LIT), daher wartet die Aktualisierung nicht auf sie – ihre Daten erscheinen, sobald sie aufwachen.",
+    "The pairing code is wrong": "Der Kopplungscode ist falsch",
+    "The device attestation was rejected": "Die Geräteattestierung wurde abgelehnt",
+    "The device was not found in the network": "Das Gerät wurde im Netzwerk nicht gefunden",
+    "The device is already paired with this controller": "Das Gerät ist bereits mit diesem Controller gekoppelt",
+    "The node was removed, but the device could not be told to leave. It may still be paired with this controller and needs a factory reset before it can be paired again.": "Der Knoten wurde entfernt, aber das Gerät konnte nicht angewiesen werden, ihn zu verlassen. Es ist möglicherweise noch mit diesem Controller gekoppelt und muss auf Werkseinstellungen zurückgesetzt werden, bevor es erneut gekoppelt werden kann."
 }

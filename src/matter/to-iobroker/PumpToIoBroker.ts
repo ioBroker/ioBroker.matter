@@ -7,8 +7,7 @@ import {
     TemperatureMeasurement,
 } from '@matter/main/clusters';
 import { LevelControlClient, OnOffClient } from '@matter/main/behaviors';
-import type { Endpoint } from '@matter/main';
-import type { PairedNode } from '@project-chip/matter.js/device';
+import type { Endpoint, ClientNode } from '@matter/main';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
 import { Pump } from '../../lib/devices/Pump';
@@ -24,7 +23,7 @@ export class PumpToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     #maxLevel = MAX_LEVEL_VALUE;
 
     constructor(
-        node: PairedNode,
+        node: ClientNode,
         endpoint: Endpoint,
         rootEndpoint: Endpoint,
         adapter: MatterAdapter,

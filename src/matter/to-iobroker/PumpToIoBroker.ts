@@ -6,7 +6,7 @@ import {
     PressureMeasurement,
     TemperatureMeasurement,
 } from '@matter/main/clusters';
-import { LevelControlClient, OnOffClient } from '@matter/main/behaviors';
+import { LevelControlClient } from '@matter/main/behaviors';
 import type { Endpoint, ClientNode } from '@matter/main';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
@@ -14,11 +14,16 @@ import { Pump } from '../../lib/devices/Pump';
 import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityDataDeviceToIoBroker';
 import type { MatterAdapter } from '../../main';
 import { MatterConverters, PumpLevel } from '../ConversionUtils';
+import { OnOffLevelCommands } from './OnOffLevelCommands';
 
 export class PumpToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Pump;
-    #minLevel = 0;
-    #maxLevel = PumpLevel.FULL_SPEED;
+    readonly #onOffLevel = new OnOffLevelCommands(
+        this.onOffLevelTarget,
+        PumpLevel,
+        percent => this.#ioBrokerDevice.updateLevel(percent),
+        { min: PumpLevel.STOPPED, max: PumpLevel.FULL_SPEED },
+    );
 
     constructor(
         node: ClientNode,
@@ -53,9 +58,10 @@ export class PumpToIoBroker extends GenericElectricityDataDeviceToIoBroker {
 
         const levelControl = this.appEndpoint.maybeStateOf(LevelControlClient);
         if (levelControl !== undefined) {
-            // A pump LevelControl does not use the Lighting feature, so 0 is a valid setpoint unless declared otherwise
-            this.#minLevel = levelControl.minLevel ?? 0;
-            this.#maxLevel = levelControl.maxLevel ?? PumpLevel.FULL_SPEED;
+            this.#onOffLevel.levelRange = {
+                min: levelControl.minLevel ?? PumpLevel.STOPPED,
+                max: levelControl.maxLevel ?? PumpLevel.FULL_SPEED,
+            };
         }
     }
 
@@ -66,13 +72,7 @@ export class PumpToIoBroker extends GenericElectricityDataDeviceToIoBroker {
             endpointId,
             clusterId: MatterOnOff.id,
             attributeName: 'onOff',
-            changeHandler: async value => {
-                if (value) {
-                    await this.appEndpoint.commandsOf(OnOffClient)?.on();
-                } else {
-                    await this.appEndpoint.commandsOf(OnOffClient)?.off();
-                }
-            },
+            changeHandler: (value: boolean) => this.#onOffLevel.setPower(value),
         });
 
         this.enableDeviceTypeStateForAttribute(PropertyType.Level, {
@@ -80,20 +80,7 @@ export class PumpToIoBroker extends GenericElectricityDataDeviceToIoBroker {
             clusterId: MatterLevelControl.id,
             attributeName: 'currentLevel',
             convertValue: (value: number | null) => (value === null ? undefined : PumpLevel.toPercent(value)),
-            changeHandler: async (value: number) => {
-                let level = PumpLevel.fromPercent(value);
-                if (level < this.#minLevel) {
-                    level = this.#minLevel;
-                } else if (level > this.#maxLevel) {
-                    level = this.#maxLevel;
-                }
-                await this.appEndpoint.commandsOf(LevelControlClient).moveToLevel({
-                    level,
-                    transitionTime: null,
-                    optionsMask: { executeIfOff: true },
-                    optionsOverride: { executeIfOff: true },
-                });
-            },
+            changeHandler: (value: number) => this.#onOffLevel.setLevel(value),
         });
 
         this.enableDeviceTypeStateForAttribute(PropertyType.Temperature, {

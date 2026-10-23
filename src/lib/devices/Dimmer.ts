@@ -81,6 +81,7 @@ export class Dimmer extends ElectricityDataDevice {
         );
     }
 
+    /** The ACTUAL level when the device has an ACTUAL state, otherwise the SET level. */
     getLevel(): number | undefined {
         if (!this.#setLevelState && !this.#getLevelState) {
             throw new Error('Level state not found');
@@ -122,6 +123,10 @@ export class Dimmer extends ElectricityDataDevice {
         }
         await this.#setLevelState?.updateValue(value);
         await this.#getLevelState?.updateValue(value);
+    }
+
+    hasLevelActual(): boolean {
+        return !!this.#getLevelState;
     }
 
     getLevelActual(): number | undefined {

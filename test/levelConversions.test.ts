@@ -1,5 +1,18 @@
 import { expect } from 'chai';
-import { DeviceTypeId, Environment, LogLevel, Logger, ServerNode, VendorId } from '@matter/main';
+import {
+    DeviceTypeId,
+    Endpoint,
+    Environment,
+    LogLevel,
+    Logger,
+    ObserverGroup,
+    ServerNode,
+    VendorId,
+} from '@matter/main';
+import { LevelControl } from '@matter/main/clusters';
+import { OnOffServer } from '@matter/main/behaviors';
+import { OnOffLightDevice } from '@matter/main/devices';
+import { MatterOnOffAttribute } from '../src/matter/to-matter/MatterOnOffAttribute';
 import { StateType, Types } from '@iobroker/type-detector';
 import DeviceFactory from '../src/lib/DeviceFactory';
 import type { DetectedDevice, DeviceOptions, GenericDevice } from '../src/lib/devices/GenericDevice';
@@ -38,6 +51,8 @@ let instanceCounter = 0;
 class MockAdapter {
     readonly namespace = 'matter.0';
     readonly infos = new Array<string>();
+    /** Every converter write as NAME=value, in order. */
+    readonly writes = new Array<string>();
     readonly log = {
         silly: (): void => {},
         debug: (): void => {},
@@ -108,6 +123,7 @@ class MockAdapter {
     async setForeignStateAsync(id: string, value: any): Promise<void> {
         const val = typeof value === 'object' && value !== null && 'val' in value ? value.val : value;
         this.#values.set(id, { val, ack: true, ts: Date.now() } as ioBroker.State);
+        this.writes.push(`${id.substring(this.#prefix.length + 1)}=${val}`);
     }
 
     /** Simulates an acked value arriving from the real device, awaiting the full handler chain. */
@@ -227,6 +243,16 @@ async function moveToLevel(endpoint: any, level: number): Promise<void> {
         agent.levelControl.moveToLevel({ level, transitionTime: 0, optionsMask: {}, optionsOverride: {} }),
     );
 }
+
+/** Invokes a LevelControl command the way a controller does. */
+async function levelCommand(endpoint: any, command: string, request: Record<string, unknown>): Promise<void> {
+    await endpoint.act((agent: any) =>
+        agent.levelControl[command]({ optionsMask: {}, optionsOverride: {}, ...request }),
+    );
+}
+
+const writesOf = (mounted: Mounted, name: string): string[] =>
+    mounted.adapter.writes.filter(write => write.startsWith(`${name}=`));
 
 async function setOnOff(endpoint: any, on: boolean): Promise<void> {
     await endpoint.act((agent: any) => (on ? agent.onOff.on() : agent.onOff.off()));
@@ -391,22 +417,322 @@ describe('level conversions', function () {
             expect(mounted.adapter.valueOf('SET')).to.equal(1);
         });
 
-        it('starts an ioBroker dimmer at 0 as off at the lowest level without a range warning', async () => {
+        it('starts an ioBroker dimmer at 0 as off at 100 % when no level is stored, without a range warning', async () => {
             const mounted = await mount(Types.dimmer, { SET: percent(0) });
             const [endpoint] = endpointsOf(mounted);
             expect(endpoint.state.onOff.onOff).to.equal(false);
-            expect(endpoint.state.levelControl.currentLevel).to.equal(1);
+            expect(endpoint.state.levelControl.currentLevel).to.equal(LightingLevel.MAX);
             expect(mounted.adapter.infos.filter(message => message.includes('below minimum'))).to.deep.equal([]);
         });
     });
 
-    describe('Dimmer with a power state', () => {
-        it('characterization: leaves OnOff to the power state and the level unchanged when ioBroker reports dimmer 0', async () => {
-            const mounted = await mount(Types.dimmer, { SET: percent(50), ON_SET: bool(true) });
+    describe('Dimmer with an ACTUAL level state', () => {
+        it('takes the level from ACTUAL and ignores SET', async () => {
+            const mounted = await mount(Types.dimmer, { SET: percent(50), ACTUAL: percent(50), ON_SET: bool(true) });
             const [endpoint] = endpointsOf(mounted);
             await mounted.adapter.pushValue('SET', 0);
             expect(endpoint.state.onOff.onOff).to.equal(true);
             expect(endpoint.state.levelControl.currentLevel).to.equal(127);
+            await mounted.adapter.pushValue('ACTUAL', 0);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+        });
+    });
+
+    describe('MatterOnOffAttribute', () => {
+        async function attribute(): Promise<{ endpoint: any; reported: boolean[]; onOff: MatterOnOffAttribute }> {
+            const node = await createNode(`onoff-${++instanceCounter}`);
+            const endpoint = new Endpoint(OnOffLightDevice, { id: 'light' });
+            await node.add(endpoint);
+            const observers = new ObserverGroup();
+            cleanups.push(async () => {
+                observers.close();
+                await node.close();
+            });
+            const onOff = new MatterOnOffAttribute(endpoint);
+            const reported = new Array<boolean>();
+            onOff.observe(observers, async on => {
+                reported.push(on);
+            });
+            return { endpoint, reported, onOff };
+        }
+
+        it('does not report its own writes and reports commands', async () => {
+            const { endpoint, reported, onOff } = await attribute();
+            await onOff.write(() => true);
+            await onOff.write(() => false);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+            await setOnOff(endpoint, true);
+            expect(reported).to.deep.equal([true]);
+        });
+
+        it('reports a command that has the value of an own write waiting for the lock', async () => {
+            const { endpoint, reported, onOff } = await attribute();
+            let release!: () => void;
+            const released = new Promise<void>(resolve => (release = resolve));
+            let locked!: () => void;
+            const isLocked = new Promise<void>(resolve => (locked = resolve));
+            const command = endpoint.act(async (agent: any) => {
+                const state = agent.get(OnOffServer);
+                await agent.context.transaction.addResources(state);
+                await agent.context.transaction.begin();
+                state.state.onOff = true;
+                locked();
+                await released;
+            });
+            await isLocked;
+            const write = onOff.write(() => true);
+            await new Promise(resolve => setTimeout(resolve, 20));
+            release();
+            await Promise.all([command, write]);
+            expect(reported).to.deep.equal([true]);
+        });
+    });
+
+    describe('OnOff attribute changes', () => {
+        it('starts from ACTUAL when the dimmer has one', async () => {
+            const mounted = await mount(Types.dimmer, { SET: percent(50), ACTUAL: percent(20), ON_SET: bool(true) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.levelControl.currentLevel).to.equal(LightingLevel.fromPercent(20));
+        });
+
+        it('reports each On, Off and Toggle once and nothing for an On while on', async () => {
+            const mounted = await mount(Types.dimmer, { SET: percent(50), ON_SET: bool(true) });
+            const [endpoint] = endpointsOf(mounted);
+            await setOnOff(endpoint, true);
+            await setOnOff(endpoint, false);
+            await endpoint.act((agent: any) => agent.onOff.toggle());
+            await waitFor(() => writesOf(mounted, 'ON_SET').length === 2);
+            await new Promise(resolve => setTimeout(resolve, 50));
+            expect(writesOf(mounted, 'ON_SET')).to.deep.equal(['ON_SET=false', 'ON_SET=true']);
+        });
+
+        it('reports the Off of an OnWithTimedOff timer', async () => {
+            const mounted = await mount(Types.dimmer, { SET: percent(50), ON_SET: bool(false) });
+            const [endpoint] = endpointsOf(mounted);
+            await endpoint.act((agent: any) =>
+                agent.onOff.onWithTimedOff({ onOffControl: { acceptOnlyWhenOn: false }, onTime: 1, offWaitTime: 0 }),
+            );
+            await waitFor(() => writesOf(mounted, 'ON_SET').length === 2);
+            expect(writesOf(mounted, 'ON_SET')).to.deep.equal(['ON_SET=true', 'ON_SET=false']);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+        });
+
+        it('writes the OnOff value the ioBroker states have once a command releases the OnOff lock', async () => {
+            const mounted = await mount(Types.dimmer, { SET: percent(50), ON_SET: bool(false) });
+            const [endpoint] = endpointsOf(mounted);
+            let release!: () => void;
+            const released = new Promise<void>(resolve => (release = resolve));
+            let locked!: () => void;
+            const isLocked = new Promise<void>(resolve => (locked = resolve));
+            // A controller command that holds the OnOff lock and turns the light on when it commits
+            const command = endpoint.act(async (agent: any) => {
+                const onOff = agent.get(OnOffServer);
+                await agent.context.transaction.addResources(onOff);
+                await agent.context.transaction.begin();
+                onOff.state.onOff = true;
+                locked();
+                await released;
+            });
+            await isLocked;
+            // ioBroker reports power true and then false while the command holds the lock
+            const ioBrokerChanges = Promise.all([
+                mounted.adapter.pushValue('ON_SET', true),
+                mounted.adapter.pushValue('ON_SET', false),
+            ]);
+            await new Promise(resolve => setTimeout(resolve, 20));
+            release();
+            await command;
+            await ioBrokerChanges;
+            await waitFor(() => mounted.adapter.valueOf('ON_SET') === true);
+            await new Promise(resolve => setTimeout(resolve, 50));
+            expect(mounted.adapter.valueOf('ON_SET')).to.equal(true);
+            expect(endpoint.state.onOff.onOff).to.equal(true);
+        });
+    });
+
+    describe('Light without a level state', () => {
+        it('maps power only and has no LevelControl', async () => {
+            const mounted = await mount(Types.light, { SET: bool(true) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.behaviors.has('levelControl')).to.equal(false);
+            expect(endpoint.state.onOff.onOff).to.equal(true);
+            await mounted.adapter.pushValue('SET', false);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+            await setOnOff(endpoint, true);
+            await waitFor(() => mounted.adapter.valueOf('SET') === true);
+            expect(writesOf(mounted, 'SET')).to.deep.equal(['SET=true']);
+        });
+    });
+
+    describe('Dimmer with a power state', () => {
+        it('turns OnOff off for ioBroker dimmer 0 and leaves the level unchanged', async () => {
+            const mounted = await mount(Types.dimmer, { SET: percent(50), ON_SET: bool(true) });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('SET', 0);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+            expect(endpoint.state.levelControl.currentLevel).to.equal(127);
+
+            await mounted.adapter.pushValue('SET', 50);
+            expect(endpoint.state.onOff.onOff).to.equal(true);
+        });
+
+        it('characterization: turns OnOff off for ioBroker power false at a level above 0', async () => {
+            const mounted = await mount(Types.dimmer, { SET: percent(50), ON_SET: bool(true) });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('ON_SET', false);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+            expect(endpoint.state.levelControl.currentLevel).to.equal(127);
+        });
+
+        it('starts off when ioBroker power is true but the dimmer is 0', async () => {
+            const mounted = await mount(Types.dimmer, { SET: percent(0), ON_SET: bool(true) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+        });
+
+        it('sets power and restores the dimmer from the current level when a controller turns it on at dimmer 0', async () => {
+            const mounted = await mount(Types.dimmer, { SET: percent(50), ON_SET: bool(false) });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('SET', 0);
+
+            await setOnOff(endpoint, true);
+            await waitFor(() => mounted.adapter.valueOf('SET') !== 0);
+            expect(mounted.adapter.valueOf('ON_SET')).to.equal(true);
+            expect(mounted.adapter.valueOf('SET')).to.equal(50);
+        });
+
+        it('characterization: sets only power when a controller turns it off', async () => {
+            const mounted = await mount(Types.dimmer, { SET: percent(50), ON_SET: bool(true) });
+            const [endpoint] = endpointsOf(mounted);
+            await setOnOff(endpoint, false);
+            await waitFor(() => mounted.adapter.valueOf('ON_SET') === false);
+            expect(mounted.adapter.valueOf('ON_SET')).to.equal(false);
+            expect(mounted.adapter.valueOf('SET')).to.equal(50);
+        });
+
+        it('sets power for the on part of a MoveToLevelWithOnOff', async () => {
+            const mounted = await mount(Types.dimmer, { SET: percent(50), ON_SET: bool(false) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+            await endpoint.act((agent: any) =>
+                agent.levelControl.moveToLevelWithOnOff({
+                    level: 200,
+                    transitionTime: 0,
+                    optionsMask: {},
+                    optionsOverride: {},
+                }),
+            );
+            await waitFor(() => mounted.adapter.valueOf('ON_SET') === true);
+            expect(mounted.adapter.valueOf('ON_SET')).to.equal(true);
+            expect(mounted.adapter.valueOf('SET')).to.equal(LightingLevel.toPercent(200));
+            expect(endpoint.state.onOff.onOff).to.equal(true);
+        });
+
+        it('characterization: sets dimmer 0 for a controller Off when the power state is read-only', async () => {
+            const mounted = await mount(Types.ct, {
+                DIMMER: percent(50),
+                ON_ACTUAL: bool(true),
+                TEMPERATURE: num(4000, 'K'),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await setOnOff(endpoint, false);
+            await waitFor(() => mounted.adapter.valueOf('DIMMER') === 0);
+            expect(mounted.adapter.valueOf('DIMMER')).to.equal(0);
+            expect(mounted.adapter.valueOf('ON_ACTUAL')).to.equal(true);
+        });
+
+        it('characterization: ignores its own OnOff write although ioBroker power changed back before the write landed', async () => {
+            const mounted = await mount(Types.dimmer, { SET: percent(50), ON_SET: bool(true) });
+            const [endpoint] = endpointsOf(mounted);
+            await Promise.all([mounted.adapter.pushValue('ON_SET', false), mounted.adapter.pushValue('ON_SET', true)]);
+            await new Promise(resolve => setTimeout(resolve, 50));
+            expect(writesOf(mounted, 'ON_SET')).to.deep.equal([]);
+            expect(endpoint.state.onOff.onOff).to.equal(true);
+        });
+
+        it('sets power when a MoveToLevelWithOnOff targets the level the light already has', async () => {
+            const mounted = await mount(Types.dimmer, { SET: percent(50), ON_SET: bool(false) });
+            const [endpoint] = endpointsOf(mounted);
+            await levelCommand(endpoint, 'moveToLevelWithOnOff', { level: 127, transitionTime: 0 });
+            await waitFor(() => mounted.adapter.valueOf('ON_SET') === true);
+            expect(writesOf(mounted, 'ON_SET')).to.deep.equal(['ON_SET=true']);
+        });
+
+        it('sets power for the on part of a MoveWithOnOff and a StepWithOnOff', async () => {
+            for (const [command, request] of [
+                ['moveWithOnOff', { moveMode: LevelControl.MoveMode.Up, rate: 50 }],
+                ['stepWithOnOff', { stepMode: LevelControl.StepMode.Up, stepSize: 20, transitionTime: 0 }],
+            ] as const) {
+                const mounted = await mount(Types.dimmer, { SET: percent(50), ON_SET: bool(false) });
+                const [endpoint] = endpointsOf(mounted);
+                await levelCommand(endpoint, command, request);
+                await waitFor(() => mounted.adapter.valueOf('ON_SET') === true);
+                expect(writesOf(mounted, 'ON_SET'), command).to.deep.equal(['ON_SET=true']);
+                expect(endpoint.state.onOff.onOff, command).to.equal(true);
+            }
+        });
+
+        it('characterization: writes no power for a StepWithOnOff while the light is already on', async () => {
+            const mounted = await mount(Types.dimmer, { SET: percent(50), ON_SET: bool(true) });
+            const [endpoint] = endpointsOf(mounted);
+            await levelCommand(endpoint, 'stepWithOnOff', {
+                stepMode: LevelControl.StepMode.Up,
+                stepSize: 20,
+                transitionTime: 0,
+            });
+            await waitFor(() => mounted.adapter.valueOf('SET') !== 50);
+            expect(mounted.adapter.valueOf('SET')).to.be.closeTo(LightingLevel.toPercent(147), 0.001);
+            expect(writesOf(mounted, 'ON_SET')).to.deep.equal([]);
+        });
+
+        it('characterization: writes the transition time of a level command in ms before the level', async () => {
+            const mounted = await mount(Types.dimmer, {
+                SET: percent(50),
+                ON_SET: bool(true),
+                TRANSITION_TIME: num(0, 'ms'),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await levelCommand(endpoint, 'moveToLevel', { level: 200, transitionTime: 5 });
+            await waitFor(() => mounted.adapter.valueOf('SET') !== 50);
+            expect(mounted.adapter.writes).to.deep.equal([
+                'TRANSITION_TIME=500',
+                `SET=${LightingLevel.toPercent(200)}`,
+            ]);
+        });
+
+        it('characterization: turns OnOff off for an ioBroker ON_ACTUAL change', async () => {
+            const mounted = await mount(Types.dimmer, { SET: percent(50), ON_ACTUAL: bool(true) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.onOff.onOff).to.equal(true);
+            await mounted.adapter.pushValue('ON_ACTUAL', false);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+        });
+
+        it('treats an ioBroker dimmer change to null as no value: OnOff follows power, the level stays', async () => {
+            const mounted = await mount(Types.dimmer, { SET: percent(50), ON_SET: bool(true) });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('SET', 0);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+            await mounted.adapter.pushValue('SET', null);
+            expect(endpoint.state.onOff.onOff).to.equal(true);
+            expect(endpoint.state.levelControl.currentLevel).to.equal(127);
+        });
+
+        it('characterization: keeps OnOff off for a plain MoveToLevel while ioBroker power is false', async () => {
+            const mounted = await mount(Types.dimmer, { SET: percent(50), ON_SET: bool(false) });
+            const [endpoint] = endpointsOf(mounted);
+            await endpoint.act((agent: any) =>
+                agent.levelControl.moveToLevel({
+                    level: 200,
+                    transitionTime: 0,
+                    optionsMask: { executeIfOff: true },
+                    optionsOverride: { executeIfOff: true },
+                }),
+            );
+            await waitFor(() => mounted.adapter.valueOf('SET') !== 50);
+            expect(mounted.adapter.valueOf('SET')).to.equal(LightingLevel.toPercent(200));
+            expect(mounted.adapter.valueOf('ON_SET')).to.equal(false);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
         });
     });
 
@@ -452,8 +778,49 @@ describe('level conversions', function () {
 
             await mounted.adapter.pushValue('LEVEL', 100);
             expect(endpoint.state.levelControl.currentLevel).to.equal(200);
+        });
+
+        it('stops the pump through OnOff for ioBroker level 0 and keeps the level for the next On', async () => {
+            const mounted = await mount(Types.pump, { POWER: bool(true), LEVEL: percent(50) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.pumpConfigurationAndControl.pumpStatus.running).to.equal(true);
             await mounted.adapter.pushValue('LEVEL', 0);
-            expect(endpoint.state.levelControl.currentLevel).to.equal(0);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+            expect(endpoint.state.levelControl.currentLevel).to.equal(100);
+            expect(endpoint.state.pumpConfigurationAndControl.pumpStatus.running).to.equal(false);
+
+            await setOnOff(endpoint, true);
+            await waitFor(() => mounted.adapter.valueOf('LEVEL') === 50);
+            expect(mounted.adapter.valueOf('LEVEL')).to.equal(50);
+            expect(mounted.adapter.valueOf('POWER')).to.equal(true);
+            expect(endpoint.state.pumpConfigurationAndControl.pumpStatus.running).to.equal(true);
+        });
+
+        it('treats an ioBroker level change to null as no value and a numeric power as on', async () => {
+            const mounted = await mount(Types.pump, { POWER: bool(false), LEVEL: percent(50) });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('POWER', 1);
+            expect(endpoint.state.onOff.onOff).to.equal(true);
+            await mounted.adapter.pushValue('LEVEL', 0);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+            await mounted.adapter.pushValue('LEVEL', null);
+            expect(endpoint.state.onOff.onOff).to.equal(true);
+            expect(endpoint.state.levelControl.currentLevel).to.equal(100);
+            expect(endpoint.state.pumpConfigurationAndControl.pumpStatus.running).to.equal(true);
+        });
+
+        it('stops the pump when a controller moves to the stopped level 0', async () => {
+            const mounted = await mount(Types.pump, { POWER: bool(true), LEVEL: percent(50) });
+            const [endpoint] = endpointsOf(mounted);
+            await moveToLevel(endpoint, 0);
+            await waitFor(() => mounted.adapter.valueOf('LEVEL') === 0);
+            expect(mounted.adapter.valueOf('LEVEL')).to.equal(0);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+            expect(endpoint.state.pumpConfigurationAndControl.pumpStatus.running).to.equal(false);
+
+            await setOnOff(endpoint, true);
+            await waitFor(() => mounted.adapter.valueOf('LEVEL') !== 0);
+            expect(mounted.adapter.valueOf('LEVEL')).to.equal(100);
         });
 
         it('writes 100 % to ioBroker when a controller sends Level 200', async () => {
@@ -495,11 +862,11 @@ describe('level conversions', function () {
     });
 
     describe('Speaker (Volume) at ioBroker volume 0', () => {
-        it('starts as off with the lowest level and no range warning', async () => {
+        it('starts as off at 100 % when no level is stored, with no range warning', async () => {
             const mounted = await mount(Types.volume, { SET: percent(0) });
             const [endpoint] = endpointsOf(mounted);
             expect(endpoint.state.onOff.onOff).to.equal(false);
-            expect(endpoint.state.levelControl.currentLevel).to.equal(LightingLevel.MIN);
+            expect(endpoint.state.levelControl.currentLevel).to.equal(LightingLevel.MAX);
             expect(mounted.adapter.infos.filter(message => message.includes('below minimum'))).to.deep.equal([]);
         });
 
@@ -513,6 +880,99 @@ describe('level conversions', function () {
             await setOnOff(endpoint, true);
             await waitFor(() => mounted.adapter.valueOf('SET') !== 0);
             expect(mounted.adapter.valueOf('SET')).to.equal(LightingLevel.toPercent(127));
+        });
+    });
+
+    describe('Speaker (Volume) with a mute state', () => {
+        it('mutes for ioBroker volume 0 without touching MUTE and keeps the level', async () => {
+            const mounted = await mount(Types.volume, { SET: percent(50), MUTE: bool(false) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.onOff.onOff).to.equal(true);
+            await mounted.adapter.pushValue('SET', 0);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+            expect(endpoint.state.levelControl.currentLevel).to.equal(127);
+            expect(mounted.adapter.valueOf('MUTE')).to.equal(false);
+        });
+
+        it('characterization: inverts ioBroker MUTE into OnOff', async () => {
+            const mounted = await mount(Types.volume, { SET: percent(50), MUTE: bool(false) });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('MUTE', true);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+            await mounted.adapter.pushValue('MUTE', false);
+            expect(endpoint.state.onOff.onOff).to.equal(true);
+        });
+
+        it('unmutes and restores the volume when a controller turns it on at volume 0', async () => {
+            const mounted = await mount(Types.volume, { SET: percent(50), MUTE: bool(true) });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('SET', 0);
+
+            await setOnOff(endpoint, true);
+            await waitFor(() => mounted.adapter.valueOf('SET') !== 0);
+            expect(mounted.adapter.valueOf('MUTE')).to.equal(false);
+            expect(mounted.adapter.valueOf('SET')).to.equal(50);
+        });
+
+        it('characterization: leaves MUTE alone for a level command with on/off, as the speaker LevelControl has no OnOff feature', async () => {
+            const mounted = await mount(Types.volume, { SET: percent(50), MUTE: bool(true) });
+            const [endpoint] = endpointsOf(mounted);
+            await levelCommand(endpoint, 'moveToLevelWithOnOff', { level: 200, transitionTime: 0 });
+            await waitFor(() => mounted.adapter.valueOf('SET') !== 50);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+
+            await mounted.adapter.pushValue('MUTE', false);
+            await levelCommand(endpoint, 'moveToLevelWithOnOff', { level: 0, transitionTime: 0 });
+            await waitFor(() => mounted.adapter.valueOf('SET') === 0);
+            expect(writesOf(mounted, 'MUTE')).to.deep.equal([]);
+        });
+
+        it('characterization: skips the SET event while an ACTUAL state reports the volume', async () => {
+            const mounted = await mount(Types.volume, { SET: percent(50), ACTUAL: percent(50), MUTE: bool(false) });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('SET', 20);
+            expect(endpoint.state.levelControl.currentLevel).to.equal(127);
+            await mounted.adapter.pushValue('ACTUAL', 20);
+            expect(endpoint.state.levelControl.currentLevel).to.equal(LightingLevel.fromPercent(20));
+        });
+
+        it('characterization: writes MUTE and keeps the volume when a controller turns it off', async () => {
+            const mounted = await mount(Types.volume, { SET: percent(50), MUTE: bool(false) });
+            const [endpoint] = endpointsOf(mounted);
+            await setOnOff(endpoint, false);
+            await waitFor(() => mounted.adapter.valueOf('MUTE') === true);
+            expect(mounted.adapter.valueOf('MUTE')).to.equal(true);
+            expect(mounted.adapter.valueOf('SET')).to.equal(50);
+        });
+    });
+
+    describe('Speaker (Volume) without a mute state', () => {
+        it('characterization: turns on for a volume above 0 and off for volume 0 from a level command with on/off', async () => {
+            const mounted = await mount(Types.volume, { SET: percent(0) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+            await levelCommand(endpoint, 'moveToLevelWithOnOff', { level: 200, transitionTime: 0 });
+            await waitFor(() => mounted.adapter.valueOf('SET') !== 0);
+            expect(mounted.adapter.valueOf('SET')).to.equal(LightingLevel.toPercent(200));
+            expect(endpoint.state.onOff.onOff).to.equal(true);
+
+            await levelCommand(endpoint, 'moveToLevelWithOnOff', { level: 0, transitionTime: 0 });
+            await waitFor(() => mounted.adapter.valueOf('SET') === 0);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+        });
+    });
+
+    describe('Speaker (Volume) at Matter level 0', () => {
+        it('stays at volume 0 when a controller turns it on after moving it to level 0', async () => {
+            const mounted = await mount(Types.volume, { SET: percent(50) });
+            const [endpoint] = endpointsOf(mounted);
+            await moveToLevel(endpoint, 0);
+            await waitFor(() => mounted.adapter.valueOf('SET') === 0);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+            await setOnOff(endpoint, true);
+            await new Promise(resolve => setTimeout(resolve, 50));
+            expect(writesOf(mounted, 'SET')).to.deep.equal(['SET=0']);
+            expect(endpoint.state.onOff.onOff).to.equal(true);
         });
     });
 

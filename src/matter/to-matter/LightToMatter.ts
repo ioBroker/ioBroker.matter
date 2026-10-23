@@ -1,18 +1,12 @@
 import { Endpoint } from '@matter/main';
 import { OnOffLightDevice } from '@matter/main/devices';
 import { GenericLightingDeviceToMatter } from './GenericLightingDeviceToMatter';
-import { EventedOnOffLightOnOffServer } from '../behaviors/EventedOnOffLightOnOffServer';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import type { Light } from '../../lib/devices/Light';
 import { IoLightingIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 
-const IoBrokerOnOffLightDevice = OnOffLightDevice.with(
-    EventedOnOffLightOnOffServer,
-    IoBrokerEvents,
-    IoLightingIdentifyServer,
-    IoBrokerContext,
-);
+const IoBrokerOnOffLightDevice = OnOffLightDevice.with(IoBrokerEvents, IoLightingIdentifyServer, IoBrokerContext);
 
 /** Mapping Logic to map a ioBroker Light device to a Matter OnOffLightDevice. */
 export class LightToMatter extends GenericLightingDeviceToMatter {
@@ -31,6 +25,6 @@ export class LightToMatter extends GenericLightingDeviceToMatter {
     async registerHandlersAndInitialize(): Promise<void> {
         await super.registerHandlersAndInitialize();
 
-        await this.initializeOnOffClusterHandlers();
+        await this.initializeOnOffAndLevelClusterHandlers();
     }
 }

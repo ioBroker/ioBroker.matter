@@ -154,7 +154,6 @@ async function ioBrokerDeviceFabric(
             DeviceType = AirQualitySensorToIoBroker;
             break;
         case Devices.ColorTemperatureLightDeviceDefinition.deviceType:
-            //DeviceType = ColorTemperatureLightToIoBroker;
             DeviceType = ExtendedColorLightToIoBroker; // Because it could be CT and Hue it is easier top map this way
             break;
         case Devices.ContactSensorDeviceDefinition.deviceType:

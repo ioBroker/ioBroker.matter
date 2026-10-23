@@ -1,7 +1,6 @@
 import { Endpoint } from '@matter/main';
 import { ColorTemperatureLightDevice } from '@matter/main/devices';
 import type { Ct } from '../../lib/devices/Ct';
-import { EventedOnOffLightOnOffServer } from '../behaviors/EventedOnOffLightOnOffServer';
 import { EventedLightingLevelControlServer } from '../behaviors/EventedLightingLevelControlServer';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { EventedColorTemperatureColorControlServer } from '../behaviors/EventedLightingColorControlServer';
@@ -13,7 +12,6 @@ import { IoLightingIdentifyServer } from '../behaviors/IdentifyServer';
 import { ColorTemperatureMapping } from './ColorTemperatureMapping';
 
 const IoBrokerColorTemperatureLightDevice = ColorTemperatureLightDevice.with(
-    EventedOnOffLightOnOffServer,
     EventedLightingLevelControlServer,
     EventedColorTemperatureColorControlServer,
     IoBrokerEvents,
@@ -55,8 +53,7 @@ export class CtToMatter extends GenericLightingDeviceToMatter {
     async registerHandlersAndInitialize(): Promise<void> {
         await super.registerHandlersAndInitialize();
 
-        await this.initializeOnOffClusterHandlers();
-        await this.initializeLevelControlClusterHandlers();
+        await this.initializeOnOffAndLevelClusterHandlers();
 
         const colorTemperature = new ColorTemperatureMapping(this.#ioBrokerDevice);
         await this.#matterEndpoint.set({ colorControl: colorTemperature.state });

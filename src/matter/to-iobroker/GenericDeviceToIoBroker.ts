@@ -37,6 +37,7 @@ import type {
     CustomStatesRecord,
     EmptyCustomStates,
 } from './custom-states';
+import { onOffLevelTargetOf, type OnOffLevelTarget } from './OnOffLevelCommands';
 
 export interface EnabledProperty {
     common?: Partial<ioBroker.StateCommon>;
@@ -187,6 +188,11 @@ export abstract class GenericDeviceToIoBroker<C extends CustomStatesRecord = Emp
      */
     protected get isDeviceOn(): boolean {
         return this.appEndpoint.maybeStateOf(OnOffClient)?.onOff ?? false;
+    }
+
+    /** The OnOff and LevelControl clusters of {@link appEndpoint}, for an `OnOffLevelCommands`. */
+    protected get onOffLevelTarget(): OnOffLevelTarget {
+        return onOffLevelTargetOf(this.appEndpoint, () => this.isDeviceOn);
     }
 
     get connectionStateId(): string {

@@ -1,4 +1,4 @@
-import type { Dimmer } from '../../lib/devices/Dimmer';
+import { Dimmer } from '../../lib/devices/Dimmer';
 import { Light } from '../../lib/devices/Light';
 import type { Ct } from '../../lib/devices/Ct';
 import type { Cie } from '../../lib/devices/Cie';
@@ -10,8 +10,9 @@ import type { Endpoint } from '@matter/main';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { EventedLightingLevelControlServer } from '../behaviors/EventedLightingLevelControlServer';
-import { EventedOnOffLightOnOffServer } from '../behaviors/EventedOnOffLightOnOffServer';
 import { LightingLevel } from '../ConversionUtils';
+import { OnOffLevelMapping } from './OnOffLevelMapping';
+import { MatterOnOffAttribute } from './MatterOnOffAttribute';
 
 const MIN_CIE_XY_VALUE = 0;
 const MAX_CIE_XY_VALUE = 0xfeff; // this value comes directly from the ZCL specification table 5.3
@@ -51,111 +52,88 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
         return this.#ioBrokerDevice;
     }
 
-    protected async initializeOnOffClusterHandlers(): Promise<void> {
-        await this.#matterEndpoint.setStateOf(EventedOnOffLightOnOffServer, {
-            onOff: this.#ioBrokerDevice.hasPower()
-                ? !!this.#ioBrokerDevice.getPower()
-                : this.#ioBrokerDevice.hasPowerActual()
-                  ? !!this.#ioBrokerDevice.getPowerActual()
-                  : !(this.#ioBrokerDevice instanceof Light) && this.#ioBrokerDevice.hasDimmer()
-                    ? (this.#ioBrokerDevice.getDimmer() ?? 0) > 0
-                    : true,
-        });
+    /**
+     * Maps the ioBroker power and dimmer states to OnOff and, for a dimmable light, LevelControl, see
+     * {@link OnOffLevelMapping}.
+     */
+    protected async initializeOnOffAndLevelClusterHandlers(): Promise<void> {
+        const ioBrokerDevice = this.#ioBrokerDevice;
+        const dimmable = ioBrokerDevice instanceof Light ? undefined : ioBrokerDevice;
+        const hasPower = ioBrokerDevice.hasPower() || ioBrokerDevice.hasPowerActual();
+        const onOff = new MatterOnOffAttribute(this.#matterEndpoint);
+        const mapping = new OnOffLevelMapping(
+            {
+                power: hasPower
+                    ? {
+                          get: () => !!ioBrokerDevice.getPower(),
+                          set: ioBrokerDevice.hasPower() ? on => ioBrokerDevice.setPower(on) : undefined,
+                      }
+                    : undefined,
+                level: dimmable?.hasDimmer()
+                    ? { get: () => dimmable.getDimmer(), set: percent => dimmable.setDimmer(percent) }
+                    : undefined,
+            },
+            {
+                setOnOff: value => onOff.write(value),
+                currentLevel: () => this.#matterEndpoint.stateOf(EventedLightingLevelControlServer).currentLevel,
+                setCurrentLevel: currentLevel =>
+                    this.#matterEndpoint.setStateOf(EventedLightingLevelControlServer, { currentLevel }),
+            },
+            LightingLevel,
+        );
+        await mapping.initialize();
 
-        this.matterEvents.on(this.#matterEndpoint.eventsOf(IoBrokerEvents).onOffControlled, async on => {
-            if (this.#ioBrokerDevice.hasPower()) {
-                await this.#ioBrokerDevice.setPower(on);
-            } else if (!(this.#ioBrokerDevice instanceof Light) && this.#ioBrokerDevice.hasDimmer()) {
-                if (on) {
-                    if (this.#ioBrokerDevice.getDimmer() === 0) {
-                        const currentLevel = this.#matterEndpoint.stateOf(
-                            EventedLightingLevelControlServer,
-                        )?.currentLevel;
-                        await this.#ioBrokerDevice.setDimmer(
-                            typeof currentLevel === 'number' ? LightingLevel.toPercent(currentLevel) : 100,
-                        );
-                    }
-                } else {
-                    await this.#ioBrokerDevice.setDimmer(0);
-                }
-            }
-        });
-        if (!this.#ioBrokerDevice.hasPower() && !this.#ioBrokerDevice.hasPowerActual()) {
-            this.#ioBrokerDevice.adapter.log.info(
-                `Device ${this.#ioBrokerDevice.deviceType} (${this.#ioBrokerDevice.uuid}) has no mapped power state`,
+        if (!hasPower) {
+            ioBrokerDevice.adapter.log.info(
+                `Device ${ioBrokerDevice.deviceType} (${ioBrokerDevice.uuid}) has no mapped power state`,
             );
         }
-
-        this.#ioBrokerDevice.onChange(async event => {
+        onOff.observe(this.matterEvents, on => mapping.matterOnOffChanged(on));
+        ioBrokerDevice.onChange(async event => {
             switch (event.property) {
                 case PropertyType.Power:
                 case PropertyType.PowerActual:
-                    await this.#matterEndpoint.setStateOf(EventedOnOffLightOnOffServer, {
-                        onOff: !!event.value,
-                    });
+                    await mapping.ioBrokerPowerChanged(!!event.value);
+                    break;
+                case PropertyType.Level:
+                    if (ioBrokerDevice instanceof Dimmer && ioBrokerDevice.hasLevelActual()) {
+                        break;
+                    }
+                    await mapping.ioBrokerLevelChanged(event.value);
+                    break;
+                case PropertyType.LevelActual:
+                case PropertyType.Dimmer:
+                    await mapping.ioBrokerLevelChanged(event.value);
                     break;
             }
         });
-    }
 
-    protected async initializeLevelControlClusterHandlers(): Promise<void> {
-        if (this.#ioBrokerDevice instanceof Light) {
-            throw new Error('Device is not a Dimmable light');
+        if (dimmable === undefined) {
+            return;
         }
-        const ioBrokerDevice = this.#ioBrokerDevice; // Pin limited type for the scope of this function
-
-        const currentLevel = ioBrokerDevice.hasDimmer() ? (ioBrokerDevice.getDimmer() ?? 100) : 100;
-        await this.#matterEndpoint.setStateOf(EventedLightingLevelControlServer, {
-            currentLevel: this.asMatterLevel(currentLevel),
-        });
-
+        if (!dimmable.hasDimmer()) {
+            // Report always 100% when no Dimmer is supported
+            await this.#matterEndpoint.setStateOf(EventedLightingLevelControlServer, {
+                currentLevel: LightingLevel.MAX,
+            });
+            dimmable.adapter.log.info(`Device ${dimmable.deviceType} (${dimmable.uuid}) has no mapped dimmer state`);
+        }
         this.matterEvents.on(
             this.#matterEndpoint.eventsOf(IoBrokerEvents).dimmerLevelControlled,
             async (level, transitionTime) => {
-                if (ioBrokerDevice.hasDimmer()) {
-                    if (ioBrokerDevice.hasTransitionTime() && transitionTime !== null && transitionTime !== undefined) {
-                        await ioBrokerDevice.setTransitionTime(transitionTime * 100);
-                    }
-
-                    if (level !== null) {
-                        await ioBrokerDevice.setDimmer(LightingLevel.toPercent(level));
-                    }
-                } else {
-                    // Report always 100% when no Dimmer is supported
+                if (!dimmable.hasDimmer()) {
                     await this.#matterEndpoint.setStateOf(EventedLightingLevelControlServer, {
                         currentLevel: LightingLevel.MAX,
                     });
+                    return;
                 }
+                await mapping.matterLevelControlled(level, async () => {
+                    if (dimmable.hasTransitionTime() && transitionTime !== null && transitionTime !== undefined) {
+                        await dimmable.setTransitionTime(transitionTime * 100);
+                    }
+                });
             },
         );
-        if (!ioBrokerDevice.hasDimmer()) {
-            ioBrokerDevice.adapter.log.info(
-                `Device ${ioBrokerDevice.deviceType} (${ioBrokerDevice.uuid}) has no mapped dimmer state`,
-            );
-        }
-
-        ioBrokerDevice.onChange(async event => {
-            switch (event.property) {
-                case PropertyType.Level:
-                case PropertyType.LevelActual:
-                case PropertyType.Dimmer: {
-                    const ioValue = (event.value ?? 100) as number;
-                    if (!this.#ioBrokerDevice.hasPower() && !this.#ioBrokerDevice.hasPowerActual()) {
-                        // If the device has no power state we still report the onoff state based on level
-                        await this.#matterEndpoint.setStateOf(EventedOnOffLightOnOffServer, {
-                            onOff: ioValue > 0,
-                        });
-                    }
-
-                    if (ioValue > 0) {
-                        await this.#matterEndpoint.setStateOf(EventedLightingLevelControlServer, {
-                            currentLevel: this.asMatterLevel(ioValue),
-                        });
-                    }
-                    break;
-                }
-            }
-        });
     }
 
     /** Converts the given value in 0..1 range to a valid CIE XY Matter value. */

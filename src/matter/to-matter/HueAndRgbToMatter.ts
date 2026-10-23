@@ -4,7 +4,6 @@ import { Hue } from '../../lib/devices/Hue';
 import { Rgb } from '../../lib/devices/Rgb';
 import { RgbSingle } from '../../lib/devices/RgbSingle';
 import { RgbwSingle } from '../../lib/devices/RgbwSingle';
-import { EventedOnOffLightOnOffServer } from '../behaviors/EventedOnOffLightOnOffServer';
 import { EventedLightingLevelControlServer } from '../behaviors/EventedLightingLevelControlServer';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { EventedExtendedColorHueSaturationColorControlServer } from '../behaviors/EventedLightingColorControlServer';
@@ -18,7 +17,6 @@ import { ColorTemperatureMapping, type NonTemperatureColorMode } from './ColorTe
 import { LightingLevel } from '../ConversionUtils';
 
 const IoBrokerExtendedColorLightDevice = ExtendedColorLightDevice.with(
-    EventedOnOffLightOnOffServer,
     EventedLightingLevelControlServer,
     EventedExtendedColorHueSaturationColorControlServer,
     IoBrokerEvents,
@@ -212,8 +210,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
     async registerHandlersAndInitialize(): Promise<void> {
         await super.registerHandlersAndInitialize();
 
-        await this.initializeOnOffClusterHandlers();
-        await this.initializeLevelControlClusterHandlers();
+        await this.initializeOnOffAndLevelClusterHandlers();
 
         const colorTemperature = new ColorTemperatureMapping(this.#ioBrokerDevice);
         const { h, s, v } = this.#colorAsHsv();

@@ -892,7 +892,15 @@ describe('Matter -> ioBroker controller mapping', function () {
             await writeState('speaker', 'SET', 0);
             await eventually('speaker is muted', () => endpoint.stateOf(OnOffClient).onOff === false);
             expect(endpoint.stateOf(LevelControlClient).currentLevel).to.equal(level);
-            await eventually('MUTE is true', () => stateOf('speaker', 'MUTE')?.val === true);
+            // No ControllerNode forwards the report to these converters, so the test passes it on
+            await mapped.get('speaker')!.device!.handleChangedAttribute({
+                endpointId: EndpointNumber(endpoint.number),
+                clusterId: ClusterId(OnOffClient.cluster.id),
+                attributeId: AttributeId(OnOffClient.cluster.attributes.onOff.id),
+                attributeName: 'onOff',
+                value: endpoint.stateOf(OnOffClient).onOff,
+            });
+            expect(stateOf('speaker', 'MUTE')).to.include({ val: true, ack: true });
 
             await writeState('speaker', 'SET', 50);
             await eventually('speaker is unmuted', () => endpoint.stateOf(OnOffClient).onOff === true);

@@ -1,6 +1,6 @@
 import { Dimmer } from '../../lib/devices/Dimmer';
 import { Light } from '../../lib/devices/Light';
-import type { Ct } from '../../lib/devices/Ct';
+import { Ct } from '../../lib/devices/Ct';
 import type { Cie } from '../../lib/devices/Cie';
 import type { Rgb } from '../../lib/devices/Rgb';
 import type { RgbSingle } from '../../lib/devices/RgbSingle';
@@ -104,6 +104,11 @@ export abstract class GenericLightingDeviceToMatter extends GenericElectricityDa
                 case PropertyType.LevelActual:
                 case PropertyType.Dimmer:
                     await mapping.ioBrokerLevelChanged(event.value);
+                    break;
+                case PropertyType.Brightness:
+                    if (ioBrokerDevice instanceof Ct && ioBrokerDevice.dimmerIsBrightness()) {
+                        await mapping.ioBrokerLevelChanged(event.value);
+                    }
                     break;
             }
         });

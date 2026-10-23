@@ -438,6 +438,35 @@ describe('level conversions', function () {
         });
     });
 
+    describe('Ct light with BRIGHTNESS instead of DIMMER', () => {
+        it('turns on in Matter and takes the level when BRIGHTNESS changes from 0', async () => {
+            const mounted = await mount(Types.ct, {
+                ON: bool(true),
+                BRIGHTNESS: percent(0),
+                TEMPERATURE: num(4000, 'K'),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+
+            await mounted.adapter.pushValue('BRIGHTNESS', 50);
+            expect(endpoint.state.onOff.onOff).to.equal(true);
+            expect(endpoint.state.levelControl.currentLevel).to.equal(127);
+        });
+
+        it('ignores BRIGHTNESS when the light also has DIMMER', async () => {
+            const mounted = await mount(Types.ct, {
+                ON: bool(true),
+                DIMMER: percent(50),
+                BRIGHTNESS: percent(50),
+                TEMPERATURE: num(4000, 'K'),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('BRIGHTNESS', 0);
+            expect(endpoint.state.onOff.onOff).to.equal(true);
+            expect(endpoint.state.levelControl.currentLevel).to.equal(127);
+        });
+    });
+
     describe('MatterOnOffAttribute', () => {
         async function attribute(): Promise<{ endpoint: any; reported: boolean[]; onOff: MatterOnOffAttribute }> {
             const node = await createNode(`onoff-${++instanceCounter}`);

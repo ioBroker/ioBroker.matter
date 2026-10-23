@@ -111,6 +111,11 @@ export class Ct extends GenericLightingDevice {
         return !!this.#dimmerState || !!this.#brightnessState;
     }
 
+    /** True when {@link getDimmer} reads BRIGHTNESS, because the device has no DIMMER state. */
+    dimmerIsBrightness(): boolean {
+        return !this.#dimmerState && !!this.#brightnessState;
+    }
+
     /** Compatibility function for the level interface */
     getLevel(): number | undefined {
         return this.getDimmer();

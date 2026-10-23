@@ -1,6 +1,6 @@
 import ChannelDetector from '@iobroker/type-detector';
 import { LevelControl, OnOff } from '@matter/main/clusters';
-import { LevelControlClient, OnOffClient } from '@matter/main/behaviors';
+import { LevelControlClient } from '@matter/main/behaviors';
 import type { Endpoint, ClientNode } from '@matter/main';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions } from '../../lib/devices/GenericDevice';
@@ -8,11 +8,16 @@ import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityData
 import { Volume } from '../../lib/devices/Volume';
 import type { MatterAdapter } from '../../main';
 import { LightingLevel } from '../ConversionUtils';
+import { OnOffLevelCommands } from './OnOffLevelCommands';
 
 export class SpeakerToIoBroker extends GenericElectricityDataDeviceToIoBroker {
     readonly #ioBrokerDevice: Volume;
-    #minLevel = 0;
-    #maxLevel = LightingLevel.MAX;
+    readonly #onOffLevel = new OnOffLevelCommands(
+        this.onOffLevelTarget,
+        LightingLevel,
+        percent => this.#ioBrokerDevice.updateLevel(percent),
+        { min: 0, max: LightingLevel.MAX },
+    );
 
     constructor(
         node: ClientNode,
@@ -47,8 +52,10 @@ export class SpeakerToIoBroker extends GenericElectricityDataDeviceToIoBroker {
 
         const levelControl = this.appEndpoint.maybeStateOf(LevelControlClient);
         if (levelControl) {
-            this.#minLevel = levelControl.minLevel ?? 0;
-            this.#maxLevel = levelControl.maxLevel ?? LightingLevel.MAX;
+            this.#onOffLevel.levelRange = {
+                min: levelControl.minLevel ?? 0,
+                max: levelControl.maxLevel ?? LightingLevel.MAX,
+            };
         }
     }
 
@@ -58,13 +65,7 @@ export class SpeakerToIoBroker extends GenericElectricityDataDeviceToIoBroker {
             clusterId: OnOff.id,
             attributeName: 'onOff',
             // Speaker device type: OnOff TRUE is the unmuted state
-            changeHandler: async muted => {
-                if (muted) {
-                    await this.appEndpoint.commandsOf(OnOffClient)?.off();
-                } else {
-                    await this.appEndpoint.commandsOf(OnOffClient)?.on();
-                }
-            },
+            changeHandler: (muted: boolean) => this.#onOffLevel.setPower(!muted),
             convertValue: (onOff: boolean) => !onOff,
         });
 
@@ -72,21 +73,7 @@ export class SpeakerToIoBroker extends GenericElectricityDataDeviceToIoBroker {
             endpointId: this.appEndpoint.number,
             clusterId: LevelControl.id,
             attributeName: 'currentLevel',
-            changeHandler: async value => {
-                // Speaker LevelControl has no Lighting feature, so level 0 is valid and fromPercent would floor it to 1
-                let level = value === 0 ? 0 : LightingLevel.fromPercent(value);
-                if (level < this.#minLevel) {
-                    level = this.#minLevel;
-                } else if (level > this.#maxLevel) {
-                    level = this.#maxLevel;
-                }
-                await this.appEndpoint.commandsOf(LevelControlClient)?.moveToLevel({
-                    level,
-                    transitionTime: null,
-                    optionsMask: { executeIfOff: true },
-                    optionsOverride: { executeIfOff: true },
-                });
-            },
+            changeHandler: value => this.#onOffLevel.setLevel(value),
             convertValue: value => LightingLevel.toPercent(value),
         });
         this.enableDeviceTypeStateForAttribute(PropertyType.LevelActual, {

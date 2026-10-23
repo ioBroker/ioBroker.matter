@@ -5,14 +5,14 @@ import { IoIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 import { GenericDeviceToMatter } from './GenericDeviceToMatter';
 import { SpeakerDevice } from '@matter/main/devices';
-import { EventedSpeakerOnOffServer } from '../behaviors/EventedSpeakerOnOffServer';
 import { EventedSpeakerLevelControlServer } from '../behaviors/EventedSpeakerLevelControlServer';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { LightingLevel } from '../ConversionUtils';
+import { OnOffLevelMapping } from './OnOffLevelMapping';
+import { MatterOnOffAttribute } from './MatterOnOffAttribute';
 
 const IoBrokerVolumeDevice = SpeakerDevice.with(
     EventedSpeakerLevelControlServer,
-    EventedSpeakerOnOffServer,
     IoBrokerEvents,
     IoIdentifyServer,
     IoBrokerContext,
@@ -47,102 +47,42 @@ export class VolumeToMatter extends GenericDeviceToMatter {
         await super.registerHandlersAndInitialize();
 
         const ioBrokerDevice = this.#ioBrokerDevice;
-        const level = ioBrokerDevice.getLevel() ?? 0;
-
-        let muted = level === 0;
-
-        if (ioBrokerDevice.hasMute()) {
-            muted = ioBrokerDevice.getMute() ?? false;
-        }
-
-        // Initial populate matter values
-
-        await this.#matterEndpoint.set({
-            levelControl: {
-                currentLevel: LightingLevel.fromPercent(ioBrokerDevice.cropValue(level, 0, 100)),
+        const onOff = new MatterOnOffAttribute(this.#matterEndpoint);
+        const mapping = new OnOffLevelMapping(
+            {
+                // Speaker device type: OnOff true is the unmuted state
+                power: ioBrokerDevice.hasMute()
+                    ? { get: () => !ioBrokerDevice.getMute(), set: on => ioBrokerDevice.setMute(!on) }
+                    : undefined,
+                level: { get: () => ioBrokerDevice.getLevel(), set: percent => ioBrokerDevice.setLevel(percent) },
             },
-        });
-
-        await this.#matterEndpoint.set({
-            onOff: {
-                onOff: !muted,
+            {
+                setOnOff: value => onOff.write(value),
+                currentLevel: () => this.#matterEndpoint.stateOf(EventedSpeakerLevelControlServer).currentLevel,
+                setCurrentLevel: currentLevel =>
+                    this.#matterEndpoint.setStateOf(EventedSpeakerLevelControlServer, { currentLevel }),
             },
-        });
+            LightingLevel,
+        );
+        await mapping.initialize();
 
-        // Matter event listeners
-
-        this.matterEvents.on(this.#matterEndpoint.eventsOf(IoBrokerEvents).onOffControlled, async volumeOn => {
-            if (this.#ioBrokerDevice.hasMute()) {
-                await this.#ioBrokerDevice.setMute(!volumeOn);
-                return;
-            }
-
-            // Device does NOT have a mute capability directly
-
-            // Device is getting muted
-            if (!volumeOn) {
-                await this.#ioBrokerDevice.setLevel(0);
-                return;
-            }
-
-            // Device is getting unmuted
-            if (this.#ioBrokerDevice.getLevel() === 0) {
-                const currentLevel = this.#matterEndpoint.stateOf(EventedSpeakerLevelControlServer)?.currentLevel;
-
-                let targetIoBrokerLevel = 100;
-                if (typeof currentLevel === 'number') {
-                    targetIoBrokerLevel = LightingLevel.toPercent(currentLevel);
-                }
-                await this.#ioBrokerDevice.setLevel(targetIoBrokerLevel);
-            }
-        });
-
-        this.matterEvents.on(this.#matterEndpoint.eventsOf(IoBrokerEvents).dimmerLevelControlled, async level => {
-            await this.#ioBrokerDevice.setLevel(LightingLevel.toPercent(level));
-
-            if (!this.#ioBrokerDevice.hasMute()) {
-                await this.#matterEndpoint.setStateOf(EventedSpeakerOnOffServer, {
-                    onOff: level > 0,
-                });
-            }
-            // Do not infer the mute state from the level (level is 0).
-        });
-
-        // ioBroker Event listeners
+        onOff.observe(this.matterEvents, on => mapping.matterOnOffChanged(on));
+        this.matterEvents.on(this.#matterEndpoint.eventsOf(IoBrokerEvents).dimmerLevelControlled, level =>
+            mapping.matterLevelControlled(level),
+        );
 
         ioBrokerDevice.onChange(async event => {
             switch (event.property) {
-                case PropertyType.Mute: {
-                    const ioValue = (event.value ?? false) as boolean;
-
-                    await this.#matterEndpoint.setStateOf(EventedSpeakerOnOffServer, {
-                        onOff: !ioValue,
-                    });
-
+                case PropertyType.Mute:
+                    await mapping.ioBrokerPowerChanged(!event.value);
                     break;
-                }
                 case PropertyType.Level:
-                case PropertyType.LevelActual: {
-                    if (event.property === PropertyType.Level && this.#ioBrokerDevice.hasLevelActual()) {
+                case PropertyType.LevelActual:
+                    if (event.property === PropertyType.Level && ioBrokerDevice.hasLevelActual()) {
                         break;
                     }
-
-                    const ioValue = (event.value ?? 100) as number;
-
-                    if (!ioBrokerDevice.hasMute()) {
-                        await this.#matterEndpoint.setStateOf(EventedSpeakerOnOffServer, {
-                            onOff: ioValue > 0,
-                        });
-                    }
-
-                    if (ioValue > 0) {
-                        await this.#matterEndpoint.setStateOf(EventedSpeakerLevelControlServer, {
-                            currentLevel: LightingLevel.fromPercent(ioBrokerDevice.cropValue(ioValue, 0, 100)),
-                        });
-                    }
-
+                    await mapping.ioBrokerLevelChanged(event.value);
                     break;
-                }
             }
         });
     }

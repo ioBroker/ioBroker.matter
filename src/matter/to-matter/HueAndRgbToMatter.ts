@@ -4,7 +4,6 @@ import { Hue } from '../../lib/devices/Hue';
 import { Rgb } from '../../lib/devices/Rgb';
 import { RgbSingle } from '../../lib/devices/RgbSingle';
 import { RgbwSingle } from '../../lib/devices/RgbwSingle';
-import { EventedOnOffLightOnOffServer } from '../behaviors/EventedOnOffLightOnOffServer';
 import { EventedLightingLevelControlServer } from '../behaviors/EventedLightingLevelControlServer';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { EventedExtendedColorHueSaturationColorControlServer } from '../behaviors/EventedLightingColorControlServer';
@@ -18,7 +17,6 @@ import { ColorTemperatureMapping, type NonTemperatureColorMode } from './ColorTe
 import { LightingLevel } from '../ConversionUtils';
 
 const IoBrokerExtendedColorLightDevice = ExtendedColorLightDevice.with(
-    EventedOnOffLightOnOffServer,
     EventedLightingLevelControlServer,
     EventedExtendedColorHueSaturationColorControlServer,
     IoBrokerEvents,
@@ -110,10 +108,14 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
     }
 
     /**
-     * CurrentLevel as the HSV value (0..1) of an RGB device, whose RGB state carries the brightness. The level is
-     * used directly, not through the ioBroker percent, so the RGB value keeps the 254 steps of the level.
+     * HSV value (0..1) a hue or saturation command gives an RGB device. Without a DIMMER state the RGB state carries
+     * the brightness: the value is CurrentLevel, used directly so the RGB value keeps the 254 steps of the level. With
+     * a DIMMER state CurrentLevel follows DIMMER, and the RGB state keeps its own brightness, as for an xy command.
      */
-    #levelAsColorValue(): number {
+    #colorValue(device: Rgb | RgbSingle | RgbwSingle): number {
+        if (device.hasDimmer()) {
+            return this.#rgbBrightness(device);
+        }
         return (this.#matterEndpoint.state.levelControl.currentLevel ?? LightingLevel.MAX) / LightingLevel.MAX;
     }
 
@@ -124,11 +126,10 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
     }
 
     /**
-     * Brightness (HSV value, 0..1) an xy command keeps: that of the current RGB or RGBW state, white mixed in as for
-     * the Matter colour. A black state gives full brightness, because a colour command on a light that reports on
-     * must show the colour.
+     * Brightness (HSV value, 0..1) of the current RGB or RGBW state, white mixed in as for the Matter colour. A black
+     * state gives full brightness, because a colour command on a light that reports on must show the colour.
      */
-    #xyBrightness(device: Rgb | RgbSingle | RgbwSingle): number {
+    #rgbBrightness(device: Rgb | RgbSingle | RgbwSingle): number {
         let brightness: number;
         if (device.isRgbw()) {
             const { red, green, blue, white } = device.getRgbwComponents();
@@ -202,18 +203,23 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                     currentHue: this.asMatterHue(h),
                     currentSaturation: this.asMatterSaturation(s),
                 },
-                levelControl: {
-                    currentLevel: this.asMatterLevel(v),
-                },
+                ...this.#levelFromColorValue(v),
             });
         }
+    }
+
+    /**
+     * CurrentLevel from the HSV value, for a device whose colour state carries the brightness. A device with a DIMMER
+     * state leaves CurrentLevel to the on/off and level mapping.
+     */
+    #levelFromColorValue(v: number): { levelControl?: { currentLevel: number } } {
+        return this.#ioBrokerDevice.hasDimmer() ? {} : { levelControl: { currentLevel: this.asMatterLevel(v) } };
     }
 
     async registerHandlersAndInitialize(): Promise<void> {
         await super.registerHandlersAndInitialize();
 
-        await this.initializeOnOffClusterHandlers();
-        await this.initializeLevelControlClusterHandlers();
+        await this.initializeOnOffAndLevelClusterHandlers();
 
         const colorTemperature = new ColorTemperatureMapping(this.#ioBrokerDevice);
         const { h, s, v } = this.#colorAsHsv();
@@ -225,9 +231,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                 currentHue: this.asMatterHue(h),
                 currentSaturation: this.asMatterSaturation(s),
             },
-            levelControl: {
-                currentLevel: this.asMatterLevel(v),
-            },
+            ...this.#levelFromColorValue(v),
         });
 
         this.matterEvents.on(this.#matterEndpoint.events.colorControl.colorMode$Changed, colorMode => {
@@ -263,7 +267,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                     (this.#ioBrokerDevice instanceof RgbwSingle || this.#ioBrokerDevice instanceof Rgb) &&
                     this.#ioBrokerDevice.isRgbw()
                 ) {
-                    const { red, green, blue, white } = this.#xyToRgbw(x, y, this.#xyBrightness(this.#ioBrokerDevice));
+                    const { red, green, blue, white } = this.#xyToRgbw(x, y, this.#rgbBrightness(this.#ioBrokerDevice));
                     await this.#ioBrokerDevice.setRgbw(
                         this.#toRgbString(
                             Math.round(red * 255),
@@ -273,7 +277,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                         ),
                     );
                 } else if (this.#ioBrokerDevice instanceof RgbSingle || this.#ioBrokerDevice instanceof Rgb) {
-                    const [red, green, blue] = this.#xyToRgb(x, y, this.#xyBrightness(this.#ioBrokerDevice));
+                    const [red, green, blue] = this.#xyToRgb(x, y, this.#rgbBrightness(this.#ioBrokerDevice));
                     await this.#ioBrokerDevice.setRgb(
                         this.#toRgbString(Math.round(red * 255), Math.round(green * 255), Math.round(blue * 255)),
                     );
@@ -298,7 +302,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                     const { red, green, blue, white } = this.#hsvToRgbw(
                         hue,
                         this.#matterEndpoint.state.colorControl.currentSaturation / 254,
-                        this.#levelAsColorValue(),
+                        this.#colorValue(this.#ioBrokerDevice),
                     );
                     await this.#ioBrokerDevice.setRgbw(
                         this.#toRgbString(
@@ -312,7 +316,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                     const [red, green, blue] = hsvToRgb(
                         hue,
                         this.#matterEndpoint.state.colorControl.currentSaturation / 254,
-                        this.#levelAsColorValue(),
+                        this.#colorValue(this.#ioBrokerDevice),
                     );
                     await this.#ioBrokerDevice.setRgb(
                         this.#toRgbString(Math.round(red * 255), Math.round(green * 255), Math.round(blue * 255)),
@@ -346,7 +350,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                     const { red, green, blue, white } = this.#hsvToRgbw(
                         (this.#matterEndpoint.state.colorControl.currentHue / 254) * 360,
                         saturation,
-                        this.#levelAsColorValue(),
+                        this.#colorValue(this.#ioBrokerDevice),
                     );
                     await this.#ioBrokerDevice.setRgbw(
                         this.#toRgbString(
@@ -360,7 +364,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                     const [red, green, blue] = hsvToRgb(
                         (this.#matterEndpoint.state.colorControl.currentHue / 254) * 360,
                         saturation,
-                        this.#levelAsColorValue(),
+                        this.#colorValue(this.#ioBrokerDevice),
                     );
                     await this.#ioBrokerDevice.setRgb(
                         this.#toRgbString(Math.round(red * 255), Math.round(green * 255), Math.round(blue * 255)),
@@ -395,7 +399,11 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                     (this.#ioBrokerDevice instanceof RgbwSingle || this.#ioBrokerDevice instanceof Rgb) &&
                     this.#ioBrokerDevice.isRgbw()
                 ) {
-                    const { red, green, blue, white } = this.#hsvToRgbw(hue, saturation, this.#levelAsColorValue());
+                    const { red, green, blue, white } = this.#hsvToRgbw(
+                        hue,
+                        saturation,
+                        this.#colorValue(this.#ioBrokerDevice),
+                    );
                     await this.#ioBrokerDevice.setRgbw(
                         this.#toRgbString(
                             Math.round(red * 255),
@@ -405,7 +413,7 @@ export class HueAndRgbToMatter extends GenericLightingDeviceToMatter {
                         ),
                     );
                 } else if (this.#ioBrokerDevice instanceof RgbSingle || this.#ioBrokerDevice instanceof Rgb) {
-                    const [red, green, blue] = hsvToRgb(hue, saturation, this.#levelAsColorValue());
+                    const [red, green, blue] = hsvToRgb(hue, saturation, this.#colorValue(this.#ioBrokerDevice));
                     await this.#ioBrokerDevice.setRgb(
                         this.#toRgbString(Math.round(red * 255), Math.round(green * 255), Math.round(blue * 255)),
                     );

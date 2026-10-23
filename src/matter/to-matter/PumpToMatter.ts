@@ -4,7 +4,6 @@ import { PumpConfigurationAndControl, type LevelControl } from '@matter/main/clu
 import {
     FlowMeasurementServer,
     LevelControlServer,
-    OnOffServer,
     PressureMeasurementServer,
     PumpConfigurationAndControlServer,
     TemperatureMeasurementServer,
@@ -18,12 +17,14 @@ import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { EventedTransitions } from '../behaviors/EventedTransitions';
 import { PumpLevel } from '../ConversionUtils';
+import { OnOffLevelMapping } from './OnOffLevelMapping';
+import { MatterOnOffAttribute } from './MatterOnOffAttribute';
 
 /**
- * Pump's LevelControl (unlike the Dimmer/Volume lighting- or speaker-flavored ones) does not enable the
- * Lighting feature, so matter.js initializes minLevel to 0 and a stopped pump's level 0 is representable. Otherwise identical to
- * EventedLightingLevelControlServer/EventedSpeakerLevelControlServer: collapse a transition into one event with
- * the target level so intermediate Move/Step steps don't each turn into a separate ioBroker write.
+ * Like EventedSpeakerLevelControlServer, this server sends each level command to ioBroker as one event with its
+ * target level, so the steps of a Move or Step do not each become an ioBroker write. The pump's LevelControl has
+ * neither the Lighting nor the OnOff feature: matter.js initializes MinLevel to 0, so the stopped level 0 is
+ * representable, and the "with on/off" commands do not switch OnOff.
  */
 class EventedPumpLevelControlServer extends LevelControlServer {
     declare protected internal: EventedPumpLevelControlServer.Internal;
@@ -99,6 +100,8 @@ type IoBrokerPumpDevice = typeof IoBrokerPumpDevice;
 export class PumpToMatter extends GenericElectricityDataDeviceToMatter {
     readonly #ioBrokerDevice: Pump;
     readonly #matterEndpoint: Endpoint<IoBrokerPumpDevice>;
+    readonly #onOff: MatterOnOffAttribute;
+    readonly #onOffLevel: OnOffLevelMapping;
 
     constructor(ioBrokerDevice: Pump, name: string, uuid: string) {
         super(name, uuid);
@@ -137,6 +140,26 @@ export class PumpToMatter extends GenericElectricityDataDeviceToMatter {
         }
 
         this.addElectricityDataClusters(this.#matterEndpoint, ioBrokerDevice);
+
+        this.#onOff = new MatterOnOffAttribute(this.#matterEndpoint);
+        this.#onOffLevel = new OnOffLevelMapping(
+            {
+                power: { get: () => !!ioBrokerDevice.getPower(), set: on => ioBrokerDevice.setPower(on) },
+                level: ioBrokerDevice.hasLevel()
+                    ? { get: () => ioBrokerDevice.getLevel(), set: percent => ioBrokerDevice.setLevel(percent) }
+                    : undefined,
+            },
+            {
+                setOnOff: async value => {
+                    await this.#onOff.write(value);
+                    await this.#updatePumpStatus();
+                },
+                currentLevel: () => this.#matterEndpoint.stateOf(EventedPumpLevelControlServer).currentLevel,
+                setCurrentLevel: currentLevel =>
+                    this.#matterEndpoint.setStateOf(EventedPumpLevelControlServer, { currentLevel }),
+            },
+            PumpLevel,
+        );
     }
 
     get matterEndpoints(): Endpoint[] {
@@ -152,11 +175,8 @@ export class PumpToMatter extends GenericElectricityDataDeviceToMatter {
 
         await this.initializeElectricityStateHandlers(this.#matterEndpoint, this.#ioBrokerDevice);
 
-        await this.#initializeOnOff();
+        await this.#initializeOnOffAndLevel();
         this.#initializeOperationAndControlMode();
-        if (this.#ioBrokerDevice.hasLevel()) {
-            await this.#initializeLevel();
-        }
         if (this.#ioBrokerDevice.hasTemperature()) {
             await this.#initializeTemperature();
         }
@@ -170,19 +190,13 @@ export class PumpToMatter extends GenericElectricityDataDeviceToMatter {
         this.#ioBrokerDevice.onChange(async event => {
             switch (event.property) {
                 case PropertyType.Power:
-                    await this.#matterEndpoint.setStateOf(OnOffServer, { onOff: !!event.value });
-                    await this.#updatePumpStatus();
+                    await this.#onOffLevel.ioBrokerPowerChanged(!!event.value);
                     break;
-                case PropertyType.Level: {
-                    if (!this.#ioBrokerDevice.hasLevel() || typeof event.value !== 'number') {
-                        break;
+                case PropertyType.Level:
+                    if (this.#ioBrokerDevice.hasLevel()) {
+                        await this.#onOffLevel.ioBrokerLevelChanged(event.value);
                     }
-                    await this.#matterEndpoint.setStateOf(EventedPumpLevelControlServer, {
-                        currentLevel: PumpLevel.fromPercent(this.#ioBrokerDevice.cropValue(event.value, 0, 100)),
-                    });
-                    await this.#updatePumpStatus();
                     break;
-                }
                 case PropertyType.Temperature:
                     if (this.#ioBrokerDevice.hasTemperature() && typeof event.value === 'number') {
                         await this.#matterEndpoint.setStateOf(TemperatureMeasurementServer, {
@@ -208,26 +222,23 @@ export class PumpToMatter extends GenericElectricityDataDeviceToMatter {
         });
     }
 
-    /** Updates the PumpStatus.running bit from the current on/off and (if present) level state. */
     async #updatePumpStatus(): Promise<void> {
-        const on = !!this.#ioBrokerDevice.getPower();
-        const level = this.#ioBrokerDevice.hasLevel() ? this.#ioBrokerDevice.getLevel() : undefined;
         await this.#matterEndpoint.setStateOf(PumpConfigurationAndControlServer, {
-            pumpStatus: { running: on && (level === undefined || level > 0) },
+            pumpStatus: { running: this.#onOffLevel.onOff },
         });
     }
 
-    async #initializeOnOff(): Promise<void> {
-        await this.#matterEndpoint.setStateOf(OnOffServer, { onOff: !!this.#ioBrokerDevice.getPower() });
-        await this.#updatePumpStatus();
+    async #initializeOnOffAndLevel(): Promise<void> {
+        await this.#onOffLevel.initialize();
 
-        const onOffEvents = this.#matterEndpoint.eventsOf(OnOffServer);
-        if (onOffEvents?.onOff$Changed !== undefined) {
-            this.matterEvents.on(onOffEvents.onOff$Changed, async (value, _oldValue, context) => {
-                if (hasLocalActor(context)) {
-                    return;
-                }
-                await this.#ioBrokerDevice.setPower(!!value);
+        this.#onOff.observe(this.matterEvents, async on => {
+            await this.#onOffLevel.matterOnOffChanged(on);
+            await this.#updatePumpStatus();
+        });
+        if (this.#ioBrokerDevice.hasLevel()) {
+            this.matterEvents.on(this.#matterEndpoint.eventsOf(IoBrokerEvents).dimmerLevelControlled, async level => {
+                await this.#onOffLevel.matterLevelControlled(level);
+                await this.#updatePumpStatus();
             });
         }
     }
@@ -259,19 +270,6 @@ export class PumpToMatter extends GenericElectricityDataDeviceToMatter {
                 });
             });
         }
-    }
-
-    async #initializeLevel(): Promise<void> {
-        const ioBrokerDevice = this.#ioBrokerDevice;
-        const level = ioBrokerDevice.cropValue(ioBrokerDevice.getLevel() ?? 100, 0, 100);
-        await this.#matterEndpoint.setStateOf(EventedPumpLevelControlServer, {
-            currentLevel: PumpLevel.fromPercent(level),
-        });
-
-        this.matterEvents.on(this.#matterEndpoint.eventsOf(IoBrokerEvents).dimmerLevelControlled, async level => {
-            await ioBrokerDevice.setLevel(PumpLevel.toPercent(level));
-            await this.#updatePumpStatus();
-        });
     }
 
     async #initializeTemperature(): Promise<void> {

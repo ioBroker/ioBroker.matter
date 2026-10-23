@@ -17,12 +17,17 @@ import { GenericElectricityDataDeviceToIoBroker } from './GenericElectricityData
 import type { MatterAdapter } from '../../main';
 import { LightingLevel } from '../ConversionUtils';
 import { ColorLightCustomStates, type ColorLightCustomStatesType } from './custom-states';
+import { OnOffLevelCommands } from './OnOffLevelCommands';
 
 export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceToIoBroker<ColorLightCustomStatesType> {
     readonly #ioBrokerDevice: Hue | Cie | Ct;
     #hueSaturationTimeout?: ioBroker.Timeout;
-    #minLevel = 1;
-    #maxLevel = LightingLevel.MAX;
+    readonly #onOffLevel = new OnOffLevelCommands(
+        this.onOffLevelTarget,
+        LightingLevel,
+        percent => this.#ioBrokerDevice.updateDimmer(percent),
+        { min: LightingLevel.MIN, max: LightingLevel.MAX },
+    );
     #colorTemperatureMinMireds = kelvinToMireds(20_000);
     #colorTemperatureMaxMireds = kelvinToMireds(1_000);
 
@@ -79,8 +84,10 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
 
         const levelControl = this.appEndpoint.stateOf(LevelControlClient);
         if (levelControl) {
-            this.#minLevel = levelControl.minLevel ?? 1;
-            this.#maxLevel = levelControl.maxLevel ?? LightingLevel.MAX;
+            this.#onOffLevel.levelRange = {
+                min: levelControl.minLevel ?? LightingLevel.MIN,
+                max: levelControl.maxLevel ?? LightingLevel.MAX,
+            };
         }
 
         const colorControl = this.appEndpoint.stateOf(ColorControlClient);
@@ -231,23 +238,7 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
             endpointId: this.appEndpoint.number,
             clusterId: OnOff.id,
             attributeName: 'onOff',
-            changeHandler: async value => {
-                if (value) {
-                    if (this.#ioBrokerDevice.hasDimmer()) {
-                        // Check if the Dimmer in ioBroker still matches the Device Dimmer and correct if needed
-                        const currentLevel = this.appEndpoint.maybeStateOf(LevelControlClient)?.currentLevel;
-                        if (typeof currentLevel === 'number' && currentLevel <= 1) {
-                            const ioLevel = LightingLevel.toPercent(currentLevel);
-                            if (ioLevel !== this.#ioBrokerDevice.getDimmer()) {
-                                await this.#ioBrokerDevice.updateDimmer(ioLevel);
-                            }
-                        }
-                    }
-                    await this.appEndpoint.commandsOf(OnOffClient)?.on();
-                } else {
-                    await this.appEndpoint.commandsOf(OnOffClient)?.off();
-                }
-            },
+            changeHandler: value => this.#onOffLevel.setPower(value),
         });
         this.enableDeviceTypeStateForAttribute(PropertyType.PowerActual, {
             endpointId: this.appEndpoint.number,
@@ -259,34 +250,7 @@ export class ExtendedColorLightToIoBroker extends GenericElectricityDataDeviceTo
             endpointId: this.appEndpoint.number,
             clusterId: LevelControl.id,
             attributeName: 'currentLevel',
-            changeHandler: async value => {
-                if (value === 0) {
-                    // ioBroker users expect that it turns off when level is set to 0
-                    await this.#ioBrokerDevice.updateDimmer(0);
-                    await this.appEndpoint.commandsOf(OnOffClient)?.off();
-                    return;
-                }
-                let level = LightingLevel.fromPercent(value);
-                if (level < this.#minLevel) {
-                    level = this.#minLevel;
-                } else if (level > this.#maxLevel) {
-                    level = this.#maxLevel;
-                }
-
-                const isOn = this.isDeviceOn;
-                const transitionTime = isOn ? (this.ioBrokerDevice.getTransitionTime() ?? null) : null;
-
-                await this.appEndpoint.commandsOf(LevelControlClient)?.moveToLevel({
-                    level,
-                    transitionTime: transitionTime !== null ? Math.round(transitionTime / 100) : null,
-                    optionsMask: { executeIfOff: true },
-                    optionsOverride: { executeIfOff: true },
-                });
-
-                if (!isOn) {
-                    await this.appEndpoint.commandsOf(OnOffClient)?.on();
-                }
-            },
+            changeHandler: value => this.#onOffLevel.setLevel(value, this.#ioBrokerDevice.getTransitionTime()),
             convertValue: value => LightingLevel.toPercent(value),
         });
 

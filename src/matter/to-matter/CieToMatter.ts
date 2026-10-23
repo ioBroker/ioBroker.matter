@@ -1,7 +1,6 @@
 import { Endpoint } from '@matter/main';
 import { ExtendedColorLightDevice } from '@matter/main/devices';
 import type { Cie } from '../../lib/devices/Cie';
-import { EventedOnOffLightOnOffServer } from '../behaviors/EventedOnOffLightOnOffServer';
 import { EventedLightingLevelControlServer } from '../behaviors/EventedLightingLevelControlServer';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { EventedExtendedColorXyColorControlServer } from '../behaviors/EventedLightingColorControlServer';
@@ -13,7 +12,6 @@ import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 import { ColorTemperatureMapping } from './ColorTemperatureMapping';
 
 const IoBrokerExtendedColorLightDevice = ExtendedColorLightDevice.with(
-    EventedOnOffLightOnOffServer,
     EventedLightingLevelControlServer,
     EventedExtendedColorXyColorControlServer,
     IoBrokerEvents,
@@ -56,8 +54,7 @@ export class CieToMatter extends GenericLightingDeviceToMatter {
     async registerHandlersAndInitialize(): Promise<void> {
         await super.registerHandlersAndInitialize();
 
-        await this.initializeOnOffClusterHandlers();
-        await this.initializeLevelControlClusterHandlers();
+        await this.initializeOnOffAndLevelClusterHandlers();
 
         const colorTemperature = new ColorTemperatureMapping(this.#ioBrokerDevice);
         const currentXy = this.#ioBrokerDevice.getXy() ?? { x: 0.381, y: 0.377 };

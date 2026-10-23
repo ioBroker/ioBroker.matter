@@ -485,14 +485,67 @@ describe('colour commands from a Matter controller to an ioBroker light', functi
     describe('HueAndRgbToMatter', () => {
         const HUE_180 = 127;
 
-        it('starts at the minimum level when the DIMMER state has no value yet', async () => {
+        it('starts at 100 % when the DIMMER state has no value yet', async () => {
             const { endpoint } = await mount(Types.hue, {
                 HUE: { type: 'number', val: 0, min: 0, max: 360 },
                 DIMMER: { type: 'number', val: null, min: 0, max: 255 },
                 ON: { type: 'boolean', val: true },
             });
 
-            expect((endpoint.state as any).levelControl.currentLevel).to.equal(LightingLevel.MIN);
+            expect((endpoint.state as any).levelControl.currentLevel).to.equal(LightingLevel.MAX);
+        });
+
+        it('keeps the CurrentLevel of the level mapping for a Hue device at DIMMER 0, so On restores 100 %', async () => {
+            const { adapter, endpoint } = await mount(Types.hue, {
+                HUE: { type: 'number', val: 0, min: 0, max: 360 },
+                DIMMER: { type: 'number', val: 0, min: 0, max: 100 },
+                ON: { type: 'boolean', val: true },
+            });
+            expect((endpoint.state as any).levelControl.currentLevel).to.equal(LightingLevel.MAX);
+            expect((endpoint.state as any).onOff.onOff).to.equal(false);
+
+            await endpoint.act((agent: any) => agent.onOff.on());
+
+            expect(await waitForWrite(adapter, 'DIMMER')).to.equal(100);
+        });
+
+        it('takes CurrentLevel from DIMMER, not from the RGB brightness, for an RGB device with DIMMER', async () => {
+            const { endpoint } = await mount(Types.rgbSingle, {
+                RGB: { type: 'string', val: '#ff0000' },
+                DIMMER: { type: 'number', val: 50, min: 0, max: 100 },
+                ON: { type: 'boolean', val: true },
+            });
+            expect((endpoint.state as any).levelControl.currentLevel).to.equal(127);
+        });
+
+        it('keeps the CurrentLevel of DIMMER when the RGB state of an RGB device with DIMMER changes', async () => {
+            const { adapter, endpoint } = await mount(Types.rgbSingle, {
+                RGB: { type: 'string', val: '#ff0000' },
+                DIMMER: { type: 'number', val: 50, min: 0, max: 100 },
+                ON: { type: 'boolean', val: true },
+            });
+
+            await adapter.pushValue('RGB', '#00ff00');
+            await settle();
+
+            expect((endpoint.state as any).levelControl.currentLevel).to.equal(127);
+            expect(colorControlState(endpoint).currentHue).to.equal(85);
+        });
+
+        it('keeps the RGB brightness on a MoveToHue command of an RGB device with DIMMER', async () => {
+            const { adapter, endpoint } = await mount(Types.rgbSingle, {
+                RGB: { type: 'string', val: '#ff0000' },
+                DIMMER: { type: 'number', val: 50, min: 0, max: 100 },
+                ON: { type: 'boolean', val: true },
+            });
+
+            await invoke(endpoint, 'moveToHue', {
+                hue: HUE_180,
+                direction: ColorControl.Direction.Shortest,
+                transitionTime: 0,
+            });
+
+            expect(await waitForWrite(adapter, 'RGB')).to.equal('#00ffff');
         });
 
         it('writes a MoveToHue command to the HUE state in degrees', async () => {

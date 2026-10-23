@@ -38,6 +38,7 @@ import ioBrokerDeviceFabric, {
     identifyDeviceTypes,
 } from '../../src/matter/to-iobroker/ioBrokerFactory';
 import { GeneralMatterNode } from '../../src/matter/GeneralMatterNode';
+import { LightingLevel } from '../../src/matter/ConversionUtils';
 import type { MatterAdapter } from '../../src/main';
 import { BRIDGE_DISCRIMINATOR, BRIDGE_PASSCODE } from '../fixtures/bridgeConstants';
 import { ALL_ENDPOINTS, OWNED_CHILD_ENDPOINTS } from '../fixtures/testBridgeDefinition';
@@ -836,35 +837,77 @@ describe('Matter -> ioBroker controller mapping', function () {
             expect(condition(), description).to.equal(true);
         };
 
-        it('turns a dimmer off for 0 and leaves its level alone', async () => {
+        const stateOf = (id: string, name: string): ioBroker.State | undefined =>
+            adapter.states.get(`${mapped.get(id)!.baseId}.${name}`);
+
+        it('turns a dimmer off for 0, keeps its level and shows that level in SET', async () => {
             const endpoint = deviceEndpoint('dimmable');
             const level = endpoint.stateOf(LevelControlClient).currentLevel;
+            expect(level).to.be.a('number');
             await writeState('dimmable', 'SET', 0);
             await eventually('dimmable is off', () => endpoint.stateOf(OnOffClient).onOff === false);
             expect(endpoint.stateOf(LevelControlClient).currentLevel).to.equal(level);
+            await eventually('SET shows the device level', () => stateOf('dimmable', 'SET')?.val !== 0);
+            expect(stateOf('dimmable', 'SET')).to.include({ val: LightingLevel.toPercent(level!), ack: true });
 
+            await writeState('dimmable', 'ON_SET', true);
+            await eventually('dimmable is on', () => endpoint.stateOf(OnOffClient).onOff === true);
+            expect(endpoint.stateOf(LevelControlClient).currentLevel).to.equal(level);
+            expect(stateOf('dimmable', 'SET')?.val).to.equal(LightingLevel.toPercent(level!));
+
+            await writeState('dimmable', 'ON_SET', false);
+            await eventually('dimmable is off again', () => endpoint.stateOf(OnOffClient).onOff === false);
             await writeState('dimmable', 'SET', 1);
             await eventually('dimmable is on', () => endpoint.stateOf(OnOffClient).onOff === true);
             await eventually('dimmable is at level 3', () => endpoint.stateOf(LevelControlClient).currentLevel === 3);
         });
 
-        it('inverts MUTE into the speaker OnOff and writes volume without touching OnOff', async () => {
+        it('turns a colour light off for DIMMER 0, keeps its level and shows that level in DIMMER', async () => {
+            const endpoint = deviceEndpoint('extendedcolor');
+            await writeState('extendedcolor', 'ON', true);
+            await eventually('extendedcolor is on', () => endpoint.stateOf(OnOffClient).onOff === true);
+            const level = endpoint.stateOf(LevelControlClient).currentLevel;
+            expect(level).to.be.a('number');
+
+            await writeState('extendedcolor', 'DIMMER', 0);
+            await eventually('extendedcolor is off', () => endpoint.stateOf(OnOffClient).onOff === false);
+            expect(endpoint.stateOf(LevelControlClient).currentLevel).to.equal(level);
+            await eventually('DIMMER shows the device level', () => stateOf('extendedcolor', 'DIMMER')?.val !== 0);
+            expect(stateOf('extendedcolor', 'DIMMER')).to.include({ val: LightingLevel.toPercent(level!), ack: true });
+
+            await writeState('extendedcolor', 'DIMMER', 50);
+            await eventually('extendedcolor is on again', () => endpoint.stateOf(OnOffClient).onOff === true);
+            await eventually(
+                'extendedcolor is at level 127',
+                () => endpoint.stateOf(LevelControlClient).currentLevel === 127,
+            );
+        });
+
+        it('mutes the speaker for volume 0 and unmutes it for a volume above 0', async () => {
             const endpoint = deviceEndpoint('speaker');
             await writeState('speaker', 'MUTE', false);
             await eventually('speaker is unmuted', () => endpoint.stateOf(OnOffClient).onOff === true);
+            const level = endpoint.stateOf(LevelControlClient).currentLevel;
 
             await writeState('speaker', 'SET', 0);
-            await eventually('speaker is at level 0', () => endpoint.stateOf(LevelControlClient).currentLevel === 0);
-            expect(endpoint.stateOf(OnOffClient).onOff).to.equal(true);
-
-            await writeState('speaker', 'MUTE', true);
             await eventually('speaker is muted', () => endpoint.stateOf(OnOffClient).onOff === false);
+            expect(endpoint.stateOf(LevelControlClient).currentLevel).to.equal(level);
+            // No ControllerNode forwards the report to these converters, so the test passes it on
+            await mapped.get('speaker')!.device!.handleChangedAttribute({
+                endpointId: EndpointNumber(endpoint.number),
+                clusterId: ClusterId(OnOffClient.cluster.id),
+                attributeId: AttributeId(OnOffClient.cluster.attributes.onOff.id),
+                attributeName: 'onOff',
+                value: endpoint.stateOf(OnOffClient).onOff,
+            });
+            expect(stateOf('speaker', 'MUTE')).to.include({ val: true, ack: true });
+
             await writeState('speaker', 'SET', 50);
+            await eventually('speaker is unmuted', () => endpoint.stateOf(OnOffClient).onOff === true);
             await eventually(
                 'speaker is at level 127',
                 () => endpoint.stateOf(LevelControlClient).currentLevel === 127,
             );
-            expect(endpoint.stateOf(OnOffClient).onOff).to.equal(false);
         });
 
         it('writes startUpCurrentLevel 0 as the Matter minimum-level value 0, not as level 1', async () => {
@@ -885,6 +928,19 @@ describe('Matter -> ioBroker controller mapping', function () {
             const endpoint = deviceEndpoint('pump');
             await writeState('pump', 'LEVEL', 75.5);
             await eventually('pump is at level 151', () => endpoint.stateOf(LevelControlClient).currentLevel === 151);
+        });
+
+        it('stops the pump through OnOff for level 0 and keeps its setpoint', async () => {
+            const endpoint = deviceEndpoint('pump');
+            await writeState('pump', 'POWER', true);
+            await eventually('pump runs', () => endpoint.stateOf(OnOffClient).onOff === true);
+            await writeState('pump', 'LEVEL', 50);
+            await eventually('pump is at level 100', () => endpoint.stateOf(LevelControlClient).currentLevel === 100);
+
+            await writeState('pump', 'LEVEL', 0);
+            await eventually('pump is stopped', () => endpoint.stateOf(OnOffClient).onOff === false);
+            expect(endpoint.stateOf(LevelControlClient).currentLevel).to.equal(100);
+            await eventually('LEVEL shows the setpoint', () => stateOf('pump', 'LEVEL')?.val === 50);
         });
     });
 });

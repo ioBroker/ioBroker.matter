@@ -227,6 +227,11 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
         };
     }
 
+    /** Matter RelativeHumidityMeasurement MeasuredValue = %RH * 100, constrained to 0..10000. */
+    #toMatterHumidity(percent: number): number {
+        return this.#ioBrokerDevice.cropValue(MatterConverters.toMatterHundredths(percent), 0, 10_000);
+    }
+
     async registerHandlersAndInitialize(): Promise<void> {
         await super.registerHandlersAndInitialize();
 
@@ -255,7 +260,7 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
 
         await this.#matterEndpoint.setStateOf(this.#thermostatServer, {
             externalMeasuredIndoorTemperature:
-                typeof temperature === 'number' ? MatterConverters.toMatterHundredths(temperature) : undefined,
+                MatterConverters.toMatterMeasurement(temperature, MatterConverters.toMatterHundredths) ?? undefined,
             ...(systemMode !== undefined ? { systemMode } : {}),
         });
 
@@ -291,7 +296,9 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
             const humidity = this.#ioBrokerDevice.getHumidity();
             await this.#matterEndpointHumidity.set({
                 relativeHumidityMeasurement: {
-                    measuredValue: typeof humidity === 'number' ? MatterConverters.toMatterHundredths(humidity) : null,
+                    measuredValue: MatterConverters.toMatterMeasurement(humidity, value =>
+                        this.#toMatterHumidity(value),
+                    ),
                 },
             });
         }
@@ -486,13 +493,19 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
     #registerIoBrokerHandlers(): void {
         this.#ioBrokerDevice.onChange(async event => {
             switch (event.property) {
-                case PropertyType.Temperature:
-                    if (typeof event.value === 'number') {
+                case PropertyType.Temperature: {
+                    // matter.js takes no null here, so an unknown temperature keeps the last LocalTemperature
+                    const externalMeasuredIndoorTemperature = MatterConverters.toMatterMeasurement(
+                        event.value,
+                        MatterConverters.toMatterHundredths,
+                    );
+                    if (externalMeasuredIndoorTemperature !== null) {
                         await this.#matterEndpoint.setStateOf(this.#thermostatServer, {
-                            externalMeasuredIndoorTemperature: MatterConverters.toMatterHundredths(event.value),
+                            externalMeasuredIndoorTemperature,
                         });
                     }
                     break;
+                }
                 case PropertyType.Level:
                     await this.#setpoints.applyLevelChange(event.value as number);
                     break;
@@ -556,10 +569,12 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                     break;
                 }
                 case PropertyType.Humidity:
-                    if (this.#matterEndpointHumidity?.owner !== undefined && typeof event.value === 'number') {
+                    if (this.#matterEndpointHumidity?.owner !== undefined) {
                         await this.#matterEndpointHumidity.set({
                             relativeHumidityMeasurement: {
-                                measuredValue: MatterConverters.toMatterHundredths(event.value),
+                                measuredValue: MatterConverters.toMatterMeasurement(event.value, value =>
+                                    this.#toMatterHumidity(value),
+                                ),
                             },
                         });
                     }

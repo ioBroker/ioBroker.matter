@@ -5,6 +5,7 @@ import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { GenericDeviceToMatter } from './GenericDeviceToMatter';
 import { IoIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
+import { MatterConverters } from '../ConversionUtils';
 
 /** Mapping Logic to map a ioBroker Flow device to a Matter FlowSensorDevice. */
 export class FlowToMatter extends GenericDeviceToMatter {
@@ -43,7 +44,7 @@ export class FlowToMatter extends GenericDeviceToMatter {
         // init current state from ioBroker side
         await this.#matterEndpoint.set({
             flowMeasurement: {
-                measuredValue: typeof value === 'number' ? this.convertFlowValue(value) : null,
+                measuredValue: MatterConverters.toMatterMeasurement(value, v => this.convertFlowValue(v)),
             },
         });
 
@@ -52,7 +53,9 @@ export class FlowToMatter extends GenericDeviceToMatter {
                 case PropertyType.Flow:
                     await this.#matterEndpoint.set({
                         flowMeasurement: {
-                            measuredValue: typeof event.value === 'number' ? this.convertFlowValue(event.value) : null,
+                            measuredValue: MatterConverters.toMatterMeasurement(event.value, v =>
+                                this.convertFlowValue(v),
+                            ),
                         },
                     });
                     break;

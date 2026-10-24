@@ -117,8 +117,14 @@ function serializeEndpoint(endpoint: Endpoint): unknown {
     };
 }
 
-/** bigint attribute values (epoch-µs, EUI64) have no JSON form, so they are stringified. */
-function jsonReplacer(_key: string, value: unknown): unknown {
+/**
+ * bigint attribute values (epoch-µs, EUI64) have no JSON form, so they are stringified. The end time of an energy
+ * measurement is the time of the test run, so only its presence is pinned.
+ */
+function jsonReplacer(key: string, value: unknown): unknown {
+    if (key === 'endTimestamp' && typeof value === 'number') {
+        return '<epoch-s>';
+    }
     return typeof value === 'bigint' ? `${value}n` : value;
 }
 

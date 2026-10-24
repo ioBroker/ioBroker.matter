@@ -5,6 +5,7 @@ import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { GenericDeviceToMatter } from './GenericDeviceToMatter';
 import { IoIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
+import { MatterConverters } from '../ConversionUtils';
 
 /** Mapping Logic to map a ioBroker Humidity device to a Matter HumiditySensorDevice. */
 export class HumidityToMatter extends GenericDeviceToMatter {
@@ -43,7 +44,7 @@ export class HumidityToMatter extends GenericDeviceToMatter {
         // init current state from ioBroker side
         await this.#matterEndpoint.set({
             relativeHumidityMeasurement: {
-                measuredValue: typeof value === 'number' ? this.convertHumidityValue(value) : null,
+                measuredValue: MatterConverters.toMatterMeasurement(value, v => this.convertHumidityValue(v)),
             },
         });
 
@@ -52,8 +53,9 @@ export class HumidityToMatter extends GenericDeviceToMatter {
                 case PropertyType.Humidity:
                     await this.#matterEndpoint.set({
                         relativeHumidityMeasurement: {
-                            measuredValue:
-                                typeof event.value === 'number' ? this.convertHumidityValue(event.value) : null,
+                            measuredValue: MatterConverters.toMatterMeasurement(event.value, v =>
+                                this.convertHumidityValue(v),
+                            ),
                         },
                     });
                     break;

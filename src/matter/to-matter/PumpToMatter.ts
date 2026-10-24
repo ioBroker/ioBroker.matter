@@ -16,7 +16,7 @@ import { IoIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { EventedTransitions } from '../behaviors/EventedTransitions';
-import { PumpLevel } from '../ConversionUtils';
+import { MatterConverters, PumpLevel } from '../ConversionUtils';
 import { OnOffLevelMapping } from './OnOffLevelMapping';
 import { MatterOnOffAttribute } from './MatterOnOffAttribute';
 
@@ -198,23 +198,29 @@ export class PumpToMatter extends GenericElectricityDataDeviceToMatter {
                     }
                     break;
                 case PropertyType.Temperature:
-                    if (this.#ioBrokerDevice.hasTemperature() && typeof event.value === 'number') {
+                    if (this.#ioBrokerDevice.hasTemperature()) {
                         await this.#matterEndpoint.setStateOf(TemperatureMeasurementServer, {
-                            measuredValue: this.#toMatterTemperature(event.value),
+                            measuredValue: MatterConverters.toMatterMeasurement(event.value, v =>
+                                this.#toMatterTemperature(v),
+                            ),
                         });
                     }
                     break;
                 case PropertyType.Pressure:
-                    if (this.#ioBrokerDevice.hasPressure() && typeof event.value === 'number') {
+                    if (this.#ioBrokerDevice.hasPressure()) {
                         await this.#matterEndpoint.setStateOf(PressureMeasurementServer, {
-                            measuredValue: this.#toMatterPressure(event.value),
+                            measuredValue: MatterConverters.toMatterMeasurement(event.value, v =>
+                                this.#toMatterPressure(v),
+                            ),
                         });
                     }
                     break;
                 case PropertyType.Flow:
-                    if (this.#ioBrokerDevice.hasFlow() && typeof event.value === 'number') {
+                    if (this.#ioBrokerDevice.hasFlow()) {
                         await this.#matterEndpoint.setStateOf(FlowMeasurementServer, {
-                            measuredValue: this.#toMatterFlow(event.value),
+                            measuredValue: MatterConverters.toMatterMeasurement(event.value, v =>
+                                this.#toMatterFlow(v),
+                            ),
                         });
                     }
                     break;
@@ -275,21 +281,21 @@ export class PumpToMatter extends GenericElectricityDataDeviceToMatter {
     async #initializeTemperature(): Promise<void> {
         const value = this.#ioBrokerDevice.getTemperature();
         await this.#matterEndpoint.setStateOf(TemperatureMeasurementServer, {
-            measuredValue: typeof value === 'number' ? this.#toMatterTemperature(value) : null,
+            measuredValue: MatterConverters.toMatterMeasurement(value, v => this.#toMatterTemperature(v)),
         });
     }
 
     async #initializePressure(): Promise<void> {
         const value = this.#ioBrokerDevice.getPressure();
         await this.#matterEndpoint.setStateOf(PressureMeasurementServer, {
-            measuredValue: typeof value === 'number' ? this.#toMatterPressure(value) : null,
+            measuredValue: MatterConverters.toMatterMeasurement(value, v => this.#toMatterPressure(v)),
         });
     }
 
     async #initializeFlow(): Promise<void> {
         const value = this.#ioBrokerDevice.getFlow();
         await this.#matterEndpoint.setStateOf(FlowMeasurementServer, {
-            measuredValue: typeof value === 'number' ? this.#toMatterFlow(value) : null,
+            measuredValue: MatterConverters.toMatterMeasurement(value, v => this.#toMatterFlow(v)),
         });
     }
 

@@ -1,16 +1,20 @@
-import type { Endpoint } from '@matter/main';
+import { type Endpoint, Time } from '@matter/main';
 import {
     ElectricalEnergyMeasurementServer,
     ElectricalPowerMeasurementServer,
     PowerTopologyServer,
 } from '@matter/main/behaviors';
 import { ElectricalEnergyMeasurement, ElectricalPowerMeasurement, PowerTopology } from '@matter/main/clusters';
-import { MeasurementType } from '@matter/main/types';
+import { MATTER_EPOCH_OFFSET_S, MeasurementType } from '@matter/main/types';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import type { ElectricityDataDevice } from '../../lib/devices/ElectricityDataDevice';
 import { GenericDeviceToMatter } from './GenericDeviceToMatter';
+import { MatterConverters } from '../ConversionUtils';
 
-type EnergyValues = { energy: number };
+/** Nullable electrical measurement in thousandths of the ioBroker unit. */
+function milli(value: unknown): number | null {
+    return MatterConverters.toMatterMeasurement(value, MatterConverters.toMatterThousandths);
+}
 
 type PowerValues = {
     activePower: number | null;
@@ -112,11 +116,26 @@ export abstract class GenericElectricityDataDeviceToMatter extends GenericDevice
         }
     }
 
-    #getEnergyValues(ioBrokerDevice: ElectricityDataDevice): EnergyValues {
-        const energy = ioBrokerDevice.getConsumption() ?? 0;
-        return {
-            energy: energy * 1000, // mWh
-        };
+    /**
+     * Sets CumulativeEnergyImported from a consumption in Wh and emits CumulativeEnergyMeasured. An unknown or
+     * negative consumption sets the attribute to null without an event, because the energy is 0..2^62 and the event
+     * has no null form (2.12.5.2, 2.12.6.2, 2.12.7.1). A cumulative measurement carries only its end time
+     * (2.12.5.2.2, 2.12.5.2.3), and none while the clock is before the Matter epoch: such a clock has not determined
+     * the time in UTC, and matter.js cannot encode a time before 2000-01-01.
+     */
+    async #setConsumption(endpoint: Endpoint<any>, wh: unknown): Promise<void> {
+        const energy = MatterConverters.toMatterMeasurement(wh, MatterConverters.toMatterThousandths);
+        if (energy === null || energy < 0) {
+            await endpoint.set({ electricalEnergyMeasurement: { cumulativeEnergyImported: null } });
+            return;
+        }
+        const now = Math.floor(Time.nowMs / 1000);
+        const endTimestamp = now >= MATTER_EPOCH_OFFSET_S ? now : undefined;
+        await endpoint.act(agent =>
+            agent.get(ElectricalEnergyMeasurementServer).setMeasurement({
+                cumulativeEnergy: { imported: { energy, endTimestamp } },
+            }),
+        );
     }
 
     #getPowerValues(ioBrokerDevice: ElectricityDataDevice): PowerValues {
@@ -126,10 +145,10 @@ export abstract class GenericElectricityDataDeviceToMatter extends GenericDevice
         const frequency = this.#hasFrequency ? ioBrokerDevice.getFrequency() : undefined;
 
         return {
-            activePower: typeof electricalPower === 'number' ? electricalPower * 1000 : null, // mW
-            activeCurrent: typeof current === 'number' ? current * 1000 : null, // mA
-            voltage: typeof voltage === 'number' ? voltage * 1000 : null, // mV
-            frequency: typeof frequency === 'number' ? frequency * 1000 : null, // mHz
+            activePower: milli(electricalPower),
+            activeCurrent: milli(current),
+            voltage: milli(voltage),
+            frequency: milli(frequency),
         };
     }
 
@@ -146,28 +165,28 @@ export abstract class GenericElectricityDataDeviceToMatter extends GenericDevice
                     case PropertyType.ElectricPower:
                         await endpoint.set({
                             electricalPowerMeasurement: {
-                                activePower: typeof event.value === 'number' ? event.value * 1000 : null,
+                                activePower: milli(event.value),
                             },
                         });
                         break;
                     case PropertyType.Current:
                         await endpoint.set({
                             electricalPowerMeasurement: {
-                                activeCurrent: typeof event.value === 'number' ? event.value * 1000 : null,
+                                activeCurrent: milli(event.value),
                             },
                         });
                         break;
                     case PropertyType.Voltage:
                         await endpoint.set({
                             electricalPowerMeasurement: {
-                                voltage: typeof event.value === 'number' ? event.value * 1000 : null,
+                                voltage: milli(event.value),
                             },
                         });
                         break;
                     case PropertyType.Frequency:
                         await endpoint.set({
                             electricalPowerMeasurement: {
-                                frequency: typeof event.value === 'number' ? event.value * 1000 : null,
+                                frequency: milli(event.value),
                             },
                         });
                         break;
@@ -183,26 +202,12 @@ export abstract class GenericElectricityDataDeviceToMatter extends GenericDevice
             ioBrokerDevice.onChange(async event => {
                 switch (event.property) {
                     case PropertyType.Consumption:
-                        await endpoint.act(agent =>
-                            agent.get(ElectricalEnergyMeasurementServer).setMeasurement({
-                                cumulativeEnergy: {
-                                    imported: {
-                                        energy: typeof event.value === 'number' ? event.value * 1000 : 0,
-                                    },
-                                },
-                            }),
-                        );
+                        await this.#setConsumption(endpoint, event.value);
                         break;
                 }
             });
 
-            const imported = this.#getEnergyValues(ioBrokerDevice);
-            // init current state from ioBroker side
-            await endpoint.act(agent =>
-                agent.get(ElectricalEnergyMeasurementServer).setMeasurement({
-                    cumulativeEnergy: { imported },
-                }),
-            );
+            await this.#setConsumption(endpoint, ioBrokerDevice.getConsumption());
         }
     }
 }

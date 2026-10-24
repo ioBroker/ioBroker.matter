@@ -1945,7 +1945,8 @@
               ]
             },
             "cumulativeEnergyImported": {
-              "energy": 42000
+              "energy": 42000,
+              "endTimestamp": "<epoch-s>"
             },
             "featureMap": {
               "importedEnergy": true,
@@ -2575,7 +2576,8 @@
               ]
             },
             "cumulativeEnergyImported": {
-              "energy": 480000
+              "energy": 480000,
+              "endTimestamp": "<epoch-s>"
             },
             "featureMap": {
               "importedEnergy": true,
@@ -3140,7 +3142,8 @@
               ]
             },
             "cumulativeEnergyImported": {
-              "energy": 480000
+              "energy": 480000,
+              "endTimestamp": "<epoch-s>"
             },
             "featureMap": {
               "importedEnergy": true,

@@ -22,6 +22,7 @@ import { GenericDeviceToMatter } from './GenericDeviceToMatter';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { IoIdentifyServer, IoPlugInUnitIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
+import { MatterConverters } from '../ConversionUtils';
 import { EventedOnOffPlugInUnitOnOffServer } from '../behaviors/EventedOnOffPlugInUnitOnOffServer';
 
 /**
@@ -298,7 +299,7 @@ export class AirQualityToMatter extends GenericDeviceToMatter {
     }
 
     #toNumberOrNull(value: unknown): number | null {
-        return typeof value === 'number' ? value : null;
+        return MatterConverters.toMatterMeasurement(value, v => v);
     }
 
     convertTemperatureValue(value: number): number {
@@ -313,7 +314,9 @@ export class AirQualityToMatter extends GenericDeviceToMatter {
 
     /** Matter reports pressure as 10 x kPa, which is numerically identical to the detected mbar/hPa value. */
     #convertPressureValue(value: unknown): number | null {
-        return typeof value === 'number' ? Math.round(this.#ioBrokerDevice.cropValue(value, -32_767, 32_767)) : null;
+        return MatterConverters.toMatterMeasurement(value, v =>
+            Math.round(this.#ioBrokerDevice.cropValue(v, -32_767, 32_767)),
+        );
     }
 
     async #setPressure(value: unknown): Promise<void> {
@@ -351,13 +354,13 @@ export class AirQualityToMatter extends GenericDeviceToMatter {
         if (this.#hasTemperature) {
             const temperature = this.#ioBrokerDevice.getTemperature();
             await this.#matterEndpoint.setStateOf(TemperatureMeasurementServer, {
-                measuredValue: typeof temperature === 'number' ? this.convertTemperatureValue(temperature) : null,
+                measuredValue: MatterConverters.toMatterMeasurement(temperature, v => this.convertTemperatureValue(v)),
             });
         }
         if (this.#hasHumidity) {
             const humidity = this.#ioBrokerDevice.getHumidity();
             await this.#matterEndpoint.setStateOf(RelativeHumidityMeasurementServer, {
-                measuredValue: typeof humidity === 'number' ? this.convertHumidityValue(humidity) : null,
+                measuredValue: MatterConverters.toMatterMeasurement(humidity, v => this.convertHumidityValue(v)),
             });
         }
 
@@ -402,16 +405,18 @@ export class AirQualityToMatter extends GenericDeviceToMatter {
                 case PropertyType.Temperature:
                     if (this.#hasTemperature) {
                         await this.#matterEndpoint.setStateOf(TemperatureMeasurementServer, {
-                            measuredValue:
-                                typeof event.value === 'number' ? this.convertTemperatureValue(event.value) : null,
+                            measuredValue: MatterConverters.toMatterMeasurement(event.value, v =>
+                                this.convertTemperatureValue(v),
+                            ),
                         });
                     }
                     break;
                 case PropertyType.Humidity:
                     if (this.#hasHumidity) {
                         await this.#matterEndpoint.setStateOf(RelativeHumidityMeasurementServer, {
-                            measuredValue:
-                                typeof event.value === 'number' ? this.convertHumidityValue(event.value) : null,
+                            measuredValue: MatterConverters.toMatterMeasurement(event.value, v =>
+                                this.convertHumidityValue(v),
+                            ),
                         });
                     }
                     break;

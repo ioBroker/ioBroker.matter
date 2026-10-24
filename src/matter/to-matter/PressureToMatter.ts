@@ -5,6 +5,7 @@ import { PropertyType } from '../../lib/devices/DeviceStateObject';
 import { GenericDeviceToMatter } from './GenericDeviceToMatter';
 import { IoIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
+import { MatterConverters } from '../ConversionUtils';
 
 /** Mapping Logic to map a ioBroker Pressure device to a Matter PressureSensorDevice. */
 export class PressureToMatter extends GenericDeviceToMatter {
@@ -44,7 +45,7 @@ export class PressureToMatter extends GenericDeviceToMatter {
         // init current state from ioBroker side
         await this.#matterEndpoint.set({
             pressureMeasurement: {
-                measuredValue: typeof value === 'number' ? this.convertPressureValue(value) : null,
+                measuredValue: MatterConverters.toMatterMeasurement(value, v => this.convertPressureValue(v)),
             },
         });
 
@@ -53,8 +54,9 @@ export class PressureToMatter extends GenericDeviceToMatter {
                 case PropertyType.Pressure:
                     await this.#matterEndpoint.set({
                         pressureMeasurement: {
-                            measuredValue:
-                                typeof event.value === 'number' ? this.convertPressureValue(event.value) : null,
+                            measuredValue: MatterConverters.toMatterMeasurement(event.value, v =>
+                                this.convertPressureValue(v),
+                            ),
                         },
                     });
                     break;

@@ -218,6 +218,9 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 * (@Apollon77) Added options to store multiple Thread and WiFi credentials to use in commissioning and Visualization
 * (@Apollon77) Optimizations and Improvements for the Thread and WiFi visualizations
 * (@GermanBluefox) Updated GUI to React 19
+* (@Apollon77) Fixed sensors exposed to Matter reporting a state that changed to no value as a measurement: a temperature became 0 °C, a humidity 0 %, a brightness 0 lux. Temperature and humidity sensors, the humidity of thermostats and air conditioners, illuminance and motion sensors now report such a value as unknown. Pumps also report an unknown temperature, pressure or flow instead of keeping the last value. A humidity state without a value at start is reported as unknown instead of 0 %, and the humidity of a thermostat or air conditioner is limited to 100 %
+* (@Apollon77) Fixed the battery level of a bridged or device-mode device: a value above the maximum of its state no longer keeps the device from being exposed, and a battery state without a value is reported as unknown instead of an invalid number
+* (@Apollon77) Energy, power, current, voltage and frequency are now reported to Matter in whole milli units, and the energy reading carries the time it was reported. An energy state without a value is reported as unknown instead of 0 Wh, and a negative one is reported as unknown instead of being rejected
 
 ### 1.3.1 (2026-07-23)
 * (@Apollon77) Fix Attribute Polling

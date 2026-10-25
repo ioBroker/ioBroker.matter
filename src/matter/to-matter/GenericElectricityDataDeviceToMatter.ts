@@ -124,11 +124,12 @@ export abstract class GenericElectricityDataDeviceToMatter extends GenericDevice
      * the time in UTC, and matter.js cannot encode a time before 2000-01-01.
      */
     async #setConsumption(endpoint: Endpoint<any>, wh: unknown): Promise<void> {
-        const energy = MatterConverters.toMatterMeasurement(wh, MatterConverters.toMatterThousandths);
-        if (energy === null || energy < 0) {
+        const consumption = MatterConverters.toMatterMeasurement(wh, value => value);
+        if (consumption === null || consumption < 0) {
             await endpoint.set({ electricalEnergyMeasurement: { cumulativeEnergyImported: null } });
             return;
         }
+        const energy = MatterConverters.toMatterThousandths(consumption);
         const now = Math.floor(Time.nowMs / 1000);
         const endTimestamp = now >= MATTER_EPOCH_OFFSET_S ? now : undefined;
         await endpoint.act(agent =>

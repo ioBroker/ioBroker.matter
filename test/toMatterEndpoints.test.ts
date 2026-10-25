@@ -1506,6 +1506,12 @@ describe('to-matter converters for type-detector v6 device types', function () {
             expect(importedOf(mounted)).to.equal(null);
         });
 
+        it('reports a negative consumption that rounds to 0 mWh as unknown', async () => {
+            const mounted = await mount(Types.pump, { POWER: bool(true), CONSUMPTION: num(5, 'Wh') });
+            await mounted.adapter.pushValue('CONSUMPTION', -0.0004);
+            expect(importedOf(mounted)).to.equal(null);
+        });
+
         it('reports an unknown consumption as null instead of 0 mWh', async () => {
             const mounted = await mount(Types.pump, { POWER: bool(true), CONSUMPTION: num(null, 'Wh') });
             expect(importedOf(mounted)).to.equal(null);

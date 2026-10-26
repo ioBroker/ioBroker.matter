@@ -5,6 +5,7 @@ import type { Temperature } from '../../lib/devices/Temperature';
 import { GenericDeviceToMatter } from './GenericDeviceToMatter';
 import { IoIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
+import { MatterConverters } from '../ConversionUtils';
 
 /** Mapping Logic to map a ioBroker Temperature device to a Matter TemperatureSensorDevice. */
 export class TemperatureToMatter extends GenericDeviceToMatter {
@@ -58,7 +59,7 @@ export class TemperatureToMatter extends GenericDeviceToMatter {
         // init current state from ioBroker side
         await this.#matterEndpointTemperature.set({
             temperatureMeasurement: {
-                measuredValue: typeof value === 'number' ? this.convertTemperatureValue(value) : null,
+                measuredValue: MatterConverters.toMatterMeasurement(value, v => this.convertTemperatureValue(v)),
             },
         });
 
@@ -66,7 +67,7 @@ export class TemperatureToMatter extends GenericDeviceToMatter {
             const humidity = this.#ioBrokerDevice.getHumidity();
             await this.#matterEndpointHumidity.set({
                 relativeHumidityMeasurement: {
-                    measuredValue: typeof humidity === 'number' ? this.convertHumidityValue(humidity) : null,
+                    measuredValue: MatterConverters.toMatterMeasurement(humidity, v => this.convertHumidityValue(v)),
                 },
             });
         }
@@ -76,7 +77,9 @@ export class TemperatureToMatter extends GenericDeviceToMatter {
                 case PropertyType.Temperature:
                     await this.#matterEndpointTemperature.set({
                         temperatureMeasurement: {
-                            measuredValue: this.convertTemperatureValue(event.value as number),
+                            measuredValue: MatterConverters.toMatterMeasurement(event.value, v =>
+                                this.convertTemperatureValue(v),
+                            ),
                         },
                     });
                     break;
@@ -84,7 +87,9 @@ export class TemperatureToMatter extends GenericDeviceToMatter {
                     if (this.#matterEndpointHumidity?.owner !== undefined) {
                         await this.#matterEndpointHumidity?.set({
                             relativeHumidityMeasurement: {
-                                measuredValue: this.convertHumidityValue(event.value as number),
+                                measuredValue: MatterConverters.toMatterMeasurement(event.value, v =>
+                                    this.convertHumidityValue(v),
+                                ),
                             },
                         });
                     }

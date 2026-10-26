@@ -7,6 +7,7 @@ import type { Motion } from '../../lib/devices/Motion';
 import { GenericDeviceToMatter, luxToMatterMeasuredValue } from './GenericDeviceToMatter';
 import { IoIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
+import { MatterConverters } from '../ConversionUtils';
 
 const IoOccupancySensingDevice = OccupancySensorDevice.with(
     IoIdentifyServer,
@@ -70,10 +71,9 @@ export class MotionToMatter extends GenericDeviceToMatter {
             const brightness = this.#ioBrokerDevice.getBrightness();
             await this.#matterEndpointLightSensor.set({
                 illuminanceMeasurement: {
-                    measuredValue:
-                        typeof brightness === 'number'
-                            ? luxToMatterMeasuredValue(this.#ioBrokerDevice, brightness)
-                            : null,
+                    measuredValue: MatterConverters.toMatterMeasurement(brightness, lux =>
+                        luxToMatterMeasuredValue(this.#ioBrokerDevice, lux),
+                    ),
                 },
             });
         }
@@ -91,7 +91,9 @@ export class MotionToMatter extends GenericDeviceToMatter {
                     if (this.#matterEndpointLightSensor?.owner !== undefined) {
                         await this.#matterEndpointLightSensor?.set({
                             illuminanceMeasurement: {
-                                measuredValue: luxToMatterMeasuredValue(this.#ioBrokerDevice, event.value as number),
+                                measuredValue: MatterConverters.toMatterMeasurement(event.value, lux =>
+                                    luxToMatterMeasuredValue(this.#ioBrokerDevice, lux),
+                                ),
                             },
                         });
                     }

@@ -17,6 +17,32 @@ export namespace MatterConverters {
     export function toMatterHundredths(value: number): number {
         return Math.round(value * 100);
     }
+
+    /**
+     * ioBroker unit → Matter thousandths (mW, mA, mV, mHz, mWh). The attributes are integers, so the value is
+     * rounded; matter.js would keep a fraction in the attribute and cut it off when it encodes the report.
+     */
+    export function toMatterThousandths(value: number): number {
+        return Math.round(value * 1000);
+    }
+
+    /**
+     * ioBroker measurement → nullable Matter measurement attribute. A value that is not a finite number (null, a
+     * missing state, a non-numeric string) is unknown and becomes null, which is what the measurement clusters
+     * define null to mean; it is never converted into a number.
+     */
+    export function toMatterMeasurement<T>(value: unknown, convert: (value: number) => T): T | null {
+        return typeof value === 'number' && Number.isFinite(value) ? convert(value) : null;
+    }
+
+    /**
+     * ioBroker battery percent → PowerSource BatPercentRemaining, which counts half percent in 0..200 and is null
+     * when the charge is unknown (Matter 1.6.1 Core 11.7.7.13). A percent outside 0..100 is limited to that range,
+     * because matter.js rejects a value above 200 and the endpoint would not start.
+     */
+    export function toMatterBatPercentRemaining(percent: unknown): number | null {
+        return toMatterMeasurement(percent, value => Math.round(Math.min(Math.max(value, 0), 100) * 2));
+    }
 }
 
 /**

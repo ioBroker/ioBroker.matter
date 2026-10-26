@@ -1,10 +1,11 @@
 import { expect } from 'chai';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { DeviceTypeId, Environment, LogLevel, Logger, ServerNode, VendorId } from '@matter/main';
+import { DeviceTypeId, Environment, LogLevel, Logger, ServerNode, Time, Timestamp, VendorId } from '@matter/main';
 import { MeasurementType } from '@matter/main/types';
 import {
     ConcentrationMeasurement,
+    PowerSource,
     ElectricalPowerMeasurement,
     FanControl,
     ModeBase,
@@ -31,6 +32,9 @@ import { FlowToMatter } from '../src/matter/to-matter/FlowToMatter';
 import { PressureToMatter } from '../src/matter/to-matter/PressureToMatter';
 import { PumpToMatter } from '../src/matter/to-matter/PumpToMatter';
 import { VacuumCleanerToMatter } from '../src/matter/to-matter/VacuumCleanerToMatter';
+import { BaseServerNode } from '../src/matter/BaseServerNode';
+import type { MatterAdapter } from '../src/main';
+import type { StructuredJsonFormData } from '../src/lib/JsonConfigUtils';
 
 // ---------------------------------------------------------------------------------------------------------------
 // ioBroker side: a mock adapter that serves exactly the states a test asks for, so the hasX() gating in the
@@ -54,8 +58,8 @@ const STATE_TYPES: Record<StateSpec['type'], StateType> = {
     string: StateType.String,
 };
 
-const num = (val?: number, unit?: string): StateSpec => ({ type: 'number', val, unit });
-const percent = (val?: number): StateSpec => ({ type: 'number', val, min: 0, max: 100, unit: '%' });
+const num = (val?: number | null, unit?: string): StateSpec => ({ type: 'number', val, unit });
+const percent = (val?: number | null): StateSpec => ({ type: 'number', val, min: 0, max: 100, unit: '%' });
 const bool = (val?: boolean): StateSpec => ({ type: 'boolean', val });
 const enumeration = (labels: string[], val = 0): StateSpec => ({
     type: 'number',
@@ -134,7 +138,8 @@ class MockAdapter {
             return null;
         }
         const state = {
-            val: spec.val ?? (spec.type === 'boolean' ? false : spec.type === 'number' ? 0 : ''),
+            // An explicit null is kept: js-controller reports a state without a value as null
+            val: spec.val !== undefined ? spec.val : spec.type === 'boolean' ? false : spec.type === 'number' ? 0 : '',
             ack: true,
             ts: Date.now(),
         } as ioBroker.State;
@@ -204,7 +209,11 @@ const cleanups = new Array<() => Promise<void>>();
  * Builds the ioBroker device, runs it through the production factory and mounts the resulting endpoints on a real
  * ServerNode. Nothing here swallows errors: a conformance violation fails the test that mounted the device.
  */
-async function mount(type: Types, specs: StateSet): Promise<Mounted> {
+async function mount(
+    type: Types,
+    specs: StateSet,
+    beforeAdd?: (converter: GenericDeviceToMatter, device: GenericDevice) => void,
+): Promise<Mounted> {
     const index = ++instanceCounter;
     const prefix = `0_userdata.0.test${index}`;
     const adapter = new MockAdapter(specs, prefix);
@@ -235,6 +244,7 @@ async function mount(type: Types, specs: StateSet): Promise<Mounted> {
     const converter = await matterDeviceFabric(device, `Test ${index}`, `uuid-${index}`);
     expect(converter, `no converter for ${type}`).to.not.equal(null);
 
+    beforeAdd?.(converter!, device);
     const node = await createNode(`test-${index}`);
     for (const endpoint of converter!.matterEndpoints) {
         await node.add(endpoint);
@@ -251,6 +261,56 @@ async function mount(type: Types, specs: StateSet): Promise<Mounted> {
 
 function endpointsOf(mounted: Mounted): any[] {
     return mounted.converter.matterEndpoints;
+}
+
+/** The maintenance cluster wiring of {@link BaseServerNode}, which both node types share, without a node around it. */
+class MaintenanceClusters extends BaseServerNode {
+    port = 0;
+
+    constructor() {
+        super({} as MatterAdapter, 'bridges', 'maintenance-test');
+    }
+
+    getDeviceDetails(): StructuredJsonFormData {
+        return {};
+    }
+}
+
+/** Mounts a device with the PowerSource cluster the bridge adds for its BATTERY state. */
+async function mountWithBattery(type: Types, specs: StateSet): Promise<{ mounted: Mounted; powerSource: () => any }> {
+    const maintenance = new MaintenanceClusters();
+    const mounted = await mount(type, specs, (converter, device) =>
+        maintenance.registerMaintenanceClusters(converter.matterEndpoints[0], device),
+    );
+    const [endpoint] = endpointsOf(mounted);
+    maintenance.initializeMaintenanceStateHandlers(endpoint, mounted.device);
+    return { mounted, powerSource: () => endpoint.state.powerSource };
+}
+
+/** A wall clock in 1990, before the Matter epoch; timers keep real time so the node keeps running. */
+class ClockBeforeMatterEpoch extends Time {
+    readonly #real: Time;
+
+    constructor(real: Time) {
+        super();
+        this.#real = real;
+    }
+
+    override get nowMs(): Timestamp {
+        return Timestamp(Date.UTC(1990, 0, 1));
+    }
+
+    override getTimer(...args: Parameters<Time['getTimer']>): ReturnType<Time['getTimer']> {
+        return this.#real.getTimer(...args);
+    }
+
+    override getPeriodicTimer(...args: Parameters<Time['getPeriodicTimer']>): ReturnType<Time['getPeriodicTimer']> {
+        return this.#real.getPeriodicTimer(...args);
+    }
+
+    override get macrotask(): Promise<void> {
+        return this.#real.macrotask;
+    }
 }
 
 describe('to-matter converters for type-detector v6 device types', function () {
@@ -1159,6 +1219,341 @@ describe('to-matter converters for type-detector v6 device types', function () {
             expect(endpoint.state.rvcOperationalState.operationalState).to.equal(
                 RvcOperationalState.OperationalState.Running,
             );
+        });
+    });
+
+    describe('unknown measurements', () => {
+        /** The endpoint of a converter that carries the given cluster. */
+        function endpointWith(mounted: Mounted, behavior: string): any {
+            return endpointsOf(mounted).find(endpoint => endpoint.behaviors.has(behavior));
+        }
+
+        it('reports a temperature that changes to null as unknown, not as 0 °C', async () => {
+            const mounted = await mount(Types.temperature, { ACTUAL: num(21.5, '°C') });
+            const [temperature] = endpointsOf(mounted);
+            expect(temperature.state.temperatureMeasurement.measuredValue).to.equal(2150);
+
+            await mounted.adapter.pushValue('ACTUAL', null);
+            expect(temperature.state.temperatureMeasurement.measuredValue).to.equal(null);
+        });
+
+        it('characterization: starts with an unknown temperature when the state holds null', async () => {
+            const mounted = await mount(Types.temperature, { ACTUAL: num(null, '°C') });
+            const [temperature] = endpointsOf(mounted);
+            expect(temperature.state.temperatureMeasurement.measuredValue).to.equal(null);
+        });
+
+        it('reports the humidity of a temperature sensor that changes to null as unknown, not as 0 %', async () => {
+            const mounted = await mount(Types.temperature, { ACTUAL: num(21.5, '°C'), SECOND: percent(40) });
+            const [, humidity] = endpointsOf(mounted);
+            expect(humidity.state.relativeHumidityMeasurement.measuredValue).to.equal(4000);
+
+            await mounted.adapter.pushValue('SECOND', null);
+            expect(humidity.state.relativeHumidityMeasurement.measuredValue).to.equal(null);
+        });
+
+        it('starts with an unknown humidity when the percent state holds null', async () => {
+            // A percent state without a value reads as NaN in the device layer, which passes a typeof check
+            const mounted = await mount(Types.temperature, { ACTUAL: num(21.5, '°C'), SECOND: percent(null) });
+            const [, humidity] = endpointsOf(mounted);
+            expect(humidity.state.relativeHumidityMeasurement.measuredValue).to.equal(null);
+        });
+
+        it('reports a standalone humidity that changes to null as unknown, not as 0 %', async () => {
+            const mounted = await mount(Types.humidity, { ACTUAL: percent(40) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.relativeHumidityMeasurement.measuredValue).to.equal(4000);
+
+            await mounted.adapter.pushValue('ACTUAL', null);
+            expect(endpoint.state.relativeHumidityMeasurement.measuredValue).to.equal(null);
+        });
+
+        it('starts a standalone humidity sensor with an unknown humidity when the percent state holds null', async () => {
+            const mounted = await mount(Types.humidity, { ACTUAL: percent(null) });
+            expect(endpointsOf(mounted)[0].state.relativeHumidityMeasurement.measuredValue).to.equal(null);
+        });
+
+        it('characterization: starts pressure, flow, illuminance and motion sensors as unknown when the states hold null', async () => {
+            const pressure = await mount(Types.pressure, { PRESSURE: num(null, 'mbar') });
+            expect(endpointsOf(pressure)[0].state.pressureMeasurement.measuredValue).to.equal(null);
+            const flow = await mount(Types.flow, { FLOW: num(null, 'm³/h') });
+            expect(endpointsOf(flow)[0].state.flowMeasurement.measuredValue).to.equal(null);
+            const illuminance = await mount(Types.illuminance, { ACTUAL: num(null, 'lux') });
+            expect(endpointsOf(illuminance)[0].state.illuminanceMeasurement.measuredValue).to.equal(null);
+            const motion = await mount(Types.motion, { ACTUAL: bool(false), SECOND: num(null, 'lux') });
+            expect(endpointsOf(motion)[1].state.illuminanceMeasurement.measuredValue).to.equal(null);
+        });
+
+        it('characterization: reports a standalone pressure and flow that change to null as unknown', async () => {
+            const pressure = await mount(Types.pressure, { PRESSURE: num(1013, 'mbar') });
+            await pressure.adapter.pushValue('PRESSURE', null);
+            expect(endpointsOf(pressure)[0].state.pressureMeasurement.measuredValue).to.equal(null);
+
+            const flow = await mount(Types.flow, { FLOW: num(12.5, 'm³/h') });
+            await flow.adapter.pushValue('FLOW', null);
+            expect(endpointsOf(flow)[0].state.flowMeasurement.measuredValue).to.equal(null);
+        });
+
+        it('reports an illuminance that changes to null as unknown, not as too low to measure', async () => {
+            const mounted = await mount(Types.illuminance, { ACTUAL: num(100, 'lux') });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.illuminanceMeasurement.measuredValue).to.equal(20001);
+
+            await mounted.adapter.pushValue('ACTUAL', null);
+            expect(endpoint.state.illuminanceMeasurement.measuredValue).to.equal(null);
+        });
+
+        it('reports the brightness of a motion sensor that changes to null as unknown', async () => {
+            const mounted = await mount(Types.motion, { ACTUAL: bool(false), SECOND: num(100, 'lux') });
+            const [, lightSensor] = endpointsOf(mounted);
+            expect(lightSensor.state.illuminanceMeasurement.measuredValue).to.equal(20001);
+
+            await mounted.adapter.pushValue('SECOND', null);
+            expect(lightSensor.state.illuminanceMeasurement.measuredValue).to.equal(null);
+        });
+
+        for (const [name, unit, cluster] of [
+            ['TEMPERATURE', '°C', 'temperatureMeasurement'],
+            ['PRESSURE', 'kPa', 'pressureMeasurement'],
+            ['FLOW', 'm³/h', 'flowMeasurement'],
+        ] as const) {
+            it(`reports a pump ${name.toLowerCase()} that changes to null as unknown instead of keeping the last value`, async () => {
+                const mounted = await mount(Types.pump, { POWER: bool(true), [name]: num(20, unit) });
+                const [endpoint] = endpointsOf(mounted);
+                expect(endpoint.state[cluster].measuredValue).to.not.equal(null);
+
+                await mounted.adapter.pushValue(name, null);
+                expect(endpoint.state[cluster].measuredValue).to.equal(null);
+            });
+
+            it(`characterization: starts with an unknown pump ${name.toLowerCase()} when the state holds null`, async () => {
+                const mounted = await mount(Types.pump, { POWER: bool(true), [name]: num(null, unit) });
+                const [endpoint] = endpointsOf(mounted);
+                expect(endpoint.state[cluster].measuredValue).to.equal(null);
+            });
+        }
+
+        it('characterization: starts an air quality sensor with unknown measurements when the states hold null', async () => {
+            const mounted = await mount(Types.airQuality, {
+                AQI: enumeration(AQI_LEVELS, 2),
+                PRESSURE: num(null, 'mbar'),
+                ACTUAL: num(null, '°C'),
+                HUMIDITY: { type: 'number', val: null, min: 0, max: 100, unit: '%' },
+                CO2: num(null, 'ppm'),
+            });
+            expect(endpointWith(mounted, 'temperatureMeasurement').state.temperatureMeasurement.measuredValue).to.equal(
+                null,
+            );
+            expect(endpointWith(mounted, 'pressureMeasurement').state.pressureMeasurement.measuredValue).to.equal(null);
+            expect(
+                endpointWith(mounted, 'carbonDioxideConcentrationMeasurement').state
+                    .carbonDioxideConcentrationMeasurement.measuredValue,
+            ).to.equal(null);
+        });
+
+        it('reports an air quality temperature and humidity that change to null as unknown', async () => {
+            const mounted = await mount(Types.airQuality, {
+                AQI: enumeration(AQI_LEVELS, 2),
+                ACTUAL: num(21.5, '°C'),
+                HUMIDITY: percent(40),
+            });
+            await mounted.adapter.pushValue('ACTUAL', null);
+            await mounted.adapter.pushValue('HUMIDITY', null);
+            const temperature = endpointWith(mounted, 'temperatureMeasurement');
+            const humidity = endpointWith(mounted, 'relativeHumidityMeasurement');
+            expect(temperature.state.temperatureMeasurement.measuredValue).to.equal(null);
+            expect(humidity.state.relativeHumidityMeasurement.measuredValue).to.equal(null);
+        });
+
+        it('starts an air quality sensor with an unknown humidity when the percent state holds null', async () => {
+            const mounted = await mount(Types.airQuality, { AQI: enumeration(AQI_LEVELS, 2), HUMIDITY: percent(null) });
+            const humidity = endpointWith(mounted, 'relativeHumidityMeasurement');
+            expect(humidity.state.relativeHumidityMeasurement.measuredValue).to.equal(null);
+        });
+
+        for (const [type, setpoint] of [
+            [Types.thermostat, 'SET'],
+            [Types.airCondition, 'SET_COOLING'],
+        ] as const) {
+            const withHumidity = (): StateSet => ({
+                [setpoint]: { type: 'number', val: 21, min: 5, max: 30, unit: '°C' },
+                HUMIDITY: percent(40),
+            });
+
+            it(`reports the humidity of a ${type} that changes to null as unknown`, async () => {
+                const mounted = await mount(type, withHumidity());
+                const humidity = endpointWith(mounted, 'relativeHumidityMeasurement');
+                expect(humidity.state.relativeHumidityMeasurement.measuredValue).to.equal(4000);
+
+                await mounted.adapter.pushValue('HUMIDITY', null);
+                expect(humidity.state.relativeHumidityMeasurement.measuredValue).to.equal(null);
+            });
+
+            it(`starts a ${type} with an unknown humidity when the percent state holds null`, async () => {
+                const mounted = await mount(type, { ...withHumidity(), HUMIDITY: percent(null) });
+                const humidity = endpointWith(mounted, 'relativeHumidityMeasurement');
+                expect(humidity.state.relativeHumidityMeasurement.measuredValue).to.equal(null);
+            });
+
+            it(`limits the humidity of a ${type} to 100 %`, async () => {
+                const mounted = await mount(type, withHumidity());
+                const humidity = endpointWith(mounted, 'relativeHumidityMeasurement');
+
+                await mounted.adapter.pushValue('HUMIDITY', 120);
+                expect(humidity.state.relativeHumidityMeasurement.measuredValue).to.equal(10000);
+            });
+
+            it(`characterization: starts a ${type} without a measured indoor temperature when the state holds null`, async () => {
+                const mounted = await mount(type, {
+                    [setpoint]: { type: 'number', val: 21, min: 5, max: 30, unit: '°C' },
+                    ACTUAL: num(null, '°C'),
+                });
+                const thermostat = endpointWith(mounted, 'thermostat');
+                expect(thermostat.state.thermostat.externalMeasuredIndoorTemperature).to.equal(undefined);
+            });
+
+            it(`characterization: keeps the last measured indoor temperature of a ${type} when its temperature changes to null`, async () => {
+                const mounted = await mount(type, {
+                    [setpoint]: { type: 'number', val: 21, min: 5, max: 30, unit: '°C' },
+                    ACTUAL: num(19.5, '°C'),
+                });
+                const thermostat = endpointWith(mounted, 'thermostat');
+                expect(thermostat.state.thermostat.externalMeasuredIndoorTemperature).to.equal(1950);
+
+                await mounted.adapter.pushValue('ACTUAL', 20);
+                expect(thermostat.state.thermostat.externalMeasuredIndoorTemperature).to.equal(2000);
+                await mounted.adapter.pushValue('ACTUAL', null);
+                expect(thermostat.state.thermostat.externalMeasuredIndoorTemperature).to.equal(2000);
+            });
+        }
+    });
+
+    describe('battery', () => {
+        it('reports BatPercentRemaining in half percent and rounds a fractional percent', async () => {
+            const { powerSource } = await mountWithBattery(Types.temperature, {
+                ACTUAL: num(20, '°C'),
+                BATTERY: percent(55.3),
+            });
+            expect(powerSource().batPercentRemaining).to.equal(111);
+        });
+
+        it('limits a battery change to 0..200', async () => {
+            const { mounted, powerSource } = await mountWithBattery(Types.temperature, {
+                ACTUAL: num(20, '°C'),
+                BATTERY: percent(50),
+            });
+            await mounted.adapter.pushValue('BATTERY', 120);
+            expect(powerSource().batPercentRemaining).to.equal(200);
+            await mounted.adapter.pushValue('BATTERY', -5);
+            expect(powerSource().batPercentRemaining).to.equal(0);
+        });
+
+        it('starts a device whose battery state holds more than its declared maximum', async () => {
+            const { powerSource } = await mountWithBattery(Types.temperature, {
+                ACTUAL: num(20, '°C'),
+                BATTERY: percent(150),
+            });
+            expect(powerSource().batPercentRemaining).to.equal(200);
+        });
+
+        it('starts with an unknown battery when the battery state holds null', async () => {
+            const { powerSource } = await mountWithBattery(Types.temperature, {
+                ACTUAL: num(20, '°C'),
+                BATTERY: percent(null),
+            });
+            expect(powerSource().batPercentRemaining).to.equal(null);
+        });
+
+        it('reports a battery that changes to null as unknown', async () => {
+            const { mounted, powerSource } = await mountWithBattery(Types.temperature, {
+                ACTUAL: num(20, '°C'),
+                BATTERY: percent(80),
+            });
+            expect(powerSource().batPercentRemaining).to.equal(160);
+            await mounted.adapter.pushValue('BATTERY', null);
+            expect(powerSource().batPercentRemaining).to.equal(null);
+        });
+
+        it('characterization: leaves BatPercentRemaining out for a device that only reports a low battery', async () => {
+            const { powerSource } = await mountWithBattery(Types.temperature, {
+                ACTUAL: num(20, '°C'),
+                LOWBAT: bool(true),
+            });
+            expect(powerSource().batPercentRemaining).to.equal(undefined);
+            expect(powerSource().batChargeLevel).to.equal(PowerSource.BatChargeLevel.Critical);
+        });
+    });
+
+    describe('electrical energy measurement', () => {
+        function importedOf(mounted: Mounted): any {
+            return endpointsOf(mounted)[0].state.electricalEnergyMeasurement.cumulativeEnergyImported;
+        }
+
+        it('reports the consumption in whole mWh with the time of the measurement and no start time', async () => {
+            const before = Math.floor(Date.now() / 1000);
+            const mounted = await mount(Types.pump, { POWER: bool(true), CONSUMPTION: num(12.3456, 'Wh') });
+            expect(importedOf(mounted).energy).to.equal(12346);
+            expect(importedOf(mounted).endTimestamp).to.be.within(before, Math.floor(Date.now() / 1000));
+            expect(importedOf(mounted).startTimestamp).to.equal(undefined);
+
+            await mounted.adapter.pushValue('CONSUMPTION', 0.0004);
+            expect(importedOf(mounted).energy).to.equal(0);
+        });
+
+        it('reports a negative consumption as unknown', async () => {
+            const mounted = await mount(Types.pump, { POWER: bool(true), CONSUMPTION: num(5, 'Wh') });
+            await mounted.adapter.pushValue('CONSUMPTION', -5);
+            expect(importedOf(mounted)).to.equal(null);
+        });
+
+        it('reports a negative consumption that rounds to 0 mWh as unknown', async () => {
+            const mounted = await mount(Types.pump, { POWER: bool(true), CONSUMPTION: num(5, 'Wh') });
+            await mounted.adapter.pushValue('CONSUMPTION', -0.0004);
+            expect(importedOf(mounted)).to.equal(null);
+        });
+
+        it('reports an unknown consumption as null instead of 0 mWh', async () => {
+            const mounted = await mount(Types.pump, { POWER: bool(true), CONSUMPTION: num(null, 'Wh') });
+            expect(importedOf(mounted)).to.equal(null);
+
+            await mounted.adapter.pushValue('CONSUMPTION', 5);
+            expect(importedOf(mounted).energy).to.equal(5000);
+            await mounted.adapter.pushValue('CONSUMPTION', null);
+            expect(importedOf(mounted)).to.equal(null);
+        });
+
+        it('leaves out the end time while the clock is before 2000-01-01', async () => {
+            const mounted = await mount(Types.pump, { POWER: bool(true), CONSUMPTION: num(5, 'Wh') });
+            const realTime = Time.default;
+            Time.default = new ClockBeforeMatterEpoch(realTime);
+            try {
+                await mounted.adapter.pushValue('CONSUMPTION', 6);
+            } finally {
+                Time.default = realTime;
+            }
+            expect(importedOf(mounted).energy).to.equal(6000);
+            expect(importedOf(mounted).endTimestamp).to.equal(undefined);
+
+            await mounted.adapter.pushValue('CONSUMPTION', 7);
+            expect(importedOf(mounted).endTimestamp).to.be.a('number');
+        });
+
+        it('rounds power, current, voltage and frequency to whole thousandths', async () => {
+            const mounted = await mount(Types.pump, {
+                POWER: bool(true),
+                ELECTRIC_POWER: num(12.3456, 'W'),
+                CURRENT: num(0.0526, 'A'),
+                VOLTAGE: num(229.9999, 'V'),
+                FREQUENCY: num(49.9876, 'Hz'),
+            });
+            const state = (): any => endpointsOf(mounted)[0].state.electricalPowerMeasurement;
+            expect(state().activePower).to.equal(12346);
+            expect(state().activeCurrent).to.equal(53);
+            expect(state().voltage).to.equal(230000);
+            expect(state().frequency).to.equal(49988);
+
+            await mounted.adapter.pushValue('ELECTRIC_POWER', 0.0015);
+            expect(state().activePower).to.equal(2);
         });
     });
 

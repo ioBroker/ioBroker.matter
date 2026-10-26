@@ -5,6 +5,7 @@ import type { Illuminance } from '../../lib/devices/Illuminance';
 import { GenericDeviceToMatter, luxToMatterMeasuredValue } from './GenericDeviceToMatter';
 import { IoIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
+import { MatterConverters } from '../ConversionUtils';
 
 /** Mapping Logic to map a ioBroker Illuminance device to a Matter LightSensorDevice. */
 export class IlluminanceToMatter extends GenericDeviceToMatter {
@@ -37,8 +38,9 @@ export class IlluminanceToMatter extends GenericDeviceToMatter {
         const brightness = this.#ioBrokerDevice.getBrightness();
         await this.#matterEndpoint.set({
             illuminanceMeasurement: {
-                measuredValue:
-                    typeof brightness === 'number' ? luxToMatterMeasuredValue(this.#ioBrokerDevice, brightness) : null,
+                measuredValue: MatterConverters.toMatterMeasurement(brightness, lux =>
+                    luxToMatterMeasuredValue(this.#ioBrokerDevice, lux),
+                ),
             },
         });
 
@@ -48,7 +50,9 @@ export class IlluminanceToMatter extends GenericDeviceToMatter {
                     if (this.#matterEndpoint?.owner !== undefined) {
                         await this.#matterEndpoint?.set({
                             illuminanceMeasurement: {
-                                measuredValue: luxToMatterMeasuredValue(this.#ioBrokerDevice, event.value as number),
+                                measuredValue: MatterConverters.toMatterMeasurement(event.value, lux =>
+                                    luxToMatterMeasuredValue(this.#ioBrokerDevice, lux),
+                                ),
                             },
                         });
                     }

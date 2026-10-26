@@ -23,7 +23,7 @@ import type { GenericDeviceToMatter } from '../src/matter/to-matter/GenericDevic
 
 import type { BlindButtons } from '../src/lib/devices/BlindButtons';
 import type { Ct } from '../src/lib/devices/Ct';
-import { LightingLevel, PumpLevel } from '../src/matter/ConversionUtils';
+import { LightingLevel, MatterConverters, PumpLevel } from '../src/matter/ConversionUtils';
 
 interface StateSpec {
     type: 'number' | 'boolean' | 'string';
@@ -285,6 +285,16 @@ describe('level conversions', function () {
 
     after(() => {
         Logger.defaultLogLevel = previousLogLevel;
+    });
+
+    describe('MatterConverters.toMatterMeasurement', () => {
+        it('converts a finite number and returns null for every other value without calling the conversion', () => {
+            const double = (value: number): number => value * 2;
+            expect(MatterConverters.toMatterMeasurement(21.5, double)).to.equal(43);
+            for (const value of [null, undefined, NaN, Infinity, '21.5', true]) {
+                expect(MatterConverters.toMatterMeasurement(value, double), String(value)).to.equal(null);
+            }
+        });
     });
 
     describe('LightingLevel scale', () => {

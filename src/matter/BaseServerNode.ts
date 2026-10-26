@@ -8,6 +8,7 @@ import { PowerSource } from '@matter/main/clusters';
 import type { GenericDevice } from '../lib/devices/GenericDevice';
 import { PropertyType } from '../lib/devices/DeviceStateObject';
 import { BatteryPowerSourceServer } from './behaviors/PowerSourceServer';
+import { MatterConverters } from './ConversionUtils';
 import type { JsonFormSchema } from '@iobroker/dm-utils';
 
 export enum NodeStates {
@@ -311,7 +312,8 @@ export abstract class BaseServerNode implements GeneralNode {
         batReplacementNeeded: boolean;
     } {
         const batteryValue = ioBrokerDevice.hasBattery() ? (ioBrokerDevice.getBattery() ?? null) : undefined;
-        const batPercentRemaining = typeof batteryValue === 'number' ? batteryValue * 2 : batteryValue;
+        const batPercentRemaining =
+            batteryValue === undefined ? undefined : MatterConverters.toMatterBatPercentRemaining(batteryValue);
 
         const isLowBattery = ioBrokerDevice.hasLowBattery() ? (ioBrokerDevice.getLowBattery() ?? false) : undefined;
         let batChargeLevel = isLowBattery ? PowerSource.BatChargeLevel.Critical : PowerSource.BatChargeLevel.Ok;

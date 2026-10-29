@@ -143,7 +143,7 @@
     "Nothing detected": "Rien de détecté",
     "Off": "Désactivé",
     "On": "Sur",
-    "Options": "Possibilités",
+    "Options": "Choix",
     "Pairing Info Text": "Découverte des appareils de votre réseau IP. \nVeuillez vous assurer que l'hôte ioBroker peut envoyer et recevoir librement des messages UDP sur le réseau et sur le réseau des appareils à découvrir. \nSi nécessaire, réinitialisez les appareils aux paramètres d'usine ou redémarrez-les.",
     "Pairing Info Text BLE": "Découverte des appareils dans votre réseau IP et via BLE. \nVeuillez vous assurer que l'hôte ioBroker peut envoyer et recevoir librement des messages UDP sur le réseau et sur le réseau des appareils à découvrir. \nSi nécessaire, réinitialisez les appareils aux paramètres d'usine ou redémarrez-les.",
     "Pairing requirement": "Les appareils doivent être en mode appairage. Les appareils qui ne sont pas encore liés sont mieux liés via l'application ioBroker Visu. Sinon, mettez l'appareil en mode appairage via l'écosystème déjà lié.",

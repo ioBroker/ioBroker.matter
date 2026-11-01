@@ -74,7 +74,7 @@ jobs:
                 os: [ubuntu-latest, windows-latest, macos-latest]
                 exclude:
                     - os: macos-latest
-                      node-version: [24.x, 22.x]
+                      node-version: 24.x
 
         steps:
             - uses: actions/checkout@v7

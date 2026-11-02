@@ -48,7 +48,7 @@
         "@iobroker/types": "^7.2.2",
         "@tsconfig/node22": "^22.0.6",
         "@types/jsonwebtoken": "^9.0.10",
-        "@types/node": "^22.20.1",
+        "@types/node": "^22.20.5",
         "colorette": "^2.0.20",
         "cross-env": "^10.1.0",
         "esbuild": "^0.28.2",

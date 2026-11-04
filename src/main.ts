@@ -1,5 +1,4 @@
 import axios from 'axios';
-import jwt from 'jsonwebtoken';
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -38,11 +37,15 @@ import { IoBrokerObjectStorage } from './matter/IoBrokerObjectStorage';
 import { StorageLayout } from './matter/storageLayout';
 import { type StructuredJsonFormData, convertDataToJsonConfig } from './lib/JsonConfigUtils';
 import { determineIoBrokerDevice } from './lib/deviceDetection';
+import { type StoredSubscription, loginHash, subscriptionValidAt, verifyLicenseOnline } from './lib/license';
 
 // Prepare BLE
 import '@matter/nodejs-ble';
 
-const IOBROKER_USER_API = 'https://iobroker.pro:3001';
+const IOBROKER_USER_API = 'https://iobroker.pro';
+/** First and longest wait before asking iobroker.pro again after it could not be reached */
+const LICENSE_RECHECK_MIN_DELAY = 60_000;
+const LICENSE_RECHECK_MAX_DELAY = 60 * 60_000;
 
 interface NodeStatesOptions {
     devices?: boolean;
@@ -59,6 +62,10 @@ export class MatterAdapter extends Adapter {
     readonly #matterEnvironment: Environment;
     #stateTimeout?: ioBroker.Timeout;
     #license: { [key: string]: boolean | undefined } = {};
+    #licenseRecheckTimeout?: ioBroker.Timeout;
+    #licenseRecheckDelay = 0;
+    /** Bridges started with fewer devices because the license could not be verified, added once it is */
+    readonly #bridgesCutByLicense = new Set<string>();
     sysLanguage: ioBroker.Languages = 'en';
     readonly #deviceManagement: MatterAdapterDeviceManagement;
     #nextPortNumber: number = 5541;
@@ -707,6 +714,10 @@ export class MatterAdapter extends Adapter {
             this.clearTimeout(this.#objectProcessQueueTimeout);
             this.#objectProcessQueueTimeout = undefined;
         }
+        if (this.#licenseRecheckTimeout) {
+            this.clearTimeout(this.#licenseRecheckTimeout);
+            this.#licenseRecheckTimeout = undefined;
+        }
         // Unload must abort queue waiters, independently of the object-change queue
         this.#controllerActionQueue.clear();
         if (this.#objectProcessQueue.length && this.#objectProcessQueue[0].inProgress) {
@@ -914,102 +925,136 @@ export class MatterAdapter extends Adapter {
             this.log.error('You need to specify login and password for ioBroker.pro subscription');
             return false;
         }
-        let response;
-        try {
-            // check the license
-            response = await axios(`${IOBROKER_USER_API}/api/v1/subscriptions`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Basic ${Buffer.from(`${login}:${pass}`).toString('base64')}`,
-                },
-                timeout: 10000,
-            });
-        } catch (e) {
-            if (e.response?.status === 401) {
-                this.#license[key] = false;
-                this.log.error(`User login or password is wrong`);
-            } else {
-                this.log.error(`Cannot verify license: ${e}`);
-            }
-            return !!this.#license[key];
-        }
-        const subscriptions: {
-            json: string;
-            id: string;
-            email: string;
-            product: string;
-            type: 'assistant' | 'remote';
-            version: string;
-            invoice: string;
-            uuid: string | null;
-            time: string; // ISO 8601 date string
-            validTill: string; // ISO 8601 date string
-        }[] = response.data;
+        // The GUI also checks credentials that are not saved yet; only the configured ones are kept and rechecked
+        const configured = login === config.login && pass === config.pass;
+        const authorization = `Basic ${Buffer.from(`${login}:${pass}`).toString('base64')}`;
         const cert = await fs.readFile(`${__dirname}/../data/cloudCert.crt`, 'utf8');
-        if (
-            subscriptions.find((it: any) => {
-                try {
-                    const decoded: {
-                        email: string;
-                        comment: string;
-                        type: string;
-                        name: string;
-                        ltype: string;
-                        valid_till: string; // ISO 8601 date string
-                        invoice: string;
-                        expires: number; // Unix timestamp
-                        version: string;
-                        id: string;
-                        iat: number; // Issued at, Unix timestamp
-                    } = jwt.verify(it.json, cert) as {
-                        email: string;
-                        comment: string;
-                        type: string;
-                        name: string;
-                        ltype: string;
-                        valid_till: string; // ISO 8601 date string
-                        invoice: string;
-                        expires: number; // Unix timestamp
-                        version: string;
-                        id: string;
-                        iat: number; // Issued at, Unix timestamp
-                    };
-                    if (decoded.name && (decoded.name.startsWith('remote.') || decoded.name.startsWith('assistant.'))) {
-                        return new Date(decoded.valid_till) > new Date();
-                    }
-                } catch (e) {
-                    this.log.warn(`Cannot verify license: ${e}`);
-                    this.#license[key] = false;
-                    return false;
-                }
-            })
-        ) {
+        const verdict = await verifyLicenseOnline(
+            async path =>
+                (
+                    await axios(`${IOBROKER_USER_API}${path}`, {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: authorization,
+                        },
+                        timeout: 10000,
+                    })
+                ).data,
+            cert,
+            new Date(),
+            message => this.log.warn(message),
+        );
+
+        if (verdict.status === 'valid') {
+            if (configured && verdict.token) {
+                await this.#storeSubscription({ login: loginHash(login), token: verdict.token });
+            }
+            this.#licenseRecheckDelay = 0;
             this.#license[key] = true;
             return true;
         }
-
-        let userResponse;
-        try {
-            userResponse = await axios(`${IOBROKER_USER_API}/api/v1/user`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Basic ${Buffer.from(`${login}:${pass}`).toString('base64')}`,
-                },
-                timeout: 10000,
-            });
-        } catch (e) {
+        if (verdict.status === 'invalid') {
+            this.log.warn(
+                `${verdict.reason}. Without it only one bridge with 5 devices and 2 standalone devices are allowed.`,
+            );
+            if (configured) {
+                await this.#storeSubscription(null);
+            }
             this.#license[key] = false;
-            this.log.error(`Cannot verify license: ${e}`);
-            return this.#license[key];
-        }
-        if (userResponse.data?.tester) {
-            this.#license[key] = true;
-            return this.#license[key];
+            return false;
         }
 
-        this.log.warn('No valid ioBroker.pro subscription found. Only one bridge and 5 devices are allowed.');
-        this.#license[key] = false;
-        return this.#license[key];
+        // Not reachable says nothing about the subscription: the last verified one still counts, else ask again later
+        if (configured && (await this.#storedSubscriptionValid(login, cert))) {
+            this.log.warn(
+                `Cannot verify license: ${verdict.error}. Using the ioBroker.pro subscription verified last time.`,
+            );
+            this.#license[key] = true;
+            return true;
+        }
+        this.log.error(`Cannot verify license: ${verdict.error}`);
+        if (configured) {
+            this.#scheduleLicenseRecheck();
+        }
+        return false;
+    }
+
+    async #storeSubscription(subscription: StoredSubscription | null): Promise<void> {
+        try {
+            await this.setObjectNotExistsAsync('info.license', {
+                type: 'state',
+                common: {
+                    name: 'Last verified ioBroker.pro subscription',
+                    type: 'string',
+                    role: 'json',
+                    read: true,
+                    write: false,
+                    expert: true,
+                },
+                native: {},
+            });
+            await this.setStateAsync('info.license', subscription ? JSON.stringify(subscription) : null, true);
+        } catch (error) {
+            this.log.warn(`Cannot store the verified ioBroker.pro subscription: ${error}`);
+        }
+    }
+
+    /** Whether the subscription verified online last time belongs to `login` and is still valid, checked offline */
+    async #storedSubscriptionValid(login: string, cert: string): Promise<boolean> {
+        try {
+            const state = await this.getStateAsync('info.license');
+            if (typeof state?.val !== 'string' || !state.val) {
+                return false;
+            }
+            const stored = JSON.parse(state.val) as StoredSubscription;
+            return stored.login === loginHash(login) && subscriptionValidAt(stored.token, cert, new Date());
+        } catch (error) {
+            this.log.warn(`Cannot verify the stored ioBroker.pro subscription: ${error}`);
+            return false;
+        }
+    }
+
+    /** Ask iobroker.pro again later, as it could not be reached and the license check left something out */
+    #scheduleLicenseRecheck(): void {
+        if (this.#closing || this.#licenseRecheckTimeout) {
+            return;
+        }
+        this.#licenseRecheckDelay = this.#licenseRecheckDelay
+            ? Math.min(this.#licenseRecheckDelay * 2, LICENSE_RECHECK_MAX_DELAY)
+            : LICENSE_RECHECK_MIN_DELAY;
+        this.log.info(`Checking the ioBroker.pro license again in ${Math.round(this.#licenseRecheckDelay / 1000)}s`);
+        this.#licenseRecheckTimeout = this.setTimeout(() => {
+            this.#licenseRecheckTimeout = undefined;
+            this.#recheckLicense().catch(error => this.log.error(`Cannot recheck the license: ${error}`));
+        }, this.#licenseRecheckDelay);
+    }
+
+    /** Once the license is verified, add the bridges and devices the failed check left out */
+    async #recheckLicense(): Promise<void> {
+        // A check that cannot reach iobroker.pro again schedules the next attempt itself
+        if (this.#closing || !(await this.checkLicense())) {
+            return;
+        }
+        this.log.info('ioBroker.pro subscription verified, adding the bridges and devices left out at start');
+        const ids = new Set(this.#bridgesCutByLicense);
+        this.#bridgesCutByLicense.clear();
+        for (const [folder, running] of [
+            ['bridges', this.#bridges],
+            ['devices', this.#devices],
+        ] as const) {
+            const objects = await this.getObjectViewAsync('system', 'channel', {
+                startkey: `${this.namespace}.${folder}.`,
+                endkey: `${this.namespace}.${folder}.香`,
+            });
+            for (const { id } of objects.rows) {
+                if (id.split('.').length === 4 && !running.has(id)) {
+                    ids.add(id);
+                }
+            }
+        }
+        for (const id of ids) {
+            this.#queueObjectChange(id);
+        }
     }
 
     async prepareMatterBridgeConfiguration(
@@ -1046,6 +1091,7 @@ export class MatterAdapter extends Adapter {
                         this.log.error(
                             'You cannot use more than 5 devices without ioBroker.pro subscription. Only first 5 devices will be created.',
                         );
+                        this.#bridgesCutByLicense.add(`${this.namespace}.bridges.${options.uuid}`);
                         await deviceObject.destroy();
                         break;
                     }

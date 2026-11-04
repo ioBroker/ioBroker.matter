@@ -20,7 +20,7 @@
         "uuid": "^14.0.2",
         "vis-data": "^8.0.5",
         "vis-network": "^10.1.2",
-        "vite": "^8.2.2"
+        "vite": "^8.3.4"
     },
     "scripts": {
         "start": "vite --host",

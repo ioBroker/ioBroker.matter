@@ -68,7 +68,7 @@ function kindOf(error: unknown): FailureKind | undefined {
         return first !== undefined && kinds.every(kind => kind === first) ? first : undefined;
     }
     if (error instanceof AttestationRefusal) {
-        return error.testDevicesWouldAccept ? 'testDevice' : 'attestation';
+        return error.onlyTestCertificates ? 'testDevice' : 'attestation';
     }
     if (error instanceof DeviceAttestationError) {
         return 'attestation';
@@ -124,11 +124,12 @@ export function isUnreachedAddress(error: unknown): boolean {
 export class AttestationRefusal extends Error {
     /**
      * @param reason why the device is refused
-     * @param testDevicesWouldAccept whether allowing test devices in the adapter settings would accept the device
+     * @param onlyTestCertificates whether only test certificates refuse the device, so allowing test devices in the
+     *   adapter settings would accept it
      */
     constructor(
         reason: string,
-        readonly testDevicesWouldAccept: boolean,
+        readonly onlyTestCertificates: boolean,
     ) {
         super(reason);
         this.name = new.target.name;
@@ -212,8 +213,12 @@ export function attestationPolicy(
         const refusal = attestationRefusalOf(findings, testNetDclEnabled);
         if (refusal !== undefined) {
             log.info(refusal);
-            const testDevicesWouldAccept = !testNetDclEnabled && attestationRefusalOf(findings, true) === undefined;
-            throw new AttestationRefusal(refusal, testDevicesWouldAccept);
+            const onlyTestCertificates =
+                !testNetDclEnabled &&
+                findings
+                    .filter(({ level }) => level === 'error')
+                    .every(({ type }) => type === DeviceAttestationCheck.TrustedAsTestCertificate);
+            throw new AttestationRefusal(refusal, onlyTestCertificates);
         }
         for (const { type, message } of findings.filter(isTestNetAcceptedError)) {
             log.info(`Accepting the device attestation with test devices allowed despite ${type}: ${message}`);

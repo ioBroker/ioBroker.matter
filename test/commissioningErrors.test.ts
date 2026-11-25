@@ -210,6 +210,12 @@ describe('attestationPolicy', () => {
             .and.to.contain('Allow test devices');
     });
 
+    it('does not report a test certificate when only the BasicInformation IDs were not reported', () => {
+        const { refusal } = decide([notReported], false);
+        expect((refusal as Error).message).to.contain('Allow test devices');
+        expect(classifyCommissioningFailure(refusal)).to.be.instanceOf(AttestationRejectedError);
+    });
+
     it('refuses a device whose certificates were not checked against the DCL', () => {
         const { refusal } = decide([warning, testCertificate], true);
         expect(refusal).to.be.instanceOf(AttestationRefusal);

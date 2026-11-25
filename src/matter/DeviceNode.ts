@@ -1,4 +1,5 @@
 import { ServerNode, VendorId } from '@matter/main';
+import { basicInformationLabels, matterName } from './matterLabels';
 import { NetworkCommissioningServer } from '@matter/main/behaviors';
 import { NetworkCommissioning } from '@matter/main/clusters';
 import { inspect } from 'util';
@@ -102,7 +103,7 @@ class Device extends BaseServerNode {
         const deviceType = endpoints[0].type.deviceType;
 
         const versions = this.adapter.versions;
-        const matterName = productName.substring(0, 32);
+        const labels = basicInformationLabels(productName);
 
         const networkId = new Uint8Array(32);
         try {
@@ -118,15 +119,13 @@ class Device extends BaseServerNode {
                         port: this.#parameters.port,
                     },
                     productDescription: {
-                        name: deviceName.substring(0, 32),
+                        name: matterName(deviceName),
                         deviceType,
                     },
                     basicInformation: {
                         vendorName,
                         vendorId: VendorId(vendorId),
-                        nodeLabel: matterName,
-                        productName: matterName,
-                        productLabel: productName.substring(0, 64),
+                        ...labels,
                         productId,
                         serialNumber: uniqueId,
                         uniqueId: md5(uniqueId),

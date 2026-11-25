@@ -3,16 +3,7 @@ import jwt from 'jsonwebtoken';
 import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import {
-    Environment,
-    LogLevel,
-    LogFormat,
-    Logger,
-    StorageService,
-    Semaphore,
-    SoftwareUpdateManager,
-    type WorkSlot,
-} from '@matter/main';
+import { Environment, LogLevel, LogFormat, Logger, StorageService, Semaphore, type WorkSlot } from '@matter/main';
 import { FileStorageDriver } from '@matter/nodejs';
 import { inspect } from 'util';
 
@@ -38,6 +29,8 @@ import { IoBrokerObjectStorage } from './matter/IoBrokerObjectStorage';
 import { StorageLayout } from './matter/storageLayout';
 import { type StructuredJsonFormData, convertDataToJsonConfig } from './lib/JsonConfigUtils';
 import { determineIoBrokerDevice } from './lib/deviceDetection';
+import { matterSoftwareVersion } from './lib/utils';
+import { matterName } from './matter/matterLabels';
 
 // Prepare BLE
 import '@matter/nodejs-ble';
@@ -154,13 +147,9 @@ export class MatterAdapter extends Adapter {
     }
 
     get versions(): { versionStr: string; versionNum: number } {
-        const versionParts = this.#version.split('.');
-        // Create a numeric version number from the version string, multiply parts from end to start with 100^index
-        const numVersion = versionParts.reduce((acc, part, index) => acc + parseInt(part) * Math.pow(100, index), 0);
-
         return {
             versionStr: this.#version,
-            versionNum: numVersion,
+            versionNum: matterSoftwareVersion(this.#version),
         };
     }
 
@@ -214,15 +203,7 @@ export class MatterAdapter extends Adapter {
         if (controller) {
             await controller.start();
 
-            // Import custom OTA updates after the controller is started
-            if ((this.config as MatterAdapterConfig).allowUnofficialUpdates && controller.otaProvider) {
-                await controller.otaProvider.setStateOf(SoftwareUpdateManager, {
-                    allowTestOtaImages: true,
-                });
-                this.log.info('Enabled test OTA images (test-net DCL)');
-
-                await controller.importCustomOtaUpdates();
-            }
+            await controller.importCustomOtaUpdates();
         }
     }
 
@@ -1162,7 +1143,7 @@ export class MatterAdapter extends Adapter {
             adapter: this,
             controllerOptions,
             updateCallback: () => this.refreshControllerDevices(),
-            fabricLabel: fabricLabel.substring(0, 32),
+            fabricLabel: matterName(fabricLabel),
         });
         matterController.init(); // add bridge to server
 
@@ -1418,12 +1399,9 @@ export class MatterAdapter extends Adapter {
 
                 if (handleStart) {
                     await this.#controller.start();
-                    // Import custom OTA updates after controller is started
-                    if ((this.config as MatterAdapterConfig).allowUnofficialUpdates) {
-                        this.#controller.importCustomOtaUpdates().catch(error => {
-                            this.log.warn(`Failed to import custom OTA updates: ${error}`);
-                        });
-                    }
+                    this.#controller.importCustomOtaUpdates().catch(error => {
+                        this.log.warn(`Failed to import custom OTA updates: ${error}`);
+                    });
                 }
             } else if (this.#controller) {
                 // Controller should be disabled but is not

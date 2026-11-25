@@ -828,6 +828,7 @@
               "thermostatSuggestions": false
             },
             "localTemperature": null,
+            "localTemperatureChangeThreshold": 50,
             "maxCoolSetpointLimit": 3000,
             "maxHeatSetpointLimit": 3000,
             "minCoolSetpointLimit": 1000,
@@ -2301,6 +2302,7 @@
               "thermostatSuggestions": false
             },
             "localTemperature": null,
+            "localTemperatureChangeThreshold": 50,
             "maxCoolSetpointLimit": 3000,
             "maxHeatSetpointLimit": 3000,
             "minCoolSetpointLimit": 1000,

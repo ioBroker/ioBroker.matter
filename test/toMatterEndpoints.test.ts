@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { DeviceTypeId, Environment, LogLevel, Logger, ServerNode, Time, Timestamp, VendorId } from '@matter/main';
+import { Bytes, DeviceTypeId, Environment, LogLevel, Logger, ServerNode, Time, Timestamp, VendorId } from '@matter/main';
 import { MeasurementType } from '@matter/main/types';
 import {
     ConcentrationMeasurement,
@@ -918,6 +918,17 @@ describe('to-matter converters for type-detector v6 device types', function () {
             expect(new Set(labels).size, 'Matter rejects a duplicate label').to.equal(2);
             expect(Math.max(...labels.map((label: string) => label.length))).to.be.at.most(64);
         });
+        it('crops a mode name to 64 UTF-8 bytes, not 64 characters', async () => {
+            const shared = 'Ü'.repeat(32);
+            const mounted = await mount(Types.vacuumCleaner, {
+                POWER: bool(false),
+                MODE: enumeration([`${shared}A`, `${shared}B`], 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            const labels = endpoint.state.rvcCleanMode.supportedModes.map((mode: any) => mode.label);
+            expect(new Set(labels).size, 'Matter rejects a duplicate label').to.equal(2);
+            expect(Math.max(...labels.map((label: string) => Bytes.utf8Length(label)))).to.be.at.most(64);
+        });
 
         it('caps the advertised modes at the 255 the cluster holds', async () => {
             const mounted = await mount(Types.vacuumCleaner, {
@@ -975,7 +986,7 @@ describe('to-matter converters for type-detector v6 device types', function () {
             );
         });
 
-        it('crops a mode name to the 64 characters a Matter label holds', async () => {
+        it('crops a mode name to the 64 bytes a Matter label holds', async () => {
             const long = 'M'.repeat(80);
             const mounted = await mount(Types.vacuumCleaner, {
                 POWER: bool(false),

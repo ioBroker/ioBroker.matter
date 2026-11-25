@@ -6,6 +6,21 @@ export function md5(str: string): string {
     return createHash('md5').update(str).digest('hex');
 }
 
+/**
+ * The Matter SoftwareVersion for a semver version string: major, minor and patch as groups of three decimal digits,
+ * so 1.3.1 becomes 1003001. Matter requires a newer version to have a larger SoftwareVersion (spec 11.1.5.10).
+ * A pre-release suffix is ignored, and minor or patch values above 999 are not supported.
+ * Returns 0 for a string that does not start with major.minor.patch.
+ */
+export function matterSoftwareVersion(version: string): number {
+    const match = /^(\d+)\.(\d+)\.(\d+)/.exec(version);
+    if (match === null) {
+        return 0;
+    }
+    const [, major, minor, patch] = match;
+    return Number(major) * 1_000_000 + Number(minor) * 1_000 + Number(patch);
+}
+
 export function toUpperCaseHex(value: number | bigint, minimumLength = 4): string {
     return `0x${value.toString(16).padStart(minimumLength, '0').toUpperCase()}`;
 }

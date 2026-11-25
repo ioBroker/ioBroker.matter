@@ -1,4 +1,5 @@
 import { Endpoint, ServerNode, VendorId } from '@matter/main';
+import { basicInformationLabels, matterName } from './matterLabels';
 import { BridgedDeviceBasicInformationServer, NetworkCommissioningServer } from '@matter/main/behaviors';
 import { AggregatorEndpoint, BridgedNodeEndpoint } from '@matter/main/endpoints';
 import { NetworkCommissioning } from '@matter/main/clusters';
@@ -99,8 +100,7 @@ class BridgedDevices extends BaseServerNode {
             const name = mappingDevice.name;
             const endpoints = mappingDevice.matterEndpoints;
             const serialNumber = deviceOptions.uuid.replace(/-/g, '');
-            const matterName = name.substring(0, 32);
-            const productLabel = name.substring(0, 64);
+            const labels = basicInformationLabels(name);
             if (endpoints.length === 1 || deviceOptions.noComposed) {
                 let erroredCount = 0;
                 // When only one endpoint or non-composed we simply add all endpoints for itself to the bridge
@@ -118,9 +118,7 @@ class BridgedDevices extends BaseServerNode {
                     }
 
                     endpoint.behaviors.require(BridgedDeviceBasicInformationServer, {
-                        nodeLabel: matterName,
-                        productName: matterName,
-                        productLabel,
+                        ...labels,
                         serialNumber,
                         uniqueId: md5(endpoint.id),
                         reachable: true,
@@ -157,9 +155,7 @@ class BridgedDevices extends BaseServerNode {
                 const composedEndpoint = new Endpoint(BridgedNodeEndpoint, {
                     id,
                     bridgedDeviceBasicInformation: {
-                        nodeLabel: matterName,
-                        productName: matterName,
-                        productLabel,
+                        ...labels,
                         serialNumber,
                         uniqueId: md5(id),
                         reachable: true,
@@ -241,7 +237,7 @@ class BridgedDevices extends BaseServerNode {
         }
 
         const versions = this.adapter.versions;
-        const matterName = deviceName.substring(0, 32);
+        const labels = basicInformationLabels(deviceName);
         const networkId = new Uint8Array(32);
 
         this.serverNode = await ServerNode.create(
@@ -256,15 +252,13 @@ class BridgedDevices extends BaseServerNode {
                     port: this.#parameters.port,
                 },
                 productDescription: {
-                    name: matterName,
+                    name: matterName(deviceName),
                     deviceType,
                 },
                 basicInformation: {
                     vendorName,
                     vendorId: VendorId(vendorId),
-                    nodeLabel: matterName,
-                    productName: matterName,
-                    productLabel: deviceName.substring(0, 64),
+                    ...labels,
                     productId,
                     serialNumber: uniqueId,
                     uniqueId: md5(uniqueId),

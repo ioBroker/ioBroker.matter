@@ -313,11 +313,11 @@ class Options extends Component<OptionsProps, OptionsState> {
                     </Box>
 
                     <Box sx={{ marginTop: 3 }}>
-                        <Typography sx={{ ...styles.header, fontSize: 16 }}>{I18n.t('Custom OTA Updates')}</Typography>
+                        <Typography sx={{ ...styles.header, fontSize: 16 }}>{I18n.t('Test devices and custom OTA updates')}</Typography>
                         <InfoBox
                             type="info"
                             closeable
-                            storeId="matter.controller.customOta"
+                            storeId="matter.controller.testDevicesAndCustomOta"
                         >
                             {I18n.t('Custom OTA Updates Infotext')}
                         </InfoBox>
@@ -329,7 +329,7 @@ class Options extends Component<OptionsProps, OptionsState> {
                                     color="primary"
                                 />
                             }
-                            label={I18n.t('Allow custom/unofficial OTA updates')}
+                            label={I18n.t('Allow test devices and custom/unofficial OTA updates')}
                         />
                         {this.props.native.allowUnofficialUpdates ? (
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 1 }}>

@@ -1,4 +1,4 @@
-import { Endpoint } from '@matter/main';
+import { Bytes, Endpoint } from '@matter/main';
 import { RoboticVacuumCleanerDevice } from '@matter/main/devices';
 import { ModeBase, OperationalState, RvcCleanMode, RvcOperationalState, RvcRunMode } from '@matter/main/clusters';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
@@ -57,8 +57,8 @@ function uniqueValue(
     return candidate;
 }
 
-/** Matter constrains a mode label to 64 characters, while an ioBroker state may name its modes freely. */
-const MAX_MODE_LABEL_LENGTH = 64;
+/** Matter constrains a mode label to 64 bytes in UTF-8, while an ioBroker state may name its modes freely. */
+const MAX_MODE_LABEL_BYTES = 64;
 
 /** RvcCleanMode needs at least two modes, and needs one of them tagged Vacuum or Mop. */
 const MIN_CLEAN_MODES = 2;
@@ -214,10 +214,14 @@ export class VacuumCleanerToMatter extends GenericDeviceToMatter {
         const usedLabels = new Set<string>();
         return this.#cleanModes.map((mode, index) => {
             // Matter rejects a duplicate label outright, and an ioBroker state may name two of its modes alike
-            const label = uniqueValue(mode.substring(0, MAX_MODE_LABEL_LENGTH), usedLabels, (base, discriminator) => {
-                const suffix = ` ${discriminator}`;
-                return `${base.substring(0, MAX_MODE_LABEL_LENGTH - suffix.length)}${suffix}`;
-            });
+            const label = uniqueValue(
+                Bytes.truncateUtf8(mode, MAX_MODE_LABEL_BYTES),
+                usedLabels,
+                (base, discriminator) => {
+                    const suffix = ` ${discriminator}`;
+                    return `${Bytes.truncateUtf8(base, MAX_MODE_LABEL_BYTES - suffix.length)}${suffix}`;
+                },
+            );
             usedLabels.add(label);
 
             const semanticTag = CLEAN_MODE_TAGS[mode];

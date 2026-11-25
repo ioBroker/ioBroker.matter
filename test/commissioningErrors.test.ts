@@ -8,9 +8,11 @@ import {
     type AttestationFinding,
 } from '@matter/main/protocol';
 import {
-    acceptAttestationFindings,
+    attestationPolicy,
+    AttestationRefusal,
     AttestationRejectedError,
     classifyCommissioningFailure,
+    TestDeviceNotAllowedError,
     DeviceAlreadyCommissionedError,
     DeviceNotFoundError,
     isUnreachedAddress,
@@ -121,20 +123,103 @@ describe('isUnreachedAddress', () => {
     });
 });
 
-describe('acceptAttestationFindings', () => {
-    const findings: AttestationFinding[] = [
-        { level: 'error', type: DeviceAttestationCheck.TrustedAsTestCertificate, message: 'test certificate' },
-        { level: 'warning', type: DeviceAttestationCheck.DclServiceUnavailable, message: 'no DCL' },
-    ];
+describe('attestationPolicy', () => {
+    const testCertificate: AttestationFinding = {
+        level: 'error',
+        type: DeviceAttestationCheck.TrustedAsTestCertificate,
+        message: 'test certificate',
+    };
+    const notReported: AttestationFinding = {
+        level: 'error',
+        type: DeviceAttestationCheck.CertificationDeclarationFieldMismatch,
+        message: 'CD vendor_id 0xFFF1 does not match BasicInformation VendorID (not reported by the device)',
+    };
+    const mismatch: AttestationFinding = {
+        level: 'error',
+        type: DeviceAttestationCheck.CertificationDeclarationFieldMismatch,
+        message: 'CD vendor_id 0xFFF1 does not match BasicInformation VendorID 0x1234',
+    };
+    const unknownSigner: AttestationFinding = {
+        level: 'error',
+        type: DeviceAttestationCheck.CdSignerUnknown,
+        message: 'CD signer SKID 00 is not known to be a CD signer',
+    };
+    const warning: AttestationFinding = {
+        level: 'warning',
+        type: DeviceAttestationCheck.DclServiceUnavailable,
+        message: 'no DCL',
+    };
+    const otherWarning: AttestationFinding = {
+        level: 'info',
+        type: DeviceAttestationCheck.CertificationTypeTest,
+        message: 'test certification type',
+    };
 
-    it('accepts every finding, errors included, so devices that pair today keep pairing', () => {
-        expect(acceptAttestationFindings(() => undefined)(findings)).to.equal(true);
+    function decide(
+        findings: AttestationFinding[],
+        testNetDclEnabled: boolean,
+    ): { refusal?: unknown; lines: string[] } {
+        const lines = new Array<string>();
+        const log = { info: (line: string) => lines.push(line), warn: (line: string) => lines.push(line) };
+        try {
+            attestationPolicy(testNetDclEnabled, log)(findings);
+            return { lines };
+        } catch (refusal) {
+            return { refusal, lines };
+        }
+    }
+
+    it('accepts a device with only warnings and infos', () => {
+        expect(decide([otherWarning], false).refusal).to.equal(undefined);
     });
 
-    it('logs each finding', () => {
-        const lines = new Array<string>();
-        acceptAttestationFindings(line => lines.push(line))(findings);
-        expect(lines).to.have.length(2);
+    it('refuses a test certificate without test devices allowed and names the setting', () => {
+        const { refusal } = decide([testCertificate, otherWarning], false);
+        expect(refusal).to.be.instanceOf(AttestationRefusal);
+        expect((refusal as Error).message)
+            .to.contain('test/development certificate')
+            .and.to.contain('Allow test devices');
+        expect(classifyCommissioningFailure(new Error('wrapped', { cause: refusal }))).to.be.instanceOf(
+            TestDeviceNotAllowedError,
+        );
+    });
+
+    it('accepts a test certificate and an unreported BasicInformation ID with test devices allowed', () => {
+        expect(decide([testCertificate, notReported], true).refusal).to.equal(undefined);
+    });
+
+    it('refuses a Certification Declaration that names other IDs, also with test devices allowed', () => {
+        const { refusal } = decide([mismatch], true);
+        expect((refusal as Error).message).to.contain('CertificationDeclarationFieldMismatch');
+        expect((refusal as Error).message).to.not.contain('Allow test devices');
+    });
+
+    it('refuses an unknown Certification Declaration signer, also with test devices allowed', () => {
+        const { refusal } = decide([unknownSigner, testCertificate], false);
+        expect(classifyCommissioningFailure(refusal)).to.be.instanceOf(AttestationRejectedError);
+        expect(decide([unknownSigner], true).refusal).to.be.instanceOf(AttestationRefusal);
+        expect((decide([unknownSigner, testCertificate], false).refusal as Error).message).to.not.contain(
+            'Allow test devices',
+        );
+    });
+
+    it('names the setting next to the findings when only test-net findings refuse', () => {
+        const { refusal } = decide([testCertificate, notReported], false);
+        expect((refusal as Error).message)
+            .to.contain('Device attestation refused')
+            .and.to.contain('Allow test devices');
+    });
+
+    it('refuses a device whose certificates were not checked against the DCL', () => {
+        const { refusal } = decide([warning, testCertificate], true);
+        expect(refusal).to.be.instanceOf(AttestationRefusal);
+        expect((refusal as Error).message).to.contain('DclServiceUnavailable');
+        expect(classifyCommissioningFailure(refusal)).to.be.instanceOf(AttestationRejectedError);
+    });
+
+    it('logs every finding and the refusal', () => {
+        const { lines } = decide([testCertificate, otherWarning], false);
+        expect(lines).to.have.length(3);
         expect(lines[0]).to.contain('TrustedAsTestCertificate').and.to.contain('test certificate');
     });
 });

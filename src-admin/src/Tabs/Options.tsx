@@ -313,7 +313,9 @@ class Options extends Component<OptionsProps, OptionsState> {
                     </Box>
 
                     <Box sx={{ marginTop: 3 }}>
-                        <Typography sx={{ ...styles.header, fontSize: 16 }}>{I18n.t('Test devices and custom OTA updates')}</Typography>
+                        <Typography sx={{ ...styles.header, fontSize: 16 }}>
+                            {I18n.t('Test devices and custom OTA updates')}
+                        </Typography>
                         <InfoBox
                             type="info"
                             closeable

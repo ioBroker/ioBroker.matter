@@ -36,6 +36,7 @@ import {
 } from '@matter/main/behaviors';
 import {
     CertificateAuthority,
+    DclCertificateService,
     DclOtaUpdateService,
     FabricAuthority,
     FabricManager,
@@ -76,7 +77,7 @@ import { ThreadDiagnosticsService, type ThreadDiagnosticsBatch } from './ThreadD
 import { parseRestBaseUrl, registerThreadCredentialsFromHex } from './threadCredentials';
 import { serializeBatch } from './serializeBatch';
 import {
-    acceptAttestationFindings,
+    attestationPolicy,
     classifyCommissioningFailure,
     CommissioningFailure,
     isUnreachedAddress,
@@ -164,6 +165,7 @@ class Controller implements GeneralNode {
     #fabricLabel: string;
     #serverNode?: ServerNode;
     #otaProvider?: Endpoint<OtaProviderEndpoint>;
+    #certificateService?: DclCertificateService;
     #nodes = new Map<string, GeneralMatterNode>();
     /** Serializes nodeToIoBrokerStructure per node id; entries are pruned once a node is decommissioned. */
     #nodeLocks = new Map<string, Semaphore>();
@@ -428,6 +430,9 @@ class Controller implements GeneralNode {
         this.#unwatchAllPeers();
         // A node that will not close keeps its mDNS sockets and storage handles
         await serverNode.close().catch(error => this.#adapter.log.warn(`Error closing controller: ${error}`));
+        await this.#closeCertificateService().catch(error =>
+            this.#adapter.log.warn(`Error closing the DCL certificate service: ${error}`),
+        );
     }
 
     #registerChangeHandlers(): void {
@@ -742,7 +747,44 @@ class Controller implements GeneralNode {
         }
     }
 
-    async #start(): Promise<void> {
+    /**
+     * Registers the DCL certificate service that device attestation checks against, seeded with the bundled snapshot
+     * so the PAA and CD signer checks also work without network. Test certificates are always loaded but only
+     * trusted with test devices allowed, so an untrusted test device is reported as `TrustedAsTestCertificate`
+     * rather than as an unknown PAA. Development certificates from GitHub are only fetched with test devices allowed.
+     *
+     * The controller owns the service from its start until {@link #closeCertificateService} at its stop or after a
+     * failed start, so each start uses the current setting.
+     */
+    async #registerCertificateService(): Promise<void> {
+        await this.#closeCertificateService();
+        const { cdSigners, paaRoots } = await import('@matter/dcl-data/node');
+        this.#certificateService = new DclCertificateService(this.#adapter.matterEnvironment, {
+            fetchTestCertificates: true,
+            fetchGithubCertificates: this.#testNetDclEnabled,
+            acceptTestCertificates: this.#testNetDclEnabled,
+            seed: {
+                paaRoots: paaRoots({ includeTest: true }),
+                cdSigners: cdSigners({ includeTest: true }),
+            },
+        });
+    }
+
+    async #closeCertificateService(): Promise<void> {
+        if (this.#certificateService === undefined) {
+            return;
+        }
+        this.#certificateService = undefined;
+        await this.#adapter.matterEnvironment.close(DclCertificateService);
+    }
+
+    /** Test devices and test OTA images (test-net DCL) are allowed together by the custom/unofficial OTA updates setting. */
+    get #testNetDclEnabled(): boolean {
+        return !!(this.#adapter.config as MatterAdapterConfig).allowUnofficialUpdates;
+    }
+
+    /** Creates the controller node with its OTA provider. A node created before a failure is discarded again. */
+    async #createServerNode(): Promise<{ serverNode: ServerNode; otaProvider: Endpoint<OtaProviderEndpoint> }> {
         const serverNode = await ServerNode.create(ServerNode.RootEndpoint.with(ControllerBehavior), {
             environment: this.#adapter.matterEnvironment,
             id: 'controller',
@@ -753,7 +795,31 @@ class Controller implements GeneralNode {
             controller: { adminFabricLabel: this.#fabricLabel, ble: this.#useBle },
         });
         this.#serverNode = serverNode;
-        this.#otaProvider = await serverNode.add(new Endpoint(OtaProviderEndpoint, { id: 'ota-provider' }));
+        try {
+            const otaProvider = await serverNode.add(new Endpoint(OtaProviderEndpoint, { id: 'ota-provider' }));
+            this.#otaProvider = otaProvider;
+            // matter.js offers imported local and test-net images only with allowTestOtaImages
+            if (this.#testNetDclEnabled) {
+                await otaProvider.setStateOf(SoftwareUpdateManager, { allowTestOtaImages: true });
+                this.#adapter.log.info('Enabled test OTA images (test-net DCL)');
+            }
+            return { serverNode, otaProvider };
+        } catch (error) {
+            await this.#discardServerNode(serverNode);
+            throw error;
+        }
+    }
+
+    async #start(): Promise<void> {
+        await this.#registerCertificateService();
+        let serverNode: ServerNode;
+        let otaProvider: Endpoint<OtaProviderEndpoint>;
+        try {
+            ({ serverNode, otaProvider } = await this.#createServerNode());
+        } catch (error) {
+            await this.#closeCertificateService();
+            throw error;
+        }
 
         await this.#adapter.extendObjectAsync('controller.info', {
             type: 'channel',
@@ -843,7 +909,6 @@ class Controller implements GeneralNode {
             }
         }
 
-        const otaProvider = this.#otaProvider;
         this.#observers.on(
             otaProvider.eventsOf(SoftwareUpdateManager).updateAvailable,
             this.#contained('software update available', (peerAddress, info) => {
@@ -1324,12 +1389,19 @@ class Controller implements GeneralNode {
             throw new Error('Passcode is missing');
         }
 
+        const certificateService = this.#certificateService;
+        if (certificateService === undefined) {
+            throw new Error('The controller is not running');
+        }
+        // Attestation lookups refuse to run before the first certificate update after start has finished
+        await certificateService.construction;
+
         const options: CommissioningDiscovery.Options = {
             ...commissioningOptions,
             passcode,
             discoveryCapabilities: { onIpNetwork: true, ble: this.#useBle },
             ...(longDiscriminator !== undefined ? { discriminator: longDiscriminator } : {}),
-            onAttestationFailure: acceptAttestationFindings(message => this.#adapter.log.warn(message)),
+            onAttestationFailure: attestationPolicy(this.#testNetDclEnabled, this.#adapter.log),
         };
 
         const discoveryOptions: CommissioningDiscovery.Options = {
@@ -1543,39 +1615,49 @@ class Controller implements GeneralNode {
         return null;
     }
 
+    async #otaFilesIn(path: string): Promise<string[]> {
+        const entries = await readdir(path);
+        return entries.filter(f => f.toLowerCase().endsWith('.ota'));
+    }
+
     /**
      * Import custom OTA update files from a directory.
+     *
+     * With custom OTA updates disabled in the adapter settings, nothing is imported, because matter.js offers local
+     * images only with `allowTestOtaImages`, which follows that setting. Files found in the directory are then only
+     * logged.
      *
      * @param customPath Optional custom path. If not provided, uses adapter config or default.
      * @returns Number of imported files
      */
     async importCustomOtaUpdates(customPath?: string): Promise<number> {
-        const adapterConfig = this.#adapter.config as MatterAdapterConfig;
-
-        // Determine the path to scan
+        if (this.#otaProvider === undefined) {
+            this.#adapter.log.debug('Not importing custom OTA updates, because the controller is not running');
+            return 0;
+        }
         const path = customPath || this.#adapter.customOtaPath;
 
-        // Check if custom updates are enabled
-        if (!adapterConfig.allowUnofficialUpdates) {
-            this.#adapter.log.debug('Custom OTA updates are disabled');
+        if (!this.#testNetDclEnabled) {
+            const files = await this.#otaFilesIn(path).catch(() => new Array<string>());
+            if (files.length > 0) {
+                this.#adapter.log.info(
+                    `Not importing ${files.length} OTA file(s) from "${path}", because "Allow test devices and custom/unofficial OTA updates" is disabled in the adapter settings`,
+                );
+            }
             return 0;
         }
 
-        // Ensure directory exists
         try {
             await mkdir(path, { recursive: true });
         } catch {
             // Directory might already exist
         }
 
-        // Get the OTA service from the environment
         const otaService = this.#adapter.matterEnvironment.get(DclOtaUpdateService);
 
-        // Find all .ota files in the directory
         let files: string[];
         try {
-            const entries = await readdir(path);
-            files = entries.filter(f => f.toLowerCase().endsWith('.ota'));
+            files = await this.#otaFilesIn(path);
         } catch (error) {
             this.#adapter.log.warn(`Cannot read custom OTA directory "${path}": ${error}`);
             return 0;
@@ -2156,6 +2238,10 @@ class Controller implements GeneralNode {
                     this.#otaProvider = undefined;
                     await serverNode?.close();
                 },
+            },
+            {
+                what: 'DCL certificate service',
+                run: () => this.#closeCertificateService(),
             },
         ];
         await runShutdownSteps(steps, (what, error) =>

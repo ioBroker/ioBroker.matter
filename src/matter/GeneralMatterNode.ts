@@ -106,25 +106,31 @@ export type NodeDetails = {
     backgroundColor?: string;
 };
 
-/** The timestamp field of a decoded event report the notification's kind stands for. */
+/** Per notification kind: the decoded report field for the timestamp as sent, and for the absolute time. */
 const EVENT_TIMESTAMP_FIELDS = {
-    epoch: 'epochTimestamp',
-    system: 'systemTimestamp',
-    'epoch-delta': 'deltaEpochTimestamp',
-    'system-delta': 'deltaSystemTimestamp',
+    epoch: { sent: 'epochTimestamp', absolute: 'epochTimestamp' },
+    system: { sent: 'systemTimestamp', absolute: 'systemTimestamp' },
+    'epoch-delta': { sent: 'deltaEpochTimestamp', absolute: 'epochTimestamp' },
+    'system-delta': { sent: 'deltaSystemTimestamp', absolute: 'systemTimestamp' },
 } as const;
 
 /**
  * An event occurrence in the shape of a decoded event report.
  *
  * The notification carries the event's data fields on their own, while the device mappings and the raw
- * `events.<name>` state carry the report entry around them.
+ * `events.<name>` state carry the report entry around them. A delta timestamp is reported as the absolute time when
+ * matter.js could resolve it, otherwise as the delta the peer sent.
  */
-function decodedEventOf(change: ChangeNotificationService.EventOccurrence): DecodedEventData<unknown> {
+export function decodedEventOf(change: ChangeNotificationService.OccurrenceProperties): DecodedEventData<unknown> {
+    const fields = EVENT_TIMESTAMP_FIELDS[change.timestampKind];
+    const timestamp =
+        change.resolvedTimestamp === undefined
+            ? { [fields.sent]: change.timestamp }
+            : { [fields.absolute]: change.resolvedTimestamp };
     return {
         eventNumber: change.number,
         priority: change.priority,
-        [EVENT_TIMESTAMP_FIELDS[change.timestampKind]]: change.timestamp,
+        ...timestamp,
         // An event that carries no fields at all has no payload, and it still occurred
         data: change.payload ?? {},
     };

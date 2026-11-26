@@ -8,7 +8,7 @@ export interface MatterAdapterConfig extends ioBroker.AdapterConfig {
     /** UUID of the default (alexa-compatible - port 5540)bridge */
     defaultBridge: string;
     controllerFabricLabel: string;
-    /** Allow unofficial/custom OTA updates */
+    /** Allow unofficial/custom OTA updates and pairing of devices with test certificates (test-net DCL) */
     allowUnofficialUpdates: boolean;
     /** Custom path for OTA update files (default: the `<namespace>.custom-ota` folder beside the instance data directory) */
     customUpdatesPath: string;

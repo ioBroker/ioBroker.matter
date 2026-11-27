@@ -239,12 +239,8 @@ export class FanControlMapping {
         this.#lastSpeed = { fanMode, percentSetting };
         const previousPercent = last?.percentSetting ?? null;
         await this.#writeIoBroker(async () => {
-            const writes = this.#model.plan(
-                { fanMode, percentSetting },
-                this.#snapshot(),
-                previousPercent,
-                this.#runningLevel,
-            );
+            const snapshot = this.#snapshot();
+            const writes = this.#model.plan({ fanMode, percentSetting }, snapshot, previousPercent, this.#runningLevel);
             for (const write of writes) {
                 await this.#write(write);
             }
@@ -300,17 +296,21 @@ export class FanControlMapping {
 
     /** @param current the Matter PercentSetting, see {@link FanSpeedModel.derive} */
     #speedValues(current: number | null): SpeedValues {
-        const snapshot = this.#snapshot();
-        if (snapshot.level !== undefined && snapshot.level > 0) {
-            this.#runningLevel = snapshot.level;
-        }
-        const values = this.#model.derive(snapshot, current);
+        const values = this.#model.derive(this.#snapshot(), current);
         return this.#ioBroker.deviceOn?.() === false ? { ...values, percentCurrent: 0 } : values;
     }
 
+    /**
+     * The current ioBroker values. A level above 0 becomes the running level, also one that changed while writes were
+     * queued: every plan reads the values before it writes.
+     */
     #snapshot(): SpeedSnapshot {
         const { power, speed, speedLevel } = this.#ioBroker;
-        return { power: power?.get(), speed: speed?.get(), level: percentValue(speedLevel?.get()) };
+        const level = percentValue(speedLevel?.get());
+        if (level !== undefined && level > 0) {
+            this.#runningLevel = level;
+        }
+        return { power: power?.get(), speed: speed?.get(), level };
     }
 
     async #write(write: SpeedWrite): Promise<void> {
@@ -321,10 +321,7 @@ export class FanControlMapping {
             case 'speed':
                 return speed?.set(write.value);
             case 'level':
-                await speedLevel?.set(write.value);
-                if (write.value > 0) {
-                    this.#runningLevel = write.value;
-                }
+                return speedLevel?.set(write.value);
         }
     }
 

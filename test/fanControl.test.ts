@@ -287,6 +287,7 @@ describe('FanControlMapping (bridge: ioBroker fan states to Matter FanControl)',
             expect(fakeFan({ speedModes: STEP_SPEEDS, power: true }).mapping.initialState.offAllowed).to.equal(true);
             expect(fakeFan({ level: 50 }).mapping.initialState.offAllowed).to.equal(true);
             expect(fakeFan({ speedModes: STEP_SPEEDS }).mapping.initialState.offAllowed).to.equal(false);
+            expect(fakeFan({ speedModes: [] }).mapping.initialState.offAllowed).to.equal(false);
             expect(fakeFan({ device: true, level: 50 }).mapping.initialState.offAllowed).to.equal(false);
         });
     });
@@ -606,6 +607,32 @@ describe('FanControlMapping (bridge: ioBroker fan states to Matter FanControl)',
             expect(fan.writes).to.deep.equal(['level 30', 'level 0', 'level 30', 'speed AUTO']);
         });
 
+        it('starts Auto with a level the device reported while writes were queued', async () => {
+            const { fan, matter, mapping } = fakeFan({
+                speedModes: ALL_SPEEDS,
+                speed: FanSpeed.Low,
+                level: 20,
+                swingModes: [FanSwing.Horizontal, FanSwing.Stationary],
+                swing: FanSwing.Stationary,
+                hold: true,
+            });
+            await mapping.initialize();
+            const rockWrite = mapping.matterRockSettingChanged(ROCK_LR);
+            fan.level = 80;
+            await mapping.ioBrokerChanged();
+            matter.clientWrite(FanMode.Off, 0);
+            const offWrite = mapping.matterSpeedChanged();
+            await fan.release();
+            await fan.release();
+            await Promise.all([rockWrite, offWrite]);
+            matter.clientWrite(FanMode.Auto, null);
+            const autoWrite = mapping.matterSpeedChanged();
+            await fan.release();
+            await fan.release();
+            await autoWrite;
+            expect(fan.writes.slice(-3)).to.deep.equal(['level 0', 'level 80', 'speed AUTO']);
+        });
+
         it('keeps no earlier PercentSetting for a fan that cannot vary its speed', async () => {
             const { matter, mapping } = fakeFan({ speedModes: [FanSpeed.Auto, FanSpeed.High], speed: FanSpeed.High });
             matter.values = { ...matter.values, fanMode: FanMode.High, percentSetting: 50 };
@@ -897,7 +924,9 @@ describe('FanControlMapping round trip (a write the server accepts is shown afte
         let checked = 0;
         for (const shape of shapes) {
             const powers = shape.power ? [true, false, undefined] : [undefined];
-            const speeds = shape.speedModes !== undefined ? [undefined, ...shape.speedModes] : [undefined];
+            // A SPEED state without listed values gets the step HIGH
+            const speedValues = shape.speedModes?.length === 0 ? [FanSpeed.High] : (shape.speedModes ?? []);
+            const speeds = [undefined, ...speedValues];
             const levels = shape.level ? [undefined, 0, 40] : [undefined];
             for (const power of powers) {
                 for (const speed of speeds) {

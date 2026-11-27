@@ -2429,8 +2429,11 @@
               "step": false,
               "airflowDirection": false
             },
+            "manualSpeed": true,
+            "offAllowed": false,
             "percentCurrent": 66,
-            "percentSetting": 66
+            "percentSetting": 66,
+            "variableSpeed": true
           }
         },
         "parts": []
@@ -2473,6 +2476,8 @@
               "step": false,
               "airflowDirection": true
             },
+            "manualSpeed": true,
+            "offAllowed": true,
             "percentCurrent": 40,
             "percentSetting": 40,
             "rockSetting": {
@@ -2484,7 +2489,8 @@
               "rockLeftRight": true,
               "rockUpDown": true,
               "rockRound": false
-            }
+            },
+            "variableSpeed": true
           },
           "onOff": {
             "featureMap": {
@@ -2626,8 +2632,11 @@
               "step": false,
               "airflowDirection": false
             },
+            "manualSpeed": true,
+            "offAllowed": false,
             "percentCurrent": 100,
-            "percentSetting": 100
+            "percentSetting": 100,
+            "variableSpeed": true
           },
           "hepaFilterMonitoring": {
             "changeIndication": 0,
@@ -2669,8 +2678,11 @@
               "step": false,
               "airflowDirection": false
             },
+            "manualSpeed": true,
+            "offAllowed": true,
             "percentCurrent": 100,
-            "percentSetting": 100
+            "percentSetting": 100,
+            "variableSpeed": true
           },
           "onOff": {
             "featureMap": {

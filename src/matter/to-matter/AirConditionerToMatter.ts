@@ -1,23 +1,19 @@
 import { Endpoint, type ActionContext } from '@matter/main';
 import { HumiditySensorDevice, OnOffPlugInUnitDevice, RoomAirConditionerDevice } from '@matter/main/devices';
-import { FanControl as MatterFanControl, Thermostat as MatterThermostat } from '@matter/main/clusters';
+import { Thermostat as MatterThermostat } from '@matter/main/clusters';
 import { FanControlServer, OnOffServer, ThermostatServer } from '@matter/main/behaviors';
 import { hasLocalActor } from '@matter/main/protocol';
 import { SetpointKind } from '../../lib/devices/ClimateControlDevice';
-import { mapFanModeToSpeed, mapSpeedToFanMode } from '../FanControlUtils';
 import { PropertyType } from '../../lib/devices/DeviceStateObject';
-import {
-    AirConditionerMode,
-    type AirConditionerSpeed,
-    AirConditionerSwing,
-    type AirCondition,
-} from '../../lib/devices/AirCondition';
+import { AirConditionerMode, type AirCondition } from '../../lib/devices/AirCondition';
 import { GenericDeviceToMatter } from './GenericDeviceToMatter';
 import { IoBrokerEvents } from '../behaviors/IoBrokerEvents';
 import { IoIdentifyServer, IoPlugInUnitIdentifyServer } from '../behaviors/IdentifyServer';
 import { IoBrokerContext } from '../behaviors/IoBrokerContext';
 import { EventedOnOffPlugInUnitOnOffServer } from '../behaviors/EventedOnOffPlugInUnitOnOffServer';
 import { MatterConverters } from '../ConversionUtils';
+import { IoFanControlServer } from '../behaviors/IoFanControlServer';
+import { FanControlMapping, type IoBrokerFanStates } from './FanControlMapping';
 import {
     deriveThermostatFeatures,
     ThermostatSetpointBridge,
@@ -47,9 +43,6 @@ const IoOnOffPlugInUnitDevice = OnOffPlugInUnitDevice.with(
 );
 type IoOnOffPlugInUnitDevice = typeof IoOnOffPlugInUnitDevice;
 
-/** FanControl.rockSupport must be non-zero from construction on, so it is seeded with the endpoint. */
-const AC_ROCK_SUPPORT = { rockLeftRight: true, rockUpDown: true, rockRound: false };
-
 /** Mapping Logic to map an ioBroker Air Conditioner device to a Matter RoomAirConditionerDevice. */
 export class AirConditionerToMatter extends GenericDeviceToMatter {
     readonly #ioBrokerDevice: AirCondition;
@@ -58,11 +51,10 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
     readonly #matterEndpointBoost?: Endpoint<IoOnOffPlugInUnitDevice>;
     readonly #thermostatServer;
     readonly #fanControlServer?;
+    readonly #fanControl?: FanControlMapping;
     readonly #supportedModes: AirConditionerMode[];
     readonly #validModes: AirConditionerMode[];
     readonly #setpoints: ThermostatSetpointBridge;
-    #hasFan: boolean;
-    #hasSwing: boolean;
 
     constructor(ioBrokerDevice: AirCondition, name: string, uuid: string) {
         super(name, uuid);
@@ -102,30 +94,39 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
             );
         }
 
-        this.#hasSwing = this.#ioBrokerDevice.hasSwing();
-        this.#hasFan = this.#ioBrokerDevice.hasSpeed() || this.#hasSwing;
-
         this.#thermostatServer = ThermostatServer.with(...derivation.clusterModes);
 
         const thermostatInit = thermostatInitialState(derivation.clusterModes, SetpointKind.Cooling);
 
-        if (this.#hasFan) {
-            const fanFeatures = new Array<MatterFanControl.Feature>(MatterFanControl.Feature.Auto);
-            if (this.#hasSwing) {
-                fanFeatures.push(MatterFanControl.Feature.Rocking);
-            }
-            this.#fanControlServer = FanControlServer.with(...fanFeatures);
+        if (
+            ioBrokerDevice.hasSpeed() ||
+            ioBrokerDevice.hasSpeedLevel() ||
+            ioBrokerDevice.hasSwing() ||
+            ioBrokerDevice.hasAirflowDirection()
+        ) {
+            const fanStates = this.#fanStates();
+            const fanControlServer = IoFanControlServer.with(...FanControlMapping.featuresFor(fanStates));
+            const fanControl = new FanControlMapping(
+                fanStates,
+                {
+                    fanMode: () => this.#matterEndpoint.stateOf(fanControlServer).fanMode,
+                    percentSetting: () => this.#matterEndpoint.stateOf(fanControlServer).percentSetting,
+                    set: values => this.#matterEndpoint.setStateOf(fanControlServer, values),
+                },
+                {
+                    debug: message => ioBrokerDevice.adapter.log.debug(`${uuid}: ${message}`),
+                    info: message => ioBrokerDevice.adapter.log.info(`${uuid}: ${message}`),
+                },
+            );
+            this.#fanControl = fanControl;
+            this.#fanControlServer = fanControlServer;
             this.#matterEndpoint = new Endpoint(
-                IoRoomAirConditionerDeviceWithFan.with(this.#thermostatServer, this.#fanControlServer),
+                IoRoomAirConditionerDeviceWithFan.with(this.#thermostatServer, fanControlServer),
                 {
                     id: `${uuid}-RoomAirConditioner`,
                     ioBrokerContext: { device: ioBrokerDevice, adapter: ioBrokerDevice.adapter },
                     thermostat: thermostatInit,
-                    fanControl: {
-                        fanMode: MatterFanControl.FanMode.Auto,
-                        fanModeSequence: MatterFanControl.FanModeSequence.OffLowMedHighAuto,
-                        ...(this.#hasSwing ? { rockSupport: AC_ROCK_SUPPORT } : {}),
-                    },
+                    fanControl: fanControl.initialState,
                 },
             );
         } else {
@@ -210,12 +211,36 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
         );
     }
 
-    #speedToFanMode(speed: AirConditionerSpeed | undefined): MatterFanControl.FanMode | undefined {
-        return mapSpeedToFanMode(speed, (unsupported, reportedAs) =>
-            this.#ioBrokerDevice.adapter.log.info(
-                `${this.uuid}: Matter has no ${unsupported} fan speed, reporting as ${reportedAs}`,
-            ),
-        );
+    /** The fan follows the power of the air conditioner, so it cannot be switched off through FanControl. */
+    #fanStates(): IoBrokerFanStates {
+        const device = this.#ioBrokerDevice;
+        return {
+            deviceOn: () => this.#isOn() && this.#modeIsNotOff(),
+            speed: device.hasSpeed()
+                ? { modes: device.getSpeedModes(), get: () => device.getSpeed(), set: speed => device.setSpeed(speed) }
+                : undefined,
+            speedLevel: device.hasSpeedLevel()
+                ? { get: () => device.getSpeedLevel(), set: percent => device.setSpeedLevel(percent) }
+                : undefined,
+            swing: device.hasSwing()
+                ? { modes: device.getSwingModes(), get: () => device.getSwing(), set: swing => device.setSwing(swing) }
+                : undefined,
+            airflowDirection: device.hasAirflowDirection()
+                ? { get: () => device.getAirflowDirection(), set: direction => device.setAirflowDirection(direction) }
+                : undefined,
+        };
+    }
+
+    #modeIsNotOff(): boolean {
+        return !this.#ioBrokerDevice.hasMode() || this.#ioBrokerDevice.getMode() !== AirConditionerMode.Off;
+    }
+
+    /** OnOff reflects the power state; for Mode-only devices it is derived from MODE != Off. */
+    #isOn(): boolean {
+        if (this.#ioBrokerDevice.hasPower()) {
+            return this.#ioBrokerDevice.getPower() ?? true;
+        }
+        return this.#modeIsNotOff();
     }
 
     #readThermostatState(): ThermostatSetpointState {
@@ -269,28 +294,8 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
             await this.#matterEndpoint.setStateOf(this.#thermostatServer, data);
         }
 
-        // OnOff reflects the power state; for Mode-only devices it is derived from MODE != Off
-        const on = this.#ioBrokerDevice.hasPower()
-            ? (this.#ioBrokerDevice.getPower() ?? true)
-            : this.#ioBrokerDevice.hasMode()
-              ? this.#ioBrokerDevice.getMode() !== AirConditionerMode.Off
-              : true;
-        await this.#matterEndpoint.setStateOf(OnOffServer, { onOff: on });
-
-        if (this.#fanControlServer) {
-            const fanMode = this.#ioBrokerDevice.hasSpeed()
-                ? this.#speedToFanMode(this.#ioBrokerDevice.getSpeed())
-                : undefined;
-            await this.#matterEndpoint.setStateOf(this.#fanControlServer, {
-                ...(fanMode !== undefined ? { fanMode } : {}),
-                ...(this.#hasSwing
-                    ? {
-                          rockSupport: AC_ROCK_SUPPORT,
-                          rockSetting: this.#mapSwingToRock(this.#ioBrokerDevice.getSwing()),
-                      }
-                    : {}),
-            });
-        }
+        await this.#matterEndpoint.setStateOf(OnOffServer, { onOff: this.#isOn() });
+        await this.#fanControl?.initialize();
 
         if (this.#matterEndpointHumidity?.owner !== undefined) {
             const humidity = this.#ioBrokerDevice.getHumidity();
@@ -312,24 +317,6 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
 
     #boostToOnOff(value: boolean | number | undefined): boolean {
         return typeof value === 'number' ? value !== 0 : !!value;
-    }
-
-    #mapSwingToRock(swing: AirConditionerSwing | undefined): {
-        rockLeftRight: boolean;
-        rockUpDown: boolean;
-        rockRound: boolean;
-    } {
-        if (swing === AirConditionerSwing.Horizontal) {
-            return { rockLeftRight: true, rockUpDown: false, rockRound: false };
-        }
-        if (swing === AirConditionerSwing.Vertical) {
-            return { rockLeftRight: false, rockUpDown: true, rockRound: false };
-        }
-        if (swing === AirConditionerSwing.Auto) {
-            this.#ioBrokerDevice.adapter.log.info(`${this.uuid}: Matter has no Auto swing, enabling rocking`);
-            return { rockLeftRight: true, rockUpDown: false, rockRound: false };
-        }
-        return { rockLeftRight: false, rockUpDown: false, rockRound: false };
     }
 
     #registerMatterHandlers(): void {
@@ -397,31 +384,31 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
             });
         }
 
-        if (this.#fanControlServer) {
+        const fanControl = this.#fanControl;
+        if (this.#fanControlServer !== undefined && fanControl !== undefined) {
             const fanEvents = this.#matterEndpoint.eventsOf(this.#fanControlServer);
-            if (this.#ioBrokerDevice.hasSpeed() && fanEvents?.fanMode$Changed !== undefined) {
-                this.matterEvents.on(fanEvents.fanMode$Changed, async (value, _oldValue, context) => {
-                    if (hasLocalActor(context)) {
-                        return;
-                    }
-                    const speed = mapFanModeToSpeed(value);
-                    if (speed !== undefined) {
-                        await this.#ioBrokerDevice.setSpeed(speed);
+            this.matterEvents.on(fanEvents.fanMode$Changed, async (_value, _oldValue, context) => {
+                if (!hasLocalActor(context)) {
+                    await fanControl.matterSpeedChanged();
+                }
+            });
+            this.matterEvents.on(fanEvents.percentSetting$Changed, async (_value, _oldValue, context) => {
+                if (!hasLocalActor(context)) {
+                    await fanControl.matterSpeedChanged();
+                }
+            });
+            if (fanEvents.rockSetting$Changed !== undefined) {
+                this.matterEvents.on(fanEvents.rockSetting$Changed, async (value, _oldValue, context) => {
+                    if (!hasLocalActor(context)) {
+                        await fanControl.matterRockSettingChanged(value);
                     }
                 });
             }
-            if (this.#hasSwing && fanEvents?.rockSetting$Changed !== undefined) {
-                this.matterEvents.on(fanEvents.rockSetting$Changed, async (value, _oldValue, context) => {
-                    if (hasLocalActor(context)) {
-                        return;
+            if (fanEvents.airflowDirection$Changed !== undefined) {
+                this.matterEvents.on(fanEvents.airflowDirection$Changed, async (value, _oldValue, context) => {
+                    if (!hasLocalActor(context)) {
+                        await fanControl.matterAirflowDirectionChanged(value);
                     }
-                    let swing = AirConditionerSwing.Stationary;
-                    if (value?.rockLeftRight) {
-                        swing = AirConditionerSwing.Horizontal;
-                    } else if (value?.rockUpDown || value?.rockRound) {
-                        swing = AirConditionerSwing.Vertical;
-                    }
-                    await this.#ioBrokerDevice.setSwing(swing);
                 });
             }
         }
@@ -518,6 +505,7 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                 case PropertyType.Power: {
                     const on = !!event.value;
                     await this.#matterEndpoint.setStateOf(OnOffServer, { onOff: on });
+                    await this.#fanControl?.ioBrokerChanged();
                     // Re-sync the active mode on power-on: Mode changes are suppressed while powered off
                     if (on && this.#ioBrokerDevice.hasMode()) {
                         const systemMode = this.#mapModeToMatter(this.#ioBrokerDevice.getMode());
@@ -528,6 +516,7 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                     break;
                 }
                 case PropertyType.Mode: {
+                    await this.#fanControl?.ioBrokerChanged();
                     const mode = event.value as AirConditionerMode;
                     const systemMode = this.#mapModeToMatter(mode);
                     if (systemMode === undefined) {
@@ -549,25 +538,12 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                     }
                     break;
                 }
-                case PropertyType.Speed: {
-                    if (!this.#fanControlServer) {
-                        return;
-                    }
-                    const fanMode = this.#speedToFanMode(event.value as AirConditionerSpeed);
-                    if (fanMode !== undefined) {
-                        await this.#matterEndpoint.setStateOf(this.#fanControlServer, { fanMode });
-                    }
+                case PropertyType.Speed:
+                case PropertyType.SpeedLevel:
+                case PropertyType.Swing:
+                case PropertyType.AirflowDirection:
+                    await this.#fanControl?.ioBrokerChanged();
                     break;
-                }
-                case PropertyType.Swing: {
-                    if (!this.#fanControlServer || !this.#hasSwing) {
-                        return;
-                    }
-                    await this.#matterEndpoint.setStateOf(this.#fanControlServer, {
-                        rockSetting: this.#mapSwingToRock(event.value as AirConditionerSwing),
-                    });
-                    break;
-                }
                 case PropertyType.Humidity:
                     if (this.#matterEndpointHumidity?.owner !== undefined) {
                         await this.#matterEndpointHumidity.set({

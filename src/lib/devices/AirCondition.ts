@@ -83,7 +83,7 @@ export class AirCondition extends ClimateControlDevice<AirConditionerMode, AirCo
     #getHumidityState?: DeviceStateObject<number>;
     #speedState?: DeviceStateObject<AirConditionerSpeed>;
     #boostState?: DeviceStateObject<boolean | number>;
-    #SwingState?: DeviceStateObject<AirConditionerSwing>;
+    #SwingState?: DeviceStateObject<AirConditionerSwing | boolean>;
     #speedLevelState?: DeviceStateObject<number>;
     #airflowDirectionState?: DeviceStateObject<AirConditionerAirflowDirection>;
     #filterConditionState?: DeviceStateObject<number>;
@@ -247,21 +247,21 @@ export class AirCondition extends ClimateControlDevice<AirConditionerMode, AirCo
         return this.#speedState.getModes();
     }
 
-    getSwing(): AirConditionerSwing | undefined {
+    getSwing(): AirConditionerSwing | boolean | undefined {
         if (!this.#SwingState) {
             throw new Error('Swing state not found');
         }
         return this.#SwingState.value;
     }
 
-    setSwing(value: AirConditionerSwing): Promise<void> {
+    setSwing(value: AirConditionerSwing | boolean): Promise<void> {
         if (!this.#SwingState) {
             throw new Error('Swing state not found');
         }
         return this.#SwingState.setValue(value);
     }
 
-    getSwingModes(): AirConditionerSwing[] {
+    getSwingModes(): (AirConditionerSwing | boolean)[] {
         if (!this.#SwingState) {
             throw new Error('Swing state not found');
         }
@@ -327,14 +327,14 @@ export class AirCondition extends ClimateControlDevice<AirConditionerMode, AirCo
         return !!this.#SwingState;
     }
 
-    updateSwing(value: AirConditionerSwing): Promise<void> {
+    updateSwing(value: AirConditionerSwing | boolean): Promise<void> {
         if (!this.#SwingState) {
             throw new Error('Swing state not found');
         }
         return this.#SwingState.updateValue(value);
     }
 
-    updateSwingModes(modes: { [key: string]: AirConditionerSwing }): Promise<void> {
+    updateSwingModes(modes: { [key: string]: AirConditionerSwing | boolean }): Promise<void> {
         if (!this.#SwingState) {
             throw new Error('Swing state not found');
         }

@@ -100,7 +100,7 @@ export interface FanControlLog {
  *
  * | SPEED lists      | Matter steps                              | FanModeSequence                   |
  * | ---------------- | ----------------------------------------- | --------------------------------- |
- * | no values        | High = HIGH                               | OffHigh                           |
+ * | no step          | none; High only sets power or level       | OffHigh                           |
  * | AUTO and no step | none; High is refused                     | OffHighAuto                       |
  * | 1 step           | High                                      | OffHigh / OffHighAuto             |
  * | 2 steps          | Low, High                                 | OffLowHigh / OffLowHighAuto       |
@@ -129,8 +129,9 @@ export interface FanControlLog {
  * | SPEED without a value          | Auto with an Auto sequence, else High | null, or as for a step | as for a step   |
  * | SPEED value it does not list   | High                                  | as for a step          | as for a step   |
  *
- * For a fan of a device, PercentCurrent is then set to 0 while `deviceOn` returns false. A SPEED state whose values
- * are no known speed names lists no step, so it is treated like a SPEED value the state does not list.
+ * For a fan of a device, PercentCurrent is then set to 0 while `deviceOn` returns false. Labels are compared apart from
+ * case. A SPEED state that lists no values, or no known speed names, has no step, so its value is treated like a SPEED
+ * value the state does not list and SPEED is never written.
  *
  * A client change writes only the ioBroker states that do not already fit it, in this order:
  *

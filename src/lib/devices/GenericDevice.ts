@@ -32,6 +32,11 @@ export interface DeviceStateDescription {
     callback: (state: DeviceStateObject<any> | undefined) => void;
     accessType: StateAccessType;
     unitConversionMap?: { [key: string]: (value: number, toDefaultUnit: boolean) => number };
+    /**
+     * The enum labels the device class compares with. A label of the state that differs from one of them only in
+     * case is read as that one, so `{"0": "auto"}` gives `AUTO`; the write still sends the state's own key.
+     */
+    knownModes?: readonly string[];
 }
 
 export enum StateAccessType {
@@ -211,6 +216,7 @@ export abstract class GenericDevice extends EventEmitter {
         valueType: ValueType,
         unitConversionMap: { [key: string]: (value: number, toDefaultUnit: boolean) => number } = {},
         unit?: string,
+        knownModes?: readonly T[],
     ): Promise<void> {
         let state = this.getDeviceState(name);
         if (state) {
@@ -239,6 +245,7 @@ export abstract class GenericDevice extends EventEmitter {
                     valueType,
                     this.enabled,
                     unitConversionMap,
+                    knownModes,
                 );
             } catch (error) {
                 this.#adapter.log.error(`Cannot create state ${name}: ${error}`);
@@ -350,6 +357,7 @@ export abstract class GenericDevice extends EventEmitter {
                     state.valueType,
                     state.unitConversionMap,
                     state.unit,
+                    state.knownModes,
                 );
             }
         };

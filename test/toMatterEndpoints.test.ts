@@ -510,7 +510,7 @@ describe('to-matter converters for type-detector v6 device types', function () {
 
         it('switches a fan whose SPEED labels are no known speed names through POWER', async () => {
             const mounted = await mount(Types.fan, {
-                SPEED: enumeration(['off', 'low', 'high'], 1),
+                SPEED: enumeration(['stop', 'slow', 'fast'], 1),
                 POWER: bool(true),
             });
             const [endpoint] = endpointsOf(mounted);
@@ -523,12 +523,68 @@ describe('to-matter converters for type-detector v6 device types', function () {
         });
 
         it('refuses every speed for a fan whose SPEED labels are no known speed names and that has no POWER', async () => {
-            const mounted = await mount(Types.fan, { SPEED: enumeration(['off', 'low', 'high'], 1) });
+            const mounted = await mount(Types.fan, { SPEED: enumeration(['stop', 'slow', 'fast'], 1) });
             const [endpoint] = endpointsOf(mounted);
             expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.Off);
             expect(await clientFanControlWrite(mounted, { fanMode: FanControl.FanMode.High })).to.equal(
                 Status.InvalidInState,
             );
+            expect(endpoint.state.fanControl.offAllowed).to.equal(false);
+        });
+
+        it('reads SPEED, SWING and AIRFLOW_DIRECTION labels in lower case as the known names', async () => {
+            const mounted = await mount(Types.fan, {
+                SPEED: enumeration(['auto', 'low', 'high'], 2),
+                SWING: enumeration(['horizontal', 'stationary'], 1),
+                AIRFLOW_DIRECTION: enumeration(['forward', 'reverse'], 1),
+                POWER: bool(true),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.fanModeSequence).to.equal(FanControl.FanModeSequence.OffLowHighAuto);
+            expect(endpoint.state.fanControl.airflowDirection).to.equal(FanControl.AirflowDirection.Reverse);
+            expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.High);
+            expect(endpoint.state.fanControl.rockSupport).to.deep.include({ rockLeftRight: true });
+            expect(await clientFanControlWrite(mounted, { fanMode: FanControl.FanMode.Low })).to.equal(undefined);
+            expect(await stateValue(mounted, 'SPEED')).to.equal(1);
+            expect(
+                await clientFanControlWrite(mounted, {
+                    rockSetting: { rockLeftRight: true, rockUpDown: false, rockRound: false },
+                }),
+            ).to.equal(undefined);
+            expect(await stateValue(mounted, 'SWING')).to.equal(0);
+        });
+
+        it('switches a fan whose SPEED lists no values through POWER and never writes SPEED', async () => {
+            const mounted = await mount(Types.fan, { SPEED: num(2), POWER: bool(true) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.fanModeSequence).to.equal(FanControl.FanModeSequence.OffHigh);
+            expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.High);
+            expect(await clientFanControlWrite(mounted, { fanMode: FanControl.FanMode.Off })).to.equal(undefined);
+            expect(await stateValue(mounted, 'POWER')).to.equal(false);
+            expect(await clientFanControlWrite(mounted, { fanMode: FanControl.FanMode.High })).to.equal(undefined);
+            expect(await stateValue(mounted, 'POWER')).to.equal(true);
+            expect(await stateValue(mounted, 'SPEED')).to.equal(2);
+        });
+
+        it('shows a number SWING without listed values as rocking and writes 1 / 0', async () => {
+            const mounted = await mount(Types.fan, { SPEED: enumeration(FAN_SPEEDS, 3), SWING: num(1) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.rockSetting).to.deep.include({ rockLeftRight: true });
+            const none = { rockLeftRight: false, rockUpDown: false, rockRound: false };
+            expect(await clientFanControlWrite(mounted, { rockSetting: none })).to.equal(undefined);
+            expect(await stateValue(mounted, 'SWING')).to.equal(0);
+            await mounted.adapter.pushValue('SWING', 1);
+            expect(endpoint.state.fanControl.rockSetting).to.deep.include({ rockLeftRight: true });
+        });
+
+        it('shows a boolean SWING that is off as not rocking', async () => {
+            const mounted = await mount(Types.fan, { SPEED: enumeration(FAN_SPEEDS, 3), SWING: bool(false) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.rockSetting).to.deep.equal({
+                rockLeftRight: false,
+                rockUpDown: false,
+                rockRound: false,
+            });
         });
 
         it('switches a fan without POWER off and on again while SPEED is AUTO', async () => {
@@ -633,6 +689,33 @@ describe('to-matter converters for type-detector v6 device types', function () {
             expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.Low);
             expect(endpoint.state.fanControl.percentSetting).to.equal(20);
             expect(endpoint.state.fanControl.percentCurrent).to.equal(33);
+        });
+
+        it('reads MODE, SPEED, SWING and AIRFLOW_DIRECTION labels of an air conditioner in lower case', async () => {
+            const mounted = await mount(Types.airCondition, {
+                SET_COOLING: { type: 'number', val: 24, min: 16, max: 32, unit: '°C' },
+                MODE: enumeration(['auto', 'cool', 'off'], 1),
+                SPEED: enumeration(['auto', 'low', 'high'], 2),
+                SWING: enumeration(['vertical', 'stationary'], 0),
+                AIRFLOW_DIRECTION: enumeration(['forward', 'reverse'], 1),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.thermostat.systemMode).to.equal(Thermostat.SystemMode.Cool);
+            expect(endpoint.state.fanControl.fanModeSequence).to.equal(FanControl.FanModeSequence.OffLowHighAuto);
+            expect(endpoint.state.fanControl.rockSetting).to.deep.include({ rockUpDown: true });
+            expect(endpoint.state.fanControl.airflowDirection).to.equal(FanControl.AirflowDirection.Reverse);
+            await mounted.adapter.pushValue('MODE', 2);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+        });
+
+        it('shows a number SWING of an air conditioner without listed values as rocking', async () => {
+            const mounted = await mount(Types.airCondition, {
+                SET_COOLING: { type: 'number', val: 24, min: 16, max: 32, unit: '°C' },
+                POWER: bool(true),
+                SWING: num(1),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.rockSetting).to.deep.include({ rockLeftRight: true });
         });
 
         it('reports PercentCurrent 0 while the MODE of an air conditioner without POWER is OFF', async () => {
@@ -1785,6 +1868,18 @@ describe('to-matter converters for type-detector v6 device types', function () {
             const mounted = await mount(Types.airQuality, { AQI: enumeration(AQI_LEVELS, 2), HUMIDITY: percent(null) });
             const humidity = endpointWith(mounted, 'relativeHumidityMeasurement');
             expect(humidity.state.relativeHumidityMeasurement.measuredValue).to.equal(null);
+        });
+
+        it('reads MODE labels of a thermostat in lower case as the known modes', async () => {
+            const mounted = await mount(Types.thermostat, {
+                SET: { type: 'number', val: 21, min: 5, max: 30, unit: '°C' },
+                MODE: enumeration(['heat', 'cool', 'off'], 1),
+            });
+            const thermostat = endpointWith(mounted, 'thermostat');
+            expect(thermostat.state.thermostat.systemMode).to.equal(Thermostat.SystemMode.Cool);
+            expect(thermostat.state.thermostat.controlSequenceOfOperation).to.equal(
+                Thermostat.ControlSequenceOfOperation.CoolingAndHeating,
+            );
         });
 
         for (const [type, setpoint] of [

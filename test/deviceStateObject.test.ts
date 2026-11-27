@@ -14,13 +14,19 @@ function makeAdapter(common: ioBroker.StateCommon): ioBroker.Adapter {
     } as unknown as ioBroker.Adapter;
 }
 
-async function createState(valueType: ValueType, common: ioBroker.StateCommon): Promise<DeviceStateObject<any>> {
+async function createState(
+    valueType: ValueType,
+    common: ioBroker.StateCommon,
+    knownModes?: readonly string[],
+): Promise<DeviceStateObject<any>> {
     return DeviceStateObject.create<any>(
         makeAdapter(common),
         { name: 'test', id: 'test.0.state', isIoBrokerState: true },
         PropertyType.Custom,
         valueType,
         true,
+        {},
+        knownModes,
     );
 }
 
@@ -89,6 +95,33 @@ describe('DeviceStateObject.getRawEnumValue', function () {
     });
 });
 
+describe('DeviceStateObject known enum labels', function () {
+    beforeEach(function () {
+        written.length = 0;
+    });
+
+    const lowerCaseCommon: ioBroker.StateCommon = {
+        ...numberEnumCommon,
+        states: { 0: 'auto', 1: 'Low', 2: 'Party' },
+    };
+
+    it('reads object-form labels that match a known mode apart from case as the known mode', async function () {
+        const state = await createState(ValueType.Enum, lowerCaseCommon, ['AUTO', 'LOW', 'HIGH']);
+        strictEqual(JSON.stringify(state.getModes()), JSON.stringify(['AUTO', 'LOW', 'Party']));
+    });
+
+    it("writes a known mode as the state's own key", async function () {
+        const state = await createState(ValueType.Enum, lowerCaseCommon, ['AUTO', 'LOW', 'HIGH']);
+        await state.setValue('LOW');
+        strictEqual(written[0], 1);
+    });
+
+    it('keeps labels as they are without known modes', async function () {
+        const state = await createState(ValueType.Enum, lowerCaseCommon);
+        strictEqual(JSON.stringify(state.getModes()), JSON.stringify(['auto', 'Low', 'Party']));
+    });
+});
+
 describe('DeviceStateObject.setValue', function () {
     beforeEach(function () {
         written.length = 0;
@@ -108,6 +141,19 @@ describe('DeviceStateObject.setValue', function () {
         strictEqual(written.length, 1);
         strictEqual(written[0], null);
         strictEqual(state.value, null);
+    });
+
+    it('writes a boolean as 1 / 0 to a number enum state', async function () {
+        const state = await createState(ValueType.Enum, { ...numberEnumCommon, states: undefined });
+        await state.setValue(true);
+        await state.setValue(false);
+        strictEqual(JSON.stringify(written), JSON.stringify([1, 0]));
+    });
+
+    it('writes a boolean unchanged to a boolean enum state', async function () {
+        const state = await createState(ValueType.Enum, { ...numberEnumCommon, type: 'boolean', states: undefined });
+        await state.setValue(true);
+        strictEqual(written[0], true);
     });
 
     it('writes an unset nullable attribute through as null on an enum state', async function () {

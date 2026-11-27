@@ -4,7 +4,7 @@ import { SubscribeManager } from '../src/lib/SubscribeManager';
 import { StateAccessType } from '../src/lib/devices/GenericDevice';
 import { ValueType } from '../src/lib/devices/DeviceStateObject';
 
-const excludedTypes: string[] = ['unknown', 'instance'];
+const excludedTypes: string[] = ['unknown', 'instance', 'tv'];
 
 // Interface for the state structure used in tests
 interface TestState {

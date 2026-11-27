@@ -100,6 +100,7 @@ const types: { [key in Types]: ClassExtends<GenericDevice> | null } = {
     [Types.socket]: Socket,
     [Types.temperature]: Temperature,
     [Types.thermostat]: Thermostat,
+    [Types.tv]: null,
     [Types.volume]: Volume,
     [Types.vacuumCleaner]: VacuumCleaner,
     [Types.volumeGroup]: VolumeGroup,

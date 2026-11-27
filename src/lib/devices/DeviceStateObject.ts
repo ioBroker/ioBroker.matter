@@ -252,8 +252,17 @@ export class DeviceStateObject<T> extends EventEmitter {
         valueType: ValueType,
         isEnabled: boolean,
         unitConversionMap: { [key: string]: (value: number, toDefaultUnit: boolean) => number } = {},
+        knownModes?: readonly T[],
     ): Promise<DeviceStateObject<T>> {
-        const obj = new DeviceStateObject<T>(adapter, state, propertyType, valueType, isEnabled, unitConversionMap);
+        const obj = new DeviceStateObject<T>(
+            adapter,
+            state,
+            propertyType,
+            valueType,
+            isEnabled,
+            unitConversionMap,
+            knownModes,
+        );
         await obj.init();
         return obj;
     }
@@ -265,6 +274,8 @@ export class DeviceStateObject<T> extends EventEmitter {
         protected readonly valueType: ValueType,
         isEnabled: boolean,
         protected readonly unitConversionMap: { [key: string]: (value: number, toDefaultUnit: boolean) => number } = {},
+        /** See `DeviceStateDescription.knownModes`. */
+        private readonly knownModes?: readonly T[],
     ) {
         super();
         this.isEnum = valueType === ValueType.Enum;
@@ -511,7 +522,7 @@ export class DeviceStateObject<T> extends EventEmitter {
                 modes.forEach((mode: T) => (_m[mode as string] = (mode as string).toUpperCase() as T));
                 modes = _m;
             }
-            this.modes = modes;
+            this.modes = this.#withKnownModes(modes);
             this.adapter.log.debug(
                 `Initialize modes: ${Object.entries(modes)
                     .map(([key, value]) => `(${key}) ${String(value)}`)
@@ -521,6 +532,23 @@ export class DeviceStateObject<T> extends EventEmitter {
             this.modes = {};
             this.adapter.log.debug(`No modes found for ${this.#id}`);
         }
+    }
+
+    /** Replaces each label that matches a known mode apart from case by the known mode. */
+    #withKnownModes(modes: { [key: string]: T }): { [key: string]: T } {
+        const known = this.knownModes;
+        if (known === undefined) {
+            return modes;
+        }
+        const result: { [key: string]: T } = {};
+        for (const [key, label] of Object.entries(modes)) {
+            const match = known.find(
+                mode =>
+                    typeof mode === 'string' && typeof label === 'string' && mode.toUpperCase() === label.toUpperCase(),
+            );
+            result[key] = match ?? label;
+        }
+        return result;
     }
 
     getModes(): T[] {
@@ -729,6 +757,9 @@ export class DeviceStateObject<T> extends EventEmitter {
                         ) {
                             realValue = parseInt(realValue, 10);
                             this.adapter.log.debug(`Converted enum value to number: ${realValue}`);
+                        } else if (this.object.common.type === 'number' && typeof realValue === 'boolean') {
+                            // An enum state without listed values can be a 0 / 1 switch, e.g. SWING
+                            realValue = realValue ? 1 : 0;
                         }
                     } else {
                         this.adapter.log.info(`Cannot map enum value for ${this.#id} without modes`);

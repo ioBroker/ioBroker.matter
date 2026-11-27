@@ -115,6 +115,10 @@ export class Thermostat extends ClimateControlDevice<ThermostatMode, ThermostatW
         );
     }
 
+    protected override modeValues(): readonly ThermostatMode[] {
+        return Object.values(ThermostatMode);
+    }
+
     getValve(): number | undefined {
         if (!this.#valveState) {
             throw new Error('Valve state not found');

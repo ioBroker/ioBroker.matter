@@ -48,6 +48,14 @@ export enum AirConditionerSwing {
     Vertical = 'VERTICAL',
 }
 
+/** The value of a SWING state; a number state without listed values is a 0 / 1 switch, read as a boolean. */
+export function swingOf(
+    state: DeviceStateObject<AirConditionerSwing | boolean>,
+): AirConditionerSwing | boolean | undefined {
+    const value: unknown = state.value;
+    return typeof value === 'number' && state.getModes().length === 0 ? value !== 0 : state.value;
+}
+
 export enum AirConditionerSwingNumbers {
     AUTO = 0,
     HORIZONTAL = 1,
@@ -121,6 +129,7 @@ export class AirCondition extends ClimateControlDevice<AirConditionerMode, AirCo
                     valueType: ValueType.Enum,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Speed,
+                    knownModes: Object.values(AirConditionerSpeed),
                     callback: state => (this.#speedState = state),
                 },
                 {
@@ -135,6 +144,7 @@ export class AirCondition extends ClimateControlDevice<AirConditionerMode, AirCo
                     valueType: ValueType.Enum,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Swing,
+                    knownModes: Object.values(AirConditionerSwing),
                     callback: state => (this.#SwingState = state),
                 },
                 {
@@ -149,6 +159,7 @@ export class AirCondition extends ClimateControlDevice<AirConditionerMode, AirCo
                     valueType: ValueType.Enum,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.AirflowDirection,
+                    knownModes: Object.values(AirConditionerAirflowDirection),
                     callback: state => (this.#airflowDirectionState = state),
                 },
                 {
@@ -174,6 +185,10 @@ export class AirCondition extends ClimateControlDevice<AirConditionerMode, AirCo
                 },
             ]),
         );
+    }
+
+    protected override modeValues(): readonly AirConditionerMode[] {
+        return Object.values(AirConditionerMode);
     }
 
     getTemperature(): number | undefined {
@@ -251,7 +266,7 @@ export class AirCondition extends ClimateControlDevice<AirConditionerMode, AirCo
         if (!this.#SwingState) {
             throw new Error('Swing state not found');
         }
-        return this.#SwingState.value;
+        return swingOf(this.#SwingState);
     }
 
     setSwing(value: AirConditionerSwing | boolean): Promise<void> {

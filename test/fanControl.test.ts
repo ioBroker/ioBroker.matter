@@ -287,7 +287,6 @@ describe('FanControlMapping (bridge: ioBroker fan states to Matter FanControl)',
             expect(fakeFan({ speedModes: STEP_SPEEDS, power: true }).mapping.initialState.offAllowed).to.equal(true);
             expect(fakeFan({ level: 50 }).mapping.initialState.offAllowed).to.equal(true);
             expect(fakeFan({ speedModes: STEP_SPEEDS }).mapping.initialState.offAllowed).to.equal(false);
-            expect(fakeFan({ speedModes: [] }).mapping.initialState.offAllowed).to.equal(false);
             expect(fakeFan({ device: true, level: 50 }).mapping.initialState.offAllowed).to.equal(false);
         });
     });
@@ -843,13 +842,12 @@ describe('FanControlMapping speed steps (each Matter step sets one device step)'
         expect(await clientStep(four, FanMode.High)).to.deep.equal(['speed TURBO']);
     });
 
-    it('takes a SPEED state that lists no values as one HIGH step', async () => {
+    it('gives a SPEED state that lists no values no step and never writes it', async () => {
         const fake = await stepFan([], FanSpeed.High);
         expect(fake.mapping.initialState.fanModeSequence).to.equal(FanModeSequence.OffHigh);
-        expect(fake.matter.values).to.include({ fanMode: FanMode.High, percentSetting: 100, percentCurrent: 100 });
-        fake.fan.speed = FanSpeed.Low;
-        await fake.mapping.ioBrokerChanged();
+        expect(fake.mapping.initialState.manualSpeed).to.equal(false);
         expect(fake.matter.values.fanMode).to.equal(FanMode.Off);
+        expect(await clientStep(fake, FanMode.High)).to.deep.equal([]);
     });
 
     it('writes nothing for High when SPEED lists only AUTO and shows Auto again', async () => {
@@ -924,9 +922,7 @@ describe('FanControlMapping round trip (a write the server accepts is shown afte
         let checked = 0;
         for (const shape of shapes) {
             const powers = shape.power ? [true, false, undefined] : [undefined];
-            // A SPEED state without listed values gets the step HIGH
-            const speedValues = shape.speedModes?.length === 0 ? [FanSpeed.High] : (shape.speedModes ?? []);
-            const speeds = [undefined, ...speedValues];
+            const speeds = [undefined, ...(shape.speedModes ?? [])];
             const levels = shape.level ? [undefined, 0, 40] : [undefined];
             for (const power of powers) {
                 for (const speed of speeds) {

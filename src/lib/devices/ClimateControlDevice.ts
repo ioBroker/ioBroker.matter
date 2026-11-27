@@ -35,6 +35,9 @@ export abstract class ClimateControlDevice<
     #modeState?: DeviceStateObject<TMode>;
     #workingModeState?: DeviceStateObject<TWorkingMode>;
 
+    /** The MODE values the device class knows, see `DeviceStateDescription.knownModes`. */
+    protected abstract modeValues(): readonly TMode[];
+
     constructor(
         detectedDevice: DetectedDevice,
         adapter: ioBroker.Adapter,
@@ -74,6 +77,7 @@ export abstract class ClimateControlDevice<
                     valueType: ValueType.Enum,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Mode,
+                    knownModes: this.modeValues(),
                     callback: state => (this.#modeState = state),
                 },
                 {

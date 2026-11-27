@@ -5,6 +5,7 @@ import {
     AirConditionerSpeedNumbers,
     AirConditionerSwing,
     AirConditionerSwingNumbers,
+    swingOf,
 } from './AirCondition';
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { ElectricityDataDevice } from './ElectricityDataDevice';
@@ -49,6 +50,7 @@ export class Fan extends ElectricityDataDevice {
                     valueType: ValueType.Enum,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Speed,
+                    knownModes: Object.values(AirConditionerSpeed),
                     callback: state => (this.#speedState = state),
                 },
                 {
@@ -70,6 +72,7 @@ export class Fan extends ElectricityDataDevice {
                     valueType: ValueType.Enum,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Swing,
+                    knownModes: Object.values(AirConditionerSwing),
                     callback: state => (this.#swingState = state),
                 },
                 {
@@ -77,6 +80,7 @@ export class Fan extends ElectricityDataDevice {
                     valueType: ValueType.Enum,
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.AirflowDirection,
+                    knownModes: Object.values(AirConditionerAirflowDirection),
                     callback: state => (this.#airflowDirectionState = state),
                 },
                 {
@@ -184,7 +188,7 @@ export class Fan extends ElectricityDataDevice {
         if (!this.#swingState) {
             throw new Error('Swing state not found');
         }
-        return this.#swingState.value;
+        return swingOf(this.#swingState);
     }
 
     setSwing(value: FanSwing | boolean): Promise<void> {

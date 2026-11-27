@@ -71,9 +71,9 @@ interface SpeedSteps {
  *
  * The client write rules {@link offAllowed} and {@link manualSpeed} are not chosen per device kind but tested: a
  * FanMode is allowed only when the writes {@link plan} gives for it make {@link derive} return that FanMode again,
- * from each sample of values: power on, off and unknown; each listed SPEED value, each step and no value; level
- * unknown, 0 and 50. So an accepted FanMode stays while the device takes the writes. PercentSetting can still move
- * to the level within the range of that FanMode, see {@link plan}.
+ * from each sample of values: power on, off and unknown; each listed SPEED value and no value; level unknown, 0 and
+ * 50. So an accepted FanMode stays while the device takes the writes. PercentSetting can still move to the level
+ * within the range of that FanMode, see {@link plan}.
  */
 export class FanSpeedModel {
     readonly sequence: MatterFanControl.FanModeSequence;
@@ -197,8 +197,7 @@ export class FanSpeedModel {
     #possibleSnapshots(): SpeedSnapshot[] {
         const { power, speedModes, level } = this.#states;
         const powers = power ? [true, false, undefined] : [undefined];
-        // A SPEED state without listed values gets the step HIGH, which plan() writes
-        const speeds = [undefined, ...new Set([...(speedModes ?? []), ...this.#steps.speeds.values()])];
+        const speeds = [undefined, ...(speedModes ?? [])];
         const levels = level ? [undefined, 0, SAMPLE_LEVEL] : [undefined];
         return powers.flatMap(power => speeds.flatMap(speed => levels.map(level => ({ power, speed, level }))));
     }
@@ -228,12 +227,7 @@ export class FanSpeedModel {
 
 /** See the class description of `FanControlMapping`. */
 function speedStepsOf(modes: readonly FanSpeed[] | undefined): SpeedSteps {
-    const listed =
-        modes === undefined
-            ? new Array<FanSpeed>()
-            : modes.length === 0
-              ? [FanSpeed.High]
-              : SPEED_STEPS.filter(step => modes.includes(step));
+    const listed = SPEED_STEPS.filter(step => modes?.includes(step));
     // The first step of a group is the one its Matter step sets
     const groups = listed.map(step => [step]);
     if (groups.length > 3 && listed[0] === FanSpeed.Quiet) {

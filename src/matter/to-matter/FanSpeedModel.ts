@@ -92,7 +92,7 @@ export class FanSpeedModel {
         const auto = states.speedModes?.includes(FanSpeed.Auto) ?? false;
         this.sequence = fanModeSequenceFor(this.#steps.speeds.size, auto);
         this.variableSpeed = states.level || this.#steps.speeds.size >= 2;
-        this.offAllowed = this.#alwaysReaches(MatterFanControl.FanMode.Off);
+        this.offAllowed = this.#canRun() && this.#alwaysReaches(MatterFanControl.FanMode.Off);
         const steps = MATTER_STEPS[this.#steps.speeds.size - 1] ?? [MatterFanControl.FanMode.High];
         this.manualSpeed = steps.every(fanMode => this.#alwaysReaches(fanMode));
     }
@@ -192,6 +192,13 @@ export class FanSpeedModel {
             const writes = this.plan({ fanMode, percentSetting }, snapshot, before, SAMPLE_LEVEL);
             return this.derive(FanSpeedModel.apply(snapshot, writes), percentSetting).fanMode === fanMode;
         });
+    }
+
+    /** A fan that always shows Off has nothing a client could switch off. */
+    #canRun(): boolean {
+        return this.#possibleSnapshots().some(
+            snapshot => this.derive(snapshot, null).fanMode !== MatterFanControl.FanMode.Off,
+        );
     }
 
     #possibleSnapshots(): SpeedSnapshot[] {

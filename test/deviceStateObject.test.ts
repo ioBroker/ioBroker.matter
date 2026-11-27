@@ -143,11 +143,17 @@ describe('DeviceStateObject.setValue', function () {
         strictEqual(state.value, null);
     });
 
-    it('writes a boolean as 1 / 0 to a number enum state without listed values', async function () {
+    it('writes a boolean as 1 / 0 to a number enum state', async function () {
         const state = await createState(ValueType.Enum, { ...numberEnumCommon, states: undefined });
         await state.setValue(true);
         await state.setValue(false);
         strictEqual(JSON.stringify(written), JSON.stringify([1, 0]));
+    });
+
+    it('writes a boolean unchanged to a boolean enum state', async function () {
+        const state = await createState(ValueType.Enum, { ...numberEnumCommon, type: 'boolean', states: undefined });
+        await state.setValue(true);
+        strictEqual(written[0], true);
     });
 
     it('writes an unset nullable attribute through as null on an enum state', async function () {

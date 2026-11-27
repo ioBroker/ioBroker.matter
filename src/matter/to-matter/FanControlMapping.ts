@@ -100,7 +100,7 @@ export interface FanControlLog {
  *
  * | SPEED lists      | Matter steps                              | FanModeSequence                   |
  * | ---------------- | ----------------------------------------- | --------------------------------- |
- * | no step          | none; High is refused                     | OffHigh                           |
+ * | no step          | none; High only sets power or level       | OffHigh                           |
  * | AUTO and no step | none; High is refused                     | OffHighAuto                       |
  * | 1 step           | High                                      | OffHigh / OffHighAuto             |
  * | 2 steps          | Low, High                                 | OffLowHigh / OffLowHighAuto       |

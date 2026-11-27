@@ -287,6 +287,7 @@ describe('FanControlMapping (bridge: ioBroker fan states to Matter FanControl)',
             expect(fakeFan({ speedModes: STEP_SPEEDS, power: true }).mapping.initialState.offAllowed).to.equal(true);
             expect(fakeFan({ level: 50 }).mapping.initialState.offAllowed).to.equal(true);
             expect(fakeFan({ speedModes: STEP_SPEEDS }).mapping.initialState.offAllowed).to.equal(false);
+            expect(fakeFan({ speedModes: [] }).mapping.initialState.offAllowed).to.equal(false);
             expect(fakeFan({ device: true, level: 50 }).mapping.initialState.offAllowed).to.equal(false);
         });
     });

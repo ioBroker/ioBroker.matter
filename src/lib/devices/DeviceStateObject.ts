@@ -758,7 +758,7 @@ export class DeviceStateObject<T> extends EventEmitter {
                             realValue = parseInt(realValue, 10);
                             this.adapter.log.debug(`Converted enum value to number: ${realValue}`);
                         } else if (this.object.common.type === 'number' && typeof realValue === 'boolean') {
-                            // An enum state without listed values can be a 0 / 1 switch, e.g. SWING
+                            // A number enum state that gets a boolean is a 0 / 1 switch, e.g. SWING without listed values
                             realValue = realValue ? 1 : 0;
                         }
                     } else {

@@ -24,6 +24,7 @@ import {
     RvcCleanMode,
     RvcOperationalState,
     RvcRunMode,
+    Thermostat,
 } from '@matter/main/clusters';
 import { StateType, Types } from '@iobroker/type-detector';
 import DeviceFactory from '../src/lib/DeviceFactory';
@@ -644,6 +645,46 @@ describe('to-matter converters for type-detector v6 device types', function () {
             expect(endpoint.state.fanControl.percentCurrent).to.equal(100);
             await mounted.adapter.pushValue('MODE', 2);
             expect(endpoint.state.fanControl.percentCurrent).to.equal(0);
+        });
+
+        it('reports PercentCurrent 0 right after a controller switches an air conditioner off by OnOff', async () => {
+            const mounted = await mount(Types.airCondition, {
+                SET_COOLING: { type: 'number', val: 24, min: 16, max: 32, unit: '°C' },
+                POWER: bool(true),
+                SPEED: enumeration(FAN_SPEEDS, 1),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(100);
+            await remoteWriteContext(mounted.node, true).act(context =>
+                endpoint.agentFor(context).get(OnOffServer).off(),
+            );
+            expect(await stateValue(mounted, 'POWER')).to.equal(false);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(0);
+            await remoteWriteContext(mounted.node, true).act(context =>
+                endpoint.agentFor(context).get(OnOffServer).on(),
+            );
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(100);
+        });
+
+        it('reports PercentCurrent 0 right after a controller sets the SystemMode of an air conditioner to Off', async () => {
+            const mounted = await mount(Types.airCondition, {
+                SET_COOLING: { type: 'number', val: 24, min: 16, max: 32, unit: '°C' },
+                MODE: enumeration(['AUTO', 'COOL', 'OFF'], 1),
+                SPEED: enumeration(FAN_SPEEDS, 1),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            const thermostat = endpoint.behaviors.supported.thermostat;
+            const writeSystemMode = async (systemMode: Thermostat.SystemMode): Promise<void> => {
+                await remoteWriteContext(mounted.node).act(context => {
+                    Object.assign(endpoint.agentFor(context).get(thermostat).state, { systemMode });
+                });
+            };
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(100);
+            await writeSystemMode(Thermostat.SystemMode.Off);
+            expect(await stateValue(mounted, 'MODE')).to.equal(2);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(0);
+            await writeSystemMode(Thermostat.SystemMode.Cool);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(100);
         });
 
         it('exposes the fan of an air conditioner that only has SPEED_LEVEL and writes its PercentSetting', async () => {

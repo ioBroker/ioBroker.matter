@@ -327,6 +327,7 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                     return;
                 }
                 await this.#handleMatterSystemModeChange(value);
+                await this.#fanControl?.ioBrokerChanged();
             });
         }
         if (
@@ -381,6 +382,7 @@ export class AirConditionerToMatter extends GenericDeviceToMatter {
                         }
                     }
                 }
+                await this.#fanControl?.ioBrokerChanged();
             });
         }
 

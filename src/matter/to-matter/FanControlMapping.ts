@@ -321,7 +321,10 @@ export class FanControlMapping {
             case 'speed':
                 return speed?.set(write.value);
             case 'level':
-                return speedLevel?.set(write.value);
+                await speedLevel?.set(write.value);
+                if (write.value > 0) {
+                    this.#runningLevel = write.value;
+                }
         }
     }
 

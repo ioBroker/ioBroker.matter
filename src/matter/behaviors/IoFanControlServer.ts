@@ -21,8 +21,8 @@ function hasRocking(server: FanControlServer): server is RockingFanControlServer
  * which the matter.js FanControlServer does not do: it checks FanMode and RockSetting, couples FanMode and
  * PercentSetting by the Percent Rules, refuses Off and speeds the fan cannot do, and sets PercentCurrent to 0 on Off.
  * The checks run in the `$Changing` events, so a refused write returns its status code to the client and is rolled
- * back, and a derived value commits in the same transaction as the write. A value one handler derives starts the
- * handler of the other attribute, so the Off and Auto-only rules live in the FanMode handler only. Only writes of a
+ * back, and a derived value commits in the same transaction as the write. Both handlers check the Off and Auto-only
+ * rules, because a PercentSetting write that keeps the FanMode does not start the FanMode handler. Only writes of a
  * remote actor are checked; local writes are expected to follow the rules already.
  *
  * | Client write                        | Result                                                                      |
@@ -93,6 +93,12 @@ export class IoFanControlServer extends FanControlServer {
                 this.state.percentSetting = oldValue;
             }
             return;
+        }
+        if (percentSetting === 0 && !this.state.offAllowed) {
+            throw new StatusResponseError('The fan cannot be switched off on its own', Status.InvalidInState);
+        }
+        if (percentSetting > 0 && !this.state.manualSpeed) {
+            throw new StatusResponseError('The fan runs in Auto only', Status.InvalidInState);
         }
         if (!this.state.variableSpeed && percentSetting > 0 && percentSetting < 100) {
             throw new StatusResponseError('The fan runs at one speed only', Status.InvalidInState);

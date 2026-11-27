@@ -582,6 +582,30 @@ describe('FanControlMapping (bridge: ioBroker fan states to Matter FanControl)',
             expect(matter.values.fanMode).to.equal(FanMode.Auto);
         });
 
+        it('starts Auto with the last level written to the device, also when writes were queued', async () => {
+            const { fan, matter, mapping } = fakeFan({
+                speedModes: ALL_SPEEDS,
+                speed: FanSpeed.Low,
+                level: 20,
+                hold: true,
+            });
+            await mapping.initialize();
+            matter.clientWrite(FanMode.Low, 30);
+            const levelWrite = mapping.matterSpeedChanged();
+            matter.clientWrite(FanMode.Off, 0);
+            const offWrite = mapping.matterSpeedChanged();
+            await fan.release();
+            await fan.release();
+            await Promise.all([levelWrite, offWrite]);
+            expect(matter.values.fanMode).to.equal(FanMode.Off);
+            matter.clientWrite(FanMode.Auto, null);
+            const autoWrite = mapping.matterSpeedChanged();
+            await fan.release();
+            await fan.release();
+            await autoWrite;
+            expect(fan.writes).to.deep.equal(['level 30', 'level 0', 'level 30', 'speed AUTO']);
+        });
+
         it('keeps no earlier PercentSetting for a fan that cannot vary its speed', async () => {
             const { matter, mapping } = fakeFan({ speedModes: [FanSpeed.Auto, FanSpeed.High], speed: FanSpeed.High });
             matter.values = { ...matter.values, fanMode: FanMode.High, percentSetting: 50 };
@@ -1211,6 +1235,31 @@ describe('IoFanControlServer (client write rules before a write is accepted)', f
         expect(await clientWrite(mounted, { fanMode: FanMode.Off })).to.equal(undefined);
         expect(await clientWrite(mounted, { fanMode: FanMode.Smart })).to.equal(undefined);
         expect(fanState(mounted)).to.include({ fanMode: FanMode.Auto, percentSetting: null });
+    });
+
+    it('answers a PercentSetting that keeps the FanMode with INVALID_IN_STATE when the fan runs in Auto only', async () => {
+        const mounted = await mountFan(AutoServer, {
+            fanModeSequence: FanModeSequence.OffHighAuto,
+            fanMode: FanMode.High,
+            percentSetting: 40,
+            percentCurrent: 40,
+            manualSpeed: false,
+            offAllowed: false,
+        });
+        expect(await clientWrite(mounted, { percentSetting: 60 })).to.equal(Status.InvalidInState);
+        expect(fanState(mounted)).to.include({ fanMode: FanMode.High, percentSetting: 40 });
+    });
+
+    it('answers PercentSetting 0 with INVALID_IN_STATE when the fan is shown Off but cannot be switched off', async () => {
+        const mounted = await mountFan(RockingServer, {
+            ...lowMedHigh,
+            fanModeSequence: FanModeSequence.OffHigh,
+            fanMode: FanMode.Off,
+            percentSetting: 10,
+            percentCurrent: 0,
+            offAllowed: false,
+        });
+        expect(await clientWrite(mounted, { percentSetting: 0 })).to.equal(Status.InvalidInState);
     });
 
     it('switches a fan off with PercentSetting 0 also when it runs at one speed only', async () => {

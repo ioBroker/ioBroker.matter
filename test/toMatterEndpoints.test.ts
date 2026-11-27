@@ -1,8 +1,18 @@
 import { expect } from 'chai';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { Bytes, DeviceTypeId, Environment, LogLevel, Logger, ServerNode, Time, Timestamp, VendorId } from '@matter/main';
-import { MeasurementType } from '@matter/main/types';
+import {
+    Bytes,
+    DeviceTypeId,
+    Environment,
+    LogLevel,
+    Logger,
+    ServerNode,
+    Time,
+    Timestamp,
+    VendorId,
+} from '@matter/main';
+import { MeasurementType, Status, StatusResponseError } from '@matter/main/types';
 import {
     ConcentrationMeasurement,
     PowerSource,
@@ -14,6 +24,7 @@ import {
     RvcCleanMode,
     RvcOperationalState,
     RvcRunMode,
+    Thermostat,
 } from '@matter/main/clusters';
 import { StateType, Types } from '@iobroker/type-detector';
 import DeviceFactory from '../src/lib/DeviceFactory';
@@ -21,6 +32,7 @@ import { PropertyType } from '../src/lib/devices/DeviceStateObject';
 import type { DetectedDevice, DeviceOptions, GenericDevice } from '../src/lib/devices/GenericDevice';
 import { SubscribeManager } from '../src/lib/SubscribeManager';
 import { createMatterTestEnvironment } from './helpers/matterTestEnvironment';
+import { OnOffServer } from '@matter/main/behaviors';
 import matterDeviceFabric from '../src/matter/to-matter/matterFactory';
 import type { GenericDeviceToMatter } from '../src/matter/to-matter/GenericDeviceToMatter';
 import { AirPurifierToMatter } from '../src/matter/to-matter/AirPurifierToMatter';
@@ -35,6 +47,8 @@ import { VacuumCleanerToMatter } from '../src/matter/to-matter/VacuumCleanerToMa
 import { BaseServerNode } from '../src/matter/BaseServerNode';
 import type { MatterAdapter } from '../src/main';
 import type { StructuredJsonFormData } from '../src/lib/JsonConfigUtils';
+import { IoFanControlServer } from '../src/matter/behaviors/IoFanControlServer';
+import { remoteWriteContext } from './helpers/remoteActor';
 
 // ---------------------------------------------------------------------------------------------------------------
 // ioBroker side: a mock adapter that serves exactly the states a test asks for, so the hasX() gating in the
@@ -263,6 +277,33 @@ function endpointsOf(mounted: Mounted): any[] {
     return mounted.converter.matterEndpoints;
 }
 
+/**
+ * Writes FanControl attributes of the first endpoint as a remote client, each in its own transaction like a network
+ * write request. Resolves to the first refusing status, if any; the other attributes are still written.
+ */
+async function clientFanControlWrite(mounted: Mounted, values: Record<string, unknown>): Promise<Status | undefined> {
+    const [endpoint] = mounted.converter.matterEndpoints;
+    let refused: Status | undefined;
+    for (const [name, value] of Object.entries(values)) {
+        try {
+            await remoteWriteContext(mounted.node).act(context => {
+                Object.assign(endpoint.agentFor(context).get(IoFanControlServer).state, { [name]: value });
+            });
+        } catch (error) {
+            const status = StatusResponseError.of(error)?.code;
+            if (status === undefined) {
+                throw error;
+            }
+            refused ??= status;
+        }
+    }
+    return refused;
+}
+
+async function stateValue(mounted: Mounted, name: string): Promise<unknown> {
+    return (await mounted.adapter.getForeignStateAsync(mounted.adapter.idOf(name)))?.val;
+}
+
 /** The maintenance cluster wiring of {@link BaseServerNode}, which both node types share, without a node around it. */
 class MaintenanceClusters extends BaseServerNode {
     port = 0;
@@ -390,6 +431,167 @@ describe('to-matter converters for type-detector v6 device types', function () {
             expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.Off);
             expect(endpoint.state.fanControl.percentCurrent).to.equal(0);
         });
+
+        it('writes a controller PercentSetting to SPEED_LEVEL and moves FanMode and SPEED to its step', async () => {
+            const mounted = await mount(Types.fan, {
+                SPEED: enumeration(FAN_SPEEDS, 2),
+                POWER: bool(true),
+                SPEED_LEVEL: percent(20),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.Low);
+            expect(await clientFanControlWrite(mounted, { percentSetting: 90 })).to.equal(undefined);
+            expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.High);
+            expect(endpoint.state.fanControl.percentSetting).to.equal(90);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(90);
+            expect(await stateValue(mounted, 'SPEED_LEVEL')).to.equal(90);
+            expect(await stateValue(mounted, 'SPEED')).to.equal(FAN_SPEEDS.indexOf('HIGH'));
+        });
+
+        it('characterization: writes a controller PercentSetting within the range of the fan mode to SPEED_LEVEL', async () => {
+            const mounted = await mount(Types.fan, { SPEED: enumeration(FAN_SPEEDS, 2), SPEED_LEVEL: percent(20) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(await clientFanControlWrite(mounted, { percentSetting: 25 })).to.equal(undefined);
+            expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.Low);
+            expect(await stateValue(mounted, 'SPEED_LEVEL')).to.equal(25);
+        });
+
+        it('switches OnOff off when a controller sets fanMode Off on a fan with a power state', async () => {
+            const mounted = await mount(Types.fan, { SPEED: enumeration(FAN_SPEEDS, 3), POWER: bool(true) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(await clientFanControlWrite(mounted, { fanMode: FanControl.FanMode.Off })).to.equal(undefined);
+            expect(await stateValue(mounted, 'POWER')).to.equal(false);
+            expect(endpoint.state.onOff.onOff).to.equal(false);
+        });
+
+        it('stores a controller FanMode On as High and writes SPEED HIGH', async () => {
+            const mounted = await mount(Types.fan, { SPEED: enumeration(FAN_SPEEDS, 2), POWER: bool(true) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(await clientFanControlWrite(mounted, { fanMode: FanControl.FanMode.On })).to.equal(undefined);
+            expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.High);
+            expect(endpoint.state.fanControl.percentSetting).to.equal(100);
+            expect(await stateValue(mounted, 'SPEED')).to.equal(FAN_SPEEDS.indexOf('HIGH'));
+        });
+
+        it('reports a controller Off command of a fan with a power state as fanMode Off', async () => {
+            const mounted = await mount(Types.fan, { SPEED: enumeration(FAN_SPEEDS, 3), POWER: bool(true) });
+            const [endpoint] = endpointsOf(mounted);
+            await remoteWriteContext(mounted.node, true).act(context =>
+                endpoint.agentFor(context).get(OnOffServer).off(),
+            );
+            expect(await stateValue(mounted, 'POWER')).to.equal(false);
+            expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.Off);
+        });
+
+        it('refuses a controller Off for a fan without a power or level state', async () => {
+            const mounted = await mount(Types.fan, { SPEED: enumeration(FAN_SPEEDS, 3) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(await clientFanControlWrite(mounted, { fanMode: FanControl.FanMode.Off })).to.equal(
+                Status.InvalidInState,
+            );
+            expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.Medium);
+        });
+
+        it('writes a controller AirflowDirection to AIRFLOW_DIRECTION of a fan and shows SWING changes', async () => {
+            const mounted = await mount(Types.fan, {
+                SPEED: enumeration(FAN_SPEEDS, 3),
+                SWING: enumeration(['HORIZONTAL', 'STATIONARY'], 1),
+                AIRFLOW_DIRECTION: enumeration(AIRFLOW_DIRECTIONS, 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(
+                await clientFanControlWrite(mounted, { airflowDirection: FanControl.AirflowDirection.Reverse }),
+            ).to.equal(undefined);
+            expect(await stateValue(mounted, 'AIRFLOW_DIRECTION')).to.equal(1);
+            expect(endpoint.state.fanControl.rockSetting.rockLeftRight).to.equal(false);
+            await mounted.adapter.pushValue('SWING', 0);
+            expect(endpoint.state.fanControl.rockSetting.rockLeftRight).to.equal(true);
+        });
+
+        it('switches a fan whose SPEED labels are no known speed names through POWER', async () => {
+            const mounted = await mount(Types.fan, {
+                SPEED: enumeration(['off', 'low', 'high'], 1),
+                POWER: bool(true),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.fanModeSequence).to.equal(FanControl.FanModeSequence.OffHigh);
+            expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.High);
+            expect(await clientFanControlWrite(mounted, { fanMode: FanControl.FanMode.Off })).to.equal(undefined);
+            expect(await stateValue(mounted, 'POWER')).to.equal(false);
+            expect(await clientFanControlWrite(mounted, { fanMode: FanControl.FanMode.High })).to.equal(undefined);
+            expect(await stateValue(mounted, 'POWER')).to.equal(true);
+        });
+
+        it('refuses every speed for a fan whose SPEED labels are no known speed names and that has no POWER', async () => {
+            const mounted = await mount(Types.fan, { SPEED: enumeration(['off', 'low', 'high'], 1) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.Off);
+            expect(await clientFanControlWrite(mounted, { fanMode: FanControl.FanMode.High })).to.equal(
+                Status.InvalidInState,
+            );
+        });
+
+        it('switches a fan without POWER off and on again while SPEED is AUTO', async () => {
+            const mounted = await mount(Types.fan, { SPEED: enumeration(FAN_SPEEDS, 0), SPEED_LEVEL: percent(40) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.Auto);
+            expect(await clientFanControlWrite(mounted, { fanMode: FanControl.FanMode.Off })).to.equal(undefined);
+            expect(await stateValue(mounted, 'SPEED_LEVEL')).to.equal(0);
+            expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.Off);
+            expect(await clientFanControlWrite(mounted, { fanMode: FanControl.FanMode.Auto })).to.equal(undefined);
+            expect(await stateValue(mounted, 'SPEED_LEVEL')).to.equal(40);
+            expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.Auto);
+        });
+
+        it('refuses a step for a fan whose SPEED lists only AUTO, also with SPEED_LEVEL', async () => {
+            const mounted = await mount(Types.fan, { SPEED: enumeration(['AUTO'], 0), SPEED_LEVEL: percent(40) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(await clientFanControlWrite(mounted, { fanMode: FanControl.FanMode.High })).to.equal(
+                Status.InvalidInState,
+            );
+            expect(await clientFanControlWrite(mounted, { percentSetting: 60 })).to.equal(Status.InvalidInState);
+            expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.Auto);
+        });
+
+        it('shows SPEED_LEVEL and AIRFLOW_DIRECTION changes of a fan', async () => {
+            const mounted = await mount(Types.fan, {
+                SPEED: enumeration(FAN_SPEEDS, 2),
+                POWER: bool(true),
+                SPEED_LEVEL: percent(20),
+                AIRFLOW_DIRECTION: enumeration(AIRFLOW_DIRECTIONS, 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('SPEED_LEVEL', 25);
+            expect(endpoint.state.fanControl.percentSetting).to.equal(25);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(25);
+            await mounted.adapter.pushValue('AIRFLOW_DIRECTION', 1);
+            expect(endpoint.state.fanControl.airflowDirection).to.equal(FanControl.AirflowDirection.Reverse);
+        });
+
+        it('writes a local FanControl change of a fan not to ioBroker', async () => {
+            const mounted = await mount(Types.fan, { SPEED: enumeration(FAN_SPEEDS, 2), POWER: bool(true) });
+            const [endpoint] = endpointsOf(mounted);
+            await endpoint.setStateOf(IoFanControlServer, { fanMode: FanControl.FanMode.High, percentSetting: 100 });
+            expect(await stateValue(mounted, 'SPEED')).to.equal(FAN_SPEEDS.indexOf('LOW'));
+        });
+
+        it('refuses a controller RockSetting direction the swing state does not list', async () => {
+            const mounted = await mount(Types.fan, {
+                SPEED: enumeration(FAN_SPEEDS, 3),
+                SWING: enumeration(['HORIZONTAL', 'STATIONARY'], 1),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.rockSupport).to.deep.equal({
+                rockLeftRight: true,
+                rockUpDown: false,
+                rockRound: false,
+            });
+            expect(await clientFanControlWrite(mounted, { rockSetting: { rockUpDown: true } })).to.equal(
+                Status.ConstraintError,
+            );
+            expect(await clientFanControlWrite(mounted, { rockSetting: { rockLeftRight: true } })).to.equal(undefined);
+            expect(await stateValue(mounted, 'SWING')).to.equal(0);
+        });
     });
 
     describe('AirConditionerToMatter', () => {
@@ -401,6 +603,208 @@ describe('to-matter converters for type-detector v6 device types', function () {
             const [endpoint] = endpointsOf(mounted);
             expect(endpoint.state.fanControl.rockSupport.rockLeftRight).to.equal(true);
             expect(endpoint.state.fanControl.rockSetting.rockLeftRight).to.equal(true);
+        });
+
+        it('gives a swing-only air conditioner no Auto fan mode and only the rock directions it lists', async () => {
+            const mounted = await mount(Types.airCondition, {
+                SET_COOLING: { type: 'number', val: 24, min: 16, max: 32, unit: '°C' },
+                SWING: enumeration(['HORIZONTAL', 'STATIONARY'], 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.featureMap.auto).to.equal(false);
+            expect(endpoint.state.fanControl.fanModeSequence).to.equal(FanControl.FanModeSequence.OffHigh);
+            expect(endpoint.state.fanControl.rockSupport).to.deep.equal({
+                rockLeftRight: true,
+                rockUpDown: false,
+                rockRound: false,
+            });
+        });
+
+        it('writes a controller PercentSetting to the SPEED of an air conditioner', async () => {
+            const mounted = await mount(Types.airCondition, {
+                SET_COOLING: { type: 'number', val: 24, min: 16, max: 32, unit: '°C' },
+                POWER: bool(true),
+                SPEED: enumeration(FAN_SPEEDS, 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.Auto);
+            expect(await clientFanControlWrite(mounted, { percentSetting: 20 })).to.equal(undefined);
+            expect(await stateValue(mounted, 'SPEED')).to.equal(FAN_SPEEDS.indexOf('LOW'));
+            expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.Low);
+            expect(endpoint.state.fanControl.percentSetting).to.equal(20);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(33);
+        });
+
+        it('reports PercentCurrent 0 while the MODE of an air conditioner without POWER is OFF', async () => {
+            const mounted = await mount(Types.airCondition, {
+                SET_COOLING: { type: 'number', val: 24, min: 16, max: 32, unit: '°C' },
+                MODE: enumeration(['AUTO', 'COOL', 'OFF'], 1),
+                SPEED: enumeration(FAN_SPEEDS, 1),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(100);
+            await mounted.adapter.pushValue('MODE', 2);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(0);
+        });
+
+        it('reports PercentCurrent 0 right after a controller switches an air conditioner off by OnOff', async () => {
+            const mounted = await mount(Types.airCondition, {
+                SET_COOLING: { type: 'number', val: 24, min: 16, max: 32, unit: '°C' },
+                POWER: bool(true),
+                SPEED: enumeration(FAN_SPEEDS, 1),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(100);
+            await remoteWriteContext(mounted.node, true).act(context =>
+                endpoint.agentFor(context).get(OnOffServer).off(),
+            );
+            expect(await stateValue(mounted, 'POWER')).to.equal(false);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(0);
+            await remoteWriteContext(mounted.node, true).act(context =>
+                endpoint.agentFor(context).get(OnOffServer).on(),
+            );
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(100);
+        });
+
+        it('reports PercentCurrent 0 right after a controller sets the SystemMode of an air conditioner to Off', async () => {
+            const mounted = await mount(Types.airCondition, {
+                SET_COOLING: { type: 'number', val: 24, min: 16, max: 32, unit: '°C' },
+                MODE: enumeration(['AUTO', 'COOL', 'OFF'], 1),
+                SPEED: enumeration(FAN_SPEEDS, 1),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            const thermostat = endpoint.behaviors.supported.thermostat;
+            const writeSystemMode = async (systemMode: Thermostat.SystemMode): Promise<void> => {
+                await remoteWriteContext(mounted.node).act(context => {
+                    Object.assign(endpoint.agentFor(context).get(thermostat).state, { systemMode });
+                });
+            };
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(100);
+            await writeSystemMode(Thermostat.SystemMode.Off);
+            expect(await stateValue(mounted, 'MODE')).to.equal(2);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(0);
+            await writeSystemMode(Thermostat.SystemMode.Cool);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(100);
+        });
+
+        it('exposes the fan of an air conditioner that only has SPEED_LEVEL and writes its PercentSetting', async () => {
+            const mounted = await mount(Types.airCondition, {
+                SET_COOLING: { type: 'number', val: 24, min: 16, max: 32, unit: '°C' },
+                POWER: bool(true),
+                SPEED_LEVEL: percent(20),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.fanModeSequence).to.equal(FanControl.FanModeSequence.OffHigh);
+            expect(endpoint.state.fanControl.percentSetting).to.equal(20);
+            expect(await clientFanControlWrite(mounted, { percentSetting: 25 })).to.equal(undefined);
+            expect(await stateValue(mounted, 'SPEED_LEVEL')).to.equal(25);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(25);
+        });
+
+        it('reports PercentCurrent 0 while the MODE of an air conditioner with POWER is OFF', async () => {
+            const mounted = await mount(Types.airCondition, {
+                SET_COOLING: { type: 'number', val: 24, min: 16, max: 32, unit: '°C' },
+                POWER: bool(true),
+                MODE: enumeration(['AUTO', 'COOL', 'OFF'], 1),
+                SPEED: enumeration(FAN_SPEEDS, 1),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(100);
+            await mounted.adapter.pushValue('MODE', 2);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(0);
+            await mounted.adapter.pushValue('MODE', 1);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(100);
+        });
+
+        it('updates the fan when MODE changes to a value Matter has no system mode for', async () => {
+            const mounted = await mount(Types.airCondition, {
+                SET_COOLING: { type: 'number', val: 24, min: 16, max: 32, unit: '°C' },
+                POWER: bool(true),
+                MODE: enumeration(['COOL', 'OFF', 'VENDOR_SPECIAL'], 1),
+                SPEED: enumeration(FAN_SPEEDS, 1),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(0);
+            await mounted.adapter.pushValue('MODE', 2);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(100);
+        });
+
+        it('shows SPEED_LEVEL and AIRFLOW_DIRECTION changes of an air conditioner', async () => {
+            const mounted = await mount(Types.airCondition, {
+                SET_COOLING: { type: 'number', val: 24, min: 16, max: 32, unit: '°C' },
+                POWER: bool(true),
+                SPEED_LEVEL: percent(20),
+                AIRFLOW_DIRECTION: enumeration(AIRFLOW_DIRECTIONS, 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('SPEED_LEVEL', 70);
+            expect(endpoint.state.fanControl.percentSetting).to.equal(70);
+            await mounted.adapter.pushValue('AIRFLOW_DIRECTION', 1);
+            expect(endpoint.state.fanControl.airflowDirection).to.equal(FanControl.AirflowDirection.Reverse);
+        });
+
+        it('exposes the fan of an air conditioner that only has AIRFLOW_DIRECTION', async () => {
+            const mounted = await mount(Types.airCondition, {
+                SET_COOLING: { type: 'number', val: 24, min: 16, max: 32, unit: '°C' },
+                AIRFLOW_DIRECTION: enumeration(AIRFLOW_DIRECTIONS, 1),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.featureMap.airflowDirection).to.equal(true);
+            expect(endpoint.state.fanControl.airflowDirection).to.equal(FanControl.AirflowDirection.Reverse);
+        });
+
+        it('exposes and writes the AIRFLOW_DIRECTION of an air conditioner', async () => {
+            const mounted = await mount(Types.airCondition, {
+                SET_COOLING: { type: 'number', val: 24, min: 16, max: 32, unit: '°C' },
+                SPEED: enumeration(FAN_SPEEDS, 1),
+                AIRFLOW_DIRECTION: enumeration(AIRFLOW_DIRECTIONS, 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.fanControl.featureMap.airflowDirection).to.equal(true);
+            expect(endpoint.state.fanControl.airflowDirection).to.equal(FanControl.AirflowDirection.Forward);
+            expect(
+                await clientFanControlWrite(mounted, { airflowDirection: FanControl.AirflowDirection.Reverse }),
+            ).to.equal(undefined);
+            expect(await stateValue(mounted, 'AIRFLOW_DIRECTION')).to.equal(1);
+        });
+
+        it('writes a controller RockSetting to the SWING of an air conditioner and shows SWING changes', async () => {
+            const mounted = await mount(Types.airCondition, {
+                SET_COOLING: { type: 'number', val: 24, min: 16, max: 32, unit: '°C' },
+                SPEED: enumeration(FAN_SPEEDS, 1),
+                SWING: enumeration(['HORIZONTAL', 'STATIONARY'], 1),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(await clientFanControlWrite(mounted, { rockSetting: { rockLeftRight: true } })).to.equal(undefined);
+            expect(await stateValue(mounted, 'SWING')).to.equal(0);
+            await mounted.adapter.pushValue('SWING', 1);
+            expect(endpoint.state.fanControl.rockSetting.rockLeftRight).to.equal(false);
+        });
+
+        it('refuses a controller fan speed for a swing-only air conditioner', async () => {
+            const mounted = await mount(Types.airCondition, {
+                SET_COOLING: { type: 'number', val: 24, min: 16, max: 32, unit: '°C' },
+                SWING: enumeration(['HORIZONTAL', 'STATIONARY'], 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(await clientFanControlWrite(mounted, { percentSetting: 50 })).to.equal(Status.InvalidInState);
+            expect(endpoint.state.fanControl.percentSetting).to.equal(100);
+        });
+
+        it('refuses a controller fan Off on an air conditioner and reports PercentCurrent 0 while it is off', async () => {
+            const mounted = await mount(Types.airCondition, {
+                SET_COOLING: { type: 'number', val: 24, min: 16, max: 32, unit: '°C' },
+                POWER: bool(true),
+                SPEED: enumeration(FAN_SPEEDS, 1),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            expect(await clientFanControlWrite(mounted, { fanMode: FanControl.FanMode.Off })).to.equal(
+                Status.InvalidInState,
+            );
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(100);
+            await mounted.adapter.pushValue('POWER', false);
+            expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.High);
+            expect(endpoint.state.fanControl.percentCurrent).to.equal(0);
         });
     });
 
@@ -918,6 +1322,7 @@ describe('to-matter converters for type-detector v6 device types', function () {
             expect(new Set(labels).size, 'Matter rejects a duplicate label').to.equal(2);
             expect(Math.max(...labels.map((label: string) => label.length))).to.be.at.most(64);
         });
+
         it('crops a mode name to 64 UTF-8 bytes, not 64 characters', async () => {
             const shared = 'Ü'.repeat(32);
             const mounted = await mount(Types.vacuumCleaner, {

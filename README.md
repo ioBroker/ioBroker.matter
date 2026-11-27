@@ -125,10 +125,23 @@ are not checked again.
 Some ioBroker air conditioner capabilities have no direct Matter equivalent. When exposing an ioBroker device to Matter these are mapped as follows:
 
 * `MODE` `ECO` → Matter has no Eco system mode, controlled as `Auto`.
-* `SPEED` `QUIET` → Matter has no Quiet fan mode, controlled as `Low`.
-* `SPEED` `TURBO` → Matter has no Turbo fan mode, controlled as `High`.
-* `SWING` `AUTO` → Matter has no Auto swing, mapped to rocking enabled.
+* `SPEED` → see the fan speed steps below.
+* `SWING` `AUTO` → Matter has no Auto swing, shown as rocking left/right, or up/down when the swing state lists `VERTICAL` but not `HORIZONTAL`. Matter only offers the rocking directions the swing state lists; a swing state that lists only `AUTO`, or a boolean swing state, is offered as rocking left/right.
 * `BOOST` → Matter Room Air Conditioner has no boost cluster, exposed as an additional On/Off endpoint.
+* The fan of an air conditioner follows the power and the mode of the air conditioner, so a Matter controller cannot switch it off on its own. Such a request is answered with an error. While the air conditioner is off, the fan reports a current speed of 0 %.
+
+### Fan speed steps (fans, air purifiers and air conditioners exposed to Matter)
+
+Matter offers at most the fan modes `Low`, `Medium` and `High`, plus `Off` and `Auto`. The steps the `SPEED` state lists (`QUIET` < `LOW` < `MEDIUM` < `HIGH` < `TURBO`) are used in this order, so every Matter fan mode sets exactly one ioBroker step:
+
+* One step → `High`. Two steps → `Low` and `High`. Three steps → `Low`, `Medium` and `High`.
+* Four or five steps → `QUIET` is combined with the step above it and then `TURBO` with the step below it, until three steps remain. A combined `QUIET` is shown as `Low` and a combined `TURBO` as `High`; they can only be set in ioBroker.
+* `Auto` is only offered when the `SPEED` state lists `AUTO`. A fan whose `SPEED` state lists `AUTO` and no step runs in Auto only, also with a `SPEED_LEVEL` state: a controller request for a step or a percent is answered with an error.
+* `Off` and `High` are always offered, as Matter requires. `Off` works for a stand-alone fan or air purifier with a power or speed level state; otherwise it is answered with an error.
+* With both a `SPEED` and a `SPEED_LEVEL` state, the `SPEED` step decides the fan mode. The speed level is shown as the set percent only while it lies in the range of that step, and as the current percent while the fan runs. The ranges are `Low` 1–33 %, `Medium` 34–66 % and `High` 67–100 % with three steps; with two steps `High` is 34–100 %, with one step 1–100 %.
+* A change from a controller writes only the states that do not already fit it. A new fan mode writes `SPEED`, and `SPEED_LEVEL` only when the level lies outside the new step. A new percent writes `SPEED_LEVEL`, and `SPEED` only when the step changes. A percent of exactly 33, 66 or 100 % cannot be told apart from a fan mode change, so it is only written when the level lies outside the step; the shown percent then follows the level.
+* `SPEED` values that are no known speed names (e.g. `{"1": "low"}` in lower case, or numbers) give no steps. The fan is then shown by its `SPEED_LEVEL`; without a level above 0 it is shown as `High` when it has a power state that is not off, and as `Off` for a stand-alone fan without a power state. Such a fan can only be switched through its power or speed level state.
+* A fan without a `SPEED_LEVEL` state and with fewer than two steps refuses a percent between 1 % and 99 %. A fan with steps but no speed level reports the percent of its step (33, 66 or 100 %) as its current speed.
 
 ## Development
 
@@ -161,6 +174,10 @@ Tests are located in the `test/` directory and use ts-node for direct TypeScript
 ### **WORK IN PROGRESS**
 - (copilot) Adapter requires node.js >= 22.19.0 now
 * (@Apollon77) **IMPORTANT:** Node.js 22 is now the minimum required version
+* (@Apollon77) Fans, air purifiers and air conditioners exposed to Matter: the fan modes now follow the speed steps the `SPEED` state lists, so each step can be set from a controller. A fan with only `MEDIUM` and `HIGH` now shows `MEDIUM` as `Low` instead of `High`; an air conditioner shows it as `Low` instead of `Medium`. See "Fan speed steps" in the Device Mapping Notes
+* (@Apollon77) Fans, air purifiers and air conditioners exposed to Matter: a fan speed in percent set by a controller now also reaches an air conditioner, the set percent of a fan with a speed and a speed level state always lies in the range of the shown fan mode, a change writes only the states that do not already fit it, and a fan whose power is on no longer reports `Off` when its speed is unknown
+* (@Apollon77) Fans, air purifiers and air conditioners exposed to Matter: controllers are offered `Auto` only when the `SPEED` state lists `AUTO`, and only the swing directions the swing state lists. A fan mode or swing direction the device does not have is answered with an error, and so is switching off the fan of an air conditioner or of a fan without a power or speed level state
+* (@Apollon77) A controller that still shows the old fan modes or swing options after the update may need the fan, air purifier or air conditioner to be removed and added again
 * (@Apollon77) Fixed the software version that bridges and devices report to Matter controllers getting smaller on minor and major adapter updates (1.3.1 was reported as 10301, 1.4.0 as 401). The version is now reported as major, minor and patch in groups of three digits (1.3.1 becomes 1003001), so it increases with every release as long as minor and patch stay below 1000
 * (@Apollon77) Device, bridge and bridged device names, vacuum cleaner mode labels and the controller fabric label are now cut to the Matter length limit in UTF-8 bytes instead of characters. A long name with umlauts or other non-ASCII characters could exceed the limit, which matter.js 0.18.1 rejects, so the device or bridge would not start or a bridged device was not added
 * (@Apollon77) The raw event states of a controller device now carry the absolute event time when a device reports a time relative to the previous event and matter.js can resolve it, in `epochTimestamp` or `systemTimestamp` instead of `deltaEpochTimestamp` or `deltaSystemTimestamp`. When it cannot be resolved, the relative time stays in the delta field

@@ -2,24 +2,11 @@ import { BlindButtons } from './BlindButtons';
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
 
-export enum BlindDirections {
-    None = 'None',
-    UpOrOpen = 'Up/Open',
-    DownOrClose = 'Down/Close',
-    Unknown = 'Unknown',
-}
-
-export enum BlindDirectionsNumbers {
-    None = 0,
-    'Up/Open' = 1,
-    'Down/Close' = 2,
-    Unknown = 3,
-}
+export { BlindDirections, BlindDirectionsNumbers } from './BlindDirections';
 
 export class Blind extends BlindButtons {
     #setLevelState?: DeviceStateObject<number>;
     #getLevelState?: DeviceStateObject<number>;
-    #directionEnumState?: DeviceStateObject<BlindDirections>;
 
     constructor(detectedDevice: DetectedDevice, adapter: ioBroker.Adapter, options?: DeviceOptions) {
         super(detectedDevice, adapter, options);
@@ -39,13 +26,6 @@ export class Blind extends BlindButtons {
                     accessType: StateAccessType.ReadWrite,
                     type: PropertyType.Level,
                     callback: state => (this.#setLevelState = state),
-                },
-                {
-                    name: 'DIRECTION_ENUM',
-                    valueType: ValueType.Enum,
-                    accessType: StateAccessType.Read,
-                    type: PropertyType.DirectionEnum,
-                    callback: state => (this.#directionEnumState = state),
                 },
             ]),
         );
@@ -91,28 +71,15 @@ export class Blind extends BlindButtons {
         return !!this.#setLevelState;
     }
 
-    getDirectionEnum(): BlindDirections | undefined {
-        if (!this.#directionEnumState) {
-            throw new Error('Direction state not found');
-        }
-        return this.#directionEnumState.value;
+    hasLevelActual(): boolean {
+        return !!this.#getLevelState;
     }
 
-    setDirectionEnum(value: BlindDirections): Promise<void> {
-        if (!this.#directionEnumState) {
-            throw new Error('Direction state not found');
+    /** The level last set (SET), unlike {@link getLevel}, which prefers ACTUAL. */
+    getTargetLevel(): number | undefined {
+        if (!this.#setLevelState) {
+            throw new Error('Level state not found');
         }
-        return this.#directionEnumState.setValue(value);
-    }
-
-    updateDirectionEnum(value: BlindDirections): Promise<void> {
-        if (!this.#directionEnumState) {
-            throw new Error('Direction state not found');
-        }
-        return this.#directionEnumState.updateValue(value);
-    }
-
-    hasDirectionEnum(): boolean {
-        return !!this.#directionEnumState;
+        return this.#setLevelState.value;
     }
 }

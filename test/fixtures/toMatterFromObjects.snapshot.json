@@ -33,7 +33,10 @@
               "maintenanceMode": false,
               "ledFeedback": false
             },
-            "operationalStatus": {},
+            "operationalStatus": {
+              "global": 0,
+              "lift": 0
+            },
             "supportsMaintenanceMode": true,
             "type": 0
           }
@@ -80,6 +83,7 @@
             },
             "operationalStatus": {
               "global": 0,
+              "lift": 0,
               "tilt": 0
             },
             "supportsMaintenanceMode": true,

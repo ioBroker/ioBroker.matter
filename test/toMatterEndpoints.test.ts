@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import {
     Bytes,
     DeviceTypeId,
+    type Endpoint,
     Environment,
     LogLevel,
     Logger,
@@ -25,6 +26,7 @@ import {
     RvcOperationalState,
     RvcRunMode,
     Thermostat,
+    WindowCovering,
 } from '@matter/main/clusters';
 import { StateType, Types } from '@iobroker/type-detector';
 import DeviceFactory from '../src/lib/DeviceFactory';
@@ -49,6 +51,7 @@ import type { MatterAdapter } from '../src/main';
 import type { StructuredJsonFormData } from '../src/lib/JsonConfigUtils';
 import { IoFanControlServer } from '../src/matter/behaviors/IoFanControlServer';
 import { remoteWriteContext } from './helpers/remoteActor';
+import { EventedWindowCoveringServer } from '../src/matter/behaviors/EventedWindowCoveringServer';
 
 // ---------------------------------------------------------------------------------------------------------------
 // ioBroker side: a mock adapter that serves exactly the states a test asks for, so the hasX() gating in the
@@ -161,7 +164,13 @@ class MockAdapter {
         return state;
     }
 
+    /** Lets every state write fail, as a refused write of the real adapter would. */
+    failWrites = false;
+
     async setForeignStateAsync(id: string, value: any): Promise<void> {
+        if (this.failWrites) {
+            throw new Error(`Write of ${id} refused`);
+        }
         const val = typeof value === 'object' && value !== null && 'val' in value ? value.val : value;
         this.#values.set(id, { val, ack: true, ts: Date.now() } as ioBroker.State);
     }
@@ -180,11 +189,37 @@ class MockAdapter {
     unsubscribeStates(): void {}
     async extendObjectAsync(): Promise<void> {}
     extendObject(): void {}
-    setTimeout(callback: () => void, ms: number): any {
-        return setTimeout(callback, ms);
+    readonly #timers = new Map<NodeJS.Timeout, () => void>();
+    setTimeout(callback: () => void, ms: number): NodeJS.Timeout {
+        const timer = setTimeout(() => {
+            this.#timers.delete(timer);
+            callback();
+        }, ms);
+        this.#timers.set(timer, callback);
+        return timer;
     }
-    clearTimeout(timer: any): void {
-        clearTimeout(timer);
+    clearTimeout(timer: NodeJS.Timeout | undefined): void {
+        if (timer !== undefined) {
+            this.#timers.delete(timer);
+            clearTimeout(timer);
+        }
+    }
+    /** Runs every pending timer now instead of after its delay. */
+    async fireAllTimers(): Promise<void> {
+        const pending = [...this.#timers];
+        this.#timers.clear();
+        for (const [timer, callback] of pending) {
+            clearTimeout(timer);
+            callback();
+        }
+        await settle();
+    }
+}
+
+/** Lets the async work that Matter events and timers started finish. */
+async function settle(): Promise<void> {
+    for (let round = 0; round < 10; round++) {
+        await new Promise(resolve => setImmediate(resolve));
     }
 }
 
@@ -888,6 +923,335 @@ describe('to-matter converters for type-detector v6 device types', function () {
             await mounted.adapter.pushValue('POWER', false);
             expect(endpoint.state.fanControl.fanMode).to.equal(FanControl.FanMode.High);
             expect(endpoint.state.fanControl.percentCurrent).to.equal(0);
+        });
+    });
+
+    describe('BlindsToMatter', () => {
+        const { Feature, MovementStatus } = WindowCovering;
+        const LiftCovering = EventedWindowCoveringServer.with(Feature.Lift, Feature.PositionAwareLift);
+        const ButtonCovering = EventedWindowCoveringServer.with(Feature.Lift, Feature.Tilt, Feature.PositionAwareTilt);
+        const NOT_MOVING = { global: MovementStatus.Stopped, lift: MovementStatus.Stopped };
+
+        /** Sends a command as a remote client and waits until the converter handled it. */
+        async function command(
+            mounted: Mounted,
+            send: (agent: ReturnType<Endpoint['agentFor']>) => unknown,
+        ): Promise<void> {
+            const [endpoint] = endpointsOf(mounted);
+            await remoteWriteContext(mounted.node, true).act(context => send(endpoint.agentFor(context)));
+            await settle();
+        }
+
+        async function goToLift(mounted: Mounted, liftPercent100thsValue: number): Promise<void> {
+            await command(mounted, agent => agent.get(LiftCovering).goToLiftPercentage({ liftPercent100thsValue }));
+        }
+
+        it('reports a lift movement until ACTUAL reaches the target', async () => {
+            const mounted = await mount(Types.blind, { SET: percent(30), ACTUAL: percent(30) });
+            const [endpoint] = endpointsOf(mounted);
+            await goToLift(mounted, 2500);
+            expect(await stateValue(mounted, 'SET')).to.equal(75);
+            expect(endpoint.state.windowCovering.currentPositionLiftPercent100ths).to.equal(7000);
+            expect(endpoint.state.windowCovering.operationalStatus.lift).to.equal(MovementStatus.Opening);
+
+            await mounted.adapter.pushValue('SET', 75);
+            expect(endpoint.state.windowCovering.currentPositionLiftPercent100ths).to.equal(7000);
+            await mounted.adapter.pushValue('ACTUAL', 50);
+            expect(endpoint.state.windowCovering.operationalStatus.lift).to.equal(MovementStatus.Opening);
+            await mounted.adapter.pushValue('ACTUAL', 75);
+            expect(endpoint.state.windowCovering.currentPositionLiftPercent100ths).to.equal(2500);
+            expect(endpoint.state.windowCovering.operationalStatus).to.include(NOT_MOVING);
+        });
+
+        it('starts as not moving when SET and ACTUAL differ', async () => {
+            const mounted = await mount(Types.blind, { SET: percent(74), ACTUAL: percent(30) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.windowCovering.currentPositionLiftPercent100ths).to.equal(7000);
+            expect(endpoint.state.windowCovering.targetPositionLiftPercent100ths).to.equal(7000);
+            expect(endpoint.state.windowCovering.operationalStatus).to.include(NOT_MOVING);
+        });
+
+        it('ends a movement when ACTUAL stops within 1 % of the target, also without a SET ack', async () => {
+            const mounted = await mount(Types.blind, { SET: percent(30), ACTUAL: percent(30) });
+            const [endpoint] = endpointsOf(mounted);
+            await goToLift(mounted, 2550);
+            expect(await stateValue(mounted, 'SET')).to.equal(74);
+            await mounted.adapter.pushValue('ACTUAL', 74);
+            expect(endpoint.state.windowCovering.targetPositionLiftPercent100ths).to.equal(2600);
+            expect(endpoint.state.windowCovering.operationalStatus).to.include(NOT_MOVING);
+        });
+
+        it('ends a movement whose ACTUAL stops changing before the target', async () => {
+            const mounted = await mount(Types.blind, { SET: percent(30), ACTUAL: percent(30) });
+            const [endpoint] = endpointsOf(mounted);
+            await goToLift(mounted, 0);
+            await mounted.adapter.pushValue('ACTUAL', 96);
+            expect(endpoint.state.windowCovering.operationalStatus.lift).to.equal(MovementStatus.Opening);
+            await mounted.adapter.fireAllTimers();
+            expect(endpoint.state.windowCovering.targetPositionLiftPercent100ths).to.equal(400);
+            expect(endpoint.state.windowCovering.operationalStatus).to.include(NOT_MOVING);
+        });
+
+        it('reports no movement for UpOrOpen of a blind that is already open', async () => {
+            const mounted = await mount(Types.blind, { SET: percent(100), ACTUAL: percent(100) });
+            const [endpoint] = endpointsOf(mounted);
+            await command(mounted, agent => agent.get(LiftCovering).upOrOpen());
+            expect(endpoint.state.windowCovering.operationalStatus).to.include(NOT_MOVING);
+        });
+
+        it('follows a blind moved by hand without reporting a movement', async () => {
+            const mounted = await mount(Types.blind, { SET: percent(30), ACTUAL: percent(30) });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('ACTUAL', 60);
+            expect(endpoint.state.windowCovering.currentPositionLiftPercent100ths).to.equal(4000);
+            expect(endpoint.state.windowCovering.targetPositionLiftPercent100ths).to.equal(4000);
+            expect(endpoint.state.windowCovering.operationalStatus).to.include(NOT_MOVING);
+        });
+
+        it('ends a tilt movement when TILT_ACTUAL reaches the target', async () => {
+            const mounted = await mount(Types.blindButtons, {
+                OPEN: bool(false),
+                CLOSE: bool(false),
+                TILT_SET: percent(30),
+                TILT_ACTUAL: percent(30),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await command(mounted, agent =>
+                agent.get(ButtonCovering).goToTiltPercentage({ tiltPercent100thsValue: 2500 }),
+            );
+            expect(await stateValue(mounted, 'TILT_SET')).to.equal(75);
+            expect(endpoint.state.windowCovering.operationalStatus.tilt).to.equal(MovementStatus.Opening);
+            await mounted.adapter.pushValue('TILT_ACTUAL', 75);
+            expect(endpoint.state.windowCovering.operationalStatus.tilt).to.equal(MovementStatus.Stopped);
+        });
+
+        it('reports the movement of a button blind from DIRECTION_ENUM', async () => {
+            const mounted = await mount(Types.blindButtons, {
+                OPEN: bool(false),
+                CLOSE: bool(false),
+                STOP: bool(false),
+                TILT_SET: percent(30),
+                DIRECTION_ENUM: enumeration(['None', 'Up/Open', 'Down/Close', 'Unknown'], 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await command(mounted, agent => agent.get(ButtonCovering).downOrClose());
+            expect(await stateValue(mounted, 'CLOSE')).to.equal(true);
+            expect(endpoint.state.windowCovering.operationalStatus.lift).to.equal(MovementStatus.Closing);
+            await mounted.adapter.pushValue('DIRECTION_ENUM', 2);
+            expect(endpoint.state.windowCovering.operationalStatus.lift).to.equal(MovementStatus.Closing);
+            await mounted.adapter.pushValue('DIRECTION_ENUM', 0);
+            expect(endpoint.state.windowCovering.operationalStatus.lift).to.equal(MovementStatus.Stopped);
+        });
+
+        it('keeps a blind moving while WORKING is true and ends the movement when it goes false', async () => {
+            const mounted = await mount(Types.blind, {
+                SET: percent(30),
+                ACTUAL: percent(30),
+                WORKING: bool(false),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await goToLift(mounted, 0);
+            await mounted.adapter.pushValue('WORKING', true);
+            await mounted.adapter.pushValue('ACTUAL', 90);
+            await mounted.adapter.fireAllTimers();
+            expect(endpoint.state.windowCovering.operationalStatus.lift).to.equal(MovementStatus.Opening);
+            await mounted.adapter.pushValue('WORKING', false);
+            expect(endpoint.state.windowCovering.targetPositionLiftPercent100ths).to.equal(1000);
+            expect(endpoint.state.windowCovering.operationalStatus).to.include(NOT_MOVING);
+        });
+
+        it('reports no movement when the SET write fails', async () => {
+            const mounted = await mount(Types.blind, { SET: percent(30) });
+            const [endpoint] = endpointsOf(mounted);
+            mounted.adapter.failWrites = true;
+            await goToLift(mounted, 2500);
+            expect(endpoint.state.windowCovering.currentPositionLiftPercent100ths).to.equal(7000);
+            expect(endpoint.state.windowCovering.targetPositionLiftPercent100ths).to.equal(7000);
+            expect(endpoint.state.windowCovering.operationalStatus).to.include(NOT_MOVING);
+        });
+
+        it('reports the movement of a blind with SET and ACTUAL from DIRECTION_ENUM', async () => {
+            const mounted = await mount(Types.blind, {
+                SET: percent(30),
+                ACTUAL: percent(30),
+                DIRECTION_ENUM: enumeration(['none', 'up/open', 'down/close', 'unknown'], 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await goToLift(mounted, 2500);
+            await mounted.adapter.pushValue('DIRECTION_ENUM', 1);
+            await mounted.adapter.pushValue('ACTUAL', 74);
+            expect(endpoint.state.windowCovering.operationalStatus.lift).to.equal(MovementStatus.Opening);
+            await mounted.adapter.pushValue('DIRECTION_ENUM', 0);
+            expect(endpoint.state.windowCovering.targetPositionLiftPercent100ths).to.equal(2600);
+            expect(endpoint.state.windowCovering.operationalStatus).to.include(NOT_MOVING);
+        });
+
+        it('keeps reporting a movement while DIRECTION_ENUM does, also when ACTUAL is at the target', async () => {
+            const mounted = await mount(Types.blind, {
+                SET: percent(30),
+                ACTUAL: percent(30),
+                DIRECTION_ENUM: enumeration(['None', 'Up/Open', 'Down/Close', 'Unknown'], 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await goToLift(mounted, 2500);
+            await mounted.adapter.pushValue('DIRECTION_ENUM', 1);
+            await mounted.adapter.pushValue('ACTUAL', 75);
+            expect(endpoint.state.windowCovering.operationalStatus.lift).to.equal(MovementStatus.Opening);
+        });
+
+        it('reads DIRECTION_ENUM labels such as UP and DOWN', async () => {
+            const mounted = await mount(Types.blindButtons, {
+                OPEN: bool(false),
+                CLOSE: bool(false),
+                TILT_SET: percent(30),
+                DIRECTION_ENUM: enumeration(['STOP', 'UP', 'DOWN'], 0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('DIRECTION_ENUM', 2);
+            expect(endpoint.state.windowCovering.operationalStatus.lift).to.equal(MovementStatus.Closing);
+        });
+
+        it('reports no movement for a repeated SET after a start with SET and ACTUAL apart', async () => {
+            const mounted = await mount(Types.blind, { SET: percent(74), ACTUAL: percent(30) });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('SET', 74);
+            expect(endpoint.state.windowCovering.operationalStatus).to.include(NOT_MOVING);
+        });
+
+        it('ends the movement of every axis on StopMotion, also when one stop write fails', async () => {
+            const mounted = await mount(Types.blindButtons, {
+                OPEN: bool(false),
+                CLOSE: bool(false),
+                STOP: bool(false),
+                TILT_SET: percent(30),
+                TILT_ACTUAL: percent(30),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await command(mounted, agent =>
+                agent.get(ButtonCovering).goToTiltPercentage({ tiltPercent100thsValue: 2500 }),
+            );
+            expect(endpoint.state.windowCovering.operationalStatus.tilt).to.equal(MovementStatus.Opening);
+            mounted.adapter.failWrites = true;
+            await command(mounted, agent => agent.get(ButtonCovering).stopMotion());
+            expect(endpoint.state.windowCovering.operationalStatus.tilt).to.equal(MovementStatus.Stopped);
+            expect(endpoint.state.windowCovering.targetPositionTiltPercent100ths).to.equal(7000);
+        });
+
+        it('lets no replaced watchdog end a movement that a queued position change restarted', async () => {
+            const mounted = await mount(Types.blind, { SET: percent(30), ACTUAL: percent(30) });
+            const [endpoint] = endpointsOf(mounted);
+            await goToLift(mounted, 0);
+            const position = mounted.adapter.pushValue('ACTUAL', 50);
+            await mounted.adapter.fireAllTimers();
+            await position;
+            await settle();
+            expect(endpoint.state.windowCovering.operationalStatus.lift).to.equal(MovementStatus.Opening);
+        });
+
+        it('leaves OperationalStatus to the converter when the target changes otherwise', async () => {
+            const mounted = await mount(Types.blind, { SET: percent(30), ACTUAL: percent(30) });
+            const [endpoint] = endpointsOf(mounted);
+            await endpoint.setStateOf(LiftCovering, { targetPositionLiftPercent100ths: 2000 });
+            expect(endpoint.state.windowCovering.operationalStatus).to.include(NOT_MOVING);
+        });
+
+        it('reads DIRECTION_ENUM without listed values by its number', async () => {
+            const mounted = await mount(Types.blindButtons, {
+                OPEN: bool(false),
+                CLOSE: bool(false),
+                TILT_SET: percent(30),
+                DIRECTION_ENUM: num(0),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('DIRECTION_ENUM', 2);
+            expect(endpoint.state.windowCovering.operationalStatus.lift).to.equal(MovementStatus.Closing);
+        });
+
+        it('reports no movement for a repeated SET or the ack of its own SET write', async () => {
+            const mounted = await mount(Types.blind, { SET: percent(30), ACTUAL: percent(30) });
+            const [endpoint] = endpointsOf(mounted);
+            await mounted.adapter.pushValue('ACTUAL', 60);
+            await mounted.adapter.pushValue('SET', 30);
+            expect(endpoint.state.windowCovering.operationalStatus).to.include(NOT_MOVING);
+            await goToLift(mounted, 2550);
+            await mounted.adapter.pushValue('ACTUAL', 75);
+            expect(endpoint.state.windowCovering.targetPositionLiftPercent100ths).to.equal(2500);
+            await mounted.adapter.pushValue('SET', 74);
+            expect(endpoint.state.windowCovering.operationalStatus).to.include(NOT_MOVING);
+        });
+
+        it('reports no movement for UpOrOpen of an open blind without ACTUAL', async () => {
+            const mounted = await mount(Types.blind, { SET: percent(100) });
+            const [endpoint] = endpointsOf(mounted);
+            await command(mounted, agent => agent.get(LiftCovering).upOrOpen());
+            expect(endpoint.state.windowCovering.operationalStatus).to.include(NOT_MOVING);
+        });
+
+        it('keeps CurrentPositionLiftPercentage in step with the position', async () => {
+            const mounted = await mount(Types.blind, { SET: percent(30), ACTUAL: percent(30) });
+            const [endpoint] = endpointsOf(mounted);
+            expect(endpoint.state.windowCovering.currentPositionLiftPercentage).to.equal(70);
+            await mounted.adapter.pushValue('ACTUAL', 55);
+            expect(endpoint.state.windowCovering.currentPositionLiftPercentage).to.equal(45);
+        });
+
+        it('presses CLOSE for UpOrOpen when a client set the motor reversed', async () => {
+            const mounted = await mount(Types.blindButtons, {
+                OPEN: bool(false),
+                CLOSE: bool(false),
+                TILT_SET: percent(30),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await remoteWriteContext(mounted.node).act(context => {
+                endpoint.agentFor(context).get(ButtonCovering).state.mode = { motorDirectionReversed: true };
+            });
+            await command(mounted, agent => agent.get(ButtonCovering).upOrOpen());
+            expect(await stateValue(mounted, 'CLOSE')).to.equal(true);
+            expect(await stateValue(mounted, 'OPEN')).to.equal(false);
+        });
+
+        it('takes SET as the position of a blind without ACTUAL, also without a SET ack', async () => {
+            const mounted = await mount(Types.blind, { SET: percent(30) });
+            const [endpoint] = endpointsOf(mounted);
+            await goToLift(mounted, 2500);
+            expect(endpoint.state.windowCovering.currentPositionLiftPercent100ths).to.equal(2500);
+            expect(endpoint.state.windowCovering.operationalStatus).to.include(NOT_MOVING);
+        });
+
+        it('writes the ACTUAL level to SET on StopMotion of a blind without STOP', async () => {
+            const mounted = await mount(Types.blind, { SET: percent(30), ACTUAL: percent(30) });
+            const [endpoint] = endpointsOf(mounted);
+            await goToLift(mounted, 2500);
+            await mounted.adapter.pushValue('ACTUAL', 50);
+            await command(mounted, agent => agent.get(LiftCovering).stopMotion());
+            expect(await stateValue(mounted, 'SET')).to.equal(50);
+            expect(endpoint.state.windowCovering.targetPositionLiftPercent100ths).to.equal(5000);
+        });
+
+        it('presses OPEN for a lift without level and reports no movement it cannot follow', async () => {
+            const mounted = await mount(Types.blindButtons, {
+                OPEN: bool(false),
+                CLOSE: bool(false),
+                STOP: bool(false),
+                TILT_SET: percent(30),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await command(mounted, agent => agent.get(ButtonCovering).upOrOpen());
+            expect(await stateValue(mounted, 'OPEN')).to.equal(true);
+            expect(endpoint.state.windowCovering.operationalStatus.lift).to.equal(MovementStatus.Stopped);
+        });
+
+        it('presses only the lift STOP on StopMotion when the tilt has no stop button', async () => {
+            const mounted = await mount(Types.blindButtons, {
+                OPEN: bool(false),
+                CLOSE: bool(false),
+                STOP: bool(false),
+                TILT_SET: percent(30),
+            });
+            const [endpoint] = endpointsOf(mounted);
+            await command(mounted, agent => agent.get(ButtonCovering).stopMotion());
+            expect(await stateValue(mounted, 'STOP')).to.equal(true);
+            expect(await stateValue(mounted, 'TILT_SET')).to.equal(30);
         });
     });
 

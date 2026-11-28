@@ -1,6 +1,6 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
-import { BlindDirections, BlindDirectionsNumbers } from './Blind';
+import { BlindDirections, BlindDirectionsNumbers } from './BlindDirections';
 
 export type GateDirections = BlindDirections;
 export const GateDirections = BlindDirections;

@@ -1,6 +1,6 @@
 import { type DeviceStateObject, PropertyType, ValueType } from './DeviceStateObject';
 import { GenericDevice, type DetectedDevice, type DeviceOptions, StateAccessType } from './GenericDevice';
-import type { BlindDirections } from './Blind';
+import { BlindDirections } from './BlindDirections';
 
 /*
 Blinds controlled only by buttons [blindButtons]
@@ -99,6 +99,7 @@ export class BlindButtons extends GenericDevice {
                     valueType: ValueType.Enum,
                     accessType: StateAccessType.Read,
                     type: PropertyType.DirectionEnum,
+                    knownModes: Object.values(BlindDirections),
                     callback: state => (this.#directionEnumState = state),
                 },
             ]),
@@ -139,7 +140,7 @@ export class BlindButtons extends GenericDevice {
     }
 
     hasTiltStopButton(): boolean {
-        return !!this.#setStopState;
+        return !!this.#setTiltStopState;
     }
 
     getTiltLevel(): number | undefined {
@@ -158,6 +159,18 @@ export class BlindButtons extends GenericDevice {
 
     hasTiltLevel(): boolean {
         return !!this.#setTiltState;
+    }
+
+    hasTiltLevelActual(): boolean {
+        return !!this.#getTiltState;
+    }
+
+    /** The tilt level last set (TILT_SET), unlike {@link getTiltLevel}, which prefers TILT_ACTUAL. */
+    getTargetTiltLevel(): number | undefined {
+        if (!this.#setTiltState) {
+            throw new Error('Tilt state not found');
+        }
+        return this.#setTiltState.value;
     }
 
     async updateTiltLevel(value: number): Promise<void> {
@@ -205,10 +218,6 @@ export class BlindButtons extends GenericDevice {
 
     hasTiltButtons(): boolean {
         return !!(this.#setTiltOpenState && this.#setTiltCloseState);
-    }
-
-    hastTiltStopButton(): boolean {
-        return !!this.#setTiltStopState;
     }
 
     getDirectionEnum(): BlindDirections | undefined {
